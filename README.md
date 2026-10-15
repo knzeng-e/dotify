@@ -31,9 +31,9 @@ aura lights the whole field (`web/src/styles/aura.css`).
 
 - **Music**: an actionable horizontal catalog first, followed by real open rooms, policy-aware listening,
   and one-step room hosting without a permanent player navigation tab.
-- **Rooms**: open listening rooms in the default 2D sky/list path, Nearby available
-  by default in Web and Product with explicit location/visibility consent, an optional
-  3D galaxy behind a build-time opt-in, and manual room-code entry. Room guests should be able to join and
+- **Rooms**: link/code-only by default, with an explicit visibility switch and
+  an approximate-distance slider for Nearby in Web and Product. A compact radar
+  lists only opted-in rooms inside both participants' areas. Room guests should be able to join and
   listen without wallet friction.
 - **Artist portal**: a dedicated `/artists` onboarding and studio surface where
   artists connect a wallet, create their runtime, upload releases, configure
@@ -47,9 +47,10 @@ access mode its artist chose at upload. Any track can be opened as a room.
 
 ![Dotify catalog](docs/images/dotify-catalog.png)
 
-**Listening rooms** - open rooms start in the 2D/list path and can opt into a
-galaxy view on supported desktops. Every halo is a listening moment happening
-right now; discovery starts from someone listening rather than from a feed.
+**Listening rooms** — the earlier galaxy prototype below is a visual reference.
+Current discovery uses consented Nearby results; opening a room alone no longer
+adds it to a public galaxy. Discovery starts from someone sharing a listening
+moment, with direct links available independently of location.
 
 ![Dotify listening rooms](docs/images/dotify-rooms-galaxy.png)
 

@@ -86,7 +86,7 @@ export function ArtistProfileView({
             <span>
               {artistTracks.length} release{artistTracks.length === 1 ? '' : 's'}
             </span>
-            {activeListeners > 0 && <span>{activeListeners} listening now</span>}
+            {activeListeners > 0 && <span>{activeListeners} connected in visible rooms</span>}
           </div>
           {leadTrack && (
             <div className='artist-profile-actions'>
@@ -152,7 +152,7 @@ export function ArtistProfileView({
 
         {liveRooms.length > 0 && (
           <section className='artist-profile-section artist-live-section' aria-labelledby='artist-live-title'>
-            <h2 id='artist-live-title'>Listening now</h2>
+            <h2 id='artist-live-title'>Rooms visible to you</h2>
             <div className='artist-live-list'>
               {liveRooms.map(room => {
                 const hostDisplayName = roomHostDisplayName(room.hostName);

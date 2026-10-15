@@ -16,12 +16,17 @@ export type GatewayRaceOptions = {
   timeoutMs?: number;
   /** Wait before racing the next gateway alongside the current one. */
   hedgeDelayMs?: number;
+  /** Large audio downloads use fewer concurrent bodies than small metadata. */
+  maxParallelAttempts?: 1 | 2 | 3;
   fetchImpl?: typeof fetch;
   signal?: AbortSignal;
   /** Request init applied to every attempt. `signal` is managed internally. */
   init?: Omit<RequestInit, 'signal'>;
   /** Label used in the aggregate error when every gateway fails. */
   label?: string;
+  /** Optional complete-body validation before an attempt can win. The reader
+   * must bound inactivity and honor the attempt signal. */
+  prepareResponse?: (response: Response, signal: AbortSignal) => Promise<Response>;
 };
 
 type AttemptOutcome =
@@ -36,7 +41,7 @@ type Attempt = {
 
 const DEFAULT_TIMEOUT_MS = 8_000;
 const DEFAULT_HEDGE_DELAY_MS = 1_200;
-const MAX_PARALLEL_ATTEMPTS = 3;
+const DEFAULT_MAX_PARALLEL_ATTEMPTS = 3;
 
 function createAbortError(message: string): Error {
   if (typeof DOMException !== 'undefined') return new DOMException(message, 'AbortError');
@@ -53,7 +58,15 @@ function formatError(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-function makeAttempt(id: number, url: string, timeoutMs: number, fetchImpl: typeof fetch, init: Omit<RequestInit, 'signal'>, signal?: AbortSignal): Attempt {
+function makeAttempt(
+  id: number,
+  url: string,
+  timeoutMs: number,
+  fetchImpl: typeof fetch,
+  init: Omit<RequestInit, 'signal'>,
+  signal?: AbortSignal,
+  prepareResponse?: GatewayRaceOptions['prepareResponse']
+): Attempt {
   const controller = new AbortController();
   const abortFromParent = () => controller.abort();
 
@@ -69,13 +82,19 @@ function makeAttempt(id: number, url: string, timeoutMs: number, fetchImpl: type
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   const promise = fetchImpl(url, { ...init, signal: controller.signal })
-    .then(response => {
+    .then(async response => {
+      clearTimeout(timeoutId);
       if (!response.ok) {
+        void response.body?.cancel().catch(() => undefined);
         throw new Error(`Gateway ${url} returned ${response.status}`);
       }
+      if (prepareResponse) response = await prepareResponse(response, controller.signal);
       return { ok: true as const, id, response, url, controller };
     })
-    .catch(error => ({ ok: false as const, id, error, url }))
+    .catch(error => {
+      controller.abort();
+      return { ok: false as const, id, error, url };
+    })
     .finally(() => {
       clearTimeout(timeoutId);
       signal?.removeEventListener('abort', abortFromParent);
@@ -103,6 +122,7 @@ export async function fetchThroughGateways(urls: string[], options: GatewayRaceO
 
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const hedgeDelayMs = options.hedgeDelayMs ?? DEFAULT_HEDGE_DELAY_MS;
+  const maxParallelAttempts = options.maxParallelAttempts ?? DEFAULT_MAX_PARALLEL_ATTEMPTS;
   const fetchImpl = options.fetchImpl ?? fetch;
   const init = options.init ?? {};
 
@@ -118,7 +138,7 @@ export async function fetchThroughGateways(urls: string[], options: GatewayRaceO
     if (options.signal?.aborted || nextUrlIndex >= urls.length) return;
     const url = urls[nextUrlIndex];
     nextUrlIndex += 1;
-    const attempt = makeAttempt(nextAttemptId, url, timeoutMs, fetchImpl, init, options.signal);
+    const attempt = makeAttempt(nextAttemptId, url, timeoutMs, fetchImpl, init, options.signal, options.prepareResponse);
     nextAttemptId += 1;
     active.set(attempt.id, attempt);
   };
@@ -129,7 +149,7 @@ export async function fetchThroughGateways(urls: string[], options: GatewayRaceO
     while (active.size > 0) {
       throwIfAborted(options.signal, message);
 
-      const canHedge = active.size < MAX_PARALLEL_ATTEMPTS && nextUrlIndex < urls.length;
+      const canHedge = active.size < maxParallelAttempts && nextUrlIndex < urls.length;
       const raceItems: Array<Promise<AttemptOutcome | { hedge: true }>> = Array.from(active.values()).map(attempt => attempt.promise);
       let hedgeTimerId: ReturnType<typeof setTimeout> | undefined;
       if (canHedge) {

@@ -88,7 +88,7 @@ test('typing, mentions, replies, pins and muted activity coexist with room playb
   }
 });
 
-test('artist dashboard matches a release and lets the artist choose whether to announce their visit', async ({ page }, testInfo) => {
+test('artist can use a private invitation and choose whether to announce their visit', async ({ page }, testInfo) => {
   const runtime = '0x000000000000000000000000000000000000a712';
   const artist = '0x000000000000000000000000000000000000a711';
   const hash = `0x${'77'.repeat(32)}`;
@@ -130,11 +130,15 @@ test('artist dashboard matches a release and lets the artist choose whether to a
     host.emit('player:state', { playing: true, currentTime: 10, duration: 180, updatedAt: Date.now() });
     await page.goto('/artists?e2eArtist=happy');
     const panel = page.getByRole('region', { name: 'Your music, live' });
-    await expect(panel).toContainText('A shared moment');
-    await expect(panel).toContainText('1 connected');
+    // Private rooms are not an artist/global directory. An explicit invitation
+    // keeps the artist visit and announcement flow available without leaking it.
+    await expect(panel).not.toContainText('A shared moment');
+    await panel.getByLabel('Have a room invitation?').fill(`https://dotify.example/#/rooms/${room.roomId}`);
     await panel.screenshot({ path: testInfo.outputPath('artist-live-desktop.png') });
     await page.setViewportSize({ width: 390, height: 844 });
-    await panel.getByRole('button', { name: 'Visit room' }).click();
+    await panel.getByRole('button', { name: 'Join', exact: true }).click();
+    const visit = page.getByRole('dialog', { name: 'Drop into the room' });
+    await expect(visit).toContainText(room.roomId);
     const announce = page.getByRole('checkbox', { name: /Announce my presence/ });
     await expect(announce).not.toBeChecked();
     await page.getByLabel('Your room name', { exact: true }).fill('Ada quietly');
@@ -146,12 +150,12 @@ test('artist dashboard matches a release and lets the artist choose whether to a
       })
     );
     await announce.check();
-    await page.getByRole('button', { name: 'Join', exact: true }).click();
+    await visit.getByRole('button', { name: 'Join', exact: true }).click();
     await expect(page.getByRole('alert')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Join', exact: true })).toBeEnabled();
+    await expect(visit.getByRole('button', { name: 'Join', exact: true })).toBeEnabled();
     await announce.uncheck();
     await page.screenshot({ path: testInfo.outputPath('artist-visit-mobile.png') });
-    await page.getByRole('button', { name: 'Join', exact: true }).click();
+    await visit.getByRole('button', { name: 'Join', exact: true }).click();
     await expect(page.getByTestId('room-code')).toHaveText(room.roomId);
     await expect(page.getByRole('textbox', { name: 'Message the room' })).toBeVisible();
     await page.goBack();

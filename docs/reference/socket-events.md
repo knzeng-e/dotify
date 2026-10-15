@@ -61,7 +61,9 @@ one-way network latency. Server restarts invalidate cross-epoch comparisons.
 
 **Direction:** Client → Server (with ack)
 
-Lists all currently open rooms.
+Returns an empty compatibility array. Opening a room does not consent to
+global discovery. Use `nearby:search` for explicitly opted-in rooms inside both
+chosen radii; use the known room code with `room:join` for invitation entry.
 
 ```typescript
 // Emit
@@ -71,7 +73,7 @@ socket.emit('rooms:list', (rooms: OpenRoom[]) => { ... });
 OpenRoom[]
 ```
 
-Each `OpenRoom` is a public, source-redacted snapshot:
+Historical `OpenRoom` shape (no longer globally enumerated):
 
 ```typescript
 {
@@ -97,7 +99,10 @@ Each `OpenRoom` is a public, source-redacted snapshot:
 
 **Direction:** Server → All clients
 
-Broadcast whenever a room is created, updated, or closed.
+Broadcasts an empty compatibility array when rooms change. It cannot reveal
+link-only rooms or bypass a Nearby lease's radius. `GET /status.rooms` follows
+the same rule. Admitted room members still receive their room metadata through
+join/resume acknowledgements and room-scoped events.
 
 ```typescript
 // Received

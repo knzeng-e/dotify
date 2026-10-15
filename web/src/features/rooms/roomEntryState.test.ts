@@ -17,7 +17,7 @@ describe('resolveRoomEntryState', () => {
     ).toBe('service-unavailable');
   });
 
-  it('declares a room unavailable only after an online lookup completes', () => {
+  it('allows a shared code to join even when the private room is absent from discovery', () => {
     expect(
       resolveRoomEntryState({
         initialRoomCode: '6WYKB8',
@@ -26,7 +26,7 @@ describe('resolveRoomEntryState', () => {
         socketStatus: 'online',
         isRefreshingRooms: false
       })
-    ).toBe('room-unavailable');
+    ).toBe('ready');
   });
 
   it('prefers a matching live room over stale transport state', () => {

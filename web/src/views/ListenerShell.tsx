@@ -13,6 +13,7 @@ import { AuraBackground } from '../components/AuraBackground';
 import { PersistentAudio } from '../components/PersistentAudio';
 import { PlayerDock } from '../components/PlayerDock';
 import { CreateRoomModal } from '../components/CreateRoomModal';
+import type { RoomVisibilityChoice } from '../components/NearbyVisibility';
 import { JoinRoomModal } from '../components/JoinRoomModal';
 import { RoomReleaseDialog } from '../components/RoomReleaseDialog';
 import { TopBar } from '../components/TopBar';
@@ -188,13 +189,15 @@ export function ListenerShell() {
   // Opens the room after the user has confirmed their display name in the modal.
   // Access model v2: rooms always carry the full track; a host who cannot play
   // the chosen track opens the room without a stream and sees the access gate.
-  async function executeArtistRoom(track: CatalogTrack) {
+  async function executeArtistRoom(track: CatalogTrack, visibility: RoomVisibilityChoice) {
+    const creationSignal = session.beginRoomCreation();
+    const onCreated = visibility.visibleNearby ? (roomId: string) => session.enableNearbyForRoom(roomId, visibility.radiusKm) : undefined;
     const trackInfo = catalogTrackToTrackInfo(track);
     const isCurrentReadyTrack = track.id === catalog.selectedTrackId && Boolean(catalog.audioSource);
     if (isCurrentReadyTrack) {
       if (!playback.transport.playing) void playback.togglePlay();
       prepareLocalStream();
-      session.createSession(trackInfo, 'full', undefined, { audioSourceHint: catalog.audioSource });
+      session.createSession(trackInfo, 'full', undefined, { audioSourceHint: catalog.audioSource, onCreated, creationSignal });
       return;
     }
 
@@ -203,15 +206,26 @@ export function ListenerShell() {
     // silent. Transport Next/Previous still preserves pause independently.
     playback.requestAutoplay();
     const selection = await catalog.openTrack(track, undefined, undefined, undefined, true).catch(() => null);
-    session.createSession(trackInfo, 'full', undefined, { audioSourceHint: selection?.audioSource ?? null });
+    if (creationSignal.aborted) return;
+    session.createSession(trackInfo, 'full', undefined, { audioSourceHint: selection?.audioSource ?? null, onCreated, creationSignal });
+  }
+
+  function showCreateRoom(track?: CatalogTrack) {
+    session.cancelRoomCreation();
+    setPendingArtistTrack(track ?? null);
+    setCreateRoomOpen(true);
+  }
+
+  function showJoinRoom() {
+    session.cancelRoomCreation();
+    setJoinRoomOpen(true);
   }
 
   // Entry point from artist profile / room cards - opens CreateRoomModal so the
   // host can set their display name before the room is created.
   function handleOpenArtistRoom(track: CatalogTrack) {
     setPublicArtistName(null);
-    setPendingArtistTrack(track);
-    setCreateRoomOpen(true);
+    showCreateRoom(track);
   }
 
   function handleJoinRoomFromProfile(roomId: string) {
@@ -220,6 +234,7 @@ export function ListenerShell() {
   }
 
   function handleJoinRoomRequest(roomId: string) {
+    session.cancelRoomCreation();
     if (roomId === session.roomId) {
       navigateToView('player');
       return;
@@ -321,28 +336,21 @@ export function ListenerShell() {
                     roomGuest={isRoomGuest}
                     onOpenArtist={handleOpenArtistProfile}
                     onJoinRoom={handleJoinRoomRequest}
-                    onStartRoom={track => {
-                      setPendingArtistTrack(track ?? null);
-                      setCreateRoomOpen(true);
-                    }}
+                    onStartRoom={showCreateRoom}
                   />
                 )}
 
-                {activeView === 'player' && <PlayerView onShowCreateModal={() => setCreateRoomOpen(true)} onShowJoinModal={() => setJoinRoomOpen(true)} />}
+                {activeView === 'player' && <PlayerView onShowCreateModal={() => showCreateRoom()} onShowJoinModal={showJoinRoom} />}
 
                 {activeView === 'rooms' && (
                   <RoomsView
                     nearbyPort={session.socketRef.current}
-                    openRooms={session.openRooms}
                     joinCode={session.joinCode}
                     sessionAction={session.sessionAction}
-                    socketStatus={session.socketStatus}
-                    isRefreshingRooms={session.isRefreshingRooms}
                     onSetJoinCode={session.setJoinCode}
                     onJoinRoom={handleJoinRoomRequest}
                     onJoinSession={handleJoinSession}
-                    onRefreshRooms={() => session.requestOpenRooms(true)}
-                    onStartRoom={() => setCreateRoomOpen(true)}
+                    onStartRoom={() => showCreateRoom()}
                   />
                 )}
 
@@ -451,7 +459,7 @@ export function ListenerShell() {
             )}
             audioStartupStatus={catalog.audioStartupStatus}
             onOpenPlayer={() => navigateToView('player')}
-            onStartRoom={() => setCreateRoomOpen(true)}
+            onStartRoom={() => showCreateRoom()}
           />
         )}
 
@@ -466,10 +474,10 @@ export function ListenerShell() {
               setCreateRoomOpen(false);
               setPendingArtistTrack(null);
             }}
-            onOpenRoom={track => {
+            onOpenRoom={(track, visibility) => {
               setCreateRoomOpen(false);
               setPendingArtistTrack(null);
-              void executeArtistRoom(track);
+              void executeArtistRoom(track, visibility);
             }}
           />
         )}

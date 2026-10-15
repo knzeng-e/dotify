@@ -2,7 +2,37 @@
 
 Status: W19 v2 is available by default in Web and Product builds. Location and room visibility require explicit user consent. W18 v1 is retained as inert historical scaffolding.
 
-Last reviewed: 2026-09-13 (v1); radius/planning amendment: 2026-10-14.
+Last reviewed: 2026-10-15 (explicit discovery and radar controls); v1 retained below.
+
+## Discovery consent correction — 2026-10-15
+
+Creating a room no longer advertises it globally. `rooms:list`,
+`rooms:updated` and `/status.rooms` retain their legacy empty-array response
+shape; even a Nearby lease does not add a room to those global endpoints.
+Only `nearby:search` can enumerate opted-in rooms inside both selected areas.
+The application no longer publishes or consumes global Statement Store room
+announcements: that transport cannot enforce this radius or immediate opt-out.
+The operator still knows room membership; this is discoverability control,
+not anonymity or authenticated room admission.
+Public builds must keep the separate experimental Celerity observation setting
+`VITE_DOTIFY_ROOM_REALTIME=off`; authorized measurement builds can still publish
+public presence and do not share this private-room release guarantee.
+
+The creation sheet offers **Visible nearby**, off for each new room. A stepped
+slider selects approximately 5, 10 or 25 km. Selecting the switch/radius does
+not request permission: **Open the room** creates the room, then consumes that
+explicit choice once against the acknowledged room ID. Failed/denied location
+leaves the room accessible by link/code with discovery off. Reconnect, expiry
+and navigation never repeat that creation choice. The in-room switch can stop
+visibility independently of playback. Listener search uses the same compact
+radius control and displays only bounded Nearby replies.
+
+Direct room links/codes are checked by the join acknowledgement, not by absence
+from a discovery list. Detailed room state and exact member counts are returned to
+admitted participants. Home/artist summaries must not interpret an empty global
+list as no listening activity; private rooms are not exposed to artists either.
+An artist can still join an invited room and announce their verified presence.
+Restoring broader artist discovery requires a distinct consented design.
 
 ## W19 v2 implementation contract — 2026-10-14
 
@@ -89,8 +119,9 @@ Hide stays in page memory (max 200 room IDs). Report hides the room and records
 only an aggregate safety counter, without location, identity, free text or a
 durable moderation case. The interface says so. A staffed abuse workflow remains
 a public-enable review concern. `/health` exposes only cumulative event counters,
-not areas or a location index. Existing ordinary room discovery can still reveal
-public room metadata and exact connected-session counts: Nearby is not anonymity.
+not areas or a location index. Global room enumeration is disabled. Someone
+with the room code can still join and learn its metadata and exact connected
+session count: Nearby is not anonymity or an admission fence.
 
 The v1 sections below are historical: automatic sparse expansion, 2-minute
 expiry, area-bearing responses and the old schemas are superseded by v2.

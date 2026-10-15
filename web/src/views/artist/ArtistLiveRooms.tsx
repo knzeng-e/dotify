@@ -6,12 +6,15 @@ import { CoverImage } from '../../components/CoverImage';
 import type { CatalogTrack, OpenRoom } from '../../shared/types';
 import { artistLiveRooms, liveRoomState } from '../../features/artist-studio/liveRooms';
 import { artistVisitSession } from '../../features/artist-studio/artistVisitSession';
+import { normalizeRoomCode } from '../../shared/utils/format';
 
 export function ArtistLiveRooms({ tracks, runtime }: { tracks: CatalogTrack[]; runtime: string | null }) {
   const session = useSessionContext();
   const wallet = useWalletContext();
   const catalog = useCatalogContext();
   const [visit, setVisit] = useState<OpenRoom | null>(null);
+  const [invitation, setInvitation] = useState('');
+  const [invitedRoomId, setInvitedRoomId] = useState('');
   const [announce, setAnnounce] = useState(false);
   const [name, setName] = useState('');
   const [error, setError] = useState('');
@@ -23,7 +26,7 @@ export function ArtistLiveRooms({ tracks, runtime }: { tracks: CatalogTrack[]; r
   useLayoutEffect(() => {
     attemptRef.current++;
     setJoining(false);
-  }, [visit, artistAccount, artistSigner, walletMethod, wallet.expectedChainId]);
+  }, [visit, invitedRoomId, artistAccount, artistSigner, walletMethod, wallet.expectedChainId]);
   useEffect(
     () => () => {
       attemptRef.current++;
@@ -40,10 +43,15 @@ export function ArtistLiveRooms({ tracks, runtime }: { tracks: CatalogTrack[]; r
   const known = online && catalog.catalogIsAuthoritative;
   const rows = catalog.catalogIsAuthoritative ? artistLiveRooms(session.openRooms, tracks, runtime) : [];
   const currentVisit = rows.find(row => row.room.roomId === visit?.roomId);
+  const targetRoomId = invitedRoomId || currentVisit?.room.roomId;
+  function closeVisit() {
+    setVisit(null);
+    setInvitedRoomId('');
+  }
   const playing = rows.filter(({ room }) => liveRoomState(room) === 'Playing');
   const present = playing.reduce((sum, { room }) => sum + room.listenerCount + 1, 0);
   async function enter() {
-    if (!currentVisit || !online || !name.trim() || joining) return;
+    if (!targetRoomId || !online || !name.trim() || joining) return;
     const attempt = ++attemptRef.current;
     const identity = wallet.connectedWallet;
     setJoining(true);
@@ -58,8 +66,10 @@ export function ArtistLiveRooms({ tracks, runtime }: { tracks: CatalogTrack[]; r
           })
         : '';
       if (attempt !== attemptRef.current) return;
-      session.joinRoom(currentVisit.room.roomId, { displayName: name.trim(), announceArtist: announce, artistToken: token || undefined });
-      setVisit(null);
+      // A shared code is enough to attempt entry. The server checks the artist
+      // against the room's actual track before admitting an announced visit.
+      session.joinRoom(targetRoomId, { displayName: name.trim(), announceArtist: announce, artistToken: token || undefined });
+      closeVisit();
     } catch (cause) {
       if (attempt === attemptRef.current) setError(cause instanceof Error ? cause.message : 'Could not verify your artist account. Try again.');
     } finally {
@@ -84,7 +94,7 @@ export function ArtistLiveRooms({ tracks, runtime }: { tracks: CatalogTrack[]; r
         <p>
           <strong>{known ? playing.length : '—'}</strong>
           <span>
-            <Radio size={16} /> rooms playing
+            <Radio size={16} /> visible rooms playing
           </span>
         </p>
         <p>
@@ -95,8 +105,38 @@ export function ArtistLiveRooms({ tracks, runtime }: { tracks: CatalogTrack[]; r
         </p>
       </div>
       <p className='artist-live-explanation'>
-        See where your releases are bringing people together. Counts include hosts and connected guests; they are not verified listening totals.
+        Only rooms visible to you appear here. Hosts choose whether to share their room nearby; other rooms stay accessible by invitation. Counts cover these
+        rooms, not all listening to your music.
       </p>
+      <form
+        className='room-action-form'
+        onSubmit={event => {
+          event.preventDefault();
+          const code = normalizeRoomCode(invitation);
+          if (!/^[A-Z2-9]{6}$/.test(code)) return;
+          setVisit(null);
+          setInvitedRoomId(code);
+          setAnnounce(false);
+          setError('');
+          setName(session.displayName === 'Listener' ? '' : session.displayName);
+        }}
+      >
+        <label htmlFor='artist-room-invitation'>Have a room invitation?</label>
+        <div className='room-action-row'>
+          <input
+            id='artist-room-invitation'
+            className='field room-action-field'
+            value={invitation}
+            onChange={event => setInvitation(event.target.value)}
+            placeholder='Paste a room code or link'
+            maxLength={200}
+            autoComplete='off'
+          />
+          <button className='secondary-action' type='submit' disabled={!online || !/^[A-Z2-9]{6}$/.test(normalizeRoomCode(invitation))}>
+            Join
+          </button>
+        </div>
+      </form>
       {!online ? (
         <p role='status'>Live updates are unavailable. Reconnecting…</p>
       ) : !catalog.catalogIsAuthoritative ? (
@@ -104,7 +144,7 @@ export function ArtistLiveRooms({ tracks, runtime }: { tracks: CatalogTrack[]; r
       ) : !rows.length ? (
         <div className='artist-live-empty'>
           <Headphones size={22} />
-          <p>No room is playing your releases right now. Your next shared listening moment starts with a link.</p>
+          <p>No room playing your releases is visible here. Find opted-in rooms through Nearby or join a room using an invitation link.</p>
         </div>
       ) : (
         <div className='artist-live-rooms'>
@@ -123,6 +163,7 @@ export function ArtistLiveRooms({ tracks, runtime }: { tracks: CatalogTrack[]; r
                 className='secondary-action compact-action'
                 disabled={room.isFull || room.hostConnected === false}
                 onClick={() => {
+                  setInvitedRoomId('');
                   setVisit(room);
                   setAnnounce(false);
                   setError('');
@@ -135,15 +176,21 @@ export function ArtistLiveRooms({ tracks, runtime }: { tracks: CatalogTrack[]; r
           ))}
         </div>
       )}
-      {visit && (
-        <Dialog historyDismiss labelledBy='artist-visit-title' size='compact' onClose={() => setVisit(null)}>
+      {(visit || invitedRoomId) && (
+        <Dialog historyDismiss labelledBy='artist-visit-title' size='compact' onClose={closeVisit}>
           <div className='modal-header'>
             <h2 id='artist-visit-title'>Drop into the room</h2>
-            <button type='button' className='modal-close' aria-label='Close artist visit' onClick={() => setVisit(null)}>
+            <button type='button' className='modal-close' aria-label='Close artist visit' onClick={closeVisit}>
               <X size={18} />
             </button>
           </div>
-          <p>{currentVisit ? `${currentVisit.track.title} · with ${currentVisit.room.hostName}` : 'This room is no longer playing one of your releases.'}</p>
+          <p>
+            {currentVisit
+              ? `${currentVisit.track.title} · with ${currentVisit.room.hostName}`
+              : invitedRoomId
+                ? `Room ${invitedRoomId}. An announced visit is verified against the music playing there.`
+                : 'This room is no longer playing one of your releases.'}
+          </p>
           <label className='artist-visit-name'>
             Your room name
             <input className='field' disabled={joining} value={name} onChange={event => setName(event.target.value)} maxLength={32} autoComplete='off' />
@@ -169,14 +216,14 @@ export function ArtistLiveRooms({ tracks, runtime }: { tracks: CatalogTrack[]; r
               </small>
             </span>
           </label>
-          {session.roomId && session.roomId !== visit.roomId && (
+          {session.roomId && session.roomId !== targetRoomId && (
             <p>{session.mode === 'host' ? 'Joining will close the room you are hosting.' : 'Joining will leave your current room.'}</p>
           )}
           {error && <p role='alert'>{error}</p>}
           <button
             type='button'
             className='primary-action'
-            disabled={joining || !name.trim() || !online || !currentVisit || currentVisit.room.isFull || currentVisit.room.hostConnected === false}
+            disabled={joining || !name.trim() || !online || !targetRoomId || currentVisit?.room.isFull || currentVisit?.room.hostConnected === false}
             onClick={enter}
           >
             {joining ? 'Verifying your artist account…' : 'Join'}

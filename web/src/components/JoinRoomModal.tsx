@@ -38,7 +38,7 @@ export function JoinRoomModal({
   const isServiceUnavailable = thresholdState === 'service-unavailable';
   const isRoomUnavailable = thresholdState === 'room-unavailable';
   const isFull = room?.isFull === true;
-  const isThreshold = Boolean(room) || isResolving || isServiceUnavailable || isRoomUnavailable;
+  const isThreshold = Boolean(room) || thresholdState === 'ready' || isResolving || isServiceUnavailable || isRoomUnavailable;
   const hasChosenName = isChosenDisplayName(displayName);
   const hasPrefilledCode = Boolean(joinCode.trim());
   const roomTrack = room?.track;
@@ -75,7 +75,9 @@ export function JoinRoomModal({
           ? "We can't reach this room yet"
           : isRoomUnavailable
             ? 'This room is unavailable'
-            : 'Join a room';
+            : thresholdState === 'ready'
+              ? 'Join this listening room'
+              : 'Join a room';
   const description = room
     ? isFull
       ? `${peopleHere} ${peopleHere === 1 ? 'person is' : 'people are'} here, which is the current listener cap.`
@@ -86,7 +88,9 @@ export function JoinRoomModal({
         ? 'The room may still be live. Reconnect before trying again.'
         : isRoomUnavailable
           ? 'This room may have ended or expired.'
-          : 'Paste a room code or link.';
+          : thresholdState === 'ready'
+            ? 'Choose a name. The room’s details appear once you join.'
+            : 'Paste a room code or link.';
 
   return (
     <Dialog className='join-room-modal' labelledBy='join-room-title' describedBy='join-room-description' onClose={onClose}>
@@ -187,7 +191,7 @@ export function JoinRoomModal({
                     ? 'Room unavailable'
                     : isFull
                       ? 'Room full'
-                      : room
+                      : isThreshold
                         ? 'Join and listen'
                         : 'Join room'}
             </button>

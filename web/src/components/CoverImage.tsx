@@ -113,11 +113,10 @@ export function CoverImage({
   }, [canStartGatewayTimeout, didExhaustSources, gatewaySource, loadedSource, boundedSourceIndex, lastSourceIndex, cachedSource, src]);
 
   const showResponsivePlaceholder = Boolean(responsive && loadedSource !== activeSource && !didExhaustSources);
-  const fallbackBackground = presentation.showFallbackBackground
-    ? `url("${fallbackSource}")`
-    : showResponsivePlaceholder
-      ? `url("${responsive?.placeholder}"), url("${fallbackSource}")`
-      : null;
+  // The local artwork is immediate and works offline. Do not fetch a second
+  // remote placeholder while the actual cover is already loading: older pins
+  // may omit it, adding a 404 and competing with audio for a connection.
+  const fallbackBackground = presentation.showFallbackBackground || showResponsivePlaceholder ? `url("${fallbackSource}")` : null;
   const localFallbackStyle: CSSProperties | undefined = fallbackBackground
     ? {
         backgroundImage: fallbackBackground,

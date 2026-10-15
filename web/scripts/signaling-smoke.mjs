@@ -242,16 +242,16 @@ async function runRoomSmoke(baseUrl, { origin, timeoutMs }) {
 
     const status = await fetchJson(baseUrl, '/status', { origin, timeoutMs });
     const room = status.body.rooms.find(candidate => candidate.roomId === created.roomId);
-    assertSmoke(room, `created room ${created.roomId} was not visible on /status`);
-    assertSmoke(room.listenersNeedWalletAccess === false, 'room metadata must preserve walletless guest listening');
-    assertSmoke(room.listenerCount >= 1, 'room status did not report the joined guest');
+    assertSmoke(!room, 'a link-only room leaked through public status');
 
     return {
       roomId: created.roomId,
       hostName: created.hostName,
       listenerCount: joined.listenerCount,
-      listenersNeedWalletAccess: room.listenersNeedWalletAccess,
-      playbackMode: room.playbackMode
+      // The guest above joined without any wallet/session credential; report
+      // that observed outcome rather than a now-retired public metadata flag.
+      listenersNeedWalletAccess: false,
+      playbackMode: joined.playbackMode
     };
   } finally {
     listener?.disconnect();

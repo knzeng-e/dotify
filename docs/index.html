@@ -1638,18 +1638,19 @@
                 language across phones and desktop browsers: discover real open rooms, see host, track, and presence context, then join from a touch-safe
                 sheet or a desktop detail rail. The host can shape an ephemeral Up next list that everyone in the room can see; track endings advance through
                 it, while Previous follows what was actually heard. The lineup carries only public display metadata and every selection still passes through the
-                host's access policy without an automatic payment. Product builds can also opt into short-lived Statement Store room announcements: Dotify
-                merges them into the same discovery surface while Socket.IO remains authoritative for capacity, playback, and joining. The flag stays off in the
-                tracked profile until a live Product publish, discovery, expiry, and link-join round trip is captured. W27 introduces a typed room transport
+                host's access policy without an automatic payment. Rooms now start as link/code-only invitations: opening a room does not advertise it to everyone.
+                Global room lists and Statement Store announcements are disconnected so they cannot bypass the host's choice. Socket.IO remains authoritative
+                for capacity, playback, and joining. W27 introduces a typed room transport
                 boundary and opt-in Celerity presence and encrypted social-event observation, disabled by default. Celerity and Statement Store are the same protocol;
                 paired capture tooling records bounded delivery observations and clock uncertainty, but real Product measurements remain required before any event class moves away from Socket.IO. Anonymous room-link entry remains an invariant, private messages require application
-                encryption with membership-bound ephemeral keys, and WebRTC remains the audio path. The same room data boundary offers an optional 3D room galaxy behind a build-time opt-in for
-                supported desktop browsers, while the honest 2D sky remains the default and the accessible card list remains the complete path for mobile,
-                reduced motion, graphics failure, and feature-off rollback. Product-host compatibility remains awaiting real host smoke evidence before Dotify
+                encryption with membership-bound ephemeral keys, and WebRTC remains the audio path. Discovery uses a compact radar and accessible room list;
+                graphics never imply exact location and never prevent joining. The earlier 3D prototype remains separate from the consented discovery path.
+                Product-host compatibility remains awaiting real host smoke evidence before Dotify
                 treats it as delivered. W19 includes Nearby by default in new Web and Product builds: find opted-in live rooms around you, or make your own room visible
                 within a chosen approximate radius in kilometres. Direct Join and Open a room controls stay ahead of discovery on mobile and desktop.
-                Host visibility and listener search are separate choices; precise coordinates stay on the device,
-                and sparse results offer explicit search widening. Approximate 5, 10 and 25 km choices respect both participants' areas. Around-me discovery uses the device position;
+                A default-off visibility switch is available when creating the room and inside it. Host visibility and listener search are separate choices;
+                precise coordinates stay on the device, and sparse results offer explicit search widening. A stepped slider offers approximate 5, 10 and 25 km
+                choices that respect both participants' areas. Around-me discovery uses the device position;
                 exploring a city centre is a separate explicit choice. Product uses the same Nearby feature, requests Location permission only after your action, and uses a bounded position snapshot
                 only where secure WebView location and observable browser permissions are available; physical Host support still needs verification.
                 W19 builds on W18's amended privacy contract, with offline city exploration and room-link alternatives,

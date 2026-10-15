@@ -12,8 +12,8 @@ type ResolveRoomEntryStateInput = {
 
 /**
  * Resolve the share-link threshold without confusing transport failure with an
- * expired room. Only an authoritative, completed room list can say that a room
- * is unavailable; a signaling error must remain retryable.
+ * expired room. Discovery is opt-in and cannot establish whether a shared
+ * room code exists. Only the room:join reply can declare that room unavailable.
  */
 export function resolveRoomEntryState({
   initialRoomCode,
@@ -25,6 +25,6 @@ export function resolveRoomEntryState({
   if (!initialRoomCode || joinedRoomId) return 'idle';
   if (openRooms.some(room => room.roomId === initialRoomCode)) return 'ready';
   if (socketStatus === 'error') return 'service-unavailable';
-  if (socketStatus === 'online' && !isRefreshingRooms) return 'room-unavailable';
+  if (socketStatus === 'online' && !isRefreshingRooms) return 'ready';
   return 'resolving';
 }

@@ -1,12 +1,17 @@
 const AUDIO_BODY_IDLE_TIMEOUT_MS = 15_000;
+// Uploads accept 50 MiB of clear audio. Leave room for the DAV2 header/tags,
+// while rejecting a gateway that sends an unrelated or unbounded response.
+const AUDIO_BODY_MAX_BYTES = 64 * 1024 * 1024;
 
 /** Header arrival is not download completion. Bound lack of body progress too. */
 export async function readAudioBody(response: Response, signal?: AbortSignal, idleTimeoutMs = AUDIO_BODY_IDLE_TIMEOUT_MS): Promise<Uint8Array> {
   const reader = response.body?.getReader();
-  if (!reader) return new Uint8Array();
+  if (!reader) throw new Error('Audio download returned no content.');
   const chunks: Uint8Array[] = [];
   let size = 0;
   try {
+    const declaredLength = Number(response.headers.get('content-length') ?? 0);
+    if (declaredLength > AUDIO_BODY_MAX_BYTES) throw new Error('Audio download exceeds the supported size.');
     while (true) {
       const next = await new Promise<ReadableStreamReadResult<Uint8Array>>((resolve, reject) => {
         const abort = () => reject(new DOMException('Audio download cancelled', 'AbortError'));
@@ -26,10 +31,16 @@ export async function readAudioBody(response: Response, signal?: AbortSignal, id
       });
       if (next.done) break;
       if (next.value.byteLength) {
-        chunks.push(next.value);
         size += next.value.byteLength;
+        if (size > AUDIO_BODY_MAX_BYTES) throw new Error('Audio download exceeds the supported size.');
+        chunks.push(next.value);
       }
     }
+    if (size === 0) throw new Error('Audio download returned no content.');
+    // Do not compare decoded bytes to Content-Length: cross-origin readers
+    // may expose the compressed length without exposing Content-Encoding.
+    // Fetch reports a broken transfer; DAV2 additionally validates its own
+    // complete chunk table before a recovery download can win.
   } catch (error) {
     void reader.cancel().catch(() => undefined);
     throw error;

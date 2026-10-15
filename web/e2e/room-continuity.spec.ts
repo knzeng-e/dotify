@@ -147,8 +147,8 @@ for (const capture of ['standard', 'without-native-api']) {
       await host.getByRole('button', { name: 'Keep listening and browse', exact: true }).click();
       await expect(host.getByRole('heading', { name: 'Listen together.', exact: true })).toBeVisible();
       await expect.poll(async () => Math.abs((await tone()) - 660)).toBeLessThan(25);
-      // Re-entering our own public card must return to the room, never join it as a guest.
-      await host.getByRole('button', { name: `Join ${hostName}'s room`, exact: true }).click();
+      // Returning through the persistent dock must retain hosting without public discovery.
+      await host.getByRole('button', { name: 'Return to your room', exact: true }).click();
       await expect(code).toHaveText(roomId);
       await expect(host.locator('.room-live-chip')).toHaveText('Hosting');
       await expect.poll(async () => Math.abs((await tone()) - 660)).toBeLessThan(25);

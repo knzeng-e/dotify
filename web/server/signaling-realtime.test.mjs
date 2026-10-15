@@ -128,7 +128,7 @@ it('revokes host identity during reconnect and restores host role only via resum
 });
 
 it('isolates rooms and rejects malformed curve points and duplicated peer keys', async () => {
-  const { host, guest } = await pair();
+  const { host, guest, created } = await pair();
   const publicKey = key();
   const first = await ack(host, 'room:realtime-register', { publicKey });
   assert.equal((await ack(guest, 'room:realtime-register', { publicKey })).ok, false);
@@ -138,8 +138,7 @@ it('isolates rooms and rejects malformed curve points and duplicated peer keys',
   assert.notEqual(second.roster.scope, first.roster.scope);
   assert.equal(second.roster.peers.length, 1);
   const malformed = await client();
-  const rooms = await (await fetch(`http://127.0.0.1:${port}/status`)).json();
-  await ack(malformed, 'room:join', { roomId: rooms.rooms[0].roomId });
+  await ack(malformed, 'room:join', { roomId: created.roomId });
   assert.equal(
     (await ack(malformed, 'room:realtime-register', { publicKey: Buffer.concat([Buffer.from([4]), Buffer.alloc(64)]).toString('base64url') })).ok,
     false

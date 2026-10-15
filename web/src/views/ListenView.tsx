@@ -52,11 +52,11 @@ export function ListenView({
     <section className='live-section' aria-labelledby='live-section-title'>
       <div className='section-heading presence-section-heading'>
         <div>
-          <h2 id='live-section-title'>{openRooms.length ? 'Live now' : 'Rooms'}</h2>
+          <h2 id='live-section-title'>{openRooms.length ? 'Rooms you can see' : 'Rooms'}</h2>
         </div>
         {openRooms.length > 0 && (
           <span className='presence-summary'>
-            {totalListening} listening in {openRooms.length} {openRooms.length === 1 ? 'room' : 'rooms'}
+            {totalListening} connected in {openRooms.length} {openRooms.length === 1 ? 'room' : 'rooms'}
           </span>
         )}
       </div>
@@ -108,8 +108,8 @@ export function ListenView({
         <div className='live-empty'>
           <span className='live-empty-mark' aria-hidden='true' />
           <div>
-            <strong>No room is open yet.</strong>
-            <span>Be the first: open a room and send the link to someone.</span>
+            <strong>Find a shared listening moment.</strong>
+            <span>Use Nearby in Rooms, join with a link, or open a room and invite someone.</span>
           </div>
         </div>
       )}

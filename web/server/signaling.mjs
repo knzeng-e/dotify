@@ -232,31 +232,12 @@ export function startSignalingServer(overrides = {}, dependencies = {}) {
   });
   const life = createRoomLife({ io, rooms, historyLimit: config.chatHistoryLimit });
 
-  function publicRoom(roomId, room) {
-    return {
-      roomId,
-      title: room.track?.title ?? 'Listening room',
-      hostName: room.hostName,
-      track: room.track,
-      playerState: room.playerState,
-      hostConnected: Boolean(room.hostId),
-      playbackMode: room.playbackMode,
-      // Every registered track sits behind an artist access policy that the
-      // HOST must satisfy. Listeners never need wallet access for rooms.
-      hostAccessRequired: Boolean(room.track),
-      listenersNeedWalletAccess: false,
-      createdAt: room.createdAt,
-      expiresAt: room.createdAt + config.roomTtlMs,
-      listenerCount: room.listeners.size,
-      maxListeners: config.maxListenersPerRoom,
-      isFull: room.listeners.size >= config.maxListenersPerRoom
-    };
-  }
-
   function publicRooms() {
-    return Array.from(rooms.entries())
-      .filter(([, room]) => Boolean(room.hostId))
-      .map(([roomId, room]) => publicRoom(roomId, room));
+    // Keep the legacy response shape for older clients, without advertising
+    // link-only rooms or bypassing a host's chosen discovery radius. Only a
+    // bounded nearby:search may enumerate explicitly published room leases.
+    // Room members still receive metadata through join/resume and room events.
+    return [];
   }
 
   function emitRooms() {
