@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { RoomRealtimePort, RoomRequests, RoomTrackEmitter } from '../features/rooms/roomRealtimePort';
 import type { RoomTyping, RoomActivity } from '../shared/types';
 import {
@@ -28,11 +28,9 @@ import { createRoomRealtime, describeSignalConnectError, publishPlayerState } fr
 import { useRoomRealtimeObservation } from './useRoomRealtimeObservation';
 import { diagnoseSignalFailure } from '../features/rooms/signalDiagnostics';
 import { ensureProductHostRoomPermissions, isProductHostWebRtcUnavailable, openProductHostExternalUrl } from '../features/productHost/productHost';
-import { useRoomBeacon } from './useRoomBeacon';
-import { useRoomBeaconDiscovery } from './useRoomBeaconDiscovery';
-import { mergeDiscoveredRooms } from '../features/rooms/roomBeaconDiscovery';
 import { isChosenDisplayName, sanitizeDisplayName, storeDisplayName } from '../features/identity/walletIdentity';
 import { nextCaptureAttempt, shouldReuseCapture, type CaptureAttempt } from '../features/rooms/streamCapture';
+import { RoomCreationController } from '../features/rooms/roomCreation';
 import { registerHostAudioOutput, syncHostAudioOutput } from '../features/player/hostAudioOutput';
 import { CHAT_CLIENT_LIMIT, CHAT_TEXT_MAX_LENGTH, REQUEST_QUEUE_CLIENT_LIMIT, REQUEST_TEXT_MAX_LENGTH, ROOM_LINEUP_CLIENT_LIMIT } from '../shared/social';
 import { normalizeRoomCode, normalizeRooms, peerStatusLabel, getPeerStatus } from '../shared/utils/format';
@@ -91,6 +89,8 @@ type PlaceholderAudioStream = {
 
 type CreateSessionOptions = {
   audioSourceHint?: string | null;
+  onCreated?: (roomId: string) => void;
+  creationSignal?: AbortSignal;
 };
 
 type WebRtcDiagnosticDetails = {
@@ -207,8 +207,9 @@ export function useSession(deps: UseSessionDeps) {
   const [remoteStreamVersion, setRemoteStreamVersion] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [signalRooms, setSignalRooms] = useState<OpenRoom[]>([]);
-  const beaconRooms = useRoomBeaconDiscovery();
-  const openRooms = useMemo(() => mergeDiscoveredRooms(signalRooms, beaconRooms), [signalRooms, beaconRooms]);
+  // Global Statement Store announcements cannot enforce a Nearby radius or
+  // immediate opt-out. Discovery now belongs to the consented Nearby session.
+  const openRooms = signalRooms;
   const [soloListeningByTrackHash, setSoloListeningByTrackHash] = useState<SoloListeningByTrackHash>({});
   const [socketStatus, setSocketStatus] = useState<SocketStatus>('offline');
   const [joinCode, setJoinCode] = useState(() => getInitialRoomCode());
@@ -239,6 +240,7 @@ export function useSession(deps: UseSessionDeps) {
   const modeRef = useRef<Mode>(mode);
   const listenersRef = useRef<ListenerRecord[]>([]);
   const socketRef = useRef<RoomRealtimePort | null>(null);
+  const roomCreationRef = useRef(new RoomCreationController());
   const soloTrackHashRef = useRef<string | null>(null);
   const listenerPeerRef = useRef<RTCPeerConnection | null>(null);
   const hostPeersRef = useRef<Map<string, RTCPeerConnection>>(new Map());
@@ -516,6 +518,7 @@ export function useSession(deps: UseSessionDeps) {
   }
 
   function clearRoomState(status: string, errorMessage: string | null, options: { closePeers?: boolean } = {}) {
+    if (roomCreationRef.current.cancel()) socketRef.current?.emit('room:leave');
     if (options.closePeers !== false) {
       closeAllPeers();
     }
@@ -815,8 +818,8 @@ export function useSession(deps: UseSessionDeps) {
     return roomPermissionRef.current;
   }
 
-  async function connectRoomSocket() {
-    if (!(await ensureRoomTransportReady())) return null;
+  async function connectRoomSocket(signal?: AbortSignal) {
+    if (signal?.aborted || !(await ensureRoomTransportReady()) || signal?.aborted) return null;
     return connectSocket();
   }
 
@@ -824,10 +827,12 @@ export function useSession(deps: UseSessionDeps) {
     event: K,
     payload: RoomRequests[K]['input'],
     onAck: (response: RoomRequests[K]['output']) => void,
-    onFailure: () => void
+    onFailure: () => void,
+    signal?: AbortSignal,
+    onSend?: () => void
   ) {
-    const socket = await connectRoomSocket();
-    if (!socket) return;
+    const socket = await connectRoomSocket(signal);
+    if (!socket || signal?.aborted) return;
     const activeSocket = socket;
     let settled = false;
     let timeoutId = 0;
@@ -836,25 +841,34 @@ export function useSession(deps: UseSessionDeps) {
       activeSocket.off('connect', send);
       activeSocket.off('connect_error', fail);
       if (timeoutId) window.clearTimeout(timeoutId);
+      signal?.removeEventListener('abort', cancel);
+    }
+
+    function cancel() {
+      settled = true;
+      cleanup();
     }
 
     function fail() {
       if (settled) return;
       settled = true;
       cleanup();
-      onFailure();
+      if (!signal?.aborted) onFailure();
     }
 
     function send() {
-      if (settled) return;
+      if (settled || signal?.aborted) return;
       settled = true;
       cleanup();
+      onSend?.();
       activeSocket.request(event, payload, { timeoutMs: SIGNAL_ACK_TIMEOUT_MS }, (error, response) => {
+        if (signal?.aborted) return;
         if (error || response === undefined) onFailure();
         else onAck(response);
       });
     }
 
+    signal?.addEventListener('abort', cancel, { once: true });
     timeoutId = window.setTimeout(fail, SIGNAL_ACK_TIMEOUT_MS);
     if (activeSocket.connected) {
       send();
@@ -1545,6 +1559,24 @@ export function useSession(deps: UseSessionDeps) {
     }
   }
 
+  function cancelRoomCreation() {
+    if (roomCreationRef.current.cancel()) {
+      // Sent create → leave → replacement create use the same ordered socket.
+      // Never send a leave from a stale ACK: it could close the newer room.
+      socketRef.current?.emit('room:leave');
+      clearRoomState('Ready', null);
+    } else {
+      setSessionAction(previous => (previous === 'creating' ? 'idle' : previous));
+    }
+  }
+
+  function beginRoomCreation() {
+    cancelRoomCreation();
+    const signal = roomCreationRef.current.begin();
+    setSessionAction('creating');
+    return signal;
+  }
+
   function createSession(
     currentTrackInfo: TrackInfo | null,
     playbackMode: RoomPlaybackMode = 'full',
@@ -1552,13 +1584,17 @@ export function useSession(deps: UseSessionDeps) {
     options: CreateSessionOptions = {}
   ) {
     event?.preventDefault();
+    const creationSignal = options.creationSignal ?? beginRoomCreation();
+    if (!roomCreationRef.current.isCurrent(creationSignal)) return;
     const chosenDisplayName = sanitizeDisplayName(displayName);
     if (!roomHostDisplayName(chosenDisplayName)) {
+      roomCreationRef.current.cancel();
       setSessionAction('idle');
       setError('Choose the name people will see in the room.');
       return;
     }
     if (productHostWebRtcUnavailable) {
+      roomCreationRef.current.cancel();
       setSessionAction('idle');
       changeMode('host');
       navigateToView('player');
@@ -1589,6 +1625,7 @@ export function useSession(deps: UseSessionDeps) {
       'room:create',
       { displayName: chosenDisplayName, track: currentTrackInfo, playbackMode },
       (response: CreateRoomResponse) => {
+        if (!roomCreationRef.current.finish(creationSignal)) return;
         setSessionAction('idle');
         if (!response.ok) {
           setError(response.error);
@@ -1604,6 +1641,7 @@ export function useSession(deps: UseSessionDeps) {
           listenerCount: 0
         });
         setRoomId(response.roomId);
+        options.onCreated?.(response.roomId);
         emitPlayerState(true);
         setHostName(response.hostName);
         setListeners([]);
@@ -1623,8 +1661,11 @@ export function useSession(deps: UseSessionDeps) {
         requestOpenRooms();
       },
       () => {
+        if (!roomCreationRef.current.isCurrent(creationSignal)) return;
         clearRoomState('Error', 'Room service unavailable.', { closePeers: false });
-      }
+      },
+      creationSignal,
+      () => roomCreationRef.current.markSent(creationSignal)
     );
   }
 
@@ -1634,6 +1675,7 @@ export function useSession(deps: UseSessionDeps) {
       setError('Room code required');
       return;
     }
+    cancelRoomCreation();
     // Discovery can show our own room. Returning is navigation, not a join:
     // joining again would discard host authority and close its live peers.
     if (normalizedRoomId === roomIdRef.current) {
@@ -1849,6 +1891,7 @@ export function useSession(deps: UseSessionDeps) {
   }
 
   function leaveSession() {
+    roomCreationRef.current.cancel();
     socketRef.current?.emit('room:leave');
     clearRoomState('Ready', null);
     requestOpenRooms();
@@ -1864,16 +1907,6 @@ export function useSession(deps: UseSessionDeps) {
     }, HOST_HEARTBEAT_INTERVAL_MS);
     return () => clearInterval(timer);
   }, [mode, roomId]);
-
-  // Announce the room on the Statement Store so it can be discovered without
-  // Dotify's signaling server. Additive only: the share link remains the way in,
-  // and this is inert unless the build opted in and a Product host is present.
-  useRoomBeacon({
-    isHosting: mode === 'host' && Boolean(roomId),
-    roomCode: roomId,
-    hostName: displayName,
-    listenerCount
-  });
 
   useRoomRealtimeObservation({
     roomId,
@@ -1992,6 +2025,7 @@ export function useSession(deps: UseSessionDeps) {
   }
 
   function destroySession() {
+    roomCreationRef.current.cancel();
     socketRef.current?.emit('room:leave');
     socketRef.current?.disconnect();
     closeAllPeers();
@@ -2049,6 +2083,8 @@ export function useSession(deps: UseSessionDeps) {
     connectSocket,
     getSocket,
     requestOpenRooms,
+    beginRoomCreation,
+    cancelRoomCreation,
     createSession,
     joinRoom,
     joinSession,

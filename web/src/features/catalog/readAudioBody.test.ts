@@ -45,3 +45,18 @@ it('cancels a pending body immediately on selection change', async () => {
   await expect(promise).rejects.toMatchObject({ name: 'AbortError' });
   expect(cancel).toHaveBeenCalledTimes(1);
 });
+
+it('rejects empty and oversized responses before exposing audio bytes', async () => {
+  await expect(readAudioBody(new Response())).rejects.toThrow('no content');
+  const cancel = vi.fn();
+  await expect(readAudioBody(new Response(new ReadableStream({ cancel }), { headers: { 'content-length': String(65 * 1024 * 1024) } }))).rejects.toThrow(
+    'supported size'
+  );
+  expect(cancel).toHaveBeenCalledOnce();
+});
+
+it('does not equate the decoded body size with a possibly compressed Content-Length', async () => {
+  await expect(readAudioBody(new Response('decoded audio', { headers: { 'content-length': '5' } }))).resolves.toEqual(
+    new TextEncoder().encode('decoded audio')
+  );
+});

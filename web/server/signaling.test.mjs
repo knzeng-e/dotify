@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, it } from 'node:test';
 import { Fetch as EngineFetch } from 'engine.io-client';
 import { io as ioClient } from 'socket.io-client';
 import { isSignalingOriginAllowed, readConfigFromEnv, startSignalingServer } from './signaling.mjs';
+import { coarseNearbyCell } from '../shared/nearby-v2.mjs';
 import { clientKey, createWindowLimiter, sanitizeTrack, sanitizeTrackHash, sanitizePlayerState, snapshotPlayerState } from './signaling-utils.mjs';
 
 let server;
@@ -95,6 +96,79 @@ describe('signaling server', () => {
     assert.equal(joined.hostResumeToken, undefined);
   });
 
+  for (const nearbyEnabled of [false, true]) {
+    it(`never globally enumerates rooms with Nearby ${nearbyEnabled ? 'enabled' : 'disabled'}, while direct links keep working`, async () => {
+      await server.close();
+      server = startSignalingServer({ port: 0, host: '127.0.0.1', nearbyEnabled, logger: () => {} });
+      port = await server.listen();
+      const observer = connectClient();
+      const updates = [];
+      observer.on('rooms:updated', value => updates.push(value));
+      await once(observer, 'connect');
+      const host = connectClient();
+      const created = await createRoom(host, { track: { title: 'Private listening moment', artist: 'Ada' } });
+      const list = () => new Promise(resolve => observer.emit('rooms:list', resolve));
+      assert.deepEqual(await list(), []);
+      const area = { schemaVersion: 2, cell: coarseNearbyCell(0, 0), radiusKm: 5 };
+      if (nearbyEnabled) assert.deepEqual((await emitAck(observer, 'nearby:search', area)).results, []);
+      const published = await emitAck(host, 'nearby:publish', area);
+      assert.equal(published.ok, nearbyEnabled);
+      if (nearbyEnabled) {
+        const found = await emitAck(observer, 'nearby:search', area);
+        assert.equal(found.results.length, 1);
+        assert.equal(found.results[0].roomId, created.roomId);
+        const outside = { ...area, cell: coarseNearbyCell(40, 0) };
+        assert.deepEqual((await emitAck(observer, 'nearby:search', outside)).results, []);
+      } else assert.equal(published.code, 'DISABLED');
+      assert.deepEqual(await list(), []);
+      const status = await (await fetch(`http://127.0.0.1:${port}/status`)).json();
+      assert.deepEqual(status.rooms, []);
+      assert.equal(JSON.stringify(status).includes(created.roomId), false);
+      assert.equal(JSON.stringify(status).includes('Private listening moment'), false);
+      const joined = await emitAck(observer, 'room:join', { roomId: created.roomId });
+      assert.equal(joined.ok, true);
+      assert.equal(joined.track.title, 'Private listening moment');
+      if (nearbyEnabled) {
+        assert.equal((await emitAck(host, 'nearby:off', {})).ok, true);
+        assert.deepEqual((await emitAck(observer, 'nearby:search', area)).results, []);
+        const other = connectClient();
+        await once(other, 'connect');
+        assert.equal((await emitAck(other, 'room:join', { roomId: created.roomId })).ok, true);
+      }
+      assert.deepEqual(await list(), []);
+      assert.ok(updates.length > 0);
+      assert.ok(updates.every(value => Array.isArray(value) && value.length === 0));
+    });
+  }
+
+  it('does not restore Nearby publication when a host resumes the room', async () => {
+    const host = connectClient();
+    const created = await createRoom(host);
+    const observer = connectClient();
+    await once(observer, 'connect');
+    const area = { schemaVersion: 2, cell: coarseNearbyCell(0, 0), radiusKm: 5 };
+    assert.equal((await emitAck(host, 'nearby:publish', area)).ok, true);
+    assert.equal((await emitAck(observer, 'nearby:search', area)).results.length, 1);
+    await new Promise(resolve => {
+      server.io.sockets.sockets.get(host.id).once('disconnect', resolve);
+      host.disconnect();
+    });
+    const returning = connectClient();
+    await once(returning, 'connect');
+    assert.equal(
+      (
+        await emitAck(returning, 'room:resume', {
+          roomId: created.roomId,
+          hostResumeToken: created.hostResumeToken
+        })
+      ).ok,
+      true
+    );
+    assert.deepEqual((await emitAck(observer, 'nearby:search', area)).results, []);
+    assert.deepEqual(await new Promise(resolve => observer.emit('rooms:list', resolve)), []);
+    assert.equal((await emitAck(observer, 'room:join', { roomId: created.roomId })).ok, true);
+  });
+
   it('issues relay proof only to current room participants', async () => {
     const outsider = connectClient();
     await once(outsider, 'connect');
@@ -131,27 +205,27 @@ describe('signaling server', () => {
     assert.equal(server.rooms.get(created.roomId).hostId, host.id);
   });
 
-  it('exposes host-based access metadata without the self-declared host address', async () => {
+  it('keeps room identities private while direct-code guests receive protected playback metadata', async () => {
     const host = connectClient();
     const created = await createRoom(host, {
       hostAddress: '0xAbCd00000000000000000000000000000000Ef12',
       track: { title: 'Aurora', artist: 'Ada', accessMode: 'classic' }
     });
-
-    const res = await fetch(`http://127.0.0.1:${port}/status`);
-    const body = await res.json();
-    const room = body.rooms.find(r => r.roomId === created.roomId);
-
-    assert.ok(room, 'room is listed');
-    assert.equal(room.listenersNeedWalletAccess, false);
-    assert.equal(room.hostAccessRequired, true);
-    assert.equal(room.hostAddress, undefined);
+    const body = await (await fetch(`http://127.0.0.1:${port}/status`)).json();
+    assert.deepEqual(body.rooms, []);
+    assert.equal(JSON.stringify(body).includes(created.roomId), false);
     assert.equal(JSON.stringify(body).includes('0xAbCd00000000000000000000000000000000Ef12'), false);
-    assert.equal(room.playbackMode, 'full');
-    assert.ok(room.expiresAt > room.createdAt);
-    assert.equal(room.maxListeners, 2);
-    assert.equal(room.isFull, false);
     assert.equal(JSON.stringify(body).includes(created.hostResumeToken), false);
+
+    const guest = connectClient();
+    await once(guest, 'connect');
+    const joined = await emitAck(guest, 'room:join', { roomId: created.roomId });
+    assert.equal(joined.ok, true);
+    assert.equal(joined.track.accessMode, 'classic');
+    assert.equal(joined.hostAddress, undefined);
+    assert.equal(joined.playbackMode, 'full');
+    assert.ok(joined.expiresAt > Date.now());
+    assert.equal(joined.hostResumeToken, undefined);
   });
 
   it('keeps source and manifest refs out of public summaries, join replies, and track broadcasts', async () => {
@@ -165,12 +239,7 @@ describe('signaling server', () => {
 
     const publicObserver = connectClient();
     const rooms = await once(publicObserver, 'rooms:updated');
-    const publicRoom = rooms.find(room => room.roomId === created.roomId);
-    assert.ok(publicRoom, 'room is visible in public summaries');
-    assert.equal(publicRoom.track.accessMode, 'free');
-    assert.equal(publicRoom.track.audioRef, undefined);
-    assert.equal(publicRoom.track.metadataRef, undefined);
-    assert.equal(publicRoom.track.bulletinRef, '');
+    assert.deepEqual(rooms, [], 'connecting without a bounded search never enumerates rooms');
     assert.equal(JSON.stringify(rooms).includes(sourceRef), false);
     assert.equal(JSON.stringify(rooms).includes(metadataRef), false);
     assert.equal(JSON.stringify(rooms).includes(bulletinRef), false);
@@ -270,7 +339,8 @@ describe('signaling server', () => {
 
     const res = await fetch(`http://127.0.0.1:${port}/status`);
     const body = await res.json();
-    assert.equal(body.rooms.find(r => r.roomId === created.roomId).playbackMode, 'preview');
+    assert.deepEqual(body.rooms, []);
+    assert.equal(server.rooms.get(created.roomId).playbackMode, 'preview');
   });
 
   it('allows observed Product HTTPS origins and omits CORS headers for unrelated origins', async () => {
@@ -355,7 +425,8 @@ describe('signaling server', () => {
 
     const res = await fetch(`http://127.0.0.1:${port}/status`);
     const body = await res.json();
-    assert.equal(body.rooms.find(r => r.roomId === created.roomId).playbackMode, 'preview');
+    assert.deepEqual(body.rooms, []);
+    assert.equal(server.rooms.get(created.roomId).playbackMode, 'preview');
   });
 
   it('broadcasts host stream-ready cues only to room listeners', async () => {
@@ -395,10 +466,8 @@ describe('signaling server', () => {
     assert.equal((await emitAck(second, 'room:join', { roomId: created.roomId })).ok, true);
 
     const status = await (await fetch(`http://127.0.0.1:${port}/status`)).json();
-    const fullRoom = status.rooms.find(room => room.roomId === created.roomId);
-    assert.equal(fullRoom.listenerCount, 2);
-    assert.equal(fullRoom.maxListeners, 2);
-    assert.equal(fullRoom.isFull, true);
+    assert.deepEqual(status.rooms, []);
+    assert.equal(server.rooms.get(created.roomId).listeners.size, 2);
 
     const third = connectClient();
     await once(third, 'connect');
@@ -450,7 +519,7 @@ describe('signaling server', () => {
     const visibleStatus = await (await fetch(`http://127.0.0.1:${port}/status`)).json();
     assert.equal(
       visibleStatus.rooms.some(room => room.roomId === created.roomId),
-      true
+      false
     );
     assert.equal(JSON.stringify(visibleStatus).includes(created.hostResumeToken), false);
   });
@@ -1101,7 +1170,8 @@ describe('room social layer', () => {
 
     const response = await fetch(`http://127.0.0.1:${port}/status`);
     const status = await response.json();
-    assert.equal(status.rooms.find(room => room.roomId === created.roomId).lineup, undefined);
+    assert.deepEqual(status.rooms, []);
+    assert.equal(JSON.stringify(status).includes('Song 0'), false);
   });
 
   it('broadcasts the request queue to the room with attribution and replays it to late joiners', async () => {
@@ -1243,9 +1313,8 @@ describe('room social layer', () => {
 
     const res = await fetch(`http://127.0.0.1:${port}/status`);
     const body = await res.json();
-    const room = body.rooms.find(r => r.roomId === created.roomId);
-    assert.ok(room);
-    assert.equal(room.requests, undefined);
+    assert.deepEqual(body.rooms, []);
+    assert.equal(server.rooms.get(created.roomId).requests.length, 1);
     assert.equal(JSON.stringify(body).includes('a private wish'), false);
   });
 
@@ -1284,9 +1353,8 @@ describe('room social layer', () => {
 
     const res = await fetch(`http://127.0.0.1:${port}/status`);
     const body = await res.json();
-    const room = body.rooms.find(r => r.roomId === created.roomId);
-    assert.ok(room);
-    assert.equal(room.chat, undefined);
+    assert.deepEqual(body.rooms, []);
+    assert.equal(server.rooms.get(created.roomId).chat.length, 1);
     assert.equal(JSON.stringify(body).includes('private to the room'), false);
   });
 });
@@ -1396,8 +1464,9 @@ describe('shared playback clock', () => {
     guest.emit('player:state', { playing: false, currentTime: 0, duration: 60 });
     await emitAck(guest, 'room:rename', { displayName: 'Guest' });
     const status = await (await fetch(`http://127.0.0.1:${port}/status`)).json();
-    assert.equal(status.rooms[0].playerState.currentTime, 30);
-    assert.equal(status.rooms[0].playerState.playing, true);
+    assert.deepEqual(status.rooms, []);
+    assert.equal(server.rooms.get(created.roomId).playerState.currentTime, 30);
+    assert.equal(server.rooms.get(created.roomId).playerState.playing, true);
     const paused = once(guest, 'player:state');
     host.emit('player:state', { playing: false, currentTime: 40, duration: 60 });
     assert.equal((await paused).currentTime, 40);

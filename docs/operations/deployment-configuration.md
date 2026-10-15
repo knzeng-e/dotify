@@ -312,7 +312,7 @@ Required production variables:
 | `VITE_SIGNAL_URL`         | `https://dotify-signal.fly.dev`                                                                                                  | Public Socket.IO signaling origin.                               |
 | `VITE_DOTIFY_API_URL`     | `https://dotify-api.fly.dev`                                                                                                     | Backend API for uploads, key delivery, and cached catalog reads. |
 | `VITE_PINATA_GATEWAY`     | `https://gateway.pinata.cloud`                                                                                                   | Primary browser read gateway for Pinata-backed track assets.     |
-| `VITE_IPFS_READ_GATEWAYS` | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation,https://bulletin-kubo.tservices.es:9443` | Ordered fallback gateway list.                                   |
+| `VITE_IPFS_READ_GATEWAYS` | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation` | Ordered fallback gateway list.                                   |
 
 Optional production variables:
 
@@ -354,7 +354,7 @@ Required Product values:
 | `VITE_DOTIFY_ROOM_REALTIME`     | `off`; `observe` or `dual` only for an authorized Product measurement candidate                                                     |
 | `VITE_BULLETIN_WS_URL`          | `wss://bulletin-paseo.tservices.es:8443`                                                                                         |
 | `VITE_PINATA_GATEWAY`           | `https://gateway.pinata.cloud`                                                                                                   |
-| `VITE_IPFS_READ_GATEWAYS`       | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation,https://bulletin-kubo.tservices.es:9443` |
+| `VITE_IPFS_READ_GATEWAYS`       | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation` |
 | Product executable `appVersion` | `[0, 1, 48]` published follow-up release; `[0, 1, 47]` is the rollback artifact                            |
 
 The Product executable version is part of the published Product manifest. Bump
@@ -738,23 +738,13 @@ correction candidate for new acceptance runs. The earlier 0.1.31 candidate has
 the panel but stops observation after a publish timeout; 0.1.30 lacks the panel.
 A new local build is not a deployment or live acceptance result.
 
-`VITE_DOTIFY_ROOM_BEACONS` is off in the tracked profile, so the standard
-publication announces no rooms on the Statement Store. The capability ships
-dormant on purpose: the reader is implemented, but the Product host
-publish/discover/expiry round trip has no live evidence yet. Enabling also adds
-about 24 KB to every publication, against a finite Bulletin quota.
-
-To publish a build that does announce:
-
-```bash
-cd web
-npm run deploy:product-devnet:beacons
-```
-
-Rolling back is a normal republication with the flag absent - the standard
-`npm run deploy:product-devnet` produces the `off` build. Beacons already
-published expire on their own within the statement TTL; there is no revocation
-step, and none is needed.
+The 2026-10-15 consent correction disconnects global room beacon publishing and
+reading from the application. `VITE_DOTIFY_ROOM_BEACONS` and the legacy
+`:beacons` script aliases no longer enable app discovery. Archived modules are
+research scaffolding; globally readable announcements cannot enforce a host's
+Nearby radius or immediate opt-out. Previously published records can only
+expire according to their original TTL. Do not reuse this transport for
+location or private-room discovery without a new consent design.
 
 `VITE_PINATA_JWT` and `VITE_CONTENT_SECRET` are explicitly empty in that
 profile so a developer's generic local `.env` cannot leak demo credentials
@@ -771,7 +761,10 @@ New API cover uploads require the `sharp` native dependency included in the API
 image. The upload endpoint creates one public IPFS directory with
 `cover/placeholder.webp`, 64/160/320/640 px WebP variants, and the untouched
 `cover/original.<ext>`. The on-chain image ref points to `cover/640.webp`; the
-web client derives the other paths for `srcset`. On the current 512 MB single
+web client derives the other widths for `srcset`. The loading placeholder is
+local, so an optional missing `placeholder.webp` does not add a network request
+or compete with audio. A missing actual cover still needs its pin restored;
+the local placeholder is not evidence that the remote image exists. On the current 512 MB single
 API machine, cover normalization is intentionally serialized process-wide; one
 large source is decoded and attention-cropped into a 640 px canonical image,
 then smaller variants are derived sequentially. Do not parallelize this stage
@@ -794,9 +787,22 @@ URL; older clients simply ignore the sibling variants.
 Encrypted audio byte reads are stricter than image and metadata reads: the
 browser fetch path requires CORS and range behavior that public gateways do not
 provide consistently for Dotify's Pinata-pinned DAV2 files. The web app
-therefore restricts DAV2 range reads and full-file recovery to Pinata gateways
-(`gateway.pinata.cloud` or a configured `*.mypinata.cloud` gateway). Keep
-generic `VITE_IPFS_READ_GATEWAYS` values for artwork/metadata fallback only.
+therefore restricts DAV2 range reads to Pinata gateways (`gateway.pinata.cloud`
+or a configured `*.mypinata.cloud` gateway). Full-file recovery can use other
+configured readers, but a gateway wins only after its entire bounded body is
+read and the DAV2 container is structurally valid. CORS failures, failed bodies
+and truncated containers can try another reader; AES-GCM authentication failure
+remains terminal and never bypasses the artist's access policy.
+
+Recovery permits at most two parallel full-file downloads, with 20 seconds to
+headers, 15 seconds of body inactivity and 64 MiB per response (50 MiB upload
+limit plus encrypted-container overhead). This is a transport fallback, not a
+new key request or source shared with room guests. Cancelled selections abort
+pending readers. Existing playback position and pause intent are retained.
+Remove retired `bulletin-kubo.tservices.es` and `paseo-ipfs.polkadot.io` from
+hosted read settings; current frontend code filters them and retains the CID
+and path when resolving old asset URLs through current readers. DNS/HEAD checks
+and synthetic Chromium/WebKit playback do not prove live Product recovery.
 
 The flat-CID Bulletin build uploads only `dist-bulletin/index.html`. Its DAV2
 decrypt Worker is therefore compiled as an inline Blob Worker. The
@@ -1411,10 +1417,11 @@ literal `Origin: null` value from sandboxed iframes or `file://` pages. Keep it
 scoped to signaling only; the backend API still requires explicit CORS origins
 because it serves authenticated upload and key-delivery routes.
 
-`/status` exposes each visible room's `listenerCount`, `maxListeners`, and
-`isFull` values. When changing `SIGNAL_MAX_LISTENERS`, capture this metadata in
-room smoke evidence so the frontend capacity labels and server-enforced
-`ROOM_FULL` boundary stay aligned.
+`/status.rooms`, `rooms:list` and `rooms:updated` return empty arrays. Opening a
+room is no longer global discovery consent, and publishing Nearby must not
+bypass the host radius through another endpoint. Check capacity through
+admitted join/resume replies and the server-enforced `ROOM_FULL` boundary.
+`/health` still exposes aggregate operational counts without room identifiers.
 
 When a room track has a valid content hash but no runtime address, signaling
 uses `SIGNAL_CONTRIBUTION_API_URL` to request the catalog release by hash. It
@@ -1824,6 +1831,25 @@ separate; legacy receipts and old direct wallet gifts cannot be reclassified.
 Nearby is included by default in new Web/Product builds and single-worker
 signaling. Existing published artifacts/settings are not changed by this PR.
 Location collection and room visibility still require explicit user actions.
+
+The 2026-10-15 correction makes every new room link/code-only by default.
+Deploy signaling before the frontend so old clients cannot enumerate private
+rooms through `rooms:list`, `rooms:updated` or `/status`. Nearby opt-in remains
+bounded by both radii; it never populates a global room list. Frontend creation
+offers one default-off **Visible nearby** switch and a stepped 5/10/25 km
+slider. Permission starts only after explicit submission for the newly created
+room; denial or disconnect keeps direct-link hosting available. Share links
+must join using their code without waiting for discovery metadata.
+
+Global Statement Store beacon hooks are disconnected from the application,
+including when the old beacon environment setting is `on`. Archived beacon
+modules remain available for research but cannot advertise current rooms.
+Artist/home dashboards have no global room index; lack of listed rooms is not
+evidence of no listening. Existing invitation-based artist visits still work.
+Keep `VITE_DOTIFY_ROOM_REALTIME=off` for this rollout: its separately authorized
+measurement modes can publish public presence independently of Nearby.
+Rolling back signaling to an older image restores automatic global listing:
+do not use that rollback while promising link-only/radius-limited discovery.
 
 The 0.1.49 test release packages `shared` alongside `server` in
 `web/Dockerfile.signal`; omitting the geometry module prevents signaling from

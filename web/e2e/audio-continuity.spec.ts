@@ -52,7 +52,18 @@ function fixture(digit: string) {
   return { bytes: Buffer.concat([prefix, json, ...chunks]), firstStart: bodyOffset, failingStart: bodyOffset + chunks[0].length + chunks[1].length };
 }
 
-type Fault = 'none' | 'retry' | 'fallback' | 'slow' | 'corrupt' | 'denied' | 'failed-fallback' | 'failed-startup' | 'key-retry';
+type Fault =
+  | 'none'
+  | 'retry'
+  | 'fallback'
+  | 'truncated-fallback'
+  | 'corrupt-fallback'
+  | 'slow'
+  | 'corrupt'
+  | 'denied'
+  | 'failed-fallback'
+  | 'failed-startup'
+  | 'key-retry';
 async function setup(page: Page, fault: Fault = 'none', holdRecovery = false) {
   const media = { a: fixture('1'), b: fixture('2') };
   const requests: string[] = [];
@@ -85,6 +96,14 @@ async function setup(page: Page, fault: Fault = 'none', holdRecovery = false) {
     requests.push(`${name}:${range ?? 'full'}`);
     if (!range) {
       if (holdRecovery && name === 'a') await recoveryGate;
+      if (name === 'a' && fault === 'truncated-fallback' && new URL(url).hostname === 'gateway.pinata.cloud') {
+        return route.fulfill({ status: 200, body: item.bytes.subarray(0, item.bytes.length - 10) });
+      }
+      if (name === 'a' && fault === 'corrupt-fallback') {
+        const corrupt = Buffer.from(item.bytes);
+        corrupt[item.firstStart] ^= 1;
+        return route.fulfill({ status: 200, body: corrupt });
+      }
       return route.fulfill({ status: fault === 'failed-fallback' || fault === 'failed-startup' ? 503 : 200, body: item.bytes });
     }
     const [, from, to] = /bytes=(\d+)-(\d+)/.exec(range)!;
@@ -94,7 +113,7 @@ async function setup(page: Page, fault: Fault = 'none', holdRecovery = false) {
     if (name === 'a' && start === item.failingStart) {
       attempts++;
       if (fault === 'slow') await new Promise(resolve => setTimeout(resolve, 6000));
-      if (fault === 'fallback' || fault === 'failed-fallback') {
+      if (fault === 'fallback' || fault === 'failed-fallback' || fault === 'truncated-fallback' || fault === 'corrupt-fallback') {
         await new Promise(resolve => setTimeout(resolve, 2400));
         return route.fulfill({ status: 503, body: 'Range outage' });
       }
@@ -168,6 +187,27 @@ test('pause during recovery remains paused at the saved position', async ({ page
   await expect(audio(page)).toHaveJSProperty('paused', true);
   await page.getByRole('button', { name: 'Toggle playback' }).click();
   await playing(page, pausedAt + 0.2);
+});
+
+test('a truncated full-file recovery switches readers and keeps the audible clock', async ({ page }) => {
+  const probe = await setup(page, 'truncated-fallback', true);
+  await expect.poll(() => time(page)).toBeGreaterThan(1);
+  await expect(page.getByTestId('state')).toHaveAttribute('data-status', 'recovering');
+  const savedAt = await time(page);
+  probe.releaseRecovery();
+  await expect(page.getByTestId('state')).toHaveAttribute('data-generation', '2');
+  await playing(page, savedAt + 0.3);
+  expect(probe.requests.filter(request => request === 'a:full')).toHaveLength(2);
+  const starts = await page.evaluate(() => Reflect.get(window, 'continuityEvents') as { time: number; source: string }[]);
+  expect(starts.at(-1)!.time).toBeGreaterThanOrEqual(savedAt - 0.1);
+});
+
+test('complete-file authentication failure is terminal and never retries a different key or reader', async ({ page }) => {
+  const probe = await setup(page, 'corrupt-fallback');
+  await playing(page);
+  await expect(page.getByTestId('state')).toHaveAttribute('data-status', 'no-audio');
+  expect(probe.requests.filter(request => request === 'a:full')).toHaveLength(1);
+  expect(probe.keyRequests()).toBe(1);
 });
 
 test('reselect and A → B → A create fresh playable streams', async ({ page }) => {

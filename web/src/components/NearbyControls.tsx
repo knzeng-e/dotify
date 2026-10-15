@@ -1,9 +1,10 @@
-import { useEffect, useId, useRef, useState } from 'react';
-import { ArrowRight, EyeOff, Flag, MapPin, Radio, Search, X } from 'lucide-react';
+import { useEffect, useId, useState } from 'react';
+import { EyeOff, Flag, Headphones, MoreHorizontal, Radar, Radio, Search, ShieldCheck, X } from 'lucide-react';
 import { NEARBY_RADII } from '../../shared/nearby-v2.mjs';
 import { nearbyManualAreas, canUseNearbyDeviceLocation } from '../features/rooms/nearbyLocation';
 import { requiresExplicitProductRoomEntry } from '../features/productHost/productHost';
 import type { useNearby } from '../features/rooms/useNearby';
+import { NearbyRadius, NearbySwitch } from './NearbyVisibility';
 
 type Props = { nearby: ReturnType<typeof useNearby>; host?: boolean; onJoin?: (roomId: string) => void; joining?: boolean };
 
@@ -12,144 +13,165 @@ export function NearbyControls({ nearby, host = false, onJoin, joining }: Props)
   const selection = nearby.session?.selection();
   const [radius, setRadius] = useState(selection?.radius ?? 5);
   const [manual, setManual] = useState(nearbyManualAreas.find(area => selection?.source?.kind === 'manual' && area.cell === selection.source.cell)?.name ?? '');
-  const [source, setSource] = useState<'device' | 'manual'>(selection?.source?.kind ?? 'device');
   const [reportId, setReportId] = useState<string | null>(null);
+  useEffect(() => {
+    if (selection?.radius !== undefined) setRadius(selection.radius);
+  }, [selection?.radius]);
   const { session, state } = nearby;
+  if (!session) return null;
   const busy = state.phase === 'locating' || state.phase === 'checking';
   const active = state.phase === 'active' || state.phase === 'empty';
-  const statusRef = useRef<HTMLParagraphElement>(null);
-  const wasBusy = useRef(false);
-  useEffect(() => {
-    if (wasBusy.current && !busy) statusRef.current?.focus({ preventScroll: true });
-    wasBusy.current = busy;
-  }, [busy]);
-  if (!session) return null;
   const deviceSupported = canUseNearbyDeviceLocation();
+  const snapshotOnly = requiresExplicitProductRoomEntry();
   const selected = nearbyManualAreas.find(area => area.name === manual);
+  const activeArea = nearbyManualAreas.find(area => selection?.source?.kind === 'manual' && area.cell === selection.source.cell);
+  const source = selection?.source?.kind ?? 'device';
+  const changedRange = active && selection?.radius !== radius;
   const start = (kind: 'device' | 'manual', value = radius) => {
-    setSource(kind);
     if (kind === 'device') void session.start({ kind }, value);
     else if (selected) void session.start({ kind, cell: selected.cell }, value);
   };
+  const restart = (value = radius) => {
+    if (selection?.source) void session.start(selection.source, value);
+  };
   return (
-    <section className='nearby-panel' aria-labelledby={`${id}-title`}>
-      <header className='nearby-heading'>
-        <MapPin size={21} aria-hidden='true' />
-        <div>
-          <h2 id={`${id}-title`}>{host ? 'Visible nearby' : 'Nearby'}</h2>
-          <p>{host ? 'Open this listening moment to people around you.' : 'A shared listening moment, close to you.'}</p>
-        </div>
-        {(active || busy || state.phase === 'stale') && (
-          <button type='button' className='text-action' onClick={() => session.stop()}>
-            <X size={17} />
-            {host ? 'Turn off' : 'Stop'}
-          </button>
+    <section className={`nearby-panel${host ? ' nearby-panel-host' : ''}`} aria-labelledby={`${id}-title`} data-active={active}>
+      <div className='nearby-main'>
+        {!host && (
+          <div className='nearby-radar' aria-hidden='true' data-searching={busy}>
+            <span className='nearby-orbit nearby-orbit-outer' />
+            <span className='nearby-orbit nearby-orbit-inner' />
+            <span className='nearby-radar-centre'>
+              <Headphones size={29} strokeWidth={1.5} />
+            </span>
+          </div>
         )}
-      </header>
-      <p className='nearby-disclosure'>
-        {host
-          ? 'Share an approximate area so people nearby can find your room.'
-          : 'Find live rooms using an approximate area. Exact coordinates stay on your device.'}
-      </p>
-      <details className='nearby-settings' open={!active}>
-        <summary>
-          {host ? 'Visibility area' : 'Search area'} · {source === 'manual' && selected ? `${selected.name} centre` : 'Your location'} · about {radius} km
-        </summary>
-        <fieldset className='nearby-radius'>
-          <legend>{host ? 'Visibility radius' : 'Search radius'} · approximate</legend>
-          {NEARBY_RADII.map(value => (
-            <label key={value}>
-              <input
-                type='radio'
-                name={`${id}-radius`}
-                value={value}
-                checked={value === radius}
-                onChange={() => {
-                  session.stop();
-                  setRadius(value);
-                }}
+        <div className='nearby-main-copy'>
+          <header className='nearby-heading'>
+            <Radar className={host ? undefined : 'nearby-mobile-mark'} size={24} aria-hidden='true' />
+            <div>
+              <h2 id={`${id}-title`}>{host ? 'Visible nearby' : 'Nearby'}</h2>
+              <p id={`${id}-description`}>
+                {host
+                  ? active
+                    ? source === 'manual' && activeArea
+                      ? `Visible around ${activeArea.name} centre.`
+                      : 'People around you can find this room.'
+                    : busy
+                      ? 'Making your room visible…'
+                      : 'Off. Your room is available by link.'
+                  : 'Find your people. Share a listening moment.'}
+              </p>
+            </div>
+            {host ? (
+              <NearbySwitch
+                checked={active || busy}
+                disabled={!deviceSupported && !active && !busy}
+                describedBy={`${id}-description`}
+                onChange={checked => (checked ? start('device') : session.stop())}
               />
-              <span>{value} km</span>
-            </label>
-          ))}
-        </fieldset>
-        <p className='nearby-hint'>Areas are a few kilometres wide. Results near the edge may vary.</p>
-        <div className='nearby-actions'>
-          {deviceSupported ? (
-            <button type='button' className='primary-action' disabled={busy || (active && source === 'device')} onClick={() => start('device')}>
-              {host ? <Radio size={17} /> : <Search size={17} />}
-              {host ? 'Enable nearby visibility' : 'Find rooms near me'}
+            ) : (
+              (active || busy) && (
+                <button type='button' className='nearby-stop' onClick={() => session.stop()} aria-label='Stop' title='Stop searching'>
+                  <X size={19} aria-hidden='true' />
+                </button>
+              )
+            )}
+          </header>
+          {(!host || active || busy) && <NearbyRadius value={radius} onChange={setRadius} label={host ? 'Visibility range' : 'Search range'} disabled={busy} />}
+          {!host && deviceSupported && (
+            <button type='button' className='primary-action nearby-search' disabled={busy} onClick={() => (changedRange ? restart() : start('device'))}>
+              <Search size={18} aria-hidden='true' />
+              {busy
+                ? 'Finding rooms…'
+                : changedRange
+                  ? 'Apply range'
+                  : active && source === 'device'
+                    ? snapshotOnly
+                      ? 'Update my location'
+                      : 'Search again'
+                    : 'Find rooms near me'}
             </button>
-          ) : (
-            <p>Location is unavailable in this app environment. Use an invite link or QR code, or explore a city separately.</p>
           )}
-        </div>
-        {deviceSupported && requiresExplicitProductRoomEntry() && (
-          <p className='nearby-hint'>
-            Your Polkadot app uses your current position for up to 90 seconds. Update your location to refresh it; your movements are not followed.
-          </p>
-        )}
-        <details className='nearby-manual'>
-          <summary>Explore a city</summary>
-          <label htmlFor={`${id}-area`}>City centre · starter areas</label>
-          <div className='nearby-manual-row'>
-            <select
-              className='field'
-              id={`${id}-area`}
-              value={manual}
-              onChange={event => {
-                session.stop();
-                setManual(event.target.value);
+          {host && active && changedRange && (
+            <button type='button' className='secondary-action nearby-search' onClick={() => restart()}>
+              Apply range
+            </button>
+          )}
+          {host && active && !changedRange && source === 'device' && snapshotOnly && (
+            <button type='button' className='text-action nearby-renew' onClick={() => start('device')}>
+              Update my location
+            </button>
+          )}
+          {!deviceSupported && (
+            <p className='nearby-hint'>
+              {host
+                ? 'Location is unavailable here. Choose an area or share your room link.'
+                : 'Location is unavailable here. You can still join by link or explore a city.'}
+            </p>
+          )}
+          {active && source === 'device' && snapshotOnly && <p className='nearby-hint'>This location lasts up to 90 seconds.</p>}
+          {(state.message || !host) && (
+            <p role='status' className='nearby-status' data-phase={state.phase}>
+              {state.message || 'Search is off. Start when you’re ready.'}
+              {active && source === 'manual' && activeArea && <span className='nearby-area-label'> {activeArea.name} centre</span>}
+            </p>
+          )}
+          {!host && state.phase === 'empty' && radius < 25 && (
+            <button
+              className='text-action nearby-widen'
+              type='button'
+              onClick={() => {
+                const next = NEARBY_RADII[NEARBY_RADII.indexOf(radius) + 1];
+                setRadius(next);
+                restart(next);
               }}
             >
-              <option value=''>Choose a city</option>
-              {nearbyManualAreas.map(area => (
-                <option key={area.name}>{area.name}</option>
-              ))}
-            </select>
-            <button type='button' className='secondary-action' disabled={!selected || busy} onClick={() => start('manual')}>
-              {host ? 'Enable around this city centre' : 'Explore this city'}
+              Widen search to {NEARBY_RADII[NEARBY_RADII.indexOf(radius) + 1]} km
             </button>
-          </div>
+          )}
+        </div>
+      </div>
+      <div className='nearby-secondary'>
+        <details className='nearby-privacy'>
+          <summary>
+            <ShieldCheck size={15} aria-hidden='true' /> Your location & privacy
+          </summary>
           <p className='nearby-hint'>
-            This separate search starts at the selected city centre, not your current location. It only includes the chosen radius. If your city is not listed,
-            use a room link or QR code.
+            Only an approximate area is shared with the room service. People may infer your broad area, but never see your exact position. Distances are
+            approximate; room links work from anywhere.
+          </p>
+          <p className='nearby-hint'>
+            {snapshotOnly
+              ? 'In the Polkadot app, a location expires after 90 seconds. Use Update my location to continue. Your movements are not followed.'
+              : 'Nearby stops when you leave the app. Return and start again to continue.'}{' '}
+            A lost connection may take up to 90 seconds to remove your room.
           </p>
         </details>
         <details className='nearby-manual'>
-          <summary>How your area is shared</summary>
-          <p className='nearby-hint'>
-            The room service receives an approximate area, never your exact coordinates. People searching may infer your broad area. Nearby does not prove where
-            someone is. Room links work from anywhere. Visibility stops when you leave the app; a lost connection may take up to 90 seconds to expire.
-          </p>
+          <summary>{host ? 'Choose an area' : 'Explore a city'}</summary>
+          <div className='nearby-manual-body'>
+            {host && !active && !busy && <NearbyRadius value={radius} onChange={setRadius} label='Visibility range' />}
+            <label htmlFor={`${id}-area`}>City centre · starter areas</label>
+            <div className='nearby-manual-row'>
+              <select className='field' id={`${id}-area`} name='nearby-city' value={manual} onChange={event => setManual(event.target.value)}>
+                <option value=''>Choose a city</option>
+                {nearbyManualAreas.map(area => (
+                  <option key={area.name}>{area.name}</option>
+                ))}
+              </select>
+              <button type='button' className='secondary-action' disabled={!selected || busy} onClick={() => start('manual')}>
+                {host ? 'Show around this city' : 'Explore this city'}
+              </button>
+            </div>
+            <p className='nearby-hint'>
+              {host ? 'Your room will appear around the city centre, not your current location.' : 'Search around the city centre, not your current location.'}
+            </p>
+          </div>
         </details>
-      </details>
-      {active && source === 'device' && requiresExplicitProductRoomEntry() && (
-        <div className='nearby-actions'>
-          <p className='nearby-hint'>Current position · valid for up to 90 seconds.</p>
-          <button type='button' className='secondary-action' onClick={() => start('device')}>
-            <MapPin size={17} /> Update my location
-          </button>
-        </div>
-      )}
-      <p ref={statusRef} tabIndex={-1} role='status' className='nearby-status' data-phase={state.phase}>
-        {state.message || (host ? 'Off · your room stays accessible by link.' : 'Search is off. Your location has not been requested.')}
-      </p>
-      {!host && state.phase === 'empty' && radius < 25 && (
-        <button
-          className='secondary-action'
-          type='button'
-          onClick={() => {
-            const next = NEARBY_RADII[NEARBY_RADII.indexOf(radius) + 1];
-            setRadius(next);
-            start(source, next);
-          }}
-        >
-          Widen search to {NEARBY_RADII[NEARBY_RADII.indexOf(radius) + 1]} km
-        </button>
-      )}
+      </div>
       {!host && (
-        <ul className='nearby-results'>
+        <ul className='nearby-results' aria-label='Rooms nearby'>
           {state.results.map(room => (
             <li key={room.discoveryId} className='nearby-room'>
               <span className='nearby-room-mark' aria-hidden='true'>
@@ -172,26 +194,30 @@ export function NearbyControls({ nearby, host = false, onJoin, joining }: Props)
                 }}
               >
                 {room.isFull ? 'Full' : 'Join'}
-                <ArrowRight size={17} />
               </button>
-              <div className='nearby-room-actions'>
-                <button type='button' className='text-action' onClick={() => session.hide(room.roomId)}>
-                  <EyeOff size={15} />
-                  Hide
-                </button>
-                <button
-                  type='button'
-                  className='text-action'
-                  aria-expanded={reportId === room.discoveryId}
-                  onClick={() => setReportId(reportId === room.discoveryId ? null : room.discoveryId)}
-                >
-                  <Flag size={15} />
-                  Report
-                </button>
-              </div>
+              <details className='nearby-room-actions'>
+                <summary aria-label={`Options for ${room.title}`} title='Room options'>
+                  <MoreHorizontal size={19} aria-hidden='true' />
+                </summary>
+                <div className='nearby-room-menu'>
+                  <button type='button' className='text-action' onClick={() => session.hide(room.roomId)}>
+                    <EyeOff size={15} aria-hidden='true' />
+                    Hide
+                  </button>
+                  <button
+                    type='button'
+                    className='text-action'
+                    aria-expanded={reportId === room.discoveryId}
+                    onClick={() => setReportId(reportId === room.discoveryId ? null : room.discoveryId)}
+                  >
+                    <Flag size={15} aria-hidden='true' />
+                    Report
+                  </button>
+                </div>
+              </details>
               {reportId === room.discoveryId && (
                 <div className='nearby-report'>
-                  <p>Hide this room and send an aggregate safety signal. There is no moderation case or response.</p>
+                  <p>Hide this room and send a safety count. Reports do not open a moderation case.</p>
                   {(['unwanted', 'misleading', 'offensive'] as const).map(reason => (
                     <button
                       className='secondary-action'

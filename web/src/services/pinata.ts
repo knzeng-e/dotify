@@ -20,6 +20,8 @@ import { clearStoredSession, ensureDotifySession, ensureDotifySessionForSigner, 
 import { getAddress, isAddress, type WalletClient } from 'viem';
 import { parseReleaseEditorialMetadata } from '../features/catalog/releaseMetadata';
 import type { ReleaseEditorialMetadata } from '../shared/types';
+import { readAudioBody } from '../features/catalog/readAudioBody';
+import { parseAudioV2Container } from '../shared/utils/audioV2';
 
 // Backend API base URL. When set, uploads are routed server-side.
 const API_URL = (import.meta.env.VITE_DOTIFY_API_URL as string | undefined)?.replace(/\/$/, '');
@@ -38,12 +40,8 @@ const READ_GATEWAYS = (import.meta.env.VITE_IPFS_READ_GATEWAYS as string | undef
   ?.split(',')
   .map(gateway => gateway.trim())
   .filter(Boolean);
-const FALLBACK_GATEWAYS = [
-  'https://ipfs.io',
-  'https://dweb.link',
-  'https://devnet-ipfs.api.polkadotcommunity.foundation',
-  'https://bulletin-kubo.tservices.es:9443'
-];
+const FALLBACK_GATEWAYS = ['https://ipfs.io', 'https://dweb.link', 'https://devnet-ipfs.api.polkadotcommunity.foundation'];
+const RETIRED_GATEWAY_HOSTS = new Set(['bulletin-kubo.tservices.es', 'paseo-ipfs.polkadot.io']);
 const AUDIO_READ_TIMEOUT_MS = 20_000;
 const AUDIO_READ_HEDGE_DELAY_MS = 8_000;
 
@@ -119,8 +117,16 @@ export function getGatewayUrl(cid: string): string {
 }
 
 export function getGatewayUrls(cid: string): string[] {
-  const gateways = [GATEWAY, PINATA_PUBLIC_GATEWAY, ...(READ_GATEWAYS ?? []), ...FALLBACK_GATEWAYS];
+  const gateways = [GATEWAY, PINATA_PUBLIC_GATEWAY, ...(READ_GATEWAYS ?? []), ...FALLBACK_GATEWAYS].filter(gateway => !isRetiredGateway(gateway));
   return Array.from(new Set(gateways.map(gateway => `${gateway.replace(/\/$/, '')}/ipfs/${cid}`)));
+}
+
+function isRetiredGateway(url: string): boolean {
+  try {
+    return RETIRED_GATEWAY_HOSTS.has(new URL(url).hostname.toLowerCase());
+  } catch {
+    return false;
+  }
 }
 
 function isPinataGateway(gateway: string): boolean {
@@ -159,7 +165,7 @@ export function getGatewayUrlsForAssetRef(assetRef: string): string[] {
   if (!ipfsPath) return assetRef ? [assetRef] : [];
 
   const fallbackUrls = getGatewayUrls(ipfsPath);
-  if (!assetRef.startsWith('http://') && !assetRef.startsWith('https://')) return fallbackUrls;
+  if (isRetiredGateway(assetRef) || (!assetRef.startsWith('http://') && !assetRef.startsWith('https://'))) return fallbackUrls;
   return Array.from(new Set([assetRef, ...fallbackUrls]));
 }
 
@@ -180,12 +186,26 @@ export async function fetchIpfsCid(cid: string, options: GatewayReadOptions = {}
   return fetchThroughGateways(getGatewayUrls(cid), { signal: options.signal, label: `IPFS CID ${cid}` });
 }
 
-export async function fetchAudioIpfsCid(cid: string, options: GatewayReadOptions = {}): Promise<Response> {
+export async function fetchAudioIpfsCid(cid: string, options: GatewayReadOptions & { format?: 'dav2' } = {}): Promise<Response> {
   throwIfGatewayReadAborted(options.signal);
   return fetchThroughGateways(getAudioFallbackGatewayUrls(cid), {
     signal: options.signal,
     timeoutMs: AUDIO_READ_TIMEOUT_MS,
     hedgeDelayMs: AUDIO_READ_HEDGE_DELAY_MS,
+    maxParallelAttempts: 2,
+    prepareResponse: async (response, signal) => {
+      // Headers alone are not recovery: keep alternate readers available if
+      // the winning connection stalls, truncates, or returns a partial file.
+      if (response.status !== 200) {
+        void response.body?.cancel().catch(() => undefined);
+        throw new Error('Audio gateway did not return the complete file.');
+      }
+      const bytes = await readAudioBody(response, signal);
+      if (options.format === 'dav2') parseAudioV2Container(bytes);
+      // Authentication stays outside transport retry. A complete ciphertext
+      // that fails AES-GCM must fail closed, never switch sources or keys.
+      return new Response(bytes, { headers: { 'content-type': response.headers.get('content-type') ?? 'application/octet-stream' } });
+    },
     label: `audio IPFS CID ${cid}`
   });
 }

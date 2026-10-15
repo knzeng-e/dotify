@@ -34,7 +34,6 @@ import { buildAccessGate, buildClassicAccessVerifiedFeedback, buildClassicSuppor
 import { catalogApiStatus, catalogLoadFailureStatus } from '../features/catalog/catalogStatus';
 import { fetchAudioV2RangeThroughGateways, type AudioV2GatewayPhase, type AudioV2RangeResult } from '../features/catalog/audioV2Gateway';
 import { pumpAudioV2ReadAhead } from '../features/catalog/audioV2Pipeline';
-import { readAudioBody } from '../features/catalog/readAudioBody';
 import { AudioV2DecryptAuthenticationError, createAudioV2ChunkDecryptor } from '../features/catalog/audioV2Decryptor';
 import { AudioV2ChunkAuthenticationError, routeAudioV2MseFailure } from '../features/catalog/audioV2Recovery';
 import { cancelAudioV2TrackIntentPrefetch, prefetchAudioV2TrackIntent } from '../features/catalog/audioV2IntentPrefetch';
@@ -999,10 +998,12 @@ export function useCatalog(deps: UseCatalogDeps) {
 
   async function fetchAndDecryptAudioV2Blob(cid: string, key: Uint8Array, signal?: AbortSignal): Promise<string> {
     throwIfAborted(signal);
-    const response = await fetchAudioIpfsCid(cid, { signal });
+    const response = await fetchAudioIpfsCid(cid, { signal, format: 'dav2' });
     if (!response.ok) throw new Error(`Unable to fetch DAV2 audio (${response.status})`);
     throwIfAborted(signal);
-    const container = await readAudioBody(response, signal);
+    // The gateway race returns a complete, validated in-memory body. Do not
+    // run another chunk accumulator over it before decryption.
+    const container = new Uint8Array(await response.arrayBuffer());
     throwIfAborted(signal);
     const parsed = parseAudioV2Container(container);
     const decryptor = await createAudioV2ChunkDecryptor({ header: parsed.header, key, signal });

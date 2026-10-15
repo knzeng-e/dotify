@@ -175,11 +175,11 @@ async function joinAsListener(context: BrowserContext, roomId: string, options: 
     // the WebSocket delay is visible, so this delayed path may already have
     // reached the join sheet. The durable contract is that lookup resolves to
     // the room threshold sheet before the guest chooses a display name.
-    await expect(page.locator('#join-room-title')).toHaveText(/Finding this room|welcomes you/);
+    await expect(page.locator('#join-room-title')).toHaveText(/Finding this room|Join/);
   }
   if (options.displayName) {
-    await expect(page.locator('#join-room-title')).toContainText('welcomes you', { timeout: 15_000 });
-    await expect(page.locator('.room-threshold-preview')).toBeVisible();
+    await expect(page.locator('#join-room-title')).toContainText('Join', { timeout: 15_000 });
+    await expect(page.locator('.room-threshold-preview')).toHaveCount(0);
     await expect(page.locator('.room-threshold-code')).toContainText(roomId);
     await expect(page.getByRole('button', { name: 'Join and listen' })).toBeDisabled();
     await page.getByLabel('Your name in the room').fill(options.displayName);
@@ -289,7 +289,7 @@ test('public room: listener joins via link, hears full playback, no wallet, no c
   }
 });
 
-test('embedded Product Web guest sees a live room before media permission', async ({ browser }) => {
+test('embedded Product Web guest can join a private room by link before media permission', async ({ browser }) => {
   const hostContext = await browser.newContext();
   const listenerContext = await browser.newContext();
   try {
@@ -302,8 +302,9 @@ test('embedded Product Web guest sees a live room before media permission', asyn
     await listenerHost.setContent(`<iframe title="Product Web" src="${new URL(`/#/rooms/${roomId}`, listenerHost.url())}"></iframe>`);
 
     const embeddedDotify = listenerHost.frameLocator('iframe[title="Product Web"]');
-    await expect(embeddedDotify.locator('#join-room-title')).toContainText('welcomes you', { timeout: 15_000 });
-    await expect(embeddedDotify.locator('.room-threshold-preview')).toContainText(PUBLIC_TITLE);
+    await expect(embeddedDotify.locator('#join-room-title')).toContainText('Join', { timeout: 15_000 });
+    await expect(embeddedDotify.locator('.room-threshold-preview')).toHaveCount(0);
+    await expect(embeddedDotify.locator('.room-threshold-code')).toContainText(roomId);
     await expect(embeddedDotify.getByLabel('Your name in the room')).toHaveValue('Product guest');
     await expect(embeddedDotify.getByRole('button', { name: 'Join and listen' })).toBeEnabled();
   } finally {
@@ -569,12 +570,15 @@ test('host explicitly closes: the room is removed and the listener sees a clear 
   }
 });
 
-test('missing room link stays unavailable and cannot be entered', async ({ page }) => {
+test('missing room link reports authoritative join failure without exposing other rooms', async ({ page }) => {
   const roomId = 'NOPE99';
   await page.goto(`/#/rooms/${roomId}`);
 
-  await expect(page.locator('#join-room-title')).toHaveText('This room is unavailable');
+  await expect(page.locator('#join-room-title')).toContainText('Join');
   await expect(page.locator('.room-threshold-code')).toContainText(roomId);
   await expect(page.locator('.room-threshold-preview')).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Room unavailable' })).toBeDisabled();
+  await page.getByLabel('Your name in the room').fill('Invited guest');
+  await page.getByRole('button', { name: 'Join and listen', exact: true }).click();
+  await expect(page.getByText(/room not found|room is unavailable|room no longer exists/i)).toBeVisible();
+  await expect(page.getByTestId('room-code')).toHaveCount(0);
 });

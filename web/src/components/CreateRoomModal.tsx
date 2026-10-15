@@ -10,6 +10,8 @@ import { Dialog } from './Dialog';
 import { roomHostDisplayName } from '../features/rooms/roomState';
 import type { CatalogTrack } from '../shared/types';
 import { useUiFeedback, useWalletContext } from '../app/providers';
+import { NearbyVisibility, type RoomVisibilityChoice } from './NearbyVisibility';
+import { roomExperienceFlags } from '../features/rooms/roomExperienceFlags';
 
 function SvgBroadcast({ size }: { size: number }) {
   return (
@@ -58,7 +60,7 @@ type CreateRoomModalProps = {
   displayName: string;
   onSetDisplayName: (name: string) => void;
   onClose: () => void;
-  onOpenRoom: (track: CatalogTrack) => void;
+  onOpenRoom: (track: CatalogTrack, visibility: RoomVisibilityChoice) => void;
   onTrackIntent: (track: CatalogTrack) => void;
 };
 
@@ -66,6 +68,7 @@ export function CreateRoomModal({ tracks, initialTrack, displayName, onSetDispla
   const { connectedWallet } = useWalletContext();
   const { openWalletModal } = useUiFeedback();
   const [picked, setPicked] = useState<CatalogTrack | undefined>(initialTrack ?? tracks[0]);
+  const [visibility, setVisibility] = useState<RoomVisibilityChoice>({ visibleNearby: false, radiusKm: 5 });
   const hasChosenName = roomHostDisplayName(displayName) !== null;
 
   useEffect(() => {
@@ -143,6 +146,8 @@ export function CreateRoomModal({ tracks, initialTrack, displayName, onSetDispla
         autoFocus
       />
 
+      {roomExperienceFlags.nearby && <NearbyVisibility value={visibility} onChange={setVisibility} />}
+
       <div className='create-room-actions'>
         {!connectedWallet && (
           <div className='room-host-tip-warning' role='status'>
@@ -162,7 +167,7 @@ export function CreateRoomModal({ tracks, initialTrack, displayName, onSetDispla
             </button>
           </div>
         )}
-        <button className='primary-action wide' type='button' disabled={!picked || !hasChosenName} onClick={() => picked && onOpenRoom(picked)}>
+        <button className='primary-action wide' type='button' disabled={!picked || !hasChosenName} onClick={() => picked && onOpenRoom(picked, visibility)}>
           <SvgBroadcast size={16} />
           Open the room
         </button>

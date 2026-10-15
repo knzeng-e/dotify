@@ -31,9 +31,9 @@ aura lights the whole field (`web/src/styles/aura.css`).
 
 - **Music**: an actionable horizontal catalog first, followed by real open rooms, policy-aware listening,
   and one-step room hosting without a permanent player navigation tab.
-- **Rooms**: open listening rooms in the default 2D sky/list path, Nearby available
-  by default in Web and Product with explicit location/visibility consent, an optional
-  3D galaxy behind a build-time opt-in, and manual room-code entry. Room guests should be able to join and
+- **Rooms**: link/code-only by default, with an explicit visibility switch and
+  an approximate-distance slider for Nearby in Web and Product. A compact radar
+  lists only opted-in rooms inside both participants' areas. Room guests should be able to join and
   listen without wallet friction.
 - **Artist portal**: a dedicated `/artists` onboarding and studio surface where
   artists connect a wallet, create their runtime, upload releases, configure
@@ -47,9 +47,10 @@ access mode its artist chose at upload. Any track can be opened as a room.
 
 ![Dotify catalog](docs/images/dotify-catalog.png)
 
-**Listening rooms** - open rooms start in the 2D/list path and can opt into a
-galaxy view on supported desktops. Every halo is a listening moment happening
-right now; discovery starts from someone listening rather than from a feed.
+**Listening rooms** — the earlier galaxy prototype below is a visual reference.
+Current discovery uses consented Nearby results; opening a room alone no longer
+adds it to a public galaxy. Discovery starts from someone sharing a listening
+moment, with direct links available independently of location.
 
 ![Dotify listening rooms](docs/images/dotify-rooms-galaxy.png)
 
@@ -252,12 +253,18 @@ cd web
 npm run signal          # local dev (started automatically by npm run dev:listen)
 npm run test:signal     # integration tests: create/join/cap/expiry/heartbeat
 npm run test:e2e        # Playwright: deterministic Classic unlock and artist publish flows
+npm run test:nearby     # Web and Product discovery, each with an isolated signaling server
 ```
 
 `npm run test:e2e` starts Vite in deterministic e2e mode. It seeds one Classic
 track, connects deterministic test wallets, verifies the locked gate before
 Classic payment, and covers artist runtime creation plus release publication
 with mocked upload and transaction failure states.
+
+`npm run test:nearby` runs the Web and Product discovery suites sequentially,
+restarting the real signaling server between them. Their independent scenarios
+share localhost in tests; isolation prevents the combined searches from consuming
+one network’s six-searches-per-minute budget. Production limits remain unchanged.
 
 For a public deployment, run `node server/signaling.mjs` on any Node 22 host
 and point the frontend at it with `VITE_SIGNAL_URL`.
@@ -280,9 +287,12 @@ would drop active WebSocket rooms without a clean `room:closed` broadcast.
 
 `GET /health` reports uptime, room, in-room listener, and solo-listener counts, and a non-secret
 configuration echo (allowed origins, room TTL, host heartbeat timeout,
-per-room listener cap); `GET /status` exposes public room metadata (current
-track, playback mode, host-based access flags, expiry) and anonymous aggregate
-solo presence keyed by track hash.
+per-room listener cap). `GET /status` returns an empty `rooms` array and
+anonymous aggregate solo presence keyed by track hash. It cannot establish
+whether a room exists, is full or has expired. Use `/health` for aggregate
+counts, join/resume acknowledgements for room state and admission failures,
+and `room:closed` events for closure. Nearby lists only explicitly visible rooms
+within both selected approximate areas.
 
 Signaling does not relay audio. For reliable audio across mobile, carrier,
 VPN, or symmetric-NAT boundaries, configure a TURN relay. The production path is

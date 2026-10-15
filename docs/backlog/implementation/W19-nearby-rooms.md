@@ -133,5 +133,8 @@ Product location continuation: [capability and snapshot evidence](evidence/W19-p
 It separates current-position discovery from explicit city exploration and
 includes Product location by default alongside Web, preserving explicit user
 consent and honest capability checks. The former additional build flag is removed.
+The [radar and audio follow-up](evidence/W19-radar-audio.md) makes new rooms
+link-only, removes global enumeration and simplifies the opt-in controls. Its
+deployment and physical-device gates remain explicit in that handoff.
 
 Write `docs/backlog/implementation/evidence/W19.md` using `evidence-template.md`. Include the initial base SHA, implementation SHA, PR, artifacts, operational changes, known risks, and the next eligible sequences. Keep Project 5 as the workflow-status source. End with an implementation summary and the exact next step; do not start another sequence automatically.

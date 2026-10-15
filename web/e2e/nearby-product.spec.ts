@@ -47,6 +47,14 @@ test('Product permission gates a real browser fix; city exploration stays a sepa
   await expect(nearby).toContainText('No visible rooms');
   expect(await page.evaluate(() => window.identityFixture.locationRequests)).toBe(2);
   await expect(nearby).toContainText('Libreville centre');
+  // Editing another city is only a draft. Changing the active search range
+  // must not silently move the search or request device location again.
+  await nearby.getByLabel('City centre · starter areas').selectOption('Paris');
+  await nearby.getByRole('slider', { name: 'Search range' }).focus();
+  await page.keyboard.press('ArrowRight');
+  await nearby.getByRole('button', { name: 'Apply range', exact: true }).click();
+  await expect(nearby).toContainText('Libreville centre');
+  expect(await page.evaluate(() => window.identityFixture.locationRequests)).toBe(2);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: testInfo.outputPath('product-nearby-city-separation.png'), fullPage: true });
