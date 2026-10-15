@@ -25,7 +25,7 @@ permission decision.
 Operational rollback uses `VITE_DOTIFY_NEARBY=off` and/or `SIGNAL_NEARBY=off`;
 there is no Product-specific feature gate. Old snapshots expire within 90 seconds.
 
-## Product 0.1.51 recovery release candidate
+## Product 0.1.51 published recovery release
 
 Based on merged #283, `974568c`. Executable `[0, 1, 51]` retains `product-cdm`
 on `devnet`; private-by-default rooms, explicit worldwide discovery, 5–42 km
@@ -33,7 +33,11 @@ radii, native permission recovery and media loading fixes are included. Deploy
 signaling first, then the API upload-path correction, then publish frozen Product.
 Netlify independently serves the tested merged application commit. The previous
 0.1.50 executable is retained as rollback; do not restore globally enumerating
-signaling. See the [candidate record](../backlog/implementation/evidence/product-0.1.51-candidate-2026-10-15.md).
+signaling. Published source `cdb9ac2`, root CID
+`bafybeihpprpso6vopekio67surwcygt2ygs6dnppdfsszmiul2qchib2me`. Independent
+DotNS/version and public CAR read-back passed. See the
+[rollout record](../backlog/implementation/evidence/product-0.1.51-rollout-2026-10-16.md)
+for service images, tests, restart incident and remaining physical checks.
 
 ## Product 0.1.49 published Nearby test release
 

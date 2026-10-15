@@ -16,8 +16,8 @@ are not republished. The new API preserves `cover/` beneath the returned Pinata
 root; existing flat pins use the same-CID client fallback.
 
 Rollout order: one signaling worker, then the existing API writer/volume, then
-frozen Product publication. Before service restart there were zero rooms and
-listeners. Record the final committed source, images, transaction references,
+frozen Product publication. Initial preparation saw zero rooms/listeners; the final switch incident and
+actual active counts are recorded in the rollout evidence. Record the final committed source, images, transaction references,
 DotNS read-back and deployed tests in the rollout record. No contract, key,
 origin, permission or persistent-storage migration is part of this release.
 
@@ -37,3 +37,5 @@ Local candidate checks passed: 943 unit tests, 20 Product deploy/Host guard test
 production environment fail-closed smoke, six live DevNet endpoint checks and
 live Product environment alignment. The exact committed artifact is built frozen
 before signing; its independent read-back belongs to the rollout evidence.
+
+Publication completed from `cdb9ac2`. See the [rollout record](product-0.1.51-rollout-2026-10-16.md) for actual service identities, finality, independent read-back, tests and the restart incident.

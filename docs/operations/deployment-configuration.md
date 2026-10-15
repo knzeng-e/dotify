@@ -1943,6 +1943,18 @@ snapshots expire within 90 seconds; there is no separate Product experiment sett
 
 ## Discovery and Host recovery rollout — 2026-10-15
 
+Executed on 2026-10-16 as Product 0.1.51 from `cdb9ac2`, with signaling release
+32 and API release 26. Exact published identities, independent read-back, live
+checks, the active-room restart incident and rollback are in the
+[rollout record](../backlog/implementation/evidence/product-0.1.51-rollout-2026-10-16.md).
+Netlify separately serves merged application commit `974568c`. Native Host
+location/audio/approval checks remain physical acceptance gates.
+Before restarting, recheck active rooms/listeners and bind validation to the
+mutation with fail-fast execution (`set -euo pipefail` or an explicit successful
+condition). A failed assertion on one shell line must never fall through to a
+deploy on the next line. If rooms appear during preparation, evaluate the
+interruption before proceeding; an earlier zero-room snapshot is insufficient.
+
 Deploy signaling before clients for the 5–42 km/worldwide protocol extension.
 An old server safely rejects extended radii and worldwide payloads; it cannot
 provide the new UI's default public invitations. Keep legacy global enumeration
