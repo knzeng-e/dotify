@@ -30,7 +30,7 @@ describe('public artwork cache', () => {
     await expect(loadPublicArtwork([`https://one.example/ipfs/bafy${'c'.repeat(50)}`])).rejects.toThrow('bounded image');
     vi.stubGlobal(
       'fetch',
-      vi.fn(async () => new Response(new Uint8Array(1024 * 1024 + 1), { headers: { 'content-type': 'image/webp' } }))
+      vi.fn(async () => new Response(new Uint8Array(8 * 1024 * 1024 + 1), { headers: { 'content-type': 'image/webp' } }))
     );
     await expect(loadPublicArtwork([`https://one.example/ipfs/bafy${'d'.repeat(50)}/cover/640.webp`])).rejects.toThrow('budget');
   });
@@ -71,4 +71,27 @@ describe('public artwork cache', () => {
     expect(fetch).toHaveBeenCalledTimes(count + 1);
     expect(revoke).toHaveBeenCalled();
   });
+});
+
+it('accepts a progressing original cover above 1 MiB without the headers timer cancelling it', async () => {
+  vi.useFakeTimers();
+  const fetch = vi.fn(
+    async () =>
+      new Response(
+        new ReadableStream({
+          start(c) {
+            c.enqueue(new Uint8Array(1024 * 1024));
+            setTimeout(() => {
+              c.enqueue(new Uint8Array(1024 * 1024));
+              c.close();
+            }, 9000);
+          }
+        }),
+        { headers: { 'content-type': 'image/png' } }
+      )
+  );
+  vi.stubGlobal('fetch', fetch);
+  const result = loadPublicArtwork([`https://one.example/ipfs/bafy${'g'.repeat(50)}`]);
+  await vi.advanceTimersByTimeAsync(9001);
+  await expect(result).resolves.toMatch(/^blob:/);
 });

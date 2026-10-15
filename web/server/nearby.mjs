@@ -1,5 +1,5 @@
 import { createHmac, randomBytes, randomUUID } from 'node:crypto';
-import { exactKeys, validNearbyArea, nearbyAreasMatch, nearbyBucket, NEARBY_MAX_RESULTS, NEARBY_TTL_MS } from '../shared/nearby-v2.mjs';
+import { exactKeys, validNearbyArea, validWorldwideArea, nearbyAreasMatch, nearbyBucket, NEARBY_MAX_RESULTS, NEARBY_TTL_MS } from '../shared/nearby-v2.mjs';
 import { clientKey } from './signaling-utils.mjs';
 
 // No payloads go to logs, publicRoom, /status, analytics or durable stores.
@@ -26,7 +26,7 @@ export function createNearby({ enabled, rooms, trustProxy, maxListeners, now = D
         value = { count: 0, until: now() + 60_000 };
         budgets.set(key, value);
       }
-      if (++value.count > limit) {
+      if (++value.count > (key.includes(':n:') ? limit * 10 : limit)) {
         totals.throttled++;
         return false;
       }
@@ -56,10 +56,11 @@ export function createNearby({ enabled, rooms, trustProxy, maxListeners, now = D
         if (!allowed(socket, 'publish', 12)) return fail('RATE_LIMITED');
         const roomId = hostRoom(socket);
         if (!roomId) return fail('HOST_REQUIRED');
-        if (!validNearbyArea(payload)) return fail('INVALID_AREA');
+        if (!validNearbyArea(payload) && !validWorldwideArea(payload)) return fail('INVALID_AREA');
         if (!presence.has(roomId) && presence.size >= 10_000) return fail('BUSY');
         const old = presence.get(roomId);
-        const rotate = !old || old.cell !== payload.cell || old.radiusKm !== payload.radiusKm || now() - old.rotatedAt >= 900_000;
+        const rotate =
+          !old || old.worldwide !== payload.worldwide || old.cell !== payload.cell || old.radiusKm !== payload.radiusKm || now() - old.rotatedAt >= 900_000;
         const record = {
           ...payload,
           discoveryId: rotate ? randomUUID() : old.discoveryId,
@@ -78,14 +79,20 @@ export function createNearby({ enabled, rooms, trustProxy, maxListeners, now = D
         return { ok: true };
       });
       handler('nearby:search', payload => {
-        if (!allowed(socket, 'search', 6)) return fail('RATE_LIMITED');
-        if (!validNearbyArea(payload)) return fail('INVALID_AREA');
+        if (!allowed(socket, validWorldwideArea(payload) ? 'worldwide-search' : 'search', 6)) return fail('RATE_LIMITED');
+        if (!validNearbyArea(payload) && !validWorldwideArea(payload)) return fail('INVALID_AREA');
         totals.searches++;
         const results = [];
         // Stable per-lease ordering, never distance ordering; no cells in replies.
         for (const [roomId, item] of [...presence].sort((a, b) => a[1].discoveryId.localeCompare(b[1].discoveryId))) {
           const room = rooms.get(roomId);
-          if (!room?.hostId || !nearbyAreasMatch({ schemaVersion: 2, cell: item.cell, radiusKm: item.radiusKm }, payload)) continue;
+          if (!room?.hostId) continue;
+          if (
+            validWorldwideArea(payload)
+              ? !item.worldwide
+              : item.worldwide || !nearbyAreasMatch({ schemaVersion: 2, cell: item.cell, radiusKm: item.radiusKm }, payload)
+          )
+            continue;
           results.push({
             roomId,
             discoveryId: item.discoveryId,

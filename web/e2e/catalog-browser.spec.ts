@@ -119,3 +119,15 @@ test('cached artwork stays visible and resumes native loading if its blob cannot
   await expect(image).toHaveAttribute('data-cover-loaded', 'true');
   await expect(image).toHaveCSS('opacity', '1');
 });
+
+test('a flat legacy directory recovers its real artwork after the recorded nested path returns 404', async ({ page }) => {
+  const webp = Buffer.from('UklGRjgAAABXRUJQVlA4ICwAAACwAQCdASoCAAIAAUAmJaACdLoABdQAAP6k15FIsZW//DlP/DlP/DlP+F/AAA==', 'base64');
+  await page.route('**/ipfs/bafy-e2e-cover/**', route =>
+    route.fulfill(route.request().url().includes('/cover/') ? { status: 404, body: 'Not found' } : { status: 200, contentType: 'image/webp', body: webp })
+  );
+  await page.goto('/?e2eRoom=public&e2eResponsiveCover=on');
+  const image = page.getByTestId('track-card').filter({ hasText: 'E2E Public Room Track' }).locator('img');
+  await image.scrollIntoViewIfNeeded();
+  await expect.poll(() => image.evaluate(node => (node as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
+  await expect(image).toHaveAttribute('src', /\/bafy-e2e-cover\/640\.webp$/);
+});

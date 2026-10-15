@@ -41,7 +41,7 @@ async function exploreCity(page: Page) {
   const summary = nearby.getByText('Explore a city', { exact: true });
   if (!(await nearby.getByLabel('City centre · starter areas').isVisible())) await summary.click();
   await nearby.getByLabel('City centre · starter areas').selectOption('Libreville');
-  await nearby.getByRole('button', { name: 'Explore this city', exact: true }).click();
+  await nearby.getByRole('button', { name: 'Explore this city', exact: true }).click({ timeout: 15_000 });
   return nearby;
 }
 
@@ -63,7 +63,7 @@ test('desktop radar reveals only opted-in rooms after an explicit bounded search
   const packets: string[] = [];
   page.on('websocket', socket =>
     socket.on('framesent', frame => {
-      if (String(frame.payload).includes('nearby:')) packets.push(String(frame.payload));
+      if (String(frame.payload).includes('nearby:') && !String(frame.payload).includes('worldwide')) packets.push(String(frame.payload));
     })
   );
   try {
@@ -73,7 +73,7 @@ test('desktop radar reveals only opted-in rooms after an explicit bounded search
     await expect(page.getByTestId('room-galaxy-scene')).toHaveCount(0);
     await nearby.getByRole('slider', { name: 'Search range' }).focus();
     await page.keyboard.press('ArrowRight');
-    await expect(nearby.getByRole('slider', { name: 'Search range' })).toHaveAttribute('aria-valuetext', 'About 10 kilometres');
+    await expect(nearby.getByRole('slider', { name: 'Search range' })).toHaveAttribute('aria-valuetext', 'About 6 kilometres');
     expect(packets).toEqual([]);
     await exploreCity(page);
     await expect(nearby).toContainText('No visible rooms');

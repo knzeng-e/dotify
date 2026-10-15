@@ -4,14 +4,19 @@ const AUDIO_BODY_IDLE_TIMEOUT_MS = 15_000;
 const AUDIO_BODY_MAX_BYTES = 64 * 1024 * 1024;
 
 /** Header arrival is not download completion. Bound lack of body progress too. */
-export async function readAudioBody(response: Response, signal?: AbortSignal, idleTimeoutMs = AUDIO_BODY_IDLE_TIMEOUT_MS): Promise<Uint8Array> {
+export async function readAudioBody(
+  response: Response,
+  signal?: AbortSignal,
+  idleTimeoutMs = AUDIO_BODY_IDLE_TIMEOUT_MS,
+  maxBytes = AUDIO_BODY_MAX_BYTES
+): Promise<Uint8Array> {
   const reader = response.body?.getReader();
   if (!reader) throw new Error('Audio download returned no content.');
   const chunks: Uint8Array[] = [];
   let size = 0;
   try {
     const declaredLength = Number(response.headers.get('content-length') ?? 0);
-    if (declaredLength > AUDIO_BODY_MAX_BYTES) throw new Error('Audio download exceeds the supported size.');
+    if (declaredLength > maxBytes) throw new Error('Audio download exceeds the supported size.');
     while (true) {
       const next = await new Promise<ReadableStreamReadResult<Uint8Array>>((resolve, reject) => {
         const abort = () => reject(new DOMException('Audio download cancelled', 'AbortError'));
@@ -32,7 +37,7 @@ export async function readAudioBody(response: Response, signal?: AbortSignal, id
       if (next.done) break;
       if (next.value.byteLength) {
         size += next.value.byteLength;
-        if (size > AUDIO_BODY_MAX_BYTES) throw new Error('Audio download exceeds the supported size.');
+        if (size > maxBytes) throw new Error('Audio download exceeds the supported size.');
         chunks.push(next.value);
       }
     }

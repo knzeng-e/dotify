@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { ConnectedWallet } from '../../hooks/useWallet';
 import type { RoomRealtimePort } from '../rooms/roomRealtimePort';
-import { ensureDotifySession, ensureDotifySessionForSigner } from '../../services/keyService';
+import { clearStoredSession, ensureDotifySession, ensureDotifySessionForSigner } from '../../services/keyService';
 import type { WalletClient } from 'viem';
 
 export function useHostTipBinding(input: {
@@ -38,14 +38,26 @@ export function useHostTipBinding(input: {
     setState({ scope, status: 'connecting', message: 'Connecting your account for room tips…' });
     void (async () => {
       try {
-        const token = signer ? await ensureDotifySessionForSigner(signer, chainId) : await ensureDotifySession(await latest.current.getWallet(), chainId);
-        if (cancelled) return;
-        if (!token) throw new Error('Sign in to Dotify to receive your host share.');
-        await new Promise<void>((resolve, reject) =>
-          socket.request('room:tip-bind', { token }, { timeoutMs: 15000 }, (error, reply) =>
-            error ? reject(error) : reply?.ok ? resolve() : reject(new Error(reply?.error || 'Your host account could not be verified.'))
-          )
-        );
+        // A cached token can outlive an API restart or session revocation.
+        // Renew once only on an explicit 401 classification, never on a
+        // network outage, wrong chain, or arbitrary server error.
+        for (let attempt = 0; attempt < 2; attempt++) {
+          const token = signer ? await ensureDotifySessionForSigner(signer, chainId) : await ensureDotifySession(await latest.current.getWallet(), chainId);
+          if (cancelled) return;
+          if (!token) throw new Error('Sign in to Dotify to receive your host share.');
+          const reply = await new Promise<{ ok: boolean; error?: string; code?: string }>((resolve, reject) =>
+            socket.request('room:tip-bind', { token }, { timeoutMs: 15000, connectedOnly: true }, (error, reply) =>
+              error ? reject(error) : reply ? resolve(reply) : reject(new Error('Account verification did not respond. Try again.'))
+            )
+          );
+          if (cancelled) return;
+          if (reply.ok) break;
+          if (attempt === 0 && reply.code === 'SESSION_INVALID') {
+            clearStoredSession(account, token);
+            continue;
+          }
+          throw new Error(reply.error || 'Your host account could not be verified.');
+        }
         if (!cancelled) setState({ scope, status: 'ready', message: 'You receive the host share when the artist enables it.' });
       } catch (error) {
         if (!cancelled) setState({ scope, status: 'unavailable', message: error instanceof Error ? error.message : 'Room tips could not connect.' });

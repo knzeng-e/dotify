@@ -1084,7 +1084,12 @@ export function useCatalog(deps: UseCatalogDeps) {
         settleTrackSelectionMedia(failedObjectUrl, true, activeTrackSelectionRef.current?.attemptId);
         setResolvedAudioSource(null);
         setAudioRecovery('failed');
-        setTransactionFeedback({ tone: 'error', title: 'Audio interrupted', message: 'We could not reconnect to this track. Select it again to retry.' });
+        setTransactionFeedback({
+          tone: 'error',
+          title: 'Audio interrupted',
+          message: 'The audio download could not finish. Check your connection, then select this track to try again.',
+          technicalFacts: [{ label: 'Recovery', value: errorMessage(fallbackError) }]
+        });
       }
       retireAudioV2MseObjectUrl(audioRef, failedObjectUrl);
     } finally {

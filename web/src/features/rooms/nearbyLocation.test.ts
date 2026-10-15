@@ -22,6 +22,7 @@ it('clears the device watch and returns only a coarse cell', async () => {
 });
 
 it.each([1001, NaN, Infinity, -1])('rejects inaccurate fixes (%s) without returning a cell', async accuracy => {
+  vi.useFakeTimers();
   vi.stubGlobal('navigator', {
     geolocation: {
       clearWatch: vi.fn(),
@@ -31,7 +32,9 @@ it.each([1001, NaN, Infinity, -1])('rejects inaccurate fixes (%s) without return
       }
     }
   });
-  await expect(locateNearbyCell(new AbortController().signal)).rejects.toThrow('INACCURATE');
+  const pending = expect(locateNearbyCell(new AbortController().signal)).rejects.toThrow('TIMEOUT');
+  await vi.advanceTimersByTimeAsync(32_000);
+  await pending;
 });
 
 it('times out even if the container never answers and clears its watcher', async () => {
@@ -39,7 +42,7 @@ it('times out even if the container never answers and clears its watcher', async
   const clearWatch = vi.fn();
   vi.stubGlobal('navigator', { geolocation: { clearWatch, watchPosition: () => 2 } });
   const pending = expect(locateNearbyCell(new AbortController().signal)).rejects.toThrow('TIMEOUT');
-  await vi.advanceTimersByTimeAsync(12_000);
+  await vi.advanceTimersByTimeAsync(32_000);
   await pending;
   expect(clearWatch).toHaveBeenCalledWith(2);
 });
@@ -66,7 +69,7 @@ it('keeps Product snapshot capability prerequisites even with default availabili
   expect(canUseNearbyDeviceLocation()).toBe(true);
   expect(canRefreshNearbyDeviceLocation()).toBe(false);
   vi.stubGlobal('navigator', { geolocation: { watchPosition: () => 1, clearWatch: () => {} } });
-  expect(canUseNearbyDeviceLocation()).toBe(false);
+  expect(canUseNearbyDeviceLocation()).toBe(true);
   vi.stubGlobal('window', { ...page, isSecureContext: false });
   expect(canUseNearbyDeviceLocation()).toBe(false);
 });
@@ -101,4 +104,30 @@ it('cancels a permission query without keeping its timer alive', async () => {
 it('rejects an unrecognized permission state rather than treating it as consent', async () => {
   vi.stubGlobal('navigator', { permissions: { query: async () => ({ state: 'unknown' }) } });
   await expect(queryNearbyLocationPermission(new AbortController().signal)).rejects.toThrow('UNAVAILABLE');
+});
+
+it('does not use Electron synchronous permission denial to block the async Host gate', async () => {
+  vi.stubGlobal('window', { location: { protocol: 'polkadot:' }, __HOST_WEBVIEW_MARK__: true });
+  const query = vi.fn(async () => ({ state: 'denied' }));
+  vi.stubGlobal('navigator', { permissions: { query } });
+  expect(await queryNearbyLocationPermission(new AbortController().signal)).toBeNull();
+  expect(query).not.toHaveBeenCalled();
+  expect(canRefreshNearbyDeviceLocation()).toBe(false);
+});
+it('waits for a fresh mobile fix after an inaccurate first fix', async () => {
+  const clearWatch = vi.fn();
+  vi.stubGlobal('navigator', {
+    geolocation: {
+      clearWatch,
+      watchPosition: (ok: PositionCallback) => {
+        queueMicrotask(() => {
+          ok({ timestamp: Date.now(), coords: { latitude: 0, longitude: 0, accuracy: 5000 } } as GeolocationPosition);
+          ok({ timestamp: Date.now(), coords: { latitude: 0, longitude: 0, accuracy: 100 } } as GeolocationPosition);
+        });
+        return 1;
+      }
+    }
+  });
+  expect(await locateNearbyCell(new AbortController().signal)).toMatch(/^n2:/);
+  expect(clearWatch).toHaveBeenCalledWith(1);
 });

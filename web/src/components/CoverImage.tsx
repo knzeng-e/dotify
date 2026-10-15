@@ -6,7 +6,7 @@ import {
   shouldArmCoverGatewayTimeout,
   shouldUseLocalCoverFallbackAfterGatewayTimeout
 } from '../features/catalog/coverArtwork';
-import { responsiveCoverSources } from '../features/catalog/responsiveCover';
+import { coverGatewaySources, responsiveCoverSources } from '../features/catalog/responsiveCover';
 import { getGatewayUrlsForAssetRef } from '../services/pinata';
 import { artworkCacheKey, loadPublicArtwork } from '../services/publicArtworkCache';
 
@@ -29,7 +29,7 @@ export function CoverImage({
   ...props
 }: CoverImageProps) {
   const imageRef = useRef<HTMLImageElement | null>(null);
-  const sources = useMemo(() => getGatewayUrlsForAssetRef(src ?? ''), [src]);
+  const sources = useMemo(() => coverGatewaySources(getGatewayUrlsForAssetRef(src ?? '')), [src]);
   const fallbackSource = useMemo(
     () => createCoverFallbackDataUri(fallbackLabel || alt || 'Dotify', src || fallbackLabel || alt || 'Dotify'),
     [alt, fallbackLabel, src]
@@ -87,7 +87,10 @@ export function CoverImage({
     // Cache the width selected for this surface, rather than a 640px thumbnail.
     const width = Math.min(640, Math.max(64, (imageRef.current?.getBoundingClientRect().width || 320) * Math.min(window.devicePixelRatio || 1, 2)));
     const variant = [64, 160, 320, 640].find(candidate => candidate >= width) ?? 640;
-    const urls = sources.map(url => url.replace(/\/cover\/640\.webp(?=([?#]|$))/, `/cover/${variant}.webp`));
+    // Cache each actual immutable path separately, including legacy flat pins.
+    const urls = sources
+      .filter(url => artworkCacheKey(url) === artworkCacheKey(gatewaySource ?? ''))
+      .map(url => url.replace(/640\.webp(?=([?#]|$))/, `${variant}.webp`));
     void loadPublicArtwork(urls)
       .then(url => {
         if (!cancelled) setCachedSource({ ref: src, url });
@@ -98,7 +101,7 @@ export function CoverImage({
     return () => {
       cancelled = true;
     };
-  }, [src, sources, isInLoadRange]);
+  }, [src, sources, isInLoadRange, gatewaySource]);
 
   useEffect(() => {
     if (cachedSource?.ref === src || !canStartGatewayTimeout || !shouldUseLocalCoverFallbackAfterGatewayTimeout(gatewaySource, loadedSource, didExhaustSources))
@@ -106,7 +109,8 @@ export function CoverImage({
 
     const timeoutId = window.setTimeout(() => {
       setShowLocalFallback(true);
-      if (boundedSourceIndex < lastSourceIndex) setSourceIndex(index => Math.min(index + 1, lastSourceIndex));
+      // Keep downloading the image. The cache races alternatives separately;
+      // changing src here aborts healthy large covers every 1.2 seconds.
     }, COVER_GATEWAY_TIMEOUT_MS);
 
     return () => window.clearTimeout(timeoutId);

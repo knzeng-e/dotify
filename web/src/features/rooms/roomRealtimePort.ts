@@ -80,12 +80,12 @@ export type RoomOutgoingEvents = {
 };
 
 export type RoomRequests = {
-  'nearby:publish': { input: NearbyArea; output: NearbyReply };
+  'nearby:publish': { input: NearbyArea | { schemaVersion: 2; worldwide: true }; output: NearbyReply };
   'nearby:off': { input: Record<string, never>; output: NearbyReply };
-  'nearby:search': { input: NearbyArea; output: NearbySearchReply };
+  'nearby:search': { input: NearbyArea | { schemaVersion: 2; worldwide: true }; output: NearbySearchReply };
   'nearby:report': { input: { discoveryId: string; reason: 'unwanted' | 'misleading' | 'offensive' }; output: NearbyReply };
   'room:pin': { input: { id: string | null }; output: { ok: boolean } };
-  'room:tip-bind': { input: { token: string }; output: { ok: boolean; error?: string } };
+  'room:tip-bind': { input: { token: string }; output: { ok: boolean; error?: string; code?: 'SESSION_INVALID' } };
   'room:tip-quote': { input: { runtime: string; contentHash: string; sender: string; intentId: string; amount: string }; output: RoomContributionReply };
   'room:tip-notify': {
     input: { runtime: string; hash: string; nativeBlock?: import('../runtime/runtimePorts').NativeContributionBlock };
