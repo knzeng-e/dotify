@@ -32,7 +32,7 @@ test('Product permission gates a real browser fix; city exploration stays a sepa
   });
   await context.setGeolocation({ latitude: 0.392, longitude: 9.454, accuracy: 100 });
   await nearby.getByRole('button', { name: 'Find rooms near me' }).click();
-  await expect(nearby).toContainText(/no visible rooms/i);
+  await expect(nearby).toContainText(/no open rooms/i);
   expect(await page.evaluate(() => window.identityFixture.locationRequests)).toBe(2);
   expect(await page.evaluate(() => window.identityFixture.requests)).toBe(0);
   await expect(nearby.getByRole('button', { name: 'Update my location' })).toBeVisible();
@@ -44,7 +44,7 @@ test('Product permission gates a real browser fix; city exploration stays a sepa
   await expect(nearby).toContainText('not your current location');
   await nearby.getByLabel('City centre · starter areas').selectOption('Libreville');
   await nearby.getByRole('button', { name: 'Explore this city', exact: true }).click({ timeout: 15_000 });
-  await expect(nearby).toContainText(/no visible rooms/i);
+  await expect(nearby).toContainText(/no open rooms/i);
   expect(await page.evaluate(() => window.identityFixture.locationRequests)).toBe(2);
   await expect(nearby).toContainText('Libreville centre');
   // Editing another city is only a draft. Changing the active search range

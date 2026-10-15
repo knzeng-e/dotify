@@ -106,54 +106,6 @@
 .nearby-hint {
   font-size: 0.85rem;
 }
-.nearby-switch {
-  display: grid;
-  align-items: center;
-  flex: 0 0 auto;
-  position: relative;
-  width: 3.5rem;
-  min-height: 2.75rem;
-  cursor: pointer;
-}
-.nearby-switch input {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  opacity: 0;
-  cursor: pointer;
-}
-.nearby-switch-track {
-  display: flex;
-  align-items: center;
-  width: 3.5rem;
-  height: 2rem;
-  padding: 0.2rem;
-  border: 1px solid #6d8198;
-  border-radius: 2rem;
-  background: #1c3048;
-  pointer-events: none;
-}
-.nearby-switch-track > span {
-  width: 1.5rem;
-  height: 1.5rem;
-  border-radius: 50%;
-  background: #d8e6f4;
-  transition: transform 150ms ease;
-}
-.nearby-switch input:checked + .nearby-switch-track {
-  background: #5edcca;
-  border-color: #5edcca;
-}
-.nearby-switch input:checked + .nearby-switch-track > span {
-  background: #092a32;
-  transform: translateX(1.4rem);
-}
-.nearby-switch input:disabled + .nearby-switch-track {
-  opacity: 0.55;
-}
-.nearby-switch input:focus-visible + .nearby-switch-track,
 .nearby-radius input:focus-visible,
 .nearby-panel summary:focus-visible,
 .nearby-stop:focus-visible {
@@ -478,9 +430,6 @@
   .nearby-radar[data-searching='true'] .nearby-orbit {
     animation: none;
   }
-  .nearby-switch-track > span {
-    transition: none;
-  }
 }
 
 /* Worldwide invitations stay compact above the location-based radar. */
@@ -490,19 +439,70 @@
 .worldwide-rooms .nearby-results:empty {
   display: none;
 }
-.nearby-worldwide-choice {
-  margin-top: 1.25rem;
-  padding-top: 1.25rem;
-  border-top: 1px solid var(--border, #294253);
+
+/* One choice for who can find a room: Link only, Nearby, Everyone. */
+.discovery-choice {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 1rem 0;
 }
-.nearby-worldwide-choice > div {
-  flex: 1;
+.discovery-option {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-content: start;
+  gap: 0.35rem 0.6rem;
+  min-height: 2.75rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid #294153;
+  border-radius: 1rem;
+  background: #10233a;
+  color: #f0f7ff;
+  cursor: pointer;
 }
-.nearby-worldwide-choice h3 {
+.discovery-option input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.discovery-option svg {
+  color: #a9bbcf;
+}
+.discovery-option-label {
+  font-weight: 600;
+}
+.discovery-option-hint {
+  grid-column: 1 / -1;
+  color: #a9bbcf;
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+.discovery-option[data-selected='true'] {
+  border-color: #5edcca;
+  background: #0f3038;
+}
+.discovery-option[data-selected='true'] svg {
+  color: #5edcca;
+}
+.discovery-option:has(input:disabled) {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.discovery-option:has(input:focus-visible) {
+  outline: 2px solid #f0f7ff;
+  outline-offset: 3px;
+}
+.nearby-visibility > h3 {
   margin: 0;
   font-size: 1rem;
 }
-.nearby-worldwide-choice p {
-  margin: 0.35rem 0 0;
-  color: var(--text-muted, #a6b7ca);
+@media (max-width: 40rem) {
+  .discovery-choice {
+    grid-template-columns: 1fr;
+  }
 }

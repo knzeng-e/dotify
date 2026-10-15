@@ -16,14 +16,14 @@ async function hostRoom(browser: Browser) {
   const roomCode = host.getByTestId('room-code');
   await expect(roomCode).toHaveText(/[A-Z2-9]{6}/, { timeout: 15_000 });
   await host.getByRole('tab', { name: /People/ }).click();
-  const visibility = host.getByRole('region', { name: 'Visible nearby', exact: true });
-  await expect(visibility.getByRole('switch', { name: 'Visible nearby' })).not.toBeChecked();
+  const visibility = host.getByRole('region', { name: 'Who can find this room?', exact: true });
+  await expect(visibility.getByRole('radio', { name: 'Nearby', exact: true })).not.toBeChecked();
   return {
     context,
     host,
     roomId: (await roomCode.textContent())!.trim(),
     publish: async () => {
-      await visibility.getByRole('switch', { name: 'Visible nearby' }).check();
+      await visibility.getByRole('radio', { name: 'Nearby', exact: true }).check();
       await expect(visibility).toContainText('Visible nearby · about 5 km');
     }
   };
@@ -76,7 +76,7 @@ test('desktop radar reveals only opted-in rooms after an explicit bounded search
     await expect(nearby.getByRole('slider', { name: 'Search range' })).toHaveAttribute('aria-valuetext', 'About 6 kilometres');
     expect(packets).toEqual([]);
     await exploreCity(page);
-    await expect(nearby).toContainText('No visible rooms');
+    await expect(nearby).toContainText(/no open rooms/i);
     await nearby.getByRole('button', { name: 'Stop', exact: true }).click();
     await room.publish();
     await expect(nearby.getByRole('heading', { name: PUBLIC_TITLE })).toHaveCount(0);

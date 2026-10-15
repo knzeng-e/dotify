@@ -32,9 +32,12 @@ it.each([1001, NaN, Infinity, -1])('rejects inaccurate fixes (%s) without return
       }
     }
   });
-  const pending = expect(locateNearbyCell(new AbortController().signal)).rejects.toThrow('TIMEOUT');
+  const onCoarseFix = vi.fn();
+  // Only imprecise answers arrived: report imprecision, not slowness.
+  const pending = expect(locateNearbyCell(new AbortController().signal, onCoarseFix)).rejects.toThrow('INACCURATE');
   await vi.advanceTimersByTimeAsync(32_000);
   await pending;
+  expect(onCoarseFix).toHaveBeenCalledOnce();
 });
 
 it('times out even if the container never answers and clears its watcher', async () => {

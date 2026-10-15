@@ -43,7 +43,7 @@ test('a superseded creation ACK cannot replace the new room or publish its old v
   let dialog = page.getByRole('dialog', { name: 'Open a room' });
   await dialog.getByRole('button', { name: 'Select E2E Public Room Track' }).click();
   await dialog.getByLabel('Your name in the room').fill('First host');
-  await dialog.getByRole('switch', { name: 'Visible nearby' }).check();
+  await dialog.getByRole('radio', { name: 'Nearby', exact: true }).check();
   await dialog.getByRole('button', { name: 'Open the room', exact: true }).click();
   await expect.poll(() => oldRoomId).toMatch(/[A-Z2-9]{6}/);
 
@@ -52,7 +52,7 @@ test('a superseded creation ACK cannot replace the new room or publish its old v
   await page.getByRole('button', { name: 'Music', exact: true }).click();
   await page.getByRole('button', { name: 'Open a room', exact: true }).click();
   dialog = page.getByRole('dialog', { name: 'Open a room' });
-  await expect(dialog.getByRole('switch', { name: 'Visible nearby' })).not.toBeChecked();
+  await expect(dialog.getByRole('radio', { name: 'Nearby', exact: true })).not.toBeChecked();
   await dialog.getByLabel('Your name in the room').fill('Replacement host');
   await dialog.getByRole('button', { name: 'Open the room', exact: true }).click();
   const roomCode = page.getByTestId('room-code');
@@ -65,7 +65,7 @@ test('a superseded creation ACK cannot replace the new room or publish its old v
   // Exercise another render after delivery: the obsolete ACK must not install
   // room state or hand its visibility intent to the new Nearby session.
   await page.getByRole('tab', { name: /People/ }).click();
-  await expect(page.getByRole('region', { name: 'Visible nearby', exact: true })).toContainText('Off.');
+  await expect(page.getByRole('region', { name: 'Who can find this room?', exact: true })).toContainText('Only people with your link or room code can join.');
   await expect(roomCode).toHaveText(newRoomId);
   expect(publications).toEqual([]);
 
