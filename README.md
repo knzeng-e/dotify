@@ -281,9 +281,12 @@ would drop active WebSocket rooms without a clean `room:closed` broadcast.
 
 `GET /health` reports uptime, room, in-room listener, and solo-listener counts, and a non-secret
 configuration echo (allowed origins, room TTL, host heartbeat timeout,
-per-room listener cap); `GET /status` exposes public room metadata (current
-track, playback mode, host-based access flags, expiry) and anonymous aggregate
-solo presence keyed by track hash.
+per-room listener cap). `GET /status` returns an empty `rooms` array and
+anonymous aggregate solo presence keyed by track hash. It cannot establish
+whether a room exists, is full or has expired. Use `/health` for aggregate
+counts, join/resume acknowledgements for room state and admission failures,
+and `room:closed` events for closure. Nearby lists only explicitly visible rooms
+within both selected approximate areas.
 
 Signaling does not relay audio. For reliable audio across mobile, carrier,
 VPN, or symmetric-NAT boundaries, configure a TURN relay. The production path is
