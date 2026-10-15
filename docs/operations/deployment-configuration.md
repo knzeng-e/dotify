@@ -1851,6 +1851,13 @@ measurement modes can publish public presence independently of Nearby.
 Rolling back signaling to an older image restores automatic global listing:
 do not use that rollback while promising link-only/radius-limited discovery.
 
+The next test candidate is Product `[0, 1, 50]`, based on merged #280/#281.
+It preserves `product-cdm` on `devnet`, refreshes the public catalog snapshot
+and matching deterministic fixture, and removes the retired Paseo IPFS reader
+from Netlify's tracked fallbacks. Deploy signaling first, then verify client
+SHA/version/CID; this note does not claim publication or physical-device
+acceptance. See the [0.1.50 candidate](product-devnet-deployment.md#product-0150-radar-and-audio-candidate).
+
 The 0.1.49 test release packages `shared` alongside `server` in
 `web/Dockerfile.signal`; omitting the geometry module prevents signaling from
 booting. Run the packaged-runtime smoke in `npm --prefix web run test:signal`,

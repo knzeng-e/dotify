@@ -23,6 +23,32 @@ permission decision.
 Operational rollback uses `VITE_DOTIFY_NEARBY=off` and/or `SIGNAL_NEARBY=off`;
 there is no Product-specific feature gate. Old snapshots expire within 90 seconds.
 
+## Product 0.1.50 radar and audio candidate
+
+The candidate starts from tested `dev` `99658622d120c043854a75c071de6e790623ad47`
+(merged #280 and #281). Executable `[0, 1, 50]` distinguishes the consented radar
+and complete-body audio recovery from the published 0.1.49 build. The native
+`product-cdm` / `devnet` profile and existing origins remain unchanged. The
+public catalog snapshot and its offline fixture are refreshed together; frozen
+builds never query a mutable catalog during publication.
+
+This section records preparation, not publication. Deploy one signaling worker
+with #281's privacy change before publishing Product. Verify that `/status.rooms`
+and global Socket.IO lists remain empty while code-based entry works; only an
+explicit Nearby lease may enter bounded search. Keep `VITE_DOTIFY_ROOM_REALTIME`
+**off**. Restart clears ephemeral rooms, so check aggregate room counts first.
+The API and contracts need no deployment for this follow-up.
+
+Netlify's tracked fallback list drops the retired `paseo-ipfs.polkadot.io` host;
+the application also filters retired readers. A missing original cover still
+needs storage repair; the bundled placeholder does not restore it. Recheck the
+loaded Web SHA and Product SHA/version/CID after publication. Validate privacy,
+location consent, artist invitation and multi-track audio on physical Desktop
+and mobile Hosts before recording acceptance.
+
+The last published Product artifact remains 0.1.49 until a finalized DotNS
+read-back proves otherwise. See the [candidate evidence](../backlog/implementation/evidence/product-0.1.50-candidate-2026-10-15.md).
+
 ## Product 0.1.49 published Nearby test release
 
 The release is based on merged #279 (`6de81d1`) and bumps the executable to
@@ -83,8 +109,8 @@ descriptors after runtime upgrades. A later tooling transition made
 `polkadot-app-deploy@0.16.2` unsafe for Dotify publication: its `devnet` preset
 writes to a registry/resolver generation that Product Desktop does not observe.
 Dotify now pins `@parity/polkadot-app-deploy@0.20.0`, whose DevNet profile uses
-registry `0x527b08a640b527a3dae0C4BE04D7344E430B6E50` and content resolver
-`0x326bdE29315199c814B1c58b431D84D16EA5cE41`. The deploy command verifies
+registry `0xb052E5EfC5ADEff1f21d48DEfb5169Cb394A1a73` and content resolver
+`0x7e75491ecfb04900EB05ee63CABA2B33900aABB5`. The deploy command verifies
 that profile before building. A successful upload against any other generation
 is not evidence that a Product host can resolve the candidate.
 
@@ -326,7 +352,7 @@ audio and cover CIDs resolve before generic public IPFS gateways catch up:
 
 ```txt
 VITE_PINATA_GATEWAY=https://gateway.pinata.cloud
-VITE_IPFS_READ_GATEWAYS=https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation,https://bulletin-kubo.tservices.es:9443
+VITE_IPFS_READ_GATEWAYS=https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation
 ```
 
 Do not make `https://devnet-ipfs.api.polkadotcommunity.foundation`, `ipfs.io`,
