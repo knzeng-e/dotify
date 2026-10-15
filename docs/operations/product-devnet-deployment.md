@@ -23,17 +23,18 @@ permission decision.
 Operational rollback uses `VITE_DOTIFY_NEARBY=off` and/or `SIGNAL_NEARBY=off`;
 there is no Product-specific feature gate. Old snapshots expire within 90 seconds.
 
-## Product 0.1.50 radar and audio candidate
+## Product 0.1.50 published radar and audio release
 
-The candidate starts from tested `dev` `99658622d120c043854a75c071de6e790623ad47`
+The published release starts from tested `dev` `99658622d120c043854a75c071de6e790623ad47`
 (merged #280 and #281). Executable `[0, 1, 50]` distinguishes the consented radar
 and complete-body audio recovery from the published 0.1.49 build. The native
 `product-cdm` / `devnet` profile and existing origins remain unchanged. The
 public catalog snapshot and its offline fixture are refreshed together; frozen
 builds never query a mutable catalog during publication.
 
-This section records preparation, not publication. Deploy one signaling worker
-with #281's privacy change before publishing Product. Verify that `/status.rooms`
+Signaling release 31 was deployed before Product from release source
+`e4ce5a14587956dd16b66326e7c78459193c5ae4`. For subsequent rollouts, deploy one
+signaling worker with the privacy change before publishing Product. Verify that `/status.rooms`
 and global Socket.IO lists remain empty while code-based entry works; only an
 explicit Nearby lease may enter bounded search. Keep `VITE_DOTIFY_ROOM_REALTIME`
 **off**. Restart clears ephemeral rooms, so check aggregate room counts first.
@@ -46,8 +47,12 @@ loaded Web SHA and Product SHA/version/CID after publication. Validate privacy,
 location consent, artist invitation and multi-track audio on physical Desktop
 and mobile Hosts before recording acceptance.
 
-The last published Product artifact remains 0.1.49 until a finalized DotNS
-read-back proves otherwise. See the [candidate evidence](../backlog/implementation/evidence/product-0.1.50-candidate-2026-10-15.md).
+The published root/executable CID is
+`bafybeie3r7hmzucvqhmkv5prgt3tguyq2m3fictwgdm7uelm3ssmo6b72m`. Independent
+finalized DotNS and public gateway read-back passed; the local signer was removed.
+0.1.49 is the prior client rollback artifact. See the
+[rollout evidence](../backlog/implementation/evidence/product-0.1.50-rollout-2026-10-15.md)
+for exact identities, transactions and remaining physical-device checks.
 
 ## Product 0.1.49 published Nearby test release
 

@@ -355,7 +355,7 @@ Required Product values:
 | `VITE_BULLETIN_WS_URL`          | `wss://bulletin-paseo.tservices.es:8443`                                                                                         |
 | `VITE_PINATA_GATEWAY`           | `https://gateway.pinata.cloud`                                                                                                   |
 | `VITE_IPFS_READ_GATEWAYS`       | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation` |
-| Product executable `appVersion` | `[0, 1, 48]` published follow-up release; `[0, 1, 47]` is the rollback artifact                            |
+| Product executable `appVersion` | `[0, 1, 50]` published radar/audio release; `[0, 1, 49]` is the prior client rollback artifact                            |
 
 The Product executable version is part of the published Product manifest. Bump
 it whenever the Product bundle changes runtime behavior, host SDK integration,
@@ -1851,12 +1851,13 @@ measurement modes can publish public presence independently of Nearby.
 Rolling back signaling to an older image restores automatic global listing:
 do not use that rollback while promising link-only/radius-limited discovery.
 
-The next test candidate is Product `[0, 1, 50]`, based on merged #280/#281.
+Product `[0, 1, 50]` was published from tested source `e4ce5a1`, based on merged #280/#281.
 It preserves `product-cdm` on `devnet`, refreshes the public catalog snapshot
 and matching deterministic fixture, and removes the retired Paseo IPFS reader
 from Netlify's tracked fallbacks. Deploy signaling first, then verify client
-SHA/version/CID; this note does not claim publication or physical-device
-acceptance. See the [0.1.50 candidate](product-devnet-deployment.md#product-0150-radar-and-audio-candidate).
+SHA/version/CID. Signaling release 31 and finalized Product read-back passed;
+physical-device acceptance remains separate. See the
+[0.1.50 rollout](product-devnet-deployment.md#product-0150-published-radar-and-audio-release).
 
 The 0.1.49 test release packages `shared` alongside `server` in
 `web/Dockerfile.signal`; omitting the geometry module prevents signaling from

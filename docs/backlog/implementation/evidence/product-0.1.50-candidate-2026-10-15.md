@@ -71,3 +71,7 @@ if rolling back a client, and verify that client's discovery behavior separately
 
 Next: publish only from the validated candidate, then append actual rollout
 and physical acceptance evidence without treating this plan as a live result.
+
+Publication was subsequently completed from the exact candidate; see the
+[rollout record](product-0.1.50-rollout-2026-10-15.md) for finalized identities
+and live verification. Physical-device acceptance remains open.
