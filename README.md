@@ -253,12 +253,18 @@ cd web
 npm run signal          # local dev (started automatically by npm run dev:listen)
 npm run test:signal     # integration tests: create/join/cap/expiry/heartbeat
 npm run test:e2e        # Playwright: deterministic Classic unlock and artist publish flows
+npm run test:nearby     # Web and Product discovery, each with an isolated signaling server
 ```
 
 `npm run test:e2e` starts Vite in deterministic e2e mode. It seeds one Classic
 track, connects deterministic test wallets, verifies the locked gate before
 Classic payment, and covers artist runtime creation plus release publication
 with mocked upload and transaction failure states.
+
+`npm run test:nearby` runs the Web and Product discovery suites sequentially,
+restarting the real signaling server between them. Their independent scenarios
+share localhost in tests; isolation prevents the combined searches from consuming
+one network’s six-searches-per-minute budget. Production limits remain unchanged.
 
 For a public deployment, run `node server/signaling.mjs` on any Node 22 host
 and point the frontend at it with `VITE_SIGNAL_URL`.
