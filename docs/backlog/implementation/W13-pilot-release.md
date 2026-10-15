@@ -12,6 +12,29 @@ Implement **W13** only. Read `AGENTS.md`, `docs/backlog/implementation/common.md
 - Existing issue: No dedicated issue assigned yet; reuse a matching open issue or create a scoped ticket when this sequence starts.
 - Product purpose: effortless shared listening, meaningful artist control, transparent value, and a coherent poetic interface. Product DevNet is a first-class target alongside ordinary web.
 
+## Owner update: trusted pilot from 2026-10-17
+
+The owner plans a trusted pilot of at most **42 consented participants on
+several continents**, starting 2026-10-17. It replaces the proposed
+3 artists / 5 hosts / 20 listeners sample below; the evidence and go/no-go
+rules are unchanged.
+
+- **Blocking prerequisite:** W30 merged and deployed, with its read-only checks
+  recorded (real client address seen by both services, one signaling machine,
+  TURN grants returned). W31 is recommended, not blocking.
+- **Distance:** API and signaling run in one region (Amsterdam). Record each
+  participant's coarse region (continent level only), time to first sound,
+  join success, and whether a TURN relay was used, so W33 and W39 can be
+  decided from measurements.
+- **During the pilot:** fixes ship as small PRs from the W30-W35 sequences.
+  Record the build SHA for every observation, since the build changes during
+  the run.
+- **Data minimization:** no wallet-linked listening history, no continuous
+  location, no participant contact without the owner.
+- **Stop rule:** if key delivery or room joins fail for several participants at
+  once, pause the pilot, roll back to the previous recorded release, and record
+  the incident.
+
 ## Outcome
 
 A small real community can use a traceable release, and the team knows what worked.

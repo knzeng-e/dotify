@@ -2,6 +2,25 @@
 
 Agent-ready work sequences for shipping a trustworthy musical commons on Product DevNet and ordinary web, then expanding discovery. Written 2026-09-05 against dev `bb3e2557215ee8628f4c0e107de6d1e984baaccf` and extended with W27 on 2026-09-22; agents must refresh the source before acting. This is a plan, not a claim that these features or branches already exist.
 
+## Owner priority update: trusted pilot and streaming track, 2026-10-16
+
+The owner starts a trusted pilot of at most 42 participants on several
+continents on 2026-10-17 (see the W13 owner update). The 2026-10-15
+architecture audit and the PR #283 review produced ten sequences:
+
+- **Now:** W30 hardens the hosted services and blocks the pilot until deployed.
+  W31 finishes the discovery follow-ups and lightens the first load.
+- **Next (streaming experience):** W32 encoding for streaming, W33 edge cache
+  for encrypted media (the #88 read-through decision), W34 fast access path,
+  W35 continuous player.
+- **Next (scaling):** W36 shared trust state and two API instances, W37
+  scalable catalog indexer.
+- **Later:** W38 contract bounds, W39 horizontal rooms and SFU research.
+
+Next sequences ship as small PRs during the pilot when ready; each records the
+build it was observed on. This is scheduling, not evidence that any of these
+outcomes is live.
+
 ## Owner priority update — 2026-10-14
 
 [The Product alignment and Nearby decision](../polkadot-alignment-and-nearby-priority.md)
@@ -142,6 +161,16 @@ does not displace W13 release evidence gates.
 | [W27](W27-celerity-room-realtime.md)    | Prove Product-native room realtime with Celerity            | `feat/celerity-room-realtime`    | W09, W11, W13, merged room-beacon discovery                |
 | [W28](W28-mobile-premium-experience.md) | Make mobile listening feel premium and room-aware           | `feat/mobile-premium-experience` | W10, W21, W22, W23, W24, W25                               |
 | [W29](W29-ux-clarity-pass.md)           | Make the interface self-explanatory and playback resilient  | `design/ux-clarity-pass`         | W21, W22, W23, W24, W25, W28                               |
+| [W30](W30-pilot-hardening.md)           | Harden the hosted services for the 42-person trusted pilot  | `fix/pilot-hardening`            | W19                                                        |
+| [W31](W31-discovery-follow-ups.md)      | Discovery follow-ups and lighter first load                 | `fix/discovery-follow-ups`       | W19                                                        |
+| [W32](W32-streaming-encoding.md)        | Encode releases for streaming at upload                     | `feat/streaming-encoding`        | W30                                                        |
+| [W33](W33-media-edge-cache.md)          | Serve encrypted media through a read-through edge cache     | `feat/media-edge-cache`          | W30                                                        |
+| [W34](W34-fast-access-path.md)          | Take the content key off the critical path                  | `feat/fast-access-path`          | W30                                                        |
+| [W35](W35-continuous-player.md)         | Make listening continuous: gapless, adaptive, integrated    | `feat/continuous-player`         | W32, W34                                                   |
+| [W36](W36-shared-state-api.md)          | Shared API trust state and more than one instance           | `feat/shared-state-api`          | W30                                                        |
+| [W37](W37-scalable-catalog-indexer.md)  | Keep the catalog indexer fast and recoverable               | `feat/scalable-catalog-indexer`  | W30                                                        |
+| [W38](W38-contract-bounds.md)           | Bound release data and royalty splits in the pallets        | `feat/contract-bounds`           | W37                                                        |
+| [W39](W39-horizontal-rooms.md)          | Scale rooms beyond one machine and decide on an SFU         | `research/horizontal-rooms`      | W30, W36                                                   |
 
 `sequence.json` records these dependencies for inspection. It intentionally contains no workflow status. For pilot outcome gates, use W13 rather than treating every proposed enhancement as mandatory. Research sequences can finish with an evidenced unsupported result; this never means the corresponding feature shipped.
 
