@@ -66,6 +66,7 @@ was published and no wallet payment was sent.
 | Default-off publication, bounded search, join by code, resume and host/session isolation | Node 22 local signaling | 96 tests passed |
 | Nearby search → independent guest → decoded room audio | Chromium, local Socket.IO and WebRTC | Passed |
 | Creation switch, keyboard range, manual city, denial and native snapshot | Chromium Web and Product bridge fixtures | Four Nearby scenarios passed |
+| `npm --prefix web run test:nearby` | Chromium, separate real servers for Web and Product fixtures | Web 2/2 and Product 2/2 passed. CI originally caught seven searches sharing one localhost six-search/minute budget; independent fixtures now restart the server without weakening production limits or adding sleeps |
 | Operational Nearby disable | Chromium | No controls, location requests or Nearby packets; passed |
 | Room entry, continuity and responsive radar | Chromium | 18 scoped scenarios passed |
 | Full core regression | Chromium | 232/239 passed initially; seven old global-discovery/entry assertions corrected in two fixture files, then all 14 cases in those files passed. All 239 scenarios have passing evidence |
