@@ -48,8 +48,11 @@ test('a room proof binds chain, runtime, payer, work, host, unique room, amount 
   await assert.rejects(() => service.quote(room, { ...input, runtime: zeroAddress }), /release could not/);
 });
 test('a claimed host identity requires a valid API session on the configured chain', async () => {
-  const service = createRoomContributions(config, { fetch: async () => ({ ok: false }), signer: account });
-  await assert.rejects(() => service.bind({}, 'bad-token'), /could not be verified/);
+  const service = createRoomContributions(config, { fetch: async () => ({ ok: false, status: 401 }), signer: account });
+  await assert.rejects(
+    () => service.bind({}, 'bad-token'),
+    error => error.code === 'SESSION_INVALID'
+  );
 });
 test('an unavailable attestor cannot silently remove a connected host allocation', async () => {
   const { client, room, input } = setup();

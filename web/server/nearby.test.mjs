@@ -18,9 +18,9 @@ function fixture() {
   let time = 1000;
   const rooms = new Map([['ROOM', { hostId: 'host', hostName: 'Ada', track: { title: 'Song', artist: 'Artist', audioRef: 'secret' }, listeners: new Map() }]]);
   const service = createNearby({ enabled: true, rooms, maxListeners: 24, now: () => time });
-  const client = (id, role = 'listener') => {
+  const client = (id, role = 'listener', address = id) => {
     const events = new Map();
-    service.register({ id, data: { role, roomId: 'ROOM' }, handshake: { address: id }, on: (name, fn) => events.set(name, fn) });
+    service.register({ id, data: { role, roomId: 'ROOM' }, handshake: { address }, on: (name, fn) => events.set(name, fn) });
     return (name, payload) => {
       let reply;
       events.get(name)(payload, value => {
@@ -121,4 +121,47 @@ test('live sockets: default availability and explicit off, no leakage, disconnec
       await server.close();
     }
   }
+});
+
+test('worldwide is explicit, disjoint from nearby, bounded, revocable and contains no location', () => {
+  const f = fixture();
+  const host = f.client('host', 'host');
+  const guest = f.client('guest');
+  const world = { schemaVersion: 2, worldwide: true };
+  assert.deepEqual(guest('nearby:search', world).results, []);
+  assert.equal(guest('nearby:publish', world).code, 'HOST_REQUIRED');
+  host('nearby:publish', area());
+  assert.deepEqual(guest('nearby:search', world).results, []);
+  assert.equal(host('nearby:publish', { ...world, cell: area().cell }).code, 'INVALID_AREA');
+  host('nearby:publish', world);
+  assert.equal(guest('nearby:search', world).results.length, 1);
+  assert.deepEqual(guest('nearby:search', area()).results, []);
+  assert.doesNotMatch(JSON.stringify(guest('nearby:search', world)), /cell|audioRef|wallet|latitude/);
+  host('nearby:off', {});
+  assert.deepEqual(guest('nearby:search', world).results, []);
+  host('nearby:publish', world);
+  f.advance(NEARBY_TTL_MS);
+  assert.deepEqual(guest('nearby:search', world).results, []);
+});
+test('intermediate radii through 42 km preserve the smaller host radius', () => {
+  const f = fixture();
+  const host = f.client('host', 'host');
+  const guest = f.client('guest');
+  assert.equal(host('nearby:publish', area(0, 17)).ok, true);
+  assert.equal(guest('nearby:search', area(0.1, 42)).results.length, 1);
+  assert.deepEqual(guest('nearby:search', area(0.2, 42)).results, []);
+  assert.equal(host('nearby:publish', area(0, 42)).ok, true);
+  assert.equal(guest('nearby:search', area(0.2, 42)).results.length, 1);
+  assert.equal(host('nearby:publish', area(0, 43)).code, 'INVALID_AREA');
+});
+
+test('shared Wi-Fi users keep independent scan budgets while the network stays bounded', () => {
+  const f = fixture();
+  for (let user = 0; user < 10; user++) {
+    const guest = f.client(`guest-${user}`, 'listener', 'same-network');
+    for (let scan = 0; scan < 6; scan++) assert.equal(guest('nearby:search', area()).ok, true);
+    assert.equal(guest('nearby:search', area()).code, 'RATE_LIMITED');
+  }
+  assert.equal(f.client('extra', 'listener', 'same-network')('nearby:search', area()).code, 'RATE_LIMITED');
+  assert.equal(f.client('other', 'listener', 'other-network')('nearby:search', area()).ok, true);
 });

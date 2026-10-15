@@ -406,7 +406,11 @@ export function startSignalingServer(overrides = {}, dependencies = {}) {
           }
           reply({ ok: true });
         } catch (error) {
-          reply({ ok: false, error: error.message || 'Room contributions are unavailable.' });
+          reply({
+            ok: false,
+            error: error.message || 'Room contributions are unavailable.',
+            ...(event === 'room:tip-bind' && error.code === 'SESSION_INVALID' ? { code: 'SESSION_INVALID' } : {})
+          });
         }
       });
     }

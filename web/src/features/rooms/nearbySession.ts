@@ -14,19 +14,20 @@ export type NearbyState = {
   phase: 'off' | 'locating' | 'checking' | 'active' | 'empty' | 'stale' | 'denied' | 'disconnected';
   message: string;
   results: NearbyResult[];
+  retryInSeconds?: number;
 };
-type Source = { kind: 'device' } | { kind: 'manual'; cell: string };
+type Source = { kind: 'device' } | { kind: 'manual'; cell: string } | { kind: 'worldwide' };
 type Environment = {
   visible: () => boolean;
   supported: () => boolean;
   authorize?: (signal: AbortSignal) => Promise<void>;
   continuousDevice?: () => boolean;
   locate: (signal: AbortSignal) => Promise<string>;
-  permission: (signal: AbortSignal) => Promise<PermissionStatus>;
+  permission: (signal: AbortSignal) => Promise<PermissionStatus | null>;
 };
 const initial: NearbyState = { phase: 'off', message: '', results: [] };
 const copy: Record<string, string> = {
-  DENIED: 'Location is off. Choose an area or use a room link.',
+  DENIED: 'Location access was not granted. Check location permissions for Dotify and your Polkadot app or browser, then try again.',
   TIMEOUT: 'Your location took too long. Choose an area or try again.',
   INACCURATE: 'Your location is too uncertain. Choose an area instead.',
   UNAVAILABLE: 'Location is unavailable here. Choose an area or use a room link.',
@@ -40,6 +41,8 @@ const copy: Record<string, string> = {
 /** Owns only ephemeral discovery. It never creates a room, wallet or media peer. */
 export class NearbySession {
   private revision = 0;
+  private nextSearchAt = 0;
+  private cooldownTimer: ReturnType<typeof setTimeout> | undefined;
   private source: Source | null = null;
   private radius = 5;
   private deviceSnapshotOnly = false;
@@ -87,9 +90,9 @@ export class NearbySession {
         reject(new Error('DISCONNECTED'));
         return;
       }
-      // Revocation must survive connected polling backpressure. Other discovery
-      // work may be dropped; connectedOnly prevents queuing off for reconnect.
-      this.port.request(event, payload, { connectedOnly: true, timeoutMs: 6000, volatile: event !== 'nearby:off' }, (error, reply) => {
+      // Publishing and revocation must survive connected polling backpressure,
+      // especially immediately after room creation. Never queue across reconnect.
+      this.port.request(event, payload, { connectedOnly: true, timeoutMs: 6000, volatile: event === 'nearby:search' }, (error, reply) => {
         if (error || !reply) reject(new Error('DISCONNECTED'));
         else resolve(reply);
       });
@@ -103,6 +106,7 @@ export class NearbySession {
     this.abort?.abort();
     this.abort = null;
     clearTimeout(this.refresh);
+    clearTimeout(this.cooldownTimer);
     clearTimeout(this.expiry);
     clearTimeout(this.resultExpiry);
     this.resultDeadlines.clear();
@@ -121,7 +125,16 @@ export class NearbySession {
         });
     }
   }
+  pause() {
+    this.stop();
+    if (!this.host) this.showCooldown();
+  }
   async start(source: Source, radius: number) {
+    if (this.state.phase === 'locating' || this.state.phase === 'checking') return;
+    if (!this.host && Date.now() < this.nextSearchAt) {
+      this.showCooldown();
+      return;
+    }
     this.stop();
     if (!this.enabled || !NEARBY_RADII.includes(radius) || !this.env.visible()) return;
     if (!this.port.connected) {
@@ -150,12 +163,13 @@ export class NearbySession {
         }
         const permission = await this.env.permission(this.abort.signal);
         if (rev !== this.revision) return;
-        if (!['granted', 'prompt', 'denied'].includes(permission.state)) throw new Error('UNAVAILABLE');
+        if (permission && !['granted', 'prompt', 'denied'].includes(permission.state)) throw new Error('UNAVAILABLE');
         this.permission = permission;
-        permission.onchange = () => {
-          if (permission.state !== 'granted') this.stop(copy.DENIED, 'denied');
-        };
-        if (permission.state === 'denied') {
+        if (permission)
+          permission.onchange = () => {
+            if (permission.state !== 'granted') this.stop(copy.DENIED, 'denied');
+          };
+        if (permission?.state === 'denied') {
           this.stop(copy.DENIED, 'denied');
           return;
         }
@@ -179,7 +193,7 @@ export class NearbySession {
       if (source.kind === 'device' && !explicit) {
         const permission = await this.env.permission(this.abort.signal);
         if (rev !== this.revision) return;
-        if (permission.state !== 'granted') throw new Error('DENIED');
+        if (permission?.state !== 'granted') throw new Error('DENIED');
       }
       if (explicit)
         this.set({
@@ -187,14 +201,26 @@ export class NearbySession {
           message: source.kind === 'device' ? 'Finding your approximate area…' : 'Checking nearby rooms…',
           results: []
         });
-      const cell = source.kind === 'device' ? await this.env.locate(this.abort.signal) : source.cell;
+      const cell = source.kind === 'device' ? await this.env.locate(this.abort.signal) : source.kind === 'manual' ? source.cell : null;
       if (rev !== this.revision) return;
-      const area = { schemaVersion: 2 as const, cell, radiusKm: this.radius };
+      const area =
+        source.kind === 'worldwide'
+          ? { schemaVersion: 2 as const, worldwide: true as const }
+          : { schemaVersion: 2 as const, cell: cell!, radiusKm: this.radius };
+      this.set({
+        ...this.state,
+        phase: 'checking',
+        message: source.kind === 'device' ? `Location found · scanning within about ${this.radius} km…` : 'Checking live rooms…'
+      });
+      if (!this.host) this.nextSearchAt = Date.now() + 10_000;
       const requestedAt = performance.now();
       const reply = await this.request(this.host ? 'nearby:publish' : 'nearby:search', area);
       if (rev !== this.revision) return;
       if (!safeNearbyReply(reply, this.host)) throw new Error('UNAVAILABLE');
-      if (!reply.ok) throw new Error(reply.code);
+      if (!reply.ok) {
+        if (reply.code === 'RATE_LIMITED' && !this.host) this.nextSearchAt = Date.now() + 60_000;
+        throw new Error(reply.code);
+      }
       const receivedAt = performance.now();
       this.resultDeadlines.clear();
       const results =
@@ -209,16 +235,24 @@ export class NearbySession {
       this.set({
         phase: this.host || results.length ? 'active' : 'empty',
         results,
-        message: this.host
-          ? source.kind === 'manual'
-            ? `Visible around your chosen city centre · about ${this.radius} km`
-            : `Visible nearby · about ${this.radius} km`
-          : results.length
-            ? source.kind === 'manual'
-              ? 'Live rooms around your chosen city centre'
-              : 'Live rooms in your approximate area'
-            : this.emptyMessage()
+        message:
+          source.kind === 'worldwide'
+            ? this.host
+              ? 'Visible worldwide. Anyone can discover this room.'
+              : results.length
+                ? 'Live rooms shared with the world'
+                : 'No worldwide rooms right now.'
+            : this.host
+              ? source.kind === 'manual'
+                ? `Visible around your chosen city centre · about ${this.radius} km`
+                : `Visible nearby · about ${this.radius} km`
+              : results.length
+                ? source.kind === 'manual'
+                  ? 'Live rooms around your chosen city centre'
+                  : `Scan complete · ${results.length} room${results.length === 1 ? '' : 's'} near your current location`
+                : this.emptyMessage()
       });
+      if (!this.host) this.showCooldown();
       clearTimeout(this.expiry);
       // Relative, conservative leases tolerate clock skew between devices and
       // server. Subtract the whole round-trip so transit cannot extend a lease.
@@ -240,12 +274,20 @@ export class NearbySession {
       if (rev !== this.revision) return;
       const code = error instanceof Error ? error.message : '';
       this.stop(copy[code] ?? 'Nearby could not refresh. Reconnect and try again.', code === 'DENIED' ? 'denied' : 'stale');
+      if (!this.host) this.showCooldown();
     }
   }
+  private showCooldown() {
+    clearTimeout(this.cooldownTimer);
+    const retryInSeconds = Math.max(0, Math.ceil((this.nextSearchAt - Date.now()) / 1000));
+    this.set({ ...this.state, retryInSeconds });
+    if (retryInSeconds) this.cooldownTimer = setTimeout(() => this.showCooldown(), 1000);
+  }
   private emptyMessage() {
+    if (this.source?.kind === 'worldwide') return 'No worldwide rooms right now.';
     return this.source?.kind === 'manual'
       ? 'No visible rooms around this city centre yet. Explore a wider radius or use a room link.'
-      : 'No visible rooms in this area yet. Try a wider search or share a room link.';
+      : `Scan complete · no visible rooms within about ${this.radius} km of your current location. Hosts need to turn on visibility.`;
   }
   private expireResults(rev: number) {
     if (rev !== this.revision || !this.source) return;

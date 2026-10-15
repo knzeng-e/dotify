@@ -191,7 +191,10 @@ export function ListenerShell() {
   // the chosen track opens the room without a stream and sees the access gate.
   async function executeArtistRoom(track: CatalogTrack, visibility: RoomVisibilityChoice) {
     const creationSignal = session.beginRoomCreation();
-    const onCreated = visibility.visibleNearby ? (roomId: string) => session.enableNearbyForRoom(roomId, visibility.radiusKm) : undefined;
+    const onCreated =
+      visibility.visibleNearby || visibility.worldwide
+        ? (roomId: string) => session.enableNearbyForRoom(roomId, visibility.radiusKm, visibility.worldwide)
+        : undefined;
     const trackInfo = catalogTrackToTrackInfo(track);
     const isCurrentReadyTrack = track.id === catalog.selectedTrackId && Boolean(catalog.audioSource);
     if (isCurrentReadyTrack) {

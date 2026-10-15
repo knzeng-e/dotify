@@ -1,7 +1,7 @@
 // Shared browser/server geometry. Exact fixes are converted on-device only.
 // Latitude bands are ~2.22 km high; longitude sectors are ~2.22 km wide
 // at the band centre. This avoids Web Mercator distortion near the poles.
-export const NEARBY_RADII = Object.freeze([5, 10, 25]);
+export const NEARBY_RADII = Object.freeze(Array.from({ length: 38 }, (_, index) => index + 5));
 export const NEARBY_TTL_MS = 90_000;
 export const NEARBY_REFRESH_MS = 30_000;
 export const NEARBY_MAX_RESULTS = 20;
@@ -62,4 +62,9 @@ export function nearbyAreasMatch(host, listener) {
 
 export function nearbyBucket(count) {
   return count === 0 ? '0' : count < 4 ? '1–3' : count < 10 ? '4–9' : '10+';
+}
+
+// Worldwide publication is a separate explicit consent, with no geographic data.
+export function validWorldwideArea(value) {
+  return exactKeys(value, ['schemaVersion', 'worldwide']) && value.schemaVersion === 2 && value.worldwide === true;
 }

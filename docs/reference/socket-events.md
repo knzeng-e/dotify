@@ -635,10 +635,14 @@ Unset or exact `on` includes Nearby for `SIGNAL_NEARBY` and the client setting
 `VITE_DOTIFY_NEARBY`. Explicit `off` or an invalid value disables the respective
 boundary. Availability does not collect a location or publish a room by itself.
 All requests use connected-only acknowledgements without disconnected buffering.
-`nearby:off` is non-volatile so connected polling backpressure cannot discard
-revocation; publication/search/report remain volatile. Unknown fields,
+`nearby:publish`, `nearby:off` and reports are non-volatile so connected polling
+backpressure cannot discard publication or revocation; search remains volatile. Unknown fields,
 old schemas, cell arrays and unsupported radii are rejected. Publication and
-search accept exactly `{ schemaVersion: 2, cell: "n2:<band>:<sector>", radiusKm: 5 | 10 | 25 }`.
+search accept exactly `{ schemaVersion: 2, cell: "n2:<band>:<sector>", radiusKm }`
+with an integer radius from 5 through 42, or exactly `{ schemaVersion: 2, worldwide: true }`.
+The worldwide mode has no cell/radius and matches worldwide publications only.
+Publishing either mode replaces the previous lease. Neither mode enters legacy
+global room snapshots.
 The cell is computed on-device; precise fixes never enter Socket.IO.
 
 | Request | Authority / response |
@@ -656,6 +660,13 @@ request round trip, avoiding dependence on synchronized device/server clocks.
 Failures are `{ok:false,code}` with `DISABLED`, `HOST_REQUIRED`,
 `INVALID_AREA`, `INVALID_REPORT`, `EXPIRED`, `RATE_LIMITED` or `BUSY`.
 Search/publication/report budgets are respectively 6/12/3 per minute per
-socket and network. Nearby never enters ordinary public room snapshots.
+socket, and 60/120/30 per shared network. Worldwide searches have a separate
+search budget, so default public browsing does not consume geographical scans.
+Nearby never enters ordinary public room snapshots.
 See [privacy contract](../design/dotify-nearby-discovery-privacy.md) for retention,
 coarse-boundary uncertainty, residual inference and manual/Product limits.
+
+`room:tip-bind` may return `code: "SESSION_INVALID"` when the API rejects the
+listener session with HTTP 401. The host may discard only the rejected token
+and establish a fresh signed session once. Network/service failures never
+trigger repeated reauthorization; server verification remains authoritative.

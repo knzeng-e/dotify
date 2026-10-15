@@ -96,9 +96,12 @@ export function createRoomContributions(config, dependencies = {}) {
         headers: { Authorization: `Bearer ${token}` },
         signal: globalThis.AbortSignal.timeout(10000)
       });
-      const identity = response.ok ? await response.json() : null;
-      if (!identity || !isAddress(identity.address) || identity.chainId !== config.chainId)
-        throw new Error('The connected host account could not be verified.');
+      if (response.status === 401)
+        throw Object.assign(new Error('Your sign-in has expired. Reconnect your account for host tips.'), { code: 'SESSION_INVALID' });
+      if (!response.ok) throw new Error('Account verification is temporarily unavailable. Try again shortly.');
+      const identity = await response.json();
+      if (!identity || !isAddress(identity.address ?? '') || identity.chainId !== config.chainId)
+        throw new Error('The connected host account is on a different network. Reconnect to Dotify.');
       if (!stillHost()) throw new Error('The hosting session changed.');
       room.tipHost = identity.address;
       room.tipScope ??= `0x${randomBytes(32).toString('hex')}`;

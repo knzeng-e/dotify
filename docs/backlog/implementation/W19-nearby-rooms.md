@@ -13,6 +13,17 @@ Implement **W19** only. Read `AGENTS.md`, `docs/backlog/implementation/common.md
 - Existing issue: #274.
 - Product purpose: effortless shared listening, meaningful artist control, transparent value, and a coherent poetic interface. Product DevNet is a first-class target alongside ordinary web.
 
+## Owner-requested recovery extension — 2026-10-15
+
+After the pilot, the owner requested clearer scan feedback, native Host location
+recovery, every integer radius from 5 to 42 km, and default browsing of rooms whose
+hosts explicitly choose worldwide visibility. Both publication modes remain off
+by default. This supersedes the earlier radius presets and geographic-only scope;
+it does not reopen automatic global listing. Reliability work also covers artwork,
+progressing encrypted audio ranges and stale host session recovery (Refs #88/#89).
+See [evidence](evidence/W19-discovery-host-recovery-2026-10-15.md). Physical Product
+checks remain a release gate, so this change does not close #274.
+
 ## Outcome
 
 People can find live rooms around them and hosts can open a listening moment to

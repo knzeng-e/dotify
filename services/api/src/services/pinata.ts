@@ -64,8 +64,12 @@ export async function pinFilesToPinata(files: PinataFile[], name: string, keyval
   if (files.length === 0) throw new PinataError('No files supplied for Pinata directory pin', 502);
   const headers = authHeaders();
   const form = new FormData();
+  // Pinata consumes the common outer folder as the returned CID root.
+  // Keep a transport-only envelope so cover/ remains inside that root.
   for (const file of files) {
-    form.append('file', new Blob([file.bytes], file.mime ? { type: file.mime } : undefined), file.path);
+    if (!file.path || file.path.startsWith('/') || file.path.split('/').some(part => !part || part === '.' || part === '..') || file.path.includes('\\'))
+      throw new PinataError('Invalid relative directory asset path', 502);
+    form.append('file', new Blob([file.bytes], file.mime ? { type: file.mime } : undefined), `dotify/${file.path}`);
   }
   form.append('pinataMetadata', JSON.stringify({ name, keyvalues }));
 

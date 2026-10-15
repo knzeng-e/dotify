@@ -26,7 +26,7 @@ describe('Nearby v2 privacy geometry', () => {
   it('rejects unknown fields, lists, old/mixed scales and unsupported radius values', () => {
     const good = area(0, 0);
     expect(validNearbyArea(good)).toBe(true);
-    for (const radiusKm of [2, 0, -5, 26, Infinity, NaN, '5']) expect(validNearbyArea({ ...good, radiusKm })).toBe(false);
+    for (const radiusKm of [2, 0, -5, 43, 5.5, Infinity, NaN, '5']) expect(validNearbyArea({ ...good, radiusKm })).toBe(false);
     expect(validNearbyArea({ ...good, position: [0, 0] })).toBe(false);
     expect(validNearbyArea({ ...good, areaCells: [good.cell] })).toBe(false);
     expect(validNearbyArea({ ...good, cell: 'dotify-nearby-v1:1800:1:2' })).toBe(false);

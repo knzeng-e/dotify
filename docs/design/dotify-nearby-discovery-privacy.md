@@ -4,12 +4,46 @@ Status: W19 v2 is available by default in Web and Product builds. Location and r
 
 Last reviewed: 2026-10-15 (explicit discovery and radar controls); v1 retained below.
 
+## Discovery recovery amendment — 2026-10-15
+
+The next build adds an explicit **Visible worldwide** choice alongside Nearby.
+Both switches start off for each new room and are mutually exclusive. Worldwide
+publication carries `{schemaVersion: 2, worldwide: true}` only: no location,
+radius, account or wallet. The Rooms page reads these opted-in public invitations
+by default, separately from location-based scanning. Private link rooms and
+nearby-only rooms never enter this list. Legacy global enumeration remains empty.
+Worldwide discovery uses the same ephemeral host-owned 90-second lease, refresh,
+revocation and disconnect cleanup; backgrounding stops publication. Foreground
+listeners may resume public reads, but host publication never resumes without consent.
+
+The slider now accepts every integer kilometre from **5 through 42**, including
+intermediate distances. Five kilometres remains the minimum because coarse-cell
+uncertainty cannot support a promise of street-level precision. Both geographical
+radii still constrain matches. Device and city-centre searches remain distinct.
+
+Scan progress distinguishes locating, scanning and completed/empty results. Pending
+clicks coalesce; a 10-second cooldown bounds repeat scans (60 seconds after a server
+throttle). Per-minute socket search/publish/report quotas remain 6/12/3; shared-network
+quotas become 60/120/30 so a few listeners on one Wi-Fi do not exhaust each other's
+budget. Worldwide reads have a separate search budget. This remains bounded abuse
+resistance, not a guarantee against distributed scraping.
+
+Product uses its explicit SDK Location gate followed by a bounded native fix.
+Desktop's synchronous Permissions API denial is not treated as the result of that
+asynchronous gate. Native geolocation denial still fails closed; mobile gets up to
+32 seconds for a sufficiently accurate fresh fix. Only a coarse cell leaves the
+device. Product remains snapshot-only with explicit renewal; a missing browser
+permission observer never enables continuous tracking.
+
+See [recovery evidence](../backlog/implementation/evidence/W19-discovery-host-recovery-2026-10-15.md)
+for live failures, source evidence and outstanding physical-device checks.
+
 ## Discovery consent correction — 2026-10-15
 
 Creating a room no longer advertises it globally. `rooms:list`,
 `rooms:updated` and `/status.rooms` retain their legacy empty-array response
 shape; even a Nearby lease does not add a room to those global endpoints.
-Only `nearby:search` can enumerate opted-in rooms inside both selected areas.
+Only `nearby:search` can enumerate opted-in rooms: geographical matches respect both selected areas; the explicit worldwide mode is separate.
 The application no longer publishes or consumes global Statement Store room
 announcements: that transport cannot enforce this radius or immediate opt-out.
 The operator still knows room membership; this is discoverability control,
@@ -18,8 +52,7 @@ Public builds must keep the separate experimental Celerity observation setting
 `VITE_DOTIFY_ROOM_REALTIME=off`; authorized measurement builds can still publish
 public presence and do not share this private-room release guarantee.
 
-The creation sheet offers **Visible nearby**, off for each new room. A stepped
-slider selects approximately 5, 10 or 25 km. Selecting the switch/radius does
+The creation sheet offers **Visible nearby**, off for each new room. A slider selects each integer distance from approximately 5 through 42 km. Selecting the switch/radius does
 not request permission: **Open the room** creates the room, then consumes that
 explicit choice once against the acknowledged room ID. Failed/denied location
 leaves the room accessible by link/code with discovery off. Reconnect, expiry
@@ -42,11 +75,11 @@ room state. The frontend and server include Nearby when their respective
 `VITE_DOTIFY_NEARBY` / `SIGNAL_NEARBY` setting is unset or exact `on`.
 Explicit `off` or an invalid value disables it for operational rollback.
 There is no additional Product feature flag. Availability never starts
-location collection, permission requests, search or visibility by itself.
+location collection, permission requests, geographical search or visibility by itself. The Rooms page reads explicit worldwide invitations without location.
 No collection, permission query or nearby traffic occurs with the frontend
 flag off. The server rejects all Nearby events with its flag off.
 
-The first supported approximate radii are **5 / 10 / 25 km**, selected
+Supported approximate radii are every integer from **5 through 42 km**, selected
 independently by host and listener. The proposed 2 km value is not offered:
 cells are about 2.22 km across and cannot honestly support that precision.
 The client converts a fix into a latitude band and a longitude sector whose
@@ -78,16 +111,17 @@ on its clock agreeing with the server's clock.
 Presence expires after **90 seconds, with no grace period**, refreshes every
 30 seconds in the foreground, and disappears immediately at room end or
 socket disconnect. Clients stop and clear memory on opt-out, permission
-revocation, background/pagehide or disconnect. Resume always needs an explicit
-action. Cancellable single-fix watches discard exact fixes immediately after
-coarsening; fixes with accuracy worse than 1 km or older than 30 seconds fail.
+revocation, background/pagehide or disconnect. Resuming publication or geographical discovery always needs an explicit
+action; public worldwide reads may resume in the foreground. Cancellable single-fix watches discard exact fixes immediately after
+coarsening; fixes with accuracy worse than 1 km or older than 30 seconds are ignored until a fresh fix arrives or the bounded timeout expires.
 Permission state is checked afresh before refresh so it cannot trigger a new
 background permission prompt. Offline opt-out explicitly explains the possible
 90-second remote expiry. Connected revocation uses a reliable (non-volatile)
 packet so polling backpressure does not discard it; disconnected revocation is
-never buffered for replay after reconnect. Browser permission support is required for device
-mode. Product location requires a secure context, working
-Geolocation/Permissions APIs and an explicit SDK `Location` grant. A grant
+never buffered for replay after reconnect. Device mode requires secure Geolocation.
+Without a browser permission observer, ordinary Web also uses snapshot-only access.
+Product requires an explicit SDK `Location` grant followed by a native fix; it does
+not consult the unreliable synchronous Electron permission state between them. A grant
 does not prove the WebView can return coordinates. Missing APIs, failed
 handshakes and denied/unanswered permission checks fail closed.
 
