@@ -117,23 +117,25 @@ test('room presence stays quiet when online and remains honest offline', async (
   await expect(page.getByTestId('room-code')).toHaveText(/[A-Z0-9]{4,}/);
   const code = (await page.getByTestId('room-code').innerText()).trim();
   await page.getByRole('button', { name: 'Rooms', exact: true }).click();
-  await page.locator('.room-live-card').filter({ hasText: code }).click();
-  const panel = page.getByTestId('room-detail-panel');
-  await expect(panel.locator('.live-dot')).toHaveCSS('background-color', 'rgb(63, 224, 171)');
-  await expect(panel.locator('.room-detail-state')).toHaveCount(0);
+  await expect(page.locator('.room-live-card,[data-testid="sky-of-rooms"]')).toHaveCount(0);
+  await expect(page.getByRole('region', { name: 'Nearby', exact: true })).toContainText('Search is off.');
+  await page.getByRole('button', { name: 'Return to your room', exact: true }).click();
+  await expect(page.getByTestId('room-code')).toHaveText(code);
+  const presence = page.locator('.room-live-chip');
+  await expect(presence).toHaveText('Hosting');
+  await expect(presence.locator('.live-dot')).toHaveCSS('background-color', 'rgb(63, 224, 171)');
   await expect(page.getByText('Room signal online', { exact: true })).toHaveCount(0);
-  await expect(page.locator('.room-doctrine')).toHaveCount(0);
-  const announcement = page.locator('#sky-of-rooms .sr-only, [data-testid="sky-of-rooms"] .sr-only');
-  await expect(announcement).toHaveCount(1);
-  expect((await announcement.boundingBox())!.width).toBeLessThanOrEqual(1);
-  await page.locator('.rooms-live-section').scrollIntoViewIfNeeded();
+  await expect(page.locator('.room-doctrine,.room-chat-connection')).toHaveCount(0);
   await page.screenshot({ path: testInfo.outputPath('rooms-online.png'), fullPage: false });
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  expect(await panel.locator('.live-dot').evaluate(element => getComputedStyle(element, '::after').animationName)).toBe('none');
+  expect(await presence.locator('.live-dot').evaluate(element => getComputedStyle(element, '::after').animationName)).toBe('none');
+  await page.getByRole('textbox', { name: 'Message the room', exact: true }).fill('A draft to keep');
   await page.context().setOffline(true);
-  await expect(page.locator('.room-list-status')).toBeVisible({ timeout: 15_000 });
-  await expect(panel.locator('.live-dot')).toHaveAttribute('data-online', 'false');
-  await expect(panel.getByRole('status')).toBeVisible();
+  await expect(presence).toHaveText('Reconnecting', { timeout: 15_000 });
+  await expect(presence.locator('.live-dot')).toHaveAttribute('data-online', 'false');
+  await expect(page.locator('.room-chat-connection')).toHaveText('Reconnecting. Your draft stays here.');
+  await expect(page.getByRole('textbox', { name: 'Message the room', exact: true })).toHaveValue('A draft to keep');
+  await expect(page.getByRole('button', { name: 'Send message', exact: true })).toBeDisabled();
 });
 
 test('clear interface supports doubled text on a narrow screen', async ({ page }, testInfo) => {
@@ -176,7 +178,7 @@ test('clear interface restores individual playback after leaving a room', async 
   try {
     const guest = await guestContext.newPage();
     await guest.goto(`/?e2eRoom=public&e2eAutoplay=on#/rooms/${code}`);
-    await expect(guest.locator('#join-room-title')).toContainText('welcomes you');
+    await expect(guest.locator('#join-room-title')).toContainText('Join this listening room');
     await guest.getByLabel('Your name in the room').fill('Returning listener');
     await guest.getByRole('button', { name: 'Join and listen', exact: true }).click();
     await expect(guest.getByTestId('room-code')).toHaveText(code);
@@ -215,7 +217,7 @@ test('clear interface lets guests inspect releases without changing their listen
   try {
     const guest = await guestContext.newPage();
     await guest.goto(`/?e2eRoom=public#/rooms/${code}`);
-    await expect(guest.locator('#join-room-title')).toContainText('welcomes you');
+    await expect(guest.locator('#join-room-title')).toContainText('Join this listening room');
     await guest.getByLabel('Your name in the room').fill('Curious listener');
     await guest.getByRole('button', { name: 'Join and listen', exact: true }).click();
     await expect(guest.getByTestId('room-code')).toHaveText(code);

@@ -7,8 +7,10 @@
 - Branch: `fix/radar-consent-and-audio`.
 - Scope: owner-reported accidental room discovery, dense Nearby controls and
   interrupted Host audio. Refs #274, #88 and #89; physical-device gates remain.
-- Tested implementation: this branch's implementation commit; the final PR
-  records the exact SHA and CI result. Evidence-only changes follow checks.
+- Tested application implementation: `bbc3f4916bc91fa09186c45163d1e4ad6dd96dc6`;
+  the final PR head also carries the private-entry fixture corrections below.
+- PR: [#281](https://github.com/knzeng-e/dotify/pull/281); the PR checks record
+  the exact final tested head and CI result.
 - Dependencies: [W19](W19.md), [Product location](W19-product-location.md),
   [Product 0.1.49 packaging PR](https://github.com/knzeng-e/dotify/pull/280).
 - Release readiness: not deployed by this follow-up.
@@ -66,6 +68,7 @@ was published and no wallet payment was sent.
 | Creation switch, keyboard range, manual city, denial and native snapshot | Chromium Web and Product bridge fixtures | Four Nearby scenarios passed |
 | Operational Nearby disable | Chromium | No controls, location requests or Nearby packets; passed |
 | Room entry, continuity and responsive radar | Chromium | 18 scoped scenarios passed |
+| Full core regression | Chromium | 232/239 passed initially; seven old global-discovery/entry assertions corrected in two fixture files, then all 14 cases in those files passed. All 239 scenarios have passing evidence |
 | Obsolete creation ACK and invited artist visit | Chromium, real Socket.IO | Seven room creation/life scenarios passed; the stale room is retired, the replacement stays private |
 | Audio recovery, cancellation, access failures and transport continuity | Chromium and WebKit with real decoded fixture audio | 13 cases in each engine passed; 10 affected cases passed again after final reader changes |
 | Accessibility | Chromium/Axe and keyboard checks | No Axe violations in tested Nearby surface; native slider/switch and touch targets checked |
