@@ -546,3 +546,24 @@ describe('POST /api/tracks/:contentHash/free-key', () => {
     assert.equal(response.statusCode, 400);
   });
 });
+
+describe('content-key response caching', () => {
+  it('marks allowed, denied and invalid key responses as no-store', async () => {
+    const allowed = await buildApp();
+    const grant = await allowed.inject({ method: 'POST', url: `/api/tracks/${CONTENT_HASH}/free-key`, payload: {} });
+    assert.equal(grant.statusCode, 200);
+    assert.equal(grant.json().access, 'allowed');
+    assert.equal(grant.headers['cache-control'], 'no-store');
+    await allowed.close();
+
+    const denied = await buildApp({
+      checkPublicAccess: async () => ({ allowed: false, code: 'NOT_FREE', reason: 'This track is not free.' })
+    });
+    const denial = await denied.inject({ method: 'POST', url: `/api/tracks/${CONTENT_HASH}/free-key`, payload: {} });
+    assert.equal(denial.json().access, 'denied');
+    assert.equal(denial.headers['cache-control'], 'no-store');
+    const invalid = await denied.inject({ method: 'POST', url: '/api/tracks/not-a-hash/key-request', payload: baseBody() });
+    assert.equal(invalid.statusCode, 400);
+    assert.equal(invalid.headers['cache-control'], 'no-store');
+  });
+});

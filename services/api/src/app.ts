@@ -1,7 +1,7 @@
 // Fastify app assembly, extracted from index.ts so tests can build the full
 // app (request IDs, error envelope, route registration) without listening.
 
-import Fastify, { type FastifyError, type FastifyInstance, type FastifyServerOptions } from 'fastify';
+import Fastify, { type FastifyError, type FastifyInstance, type FastifyRequest, type FastifyServerOptions } from 'fastify';
 import cors from '@fastify/cors';
 import multipart from '@fastify/multipart';
 import rateLimit from '@fastify/rate-limit';
@@ -40,7 +40,19 @@ function genReqId(request: IncomingMessage): string {
   return randomUUID();
 }
 
+// Fly's edge sets Fly-Client-IP on every request it forwards; a client value
+// is overwritten. Use it only when the deployment says Fly is in front.
+export function rateLimitKey(request: Pick<FastifyRequest, 'headers' | 'ip'>, trustProxy: 'off' | 'fly'): string {
+  if (trustProxy === 'fly') {
+    const header = request.headers['fly-client-ip'];
+    const value = Array.isArray(header) ? header[0] : header;
+    if (value && value.trim()) return value.trim();
+  }
+  return request.ip;
+}
+
 export type BuildAppOptions = {
+  trustProxy?: 'off' | 'fly';
   // Tests disable logging; production always logs.
   logging?: boolean;
   catalog?: CatalogReadModel;
@@ -64,10 +76,12 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   // Multipart — required by upload routes. Register before routes.
   await app.register(multipart);
 
-  // Rate limiting — placeholder; tune limits before production traffic.
+  // Rate limiting per client. Behind Fly every connection comes from the
+  // proxy, so without API_TRUST_PROXY=fly all users would share one budget.
   await app.register(rateLimit, {
     max: 100,
-    timeWindow: '1 minute'
+    timeWindow: '1 minute',
+    keyGenerator: request => rateLimitKey(request, options.trustProxy ?? config.API_TRUST_PROXY)
   });
 
   app.addHook('onSend', async (request, reply) => {

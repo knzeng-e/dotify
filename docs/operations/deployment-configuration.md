@@ -1968,3 +1968,31 @@ Mobile waits up to 32 seconds for an accurate fresh fix. Product still gets a
 90-second snapshot, not unattended location tracking. Recheck denial, revocation,
 background/return, scan completion, worldwide opt-out and host tips on both devices.
 A rejected HTTP-401 host session can renew once; network failures must not loop signatures.
+
+## Trusted pilot hardening (W30), 2026-10-16
+
+Applies to the trusted pilot of at most 42 participants (W13 owner update).
+No new service, store, region or secret value is committed.
+
+| Service | Setting | Value in Fly config | Effect |
+| --- | --- | --- | --- |
+| API | `API_TRUST_PROXY` | `fly` | Rate limits use the `Fly-Client-IP` header set by the Fly edge. Unset or `off` uses the socket address; never set `fly` where clients can reach the API without Fly. |
+| API | `CATALOG_SNAPSHOT_PATH` | `/data/contributions/catalog.json` | The snapshot survives redeploys, so key delivery does not wait for a cold reindex. Same volume as the contribution ledger. |
+| API | `SESSION_REVOCATIONS_PATH` | `/data/contributions/session-revocations.json` | Signed-out sessions stay signed out across restarts when `SESSION_EPOCH` is set. |
+| API | `SESSION_EPOCH` | Fly secret, not in `fly.toml` | 16-128 characters. Set it to keep sessions across redeploys; rotate it to sign everyone out. Unset keeps the per-process random epoch. If the revocation file is unreadable at boot, the API uses a random epoch (fail closed). |
+| API | `PASEO_ASSET_HUB_RPC_FALLBACK` | unset | Optional second RPC for access checks. Each access read now times out after 4 s with one retry. |
+| Signaling | `SIGNAL_TRUST_PROXY` | `true` | Network limits use `Fly-Client-IP`, otherwise the last `X-Forwarded-For` hop. The client-supplied leftmost hop is never used. |
+| Signaling | `max_machines_running` | `1` | Rooms and limiters are process memory; a second machine would split rooms. |
+
+Behavior changes: content-key responses carry `Cache-Control: no-store`; the
+signaling service no longer broadcasts `rooms:updated` and coalesces solo
+presence; room creation is limited per network and capped; both images start
+Node directly and close cleanly on SIGTERM. The signaling image runs as the
+`node` user. The API image stays root because the Fly volume is root-owned.
+
+Deploy order: API, then signaling, then clients (no client change is
+required). Before the pilot, record read-only checks: `fly scale show -a
+dotify-signal` shows one machine; one API log line and one signaling log line
+show a client address rather than a Fly proxy address; a room member receives
+TURN URLs from `/api/turn/grant`. Rollback: redeploy the previous image; unset
+`SESSION_EPOCH` only if sessions must be invalidated.

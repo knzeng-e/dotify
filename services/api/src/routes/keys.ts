@@ -151,6 +151,11 @@ function deniedResponse(denial: Extract<TrackAccessResult, { allowed: false }>, 
 
 export function createKeyRoutes(deps: KeyRouteDeps = defaultDeps) {
   return async function keyRoutes(app: FastifyInstance): Promise<void> {
+    // Keys, denials and errors must never be stored by a browser or proxy cache.
+    app.addHook('onSend', async (_request, reply) => {
+      reply.header('Cache-Control', 'no-store');
+    });
+
     app.post('/:contentHash/key-request', async (request: FastifyRequest, reply: FastifyReply) => {
       const params = paramsSchema.safeParse(request.params);
       if (!params.success) {

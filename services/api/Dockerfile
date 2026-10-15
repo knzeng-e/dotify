@@ -19,5 +19,7 @@ COPY --from=build /app/package*.json ./
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 
-CMD ["npm", "start"]
+# Start Node directly so SIGTERM reaches the graceful shutdown handler. The
+# image stays root for now: the Fly volume at /data/contributions is root-owned.
+CMD ["node", "dist/index.js"]
 

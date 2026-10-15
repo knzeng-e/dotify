@@ -1,4 +1,7 @@
 import assert from 'node:assert/strict';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { describe, it } from 'node:test';
 
 // The token HMAC key derives from CONTENT_KEY_MASTER_SECRET, which the config
@@ -115,6 +118,50 @@ describe('sessionTokens', () => {
       assert.equal(!verified.valid && verified.code, 'CHAIN_ID_MISMATCH');
     } finally {
       config.DOTIFY_CHAIN_ID = expectedChainId;
+    }
+  });
+
+  it('keeps sessions across a restart with a stable epoch, and keeps revocations revoked', () => {
+    const directory = mkdtempSync(join(tmpdir(), 'dotify-sessions-'));
+    try {
+      const revocationPath = join(directory, 'revocations.json');
+      const masterSecret = () => 'cd'.repeat(32);
+      const options = { epoch: 'stable-epoch-for-tests', masterSecret, revocationPath, onStorageError: () => {} };
+      // Real time: loading prunes revocations that are already expired.
+      const now = Date.now();
+      const before = createSessionTokenService({ ...options, randomId: () => 'kept' });
+      const kept = before.issue(ADDRESS, CHAIN_ID, now);
+      const revoked = createSessionTokenService({ ...options, randomId: () => 'signed-out' }).issue(ADDRESS, CHAIN_ID, now);
+      assert.equal(kept.ok && revoked.ok, true);
+      if (!kept.ok || !revoked.ok) return;
+      assert.equal(before.revoke(revoked.token, now + 1), true);
+
+      const after = createSessionTokenService(options);
+      assert.equal(after.verify(kept.token, now + 2).valid, true);
+      const signedOut = after.verify(revoked.token, now + 2);
+      assert.equal(!signedOut.valid && signedOut.code, 'SESSION_REVOKED');
+    } finally {
+      rmSync(directory, { recursive: true, force: true });
+    }
+  });
+
+  it('fails closed to a fresh epoch when the revocation file cannot be trusted', () => {
+    const directory = mkdtempSync(join(tmpdir(), 'dotify-sessions-'));
+    try {
+      const revocationPath = join(directory, 'revocations.json');
+      const masterSecret = () => 'cd'.repeat(32);
+      const errors: string[] = [];
+      const options = { epoch: 'stable-epoch-for-tests', masterSecret, revocationPath, onStorageError: (message: string) => errors.push(message) };
+      const issued = createSessionTokenService(options).issue(ADDRESS, CHAIN_ID, 1_000);
+      assert.equal(issued.ok, true);
+      if (!issued.ok) return;
+
+      writeFileSync(revocationPath, '{not json');
+      const verification = createSessionTokenService(options).verify(issued.token, 2_000);
+      assert.equal(!verification.valid && verification.code, 'SESSION_RESTARTED');
+      assert.equal(errors.length, 1);
+    } finally {
+      rmSync(directory, { recursive: true, force: true });
     }
   });
 });
