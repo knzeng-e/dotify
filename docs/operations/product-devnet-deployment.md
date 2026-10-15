@@ -10,8 +10,10 @@ explicit `VITE_DOTIFY_NEARBY=off` / `SIGNAL_NEARBY=off` settings still disable i
 audit them before release. The removed Product-specific flag has no effect.
 
 Location permission is requested only after **Find rooms near me** or **Enable
-nearby visibility**. A secure WebView with working Geolocation and observable
-Permissions APIs is required; SDK `Location` approval alone is insufficient.
+nearby visibility**. A secure WebView with working Geolocation is required; SDK `Location` approval
+alone is insufficient. Product uses its asynchronous SDK/native gate rather than
+Electron’s unreliable intermediate synchronous permission state. Missing browser
+permission observation keeps access snapshot-only.
 Product location uses a single snapshot, expiring within 90 seconds, renewed
 only by an explicit **Update my location** action. **Explore a city** is separate
 and never activates automatically. Capture the
@@ -22,6 +24,16 @@ permission decision.
 
 Operational rollback uses `VITE_DOTIFY_NEARBY=off` and/or `SIGNAL_NEARBY=off`;
 there is no Product-specific feature gate. Old snapshots expire within 90 seconds.
+
+## Product 0.1.51 recovery release candidate
+
+Based on merged #283, `974568c`. Executable `[0, 1, 51]` retains `product-cdm`
+on `devnet`; private-by-default rooms, explicit worldwide discovery, 5–42 km
+radii, native permission recovery and media loading fixes are included. Deploy
+signaling first, then the API upload-path correction, then publish frozen Product.
+Netlify independently serves the tested merged application commit. The previous
+0.1.50 executable is retained as rollback; do not restore globally enumerating
+signaling. See the [candidate record](../backlog/implementation/evidence/product-0.1.51-candidate-2026-10-15.md).
 
 ## Product 0.1.49 published Nearby test release
 
