@@ -1644,18 +1644,17 @@
                 for capacity, playback, and joining. W27 introduces a typed room transport
                 boundary and opt-in Celerity presence and encrypted social-event observation, disabled by default. Celerity and Statement Store are the same protocol;
                 paired capture tooling records bounded delivery observations and clock uncertainty, but real Product measurements remain required before any event class moves away from Socket.IO. Anonymous room-link entry remains an invariant, private messages require application
-                encryption with membership-bound ephemeral keys, and WebRTC remains the audio path. Discovery uses a compact radar and accessible room list;
+                encryption with membership-bound ephemeral keys, and WebRTC remains the audio path. The next discovery build restores a room galaxy and accessible room list;
                 graphics never imply exact location and never prevent joining. The earlier 3D prototype remains separate from the consented discovery path.
                 Product-host compatibility remains awaiting real host smoke evidence before Dotify
                 treats it as delivered. Building on the Product 0.1.50 test release, W19 includes Nearby by default in new Web and Product builds: find opted-in live rooms around you, or make your own room visible
-                within a chosen approximate radius in kilometres. Direct Join and Open a room controls stay ahead of discovery on mobile and desktop.
+                within a chosen approximate radius in kilometres. Compact Join by link and Open a room controls stay within reach; temporary sheets hold search and visibility settings.
                 One choice, available when creating the room and inside it, decides who can find it: Link only by default, Nearby, or Everyone. Host visibility and listener search are separate choices;
                 precise coordinates stay on the device, and sparse results offer explicit search widening. The published 0.1.51 recovery release offers a slider from 5 to 42 km, in one-kilometre steps,
-                respecting both participants' areas. Hosts who choose Everyone are told that their name and track become visible to anyone on Dotify; those public invitations appear without requesting a listener's location, and can be hidden or reported. Around-me discovery uses the device position;
-                exploring a city centre is a separate explicit choice. Product uses the same Nearby feature, requests Location permission only after your action, and uses a bounded position snapshot
-                through the native permission gate and secure WebView location; physical Host support still needs verification.
-                W19 builds on W18's amended privacy contract, with offline city exploration and room-link alternatives,
-                expiry and no wallet-location binding. Availability never starts location collection or room visibility automatically. It does not depend on 3D or a new payment rail. Publication still requires privacy, supported-device
+                respecting both participants' areas. Hosts who choose Everyone are told that their name and track become visible to anyone on Dotify; those public invitations appear without requesting a listener's location, and can be hidden or reported. The next radar build starts foreground discovery automatically at app entry through the device permission gate. Nearby and worldwide invitations appear independently as they arrive, so a slow location fix never blocks inspection or joining. Nearby cards show approximate five-kilometre distance bands; worldwide rooms show their worldwide scope without inventing a distance. The galaxy is illustrative, not a map.
+                City exploration is removed. Product rechecks its Location permission gate before each foreground fix; denial stops automatic retries and physical Host prompt/revocation behavior still needs verification. Location work stops in the background, and host publication remains an explicit choice.
+                W19 builds on W18's amended privacy contract, with room-link alternatives,
+                expiry and no wallet-location binding. It does not depend on 3D or a new payment rail. Publication still requires privacy, supported-device
                 and room-reliability evidence. Artist-controlled feature updates and recoverable keys are scoped follow-ups; stablecoin feasibility is deferred,
                 and JAM remains an infrastructure watch item. These are planned capabilities, not features enabled in the current release.
               </p>

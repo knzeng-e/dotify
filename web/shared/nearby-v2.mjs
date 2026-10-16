@@ -68,3 +68,17 @@ export function nearbyBucket(count) {
 export function validWorldwideArea(value) {
   return exactKeys(value, ['schemaVersion', 'worldwide']) && value.schemaVersion === 2 && value.worldwide === true;
 }
+
+// Distance-aware reads are opt-in v3. Existing v2 clients keep their exact
+// response shape. Publication remains v2 and never reveals the host cell.
+export function validDiscoverySearch(value) {
+  if (validNearbyArea(value) || validWorldwideArea(value)) return true;
+  if (!value || value.schemaVersion !== 3) return false;
+  return validNearbyArea({ ...value, schemaVersion: 2 }) || validWorldwideArea({ ...value, schemaVersion: 2 });
+}
+export function nearbyDistanceBand(a, b) {
+  const distance = nearbyCellDistanceKm(a, b);
+  if (!Number.isFinite(distance) || distance > 42) return null;
+  const lower = Math.min(40, Math.floor(distance / 5) * 5);
+  return `${lower}–${lower + 5} km`;
+}

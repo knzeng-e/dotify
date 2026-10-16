@@ -32,7 +32,7 @@ let finishName = () => {};
 window.identityFixture = {
   requests: 0,
   locationRequests: 0,
-  locationGranted: true,
+  locationGranted: new URLSearchParams(location.search).get('location') !== 'denied',
   setProfile(name, key = 17, delayed = false, denied = false) {
     const host = createFakeHost({ primaryUsername: name, publicKey: new Uint8Array(32).fill(key) });
     host.client.permissions.requestDevicePermission = permission => {

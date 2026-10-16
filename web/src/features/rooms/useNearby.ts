@@ -17,9 +17,12 @@ export function useNearby(port: RoomRealtimePort | null, host: boolean, roomId =
   const state = useSyncExternalStore(session?.subscribe ?? noopSubscribe, session?.snapshot ?? offSnapshot);
   useEffect(() => {
     if (!session || !port) return;
-    const stop = () => session.stop('Nearby stopped. Start again when you are ready.', 'disconnected');
+    const stop = () => {
+      if (session.snapshot().phase !== 'denied') session.stop('Nearby stopped. Start again when you are ready.', 'disconnected');
+    };
     const visibility = () => {
-      if (document.visibilityState !== 'visible') session.stop('Nearby paused while you were away. Start again to continue.');
+      if (document.visibilityState !== 'visible' && session.snapshot().phase !== 'denied')
+        session.stop('Nearby paused while you were away. Start again to continue.');
     };
     const pagehide = () => session.stop();
     port.on('disconnect', stop);

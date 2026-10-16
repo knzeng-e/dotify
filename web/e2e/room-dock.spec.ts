@@ -33,6 +33,7 @@ for (const width of [320, 390, 430, 1440]) {
       await expect(dock.locator('.player-dock-title')).toHaveText('Second room track');
       await expect(dock.locator('.player-dock-room')).toHaveCount(0);
       await navigate(guest, 'Rooms', width);
+      await guest.getByRole('button', { name: 'Join by link', exact: true }).click();
       await guest.getByLabel('Room code or link').fill(roomId);
       await guest.getByRole('button', { name: 'Join', exact: true }).click();
       await guest.getByLabel('Your name in the room').fill('Live guest');

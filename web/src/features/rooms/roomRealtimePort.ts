@@ -1,3 +1,4 @@
+import type { DiscoverySearchArea } from '../../../shared/nearby-v2.mjs';
 import type {
   CreateRoomResponse,
   JoinRoomResponse,
@@ -82,7 +83,7 @@ export type RoomOutgoingEvents = {
 export type RoomRequests = {
   'nearby:publish': { input: NearbyArea | { schemaVersion: 2; worldwide: true }; output: NearbyReply };
   'nearby:off': { input: Record<string, never>; output: NearbyReply };
-  'nearby:search': { input: NearbyArea | { schemaVersion: 2; worldwide: true }; output: NearbySearchReply };
+  'nearby:search': { input: DiscoverySearchArea; output: NearbySearchReply };
   'nearby:report': { input: { discoveryId: string; reason: 'unwanted' | 'misleading' | 'offensive' }; output: NearbyReply };
   'room:pin': { input: { id: string | null }; output: { ok: boolean } };
   'room:tip-bind': { input: { token: string }; output: { ok: boolean; error?: string; code?: 'SESSION_INVALID' } };
