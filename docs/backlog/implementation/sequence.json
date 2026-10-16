@@ -368,6 +368,118 @@
       ],
       "issue": 250,
       "phase": "Pilot polish"
+    },
+    {
+      "id": "W30",
+      "title": "Harden the hosted services for the 42-person trusted pilot",
+      "file": "W30-pilot-hardening.md",
+      "branch": "fix/pilot-hardening",
+      "dependencies": [
+        "W19"
+      ],
+      "issue": 285,
+      "phase": "Pilot"
+    },
+    {
+      "id": "W31",
+      "title": "Discovery follow-ups and lighter first load for the trusted pilot",
+      "file": "W31-discovery-follow-ups.md",
+      "branch": "fix/discovery-follow-ups",
+      "dependencies": [
+        "W19"
+      ],
+      "issue": 286,
+      "phase": "Pilot polish"
+    },
+    {
+      "id": "W32",
+      "title": "Encode releases for streaming at upload",
+      "file": "W32-streaming-encoding.md",
+      "branch": "feat/streaming-encoding",
+      "dependencies": [
+        "W30"
+      ],
+      "issue": 287,
+      "phase": "Streaming"
+    },
+    {
+      "id": "W33",
+      "title": "Serve encrypted media through a read-through edge cache",
+      "file": "W33-media-edge-cache.md",
+      "branch": "feat/media-edge-cache",
+      "dependencies": [
+        "W30"
+      ],
+      "issue": 288,
+      "phase": "Streaming"
+    },
+    {
+      "id": "W34",
+      "title": "Take the content key off the critical path",
+      "file": "W34-fast-access-path.md",
+      "branch": "feat/fast-access-path",
+      "dependencies": [
+        "W30"
+      ],
+      "issue": 289,
+      "phase": "Streaming"
+    },
+    {
+      "id": "W35",
+      "title": "Make listening continuous: gapless, adaptive, and system-integrated",
+      "file": "W35-continuous-player.md",
+      "branch": "feat/continuous-player",
+      "dependencies": [
+        "W32",
+        "W34"
+      ],
+      "issue": 290,
+      "phase": "Streaming"
+    },
+    {
+      "id": "W36",
+      "title": "Move API trust state to a shared store and allow more than one instance",
+      "file": "W36-shared-state-api.md",
+      "branch": "feat/shared-state-api",
+      "dependencies": [
+        "W30"
+      ],
+      "issue": 291,
+      "phase": "Scaling"
+    },
+    {
+      "id": "W37",
+      "title": "Keep the catalog indexer fast and recoverable as the catalog grows",
+      "file": "W37-scalable-catalog-indexer.md",
+      "branch": "feat/scalable-catalog-indexer",
+      "dependencies": [
+        "W30"
+      ],
+      "issue": 292,
+      "phase": "Scaling"
+    },
+    {
+      "id": "W38",
+      "title": "Bound release data and royalty splits in the music pallets",
+      "file": "W38-contract-bounds.md",
+      "branch": "feat/contract-bounds",
+      "dependencies": [
+        "W37"
+      ],
+      "issue": 293,
+      "phase": "Scaling"
+    },
+    {
+      "id": "W39",
+      "title": "Scale rooms beyond one signaling machine and decide on an SFU",
+      "file": "W39-horizontal-rooms.md",
+      "branch": "research/horizontal-rooms",
+      "dependencies": [
+        "W30",
+        "W36"
+      ],
+      "issue": 294,
+      "phase": "Scaling"
     }
   ]
 }
