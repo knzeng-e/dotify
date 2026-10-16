@@ -1,0 +1,562 @@
+/* The living room galaxy. Real invitations only; the circular arrangement is
+   deliberately not a map or a claim of the host's precise position. */
+.room-radar {
+  --radar-ink: #eaf7ff;
+  --radar-muted: #a7bbc9;
+  --radar-line: rgba(112, 210, 214, 0.16);
+  margin-block: 1.5rem 2rem;
+  color: var(--radar-ink);
+}
+.radar-toolbar,
+.radar-tools,
+.radar-status,
+.radar-caption,
+.discovery-sheet-heading,
+.radar-invitations > header {
+  display: flex;
+  align-items: center;
+}
+.radar-toolbar,
+.discovery-sheet-heading,
+.radar-invitations > header {
+  justify-content: space-between;
+  gap: 1rem;
+}
+.discovery-eyebrow {
+  color: #66dace;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+}
+.radar-toolbar h2 {
+  font-size: clamp(1.6rem, 3vw, 2.3rem);
+  letter-spacing: -0.045em;
+  margin: 0.25rem 0;
+}
+.radar-tools {
+  gap: 0.5rem;
+}
+.radar-tool {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid var(--radar-line);
+  border-radius: 100px;
+  background: rgba(10, 30, 46, 0.72);
+  color: var(--radar-ink);
+  font-size: 0.85rem;
+}
+.radar-tool:hover,
+.radar-tool:focus-visible {
+  border-color: #61dbcd;
+  background: #15313d;
+}
+.radar-status {
+  gap: 0.65rem;
+  min-height: 2rem;
+  margin: 0.6rem 0 1.25rem;
+  color: var(--radar-muted);
+  font-size: 0.82rem;
+}
+.radar-status-dot {
+  flex-shrink: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #66dace;
+}
+.radar-status-dot[data-scanning='true'] {
+  animation: radar-breathe 1.7s ease-in-out infinite;
+}
+.radar-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1.12fr) minmax(0, 0.88fr);
+  gap: clamp(1.5rem, 4vw, 4rem);
+  align-items: start;
+}
+.radar-body[data-list-only='true'] {
+  grid-template-columns: 1fr;
+}
+.radar-stage {
+  min-width: 0;
+}
+.radar-sky {
+  aspect-ratio: 1;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  border: 1px solid rgba(98, 224, 212, 0.23);
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(22, 83, 89, 0.26), rgba(5, 20, 33, 0.86) 68%, #06101d);
+  box-shadow:
+    inset 0 0 45px rgba(42, 152, 143, 0.09),
+    0 0 70px rgba(43, 149, 144, 0.05);
+}
+.radar-grid {
+  position: absolute;
+  inset: 0;
+  opacity: 0.45;
+  background:
+    linear-gradient(90deg, transparent 49.8%, var(--radar-line) 50%, transparent 50.2%),
+    linear-gradient(transparent 49.8%, var(--radar-line) 50%, transparent 50.2%);
+}
+.radar-ring {
+  position: absolute;
+  border: 1px solid var(--radar-line);
+  border-radius: 50%;
+  pointer-events: none;
+}
+.radar-ring-one {
+  inset: 15%;
+}
+.radar-ring-two {
+  inset: 30%;
+}
+.radar-ring-three {
+  inset: 44%;
+}
+.radar-sweep {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, transparent 0 300deg, rgba(70, 223, 198, 0.07) 330deg, rgba(70, 223, 198, 0.3) 359deg, transparent 360deg);
+  opacity: 0.23;
+  pointer-events: none;
+}
+.radar-sky[data-scanning='true'] .radar-sweep {
+  animation: radar-turn 4s linear infinite;
+  opacity: 1;
+}
+.radar-logo {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: clamp(52px, 12%, 76px);
+  transform: translate(-50%, -50%);
+  color: #72e3d5;
+  filter: drop-shadow(0 0 16px rgba(73, 222, 200, 0.25));
+}
+.radar-logo svg {
+  width: 100%;
+  fill: currentColor;
+}
+.radar-room-dot {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 24%;
+  min-width: 44px;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  border: 0;
+  background: none;
+  color: var(--radar-ink);
+  padding: 4px 0;
+  text-align: center;
+  cursor: pointer;
+  z-index: 1;
+  animation: radar-arrive 0.35s ease-out both;
+}
+.radar-room-core {
+  display: grid;
+  place-items: center;
+  height: 42px;
+  width: 42px;
+  border: 1px solid #6ce3cc;
+  border-radius: 50%;
+  background: radial-gradient(circle, #226666, #0a2732);
+  box-shadow:
+    0 0 0 5px rgba(80, 217, 191, 0.06),
+    0 0 19px rgba(80, 217, 191, 0.18);
+}
+.radar-room-dot[data-worldwide='true'] .radar-room-core {
+  border-color: #e5a6c8;
+  color: #f5b4d4;
+  background: radial-gradient(circle, #392b53, #141b30);
+  box-shadow: 0 0 0 5px rgba(222, 98, 162, 0.05);
+}
+.radar-petal {
+  width: 9px;
+  height: 15px;
+  border-radius: 50%;
+  transform: rotate(-35deg);
+  background: #b6ffe4;
+  box-shadow: 0 0 10px #69dfc5;
+}
+.radar-room-dot strong {
+  width: 100%;
+  margin-top: 0.4rem;
+  font-size: clamp(0.7rem, 1vw, 0.85rem);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.radar-room-dot small {
+  color: #a8e3d7;
+  font-size: clamp(0.65rem, 0.9vw, 0.76rem);
+  margin-top: 0.1rem;
+}
+.radar-room-dot[data-worldwide='true'] small {
+  color: #efb2d4;
+}
+.radar-room-dot:hover .radar-room-core,
+.radar-room-dot:focus-visible .radar-room-core {
+  box-shadow:
+    0 0 0 6px rgba(105, 230, 208, 0.2),
+    0 0 30px rgba(80, 217, 191, 0.35);
+}
+.radar-room-dot:focus-visible {
+  outline: 2px solid #8deddb;
+  outline-offset: 3px;
+  border-radius: 12px;
+}
+.radar-caption {
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+  color: var(--radar-muted);
+  font-size: 0.72rem;
+}
+.radar-caption span {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.radar-caption small {
+  width: 100%;
+  text-align: center;
+  font-size: 0.65rem;
+  opacity: 0.8;
+}
+.radar-invitations {
+  min-width: 0;
+  padding-top: 0.7rem;
+}
+.radar-invitations > header {
+  border-bottom: 1px solid var(--radar-line);
+  padding-bottom: 1rem;
+}
+.radar-invitations > header h3 {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin: 0;
+}
+.radar-invitations > header > span {
+  font-size: 0.8rem;
+  color: #71e3d3;
+}
+.radar-invitations .nearby-results {
+  margin: 0;
+  gap: 0;
+  padding: 0;
+}
+.radar-invitations .nearby-room {
+  border: 0;
+  border-bottom: 1px solid var(--radar-line);
+  border-radius: 0;
+  background: transparent;
+  padding: 1.1rem 0;
+  gap: 0.75rem;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+.radar-invitations .nearby-room-mark {
+  display: none;
+}
+.radar-invitations .nearby-room-copy small {
+  color: var(--radar-muted);
+  font-size: 0.72rem;
+}
+.radar-invitations .nearby-room-copy h3 {
+  font-size: 1rem;
+  line-height: 1.3;
+  margin: 0.35rem 0 0.2rem;
+}
+.radar-invitations .nearby-room-copy p {
+  font-size: 0.8rem;
+  color: var(--radar-muted);
+}
+.discovery-distance {
+  display: inline-block;
+  font-size: 0.7rem;
+  color: #86e8d8;
+  margin-top: 0.5rem;
+}
+.discovery-inspect {
+  padding: 0;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  font-weight: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.discovery-inspect:hover {
+  color: #6ce3d5;
+}
+.radar-invitations .primary-action {
+  min-height: 44px;
+  border-radius: 100px;
+  padding: 0.5rem 1rem;
+  font-size: 0.8rem;
+  background: rgba(88, 222, 202, 0.12);
+  color: #9af0e2;
+  box-shadow: none;
+  border: 1px solid rgba(88, 222, 202, 0.28);
+}
+.radar-invitations .primary-action:hover {
+  background: #66dbce;
+  color: #071e2a;
+}
+.radar-empty {
+  padding: 3rem 1rem;
+  color: #90b5bc;
+  text-align: center;
+  max-width: 320px;
+  margin: auto;
+}
+.radar-empty svg {
+  margin: auto;
+  color: #67d8ca;
+}
+.radar-empty p {
+  color: #e3f2f4;
+  font-size: 1.05rem;
+  margin: 1rem 0 0.5rem;
+}
+.radar-empty span {
+  font-size: 0.85rem;
+  line-height: 1.65;
+}
+.radar-retry {
+  font-size: 0.85rem;
+  margin-bottom: 1rem;
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+.discovery-sheet {
+  border: 1px solid rgba(120, 190, 205, 0.25);
+  background: #0b1b2b;
+  color: #edf7ff;
+}
+.discovery-sheet-heading {
+  align-items: flex-start;
+  margin-bottom: 1.6rem;
+}
+.discovery-sheet-heading h2 {
+  font-size: 1.5rem;
+  line-height: 1.25;
+  margin: 0.5rem 0 0;
+  letter-spacing: -0.025em;
+}
+.discovery-sheet .icon-button {
+  min-width: 44px;
+  min-height: 44px;
+  display: grid;
+  place-items: center;
+  color: inherit;
+  background: transparent;
+  border: 1px solid rgba(170, 211, 221, 0.18);
+  border-radius: 50%;
+}
+.discovery-done {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  width: 100%;
+  margin-top: 1.5rem;
+}
+.discovery-pause {
+  border: 0;
+  border-block: 1px solid rgba(151, 193, 209, 0.15);
+  background: transparent;
+  color: #b9dcdf;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-height: 52px;
+  width: 100%;
+  margin-top: 1rem;
+  font-size: 0.9rem;
+}
+.discovery-privacy {
+  font-size: 0.8rem;
+  color: #afc7d4;
+  margin-top: 1.25rem;
+}
+.discovery-privacy summary {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+.discovery-privacy p {
+  line-height: 1.7;
+  margin-top: 1rem;
+}
+.discovery-host {
+  padding: 0 !important;
+  margin-block: 1rem;
+  border: 0 !important;
+  background: transparent !important;
+}
+.discovery-host-trigger {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  padding: 1rem;
+  border: 1px solid rgba(114, 206, 201, 0.2);
+  background: rgba(11, 31, 46, 0.6);
+  color: #8ee1d9;
+  border-radius: 16px;
+  text-align: left;
+}
+.discovery-host-trigger > span {
+  flex: 1;
+  display: grid;
+  gap: 0.3rem;
+}
+.discovery-host-trigger small {
+  font-size: 0.72rem;
+  color: #adc4cf;
+}
+.discovery-host-trigger strong {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #e6f6f9;
+}
+.discovery-host .nearby-status {
+  padding: 0.5rem 1rem;
+  font-size: 0.75rem;
+}
+.discovery-sheet .discovery-choice {
+  margin: 1rem 0;
+}
+.radar-preview-art {
+  display: grid;
+  place-items: center;
+  color: #68dbd0;
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  border: 1px solid rgba(114, 206, 201, 0.23);
+  background: radial-gradient(circle, #194447, #0b1b2b);
+  margin-bottom: 1.5rem;
+}
+.radar-room-preview > h2 {
+  font-size: 1.7rem;
+  letter-spacing: -0.035em;
+  margin: 0 0 0.5rem;
+}
+.radar-room-preview > p {
+  color: #aed4d4;
+}
+@keyframes radar-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes radar-breathe {
+  50% {
+    opacity: 0.3;
+    box-shadow: 0 0 0 5px rgba(104, 226, 205, 0.1);
+  }
+}
+@keyframes radar-arrive {
+  from {
+    opacity: 0;
+    scale: 0.8;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+@media (max-width: 700px) {
+  .rooms-landing-focused .rooms-intro h1 {
+    font-size: 2rem;
+  }
+  .rooms-landing-focused .rooms-intro-copy {
+    font-size: 0.85rem;
+    max-width: 28ch;
+  }
+  .room-radar {
+    margin-top: 1rem;
+  }
+  .radar-body {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+  .radar-stage,
+  .radar-invitations {
+    width: 100%;
+  }
+  .radar-toolbar h2 {
+    font-size: 1.5rem;
+  }
+  .radar-status {
+    font-size: 0.74rem;
+    line-height: 1.5;
+    margin-block: 0.5rem 1rem;
+  }
+  .radar-room-core {
+    width: 34px;
+    height: 34px;
+  }
+  .radar-room-core svg {
+    width: 17px;
+  }
+  .radar-caption {
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+  }
+  .discovery-sheet.modal-card {
+    border-radius: 24px 24px 0 0;
+    align-self: end;
+    margin: 0;
+    width: 100%;
+    max-width: 100%;
+    max-height: 85dvh;
+    padding: 1.5rem 1.25rem calc(1.25rem + env(safe-area-inset-bottom));
+  }
+  .modal-backdrop:has(> .discovery-sheet) {
+    padding: 0;
+    align-items: end;
+  }
+  .radar-invitations .nearby-room {
+    padding: 1rem 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .radar-sweep,
+  .radar-room-dot,
+  .radar-status-dot {
+    animation: none !important;
+  }
+}
+
+.rooms-landing-focused .room-arrival-compact {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding-block: 0.75rem;
+}
+.room-arrival-compact .secondary-action {
+  min-height: 44px;
+}
+@media (min-width: 701px) {
+  .radar-sky {
+    max-width: 540px;
+    margin-inline: auto;
+  }
+}

@@ -1,5 +1,15 @@
 import { createHmac, randomBytes, randomUUID } from 'node:crypto';
-import { exactKeys, validNearbyArea, validWorldwideArea, nearbyAreasMatch, nearbyBucket, NEARBY_MAX_RESULTS, NEARBY_TTL_MS } from '../shared/nearby-v2.mjs';
+import {
+  exactKeys,
+  validDiscoverySearch,
+  nearbyDistanceBand,
+  validNearbyArea,
+  validWorldwideArea,
+  nearbyAreasMatch,
+  nearbyBucket,
+  NEARBY_MAX_RESULTS,
+  NEARBY_TTL_MS
+} from '../shared/nearby-v2.mjs';
 import { clientKey } from './signaling-utils.mjs';
 
 // No payloads go to logs, publicRoom, /status, analytics or durable stores.
@@ -79,8 +89,9 @@ export function createNearby({ enabled, rooms, trustProxy, maxListeners, now = D
         return { ok: true };
       });
       handler('nearby:search', payload => {
-        if (!allowed(socket, validWorldwideArea(payload) ? 'worldwide-search' : 'search', 6)) return fail('RATE_LIMITED');
-        if (!validNearbyArea(payload) && !validWorldwideArea(payload)) return fail('INVALID_AREA');
+        if (!allowed(socket, payload?.worldwide === true ? 'worldwide-search' : 'search', 6)) return fail('RATE_LIMITED');
+        if (!validDiscoverySearch(payload)) return fail('INVALID_AREA');
+        const area = { ...payload, schemaVersion: 2 };
         totals.searches++;
         const results = [];
         // Stable per-lease ordering, never distance ordering; no cells in replies.
@@ -88,9 +99,9 @@ export function createNearby({ enabled, rooms, trustProxy, maxListeners, now = D
           const room = rooms.get(roomId);
           if (!room?.hostId) continue;
           if (
-            validWorldwideArea(payload)
+            validWorldwideArea(area)
               ? !item.worldwide
-              : item.worldwide || !nearbyAreasMatch({ schemaVersion: 2, cell: item.cell, radiusKm: item.radiusKm }, payload)
+              : item.worldwide || !nearbyAreasMatch({ schemaVersion: 2, cell: item.cell, radiusKm: item.radiusKm }, area)
           )
             continue;
           results.push({
@@ -101,11 +112,12 @@ export function createNearby({ enabled, rooms, trustProxy, maxListeners, now = D
             title: room.track?.title ?? 'Listening room',
             artist: room.track?.artist ?? '',
             presence: nearbyBucket(room.listeners.size + 1),
-            isFull: room.listeners.size >= maxListeners
+            isFull: room.listeners.size >= maxListeners,
+            ...(payload.schemaVersion === 3 ? { distanceBand: item.worldwide ? null : nearbyDistanceBand(item.cell, area.cell) } : {})
           });
           if (results.length === NEARBY_MAX_RESULTS) break;
         }
-        return { ok: true, schemaVersion: 2, expiresInMs: 30_000, results };
+        return { ok: true, schemaVersion: payload.schemaVersion, expiresInMs: 45_000, results };
       });
       handler('nearby:report', payload => {
         if (!allowed(socket, 'report', 3)) return fail('RATE_LIMITED');

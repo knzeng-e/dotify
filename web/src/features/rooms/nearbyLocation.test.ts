@@ -64,13 +64,13 @@ it('offers device location by default in secure Web and Product surfaces with ob
   expect(canUseNearbyDeviceLocation()).toBe(true);
 });
 
-it('keeps Product snapshot capability prerequisites even with default availability', () => {
+it('keeps Product native capability prerequisites even with default availability', () => {
   const page = { isSecureContext: true, location: { protocol: 'https:' }, self: {}, top: {}, __HOST_WEBVIEW_MARK__: true };
   page.top = page.self;
   vi.stubGlobal('window', page);
   vi.stubGlobal('navigator', { geolocation: { watchPosition: () => 1, clearWatch: () => {} }, permissions: { query: () => {} } });
   expect(canUseNearbyDeviceLocation()).toBe(true);
-  expect(canRefreshNearbyDeviceLocation()).toBe(false);
+  expect(canRefreshNearbyDeviceLocation()).toBe(true);
   vi.stubGlobal('navigator', { geolocation: { watchPosition: () => 1, clearWatch: () => {} } });
   expect(canUseNearbyDeviceLocation()).toBe(true);
   vi.stubGlobal('window', { ...page, isSecureContext: false });
@@ -115,7 +115,7 @@ it('does not use Electron synchronous permission denial to block the async Host 
   vi.stubGlobal('navigator', { permissions: { query } });
   expect(await queryNearbyLocationPermission(new AbortController().signal)).toBeNull();
   expect(query).not.toHaveBeenCalled();
-  expect(canRefreshNearbyDeviceLocation()).toBe(false);
+  expect(canRefreshNearbyDeviceLocation()).toBe(true);
 });
 it('waits for a fresh mobile fix after an inaccurate first fix', async () => {
   const clearWatch = vi.fn();

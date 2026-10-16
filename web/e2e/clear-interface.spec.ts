@@ -118,7 +118,8 @@ test('room presence stays quiet when online and remains honest offline', async (
   const code = (await page.getByTestId('room-code').innerText()).trim();
   await page.getByRole('button', { name: 'Rooms', exact: true }).click();
   await expect(page.locator('.room-live-card,[data-testid="sky-of-rooms"]')).toHaveCount(0);
-  await expect(page.getByRole('region', { name: 'Nearby', exact: true })).toContainText('Search is off.');
+  await expect(page.getByRole('region', { name: 'Room galaxy', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Inspect E2E Public Room Track/ })).toHaveCount(0);
   await page.getByRole('button', { name: 'Return to your room', exact: true }).click();
   await expect(page.getByTestId('room-code')).toHaveText(code);
   const presence = page.locator('.room-live-chip');

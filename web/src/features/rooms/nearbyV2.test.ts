@@ -13,6 +13,27 @@ describe('Nearby v2 privacy geometry', () => {
     expect(safeNearbyReply({ ok: true, expiresInMs: 90001 }, true)).toBe(false);
     expect(safeNearbyReply({ ok: true, expiresInMs: NaN }, true)).toBe(false);
   });
+  it('v3 accepts only coarse bands and rejects precise locations and disguised values', () => {
+    const item = {
+      roomId: 'ABC234',
+      discoveryId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+      expiresInMs: 45000,
+      hostName: 'Host',
+      title: 'Track',
+      artist: 'Artist',
+      presence: '1–3',
+      isFull: false,
+      distanceBand: '0–5 km'
+    };
+    const response = { ok: true, schemaVersion: 3, expiresInMs: 45000, results: [item] };
+    expect(safeNearbyReply(response, false)).toBe(true);
+    for (const distanceBand of ['0.7 km', 5, ['0–5 km'], undefined, '45–50 km'])
+      expect(safeNearbyReply({ ...response, results: [{ ...item, distanceBand }] }, false)).toBe(false);
+    expect(safeNearbyReply({ ...response, results: [{ ...item, distanceBand: null }] }, false)).toBe(true);
+    expect(safeNearbyReply({ ...response, results: [{ ...item, cell: area(0, 0).cell }] }, false)).toBe(false);
+    expect(safeNearbyReply({ ...response, schemaVersion: '3' }, false)).toBe(false);
+    expect(safeNearbyReply({ ...response, schemaVersion: 2 }, false)).toBe(false);
+  });
   it('coarsens different fixes to one cell and rejects inaccurate/out-of-world inputs', () => {
     expect(area(0.001, 0.001).cell).toBe(area(0.009, 0.009).cell);
     for (const [lat, lon] of [

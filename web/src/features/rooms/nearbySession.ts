@@ -1,3 +1,4 @@
+import { requiresExplicitProductRoomEntry } from '../productHost/productHost';
 import { NEARBY_RADII, NEARBY_REFRESH_MS } from '../../../shared/nearby-v2.mjs';
 import type { RoomRealtimePort, RoomRequests } from './roomRealtimePort';
 import type { NearbyResult } from './nearbyTypes';
@@ -22,19 +23,20 @@ type Environment = {
   supported: () => boolean;
   authorize?: (signal: AbortSignal) => Promise<void>;
   continuousDevice?: () => boolean;
+  reauthorizeOnRefresh?: () => boolean;
   locate: (signal: AbortSignal, onCoarseFix?: () => void) => Promise<string>;
   permission: (signal: AbortSignal) => Promise<PermissionStatus | null>;
 };
 const initial: NearbyState = { phase: 'off', message: '', results: [] };
 const copy: Record<string, string> = {
   DENIED: 'Location access was not granted. Check location permissions for Dotify and your Polkadot app or browser, then try again.',
-  TIMEOUT: 'Your location took too long. Choose an area or try again.',
-  INACCURATE: 'Your location is too uncertain. Choose an area instead.',
-  UNAVAILABLE: 'Location is unavailable here. Choose an area or use a room link.',
+  TIMEOUT: 'Your location took too long. Worldwide rooms are still available. Try again.',
+  INACCURATE: 'Your location is too uncertain. Try near a window or check device location settings.',
+  UNAVAILABLE: 'Location is unavailable here. You can still explore worldwide rooms or use a room link.',
   RATE_LIMITED: 'Too many nearby requests. Wait a minute, then try again.',
   DISABLED: 'Nearby is not available on this room service yet.',
   HOST_REQUIRED: 'Reconnect to your room, then enable nearby again.',
-  HOST_LOCATION_UNAVAILABLE: 'This Polkadot app could not provide location access. Use a room link or explore a city separately.',
+  HOST_LOCATION_UNAVAILABLE: 'This Polkadot app could not provide location access. You can still explore worldwide rooms or use a room link.',
   HOST_TIMEOUT: 'The Polkadot app did not answer the location request. Try again or use a room link.'
 };
 
@@ -46,6 +48,7 @@ export class NearbySession {
   private source: Source | null = null;
   private radius = 5;
   private deviceSnapshotOnly = false;
+  private reauthorizeOnRefresh = false;
   private abort: AbortController | null = null;
   private refresh: ReturnType<typeof setTimeout> | undefined;
   private expiry: ReturnType<typeof setTimeout> | undefined;
@@ -68,6 +71,7 @@ export class NearbySession {
       supported: canUseNearbyDeviceLocation,
       authorize: authorizeNearbyDeviceLocation,
       continuousDevice: canRefreshNearbyDeviceLocation,
+      reauthorizeOnRefresh: requiresExplicitProductRoomEntry,
       locate: locateNearbyCell,
       permission: queryNearbyLocationPermission
     };
@@ -92,7 +96,7 @@ export class NearbySession {
       }
       // Publishing and revocation must survive connected polling backpressure,
       // especially immediately after room creation. Never queue across reconnect.
-      this.port.request(event, payload, { connectedOnly: true, timeoutMs: 6000, volatile: event === 'nearby:search' }, (error, reply) => {
+      this.port.request(event, payload, { connectedOnly: true, timeoutMs: 6000, volatile: false }, (error, reply) => {
         if (error || !reply) reject(new Error('DISCONNECTED'));
         else resolve(reply);
       });
@@ -146,6 +150,7 @@ export class NearbySession {
     this.radius = radius;
     // Capture the policy before an asynchronous Host handshake. Losing a Host
     // marker/port must never turn a snapshot into continuous browser tracking.
+    this.reauthorizeOnRefresh = source.kind === 'device' && this.env.reauthorizeOnRefresh?.() === true;
     this.deviceSnapshotOnly = source.kind === 'device' && this.env.continuousDevice?.() === false;
     const rev = ++this.revision;
     if (source.kind === 'device') {
@@ -192,9 +197,14 @@ export class NearbySession {
     try {
       this.abort = new AbortController();
       if (source.kind === 'device' && !explicit) {
+        if (this.reauthorizeOnRefresh) {
+          if (!this.env.authorize) throw new Error('UNAVAILABLE');
+          await this.env.authorize(this.abort.signal);
+        }
+        if (rev !== this.revision) return;
         const permission = await this.env.permission(this.abort.signal);
         if (rev !== this.revision) return;
-        if (permission?.state !== 'granted') throw new Error('DENIED');
+        if (permission?.state === 'denied' || (!this.reauthorizeOnRefresh && permission?.state !== 'granted')) throw new Error('DENIED');
       }
       if (explicit)
         this.set({
@@ -221,7 +231,7 @@ export class NearbySession {
         });
       if (!this.host) this.nextSearchAt = Date.now() + 10_000;
       const requestedAt = performance.now();
-      const reply = await this.request(this.host ? 'nearby:publish' : 'nearby:search', area);
+      const reply = this.host ? await this.request('nearby:publish', area) : await this.request('nearby:search', { ...area, schemaVersion: 3 });
       if (rev !== this.revision) return;
       if (!safeNearbyReply(reply, this.host)) throw new Error('UNAVAILABLE');
       if (!reply.ok) {
@@ -270,13 +280,13 @@ export class NearbySession {
       this.expiry = setTimeout(
         () => {
           if (rev !== this.revision) return;
-          if (snapshotOnly) this.stop('This location snapshot has expired. Start again to update rooms around you.');
+          if (snapshotOnly) this.stop('This location snapshot has expired. Try location again to update rooms around you.', 'stale');
           else this.set({ phase: 'stale', message: 'Updating nearby availability…', results: [] });
         },
         Math.max(0, remaining)
       );
       this.expireResults(rev);
-      if (!snapshotOnly) this.refresh = setTimeout(() => void this.update(rev), NEARBY_REFRESH_MS);
+      if (!snapshotOnly) this.refresh = setTimeout(() => void this.update(rev), this.host || source.kind === 'worldwide' ? NEARBY_REFRESH_MS : 15_000);
     } catch (error) {
       if (rev !== this.revision) return;
       const code = error instanceof Error ? error.message : '';

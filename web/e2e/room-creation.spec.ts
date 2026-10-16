@@ -65,7 +65,7 @@ test('a superseded creation ACK cannot replace the new room or publish its old v
   // Exercise another render after delivery: the obsolete ACK must not install
   // room state or hand its visibility intent to the new Nearby session.
   await page.getByRole('tab', { name: /People/ }).click();
-  await expect(page.getByRole('region', { name: 'Who can find this room?', exact: true })).toContainText('Only people with your link or room code can join.');
+  await expect(page.getByRole('region', { name: 'Room visibility', exact: true })).toContainText('Link only');
   await expect(roomCode).toHaveText(newRoomId);
   expect(publications).toEqual([]);
 

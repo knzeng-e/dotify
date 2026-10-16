@@ -2,38 +2,21 @@ import { coarseNearbyCell } from '../../../shared/nearby-v2.mjs';
 import { requiresExplicitProductRoomEntry } from '../productHost/productHost';
 import { authorizeProductNearbyLocation } from '../productHost/productNearbyLocation';
 
-// Offline starter areas, not geocoding: neither a query nor a location goes to
-// a third party. The label stays on the device; only its coarse cell is sent.
-export const nearbyManualAreas = [
-  ['Libreville', 0.392, 9.454],
-  ['Paris', 48.857, 2.352],
-  ['Lisbon', 38.722, -9.139],
-  ['London', 51.507, -0.128],
-  ['Berlin', 52.52, 13.405],
-  ['Brussels', 50.85, 4.352],
-  ['Dakar', 14.717, -17.467],
-  ['Abidjan', 5.36, -4.008],
-  ['Douala', 4.051, 9.768],
-  ['Kinshasa', -4.322, 15.307],
-  ['Montreal', 45.502, -73.567],
-  ['New York', 40.713, -74.006]
-].map(([name, latitude, longitude]) => ({ name: String(name), cell: coarseNearbyCell(Number(latitude), Number(longitude))! }));
-
 export function canUseNearbyDeviceLocation(): boolean {
   return window.isSecureContext && typeof navigator.geolocation?.watchPosition === 'function' && typeof navigator.geolocation?.clearWatch === 'function';
 }
 
-/** Product permission is asked only by an explicit Nearby start, never refresh. */
+/** Every Product fix passes the Host permission gate, including foreground renewals. */
 export async function authorizeNearbyDeviceLocation(signal: AbortSignal): Promise<void> {
   if (signal.aborted) throw new Error('STOPPED');
   if (!canUseNearbyDeviceLocation()) throw new Error('UNAVAILABLE');
   if (requiresExplicitProductRoomEntry()) await authorizeProductNearbyLocation(signal);
 }
 
-// No public SDK API silently observes Product-only permission revocation.
-// Use a single bounded snapshot until that boundary has host/device evidence.
+// Product renewals re-check the async Host grant before each bounded native fix.
+// Browsers without an observable permission state remain snapshot-only.
 export function canRefreshNearbyDeviceLocation(): boolean {
-  return !requiresExplicitProductRoomEntry() && typeof navigator.permissions?.query === 'function';
+  return requiresExplicitProductRoomEntry() || typeof navigator.permissions?.query === 'function';
 }
 
 export function queryNearbyLocationPermission(signal: AbortSignal): Promise<PermissionStatus | null> {
@@ -41,7 +24,7 @@ export function queryNearbyLocationPermission(signal: AbortSignal): Promise<Perm
   // Electron's Product sandbox intentionally reports false in synchronous
   // permission checks. The async Host request and geolocation call enforce
   // consent. Treating this query as a denial prevents that native request.
-  // Snapshot-only environments never refresh location without a new action.
+  // The async Host gate is repeated before foreground renewals.
   if (requiresExplicitProductRoomEntry() || typeof navigator.permissions?.query !== 'function') return Promise.resolve(null);
   return new Promise((resolve, reject) => {
     if (signal.aborted) {
@@ -118,7 +101,7 @@ export function locateNearbyCell(signal: AbortSignal, onCoarseFix?: () => void):
         finish(coarseNearbyCell(latitude, longitude) ?? undefined);
       },
       error => finish(undefined, error.code === 1 ? 'DENIED' : error.code === 3 ? (sawCoarseFix ? 'INACCURATE' : 'TIMEOUT') : 'UNAVAILABLE'),
-      { enableHighAccuracy: false, maximumAge: 0, timeout: 30_000 }
+      { enableHighAccuracy: true, maximumAge: 15_000, timeout: 30_000 }
     );
     if (finished) navigator.geolocation.clearWatch(watch.id);
   });

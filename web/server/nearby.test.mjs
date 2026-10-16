@@ -165,3 +165,24 @@ test('shared Wi-Fi users keep independent scan budgets while the network stays b
   assert.equal(f.client('extra', 'listener', 'same-network')('nearby:search', area()).code, 'RATE_LIMITED');
   assert.equal(f.client('other', 'listener', 'other-network')('nearby:search', area()).ok, true);
 });
+
+test('v3 distance bands are coarse and v2 exact response shapes remain compatible', () => {
+  const f = fixture();
+  const host = f.client('host', 'host');
+  host('nearby:publish', area());
+  const v2 = f.client('legacy')('nearby:search', area());
+  assert.equal(v2.schemaVersion, 2);
+  assert.equal(Object.hasOwn(v2.results[0], 'distanceBand'), false);
+  const v3 = f.client('radar')('nearby:search', { ...area(), schemaVersion: 3 });
+  assert.equal(v3.schemaVersion, 3);
+  assert.equal(v3.results[0].distanceBand, '0–5 km');
+  assert.doesNotMatch(JSON.stringify(v3), /cell|latitude|longitude|bearing|audioRef|wallet/);
+  // A large listener radius never overrides the host's 5 km publication.
+  assert.deepEqual(f.client('far')('nearby:search', { ...area(0.1, 42), schemaVersion: 3 }).results, []);
+  host('nearby:publish', { schemaVersion: 2, worldwide: true });
+  const world = f.client('world')('nearby:search', { schemaVersion: 3, worldwide: true });
+  assert.equal(world.results[0].distanceBand, null);
+  for (const extra of [{ latitude: 0 }, { distanceBand: '0–5 km' }, { schemaVersion: 4 }]) {
+    assert.equal(f.client('bad' + JSON.stringify(extra))('nearby:search', { ...area(), schemaVersion: 3, ...extra }).code, 'INVALID_AREA');
+  }
+});

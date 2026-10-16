@@ -1,3 +1,4 @@
+import { useRoomDiscovery } from '../features/rooms/useRoomDiscovery';
 import { useRoomViewport } from '../features/rooms/useRoomViewport';
 // Listener shell - the full listener-facing render tree (top bar, nav rail,
 // page views, player dock, room modals) plus the listener-only UI state and
@@ -70,6 +71,7 @@ export function ListenerShell() {
     productHostMode,
     productHostStatus
   } = useWalletContext();
+  const discovery = useRoomDiscovery(session.socketRef.current, !session.roomId || activeView === 'rooms');
   const { openWalletModal } = useUiFeedback();
   const { artistName } = useReleaseForm();
   const { artistConsole, totalRoyaltyWei } = useArtistStudio();
@@ -347,7 +349,7 @@ export function ListenerShell() {
 
                 {activeView === 'rooms' && (
                   <RoomsView
-                    nearbyPort={session.socketRef.current}
+                    discovery={discovery}
                     joinCode={session.joinCode}
                     sessionAction={session.sessionAction}
                     onSetJoinCode={session.setJoinCode}
