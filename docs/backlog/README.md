@@ -149,19 +149,37 @@ W29 reverses one earlier record: catalog cards show a short access cue again
 
 ## Remaining execution map
 
-The current implementation backlog is deliberately small. Consult Project 5
-for Todo/In Progress/In Review; the table below defines why each issue remains
-open.
+The 2026-10-16 owner update makes **W30 / #285 the blocking Now gate** for
+the trusted pilot of at most 42 participants. It must be merged, deployed and
+operationally checked before the pilot starts. W31 is recommended pilot polish;
+it is not a W13 acceptance gate. W32-W35 form the Next streaming track,
+W36-W37 the Next scaling track, and W38-W39 remain Later.
+
+W19's initial Nearby implementation is merged through #283. Its physical-device
+acceptance and subsequent discovery follow-ups remain work to verify, rather
+than an instruction to implement Nearby again. The [dated playbook update](implementation/README.md#owner-priority-update-trusted-pilot-and-streaming-track-2026-10-16)
+supersedes the earlier W19-first scheduling. Consult Project 5 for
+Todo/In Progress/In Review; this map defines scope and remaining outcomes.
 
 | Priority | GitHub issue | Phase               | Remaining outcome                                                                                                                                              |
 | -------- | ------------ | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P0       | #285 / W30   | Now                 | Harden and deploy hosted services for the trusted pilot; record real client identity, one signaling worker and TURN grants before starting. |
+| P1       | #286 / W31   | Now (pilot polish)  | Finish discovery recovery/visibility clarity and lazy-load the artist studio; recommended alongside W30, not a W13 gate. |
 | P0       | #158 / W13   | Now                 | Bind Product payment/access, room, first-sound, rollback, release-profile, and consented pilot evidence to one accepted candidate.                             |
 | P0       | #88          | Next                | Measure DAV2 first sound on physical browsers/devices and real gateway conditions.                                                                             |
 | P1       | #87          | Next                | Validate responsive covers on live uploads/mobile and decide the cache-edge/legacy-backfill boundary.                                                          |
 | P1       | #89          | Next                | Exercise forced TURN, independent networks, mobile recovery, host capacity, and the mesh/SFU decision.                                                         |
 | P1       | #85          | Product feasibility | Maintain the Product capability/compatibility epic around evidence that the current Host actually exposes.                                                     |
 | P1       | #90          | Next                | Re-scope only the wallet-later gaps observed in pilot evidence; do not replay the delivered UX work.                                                           |
-| P1       | #274 / W19   | Now                 | Implement opt-in Nearby room discovery with separate approximate host/listener radii, explicit widening, wallet-free joining, and privacy/device evidence.      |
+| P1       | #274 / W19   | Device acceptance   | Verify merged Nearby behavior and subsequent discovery follow-ups on physical Product/mobile devices; retain host opt-in, both radii and wallet-free joining. |
+| P1       | #287 / W32   | Next (streaming)    | Encode streaming renditions with globally unique AES-GCM nonces per key, preserve the encrypted master and decide DAV2 compatibility. |
+| P1       | #288 / W33   | Next (streaming)    | Decide the #88 read-through boundary and serve immutable encrypted media through an edge cache without access authority. |
+| P1       | #289 / W34   | Next (streaming)    | Batch access reads and prepare queued keys with bounded fail-closed verdicts; keep client keys in memory. |
+| P1       | #290 / W35   | Next (streaming)    | Add gapless/adaptive playback, next-track preparation, system controls and measured continuity after W32/W34. |
+| P1       | #291 / W36   | Next (scaling)      | Share replay protection, revocations, quotas and catalog state before allowing two API instances. |
+| P2       | #292 / W37   | Next (scaling)      | Bound indexer work, resume large block gaps and maintain reusable catalog lookup indexes. |
+| P2       | #293 / W38   | Later               | Bound contract strings/splits and add paged views through artist-approved runtime upgrades after W37. |
+| P2       | #294 / W39   | Later               | Measure horizontal signaling and an SFU prototype while preserving anonymous entry and the no-guest-key boundary. |
 | P1       | #275         | Next                | Design artist-controlled runtime modules, safe owner-approved updates, admin inventory, and a separate artist-admission boundary.                               |
 | P1       | #276         | Next                | Prove per-artist key export and restore through a second compatible operator without exposing a global master secret.                                           |
 | P1       | #214 / W27   | Next Product sprint | Prove Celerity room events behind a typed dual-transport boundary, preserve anonymous link entry, and decide each Socket.IO responsibility from live evidence. |

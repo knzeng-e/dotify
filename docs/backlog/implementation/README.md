@@ -17,6 +17,12 @@ architecture audit and the PR #283 review produced ten sequences:
   scalable catalog indexer.
 - **Later:** W38 contract bounds, W39 horizontal rooms and SFU research.
 
+W19's initial Nearby implementation is merged through #283; remaining
+physical-device checks and later discovery follow-ups must not be treated as a
+fresh Nearby implementation. The [primary backlog execution map](../README.md#remaining-execution-map)
+uses the same W30 gate and W30-W39 track ordering. This update supersedes the
+2026-10-14 W19-first scheduling below.
+
 Next sequences ship as small PRs during the pilot when ready; each records the
 build it was observed on. This is scheduling, not evidence that any of these
 outcomes is live.
