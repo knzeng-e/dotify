@@ -1,5 +1,18 @@
 # Deployment Configuration Runbook
 
+## Current published Product release — 0.1.51
+
+Product `[0, 1, 51]` is published from source
+`cdb9ac245a865d085984b7750728aaaa358757b5` at executable/root CID
+`bafybeihpprpso6vopekio67surwcygt2ygs6dnppdfsszmiul2qchib2me`.
+The current client rollback is Product `[0, 1, 50]`, CID
+`bafybeie3r7hmzucvqhmkv5prgt3tguyq2m3fictwgdm7uelm3ssmo6b72m`.
+Use the [0.1.51 rollout record](../backlog/implementation/evidence/product-0.1.51-rollout-2026-10-16.md)
+for the corresponding API/signaling images, publication read-back, restart incident
+and remaining device checks. Keep privacy-safe signaling when rolling back clients.
+The dated sections below preserve earlier release history; their rollback pairs
+apply to those historical rollouts, not today's current release.
+
 ## Publication and room follow-up (#269)
 
 Product `[0, 1, 48]` was published on 2026-10-12 from tested `dev`
@@ -357,7 +370,7 @@ Required Product values:
 | `VITE_BULLETIN_WS_URL`          | `wss://bulletin-paseo.tservices.es:8443`                                                                                         |
 | `VITE_PINATA_GATEWAY`           | `https://gateway.pinata.cloud`                                                                                                   |
 | `VITE_IPFS_READ_GATEWAYS`       | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation` |
-| Product executable `appVersion` | `[0, 1, 50]` published radar/audio release; `[0, 1, 49]` is the prior client rollback artifact                            |
+| Product executable `appVersion` | `[0, 1, 51]` published discovery/media recovery release; `[0, 1, 50]` is the current client rollback artifact                            |
 
 The Product executable version is part of the published Product manifest. Bump
 it whenever the Product bundle changes runtime behavior, host SDK integration,
@@ -1950,6 +1963,18 @@ Product shares the main Nearby disable with ordinary Web. Existing native
 snapshots expire within 90 seconds; there is no separate Product experiment setting.
 
 ## Discovery and Host recovery rollout — 2026-10-15
+
+Executed on 2026-10-16 as Product 0.1.51 from `cdb9ac2`, with signaling release
+32 and API release 26. Exact published identities, independent read-back, live
+checks, the active-room restart incident and rollback are in the
+[rollout record](../backlog/implementation/evidence/product-0.1.51-rollout-2026-10-16.md).
+At that rollout, Netlify was validated at merged application commit `974568c`. Subsequent merge-triggered Web builds require independent SHA/config-digest validation; that earlier record does not validate future bundles. Native Host
+location/audio/approval checks remain physical acceptance gates.
+Before restarting, recheck active rooms/listeners and bind validation to the
+mutation with fail-fast execution (`set -euo pipefail` or an explicit successful
+condition). A failed assertion on one shell line must never fall through to a
+deploy on the next line. If rooms appear during preparation, evaluate the
+interruption before proceeding; an earlier zero-room snapshot is insufficient.
 
 Deploy signaling before clients for the 5–42 km/worldwide protocol extension.
 An old server safely rejects extended radii and worldwide payloads; it cannot

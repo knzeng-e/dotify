@@ -485,11 +485,11 @@
     "total": 13
   },
   "meta": {
-    "state": "stale-cache",
+    "state": "fresh",
     "cacheAvailable": true,
-    "indexedAt": "2026-10-15T11:51:25.163Z",
-    "lastIndexedBlock": 14470697,
-    "chainHeadBlock": 14470699,
+    "indexedAt": "2026-10-15T21:56:54.222Z",
+    "lastIndexedBlock": 14488624,
+    "chainHeadBlock": 14488626,
     "blockLag": 2,
     "staleAfterMs": 60000,
     "lastErrorCode": null
