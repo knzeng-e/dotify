@@ -42,8 +42,11 @@ payment, identity, or recovery decision.
 Ticket 25 (`docs/backlog/25-thresholds-functional-v1.md`) is delivered on
 `main` by PR #92 and is a delivery record.
 
-The current "Now" gate is #88: DAV2 browser and gateway validation plus the
-backend read-through decision for reliable first sound.
+The current "Now" gate is W30 / #285: harden the hosted services before the
+trusted pilot of at most 42 participants that starts on 2026-10-17 (W13
+owner update). W31 / #286 follows. The streaming track W32-W35 (#287-#290)
+and the scaling track W36-W37 (#291-#292) are Next; W33 makes the #88
+backend read-through decision.
 
 Keep #11, #36, and #37 as closed Record work. #11 delivered readiness
 surfaces, with residual DAV2 and gateway evidence moved to #88. #36 closed
