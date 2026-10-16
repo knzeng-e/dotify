@@ -9,21 +9,33 @@ Signaling also includes Nearby by default and must run on one worker. Existing
 explicit `VITE_DOTIFY_NEARBY=off` / `SIGNAL_NEARBY=off` settings still disable it;
 audit them before release. The removed Product-specific flag has no effect.
 
-Location permission is requested only after **Find rooms near me** or **Enable
-nearby visibility**. A secure WebView with working Geolocation is required; SDK `Location` approval
-alone is insufficient. Product uses its asynchronous SDK/native gate rather than
-Electron’s unreliable intermediate synchronous permission state. Missing browser
-permission observation keeps access snapshot-only.
-Product location uses a single snapshot, expiring within 90 seconds, renewed
-only by an explicit **Update my location** action. **Explore a city** is separate
-and never activates automatically. Capture the
+Discovery scans automatically when the app/room browser opens, subject to location
+consent and bounded retries. Worldwide rooms are available without a location fix;
+private rooms remain link-only until the host explicitly enables discovery.
+Location is a bounded snapshot, never continuous movement tracking. The city picker
+has been removed. Product uses its asynchronous SDK/native permission gate rather
+than Electron's intermediate synchronous state. A secure WebView with working
+Geolocation is still required. Capture the
 [physical-device checklist](../backlog/implementation/evidence/W19-product-location.md)
-before claiming physical Host support. A late Host grant cannot restart
-Nearby after stop/timeout, but Dotify cannot dismiss or undo the Host's own
-permission decision.
+before claiming installed Host support. A late Host grant cannot restart a stopped
+or timed-out request; Dotify cannot undo the Host's permission decision.
 
 Operational rollback uses `VITE_DOTIFY_NEARBY=off` and/or `SIGNAL_NEARBY=off`;
 there is no Product-specific feature gate. Old snapshots expire within 90 seconds.
+
+## Product 0.1.52 published galaxy and session release
+
+Based on merged #296/#297/#298 (`3b0bb68`), published from `92a9c1179dfd1ac67a88c6b3838853c528ddc14c`.
+Executable `[0, 1, 52]` retains `product-cdm` on `devnet` and uses CID
+`bafybeicn6kz5i5yyuoalubbe3hsl7sr7qbunccysju5rki3wrtgi2dbz7m`. Finalized DotNS root/executable read-back confirms this identity.
+API release 27 and signaling release 33 precede this publication; the server
+supports v3 distance bands while retaining v2 compatibility. Keep one signaling
+worker and a stable server-only API session epoch. The local signer was removed.
+See the [rollout record](../backlog/implementation/evidence/product-0.1.52-rollout-2026-10-16.md)
+for CI, source/image identities, Web status and physical acceptance still required.
+Current client rollback: 0.1.51; retain privacy-safe v3 signaling.
+
+The following sections preserve historical rollout and rollback evidence.
 
 ## Product 0.1.51 published recovery release
 
@@ -40,7 +52,7 @@ DotNS/version and public CAR read-back passed. See the
 for service images, tests, restart incident and remaining physical checks.
 
 The following release sections retain their original deployment and rollback history.
-The current release/rollback pair is 0.1.51 / 0.1.50 above.
+The current release/rollback pair is 0.1.52 / 0.1.51 above.
 
 ## Product 0.1.50 published radar and audio release
 
