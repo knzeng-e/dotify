@@ -72,7 +72,8 @@ export function queryNearbyLocationPermission(signal: AbortSignal): Promise<Perm
 }
 
 /** Cancellable one-fix watch: precise values never resolve or escape here. */
-export function locateNearbyCell(signal: AbortSignal): Promise<string> {
+/** onCoarseFix runs once when the device answers, but not precisely enough yet. */
+export function locateNearbyCell(signal: AbortSignal, onCoarseFix?: () => void): Promise<string> {
   return new Promise((resolve, reject) => {
     if (signal.aborted) {
       reject(new Error('STOPPED'));
@@ -82,6 +83,8 @@ export function locateNearbyCell(signal: AbortSignal): Promise<string> {
     // may complete before watchPosition returns its handle.
     const watch = { id: undefined as number | undefined };
     let finished = false;
+    // A device that only ever returns coarse fixes is imprecise, not slow.
+    let sawCoarseFix = false;
     const finish = (cell?: string, code = 'UNAVAILABLE') => {
       if (finished) return;
       finished = true;
@@ -92,7 +95,7 @@ export function locateNearbyCell(signal: AbortSignal): Promise<string> {
       else reject(new Error(code));
     };
     const abort = () => finish(undefined, 'STOPPED');
-    const timer = setTimeout(() => finish(undefined, 'TIMEOUT'), 32_000);
+    const timer = setTimeout(() => finish(undefined, sawCoarseFix ? 'INACCURATE' : 'TIMEOUT'), 32_000);
     signal.addEventListener('abort', abort, { once: true });
     watch.id = navigator.geolocation.watchPosition(
       position => {
@@ -106,11 +109,15 @@ export function locateNearbyCell(signal: AbortSignal): Promise<string> {
         ) {
           // A mobile first fix can be coarse or stale. Keep this bounded watch
           // alive for a fresh accurate fix instead of rejecting immediately.
+          if (!sawCoarseFix) {
+            sawCoarseFix = true;
+            onCoarseFix?.();
+          }
           return;
         }
         finish(coarseNearbyCell(latitude, longitude) ?? undefined);
       },
-      error => finish(undefined, error.code === 1 ? 'DENIED' : error.code === 3 ? 'TIMEOUT' : 'UNAVAILABLE'),
+      error => finish(undefined, error.code === 1 ? 'DENIED' : error.code === 3 ? (sawCoarseFix ? 'INACCURATE' : 'TIMEOUT') : 'UNAVAILABLE'),
       { enableHighAccuracy: false, maximumAge: 0, timeout: 30_000 }
     );
     if (finished) navigator.geolocation.clearWatch(watch.id);

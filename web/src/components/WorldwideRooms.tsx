@@ -1,10 +1,22 @@
-import { useEffect } from 'react';
-import { Globe2, Radio } from 'lucide-react';
+import { useEffect, useId } from 'react';
+import { Globe2 } from 'lucide-react';
 import { useNearby } from '../features/rooms/useNearby';
+import type { NearbyState } from '../features/rooms/nearbySession';
+import { DiscoveryRoomList } from './DiscoveryRoomList';
 import type { RoomRealtimePort } from '../features/rooms/roomRealtimePort';
+
+// The shared session reports lifecycle in Nearby terms; this list resumes on
+// its own, so it describes that state in worldwide terms instead.
+function worldwideMessage(state: NearbyState): string {
+  if (state.phase === 'disconnected') return 'Reconnecting to live rooms…';
+  if (state.phase === 'stale') return 'Live rooms could not refresh. Try again in a moment.';
+  if (state.phase === 'active' || state.phase === 'empty') return state.message;
+  return 'Finding live rooms…';
+}
 
 /** Public rooms opted into worldwide discovery. This never reads location. */
 export function WorldwideRooms({ port, onJoin, joining }: { port: RoomRealtimePort | null; onJoin: (id: string) => void; joining: boolean }) {
+  const titleId = useId();
   const { session, state } = useNearby(port, false, 'worldwide');
   useEffect(() => {
     if (!session || !port) return;
@@ -40,34 +52,18 @@ export function WorldwideRooms({ port, onJoin, joining }: { port: RoomRealtimePo
   }, [session, port, state.phase, state.retryInSeconds]);
   if (!session) return null;
   return (
-    <section className='worldwide-rooms' aria-labelledby='worldwide-title'>
+    <section className='worldwide-rooms' aria-labelledby={titleId}>
       <header className='nearby-heading'>
         <Globe2 size={24} aria-hidden='true' />
         <div>
-          <h2 id='worldwide-title'>Around the world</h2>
+          <h2 id={titleId}>Around the world</h2>
           <p>Open invitations. One shared moment.</p>
         </div>
       </header>
       <p role='status' className='nearby-status'>
-        {state.message || 'Finding live rooms…'}
+        {worldwideMessage(state)}
       </p>
-      <ul className='nearby-results' aria-label='Worldwide rooms'>
-        {state.results.map(room => (
-          <li className='nearby-room' key={room.discoveryId}>
-            <Radio size={23} aria-hidden='true' />
-            <div className='nearby-room-copy'>
-              <small>
-                {room.hostName} hosts · {room.presence} here
-              </small>
-              <h3>{room.title}</h3>
-              <p>{room.artist}</p>
-            </div>
-            <button type='button' className='primary-action' disabled={joining || room.isFull} onClick={() => onJoin(room.roomId)}>
-              {room.isFull ? 'Full' : 'Join'}
-            </button>
-          </li>
-        ))}
-      </ul>
+      <DiscoveryRoomList session={session} results={state.results} label='Worldwide rooms' joining={joining} onJoin={room => onJoin(room.roomId)} />
       {(state.phase === 'stale' || state.phase === 'disconnected') && (
         <button type='button' className='text-action' disabled={!!state.retryInSeconds} onClick={() => void session.start({ kind: 'worldwide' }, 5)}>
           {state.retryInSeconds ? `Try again in ${state.retryInSeconds}s` : 'Try again'}

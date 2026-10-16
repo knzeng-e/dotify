@@ -1,19 +1,24 @@
 import { useEffect, useId, useState } from 'react';
-import { EyeOff, Flag, Headphones, MoreHorizontal, Radar, Radio, Search, ShieldCheck, X } from 'lucide-react';
-
+import { Headphones, Radar, Radio, Search, ShieldCheck, X } from 'lucide-react';
 import { nearbyManualAreas, canUseNearbyDeviceLocation } from '../features/rooms/nearbyLocation';
 import { requiresExplicitProductRoomEntry } from '../features/productHost/productHost';
 import type { useNearby } from '../features/rooms/useNearby';
-import { NearbyRadius, NearbySwitch } from './NearbyVisibility';
+import { DiscoveryChoice, NEARBY_MAX_RADIUS_KM, NearbyRadius, type DiscoveryMode } from './NearbyVisibility';
+import { DiscoveryRoomList } from './DiscoveryRoomList';
 
-type Props = { nearby: ReturnType<typeof useNearby>; host?: boolean; onJoin?: (roomId: string) => void; joining?: boolean };
+type Props = {
+  nearby: ReturnType<typeof useNearby>;
+  host?: boolean;
+  onJoin?: (roomId: string) => void;
+  joining?: boolean;
+  onOpenRoom?: () => void;
+};
 
-export function NearbyControls({ nearby, host = false, onJoin, joining }: Props) {
+export function NearbyControls({ nearby, host = false, onJoin, joining, onOpenRoom }: Props) {
   const id = useId();
   const selection = nearby.session?.selection();
   const [radius, setRadius] = useState(selection?.radius ?? 5);
   const [manual, setManual] = useState(nearbyManualAreas.find(area => selection?.source?.kind === 'manual' && area.cell === selection.source.cell)?.name ?? '');
-  const [reportId, setReportId] = useState<string | null>(null);
   useEffect(() => {
     if (selection?.radius !== undefined) setRadius(selection.radius);
   }, [selection?.radius]);
@@ -24,7 +29,7 @@ export function NearbyControls({ nearby, host = false, onJoin, joining }: Props)
   const active = (state.phase === 'active' || state.phase === 'empty') && !worldwide;
   const worldActive = worldwide && (state.phase === 'active' || state.phase === 'checking');
   const cooldown = (state.retryInSeconds ?? 0) > 0;
-  const nextRadius = Math.min(42, radius + 5);
+  const nextRadius = Math.min(NEARBY_MAX_RADIUS_KM, radius + 5);
   const deviceSupported = canUseNearbyDeviceLocation();
   const snapshotOnly = requiresExplicitProductRoomEntry();
   const selected = nearbyManualAreas.find(area => area.name === manual);
@@ -37,6 +42,12 @@ export function NearbyControls({ nearby, host = false, onJoin, joining }: Props)
   };
   const restart = (value = radius) => {
     if (selection?.source) void session.start(selection.source, value);
+  };
+  const hostMode: DiscoveryMode = worldwide && (worldActive || busy) ? 'everyone' : (active || busy) && !worldwide ? 'nearby' : 'link';
+  const chooseMode = (mode: DiscoveryMode) => {
+    if (mode === 'link') session.stop();
+    else if (mode === 'nearby') start('device');
+    else void session.start({ kind: 'worldwide' }, radius);
   };
   return (
     <section className={`nearby-panel${host ? ' nearby-panel-host' : ''}`} aria-labelledby={`${id}-title`} data-active={active}>
@@ -54,36 +65,32 @@ export function NearbyControls({ nearby, host = false, onJoin, joining }: Props)
           <header className='nearby-heading'>
             <Radar className={host ? undefined : 'nearby-mobile-mark'} size={24} aria-hidden='true' />
             <div>
-              <h2 id={`${id}-title`}>{host ? 'Visible nearby' : 'Nearby'}</h2>
+              <h2 id={`${id}-title`}>{host ? 'Who can find this room?' : 'Nearby'}</h2>
               <p id={`${id}-description`}>
                 {host
-                  ? active
-                    ? source === 'manual' && activeArea
-                      ? `Visible around ${activeArea.name} centre.`
-                      : 'People around you can find this room.'
-                    : busy && !worldwide
-                      ? 'Making your room visible…'
-                      : worldwide
-                        ? 'Nearby is off. Your room is visible worldwide.'
-                        : 'Off. Your room is available by link.'
+                  ? state.revocationPending
+                    ? 'Updating room visibility. Some people may still find this room.'
+                    : active
+                      ? source === 'manual' && activeArea
+                        ? `Visible around ${activeArea.name} centre.`
+                        : 'People around you can find this room.'
+                      : busy && !worldwide
+                        ? 'Making your room visible…'
+                        : hostMode === 'everyone'
+                          ? 'Anyone on Dotify can find and join this room.'
+                          : 'Only people with your link or room code can join.'
                   : 'Find your people. Share a listening moment.'}
               </p>
             </div>
-            {host ? (
-              <NearbySwitch
-                checked={active || (busy && !worldwide)}
-                disabled={(!deviceSupported && !active && !busy) || (busy && worldwide)}
-                describedBy={`${id}-description`}
-                onChange={checked => (checked ? start('device') : session.stop())}
-              />
-            ) : (
-              (active || busy) && (
-                <button type='button' className='nearby-stop' onClick={() => session.pause()} aria-label='Stop' title='Stop searching'>
-                  <X size={19} aria-hidden='true' />
-                </button>
-              )
+            {!host && (active || busy) && (
+              <button type='button' className='nearby-stop' onClick={() => session.pause()} aria-label='Stop' title='Stop searching'>
+                <X size={19} aria-hidden='true' />
+              </button>
             )}
           </header>
+          {host && (
+            <DiscoveryChoice value={hostMode} labelledBy={`${id}-title`} disabled={busy} unavailable={{ nearby: !deviceSupported }} onChange={chooseMode} />
+          )}
           {(!host || active || (busy && !worldwide)) && (
             <NearbyRadius value={radius} onChange={setRadius} label={host ? 'Visibility range' : 'Search range'} disabled={busy} />
           )}
@@ -133,7 +140,12 @@ export function NearbyControls({ nearby, host = false, onJoin, joining }: Props)
               {active && source === 'manual' && activeArea && <span className='nearby-area-label'> {activeArea.name} centre</span>}
             </p>
           )}
-          {!host && state.phase === 'empty' && radius < 42 && (
+          {!host && state.phase === 'empty' && onOpenRoom && (
+            <button className='text-action nearby-open' type='button' onClick={onOpenRoom}>
+              <Radio size={16} aria-hidden='true' /> Open a room here
+            </button>
+          )}
+          {!host && state.phase === 'empty' && radius < NEARBY_MAX_RADIUS_KM && (
             <button
               className='text-action nearby-widen'
               disabled={cooldown}
@@ -149,20 +161,6 @@ export function NearbyControls({ nearby, host = false, onJoin, joining }: Props)
           )}
         </div>
       </div>
-      {host && (
-        <div className='nearby-heading nearby-worldwide-choice'>
-          <div>
-            <h3>Visible worldwide</h3>
-            <p>{worldActive ? 'On. Anyone can find and join this room.' : 'Let anyone discover your room. No location needed.'}</p>
-          </div>
-          <NearbySwitch
-            label='Visible worldwide'
-            checked={worldActive}
-            disabled={busy && !worldwide}
-            onChange={checked => (checked ? void session.start({ kind: 'worldwide' }, radius) : session.stop())}
-          />
-        </div>
-      )}
       <div className='nearby-secondary'>
         <details className='nearby-privacy'>
           <summary>
@@ -202,71 +200,16 @@ export function NearbyControls({ nearby, host = false, onJoin, joining }: Props)
         </details>
       </div>
       {!host && (
-        <ul className='nearby-results' aria-label='Rooms nearby'>
-          {state.results.map(room => (
-            <li key={room.discoveryId} className='nearby-room'>
-              <span className='nearby-room-mark' aria-hidden='true'>
-                <Radio size={23} />
-              </span>
-              <div className='nearby-room-copy'>
-                <small>
-                  {room.hostName} hosts · {room.presence} here
-                </small>
-                <h3>{room.title}</h3>
-                <p>{room.artist}</p>
-              </div>
-              <button
-                type='button'
-                className='primary-action'
-                disabled={joining || room.isFull}
-                onClick={() => {
-                  session.stop();
-                  onJoin?.(room.roomId);
-                }}
-              >
-                {room.isFull ? 'Full' : 'Join'}
-              </button>
-              <details className='nearby-room-actions'>
-                <summary aria-label={`Options for ${room.title}`} title='Room options'>
-                  <MoreHorizontal size={19} aria-hidden='true' />
-                </summary>
-                <div className='nearby-room-menu'>
-                  <button type='button' className='text-action' onClick={() => session.hide(room.roomId)}>
-                    <EyeOff size={15} aria-hidden='true' />
-                    Hide
-                  </button>
-                  <button
-                    type='button'
-                    className='text-action'
-                    aria-expanded={reportId === room.discoveryId}
-                    onClick={() => setReportId(reportId === room.discoveryId ? null : room.discoveryId)}
-                  >
-                    <Flag size={15} aria-hidden='true' />
-                    Report
-                  </button>
-                </div>
-              </details>
-              {reportId === room.discoveryId && (
-                <div className='nearby-report'>
-                  <p>Hide this room and send a safety count. Reports do not open a moderation case.</p>
-                  {(['unwanted', 'misleading', 'offensive'] as const).map(reason => (
-                    <button
-                      className='secondary-action'
-                      type='button'
-                      key={reason}
-                      onClick={() => {
-                        setReportId(null);
-                        void session.report(room, reason);
-                      }}
-                    >
-                      {reason}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </li>
-          ))}
-        </ul>
+        <DiscoveryRoomList
+          session={session}
+          results={state.results}
+          label='Rooms nearby'
+          joining={joining}
+          onJoin={room => {
+            session.stop();
+            onJoin?.(room.roomId);
+          }}
+        />
       )}
     </section>
   );

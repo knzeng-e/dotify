@@ -2,7 +2,23 @@
 
 Status: W19 v2 is available by default in Web and Product builds. Location and room visibility require explicit user consent. W18 v1 is retained as inert historical scaffolding.
 
-Last reviewed: 2026-10-15 (explicit discovery and radar controls); v1 retained below.
+Last reviewed: 2026-10-16 (discovery choices and acknowledged revocation); v1 retained below.
+
+## Discovery choice amendment (W31), 2026-10-16
+
+The two mutually exclusive switches are replaced by one choice, **Who can find
+this room?**, with three options: **Link only** (the default for every new
+room), **Nearby**, and **Everyone**. The protocol, lease, revocation and
+privacy rules below are unchanged; Everyone is the worldwide mode. Choosing
+Everyone states that the host name and current track become visible to anyone
+on Dotify. When a host's visibility attempt fails or stops, the panel does not
+claim link-only availability until the server acknowledges revocation. While
+revocation is pending, refused, or interrupted, it warns that the previous
+publication may remain discoverable for up to its 90-second lease. A repeated
+opt-out keeps that warning; a late acknowledgement cannot overwrite a newer
+publication. The radio reflects the chosen mode, while the status and heading
+explain whether its removal is still unconfirmed.
+Worldwide cards offer the same Hide and Report actions as nearby cards.
 
 ## Discovery recovery amendment — 2026-10-15
 

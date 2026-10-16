@@ -54,7 +54,7 @@ export function RoomsView({ nearbyPort = null, joinCode, sessionAction, onSetJoi
         </button>
       </section>
       {roomExperienceFlags.nearby && <WorldwideRooms port={nearbyPort} onJoin={onJoinRoom} joining={isJoining} />}
-      {roomExperienceFlags.nearby && <NearbyControls nearby={nearby} onJoin={onJoinRoom} joining={isJoining} />}
+      {roomExperienceFlags.nearby && <NearbyControls nearby={nearby} onJoin={onJoinRoom} joining={isJoining} onOpenRoom={onStartRoom} />}
     </section>
   );
 }

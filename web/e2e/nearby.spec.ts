@@ -26,14 +26,14 @@ test('opt-in nearby discovery reaches real guest audio, clears on background and
     capture(host);
     await host.goto('/?e2eRoom=protected-authorized&e2eSync=on&e2eAutoplay=on');
     await host.getByRole('button', { name: 'Open a room' }).click();
-    await expect(host.getByRole('switch', { name: 'Visible nearby' })).not.toBeChecked();
+    await expect(host.getByRole('radio', { name: 'Nearby', exact: true })).not.toBeChecked();
     await host.getByRole('button', { name: 'Select E2E Protected Room Track' }).click();
     await host.getByLabel('Your name in the room').fill('Nearby host');
     await host.getByRole('button', { name: 'Open the room' }).click();
     await expect(host.getByTestId('room-code')).toHaveText(/[A-Z2-9]{6}/, { timeout: 15_000 });
     await host.getByRole('tab', { name: /People/ }).click();
-    const hostNearby = host.getByRole('region', { name: 'Visible nearby', exact: true });
-    await expect(hostNearby).toContainText('Off.');
+    const hostNearby = host.getByRole('region', { name: 'Who can find this room?', exact: true });
+    await expect(hostNearby).toContainText('Only people with your link or room code can join.');
 
     const guest = await guestContext.newPage();
     capture(guest);
@@ -48,10 +48,10 @@ test('opt-in nearby discovery reaches real guest audio, clears on background and
     expect(packets).toEqual([]);
     await guestContext.setGeolocation({ latitude: 0.395, longitude: 9.456, accuracy: 100 });
     await nearby.getByRole('button', { name: 'Find rooms near me' }).click();
-    await expect(nearby).toContainText(/no visible rooms/i);
+    await expect(nearby).toContainText(/no open rooms/i);
     await nearby.getByRole('button', { name: 'Stop', exact: true }).click();
     await hostContext.setGeolocation({ latitude: 0.392, longitude: 9.454, accuracy: 100 });
-    await hostNearby.getByRole('switch', { name: 'Visible nearby' }).check();
+    await hostNearby.getByRole('radio', { name: 'Nearby', exact: true }).check();
     await expect(hostNearby).toContainText('Visible nearby · about 5 km');
     await guestContext.setGeolocation({ latitude: 0.395, longitude: 9.456, accuracy: 100 });
     await nearby.getByRole('button', { name: 'Find rooms near me' }).click();
@@ -102,11 +102,11 @@ test('opt-in nearby discovery reaches real guest audio, clears on background and
       Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' });
       document.dispatchEvent(new Event('visibilitychange'));
     });
-    await expect(hostNearby.getByRole('switch', { name: 'Visible nearby' })).not.toBeChecked();
+    await expect(hostNearby.getByRole('radio', { name: 'Nearby', exact: true })).not.toBeChecked();
     await guest.getByRole('button', { name: 'Keep listening and browse' }).click();
     await guest.getByRole('button', { name: 'Rooms', exact: true }).click();
     await nearby.getByRole('button', { name: 'Find rooms near me' }).click();
-    await expect(nearby).toContainText(/no visible rooms/i);
+    await expect(nearby).toContainText(/no open rooms/i);
     // No exact fix, label, credential, or list of cells on outbound Nearby packets.
     expect(packets.some(packet => packet.includes('nearby:publish'))).toBe(true);
     expect(packets.join('\n')).not.toMatch(/latitude|longitude|accuracy|0\.392|9\.454|wallet|areaCells/);
@@ -120,7 +120,7 @@ test('opt-in nearby discovery reaches real guest audio, clears on background and
     await nearby.getByText('Explore a city', { exact: true }).click();
     await nearby.getByLabel('City centre · starter areas').selectOption('Libreville');
     await nearby.getByRole('button', { name: 'Explore this city' }).click();
-    await expect(nearby).toContainText(/no visible rooms/i);
+    await expect(nearby).toContainText(/no open rooms/i);
   } finally {
     await Promise.allSettled([hostContext.close(), guestContext.close()]);
   }
@@ -138,7 +138,7 @@ test('room creation keeps visibility off by default and only starts the chosen r
   await page.goto('/?e2eRoom=protected-authorized&e2eSync=on&e2eAutoplay=on');
   await page.getByRole('button', { name: 'Open a room' }).click();
   const dialog = page.getByRole('dialog', { name: 'Open a room' });
-  const visibility = dialog.getByRole('switch', { name: 'Visible nearby' });
+  const visibility = dialog.getByRole('radio', { name: 'Nearby', exact: true });
   await expect(visibility).not.toBeChecked();
   await visibility.check();
   const range = dialog.getByRole('slider', { name: 'Visibility range' });
@@ -152,13 +152,13 @@ test('room creation keeps visibility off by default and only starts the chosen r
   await dialog.getByRole('button', { name: 'Open the room' }).click();
   await expect(page.getByTestId('room-code')).toHaveText(/[A-Z2-9]{6}/, { timeout: 15_000 });
   await page.getByRole('tab', { name: /People/ }).click();
-  const nearby = page.getByRole('region', { name: 'Visible nearby', exact: true });
+  const nearby = page.getByRole('region', { name: 'Who can find this room?', exact: true });
   await expect(nearby).toContainText('Visible nearby · about 6 km');
   await expect(nearby.getByRole('slider', { name: 'Visibility range' })).toHaveAttribute('aria-valuetext', 'About 6 kilometres');
-  await expect(nearby.getByRole('switch', { name: 'Visible nearby' })).toBeChecked();
+  await expect(nearby.getByRole('radio', { name: 'Nearby', exact: true })).toBeChecked();
   expect(publications).toHaveLength(1);
   expect(publications[0]).toContain('"radiusKm":6');
-  await nearby.getByRole('switch', { name: 'Visible nearby' }).uncheck();
+  await nearby.getByRole('radio', { name: 'Link only', exact: true }).check();
   await expect(nearby).toContainText('no longer visible nearby');
   expect((await new AxeBuilder({ page }).include('.nearby-panel').analyze()).violations).toEqual([]);
   await nearby.getByText('Choose an area', { exact: true }).click();
@@ -176,16 +176,16 @@ test('worldwide rooms appear without location and stay separate from private lin
     const host = await hostContext.newPage();
     await host.goto('/?e2eRoom=protected-authorized&e2eSync=on&e2eAutoplay=on');
     await host.getByRole('button', { name: 'Open a room' }).click();
-    await expect(host.getByRole('switch', { name: 'Visible worldwide' })).not.toBeChecked();
+    await expect(host.getByRole('radio', { name: 'Everyone', exact: true })).not.toBeChecked();
     await host.getByRole('button', { name: 'Select E2E Protected Room Track' }).click();
     await host.getByLabel('Your name in the room').fill('Worldwide host');
-    await host.getByRole('switch', { name: 'Visible worldwide' }).check();
-    await expect(host.getByRole('switch', { name: 'Visible nearby' })).not.toBeChecked();
+    await host.getByRole('radio', { name: 'Everyone', exact: true }).check();
+    await expect(host.getByRole('radio', { name: 'Nearby', exact: true })).not.toBeChecked();
     await host.getByRole('button', { name: 'Open the room' }).click();
     await expect(host.getByTestId('room-code')).toHaveText(/[A-Z2-9]{6}/);
     await host.getByRole('tab', { name: /People/ }).click();
-    await expect(host.getByRole('switch', { name: 'Visible worldwide' })).toBeChecked();
-    await expect(host.getByRole('region', { name: 'Visible nearby', exact: true })).toContainText('Visible worldwide.');
+    await expect(host.getByRole('radio', { name: 'Everyone', exact: true })).toBeChecked();
+    await expect(host.getByRole('region', { name: 'Who can find this room?', exact: true })).toContainText('Visible worldwide.');
     const guest = await guestContext.newPage();
     await guest.addInitScript(() => {
       Object.defineProperty(navigator, 'geolocation', {
@@ -215,7 +215,7 @@ test('worldwide rooms appear without location and stay separate from private lin
     await guest.getByRole('button', { name: 'Join room', exact: true }).click();
     await expect(guest.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20_000 });
     await host.getByRole('tab', { name: /People/ }).click();
-    await host.getByRole('switch', { name: 'Visible worldwide' }).uncheck();
+    await host.getByRole('radio', { name: 'Link only', exact: true }).check();
     // A fresh independent visitor must not see the room after revocation.
     const observer = await guestContext.newPage();
     await observer.goto('/?e2eRoom=listener');
@@ -242,7 +242,9 @@ test('worldwide discovery automatically resumes after reconnecting within the sc
   await expect.poll(() => connections).toBe(1);
   const disconnectedAt = Date.now();
   await closeConnection!();
-  await expect(world).toContainText('Nearby stopped');
+  // The worldwide list describes its own state, never Nearby wording.
+  await expect(world).toContainText('Reconnecting to live rooms');
+  await expect(world).not.toContainText('Nearby');
   // Prove reconnect happens before the ten-second cooldown can expire.
   await expect.poll(() => connections, { timeout: 5000 }).toBeGreaterThan(1);
   expect(Date.now() - disconnectedAt).toBeLessThan(10_000);

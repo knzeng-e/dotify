@@ -26,7 +26,7 @@ test('operational rollback exposes no Nearby UI and never requests location or s
   await expect(page.getByRole('region', { name: 'Nearby', exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: 'Open a room', exact: true }).click();
   await expect(page.getByRole('dialog', { name: 'Open a room' })).toBeVisible();
-  await expect(page.getByRole('switch', { name: 'Visible nearby' })).toHaveCount(0);
+  await expect(page.getByRole('radio', { name: 'Nearby', exact: true })).toHaveCount(0);
   expect(packets).toEqual([]);
   expect(errors.filter(error => error.includes('Location accessed'))).toEqual([]);
 });

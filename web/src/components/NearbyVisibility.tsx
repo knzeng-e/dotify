@@ -1,8 +1,9 @@
 import { useId } from 'react';
-import { Radar } from 'lucide-react';
+import { Globe2, Link2, Radar } from 'lucide-react';
 import { NEARBY_RADII } from '../../shared/nearby-v2.mjs';
 
 export type RoomVisibilityChoice = { visibleNearby: boolean; worldwide?: boolean; radiusKm: number };
+export const NEARBY_MAX_RADIUS_KM = NEARBY_RADII[NEARBY_RADII.length - 1];
 
 export function NearbyRadius({
   value,
@@ -28,7 +29,7 @@ export function NearbyRadius({
         name='nearby-radius'
         type='range'
         min={NEARBY_RADII[0]}
-        max={42}
+        max={NEARBY_MAX_RADIUS_KM}
         step={1}
         value={value}
         aria-valuetext={`About ${value} kilometres`}
@@ -36,7 +37,7 @@ export function NearbyRadius({
         onChange={event => onChange(Number(event.target.value))}
       />
       <div className='nearby-radius-marks' aria-hidden='true'>
-        {[5, 25, 42].map(radius => (
+        {[NEARBY_RADII[0], 25, NEARBY_MAX_RADIUS_KM].map(radius => (
           <span key={radius}>{radius} km</span>
         ))}
       </div>
@@ -44,65 +45,72 @@ export function NearbyRadius({
   );
 }
 
-export function NearbySwitch({
-  checked,
+export type DiscoveryMode = 'link' | 'nearby' | 'everyone';
+
+const discoveryOptions = [
+  { mode: 'link', label: 'Link only', hint: 'People with your link or room code.', Icon: Link2 },
+  { mode: 'nearby', label: 'Nearby', hint: 'People around you, within the range you choose.', Icon: Radar },
+  { mode: 'everyone', label: 'Everyone', hint: 'Anyone on Dotify sees your name and this track, and can join. No location shared.', Icon: Globe2 }
+] as const;
+
+/** One choice for who can find a room; the three modes exclude each other. */
+export function DiscoveryChoice({
+  value,
   onChange,
+  labelledBy,
   disabled = false,
-  describedBy,
-  label = 'Visible nearby'
+  unavailable = {}
 }: {
-  checked: boolean;
-  onChange: (checked: boolean) => void;
+  value: DiscoveryMode;
+  onChange: (mode: DiscoveryMode) => void;
+  labelledBy: string;
   disabled?: boolean;
-  describedBy?: string;
-  label?: string;
+  unavailable?: Partial<Record<DiscoveryMode, boolean>>;
 }) {
+  const name = useId();
   return (
-    <label className='nearby-switch'>
-      <input
-        type='checkbox'
-        role='switch'
-        aria-label={label}
-        aria-describedby={describedBy}
-        checked={checked}
-        disabled={disabled}
-        onChange={event => onChange(event.target.checked)}
-      />
-      <span className='nearby-switch-track' aria-hidden='true'>
-        <span />
-      </span>
-    </label>
+    <div className='discovery-choice' role='radiogroup' aria-labelledby={labelledBy}>
+      {discoveryOptions.map(({ mode, label, hint, Icon }) => (
+        <label key={mode} className='discovery-option' data-selected={value === mode}>
+          <input
+            type='radio'
+            name={name}
+            value={mode}
+            checked={value === mode}
+            disabled={disabled || unavailable[mode]}
+            aria-labelledby={`${name}-${mode}-label`}
+            aria-describedby={`${name}-${mode}`}
+            onChange={() => onChange(mode)}
+          />
+          <Icon size={18} aria-hidden='true' />
+          <span className='discovery-option-label' id={`${name}-${mode}-label`}>
+            {label}
+          </span>
+          <span className='discovery-option-hint' id={`${name}-${mode}`}>
+            {hint}
+          </span>
+        </label>
+      ))}
+    </div>
   );
 }
 
 /** A choice only: permission and publication start after opening the room. */
 export function NearbyVisibility({ value, onChange }: { value: RoomVisibilityChoice; onChange: (value: RoomVisibilityChoice) => void }) {
   const id = useId();
+  const mode: DiscoveryMode = value.worldwide ? 'everyone' : value.visibleNearby ? 'nearby' : 'link';
   return (
     <section className='nearby-visibility' aria-labelledby={`${id}-title`}>
-      <div className='nearby-heading'>
-        <Radar size={23} aria-hidden='true' />
-        <div>
-          <h3 id={`${id}-title`}>Visible nearby</h3>
-          <p id={`${id}-description`}>{value.visibleNearby ? 'Let people around you find this room.' : 'Off. Share your link or room code.'}</p>
-        </div>
-        <NearbySwitch
-          checked={value.visibleNearby}
-          describedBy={`${id}-description`}
-          onChange={visibleNearby => onChange({ ...value, visibleNearby, worldwide: false })}
-        />
-      </div>
-      <div className='nearby-heading nearby-worldwide-choice'>
-        <div>
-          <h3>Visible worldwide</h3>
-          <p>Let anyone discover your room. No location needed.</p>
-        </div>
-        <NearbySwitch label='Visible worldwide' checked={!!value.worldwide} onChange={worldwide => onChange({ ...value, worldwide, visibleNearby: false })} />
-      </div>
+      <h3 id={`${id}-title`}>Who can find this room?</h3>
+      <DiscoveryChoice
+        value={mode}
+        labelledBy={`${id}-title`}
+        onChange={next => onChange({ ...value, visibleNearby: next === 'nearby', worldwide: next === 'everyone' })}
+      />
       {value.visibleNearby && (
         <>
           <NearbyRadius value={value.radiusKm} onChange={radiusKm => onChange({ ...value, radiusKm })} label='Visibility range' />
-          <p className='nearby-hint'>We’ll ask for your location when the room opens. Your exact position stays on this device.</p>
+          <p className='nearby-hint'>We will ask for your location when the room opens. Your exact position stays on this device.</p>
         </>
       )}
     </section>

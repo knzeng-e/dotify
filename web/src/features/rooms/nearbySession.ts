@@ -15,6 +15,7 @@ export type NearbyState = {
   message: string;
   results: NearbyResult[];
   retryInSeconds?: number;
+  revocationPending?: boolean;
 };
 type Source = { kind: 'device' } | { kind: 'manual'; cell: string } | { kind: 'worldwide' };
 type Environment = {
@@ -22,7 +23,7 @@ type Environment = {
   supported: () => boolean;
   authorize?: (signal: AbortSignal) => Promise<void>;
   continuousDevice?: () => boolean;
-  locate: (signal: AbortSignal) => Promise<string>;
+  locate: (signal: AbortSignal, onCoarseFix?: () => void) => Promise<string>;
   permission: (signal: AbortSignal) => Promise<PermissionStatus | null>;
 };
 const initial: NearbyState = { phase: 'off', message: '', results: [] };
@@ -44,6 +45,7 @@ export class NearbySession {
   private nextSearchAt = 0;
   private cooldownTimer: ReturnType<typeof setTimeout> | undefined;
   private source: Source | null = null;
+  private pendingVisibilityScope: 'nearby' | 'worldwide' | null = null;
   private radius = 5;
   private deviceSnapshotOnly = false;
   private abort: AbortController | null = null;
@@ -99,7 +101,8 @@ export class NearbySession {
     });
   }
   stop(message = '', phase: NearbyState['phase'] = 'off') {
-    const hadSource = this.source !== null;
+    const hadSource = this.source !== null || this.pendingVisibilityScope !== null;
+    const scope = this.pendingVisibilityScope ?? (this.source?.kind === 'worldwide' ? 'worldwide' : 'nearby');
     const rev = ++this.revision;
     this.source = null;
     this.deviceSnapshotOnly = false;
@@ -112,19 +115,24 @@ export class NearbySession {
     this.resultDeadlines.clear();
     if (this.permission) this.permission.onchange = null;
     this.permission = null;
-    this.set({ phase, message, results: [] });
     if (this.host && hadSource) {
-      const pending = 'Nearby is off on this device. The room may remain discoverable for up to 90 seconds.';
-      this.set({ phase, message: message || pending, results: [] });
+      this.pendingVisibilityScope = scope;
+      const pending = `${message ? `${message} ` : ''}Visible ${scope} is off on this device. The room may remain discoverable for up to 90 seconds.`;
+      this.set({ phase, message: pending, results: [], revocationPending: true });
       void this.request('nearby:off', {})
         .then(reply => {
-          if (rev === this.revision && reply.ok) this.set({ phase, message: message || 'Your room is no longer visible nearby.', results: [] });
+          // A refusal is not revocation. Preserve the expiry warning on both
+          // non-OK replies and transport failures, never claim link-only early.
+          if (rev !== this.revision || reply.ok !== true) return;
+          this.pendingVisibilityScope = null;
+          this.set({ phase, message: message ? `${message} Your room is available by link only.` : `Your room is no longer visible ${scope}.`, results: [] });
         })
         .catch(() => {
-          if (rev === this.revision) this.set({ phase, message: pending, results: [] });
+          // The already-visible bounded-expiry warning remains authoritative.
         });
-    }
+    } else this.set({ phase, message, results: [] });
   }
+
   pause() {
     this.stop();
     if (!this.host) this.showCooldown();
@@ -201,17 +209,23 @@ export class NearbySession {
           message: source.kind === 'device' ? 'Finding your approximate area…' : 'Checking nearby rooms…',
           results: []
         });
-      const cell = source.kind === 'device' ? await this.env.locate(this.abort.signal) : source.kind === 'manual' ? source.cell : null;
+      const coarseFix = () => {
+        if (rev === this.revision && this.state.phase === 'locating') this.set({ ...this.state, message: 'Waiting for a more precise location…' });
+      };
+      const cell = source.kind === 'device' ? await this.env.locate(this.abort.signal, coarseFix) : source.kind === 'manual' ? source.cell : null;
       if (rev !== this.revision) return;
       const area =
         source.kind === 'worldwide'
           ? { schemaVersion: 2 as const, worldwide: true as const }
           : { schemaVersion: 2 as const, cell: cell!, radiusKm: this.radius };
-      this.set({
-        ...this.state,
-        phase: 'checking',
-        message: source.kind === 'device' ? `Location found · scanning within about ${this.radius} km…` : 'Checking live rooms…'
-      });
+      // Only an explicit start shows progress. Background refreshes keep the
+      // current phase so controls do not flicker or swallow a gesture.
+      if (explicit)
+        this.set({
+          ...this.state,
+          phase: 'checking',
+          message: source.kind === 'device' ? `Location found · scanning within about ${this.radius} km…` : 'Checking live rooms…'
+        });
       if (!this.host) this.nextSearchAt = Date.now() + 10_000;
       const requestedAt = performance.now();
       const reply = await this.request(this.host ? 'nearby:publish' : 'nearby:search', area);
@@ -221,6 +235,7 @@ export class NearbySession {
         if (reply.code === 'RATE_LIMITED' && !this.host) this.nextSearchAt = Date.now() + 60_000;
         throw new Error(reply.code);
       }
+      if (this.host) this.pendingVisibilityScope = null;
       const receivedAt = performance.now();
       this.resultDeadlines.clear();
       const results =
@@ -286,8 +301,8 @@ export class NearbySession {
   private emptyMessage() {
     if (this.source?.kind === 'worldwide') return 'No worldwide rooms right now.';
     return this.source?.kind === 'manual'
-      ? 'No visible rooms around this city centre yet. Explore a wider radius or use a room link.'
-      : `Scan complete · no visible rooms within about ${this.radius} km of your current location. Hosts need to turn on visibility.`;
+      ? 'No open rooms around this city centre yet. Widen the search, or share a room link.'
+      : `Scan complete · no open rooms within about ${this.radius} km yet. Widen the search, or open a room here.`;
   }
   private expireResults(rev: number) {
     if (rev !== this.revision || !this.source) return;
