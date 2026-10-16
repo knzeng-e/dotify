@@ -7,7 +7,7 @@
 - Initial tested dev: `974568c8e42211d757f50178c7de96ca1df087e3`.
 - Prerequisite: PR #297, `0d3fca4ef0fb340c5d346c0f05474b93ffd3ac76`.
   The isolated branch started from dev, then included that tested follow-up.
-- Implementation actually tested: `03d0718` on `feat/automatic-room-radar`.
+- Implementation actually tested: `03d0718`; final typography/copy correction `2ca0b1c` on `feat/automatic-room-radar`.
 - Issue: Refs #274. Code locally verified; physical Product checks remain open.
 - Release: **not deployed**. No real location, account signature or payment used.
 
@@ -63,6 +63,7 @@ local Socket.IO server, with two independent contexts for host/guest scenarios.
 | Adaptive rooms + creation | 5 passed: keyboard focus/Escape, no WebGL, reduced motion/Hide, mobile touch targets/overflow, superseded creation cannot publish an old choice. |
 | Arrival + room dock | 6 passed: link sheet and entry controls on mobile/desktop; existing guest dock/audio state at 320/390/430/1440 px. |
 | Clear-interface room presence | Passed: private room absent from discovery; offline status and draft preserved. |
+| Typography/reflow | Eight existing checks pass at 360/390/768/1440 px, including 200% text. Initial full CI found four failures because small radar labels fell below the existing 12px floor; that was corrected without weakening the tests. The other 236 core scenarios passed in that run. |
 | Visual / accessibility | Synthetic mobile/desktop captures inspected; radar and publication sheet axe scans passed. Final mobile action alignment was recaptured and the automatic discovery/audio test passed again. |
 | Static / builds | TypeScript, formatting, lint, Web build and frozen Product build passed. Lint retains two pre-existing App.tsx hook warnings; builds retain large-chunk warnings. No new dependency. |
 
