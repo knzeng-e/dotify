@@ -1,8 +1,71 @@
 # Dotify Nearby Discovery Privacy Contract
 
-Status: W19 v2 is available by default in Web and Product builds. Location and room visibility require explicit user consent. W18 v1 is retained as inert historical scaffolding.
+Status: W19 is available by default in Web and Product builds. The current implementation adds automatic permission-gated foreground search and v3 distance bands; deployment and physical Host validation remain pending. Hosts explicitly choose publication. W18 v1 is inert historical scaffolding.
 
-Last reviewed: 2026-10-15 (explicit discovery and radar controls); v1 retained below.
+Last reviewed: 2026-10-16. The amendment immediately below governs automatic listener search; older dated sections are historical where they conflict.
+
+## Automatic foreground discovery — 2026-10-16
+
+The owner requested discovery on app entry without an extra scan button.
+`useRoomDiscovery` owns two independent ephemeral readers in the listener shell:
+Nearby uses device location; Worldwide never does. This is **search consent**,
+not consent to make a room public. A new host remains Link only until explicitly
+choosing Nearby or Everyone. The client never widens either participant's radius.
+
+With the feature enabled, entering the app may request OS/Product location
+permission. A refusal is remembered for this page lifetime and prevents automatic
+re-prompts; retry is explicit. Listener reads resume after foreground return or
+reconnect, respecting the request cooldown. Pause stops nearby reads; immersive
+room playback suspends both listener readers. Hidden/pagehide/disconnect abort
+in-flight native watches and clear results. Host publication always requires
+explicit re-enablement after interruption. No coordinates or permission decision
+are persisted in browser storage. Removing the feature flag stops all effects.
+
+Nearby search refreshes every 15 seconds and Worldwide every 30. Every Product
+native fix is preceded by the SDK `requestDevicePermission('Location')` gate;
+a previous successful gate is not a permanent grant. The synchronous Electron
+Permissions result is not used to contradict that gate. Native denial, timeout
+or uncertainty still fails closed. The watch allows up to 32 seconds, requests
+high accuracy, accepts a cached fix at most 15 seconds old, and rejects fixes
+older than 30 seconds or less accurate than 1 km. Browser environments without
+an observable permission state retain bounded snapshot behavior. Product has no
+public silent revocation observer: a Host-only revocation is checked at the next
+refresh, not instantaneously. Devices must verify actual prompt/revocation behavior.
+
+Search requests accept v2 or v3. Publication stays v2. A v3 geographical reply
+adds only `distanceBand`, one of `0–5 km` through `40–45 km`, calculated between
+coarse cell centres. Worldwide returns `null`: no distance is fabricated and
+worldwide hosts need not share location. Five-kilometre bands avoid false
+precision but disclose additional relative-area information; repeated probes
+can still narrow a host's area. Existing quotas and coarsening bound, but do not
+eliminate, this inference risk. No cells, coordinates, bearings, source refs or
+wallets are returned. Replies remain ordered by discovery ID, not distance.
+
+Each channel returns at most 20 invitations; the combined list can contain 40.
+Replies are independent and render immediately; this is incremental display
+across channels/polls, not streaming individual records from one response.
+Unexpired cards stay usable during background reads. Relative result leases are
+at most 45 seconds and never exceed remaining host presence, with network time
+subtracted locally. Each card expires independently. The radar plots up to eight
+stable illustrative positions; the complete accessible list retains all results,
+Hide/Report and Join. Joining does not wait for a location fix or scan completion.
+
+Search range and publication settings use dismissible keyboard-accessible sheets.
+Range drafts do not query before Done; publication drafts do not publish before
+Done/Open the room. City exploration is removed. Worldwide and invitation links
+are the no-location alternatives. Sharing Wi-Fi is neither a location source nor
+proof of physical proximity: discovery still needs fresh, authorized device fixes.
+
+Deploy signaling with v3 read support before the client; old v2 clients keep their
+exact response shape. All discovery acknowledgements are reliable while connected,
+never buffered across disconnect. Single-worker memory, expiry, moderation limits,
+legacy empty global listings and the no-wallet/key boundary remain unchanged.
+See [evidence and remaining device gates](../backlog/implementation/evidence/W19-automatic-room-radar-2026-10-16.md).
+
+## Historical amendments
+
+The following dated notes record prior releases. In particular, manual scan,
+city exploration and Product snapshot-only wording is superseded above.
 
 ## Discovery choice amendment (W31), 2026-10-16
 

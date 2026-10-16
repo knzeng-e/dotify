@@ -1832,14 +1832,13 @@ separate; legacy receipts and old direct wallet gifts cannot be reclassified.
 
 Nearby is included by default in new Web/Product builds and single-worker
 signaling. Existing published artifacts/settings are not changed by this PR.
-Location collection and room visibility still require explicit user actions.
+The listener shell automatically initiates permission-gated location search at app entry; room visibility still requires an explicit host choice.
 
 The 2026-10-15 correction makes every new room link/code-only by default.
 Deploy signaling before the frontend so old clients cannot enumerate private
 rooms through `rooms:list`, `rooms:updated` or `/status`. Nearby opt-in remains
 bounded by both radii; it never populates a global room list. Frontend creation
-offers default-off, mutually exclusive **Visible nearby** and **Visible worldwide**
-switches, with a 5–42 km slider (1 km steps) for geographical discovery. Permission starts only after explicit submission for the newly created
+offers **Link only** (default), **Nearby**, or **Everyone**, with a 5–42 km slider (1 km steps) for geographical discovery. Permission starts only after explicit submission for the newly created
 room; denial or disconnect keeps direct-link hosting available. Share links
 must join using their code without waiting for discovery metadata.
 
@@ -1876,16 +1875,19 @@ Remove obsolete `VITE_DOTIFY_PRODUCT_NEARBY_LOCATION` settings during the next
 release. Audit existing explicit `off` settings: they still disable Nearby, even
 though unset now includes it. This PR does not change hosted dashboard settings.
 
-Product takes one position snapshot, valid for at most 90 seconds (search
-individual room cards can expire sooner), without automatic fixes or SDK permission requests.
-Each expired card is removed independently; remaining cards and the position
-snapshot stay usable until the response-level expiry, without a new permission
-or fix cycle.
-**Update my location** is an explicit renewal. Browser permission revocation
-stops immediately when observable; Host-only revocation has no silent public
-SDK observer and is bounded by snapshot expiry. Unsupported containers explain
-the limitation; **Explore a city** stays collapsed and requires an independent
-selection/action. It never searches a city automatically.
+The automatic radar uses separate foreground Nearby (15-second refresh) and
+Worldwide (30-second) read channels. Every Product fix rechecks the SDK Location
+gate before starting native geolocation; no silent observer or perpetual grant is
+assumed. Denial blocks automatic retries for the page lifetime. Pause, hidden,
+pagehide and disconnect abort pending work; eligible listener reads resume after
+foreground/reconnect cooldown. Host publication does not resume automatically.
+Browser containers without a permission observer retain bounded snapshots.
+No city exploration remains; Worldwide and links work without a location fix.
+
+Search v3 returns five-kilometre distance bands, never cells/bearings or precise
+coordinates. Worldwide distance is absent. Search leases last up to 45 seconds,
+limited by remaining host presence; cards expire independently while refreshed
+results remain inspectable/joinable. The radar is illustrative, not a map.
 
 Build a test artifact without publication or catalog refresh:
 
@@ -1926,7 +1928,7 @@ permission/denial/revocation/background check for each exact browser and Product
 version, and validate independent-network discover → Join → audio under W13/#89.
 Use synthetic coordinates in captured artifacts; never capture a participant's
 real position. Confirm coarse-only wire bodies, expiry, host/listener radius
-asymmetry, default availability without startup location/traffic, explicit
+asymmetry, permission-gated startup search with no automatic host publication, explicit
 rollback-off and links from outside the area.
 
 Rollback: set `SIGNAL_NEARBY=off` and restart signaling (clears all presence),
@@ -1938,8 +1940,7 @@ uses a non-volatile packet, including during polling backpressure; disconnected
 requests are rejected without buffering a send after reconnect. No contracts/keys/catalog
 migration or payment is involved. Local tests cover feature-off and empty
 fresh-store behavior; no live rollback has been performed.
-Product shares the main Nearby disable with ordinary Web. Existing native
-snapshots expire within 90 seconds; there is no separate Product experiment setting.
+Product shares the main Nearby disable with ordinary Web. Existing remote presence expires within 90 seconds; there is no separate Product experiment setting.
 
 ## Discovery and Host recovery rollout — 2026-10-15
 
@@ -1964,7 +1965,27 @@ complete-file recovery remain unchanged. This does not guarantee upstream availa
 On Product Desktop 0.1.3 / App 0.10.0, verify the asynchronous Location permission
 and native fix physically. Desktop source rejects synchronous permission checks
 while deferring to its asynchronous gate; do not abort between those steps.
-Mobile waits up to 32 seconds for an accurate fresh fix. Product still gets a
-90-second snapshot, not unattended location tracking. Recheck denial, revocation,
+Mobile waits up to 32 seconds for an accurate fresh fix. The automatic-radar amendment below replaces the old snapshot-only flow with foreground grant/fix refreshes. Recheck denial, revocation,
 background/return, scan completion, worldwide opt-out and host tips on both devices.
 A rejected HTTP-401 host session can renew once; network failures must not loop signatures.
+
+## Automatic room galaxy rollout — 2026-10-16
+
+Deploy signaling with **v3 search** support before Web/Product clients. The new
+server still accepts v2 searches and returns their exact previous shape; publication
+remains v2. A new client against an old server fails discovery closed. It must not
+fall back to unrestricted global room listings. Keep the new server when rolling
+back clients. No API, contracts, credentials, CORS origins, storage, scaling or
+manifest changes are required. Never deploy/restart over active rooms without the
+existing drain procedure. This change itself does not publish a release.
+
+Before Product promotion, test the exact Desktop/mobile versions with two consented
+devices: first permission prompt, fresh fix, automatic rediscovery after host opt-in,
+foreground return, denial without prompt loops, SDK revocation on the next refresh,
+no repeated permission dialog after a grant, and continuous audible playback while
+browsing Rooms. Verify both radii, expired preview rejection, Worldwide availability
+while location is pending, and Link only after default creation. Same Wi-Fi does not
+substitute for a valid device fix. Use synthetic data in captures. The SDK fixture
+and Chromium WebRTC test cannot prove native Host capability or location accuracy.
+
+See [automatic radar evidence](../backlog/implementation/evidence/W19-automatic-room-radar-2026-10-16.md).

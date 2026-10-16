@@ -13,6 +13,38 @@ Implement **W19** only. Read `AGENTS.md`, `docs/backlog/implementation/common.md
 - Existing issue: #274.
 - Product purpose: effortless shared listening, meaningful artist control, transparent value, and a coherent poetic interface. Product DevNet is a first-class target alongside ordinary web.
 
+## Automatic galaxy amendment — 2026-10-16 (current scope)
+
+The owner explicitly requests automatic foreground discovery at app entry and
+when returning to Rooms, progressive results, a restored room galaxy, approximate
+distances, and temporary settings sheets. This supersedes the manual-scan,
+city-exploration and Product snapshot-only journeys below. Remove city exploration;
+Worldwide invitations and direct links remain the no-location alternatives.
+
+- One listener-shell coordinator starts separate Nearby and Worldwide reads.
+  The OS/Product permission gate is still authoritative; refusal never loops
+  prompts. Backgrounding/disconnect clears location and results. Foreground
+  reconnect resumes reads after cooldown unless paused or denied. Immersive room
+  playback suspends listener scanning; browsing Rooms can resume it.
+- Nearby reads refresh every 15 seconds, Worldwide every 30. Product rechecks its
+  SDK Location gate before every native fix; no silent revocation observer is
+  assumed. Exact coordinates are discarded on-device. Physical devices must
+  confirm that previously granted access does not repeatedly prompt.
+- Hosts still choose Link only (default), Nearby, or Everyone explicitly.
+  Automatic listener search never publishes a room. Host publication does not
+  resume automatically after backgrounding/disconnect.
+- Radius is every integer from 5 to 42 km. Search v3 adds only five-kilometre
+  distance bands; Worldwide has no geographic distance. Both radii still bound
+  matches. Galaxy placement is illustrative, without bearings or geographic pins.
+- Fresh replies from either channel appear immediately, with existing unexpired
+  cards retained during background reads. Inspection and Join never wait for
+  the other channel. The server caps each channel at 20 invitations; the radar
+  plots eight and the list includes every returned invitation.
+
+See [implementation evidence](evidence/W19-automatic-room-radar-2026-10-16.md).
+This is a reviewable continuation of #274, not proof of physical Host readiness
+or authorization to deploy. The earlier sections document the scope's history.
+
 ## Owner-requested recovery extension — 2026-10-15
 
 After the pilot, the owner requested clearer scan feedback, native Host location

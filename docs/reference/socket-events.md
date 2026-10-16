@@ -629,17 +629,16 @@ socket.emit('peer:connected', { targetId: string /* host socket ID */ });
 // Host receives
 socket.on('peer:connected', (payload: { from: string }) => { ... });
 ```
-## Nearby v2 (W19, available by default)
+## Nearby v2 publication / v2–v3 search (W19, available by default)
 
 Unset or exact `on` includes Nearby for `SIGNAL_NEARBY` and the client setting
 `VITE_DOTIFY_NEARBY`. Explicit `off` or an invalid value disables the respective
-boundary. Availability does not collect a location or publish a room by itself.
+boundary. The listener shell automatically starts permission-gated foreground searches. Room publication remains explicit, off for every new room.
 All requests use connected-only acknowledgements without disconnected buffering.
-`nearby:publish`, `nearby:off` and reports are non-volatile so connected polling
-backpressure cannot discard publication or revocation; search remains volatile. Unknown fields,
-old schemas, cell arrays and unsupported radii are rejected. Publication and
-search accept exactly `{ schemaVersion: 2, cell: "n2:<band>:<sector>", radiusKm }`
+All four events are non-volatile so connected polling backpressure cannot silently discard an initial search, publication or revocation. Unknown fields,
+unsupported schemas, cell arrays and unsupported radii are rejected. Publication and v2 search accept exactly `{ schemaVersion: 2, cell: "n2:<band>:<sector>", radiusKm }`
 with an integer radius from 5 through 42, or exactly `{ schemaVersion: 2, worldwide: true }`.
+Search additionally accepts these exact shapes with `schemaVersion: 3`, returning a versioned coarse distance band. Publication rejects v3.
 The worldwide mode has no cell/radius and matches worldwide publications only.
 Publishing either mode replaces the previous lease. Neither mode enters legacy
 global room snapshots.
@@ -649,13 +648,12 @@ The cell is computed on-device; precise fixes never enter Socket.IO.
 | --- | --- |
 | `nearby:publish` | Current room-host socket only; `{ok:true, expiresInMs}`. Server sets 90-second lease; derives metadata from its room. |
 | `nearby:off`, `{}` | Removes current host's lease; `{ok:true}`. Never rate limited. |
-| `nearby:search` | No wallet or room membership; `{ok:true, schemaVersion:2, expiresInMs, results}`. At most 20 matches within both approximate radii. |
+| `nearby:search` | No wallet or room membership; `{ok:true, schemaVersion, expiresInMs, results}` (matches request version). At most 20 matches within both approximate radii. |
 | `nearby:report`, `{discoveryId, reason}` | Reason is `unwanted`, `misleading` or `offensive`; `{ok:true}` counts an aggregate safety signal. Not a durable moderation case. |
 
 Each result contains only `roomId`, `discoveryId`, `expiresInMs`, `hostName`,
-`title`, `artist`, bucketed `presence`, and `isFull`. It contains no area,
-distance, wallet, image/source reference or exact count. Join uses the existing
-room flow. Relative leases are bounded at 90 seconds; the client subtracts the
+`title`, `artist`, bucketed `presence`, and `isFull`. v3 adds `distanceBand`: one of `0–5 km`, `5–10 km`, …, `40–45 km`, or `null` for Worldwide. v2 retains its exact old shape. There is no area, precise distance, bearing, wallet, image/source reference or exact count. Join uses the existing
+room flow. Search leases are bounded at 45 seconds and by remaining host presence (90 seconds maximum); the client subtracts the
 request round trip, avoiding dependence on synchronized device/server clocks.
 Failures are `{ok:false,code}` with `DISABLED`, `HOST_REQUIRED`,
 `INVALID_AREA`, `INVALID_REPORT`, `EXPIRED`, `RATE_LIMITED` or `BUSY`.
@@ -664,7 +662,8 @@ socket, and 60/120/30 per shared network. Worldwide searches have a separate
 search budget, so default public browsing does not consume geographical scans.
 Nearby never enters ordinary public room snapshots.
 See [privacy contract](../design/dotify-nearby-discovery-privacy.md) for retention,
-coarse-boundary uncertainty, residual inference and manual/Product limits.
+coarse-boundary uncertainty, residual inference and Product permission limits.
+Nearby foreground reads run every 15 seconds, Worldwide every 30; channels render independently. Listener reconnect/foreground resume is automatic unless paused or denied. Host publication never auto-resumes. No city-exploration UI remains.
 
 `room:tip-bind` may return `code: "SESSION_INVALID"` when the API rejects the
 listener session with HTTP 401. The host may discard only the rejected token
