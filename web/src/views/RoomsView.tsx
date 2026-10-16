@@ -1,6 +1,7 @@
 import { ArrowRight, Radio } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { roomExperienceFlags } from '../features/rooms/roomExperienceFlags';
+import { WorldwideRooms } from '../components/WorldwideRooms';
 import { NearbyControls } from '../components/NearbyControls';
 import { useNearby } from '../features/rooms/useNearby';
 import type { RoomRealtimePort } from '../features/rooms/roomRealtimePort';
@@ -52,6 +53,7 @@ export function RoomsView({ nearbyPort = null, joinCode, sessionAction, onSetJoi
           <Radio size={18} aria-hidden='true' /> Open a room
         </button>
       </section>
+      {roomExperienceFlags.nearby && <WorldwideRooms port={nearbyPort} onJoin={onJoinRoom} joining={isJoining} />}
       {roomExperienceFlags.nearby && <NearbyControls nearby={nearby} onJoin={onJoinRoom} joining={isJoining} />}
     </section>
   );

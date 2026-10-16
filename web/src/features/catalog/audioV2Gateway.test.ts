@@ -312,3 +312,28 @@ describe('audioV2 gateway range fetching', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });
+
+it('does not abort a progressing segment at the headers deadline', async () => {
+  vi.useFakeTimers();
+  let signal: AbortSignal | null | undefined;
+  const fetchImpl = vi.fn(async (_url, init) => {
+    signal = init?.signal;
+    return new Response(
+      new ReadableStream({
+        start(c) {
+          c.enqueue(new Uint8Array([1]));
+          setTimeout(() => {
+            c.enqueue(new Uint8Array([2]));
+            c.close();
+          }, 13000);
+        }
+      }),
+      { status: 206 }
+    );
+  }) as typeof fetch;
+  const pending = fetchAudioV2RangeThroughGateways('progress', 0, 1, { fetchImpl, getGatewayUrlsForCid: () => [PRIMARY], hedge: false });
+  await vi.advanceTimersByTimeAsync(13001);
+  expect((await pending).bytes).toEqual(new Uint8Array([1, 2]));
+  expect(signal?.aborted).toBe(false);
+  vi.useRealTimers();
+});

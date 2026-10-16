@@ -68,7 +68,7 @@ function replyWithRooms(f: ReturnType<typeof harness>, results: NearbyResult[], 
 
 describe('nearby consent and lifecycle', () => {
   it('expires Product room cards independently while retaining consent until the response lease ends', async () => {
-    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'performance'] });
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'performance', 'Date'] });
     const authorize = vi.fn(async () => {});
     const f = harness(false, true, { authorize, continuousDevice: () => false });
     replyWithRooms(f, [result('SHORT2', 1000, 1), result('LONG34', 60_000, 2)]);
@@ -80,7 +80,7 @@ describe('nearby consent and lifecycle', () => {
     await vi.advanceTimersByTimeAsync(59_000);
     expect(f.session.snapshot().results).toEqual([]);
     expect(f.session.snapshot().phase).toBe('empty');
-    expect(f.session.snapshot().message).toContain('No visible rooms');
+    expect(f.session.snapshot().message).toContain('no visible rooms');
     expect(f.session.selection().source).toEqual({ kind: 'device' });
     expect(authorize).toHaveBeenCalledOnce();
     expect(f.locate).toHaveBeenCalledOnce();
@@ -92,7 +92,7 @@ describe('nearby consent and lifecycle', () => {
     expect(vi.getTimerCount()).toBe(0);
   });
   it('drops cards expired during transit and subtracts the round trip from the snapshot lease', async () => {
-    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'performance'] });
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'performance', 'Date'] });
     const f = harness(false, true, { continuousDevice: () => false });
     replyWithRooms(f, [result('SHORT2', 1000, 1), result('LONG34', 60_000, 2)], 2000);
     const pending = f.session.start({ kind: 'device' }, 5);
@@ -108,11 +108,11 @@ describe('nearby consent and lifecycle', () => {
     expect(f.session.snapshot().phase).toBe('off');
   });
   it('cancels old card deadlines on explicit restart and stop', async () => {
-    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'performance'] });
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'performance', 'Date'] });
     const f = harness(false, true, { continuousDevice: () => false });
     replyWithRooms(f, [result('SHORT2', 1000, 1)]);
     await f.session.start({ kind: 'device' }, 5);
-    await vi.advanceTimersByTimeAsync(500);
+    await vi.advanceTimersByTimeAsync(10_000);
     replyWithRooms(f, [result('LONG34', 60_000, 2)]);
     await f.session.start({ kind: 'device' }, 10);
     await vi.advanceTimersByTimeAsync(500);
@@ -125,7 +125,7 @@ describe('nearby consent and lifecycle', () => {
     expect(f.session.snapshot().results).toEqual([]);
   });
   it('replaces card deadlines on an ordinary browser refresh without discarding other valid rooms', async () => {
-    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'performance'] });
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'performance', 'Date'] });
     const f = harness();
     replyWithRooms(f, [result('SHORT2', 1000, 1), result('LONG34', 60_000, 2)]);
     await f.session.start({ kind: 'device' }, 5);
@@ -255,7 +255,7 @@ describe('nearby consent and lifecycle', () => {
     vi.useFakeTimers();
     const socket = io('http://localhost', { autoConnect: false, forceNew: true });
     socket.connected = true;
-    const transport = { name: 'polling', writable: true };
+    const transport = { name: 'polling', writable: false };
     Object.defineProperty(socket.io, 'engine', { value: { transport, _hasPingExpired: () => false } });
     const packet = vi.spyOn(socket.io, '_packet').mockImplementation(() => undefined);
     const permission = { state: 'granted', onchange: null as null | (() => void) };
@@ -302,4 +302,44 @@ describe('nearby consent and lifecycle', () => {
     await pending;
     expect(f.session.snapshot().phase).toBe('off');
   });
+});
+
+it('coalesces repeated clicks, reports the scan and enforces a visible cooldown', async () => {
+  vi.useFakeTimers();
+  const f = harness();
+  let finish!: (cell: string) => void;
+  f.locate.mockImplementation(
+    () =>
+      new Promise(resolve => {
+        finish = resolve;
+      })
+  );
+  const pending = f.session.start({ kind: 'device' }, 17);
+  await Promise.resolve();
+  await f.session.start({ kind: 'device' }, 42);
+  expect(f.locate).toHaveBeenCalledOnce();
+  finish(cell);
+  await pending;
+  expect(f.events).toHaveLength(1);
+  expect(f.session.snapshot().message).toContain('Scan complete');
+  expect(f.session.snapshot().retryInSeconds).toBe(10);
+  await f.session.start(manual, 42);
+  expect(f.events).toHaveLength(1);
+  await vi.advanceTimersByTimeAsync(10_000);
+  await f.session.start(manual, 42);
+  expect(f.events).toHaveLength(2);
+  f.session.stop();
+  expect(vi.getTimerCount()).toBe(0);
+});
+it('publishes worldwide only on explicit request and never touches location', async () => {
+  vi.useFakeTimers();
+  const authorize = vi.fn(async () => {});
+  const f = harness(true, true, { authorize });
+  expect(f.events).toHaveLength(0);
+  await f.session.start({ kind: 'worldwide' }, 5);
+  expect(f.events).toEqual([{ event: 'nearby:publish', input: { schemaVersion: 2, worldwide: true } }]);
+  expect(authorize).not.toHaveBeenCalled();
+  expect(f.locate).not.toHaveBeenCalled();
+  f.session.stop();
+  expect(f.events[f.events.length - 1]?.event).toBe('nearby:off');
 });

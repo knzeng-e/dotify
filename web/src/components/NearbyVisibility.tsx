@@ -2,7 +2,7 @@ import { useId } from 'react';
 import { Radar } from 'lucide-react';
 import { NEARBY_RADII } from '../../shared/nearby-v2.mjs';
 
-export type RoomVisibilityChoice = { visibleNearby: boolean; radiusKm: number };
+export type RoomVisibilityChoice = { visibleNearby: boolean; worldwide?: boolean; radiusKm: number };
 
 export function NearbyRadius({
   value,
@@ -16,7 +16,7 @@ export function NearbyRadius({
   disabled?: boolean;
 }) {
   const id = useId();
-  const index = Math.max(0, NEARBY_RADII.indexOf(value));
+
   return (
     <div className='nearby-radius'>
       <div className='nearby-radius-label'>
@@ -27,16 +27,16 @@ export function NearbyRadius({
         id={id}
         name='nearby-radius'
         type='range'
-        min={0}
-        max={NEARBY_RADII.length - 1}
+        min={NEARBY_RADII[0]}
+        max={42}
         step={1}
-        value={index}
+        value={value}
         aria-valuetext={`About ${value} kilometres`}
         disabled={disabled}
-        onChange={event => onChange(NEARBY_RADII[Number(event.target.value)])}
+        onChange={event => onChange(Number(event.target.value))}
       />
       <div className='nearby-radius-marks' aria-hidden='true'>
-        {NEARBY_RADII.map(radius => (
+        {[5, 25, 42].map(radius => (
           <span key={radius}>{radius} km</span>
         ))}
       </div>
@@ -48,19 +48,21 @@ export function NearbySwitch({
   checked,
   onChange,
   disabled = false,
-  describedBy
+  describedBy,
+  label = 'Visible nearby'
 }: {
   checked: boolean;
   onChange: (checked: boolean) => void;
   disabled?: boolean;
   describedBy?: string;
+  label?: string;
 }) {
   return (
     <label className='nearby-switch'>
       <input
         type='checkbox'
         role='switch'
-        aria-label='Visible nearby'
+        aria-label={label}
         aria-describedby={describedBy}
         checked={checked}
         disabled={disabled}
@@ -84,7 +86,18 @@ export function NearbyVisibility({ value, onChange }: { value: RoomVisibilityCho
           <h3 id={`${id}-title`}>Visible nearby</h3>
           <p id={`${id}-description`}>{value.visibleNearby ? 'Let people around you find this room.' : 'Off. Share your link or room code.'}</p>
         </div>
-        <NearbySwitch checked={value.visibleNearby} describedBy={`${id}-description`} onChange={visibleNearby => onChange({ ...value, visibleNearby })} />
+        <NearbySwitch
+          checked={value.visibleNearby}
+          describedBy={`${id}-description`}
+          onChange={visibleNearby => onChange({ ...value, visibleNearby, worldwide: false })}
+        />
+      </div>
+      <div className='nearby-heading nearby-worldwide-choice'>
+        <div>
+          <h3>Visible worldwide</h3>
+          <p>Let anyone discover your room. No location needed.</p>
+        </div>
+        <NearbySwitch label='Visible worldwide' checked={!!value.worldwide} onChange={worldwide => onChange({ ...value, worldwide, visibleNearby: false })} />
       </div>
       {value.visibleNearby && (
         <>

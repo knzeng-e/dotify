@@ -2,7 +2,9 @@ import { fetchThroughGateways } from './gatewayRace';
 
 const CACHE = 'dotify-public-artwork-v1';
 const MAX_ENTRIES = 48;
-const MAX_BYTES = 1024 * 1024;
+const MAX_DISK_IMAGE_BYTES = 1024 * 1024;
+const MAX_BYTES = 8 * 1024 * 1024;
+const MAX_MEMORY_BYTES = 16 * 1024 * 1024;
 const memory = new Map<string, { url: string; bytes: number }>();
 const pending = new Map<string, Promise<string>>();
 let totalBytes = 0;
@@ -36,7 +38,7 @@ function remember(key: string, blob: Blob) {
   const url = URL.createObjectURL(blob);
   memory.set(key, { url, bytes: blob.size });
   totalBytes += blob.size;
-  while (memory.size > MAX_ENTRIES || totalBytes > 16 * MAX_BYTES) {
+  while (memory.size > MAX_ENTRIES || totalBytes > MAX_MEMORY_BYTES) {
     const oldest = memory.entries().next().value;
     if (!oldest) break;
     memory.delete(oldest[0]);
@@ -92,25 +94,23 @@ export async function loadPublicArtwork(urls: string[]): Promise<string> {
     }
     const release = await readSlot();
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 12000);
+    const timeout = setTimeout(() => controller.abort(), 30_000);
     try {
       const response = await fetchThroughGateways(urls, {
         signal: controller.signal,
         hedgeDelayMs: 500,
-        timeoutMs: 4000,
+        timeoutMs: 8000,
         init: { cache: 'force-cache' },
         // Race complete image bodies: quick headers followed by a stalled body
         // must not prevent another gateway from winning.
-        fetchImpl: async (url, init) => {
-          const response = await fetch(url, init);
-          if (!response.ok) return response;
+        prepareResponse: async response => {
           const image = await boundedImage(response);
           return new Response(image, { headers: { 'content-type': image.type } });
         },
         label: 'cover'
       });
       const blob = await boundedImage(response);
-      if (disk) {
+      if (disk && blob.size <= MAX_DISK_IMAGE_BYTES) {
         try {
           await disk.put(key, new Response(blob, { headers: { 'content-type': blob.type } }));
           const keys = await disk.keys();

@@ -10,3 +10,6 @@ export function validNearbyArea(value: unknown): value is NearbyArea;
 export function exactKeys(value: unknown, keys: string[]): boolean;
 export function nearbyAreasMatch(host: NearbyArea, listener: NearbyArea): boolean;
 export function nearbyBucket(count: number): string;
+
+export type WorldwideArea = { schemaVersion: 2; worldwide: true };
+export function validWorldwideArea(value: unknown): value is WorldwideArea;

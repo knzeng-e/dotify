@@ -27,10 +27,12 @@ activation and physical checks. No Redis service, storage mount or CORS origin
 was introduced.
 
 The browser uses `dotify-public-artwork-v1` Cache Storage for public immutable
-IPFS images only: at most 48 images of up to 1 MiB each, with an in-memory LRU
+IPFS images only: at most 48 persisted images of up to 1 MiB each. Larger
+originals up to 8 MiB are accepted in memory only, with an in-memory LRU
 capped at 16 MiB/48 entries, four concurrent complete-image reads and a bounded
-queue. Gateway hedging waits 500 ms; attempts have a 4 s body budget and the read
-has a 12 s total network budget. Host storage/CORS failures retain native image
+queue. Gateway hedging waits 500 ms; attempts have an 8 s header budget and the read
+has a 30 s total network budget. Cosmetic fallback after 1.2 s no longer
+aborts a progressing native image download. Host storage/CORS failures retain native image
 loading and bounded gateway switching. Uploaded canonical cover variants are
 warmed while publication proceeds. Keys, session tokens and protected audio
 are never admitted to this cache. Clearing it affects artwork speed only.
@@ -1836,8 +1838,8 @@ The 2026-10-15 correction makes every new room link/code-only by default.
 Deploy signaling before the frontend so old clients cannot enumerate private
 rooms through `rooms:list`, `rooms:updated` or `/status`. Nearby opt-in remains
 bounded by both radii; it never populates a global room list. Frontend creation
-offers one default-off **Visible nearby** switch and a stepped 5/10/25 km
-slider. Permission starts only after explicit submission for the newly created
+offers default-off, mutually exclusive **Visible nearby** and **Visible worldwide**
+switches, with a 5–42 km slider (1 km steps) for geographical discovery. Permission starts only after explicit submission for the newly created
 room; denial or disconnect keeps direct-link hosting available. Share links
 must join using their code without waiting for discovery metadata.
 
@@ -1916,8 +1918,10 @@ context in memory; this is not anonymity.
 `/health` reports `nearbyEnabled` and cumulative searches/publications/reports/
 throttled counters only. No area or identifier appears there. Reports are
 aggregate signals, not a staffed abuse inbox. Review this limit before broad
-public enablement. On shared NAT, users share the six-search/minute network
-budget; the UI does not silently retry throttles.
+public enablement. Search/publish/report limits are 6/12/3 per minute per
+socket and 60/120/30 per shared network. Worldwide reads have an independent
+search bucket. Pending clicks coalesce and the UI shows a 10-second scan cooldown
+(60 seconds after throttling); it does not silently retry throttles.
 
 **Do not enable with multiple workers yet.** A Socket.IO adapter alone does not
 coordinate presence and rate limits. A future topology must use an ephemeral
@@ -1944,3 +1948,31 @@ migration or payment is involved. Local tests cover feature-off and empty
 fresh-store behavior; no live rollback has been performed.
 Product shares the main Nearby disable with ordinary Web. Existing native
 snapshots expire within 90 seconds; there is no separate Product experiment setting.
+
+## Discovery and Host recovery rollout — 2026-10-15
+
+Deploy signaling before clients for the 5–42 km/worldwide protocol extension.
+An old server safely rejects extended radii and worldwide payloads; it cannot
+provide the new UI's default public invitations. Keep legacy global enumeration
+empty on rollback. There are no new environment variables, secrets, Redis stores,
+CORS origins or scaling changes. The operator disable still covers all discovery.
+
+Then deploy the API cover-upload correction and Web/Product clients. Pinata uses
+the outer submitted directory as the returned CID root. A transport-only `dotify/`
+envelope now preserves the documented `cover/640.webp` path inside that root.
+Existing flattened pins use a narrowly scoped same-CID native fallback to
+`640.webp`; cache entries retain the actual path, never an alias to different bytes.
+A real new upload/read-back through Pinata remains a deployment acceptance check.
+
+DAV2 range reads now separate a 12-second header timeout from a 15-second body
+inactivity timeout, bounded by the requested range length. A progressing segment
+may take longer than 12 seconds. Access verification, authenticated decryption and
+complete-file recovery remain unchanged. This does not guarantee upstream availability.
+
+On Product Desktop 0.1.3 / App 0.10.0, verify the asynchronous Location permission
+and native fix physically. Desktop source rejects synchronous permission checks
+while deferring to its asynchronous gate; do not abort between those steps.
+Mobile waits up to 32 seconds for an accurate fresh fix. Product still gets a
+90-second snapshot, not unattended location tracking. Recheck denial, revocation,
+background/return, scan completion, worldwide opt-out and host tips on both devices.
+A rejected HTTP-401 host session can renew once; network failures must not loop signatures.

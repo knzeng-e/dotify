@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { responsiveCoverSources } from './responsiveCover';
+import { coverGatewaySources, responsiveCoverSources } from './responsiveCover';
 
 describe('responsive cover sources', () => {
   it('derives same-CID image variants without requesting a separate remote placeholder', () => {
@@ -17,4 +17,14 @@ describe('responsive cover sources', () => {
   it('keeps legacy covers on their compatibility path', () => {
     expect(responsiveCoverSources('https://gateway.example/ipfs/QmLegacy')).toBeNull();
   });
+});
+
+it('recovers only the known flat cover path at the same CID', () => {
+  const nested = 'https://gateway.example/ipfs/QmCover/cover/640.webp';
+  expect(coverGatewaySources([nested])).toEqual([nested, 'https://gateway.example/ipfs/QmCover/640.webp']);
+  expect(responsiveCoverSources('https://gateway.example/ipfs/QmCover/640.webp')?.srcSet).toContain('/QmCover/160.webp 160w');
+  expect(coverGatewaySources(['https://example.com/cover/640.webp', 'https://gateway.example/ipfs/QmOther/photo.png'])).toEqual([
+    'https://example.com/cover/640.webp',
+    'https://gateway.example/ipfs/QmOther/photo.png'
+  ]);
 });

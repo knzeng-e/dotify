@@ -1,6 +1,6 @@
 import { useEffect, useId, useState } from 'react';
 import { EyeOff, Flag, Headphones, MoreHorizontal, Radar, Radio, Search, ShieldCheck, X } from 'lucide-react';
-import { NEARBY_RADII } from '../../shared/nearby-v2.mjs';
+
 import { nearbyManualAreas, canUseNearbyDeviceLocation } from '../features/rooms/nearbyLocation';
 import { requiresExplicitProductRoomEntry } from '../features/productHost/productHost';
 import type { useNearby } from '../features/rooms/useNearby';
@@ -20,7 +20,11 @@ export function NearbyControls({ nearby, host = false, onJoin, joining }: Props)
   const { session, state } = nearby;
   if (!session) return null;
   const busy = state.phase === 'locating' || state.phase === 'checking';
-  const active = state.phase === 'active' || state.phase === 'empty';
+  const worldwide = selection?.source?.kind === 'worldwide';
+  const active = (state.phase === 'active' || state.phase === 'empty') && !worldwide;
+  const worldActive = worldwide && (state.phase === 'active' || state.phase === 'checking');
+  const cooldown = (state.retryInSeconds ?? 0) > 0;
+  const nextRadius = Math.min(42, radius + 5);
   const deviceSupported = canUseNearbyDeviceLocation();
   const snapshotOnly = requiresExplicitProductRoomEntry();
   const selected = nearbyManualAreas.find(area => area.name === manual);
@@ -57,33 +61,44 @@ export function NearbyControls({ nearby, host = false, onJoin, joining }: Props)
                     ? source === 'manual' && activeArea
                       ? `Visible around ${activeArea.name} centre.`
                       : 'People around you can find this room.'
-                    : busy
+                    : busy && !worldwide
                       ? 'Making your room visible…'
-                      : 'Off. Your room is available by link.'
+                      : worldwide
+                        ? 'Nearby is off. Your room is visible worldwide.'
+                        : 'Off. Your room is available by link.'
                   : 'Find your people. Share a listening moment.'}
               </p>
             </div>
             {host ? (
               <NearbySwitch
-                checked={active || busy}
-                disabled={!deviceSupported && !active && !busy}
+                checked={active || (busy && !worldwide)}
+                disabled={(!deviceSupported && !active && !busy) || (busy && worldwide)}
                 describedBy={`${id}-description`}
                 onChange={checked => (checked ? start('device') : session.stop())}
               />
             ) : (
               (active || busy) && (
-                <button type='button' className='nearby-stop' onClick={() => session.stop()} aria-label='Stop' title='Stop searching'>
+                <button type='button' className='nearby-stop' onClick={() => session.pause()} aria-label='Stop' title='Stop searching'>
                   <X size={19} aria-hidden='true' />
                 </button>
               )
             )}
           </header>
-          {(!host || active || busy) && <NearbyRadius value={radius} onChange={setRadius} label={host ? 'Visibility range' : 'Search range'} disabled={busy} />}
+          {(!host || active || (busy && !worldwide)) && (
+            <NearbyRadius value={radius} onChange={setRadius} label={host ? 'Visibility range' : 'Search range'} disabled={busy} />
+          )}
           {!host && deviceSupported && (
-            <button type='button' className='primary-action nearby-search' disabled={busy} onClick={() => (changedRange ? restart() : start('device'))}>
+            <button
+              type='button'
+              className='primary-action nearby-search'
+              disabled={busy || cooldown}
+              onClick={() => (changedRange ? restart() : start('device'))}
+            >
               <Search size={18} aria-hidden='true' />
               {busy
-                ? 'Finding rooms…'
+                ? state.phase === 'locating'
+                  ? 'Finding your location…'
+                  : 'Scanning rooms…'
                 : changedRange
                   ? 'Apply range'
                   : active && source === 'device'
@@ -93,6 +108,7 @@ export function NearbyControls({ nearby, host = false, onJoin, joining }: Props)
                     : 'Find rooms near me'}
             </button>
           )}
+          {!host && cooldown && <p className='nearby-hint'>Ready for another scan in {state.retryInSeconds}s.</p>}
           {host && active && changedRange && (
             <button type='button' className='secondary-action nearby-search' onClick={() => restart()}>
               Apply range
@@ -117,21 +133,36 @@ export function NearbyControls({ nearby, host = false, onJoin, joining }: Props)
               {active && source === 'manual' && activeArea && <span className='nearby-area-label'> {activeArea.name} centre</span>}
             </p>
           )}
-          {!host && state.phase === 'empty' && radius < 25 && (
+          {!host && state.phase === 'empty' && radius < 42 && (
             <button
               className='text-action nearby-widen'
+              disabled={cooldown}
               type='button'
               onClick={() => {
-                const next = NEARBY_RADII[NEARBY_RADII.indexOf(radius) + 1];
+                const next = nextRadius;
                 setRadius(next);
                 restart(next);
               }}
             >
-              Widen search to {NEARBY_RADII[NEARBY_RADII.indexOf(radius) + 1]} km
+              Widen search to {nextRadius} km
             </button>
           )}
         </div>
       </div>
+      {host && (
+        <div className='nearby-heading nearby-worldwide-choice'>
+          <div>
+            <h3>Visible worldwide</h3>
+            <p>{worldActive ? 'On. Anyone can find and join this room.' : 'Let anyone discover your room. No location needed.'}</p>
+          </div>
+          <NearbySwitch
+            label='Visible worldwide'
+            checked={worldActive}
+            disabled={busy && !worldwide}
+            onChange={checked => (checked ? void session.start({ kind: 'worldwide' }, radius) : session.stop())}
+          />
+        </div>
+      )}
       <div className='nearby-secondary'>
         <details className='nearby-privacy'>
           <summary>
@@ -160,7 +191,7 @@ export function NearbyControls({ nearby, host = false, onJoin, joining }: Props)
                   <option key={area.name}>{area.name}</option>
                 ))}
               </select>
-              <button type='button' className='secondary-action' disabled={!selected || busy} onClick={() => start('manual')}>
+              <button type='button' className='secondary-action' disabled={!selected || busy || cooldown} onClick={() => start('manual')}>
                 {host ? 'Show around this city' : 'Explore this city'}
               </button>
             </div>

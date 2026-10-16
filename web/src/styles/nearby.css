@@ -482,3 +482,27 @@
     transition: none;
   }
 }
+
+/* Worldwide invitations stay compact above the location-based radar. */
+.worldwide-rooms {
+  padding: 1.5rem 0;
+}
+.worldwide-rooms .nearby-results:empty {
+  display: none;
+}
+.nearby-worldwide-choice {
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border, #294253);
+}
+.nearby-worldwide-choice > div {
+  flex: 1;
+}
+.nearby-worldwide-choice h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+.nearby-worldwide-choice p {
+  margin: 0.35rem 0 0;
+  color: var(--text-muted, #a6b7ca);
+}

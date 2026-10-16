@@ -20,12 +20,7 @@ export const nearbyManualAreas = [
 ].map(([name, latitude, longitude]) => ({ name: String(name), cell: coarseNearbyCell(Number(latitude), Number(longitude))! }));
 
 export function canUseNearbyDeviceLocation(): boolean {
-  return (
-    window.isSecureContext &&
-    typeof navigator.geolocation?.watchPosition === 'function' &&
-    typeof navigator.geolocation?.clearWatch === 'function' &&
-    typeof navigator.permissions?.query === 'function'
-  );
+  return window.isSecureContext && typeof navigator.geolocation?.watchPosition === 'function' && typeof navigator.geolocation?.clearWatch === 'function';
 }
 
 /** Product permission is asked only by an explicit Nearby start, never refresh. */
@@ -38,10 +33,16 @@ export async function authorizeNearbyDeviceLocation(signal: AbortSignal): Promis
 // No public SDK API silently observes Product-only permission revocation.
 // Use a single bounded snapshot until that boundary has host/device evidence.
 export function canRefreshNearbyDeviceLocation(): boolean {
-  return !requiresExplicitProductRoomEntry();
+  return !requiresExplicitProductRoomEntry() && typeof navigator.permissions?.query === 'function';
 }
 
-export function queryNearbyLocationPermission(signal: AbortSignal): Promise<PermissionStatus> {
+export function queryNearbyLocationPermission(signal: AbortSignal): Promise<PermissionStatus | null> {
+  if (signal.aborted) return Promise.reject(new Error('STOPPED'));
+  // Electron's Product sandbox intentionally reports false in synchronous
+  // permission checks. The async Host request and geolocation call enforce
+  // consent. Treating this query as a denial prevents that native request.
+  // Snapshot-only environments never refresh location without a new action.
+  if (requiresExplicitProductRoomEntry() || typeof navigator.permissions?.query !== 'function') return Promise.resolve(null);
   return new Promise((resolve, reject) => {
     if (signal.aborted) {
       reject(new Error('STOPPED'));
@@ -91,7 +92,7 @@ export function locateNearbyCell(signal: AbortSignal): Promise<string> {
       else reject(new Error(code));
     };
     const abort = () => finish(undefined, 'STOPPED');
-    const timer = setTimeout(() => finish(undefined, 'TIMEOUT'), 12_000);
+    const timer = setTimeout(() => finish(undefined, 'TIMEOUT'), 32_000);
     signal.addEventListener('abort', abort, { once: true });
     watch.id = navigator.geolocation.watchPosition(
       position => {
@@ -103,13 +104,14 @@ export function locateNearbyCell(signal: AbortSignal): Promise<string> {
           !Number.isFinite(position.timestamp) ||
           Math.abs(Date.now() - position.timestamp) > 30_000
         ) {
-          finish(undefined, 'INACCURATE');
+          // A mobile first fix can be coarse or stale. Keep this bounded watch
+          // alive for a fresh accurate fix instead of rejecting immediately.
           return;
         }
         finish(coarseNearbyCell(latitude, longitude) ?? undefined);
       },
       error => finish(undefined, error.code === 1 ? 'DENIED' : error.code === 3 ? 'TIMEOUT' : 'UNAVAILABLE'),
-      { enableHighAccuracy: false, maximumAge: 0, timeout: 10_000 }
+      { enableHighAccuracy: false, maximumAge: 0, timeout: 30_000 }
     );
     if (finished) navigator.geolocation.clearWatch(watch.id);
   });
