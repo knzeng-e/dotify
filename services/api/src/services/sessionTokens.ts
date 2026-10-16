@@ -41,6 +41,14 @@ export type SessionVerification =
       reason: string;
     };
 
+// Callers must not acknowledge logout until revocation reaches durable storage.
+export class SessionRevocationStorageError extends Error {
+  constructor() {
+    super('Sign-out could not be saved. Please try again.');
+    this.name = 'SessionRevocationStorageError';
+  }
+}
+
 export type SessionTokenServiceOptions = {
   epoch?: string;
   masterSecret?: () => string | undefined;
@@ -126,6 +134,19 @@ export function createSessionTokenService(options: SessionTokenServiceOptions = 
     }
   }
 
+  let revocationsDirty = false;
+
+  function persistRevocations(): void {
+    if (!revocationPath || !revocationsDirty) return;
+    try {
+      saveRevocations(revocationPath, epoch, revokedJtis);
+      revocationsDirty = false;
+    } catch {
+      reportStorageError('Session revocation could not be persisted; logout was not acknowledged. Repair storage and retry before restarting.');
+      throw new SessionRevocationStorageError();
+    }
+  }
+
   function tokenHmacKey(): Buffer | null {
     return deriveHmacKey(masterSecret());
   }
@@ -206,17 +227,17 @@ export function createSessionTokenService(options: SessionTokenServiceOptions = 
     verify,
     revoke(token, now = Date.now()) {
       const verified = verify(token, now);
-      if (!verified.valid) return false;
+      if (!verified.valid) {
+        // A failed write already revoked this token in memory. Retrying must
+        // flush that pending revocation, never turn the first 503 into a false 200.
+        if (verified.code === 'SESSION_REVOKED') persistRevocations();
+        return false;
+      }
       pruneRevoked(now);
       const payload = JSON.parse(Buffer.from(token.split('.')[0], 'base64url').toString('utf8')) as SessionTokenPayload;
       revokedJtis.set(verified.jti, payload.exp);
-      if (revocationPath) {
-        try {
-          saveRevocations(revocationPath, epoch, revokedJtis);
-        } catch {
-          reportStorageError('Session revocation could not be persisted; it holds until the next restart.');
-        }
-      }
+      revocationsDirty = true;
+      persistRevocations();
       return true;
     }
   };

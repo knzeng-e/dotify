@@ -1418,6 +1418,37 @@ describe('pilot load boundaries', () => {
     assert.equal(server.rooms.has(opened.roomId), true);
   });
 
+  it('keeps the production creation budget at ten rooms per minute', async () => {
+    const host = connectClient();
+    await once(host, 'connect');
+    for (let index = 0; index < 10; index += 1) {
+      assert.equal((await emitAck(host, 'room:create', { displayName: 'Host' })).ok, true);
+    }
+    assert.equal((await emitAck(host, 'room:create', { displayName: 'Host' })).code, 'RATE_LIMITED');
+  });
+
+  it('logs at most five trusted identity samples without client or peer addresses', async () => {
+    const logs = [];
+    await restart({ trustProxy: true, logger: line => logs.push(JSON.parse(line)) });
+    const direct = connectClient();
+    await once(direct, 'connect'); // does not consume a trusted-header sample
+    for (let index = 0; index < 7; index += 1) {
+      const client = ioClient(`http://127.0.0.1:${port}`, {
+        transports: ['websocket'],
+        extraHeaders: { 'fly-client-ip': '198.51.100.8', 'x-forwarded-for': '203.0.113.9' }
+      });
+      clients.push(client);
+      await once(client, 'connect');
+    }
+    const samples = logs.filter(log => log.event === 'network:client-identity');
+    assert.equal(samples.length, 5);
+    for (const { at, app, ...fields } of samples) {
+      assert.ok(at);
+      assert.equal(app, 'dotify-signal');
+      assert.deepEqual(fields, { event: 'network:client-identity', source: 'fly-client-ip', clientMatchesPeer: false });
+    }
+  });
+
   it('coalesces solo presence into changed aggregates and limits each socket', async () => {
     await restart({ soloPresenceBroadcastMs: 200, soloPresenceRateLimit: { limit: 2, windowMs: 10_000 } });
     const observer = connectClient();

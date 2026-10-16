@@ -25,6 +25,7 @@ import { createNearby } from './nearby.mjs';
 import {
   REQUEST_TEXT_MAX_LENGTH,
   clientKey,
+  clientIdentity,
   createRoomId,
   createWindowLimiter,
   normalizeRoomId,
@@ -397,7 +398,19 @@ export function startSignalingServer(overrides = {}, dependencies = {}) {
     return { token: `${payload}.${signature}`, expiresAt: exp * 1000 };
   }
 
+  let identitySamples = 0;
   io.on('connection', socket => {
+    if (identitySamples < 5) {
+      const identity = clientIdentity(socket, { trustProxy: config.trustProxy });
+      if (identity.source !== 'socket') {
+        identitySamples += 1;
+        // No address, socket/room ID, wallet or location in these samples.
+        logEvent('network:client-identity', {
+          source: identity.source,
+          clientMatchesPeer: identity.key === socket.handshake.address
+        });
+      }
+    }
     for (const event of ['room:tip-bind', 'room:tip-quote', 'room:tip-notify']) {
       socket.on(event, async (payload = {}, ack) => {
         const reply = typeof ack === 'function' ? ack : () => {};

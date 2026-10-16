@@ -2023,9 +2023,43 @@ presence; room creation is limited per network and capped; both images start
 Node directly and close cleanly on SIGTERM. The signaling image runs as the
 `node` user. The API image stays root because the Fly volume is root-owned.
 
+With a stable session epoch, logout returns HTTP 503 with
+`SESSION_REVOCATION_UNAVAILABLE` if its revocation cannot be written. The token
+is denied in memory, but logout is **not acknowledged** as durable. Repeated
+logout attempts keep returning 503 until the pending revocation can be saved.
+Repair the volume and retry before restarting: a restart against the older,
+still-readable snapshot can restore an unpersisted token until its 24-hour
+expiry. Rotate `SESSION_EPOCH` if that recovery cannot be completed safely.
+An unreadable snapshot at boot still forces a fresh random epoch.
+
 Deploy order: API, then signaling, then clients (no client change is
-required). Before the pilot, record read-only checks: `fly scale show -a
-dotify-signal` shows one machine; one API log line and one signaling log line
-show a client address rather than a Fly proxy address; a room member receives
-TURN URLs from `/api/turn/grant`. Rollback: redeploy the previous image; unset
-`SESSION_EPOCH` only if sessions must be invalidated.
+required). Before opening the pilot, record these read-only checks:
+
+1. `fly scale show -a dotify-signal` shows one machine.
+2. Watch `fly logs -a dotify-api` and `fly logs -a dotify-signal`, filtering for
+   `network:client-identity`. From an ordinary external client, request API
+   `/health` and connect to a room through the deployed signaling service.
+   Each service records only its first **five trusted-header requests or
+   connections per process**; direct probes without a trusted header do not
+   consume samples. Existing samples from external traffic also qualify.
+   The API sample must show `source: "fly-client-ip"` and
+   `clientMatchesPeer: false`; the Fly signaling sample must show the same.
+   This checks the **actual limiter resolver**, rather than Fastify's proxy
+   socket address. Missing samples are inconclusive: check the trust settings
+   and the current process's startup logs. Do not restart a live room service
+   merely to collect another sample. A matching peer or unexpected source
+   requires investigation before pilot acceptance. These bounded records
+   contain no raw client/peer IP, wallet, token, room ID or coordinates; they
+   demonstrate which source was selected, not cryptographic proof that a
+   deployment's edge overwrites caller headers. Fly-only ingress remains a
+   required trust boundary.
+3. A room member receives TURN URLs from `/api/turn/grant`.
+
+Rollback: redeploy the previous image; unset `SESSION_EPOCH` only if sessions
+must be invalidated. No new environment variable enables the diagnostic.
+
+Browser CI uses `web/e2e/fixtures/signaling-server.mjs`, which starts the real
+server with a creation budget of 1,000/minute because isolated browser users
+all share loopback. This fixture is excluded from the production image; the
+production CLI retains 10/minute. Signaling integration tests independently
+verify the production default and refusal behavior.
