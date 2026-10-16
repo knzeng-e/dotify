@@ -1,7 +1,7 @@
 // Fastify app assembly, extracted from index.ts so tests can build the full
 // app (request IDs, error envelope, route registration) without listening.
 
-import Fastify, { type FastifyError, type FastifyInstance, type FastifyServerOptions } from 'fastify';
+import Fastify, { type FastifyError, type FastifyInstance, type FastifyRequest, type FastifyServerOptions } from 'fastify';
 import cors from '@fastify/cors';
 import multipart from '@fastify/multipart';
 import rateLimit from '@fastify/rate-limit';
@@ -40,7 +40,25 @@ function genReqId(request: IncomingMessage): string {
   return randomUUID();
 }
 
+// Fly's edge sets Fly-Client-IP on every request it forwards; a client value
+// is overwritten. Use it only when the deployment says Fly is in front.
+export function clientIdentity(request: Pick<FastifyRequest, 'headers' | 'ip'>, trustProxy: 'off' | 'fly') {
+  if (trustProxy === 'fly') {
+    const header = request.headers['fly-client-ip'];
+    const value = Array.isArray(header) ? header[0] : header;
+    if (value && value.trim()) return { key: value.trim(), source: 'fly-client-ip' };
+  }
+  return { key: request.ip, source: 'socket' };
+}
+
+export function rateLimitKey(request: Pick<FastifyRequest, 'headers' | 'ip'>, trustProxy: 'off' | 'fly'): string {
+  return clientIdentity(request, trustProxy).key;
+}
+
 export type BuildAppOptions = {
+  trustProxy?: 'off' | 'fly';
+  // Test sink observes the exact bounded fields sent to the production logger.
+  identityDiagnostic?: (fields: { event: string; source: string; clientMatchesPeer: boolean }) => void;
   // Tests disable logging; production always logs.
   logging?: boolean;
   catalog?: CatalogReadModel;
@@ -53,6 +71,19 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     genReqId
   };
   const app = Fastify(serverOptions);
+  // Five trusted-header samples per process, with no IP, token, wallet, room
+  // or location attached. Use the same resolver as rate limiting, not a second
+  // interpretation of the proxy headers. Direct/health probes consume no samples.
+  let identitySamples = 0;
+  app.addHook('onRequest', async request => {
+    if (identitySamples >= 5) return;
+    const identity = clientIdentity(request, options.trustProxy ?? config.API_TRUST_PROXY);
+    if (identity.source === 'socket') return;
+    identitySamples += 1;
+    const fields = { event: 'network:client-identity', source: identity.source, clientMatchesPeer: identity.key === request.ip };
+    request.log.info(fields, 'Trusted proxy client identity');
+    options.identityDiagnostic?.(fields);
+  });
 
   // CORS — restricted to the configured standalone and Product-host origins.
   await app.register(cors, {
@@ -64,10 +95,12 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   // Multipart — required by upload routes. Register before routes.
   await app.register(multipart);
 
-  // Rate limiting — placeholder; tune limits before production traffic.
+  // Rate limiting per client. Behind Fly every connection comes from the
+  // proxy, so without API_TRUST_PROXY=fly all users would share one budget.
   await app.register(rateLimit, {
     max: 100,
-    timeWindow: '1 minute'
+    timeWindow: '1 minute',
+    keyGenerator: request => rateLimitKey(request, options.trustProxy ?? config.API_TRUST_PROXY)
   });
 
   app.addHook('onSend', async (request, reply) => {

@@ -385,3 +385,59 @@ it('tells the listener when the device answered but not precisely enough yet', a
   await pending;
   f.session.stop();
 });
+
+it.each(['nearby', 'worldwide'] as const)('keeps the %s expiry warning through delayed and refused revocation after a failed refresh', async scope => {
+  vi.useFakeTimers();
+  const f = harness(true);
+  await f.session.start(scope === 'worldwide' ? { kind: 'worldwide' } : manual, 5);
+  const revocations: ((error: null, reply: unknown) => void)[] = [];
+  f.port.request = (event, input, _options, done) => {
+    f.events.push({ event, input });
+    if (event === 'nearby:off') revocations.push(done);
+    else done(null, { ok: false, code: 'UNAVAILABLE' });
+  };
+  await vi.advanceTimersByTimeAsync(30_000);
+  expect(revocations).toHaveLength(1);
+  expect(f.session.snapshot().revocationPending).toBe(true);
+  expect(f.session.snapshot().message).toContain(`Visible ${scope} is off on this device`);
+  expect(f.session.snapshot().message).toContain('90 seconds');
+  expect(f.session.snapshot().message).not.toContain('available by link only');
+  revocations[0](null, { ok: false, code: 'RATE_LIMITED' });
+  await vi.advanceTimersByTimeAsync(0);
+  expect(f.session.snapshot().revocationPending).toBe(true);
+  expect(f.session.snapshot().message).toContain('90 seconds');
+  expect(f.session.snapshot().message).not.toContain('available by link only');
+
+  // Repeated opt-out must not clear uncertainty while the old lease is live.
+  f.session.stop('Visibility stopped.');
+  f.session.stop('Visibility stopped.');
+  expect(revocations).toHaveLength(3);
+  revocations[1](null, { ok: true }); // acknowledgement of an older revision
+  await vi.advanceTimersByTimeAsync(0);
+  expect(f.session.snapshot().revocationPending).toBe(true);
+  revocations[2](null, { ok: true });
+  await vi.advanceTimersByTimeAsync(0);
+  expect(f.session.snapshot().revocationPending).toBeUndefined();
+  expect(f.session.snapshot().message).toContain('available by link only');
+  expect(f.session.snapshot().message).not.toContain('90 seconds');
+  expect(vi.getTimerCount()).toBe(0);
+});
+
+it('does not let a late revocation acknowledgement overwrite a newer publication', async () => {
+  vi.useFakeTimers();
+  const f = harness(true);
+  await f.session.start({ kind: 'worldwide' }, 5);
+  const revocations: ((error: null, reply: unknown) => void)[] = [];
+  f.port.request = (event, _input, _options, done) => {
+    if (event === 'nearby:off') revocations.push(done);
+    else done(null, { ok: true, expiresInMs: NEARBY_TTL_MS });
+  };
+  f.session.stop();
+  await f.session.start(manual, 10);
+  for (const done of revocations) done(null, { ok: true });
+  await vi.advanceTimersByTimeAsync(0);
+  expect(f.session.snapshot().phase).toBe('active');
+  expect(f.session.snapshot().message).toContain('Visible around your chosen city centre');
+  expect(f.session.snapshot().revocationPending).toBeUndefined();
+  f.session.stop();
+});

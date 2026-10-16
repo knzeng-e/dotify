@@ -1374,15 +1374,114 @@ describe('window limiter', () => {
   });
 });
 
+describe('pilot load boundaries', () => {
+  async function restart(overrides) {
+    await server.close();
+    server = startSignalingServer({ port: 0, host: '127.0.0.1', logger: () => {}, ...overrides });
+    port = await server.listen();
+  }
+  const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+  it('relays host playback only to room members and never broadcasts room lists globally', async () => {
+    const observer = connectClient();
+    const observed = [];
+    observer.on('rooms:updated', value => observed.push(['rooms:updated', value]));
+    observer.on('player:state', value => observed.push(['player:state', value]));
+    await once(observer, 'connect');
+    const host = connectClient();
+    const created = await createRoom(host, { track: { title: 'Night Drive', artist: 'Ada' } });
+    const listener = connectClient();
+    await once(listener, 'connect');
+    await emitAck(listener, 'room:join', { roomId: created.roomId, displayName: 'Guest' });
+    const relayed = once(listener, 'player:state');
+    host.emit('player:state', { playing: true, currentTime: 12, duration: 200, updatedAt: Date.now() });
+    assert.equal((await relayed).playing, true);
+    await wait(100);
+    assert.deepEqual(observed, [['rooms:updated', []]], 'only the per-socket legacy snapshot sent on connection');
+  });
+
+  it('limits room creation per network and keeps the current room when a creation is refused', async () => {
+    await restart({ roomCreateRateLimit: { limit: 2, windowMs: 60_000 } });
+    const first = await createRoom(connectClient());
+    const second = await createRoom(connectClient());
+    const third = await createRoom(connectClient());
+    assert.equal(first.ok && second.ok, true);
+    assert.equal(third.ok, false);
+    assert.equal(third.code, 'RATE_LIMITED');
+
+    await restart({ maxRooms: 1 });
+    const host = connectClient();
+    const opened = await createRoom(host);
+    const refused = await emitAck(host, 'room:create', { displayName: 'Host' });
+    assert.equal(refused.ok, false);
+    assert.equal(refused.code, 'ROOMS_BUSY');
+    assert.equal(server.rooms.has(opened.roomId), true);
+  });
+
+  it('keeps the production creation budget at ten rooms per minute', async () => {
+    const host = connectClient();
+    await once(host, 'connect');
+    for (let index = 0; index < 10; index += 1) {
+      assert.equal((await emitAck(host, 'room:create', { displayName: 'Host' })).ok, true);
+    }
+    assert.equal((await emitAck(host, 'room:create', { displayName: 'Host' })).code, 'RATE_LIMITED');
+  });
+
+  it('logs at most five trusted identity samples without client or peer addresses', async () => {
+    const logs = [];
+    await restart({ trustProxy: true, logger: line => logs.push(JSON.parse(line)) });
+    const direct = connectClient();
+    await once(direct, 'connect'); // does not consume a trusted-header sample
+    for (let index = 0; index < 7; index += 1) {
+      const client = ioClient(`http://127.0.0.1:${port}`, {
+        transports: ['websocket'],
+        extraHeaders: { 'fly-client-ip': '198.51.100.8', 'x-forwarded-for': '203.0.113.9' }
+      });
+      clients.push(client);
+      await once(client, 'connect');
+    }
+    const samples = logs.filter(log => log.event === 'network:client-identity');
+    assert.equal(samples.length, 5);
+    for (const { at, app, ...fields } of samples) {
+      assert.ok(at);
+      assert.equal(app, 'dotify-signal');
+      assert.deepEqual(fields, { event: 'network:client-identity', source: 'fly-client-ip', clientMatchesPeer: false });
+    }
+  });
+
+  it('coalesces solo presence into changed aggregates and limits each socket', async () => {
+    await restart({ soloPresenceBroadcastMs: 200, soloPresenceRateLimit: { limit: 2, windowMs: 10_000 } });
+    const observer = connectClient();
+    const updates = [];
+    observer.on('presence:solo:updated', value => updates.push(value));
+    const listener = connectClient();
+    await Promise.all([once(observer, 'connect'), once(listener, 'connect')]);
+    const hashes = ['11', '22', '33', '44', '55'].map(byte => `0x${byte.repeat(32)}`);
+    for (const trackHash of hashes) listener.emit('presence:solo', { trackHash });
+    await wait(450);
+    // The first entry is the per-socket snapshot every client receives on connection.
+    assert.deepEqual(updates, [{}, { [hashes[0]]: 1 }, { [hashes[1]]: 1 }]);
+    assert.equal(server.soloPresenceBySocket.get(listener.id), hashes[1]);
+  });
+});
+
 describe('clientKey', () => {
   it('uses the raw socket address by default and ignores x-forwarded-for', () => {
     const socket = { handshake: { address: '10.0.0.9', headers: { 'x-forwarded-for': '1.1.1.1' } } };
     assert.equal(clientKey(socket), '10.0.0.9');
   });
 
-  it('reads the first forwarded hop only when trustProxy is enabled', () => {
+  it('reads only the hop appended by the trusted proxy, never a client-supplied leftmost hop', () => {
     const socket = { handshake: { address: '10.0.0.9', headers: { 'x-forwarded-for': '1.1.1.1, 2.2.2.2' } } };
-    assert.equal(clientKey(socket, { trustProxy: true }), '1.1.1.1');
+    assert.equal(clientKey(socket, { trustProxy: true }), '2.2.2.2');
+    const spoofed = { handshake: { address: '10.0.0.9', headers: { 'x-forwarded-for': '6.6.6.6, 7.7.7.7, 2.2.2.2' } } };
+    assert.equal(clientKey(spoofed, { trustProxy: true }), '2.2.2.2');
+  });
+
+  it('prefers the Fly-Client-IP header set by the Fly edge when trustProxy is enabled', () => {
+    const socket = { handshake: { address: '172.16.0.2', headers: { 'fly-client-ip': '3.3.3.3', 'x-forwarded-for': '6.6.6.6, 3.3.3.3' } } };
+    assert.equal(clientKey(socket, { trustProxy: true }), '3.3.3.3');
+    assert.equal(clientKey(socket), '172.16.0.2', 'headers are ignored when the proxy is not trusted');
   });
 
   it('falls back to unknown when no address is present', () => {

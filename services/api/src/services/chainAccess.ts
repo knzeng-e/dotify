@@ -11,7 +11,7 @@
 // catalog snapshot is fresh and identifies exactly one encrypted release for
 // the hash. Ambiguous or stale evidence never receives a key.
 
-import { createPublicClient, http, type Address, type PublicClient } from 'viem';
+import { createPublicClient, fallback, http, type Address, type PublicClient } from 'viem';
 import { config } from '../config.js';
 import { catalogReadModel as defaultCatalogReadModel, type CatalogMetadata, type CatalogRelease, type CatalogSnapshot } from './catalog/index.js';
 import {
@@ -174,7 +174,13 @@ let clientCache: PublicClient | null = null;
 function getClient(): PublicClient | null {
   if (!config.PASEO_ASSET_HUB_RPC) return null;
   if (!clientCache) {
-    clientCache = createPublicClient({ transport: http(config.PASEO_ASSET_HUB_RPC) });
+    // Access checks sit in front of first sound: bound each read instead of
+    // the library defaults (10 s and three retries), then try the fallback.
+    const rpc = (url: string) => http(url, { timeout: 4_000, retryCount: 1 });
+    const fallbackUrl = config.PASEO_ASSET_HUB_RPC_FALLBACK;
+    clientCache = createPublicClient({
+      transport: fallbackUrl ? fallback([rpc(config.PASEO_ASSET_HUB_RPC), rpc(fallbackUrl)]) : rpc(config.PASEO_ASSET_HUB_RPC)
+    });
   }
   return clientCache;
 }

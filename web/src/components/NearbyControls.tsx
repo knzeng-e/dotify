@@ -68,15 +68,17 @@ export function NearbyControls({ nearby, host = false, onJoin, joining, onOpenRo
               <h2 id={`${id}-title`}>{host ? 'Who can find this room?' : 'Nearby'}</h2>
               <p id={`${id}-description`}>
                 {host
-                  ? active
-                    ? source === 'manual' && activeArea
-                      ? `Visible around ${activeArea.name} centre.`
-                      : 'People around you can find this room.'
-                    : busy && !worldwide
-                      ? 'Making your room visible…'
-                      : hostMode === 'everyone'
-                        ? 'Anyone on Dotify can find and join this room.'
-                        : 'Only people with your link or room code can join.'
+                  ? state.revocationPending
+                    ? 'Updating room visibility. Some people may still find this room.'
+                    : active
+                      ? source === 'manual' && activeArea
+                        ? `Visible around ${activeArea.name} centre.`
+                        : 'People around you can find this room.'
+                      : busy && !worldwide
+                        ? 'Making your room visible…'
+                        : hostMode === 'everyone'
+                          ? 'Anyone on Dotify can find and join this room.'
+                          : 'Only people with your link or room code can join.'
                   : 'Find your people. Share a listening moment.'}
               </p>
             </div>

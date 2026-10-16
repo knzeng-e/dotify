@@ -10,7 +10,7 @@
   VITE_SIGNAL_URL = "https://dotify-signal.fly.dev"
   VITE_DOTIFY_API_URL = "https://dotify-api.fly.dev"
   VITE_PINATA_GATEWAY = "https://gateway.pinata.cloud"
-  VITE_IPFS_READ_GATEWAYS = "https://ipfs.io,https://dweb.link,https://paseo-ipfs.polkadot.io"
+  VITE_IPFS_READ_GATEWAYS = "https://ipfs.io,https://dweb.link"
 
 [[redirects]]
   from = "/*"

@@ -16,7 +16,7 @@ export default defineConfig({
   // socket; pointing VITE_SIGNAL_URL at it simply lets the room-join suite run.
   webServer: [
     {
-      command: 'node server/signaling.mjs',
+      command: 'node e2e/fixtures/signaling-server.mjs',
       url: `${SIGNAL_URL}/health`,
       reuseExistingServer: false,
       env: {

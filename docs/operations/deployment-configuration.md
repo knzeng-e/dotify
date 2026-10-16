@@ -1,5 +1,18 @@
 # Deployment Configuration Runbook
 
+## Current published Product release — 0.1.51
+
+Product `[0, 1, 51]` is published from source
+`cdb9ac245a865d085984b7750728aaaa358757b5` at executable/root CID
+`bafybeihpprpso6vopekio67surwcygt2ygs6dnppdfsszmiul2qchib2me`.
+The current client rollback is Product `[0, 1, 50]`, CID
+`bafybeie3r7hmzucvqhmkv5prgt3tguyq2m3fictwgdm7uelm3ssmo6b72m`.
+Use the [0.1.51 rollout record](../backlog/implementation/evidence/product-0.1.51-rollout-2026-10-16.md)
+for the corresponding API/signaling images, publication read-back, restart incident
+and remaining device checks. Keep privacy-safe signaling when rolling back clients.
+The dated sections below preserve earlier release history; their rollback pairs
+apply to those historical rollouts, not today's current release.
+
 ## Publication and room follow-up (#269)
 
 Product `[0, 1, 48]` was published on 2026-10-12 from tested `dev`
@@ -357,7 +370,7 @@ Required Product values:
 | `VITE_BULLETIN_WS_URL`          | `wss://bulletin-paseo.tservices.es:8443`                                                                                         |
 | `VITE_PINATA_GATEWAY`           | `https://gateway.pinata.cloud`                                                                                                   |
 | `VITE_IPFS_READ_GATEWAYS`       | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation` |
-| Product executable `appVersion` | `[0, 1, 48]` published follow-up release; `[0, 1, 47]` is the rollback artifact                            |
+| Product executable `appVersion` | `[0, 1, 51]` published discovery/media recovery release; `[0, 1, 50]` is the current client rollback artifact                            |
 
 The Product executable version is part of the published Product manifest. Bump
 it whenever the Product bundle changes runtime behavior, host SDK integration,
@@ -1853,6 +1866,14 @@ measurement modes can publish public presence independently of Nearby.
 Rolling back signaling to an older image restores automatic global listing:
 do not use that rollback while promising link-only/radius-limited discovery.
 
+Product `[0, 1, 50]` was published from tested source `e4ce5a1`, based on merged #280/#281.
+It preserves `product-cdm` on `devnet`, refreshes the public catalog snapshot
+and matching deterministic fixture, and removes the retired Paseo IPFS reader
+from Netlify's tracked fallbacks. Deploy signaling first, then verify client
+SHA/version/CID. Signaling release 31 and finalized Product read-back passed;
+physical-device acceptance remains separate. See the
+[0.1.50 rollout](product-devnet-deployment.md#product-0150-published-radar-and-audio-release).
+
 The 0.1.49 test release packages `shared` alongside `server` in
 `web/Dockerfile.signal`; omitting the geometry module prevents signaling from
 booting. Run the packaged-runtime smoke in `npm --prefix web run test:signal`,
@@ -1943,6 +1964,18 @@ snapshots expire within 90 seconds; there is no separate Product experiment sett
 
 ## Discovery and Host recovery rollout — 2026-10-15
 
+Executed on 2026-10-16 as Product 0.1.51 from `cdb9ac2`, with signaling release
+32 and API release 26. Exact published identities, independent read-back, live
+checks, the active-room restart incident and rollback are in the
+[rollout record](../backlog/implementation/evidence/product-0.1.51-rollout-2026-10-16.md).
+At that rollout, Netlify was validated at merged application commit `974568c`. Subsequent merge-triggered Web builds require independent SHA/config-digest validation; that earlier record does not validate future bundles. Native Host
+location/audio/approval checks remain physical acceptance gates.
+Before restarting, recheck active rooms/listeners and bind validation to the
+mutation with fail-fast execution (`set -euo pipefail` or an explicit successful
+condition). A failed assertion on one shell line must never fall through to a
+deploy on the next line. If rooms appear during preparation, evaluate the
+interruption before proceeding; an earlier zero-room snapshot is insufficient.
+
 Deploy signaling before clients for the 5–42 km/worldwide protocol extension.
 An old server safely rejects extended radii and worldwide payloads; it cannot
 provide the new UI's default public invitations. Keep legacy global enumeration
@@ -1968,3 +2001,65 @@ Mobile waits up to 32 seconds for an accurate fresh fix. Product still gets a
 90-second snapshot, not unattended location tracking. Recheck denial, revocation,
 background/return, scan completion, worldwide opt-out and host tips on both devices.
 A rejected HTTP-401 host session can renew once; network failures must not loop signatures.
+
+## Trusted pilot hardening (W30), 2026-10-16
+
+Applies to the trusted pilot of at most 42 participants (W13 owner update).
+No new service, store, region or secret value is committed.
+
+| Service | Setting | Value in Fly config | Effect |
+| --- | --- | --- | --- |
+| API | `API_TRUST_PROXY` | `fly` | Rate limits use the `Fly-Client-IP` header set by the Fly edge. Unset or `off` uses the socket address; never set `fly` where clients can reach the API without Fly. |
+| API | `CATALOG_SNAPSHOT_PATH` | `/data/contributions/catalog.json` | The snapshot survives redeploys, so key delivery does not wait for a cold reindex. Same volume as the contribution ledger. |
+| API | `SESSION_REVOCATIONS_PATH` | `/data/contributions/session-revocations.json` | Signed-out sessions stay signed out across restarts when `SESSION_EPOCH` is set. |
+| API | `SESSION_EPOCH` | Fly secret, not in `fly.toml` | 16-128 characters. Set it to keep sessions across redeploys; rotate it to sign everyone out. Unset keeps the per-process random epoch. If the revocation file is unreadable at boot, the API uses a random epoch (fail closed). |
+| API | `PASEO_ASSET_HUB_RPC_FALLBACK` | unset | Optional second RPC for access checks. Each access read now times out after 4 s with one retry. |
+| Signaling | `SIGNAL_TRUST_PROXY` | `true` | Network limits use `Fly-Client-IP`, otherwise the last `X-Forwarded-For` hop. The client-supplied leftmost hop is never used. |
+| Signaling | `max_machines_running` | `1` | Rooms and limiters are process memory; a second machine would split rooms. |
+
+Behavior changes: content-key responses carry `Cache-Control: no-store`; the
+signaling service no longer broadcasts `rooms:updated` and coalesces solo
+presence; room creation is limited per network and capped; both images start
+Node directly and close cleanly on SIGTERM. The signaling image runs as the
+`node` user. The API image stays root because the Fly volume is root-owned.
+
+With a stable session epoch, logout returns HTTP 503 with
+`SESSION_REVOCATION_UNAVAILABLE` if its revocation cannot be written. The token
+is denied in memory, but logout is **not acknowledged** as durable. Repeated
+logout attempts keep returning 503 until the pending revocation can be saved.
+Repair the volume and retry before restarting: a restart against the older,
+still-readable snapshot can restore an unpersisted token until its 24-hour
+expiry. Rotate `SESSION_EPOCH` if that recovery cannot be completed safely.
+An unreadable snapshot at boot still forces a fresh random epoch.
+
+Deploy order: API, then signaling, then clients (no client change is
+required). Before opening the pilot, record these read-only checks:
+
+1. `fly scale show -a dotify-signal` shows one machine.
+2. Watch `fly logs -a dotify-api` and `fly logs -a dotify-signal`, filtering for
+   `network:client-identity`. From an ordinary external client, request API
+   `/health` and connect to a room through the deployed signaling service.
+   Each service records only its first **five trusted-header requests or
+   connections per process**; direct probes without a trusted header do not
+   consume samples. Existing samples from external traffic also qualify.
+   The API sample must show `source: "fly-client-ip"` and
+   `clientMatchesPeer: false`; the Fly signaling sample must show the same.
+   This checks the **actual limiter resolver**, rather than Fastify's proxy
+   socket address. Missing samples are inconclusive: check the trust settings
+   and the current process's startup logs. Do not restart a live room service
+   merely to collect another sample. A matching peer or unexpected source
+   requires investigation before pilot acceptance. These bounded records
+   contain no raw client/peer IP, wallet, token, room ID or coordinates; they
+   demonstrate which source was selected, not cryptographic proof that a
+   deployment's edge overwrites caller headers. Fly-only ingress remains a
+   required trust boundary.
+3. A room member receives TURN URLs from `/api/turn/grant`.
+
+Rollback: redeploy the previous image; unset `SESSION_EPOCH` only if sessions
+must be invalidated. No new environment variable enables the diagnostic.
+
+Browser CI uses `web/e2e/fixtures/signaling-server.mjs`, which starts the real
+server with a creation budget of 1,000/minute because isolated browser users
+all share loopback. This fixture is excluded from the production image; the
+production CLI retains 10/minute. Signaling integration tests independently
+verify the production default and refusal behavior.
