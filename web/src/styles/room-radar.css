@@ -24,7 +24,7 @@
 }
 .discovery-eyebrow {
   color: #66dace;
-  font-size: 0.65rem;
+  font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.2em;
 }
@@ -190,14 +190,14 @@
 .radar-room-dot strong {
   width: 100%;
   margin-top: 0.4rem;
-  font-size: clamp(0.7rem, 1vw, 0.85rem);
+  font-size: clamp(0.75rem, 1vw, 0.85rem);
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
 .radar-room-dot small {
   color: #a8e3d7;
-  font-size: clamp(0.65rem, 0.9vw, 0.76rem);
+  font-size: clamp(0.75rem, 0.9vw, 0.76rem);
   margin-top: 0.1rem;
 }
 .radar-room-dot[data-worldwide='true'] small {
@@ -220,7 +220,7 @@
   flex-wrap: wrap;
   margin-top: 1rem;
   color: var(--radar-muted);
-  font-size: 0.72rem;
+  font-size: 0.75rem;
 }
 .radar-caption span {
   display: flex;
@@ -230,7 +230,7 @@
 .radar-caption small {
   width: 100%;
   text-align: center;
-  font-size: 0.65rem;
+  font-size: 0.75rem;
   opacity: 0.8;
 }
 .radar-invitations {
@@ -269,7 +269,7 @@
 }
 .radar-invitations .nearby-room-copy small {
   color: var(--radar-muted);
-  font-size: 0.72rem;
+  font-size: 0.75rem;
 }
 .radar-invitations .nearby-room-copy h3 {
   font-size: 1rem;
@@ -282,7 +282,7 @@
 }
 .discovery-distance {
   display: inline-block;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   color: #86e8d8;
   margin-top: 0.5rem;
 }
@@ -425,7 +425,7 @@
   gap: 0.3rem;
 }
 .discovery-host-trigger small {
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   color: #adc4cf;
 }
 .discovery-host-trigger strong {
@@ -504,7 +504,7 @@
     font-size: 1.5rem;
   }
   .radar-status {
-    font-size: 0.74rem;
+    font-size: 0.75rem;
     line-height: 1.5;
     margin-block: 0.5rem 1rem;
   }

@@ -37,7 +37,7 @@ export function NearbyControls({ nearby }: { nearby: ReturnType<typeof useNearby
         <Icon size={22} aria-hidden='true' />
         <span>
           <small>Who can find this room?</small>
-          <strong>{busy ? 'Setting your location…' : label}</strong>
+          <strong>{state.phase === 'locating' ? 'Finding your area…' : busy ? 'Updating visibility…' : label}</strong>
         </span>
         <ChevronRight size={19} aria-hidden='true' />
       </button>
