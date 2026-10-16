@@ -97,10 +97,12 @@ Historical `OpenRoom` shape (no longer globally enumerated):
 
 ### `rooms:updated`
 
-**Direction:** Server → All clients
+**Direction:** Server → each newly connected client
 
-Broadcasts an empty compatibility array when rooms change. It cannot reveal
-link-only rooms or bypass a Nearby lease's radius. `GET /status.rooms` follows
+Sends an empty compatibility array once, on connection. It is no longer
+broadcast to every client when rooms change (W30): the list is always empty,
+and the broadcast cost one message per connected socket on every playback
+tick. It cannot reveal link-only rooms or bypass a Nearby lease's radius. `GET /status.rooms` follows
 the same rule. Admitted room members still receive their room metadata through
 join/resume acknowledgements and room-scoped events.
 
@@ -129,10 +131,14 @@ socket.emit('room:create', {
 { ok: true; roomId: string; hostName: string; expiresAt?: number }
 
 // Ack — failure
-{ ok: false; error: string }
+{ ok: false; error: string; code?: 'RATE_LIMITED' | 'ROOMS_BUSY' }
 ```
 
-The server assigns a random six-character alphanumeric `roomId`.
+The server assigns a random six-character alphanumeric `roomId` from a
+cryptographic random source; for a link-only room the code is its only secret.
+Creation is limited per network (default 10 per minute) and the server holds
+at most `maxRooms` rooms (default 2,000). A refused creation leaves the
+caller's current room untouched.
 
 ---
 
@@ -379,7 +385,9 @@ one socket can never count as both solo and in-room presence.
 **Direction:** Client → Server
 
 Declares the bytes32 hash currently playing outside a room. `null` clears the
-declaration. Invalid hashes fail closed to a clear.
+declaration. Invalid hashes fail closed to a clear. New declarations are
+limited per socket (default 6 per 10 seconds) and excess ones are dropped
+silently; clearing is always accepted.
 
 ```typescript
 socket.emit('presence:solo', { trackHash: `0x${string}` | null });
@@ -389,8 +397,9 @@ socket.emit('presence:solo', { trackHash: `0x${string}` | null });
 
 **Direction:** Server → All clients
 
-Broadcasts the complete aggregate after a real change and sends a snapshot to
-each newly connected client.
+Broadcasts the complete aggregate after a real change, at most once per
+interval (default 2 seconds; later changes are coalesced into the next
+broadcast), and sends a snapshot to each newly connected client.
 
 ```typescript
 socket.on('presence:solo:updated', (counts: Record<string, number>) => {

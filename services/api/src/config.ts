@@ -75,6 +75,11 @@ const envSchema = z.object({
   API_ORIGIN: z.string().url().default('http://localhost:5273'),
   API_ORIGINS: optionalOriginList,
   PASEO_ASSET_HUB_RPC: z.string().url().optional(),
+  // Optional second RPC used by access checks when the primary fails.
+  PASEO_ASSET_HUB_RPC_FALLBACK: z.preprocess(value => (typeof value === 'string' && value.trim() === '' ? undefined : value), z.string().url().optional()),
+  // 'fly' keys rate limits on the Fly-Client-IP header set by the Fly edge.
+  // Keep 'off' anywhere that header could come from the client itself.
+  API_TRUST_PROXY: z.enum(['off', 'fly']).default('off'),
   PASEO_ASSET_HUB_NATIVE_RPC: z
     .string()
     .url()
@@ -89,6 +94,13 @@ const envSchema = z.object({
   ),
   NATIVE_CONTRIBUTION_SNAPSHOT_PATH: z.string().default('.data/native-contributions.json'),
   CATALOG_SNAPSHOT_PATH: z.string().default('.data/catalog.json'),
+  // A stable epoch keeps sessions valid across redeploys; rotating it signs
+  // everyone out. Unset keeps the per-process random epoch.
+  SESSION_EPOCH: z.preprocess(
+    value => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+    z.string().min(16, 'SESSION_EPOCH must contain at least 16 characters').max(128).optional()
+  ),
+  SESSION_REVOCATIONS_PATH: z.string().default('.data/session-revocations.json'),
   CATALOG_POLL_INTERVAL_MS: z.coerce.number().int().min(1_000).default(10_000),
   CATALOG_RECONCILE_INTERVAL_MS: z.coerce.number().int().min(10_000).default(300_000),
   CATALOG_STALE_AFTER_MS: z.coerce.number().int().min(1_000).default(60_000),

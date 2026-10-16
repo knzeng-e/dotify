@@ -22,6 +22,9 @@ primary_region = "ams"
   # Polkadot Desktop/native hosts can omit Origin on Socket.IO handshakes.
   # Keep literal Origin: null rejected; this only permits a missing header.
   SIGNAL_ALLOW_MISSING_ORIGIN = "true"
+  # Fly terminates connections at its edge. Key network limits on the
+  # Fly-Client-IP it sets (or the hop it appends), never on the proxy address.
+  SIGNAL_TRUST_PROXY = "true"
   # Keep all observed Product host origins: the public dev-dot.li gateway, the
   # app.dev-dot.li and app.dot.li execution iframes, the mobile host's dot
   # pseudo-domain, and the native/custom scheme variants observed in Product
@@ -34,6 +37,9 @@ primary_region = "ams"
   auto_stop_machines = "stop"
   auto_start_machines = true
   min_machines_running = 1
+  # Rooms, nearby leases and limiters are process memory. A second machine
+  # would split rooms until W39 adds shared state and sticky sessions.
+  max_machines_running = 1
   processes = ["app"]
 
 [[vm]]

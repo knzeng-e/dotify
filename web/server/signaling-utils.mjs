@@ -1,3 +1,5 @@
+import { randomInt } from 'node:crypto';
+
 const ROOM_ID_LENGTH = 6;
 
 export function createRoomId(rooms) {
@@ -5,7 +7,8 @@ export function createRoomId(rooms) {
   let roomId = '';
 
   do {
-    roomId = Array.from({ length: ROOM_ID_LENGTH }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join('');
+    // The code is the only secret of a link-only room: use a CSPRNG, never Math.random.
+    roomId = Array.from({ length: ROOM_ID_LENGTH }, () => alphabet[randomInt(alphabet.length)]).join('');
   } while (rooms.has(roomId));
 
   return roomId;
@@ -154,21 +157,34 @@ export function createWindowLimiter(limit, windowMs) {
 // Resolve a durable-ish network identity for a socket. Anonymous listeners
 // carry no wallet, signature, or account, so the network address is the only
 // durable signal we can throttle on. Behind a trusted reverse proxy (hosted
-// signaling), the real client sits in the first x-forwarded-for hop; we read
+// signaling), the real client is Fly-Client-IP or the last appended hop; we read
 // it ONLY when trustProxy is on, because that header is client-spoofable
 // unless a proxy is guaranteed to overwrite it. This is best-effort abuse
 // dampening, NOT an identity guarantee: co-located clients behind one NAT
 // share a key, which is why message limits stay per-socket and only join
 // churn is throttled per address.
-export function clientKey(socket, { trustProxy = false } = {}) {
+export function clientIdentity(socket, { trustProxy = false } = {}) {
   if (trustProxy) {
-    const forwarded = socket?.handshake?.headers?.['x-forwarded-for'];
-    if (typeof forwarded === 'string' && forwarded.length > 0) {
-      const first = forwarded.split(',')[0].trim();
-      if (first) return first;
+    const headers = socket?.handshake?.headers ?? {};
+    // Fly's edge sets Fly-Client-IP itself. Otherwise only the last
+    // X-Forwarded-For hop was appended by the trusted proxy; earlier hops are
+    // whatever the client sent and must never become its identity.
+    const flyClient = headers['fly-client-ip'];
+    if (typeof flyClient === 'string' && flyClient.trim()) return { key: flyClient.trim(), source: 'fly-client-ip' };
+    const forwarded = headers['x-forwarded-for'];
+    if (typeof forwarded === 'string') {
+      const hops = forwarded
+        .split(',')
+        .map(hop => hop.trim())
+        .filter(Boolean);
+      if (hops.length) return { key: hops[hops.length - 1], source: 'x-forwarded-for' };
     }
   }
-  return socket?.handshake?.address || 'unknown';
+  return { key: socket?.handshake?.address || 'unknown', source: 'socket' };
+}
+
+export function clientKey(socket, options) {
+  return clientIdentity(socket, options).key;
 }
 
 export function sanitizePlayerState(state) {

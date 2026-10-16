@@ -20,6 +20,7 @@ import {
   issueSessionToken as defaultIssueSessionToken,
   revokeSessionToken as defaultRevokeSessionToken,
   verifySessionToken,
+  SessionRevocationStorageError,
   type IssuedSession
 } from '../services/sessionTokens.js';
 
@@ -172,7 +173,17 @@ export function createAuthRoutes(deps: AuthRouteDeps = defaultDeps) {
       if (!parsed.success) {
         return validationError(reply, 'Invalid logout request', parsed.error.issues);
       }
-      deps.revokeSessionToken(parsed.data.sessionToken);
+      reply.header('Cache-Control', 'no-store');
+      try {
+        deps.revokeSessionToken(parsed.data.sessionToken);
+      } catch (error) {
+        if (!(error instanceof SessionRevocationStorageError)) throw error;
+        return reply.status(503).send({
+          error: error.message,
+          code: 'SESSION_REVOCATION_UNAVAILABLE',
+          requestId: String(request.id)
+        });
+      }
       return reply.status(200).send({ ok: true });
     });
   };

@@ -2001,3 +2001,65 @@ Mobile waits up to 32 seconds for an accurate fresh fix. Product still gets a
 90-second snapshot, not unattended location tracking. Recheck denial, revocation,
 background/return, scan completion, worldwide opt-out and host tips on both devices.
 A rejected HTTP-401 host session can renew once; network failures must not loop signatures.
+
+## Trusted pilot hardening (W30), 2026-10-16
+
+Applies to the trusted pilot of at most 42 participants (W13 owner update).
+No new service, store, region or secret value is committed.
+
+| Service | Setting | Value in Fly config | Effect |
+| --- | --- | --- | --- |
+| API | `API_TRUST_PROXY` | `fly` | Rate limits use the `Fly-Client-IP` header set by the Fly edge. Unset or `off` uses the socket address; never set `fly` where clients can reach the API without Fly. |
+| API | `CATALOG_SNAPSHOT_PATH` | `/data/contributions/catalog.json` | The snapshot survives redeploys, so key delivery does not wait for a cold reindex. Same volume as the contribution ledger. |
+| API | `SESSION_REVOCATIONS_PATH` | `/data/contributions/session-revocations.json` | Signed-out sessions stay signed out across restarts when `SESSION_EPOCH` is set. |
+| API | `SESSION_EPOCH` | Fly secret, not in `fly.toml` | 16-128 characters. Set it to keep sessions across redeploys; rotate it to sign everyone out. Unset keeps the per-process random epoch. If the revocation file is unreadable at boot, the API uses a random epoch (fail closed). |
+| API | `PASEO_ASSET_HUB_RPC_FALLBACK` | unset | Optional second RPC for access checks. Each access read now times out after 4 s with one retry. |
+| Signaling | `SIGNAL_TRUST_PROXY` | `true` | Network limits use `Fly-Client-IP`, otherwise the last `X-Forwarded-For` hop. The client-supplied leftmost hop is never used. |
+| Signaling | `max_machines_running` | `1` | Rooms and limiters are process memory; a second machine would split rooms. |
+
+Behavior changes: content-key responses carry `Cache-Control: no-store`; the
+signaling service no longer broadcasts `rooms:updated` and coalesces solo
+presence; room creation is limited per network and capped; both images start
+Node directly and close cleanly on SIGTERM. The signaling image runs as the
+`node` user. The API image stays root because the Fly volume is root-owned.
+
+With a stable session epoch, logout returns HTTP 503 with
+`SESSION_REVOCATION_UNAVAILABLE` if its revocation cannot be written. The token
+is denied in memory, but logout is **not acknowledged** as durable. Repeated
+logout attempts keep returning 503 until the pending revocation can be saved.
+Repair the volume and retry before restarting: a restart against the older,
+still-readable snapshot can restore an unpersisted token until its 24-hour
+expiry. Rotate `SESSION_EPOCH` if that recovery cannot be completed safely.
+An unreadable snapshot at boot still forces a fresh random epoch.
+
+Deploy order: API, then signaling, then clients (no client change is
+required). Before opening the pilot, record these read-only checks:
+
+1. `fly scale show -a dotify-signal` shows one machine.
+2. Watch `fly logs -a dotify-api` and `fly logs -a dotify-signal`, filtering for
+   `network:client-identity`. From an ordinary external client, request API
+   `/health` and connect to a room through the deployed signaling service.
+   Each service records only its first **five trusted-header requests or
+   connections per process**; direct probes without a trusted header do not
+   consume samples. Existing samples from external traffic also qualify.
+   The API sample must show `source: "fly-client-ip"` and
+   `clientMatchesPeer: false`; the Fly signaling sample must show the same.
+   This checks the **actual limiter resolver**, rather than Fastify's proxy
+   socket address. Missing samples are inconclusive: check the trust settings
+   and the current process's startup logs. Do not restart a live room service
+   merely to collect another sample. A matching peer or unexpected source
+   requires investigation before pilot acceptance. These bounded records
+   contain no raw client/peer IP, wallet, token, room ID or coordinates; they
+   demonstrate which source was selected, not cryptographic proof that a
+   deployment's edge overwrites caller headers. Fly-only ingress remains a
+   required trust boundary.
+3. A room member receives TURN URLs from `/api/turn/grant`.
+
+Rollback: redeploy the previous image; unset `SESSION_EPOCH` only if sessions
+must be invalidated. No new environment variable enables the diagnostic.
+
+Browser CI uses `web/e2e/fixtures/signaling-server.mjs`, which starts the real
+server with a creation budget of 1,000/minute because isolated browser users
+all share loopback. This fixture is excluded from the production image; the
+production CLI retains 10/minute. Signaling integration tests independently
+verify the production default and refusal behavior.
