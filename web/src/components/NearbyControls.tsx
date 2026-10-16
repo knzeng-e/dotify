@@ -37,7 +37,9 @@ export function NearbyControls({ nearby }: { nearby: ReturnType<typeof useNearby
         <Icon size={22} aria-hidden='true' />
         <span>
           <small>Who can find this room?</small>
-          <strong>{state.phase === 'locating' ? 'Finding your area…' : busy ? 'Updating visibility…' : label}</strong>
+          <strong>
+            {state.revocationPending ? 'Updating visibility…' : state.phase === 'locating' ? 'Finding your area…' : busy ? 'Updating visibility…' : label}
+          </strong>
         </span>
         <ChevronRight size={19} aria-hidden='true' />
       </button>
@@ -64,7 +66,9 @@ export function NearbyControls({ nearby }: { nearby: ReturnType<typeof useNearby
               ? 'Your approximate area updates while Dotify is open. Your exact position stays on this device.'
               : mode === 'everyone'
                 ? 'Anyone can see your room and join. Your location is not shared.'
-                : 'Only people with your link or room code can find you.'}
+                : state.revocationPending
+                  ? 'Removal is not confirmed yet. The room may remain discoverable for up to 90 seconds.'
+                  : 'Only people with your link or room code can find you.'}
           </p>
           <button type='button' className='primary-action discovery-done' onClick={apply}>
             Done

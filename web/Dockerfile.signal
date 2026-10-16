@@ -9,4 +9,6 @@ RUN npm ci --omit=dev
 COPY server ./server
 COPY shared ./shared
 
-CMD ["npm", "run", "signal"]
+# Start Node directly so SIGTERM reaches the graceful shutdown handler.
+USER node
+CMD ["node", "server/signaling.mjs"]

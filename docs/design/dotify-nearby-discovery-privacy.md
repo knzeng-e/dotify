@@ -11,6 +11,10 @@ The owner requested discovery on app entry without an extra scan button.
 Nearby uses device location; Worldwide never does. This is **search consent**,
 not consent to make a room public. A new host remains Link only until explicitly
 choosing Nearby or Everyone. The client never widens either participant's radius.
+Host opt-out remains unconfirmed until the server acknowledges removal: the
+compact control says Updating visibility and retains the 90-second lease warning
+while a reply is pending, refused or interrupted. Selecting Link only is a desired
+mode, not proof that a previously published invitation is already gone.
 
 With the feature enabled, entering the app may request OS/Product location
 permission. A refusal is remembered for this page lifetime and prevents automatic
@@ -74,8 +78,13 @@ this room?**, with three options: **Link only** (the default for every new
 room), **Nearby**, and **Everyone**. The protocol, lease, revocation and
 privacy rules below are unchanged; Everyone is the worldwide mode. Choosing
 Everyone states that the host name and current track become visible to anyone
-on Dotify. When a host's visibility attempt fails, the panel says the room is
-now reachable by link only, since the previous mode was withdrawn first.
+on Dotify. When a host's visibility attempt fails or stops, the panel does not
+claim link-only availability until the server acknowledges revocation. While
+revocation is pending, refused, or interrupted, it warns that the previous
+publication may remain discoverable for up to its 90-second lease. A repeated
+opt-out keeps that warning; a late acknowledgement cannot overwrite a newer
+publication. The radio reflects the chosen mode, while the status and heading
+explain whether its removal is still unconfirmed.
 Worldwide cards offer the same Hide and Report actions as nearby cards.
 
 ## Discovery recovery amendment — 2026-10-15

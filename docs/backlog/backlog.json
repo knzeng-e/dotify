@@ -522,6 +522,106 @@
       "note": "Owner-requested clarity slice from the 2026-10-08 audit, implemented by PR #249: one word per gesture, room-first home, named payment recipients, named and retried protected playback failures, room exit in the header, sign-in chained to a purposeful connect. Reverses the W21/W28 choice to keep prices off catalog cards. Evidence: docs/backlog/implementation/evidence/W29.md. Project 5 owns workflow status."
     },
     {
+      "id": "W30",
+      "doc": "docs/backlog/implementation/W30-pilot-hardening.md",
+      "issue": 285,
+      "kind": "work",
+      "priority": "P0",
+      "track": "Production spine",
+      "phase": "Now",
+      "note": "Pilot blocker from the 2026-10-15 architecture audit: real client identity behind Fly, no global broadcast per playback tick, rate-limited solo presence, CSPRNG room codes, room creation limits, catalog and sessions that survive a redeploy, no-store key responses, bounded RPC timeouts, non-root images. Must be deployed before the 2026-10-17 trusted pilot."
+    },
+    {
+      "id": "W31",
+      "doc": "docs/backlog/implementation/W31-discovery-follow-ups.md",
+      "issue": 286,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Room reliability",
+      "phase": "Now",
+      "note": "Follow-ups from the PR #283 review: worldwide reconnect recovery, no refresh flicker, report on worldwide cards, one Link only / Nearby / Everyone choice, truthful location copy, lazy artist studio. Recommended, not a W13 evidence gate."
+    },
+    {
+      "id": "W32",
+      "doc": "docs/backlog/implementation/W32-streaming-encoding.md",
+      "issue": 287,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Next",
+      "note": "Refs #88. AAC fMP4 renditions with segment-level encryption under the existing release key scope, loudness gain, preserved master, DAV2 compatibility."
+    },
+    {
+      "id": "W33",
+      "doc": "docs/backlog/implementation/W33-media-edge-cache.md",
+      "issue": 288,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Next",
+      "note": "Refs #88 backend read-through decision. Immutable edge cache for encrypted content-addressed media; IPFS remains the source of truth."
+    },
+    {
+      "id": "W34",
+      "doc": "docs/backlog/implementation/W34-fast-access-path.md",
+      "issue": 289,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Next",
+      "note": "Batched access reads, short fail-closed verdict cache, queue key preparation for signed-in listeners, in-memory client keys."
+    },
+    {
+      "id": "W35",
+      "doc": "docs/backlog/implementation/W35-continuous-player.md",
+      "issue": 290,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Next",
+      "note": "Gapless, adaptive bitrate, next-track preparation, Media Session, local resume, background playback evidence, playback metrics."
+    },
+    {
+      "id": "W36",
+      "doc": "docs/backlog/implementation/W36-shared-state-api.md",
+      "issue": 291,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Next",
+      "note": "Shared nonces, revocations, quotas and catalog; dedicated session secret; two API instances."
+    },
+    {
+      "id": "W37",
+      "doc": "docs/backlog/implementation/W37-scalable-catalog-indexer.md",
+      "issue": 292,
+      "kind": "work",
+      "priority": "P2",
+      "track": "Production spine",
+      "phase": "Next",
+      "note": "Bounded concurrency, chunked getLogs, memoized revision, write-on-change snapshots, lookup indexes."
+    },
+    {
+      "id": "W38",
+      "doc": "docs/backlog/implementation/W38-contract-bounds.md",
+      "issue": 293,
+      "kind": "work",
+      "priority": "P2",
+      "track": "Production spine",
+      "phase": "Later",
+      "note": "Split recipient cap, string bounds, paged track view, artist-approved diamondCut plan."
+    },
+    {
+      "id": "W39",
+      "doc": "docs/backlog/implementation/W39-horizontal-rooms.md",
+      "issue": 294,
+      "kind": "research",
+      "priority": "P2",
+      "track": "Room reliability",
+      "phase": "Later",
+      "note": "Research with prototype: horizontal Socket.IO, deploys without closing rooms, SFU beyond 24 guests, second region from pilot data."
+    },
+    {
       "id": "backlog-reconciliation",
       "doc": "docs/backlog/README.md",
       "issue": 204,

@@ -16,6 +16,7 @@ export type NearbyState = {
   message: string;
   results: NearbyResult[];
   retryInSeconds?: number;
+  revocationPending?: boolean;
 };
 type Source = { kind: 'device' } | { kind: 'manual'; cell: string } | { kind: 'worldwide' };
 type Environment = {
@@ -46,6 +47,7 @@ export class NearbySession {
   private nextSearchAt = 0;
   private cooldownTimer: ReturnType<typeof setTimeout> | undefined;
   private source: Source | null = null;
+  private pendingVisibilityScope: 'nearby' | 'worldwide' | null = null;
   private radius = 5;
   private deviceSnapshotOnly = false;
   private reauthorizeOnRefresh = false;
@@ -103,8 +105,8 @@ export class NearbySession {
     });
   }
   stop(message = '', phase: NearbyState['phase'] = 'off') {
-    const hadSource = this.source !== null;
-    const scope = this.source?.kind === 'worldwide' ? 'worldwide' : 'nearby';
+    const hadSource = this.source !== null || this.pendingVisibilityScope !== null;
+    const scope = this.pendingVisibilityScope ?? (this.source?.kind === 'worldwide' ? 'worldwide' : 'nearby');
     const rev = ++this.revision;
     this.source = null;
     this.deviceSnapshotOnly = false;
@@ -117,19 +119,24 @@ export class NearbySession {
     this.resultDeadlines.clear();
     if (this.permission) this.permission.onchange = null;
     this.permission = null;
-    this.set({ phase, message, results: [] });
     if (this.host && hadSource) {
-      const pending = `Visible ${scope} is off on this device. The room may remain discoverable for up to 90 seconds.`;
-      this.set({ phase, message: message || pending, results: [] });
+      this.pendingVisibilityScope = scope;
+      const pending = `${message ? `${message} ` : ''}Visible ${scope} is off on this device. The room may remain discoverable for up to 90 seconds.`;
+      this.set({ phase, message: pending, results: [], revocationPending: true });
       void this.request('nearby:off', {})
         .then(reply => {
-          if (rev === this.revision && reply.ok) this.set({ phase, message: message || `Your room is no longer visible ${scope}.`, results: [] });
+          // A refusal is not revocation. Preserve the expiry warning on both
+          // non-OK replies and transport failures, never claim link-only early.
+          if (rev !== this.revision || reply.ok !== true) return;
+          this.pendingVisibilityScope = null;
+          this.set({ phase, message: message ? `${message} Your room is available by link only.` : `Your room is no longer visible ${scope}.`, results: [] });
         })
         .catch(() => {
-          if (rev === this.revision) this.set({ phase, message: pending, results: [] });
+          // The already-visible bounded-expiry warning remains authoritative.
         });
-    }
+    } else this.set({ phase, message, results: [] });
   }
+
   pause() {
     this.stop();
     if (!this.host) this.showCooldown();
@@ -155,7 +162,7 @@ export class NearbySession {
     const rev = ++this.revision;
     if (source.kind === 'device') {
       if (!this.env.supported()) {
-        this.stop(this.failure(copy.UNAVAILABLE), 'denied');
+        this.stop(copy.UNAVAILABLE, 'denied');
         return;
       }
       this.abort = new AbortController();
@@ -176,12 +183,12 @@ export class NearbySession {
             if (permission.state !== 'granted') this.stop(copy.DENIED, 'denied');
           };
         if (permission?.state === 'denied') {
-          this.stop(this.failure(copy.DENIED), 'denied');
+          this.stop(copy.DENIED, 'denied');
           return;
         }
       } catch (error) {
         const code = error instanceof Error ? error.message : '';
-        if (rev === this.revision) this.stop(this.failure(copy[code] ?? copy.UNAVAILABLE), 'denied');
+        if (rev === this.revision) this.stop(copy[code] ?? copy.UNAVAILABLE, 'denied');
         return;
       }
     }
@@ -238,6 +245,7 @@ export class NearbySession {
         if (reply.code === 'RATE_LIMITED' && !this.host) this.nextSearchAt = Date.now() + 60_000;
         throw new Error(reply.code);
       }
+      if (this.host) this.pendingVisibilityScope = null;
       const receivedAt = performance.now();
       this.resultDeadlines.clear();
       const results =
@@ -290,7 +298,7 @@ export class NearbySession {
     } catch (error) {
       if (rev !== this.revision) return;
       const code = error instanceof Error ? error.message : '';
-      this.stop(this.failure(copy[code] ?? 'Nearby could not refresh. Reconnect and try again.'), code === 'DENIED' ? 'denied' : 'stale');
+      this.stop(copy[code] ?? 'Nearby could not refresh. Reconnect and try again.', code === 'DENIED' ? 'denied' : 'stale');
       if (!this.host) this.showCooldown();
     }
   }
@@ -299,11 +307,6 @@ export class NearbySession {
     const retryInSeconds = Math.max(0, Math.ceil((this.nextSearchAt - Date.now()) / 1000));
     this.set({ ...this.state, retryInSeconds });
     if (retryInSeconds) this.cooldownTimer = setTimeout(() => this.showCooldown(), 1000);
-  }
-  // A host whose visibility attempt fails is left reachable by link only;
-  // say so, since a previous mode was withdrawn before the attempt.
-  private failure(message: string) {
-    return this.host ? `${message} Your room is available by link only.` : message;
   }
   private emptyMessage() {
     if (this.source?.kind === 'worldwide') return 'No worldwide rooms right now.';

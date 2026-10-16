@@ -174,10 +174,13 @@ test('worldwide discovery resumes after a fast reconnect without another click',
   let closeConnection: (() => Promise<void>) | undefined;
   let connections = 0;
   let searches = 0;
+  let websocketActive = false;
   await page.routeWebSocket('ws://127.0.0.1:8789/**', route => {
     connections++;
     const server = route.connectToServer();
     route.onMessage(message => {
+      // Engine.IO packet 5 commits the upgrade from polling to WebSocket.
+      if (String(message) === '5') websocketActive = true;
       if (String(message).includes('nearby:search') && String(message).includes('worldwide')) searches++;
       server.send(message);
     });
@@ -195,6 +198,9 @@ test('worldwide discovery resumes after a fast reconnect without another click',
   await page.goto('/?e2eRoom=listener');
   await rooms(page);
   await expect.poll(() => searches).toBeGreaterThan(0);
+  // Automatic app-entry search can finish while the upgrade is still probing.
+  // Closing that candidate would leave the active polling connection intact.
+  await expect.poll(() => websocketActive).toBe(true);
   const before = searches;
   await closeConnection!();
   await expect.poll(() => connections, { timeout: 5000 }).toBeGreaterThan(1);

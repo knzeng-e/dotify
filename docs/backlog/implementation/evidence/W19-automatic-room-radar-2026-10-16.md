@@ -95,8 +95,8 @@ retains the existing page-memory/aggregate-signal limitations. See the updated
 
 ## Remaining gates and next step
 
-1. Merge/rebase the #297 prerequisite, then review this continuation against dev.
-   CI on the implementation branch must be green before merge.
+1. #297 is merged into dev. The continuation now includes dev `2b7fd93`;
+   the integrated implementation branch must have green CI before merge.
 2. On Product Desktop 0.1.3 and App 0.10.0, verify first grant, automatic fresh fix,
    no repeated prompt after grant, revocation before the next fix, denial without
    prompt loops, foreground return, private default and explicit host re-enablement.
@@ -110,3 +110,23 @@ retains the existing page-memory/aggregate-signal limitations. See the updated
 Review `useRoomDiscovery`, `NearbySession`, the v3 search validator/server, then
 `RoomRadar`/visibility sheets. Do not turn automatic search into automatic host
 publication, reintroduce global enumeration, or present radar positions as a map.
+
+
+## Integration review — 2026-10-16
+
+- Merged `dev` at `2b7fd93` after #296 and #297. Review #298 had no inline
+  findings or requested code changes at this integration check.
+- Resolved privacy/public-page/operations conflicts by keeping automatic radar
+  behavior and current 0.1.51 release facts, while retaining all W30 deployment,
+  durable-logout, proxy diagnostic and browser-test quota instructions.
+- Kept both the Product renewal/progressive-room tests from this PR and #297's
+  pending/refused revocation tests. Adapted the compact host control so it says
+  Updating visibility until server confirmation, with the bounded-expiry warning;
+  the Link only draft in its sheet also explains unconfirmed removal.
+- Added a rendered-control regression test using a real session and a delayed
+  removal acknowledgement: the trigger cannot claim Link only while pending,
+  then shows it after confirmation. It performs no real location or network I/O.
+- Integrated local checks: 954/954 unit tests, 107/107 signaling tests, build, and lint with 0 errors (2 existing hook warnings). Nearby Web 4/4 and Product 2/2 pass after the reconnect synchronization. The final full CI run is recorded in PR #298.
+- The first integrated browser run exposed a reconnect-test race: automatic app-entry reads can finish before the WebSocket upgrade. The test now waits for Engine.IO upgrade packet 5 before closing the transport, preserving the existing fast-reconnect and cooldown assertions. It does not change production reconnect behavior or widen the timeout.
+  The original evidence table above is historical; no deployment or physical
+  Host acceptance is implied by this integration.
