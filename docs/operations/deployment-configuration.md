@@ -1,5 +1,18 @@
 # Deployment Configuration Runbook
 
+## Current published Product release — 0.1.51
+
+Product `[0, 1, 51]` is published from source
+`cdb9ac245a865d085984b7750728aaaa358757b5` at executable/root CID
+`bafybeihpprpso6vopekio67surwcygt2ygs6dnppdfsszmiul2qchib2me`.
+The current client rollback is Product `[0, 1, 50]`, CID
+`bafybeie3r7hmzucvqhmkv5prgt3tguyq2m3fictwgdm7uelm3ssmo6b72m`.
+Use the [0.1.51 rollout record](../backlog/implementation/evidence/product-0.1.51-rollout-2026-10-16.md)
+for the corresponding API/signaling images, publication read-back, restart incident
+and remaining device checks. Keep privacy-safe signaling when rolling back clients.
+The dated sections below preserve earlier release history; their rollback pairs
+apply to those historical rollouts, not today's current release.
+
 ## Publication and room follow-up (#269)
 
 Product `[0, 1, 48]` was published on 2026-10-12 from tested `dev`
@@ -357,7 +370,7 @@ Required Product values:
 | `VITE_BULLETIN_WS_URL`          | `wss://bulletin-paseo.tservices.es:8443`                                                                                         |
 | `VITE_PINATA_GATEWAY`           | `https://gateway.pinata.cloud`                                                                                                   |
 | `VITE_IPFS_READ_GATEWAYS`       | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation` |
-| Product executable `appVersion` | `[0, 1, 48]` published follow-up release; `[0, 1, 47]` is the rollback artifact                            |
+| Product executable `appVersion` | `[0, 1, 51]` published discovery/media recovery release; `[0, 1, 50]` is the current client rollback artifact                            |
 
 The Product executable version is part of the published Product manifest. Bump
 it whenever the Product bundle changes runtime behavior, host SDK integration,
@@ -1853,6 +1866,14 @@ measurement modes can publish public presence independently of Nearby.
 Rolling back signaling to an older image restores automatic global listing:
 do not use that rollback while promising link-only/radius-limited discovery.
 
+Product `[0, 1, 50]` was published from tested source `e4ce5a1`, based on merged #280/#281.
+It preserves `product-cdm` on `devnet`, refreshes the public catalog snapshot
+and matching deterministic fixture, and removes the retired Paseo IPFS reader
+from Netlify's tracked fallbacks. Deploy signaling first, then verify client
+SHA/version/CID. Signaling release 31 and finalized Product read-back passed;
+physical-device acceptance remains separate. See the
+[0.1.50 rollout](product-devnet-deployment.md#product-0150-published-radar-and-audio-release).
+
 The 0.1.49 test release packages `shared` alongside `server` in
 `web/Dockerfile.signal`; omitting the geometry module prevents signaling from
 booting. Run the packaged-runtime smoke in `npm --prefix web run test:signal`,
@@ -1947,7 +1968,7 @@ Executed on 2026-10-16 as Product 0.1.51 from `cdb9ac2`, with signaling release
 32 and API release 26. Exact published identities, independent read-back, live
 checks, the active-room restart incident and rollback are in the
 [rollout record](../backlog/implementation/evidence/product-0.1.51-rollout-2026-10-16.md).
-Netlify separately serves merged application commit `974568c`. Native Host
+At that rollout, Netlify was validated at merged application commit `974568c`. Subsequent merge-triggered Web builds require independent SHA/config-digest validation; that earlier record does not validate future bundles. Native Host
 location/audio/approval checks remain physical acceptance gates.
 Before restarting, recheck active rooms/listeners and bind validation to the
 mutation with fail-fast execution (`set -euo pipefail` or an explicit successful

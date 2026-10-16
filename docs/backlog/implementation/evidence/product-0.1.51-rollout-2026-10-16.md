@@ -8,9 +8,12 @@
 - Product `[0, 1, 51]`, `product-cdm` on `devnet`, `dotify-test01.dot`.
 - Executable/root CID: `bafybeihpprpso6vopekio67surwcygt2ygs6dnppdfsszmiul2qchib2me`.
 - Public viewer: `https://dotify-test01.dev-dot.li`.
-- Web already serves merged application SHA `974568c` in
+- Web validation at the time of this rollout observed merged application SHA `974568c` in
   `assets/index-DVB88dbf.js`; no redundant Web deploy was triggered. Product has
-  its separate committed packaging identity and frozen 13-item catalog.
+  its separate committed packaging identity and frozen 13-item catalog. This is
+  dated evidence, not a claim about later merge-triggered Netlify builds; those
+  require their own served SHA/config-digest validation. The gateway cleanup is
+  already in dev through #282, so #284 adds no Netlify configuration change.
 
 The owner authorized deployment and tests, then reactivated the local signer.
 No real user coordinates, funded tip, contract upgrade or permission migration

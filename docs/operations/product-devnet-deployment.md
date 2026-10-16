@@ -31,13 +31,47 @@ Based on merged #283, `974568c`. Executable `[0, 1, 51]` retains `product-cdm`
 on `devnet`; private-by-default rooms, explicit worldwide discovery, 5–42 km
 radii, native permission recovery and media loading fixes are included. Deploy
 signaling first, then the API upload-path correction, then publish frozen Product.
-Netlify independently serves the tested merged application commit. The previous
+At this rollout, Netlify was validated at the tested merged application commit. Later merge-triggered Web builds need their own SHA/config-digest validation. The previous
 0.1.50 executable is retained as rollback; do not restore globally enumerating
 signaling. Published source `cdb9ac2`, root CID
 `bafybeihpprpso6vopekio67surwcygt2ygs6dnppdfsszmiul2qchib2me`. Independent
 DotNS/version and public CAR read-back passed. See the
 [rollout record](../backlog/implementation/evidence/product-0.1.51-rollout-2026-10-16.md)
 for service images, tests, restart incident and remaining physical checks.
+
+The following release sections retain their original deployment and rollback history.
+The current release/rollback pair is 0.1.51 / 0.1.50 above.
+
+## Product 0.1.50 published radar and audio release
+
+The published release starts from tested `dev` `99658622d120c043854a75c071de6e790623ad47`
+(merged #280 and #281). Executable `[0, 1, 50]` distinguishes the consented radar
+and complete-body audio recovery from the published 0.1.49 build. The native
+`product-cdm` / `devnet` profile and existing origins remain unchanged. The
+public catalog snapshot and its offline fixture are refreshed together; frozen
+builds never query a mutable catalog during publication.
+
+Signaling release 31 was deployed before Product from release source
+`e4ce5a14587956dd16b66326e7c78459193c5ae4`. For subsequent rollouts, deploy one
+signaling worker with the privacy change before publishing Product. Verify that `/status.rooms`
+and global Socket.IO lists remain empty while code-based entry works; only an
+explicit Nearby lease may enter bounded search. Keep `VITE_DOTIFY_ROOM_REALTIME`
+**off**. Restart clears ephemeral rooms, so check aggregate room counts first.
+The API and contracts need no deployment for this follow-up.
+
+Netlify's tracked fallback list drops the retired `paseo-ipfs.polkadot.io` host;
+the application also filters retired readers. A missing original cover still
+needs storage repair; the bundled placeholder does not restore it. Recheck the
+loaded Web SHA and Product SHA/version/CID after publication. Validate privacy,
+location consent, artist invitation and multi-track audio on physical Desktop
+and mobile Hosts before recording acceptance.
+
+The published root/executable CID is
+`bafybeie3r7hmzucvqhmkv5prgt3tguyq2m3fictwgdm7uelm3ssmo6b72m`. Independent
+finalized DotNS and public gateway read-back passed; the local signer was removed.
+0.1.49 is the prior client rollback artifact. See the
+[rollout evidence](../backlog/implementation/evidence/product-0.1.50-rollout-2026-10-15.md)
+for exact identities, transactions and remaining physical-device checks.
 
 ## Product 0.1.49 published Nearby test release
 
@@ -99,8 +133,8 @@ descriptors after runtime upgrades. A later tooling transition made
 `polkadot-app-deploy@0.16.2` unsafe for Dotify publication: its `devnet` preset
 writes to a registry/resolver generation that Product Desktop does not observe.
 Dotify now pins `@parity/polkadot-app-deploy@0.20.0`, whose DevNet profile uses
-registry `0x527b08a640b527a3dae0C4BE04D7344E430B6E50` and content resolver
-`0x326bdE29315199c814B1c58b431D84D16EA5cE41`. The deploy command verifies
+registry `0xb052E5EfC5ADEff1f21d48DEfb5169Cb394A1a73` and content resolver
+`0x7e75491ecfb04900EB05ee63CABA2B33900aABB5`. The deploy command verifies
 that profile before building. A successful upload against any other generation
 is not evidence that a Product host can resolve the candidate.
 
@@ -342,7 +376,7 @@ audio and cover CIDs resolve before generic public IPFS gateways catch up:
 
 ```txt
 VITE_PINATA_GATEWAY=https://gateway.pinata.cloud
-VITE_IPFS_READ_GATEWAYS=https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation,https://bulletin-kubo.tservices.es:9443
+VITE_IPFS_READ_GATEWAYS=https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation
 ```
 
 Do not make `https://devnet-ipfs.api.polkadotcommunity.foundation`, `ipfs.io`,
@@ -436,7 +470,7 @@ the reversible pilot plan, contract inventory, and optional aggregate pilot
 metrics. Optional pilot evidence must use schema v2 and bind the decision to
 the candidate git SHA, Product appVersion, `product-cdm`/`devnet` profile,
 published executable CID, capture time, outcome metrics, privacy flags,
-rollback, and join-count invariants. Pass the published 0.1.48 CDM CID with
+rollback, and join-count invariants. Pass the published 0.1.51 CDM CID with
 `--pilot-release-cid`; Product payment/key and room evidence must bind to that
 same CID. The command does not sign,
 deploy, contact participants, or treat missing live evidence as a pass.
@@ -447,12 +481,12 @@ gates pass, and the live CASH path remains blocked on a Product-confirmed
 CASH-to-runtime entitlement mechanism. A `fail` means the local boundary or an
 operator-supplied evidence file is unsafe and must block the release.
 
-Product releases 0.1.46 through 0.1.48 explicitly use `product-cdm` on `devnet` so
+Product releases 0.1.46 through 0.1.51 explicitly use `product-cdm` on `devnet` so
 Product account holders retain native tips and access payments. The Product
 build refuses an EVM-only profile; ordinary web still uses viem. Product SDK
 descriptors increase the bundle and Bulletin storage demand. The 0.1.45 viem
 publication regressed native tips by requesting an EVM wallet; it is historical
-evidence of that limitation. The current rollback artifact is 0.1.47, retaining
+evidence of that limitation. The current rollback artifact is 0.1.50, retaining
 the native Product profile. Validate native
 approval, exact account mapping and finalized receipt recovery on the installed
 Hosts after publication.
@@ -519,7 +553,7 @@ Product candidate** workflow accepts only an exact full commit SHA and a
 candidate with no mnemonic, signer, upload, or network write. The validation
 profile enables the Product CDM adapter, artist gifts, and the operator-only
 readiness panel. The release profile uses the tracked `product-cdm`/`devnet`
-settings; 0.1.48 must preserve that native payment path.
+settings; new releases must preserve that native payment path.
 
 ```bash
 gh workflow run deploy-frontend.yml \
@@ -811,7 +845,7 @@ Then verify in the Product host:
 6. The tracked Product profile uses the `product-cdm` writer on `devnet`.
    A debug build is useful for a future pilot candidate, but it creates a
    different executable CID. Evidence from it cannot validate the published
-   0.1.48 CID; keep those live gates blocked until observations are captured
+   0.1.51 CID; keep those live gates blocked until observations are captured
    from the exact release artifact. To prepare a new candidate with the debug
    panel, publish from a clean committed worktree and record its own CID:
 
@@ -931,7 +965,7 @@ npm run smoke:product-journey -- \
    host approval UX, or post-payment access evidence is missing, the
    `product-cdm` build must report **Payment included, access not verified**
    with the transaction hash instead of marking the track open.
-   The published 0.1.48 profile remains `product-cdm`/`devnet`; keep its
+   The published 0.1.51 profile remains `product-cdm`/`devnet`; keep its
    acceptance blocked until this native payment and read-back are observed.
 
    Product CASH is a separate future rail, not a replacement for this native
@@ -1014,7 +1048,7 @@ npm run smoke:product-journey -- \
    from the Product Web gateway. A Product Desktop room smoke must not be reused
    as Product Web evidence.
 
-   For the current 0.1.48 gate, use the published `product-cdm` executable CID
+   For the current 0.1.51 gate, use the published `product-cdm` executable CID
    for the release and capture host evidence from that same artifact. A debug
    build with a different CID cannot validate the published release. Run the
    aggregate readiness gate with one release identity:
@@ -1146,7 +1180,7 @@ active.
   produced - that observation is the evidence, and until it is captured the
   accepted set stays deliberately wide.
 - Contract writes use the shared runtime writer port, with `product-cdm` selected
-  for the tracked 0.1.48 Product deployment. The Product CDM/PAPI runtime adapter has its
+  for the tracked 0.1.51 Product deployment. The Product CDM/PAPI runtime adapter has its
   generated manifest, contract types, live resolver, signer-account mapping
   checks, Classic unlock write path, and W05 royalty claim write path. It still
   needs real host-signed transaction evidence before the current release can
@@ -1174,7 +1208,7 @@ active.
   catalog recovery but is not required for API startup.
 - Product contract mode (`VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm`) covers
   catalog reads and runtime write submissions inside the Product host. The
-  tracked 0.1.48 deployment uses this profile; installed-host payment, approval
+  tracked 0.1.51 deployment uses this profile; installed-host payment, approval
   UX, and post-payment read-back still need candidate-bound observations.
   Product payment history is still not exposed
   by the current Product contract handle API, so the full royalty settlement
