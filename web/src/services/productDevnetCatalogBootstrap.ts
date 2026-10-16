@@ -6,6 +6,104 @@ export const PRODUCT_DEVNET_BOOTSTRAP_PRODUCT_ID = 'dotify-test01.dot';
 export const PRODUCT_DEVNET_BOOTSTRAP_CATALOG: CatalogApiResponse = {
   items: [
     {
+      id: '0xB60e91CcAcD08B6cb0Ddb2E678F90791901e9338:0xecea2d0f6a92d7d802b24973565be53eb7040998f22edfb18fd25828040c4708',
+      hash: '0xecea2d0f6a92d7d802b24973565be53eb7040998f22edfb18fd25828040c4708',
+      runtimeAddress: '0xB60e91CcAcD08B6cb0Ddb2E678F90791901e9338',
+      artistAddress: '0xC3571714248588C6E19cDECe2778B75341b2c288',
+      tokenId: '10',
+      title: 'Le Singe Fou',
+      artist: 'Lord Ékomy Ndong ☥',
+      description:
+        "Cette chanson que j'ai écrite vous raconte comment les rivières, la faune, la flore et même les nuages pleurent depuis qu'un certain animal féroce a débarqué dans la forêt.\n\nC'est l'histoire du Signe Fou",
+      imageRef: 'ipfs://Qmc1s9HahFvSTuKk23KXpToF8PBaJraj5Re8qKMU1Ntxdq/cover/640.webp',
+      coverVariants: ['ipfs://Qmc1s9HahFvSTuKk23KXpToF8PBaJraj5Re8qKMU1Ntxdq/cover/640.webp'],
+      audioRef: 'dotify:enc:v2:key-v2:ipfs://QmRFWaiv5MRez2JjYFENoCW8gTn5UzxScFvPRNSh6ynr3S',
+      metadataRef: 'ipfs://Qmb1hwrBbiMg2VuU821UJ1ULxCYjSAiWSQqD3GZ4VnDzy4',
+      bulletinRef: '',
+      artistContractRef: 'dotify:self-certified:0xecea2d0f6a92d7d802b24973565be53eb7040998f22edfb18fd25828040c4708',
+      accessMode: 'free',
+      priceWei: '0',
+      priceDot: '0',
+      personhoodLevel: 'DIM1',
+      active: true,
+      encrypted: true,
+      royaltyBps: 10000,
+      royaltySplits: [
+        {
+          label: 'Primary recipient',
+          recipient: '0xC3571714248588C6E19cDECe2778B75341b2c288',
+          bps: 10000
+        }
+      ],
+      registeredAtBlock: 14314865,
+      sourceBlock: 14314865
+    },
+    {
+      id: '0xB210b0EE476C3FA4A23B3fA88DAb38C593c02b85:0x83da47b83547c2376d3902af72d8943652c42881bc5a9ac64d3478658c38dadd',
+      hash: '0x83da47b83547c2376d3902af72d8943652c42881bc5a9ac64d3478658c38dadd',
+      runtimeAddress: '0xB210b0EE476C3FA4A23B3fA88DAb38C593c02b85',
+      artistAddress: '0x7fb7225fffa4Bf7bEaD7d2ACfe0D401546D9d809',
+      tokenId: '2',
+      title: "Pygmées Song Bangnado _ M'Boloko",
+      artist: 'Black Panther',
+      description: "Gabon - Bangnado M'Boloko",
+      imageRef: 'ipfs://QmTLVfjjH9k8Y8PeDgz6kwidVWEnmKTjvYMbYrXSnowu6t',
+      coverVariants: ['ipfs://QmTLVfjjH9k8Y8PeDgz6kwidVWEnmKTjvYMbYrXSnowu6t'],
+      audioRef: 'dotify:enc:v2:key-v2:ipfs://Qmbiv97whLN1eHrE32bcEQ3mV3EgLuaAo51qF4MmpdCMVJ',
+      metadataRef: 'ipfs://QmUNewA4peBuxRwrhRHjk2UCmS6HUbUAc6QRF7thT4AQYV',
+      bulletinRef: '',
+      artistContractRef: 'dotify:self-certified:0x83da47b83547c2376d3902af72d8943652c42881bc5a9ac64d3478658c38dadd',
+      accessMode: 'classic',
+      priceWei: '4200000000000000000',
+      priceDot: '4.2',
+      personhoodLevel: 'DIM1',
+      active: true,
+      encrypted: true,
+      royaltyBps: 10000,
+      royaltySplits: [
+        {
+          label: 'Primary recipient',
+          recipient: '0x7fb7225fffa4Bf7bEaD7d2ACfe0D401546D9d809',
+          bps: 10000
+        }
+      ],
+      registeredAtBlock: 13811458,
+      sourceBlock: 13811458
+    },
+    {
+      id: '0xB60e91CcAcD08B6cb0Ddb2E678F90791901e9338:0xb372e43a1ac5dc087197ceefa351bc7b725cc4265d33131d8e543c4ec4fa4a0b',
+      hash: '0xb372e43a1ac5dc087197ceefa351bc7b725cc4265d33131d8e543c4ec4fa4a0b',
+      runtimeAddress: '0xB60e91CcAcD08B6cb0Ddb2E678F90791901e9338',
+      artistAddress: '0xC3571714248588C6E19cDECe2778B75341b2c288',
+      tokenId: '9',
+      title: 'Mon cerveau',
+      artist: 'Lord Ékomy Ndong ☥',
+      description:
+        'Durée: 04:22\nAuteur: Lord Ekomy Ndong☥\nCompositeur: Lord Ekomy Ndong ☥\nAlbum: Petit Mutant dans son coin\nGenre musical: Hip Hop/Rap\nAnnée: 2020\nCommentaire: MOVAIZHALEINE/zorbam Produxions/GABON',
+      imageRef: 'ipfs://QmR5Wob4FT475vdsRGEq5HKDx9aRjXZ8Djwq2ymnfRFcNj',
+      coverVariants: ['ipfs://QmR5Wob4FT475vdsRGEq5HKDx9aRjXZ8Djwq2ymnfRFcNj'],
+      audioRef: 'dotify:enc:v2:key-v2:ipfs://QmRBiNSEkKH6CUSoD7g7nHSnhTaJCbkdhcJXLwv7U8ybY9',
+      metadataRef: 'ipfs://Qmc4i7bKw38rUkutMpyY8ubdhe495GgDVAKEg17jEQ23gc',
+      bulletinRef: '',
+      artistContractRef: 'dotify:self-certified:0xb372e43a1ac5dc087197ceefa351bc7b725cc4265d33131d8e543c4ec4fa4a0b',
+      accessMode: 'classic',
+      priceWei: '7000000000000000000',
+      priceDot: '7',
+      personhoodLevel: 'DIM1',
+      active: true,
+      encrypted: true,
+      royaltyBps: 10000,
+      royaltySplits: [
+        {
+          label: 'Primary recipient',
+          recipient: '0xC3571714248588C6E19cDECe2778B75341b2c288',
+          bps: 10000
+        }
+      ],
+      registeredAtBlock: 13807168,
+      sourceBlock: 13807168
+    },
+    {
       id: '0xB210b0EE476C3FA4A23B3fA88DAb38C593c02b85:0x34c852decafab4884ccbf96ea4e4e8823a8b4b9a62d44f234f2d03b04159444b',
       hash: '0x34c852decafab4884ccbf96ea4e4e8823a8b4b9a62d44f234f2d03b04159444b',
       runtimeAddress: '0xB210b0EE476C3FA4A23B3fA88DAb38C593c02b85',
@@ -349,17 +447,17 @@ export const PRODUCT_DEVNET_BOOTSTRAP_CATALOG: CatalogApiResponse = {
       artistAddress: '0xC3571714248588C6E19cDECe2778B75341b2c288',
       runtimeAddress: '0xB60e91CcAcD08B6cb0Ddb2E678F90791901e9338',
       name: 'Lord Ékomy Ndong ☥',
-      releaseCount: 8,
-      activeReleaseCount: 8,
-      latestReleaseBlock: 13133435
+      releaseCount: 10,
+      activeReleaseCount: 10,
+      latestReleaseBlock: 14314865
     },
     {
       artistAddress: '0x7fb7225fffa4Bf7bEaD7d2ACfe0D401546D9d809',
       runtimeAddress: '0xB210b0EE476C3FA4A23B3fA88DAb38C593c02b85',
       name: 'Black Panther',
-      releaseCount: 1,
-      activeReleaseCount: 1,
-      latestReleaseBlock: 13382756
+      releaseCount: 2,
+      activeReleaseCount: 2,
+      latestReleaseBlock: 13811458
     },
     {
       artistAddress: '0xcE104CADBbF6E5DB3779F5E0921753Ff1e7d2de2',
@@ -373,14 +471,14 @@ export const PRODUCT_DEVNET_BOOTSTRAP_CATALOG: CatalogApiResponse = {
   pagination: {
     limit: 100,
     nextCursor: null,
-    total: 10
+    total: 13
   },
   meta: {
     state: 'stale-cache',
     cacheAvailable: true,
-    indexedAt: '2026-09-20T11:21:01.496Z',
-    lastIndexedBlock: 13480633,
-    chainHeadBlock: 13480635,
+    indexedAt: '2026-10-15T11:51:25.163Z',
+    lastIndexedBlock: 14470697,
+    chainHeadBlock: 14470699,
     blockLag: 2,
     staleAfterMs: 60000,
     lastErrorCode: null
