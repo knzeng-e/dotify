@@ -249,6 +249,7 @@ test('cover galaxies show exact live people and distinguish my room from an iden
     await expect(guest.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20_000 });
     await host.getByRole('button', { name: 'Keep listening and browse', exact: true }).click();
     const radar = await rooms(host);
+    await host.setViewportSize({ width: 1440, height: 1000 });
     const own = radar.locator('.radar-room-dot[data-own="true"]');
     const other = radar.locator('.radar-room-dot[data-own="false"]');
     await expect(own).toContainText('Your room', { timeout: 25_000 });
@@ -258,7 +259,27 @@ test('cover galaxies show exact live people and distinguish my room from an iden
     await expect(own.locator('.radar-room-orbit i')).toHaveCount(2);
     await expect(other.locator('.radar-room-orbit i')).toHaveCount(1);
     await expect(own.locator('.radar-room-core img')).toBeVisible();
+    await radar.getByTestId('room-galaxy').scrollIntoViewIfNeeded();
+    await expect(own.locator('.radar-room-artist')).toBeVisible();
+    await expect(own.getByRole('tooltip', { includeHidden: true })).toBeHidden();
+    await expect(own).toHaveAccessibleDescription(/Radar host.*2 listening.*Worldwide/);
+    await own.hover();
+    const details = own.getByRole('tooltip');
+    await expect(details).toContainText('2 listening');
     await expect(own.locator('.radar-room-host .lucide-globe')).toBeVisible();
+    await details.hover({ timeout: 10_000 });
+    await expect(details).toBeVisible();
+    await host.keyboard.press('Escape');
+    await expect(details).toBeHidden();
+    await radar.getByRole('heading', { name: 'Room galaxy' }).hover();
+    await host.keyboard.press('Tab');
+    await own.focus();
+    await expect(details).toBeVisible();
+    await radar.locator('.radar-stage').screenshot({ path: testInfo.outputPath('cover-galaxy-details.png') });
+    await host.keyboard.press('Escape');
+    await expect(details).toBeHidden();
+    await expect(own).toBeFocused();
+    await radar.getByRole('button', { name: 'Search settings' }).focus();
     // The center uses exactly the same mark geometry as the top-bar logo.
     const orbitShapes = (selector: string) => host.locator(selector).evaluate(element => element.innerHTML);
     expect(await orbitShapes('.radar-logo .brand-mark-orbit')).toBe(await orbitShapes('.topbar .brand-mark-orbit'));

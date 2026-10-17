@@ -11,10 +11,16 @@ activity that excluded private/out-of-range rooms. Refs #274 and #257.
   Presence includes the host; it is not unique people or measured listening.
   Decorative orbit points match ordinary room capacity, bounded at 128 for
   unusually large operator-configured rooms; the numeric label remains exact.
-- The center reuses the header's actual SVG mark. Globe/radar icons accompany
-  scope metadata. The own-room badge uses the authoritative active room ID and
+- The center reuses the header's actual SVG mark at the same size, rendered in
+  cyan neon. At rest, room labels show just the track title and artist. Hover
+  or keyboard focus reveals full title/artist, host, exact presence and scope/
+  distance in a superimposed card; Escape dismisses it without moving focus.
+  Touch opens the existing room preview. Cards align inward/upward at outer
+  slots and can cross the decorative circle without clipping. Globe/radar
+  icons accompany scope metadata. The own-room badge uses the active room ID and
   returns to playback without rejoining. Eight illustrative radar slots retain
-  stable positions; the full list retains all returned rooms.
+  stable positions; the full list retains all returned rooms. Above four rooms,
+  smaller cover planets leave space for the two-line labels on mobile.
 - A live sweep runs between scan acknowledgements, respects reduced motion and
   pauses when discovery/background state requires it. It is an illustration of
   the active discovery subscription, not a measured physical sweep.
@@ -53,6 +59,17 @@ activity that excluded private/out-of-range rooms. Refs #274 and #257.
 Implemented frontend response: distinguish a denied location from a Host that grants but cannot return a fix; retain the chosen host visibility while marking it unavailable; offer explicit Find Nearby in browser using the existing Host navigateTo API and configured public app URL. Copy says hosting/account remain in Product. Only the public route/room ID transfers, never session/host tokens or location. No automatic handoff, IP geolocation, or fake/coarse fallback location. Native location inside these builds remains unverified/unfixed until the host provides a working native coordinate path.
 
 ## Validation
+
+Visual-refinement follow-up to `7154fb1`: all six RoomRadar unit tests, Web build,
+targeted ESLint and formatting pass. The real two-room Chromium scenario passes
+with hover transfer, focus, Escape, accessible descriptions, axe, exact counts
+and mobile preview/return. An isolated eight-room fixture with long title/artist
+strings was inspected at 390 and 1440 px: no label/neighbor-cover intersections,
+no horizontal overflow, and all 16 animated node-to-tooltip transfers pass.
+The unchanged mark geometry is checked against the header. Screenshots and
+geometry/accessibility evidence: `/private/tmp/dotify-radar-refinement/`.
+The broader validation below records the preceding implementation; backend
+behavior is unchanged by this visual refinement.
 
 - Full frontend unit suite: **986 passed** across 125 files. It covers stable
   visibility intent, permission/fix failures, stale callbacks, schema negotiation,

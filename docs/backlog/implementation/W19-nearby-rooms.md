@@ -22,6 +22,9 @@ of #274 and #257. Base: tested `dev` `3b0bb68`.
   orbiting listener points. Keep public scope as a small planet/radar indicator,
   use the same Dotify logo as the header at the centre, and mark the host's own
   room with a direct return action. Layout remains illustrative, not geographic.
+  The visual refinement keeps the exact mark geometry/size in cyan neon. At
+  rest, room labels show only title and artist; full metadata appears on hover
+  or keyboard focus, with the existing touch preview and own-room badge kept.
 - Keep the sweep visible throughout active discovery; short HTTP/socket replies
   must not make it appear broken. Reduced-motion, paused/error and background
   states must remain honest.

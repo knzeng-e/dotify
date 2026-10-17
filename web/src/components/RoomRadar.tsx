@@ -19,14 +19,14 @@ export function roomDistanceLabel(room: Pick<DiscoveredRoom, 'scope' | 'distance
 const MAX_ORBIT_POINTS = 128;
 
 const positions = [
-  [25, 27],
-  [73, 30],
-  [24, 69],
-  [73, 72],
-  [49, 16],
-  [84, 49],
-  [49, 84],
-  [14, 48]
+  [25, 25],
+  [75, 25],
+  [25, 75],
+  [75, 75],
+  [50, 12],
+  [88, 50],
+  [50, 88],
+  [12, 50]
 ];
 
 export function RoomRadar({
@@ -46,6 +46,18 @@ export function RoomRadar({
   const [settings, setSettings] = useState(false);
   const [draftRadius, setDraftRadius] = useState(discovery.radius);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [focusedId, setFocusedId] = useState<string | null>(null);
+  const [dismissedDetailsId, setDismissedDetailsId] = useState<string | null>(null);
+  const detailsId = hoveredId ?? focusedId;
+  useEffect(() => {
+    if (!detailsId || detailsId === dismissedDetailsId) return;
+    const dismiss = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setDismissedDetailsId(detailsId);
+    };
+    document.addEventListener('keydown', dismiss);
+    return () => document.removeEventListener('keydown', dismiss);
+  }, [detailsId, dismissedDetailsId]);
   const [listOnly, setListOnly] = useState(false);
   const { nearby, worldwide, rooms, paused, radius } = discovery;
   const [foreground, setForeground] = useState(() => typeof document === 'undefined' || document.visibilityState === 'visible');
@@ -153,6 +165,7 @@ export function RoomRadar({
               aria-label='Room galaxy. Positions are illustrative, not a map.'
               data-scanning={scanning}
               data-live={sweeping}
+              data-crowded={slots.size > 4}
               data-testid='room-galaxy'
             >
               <div className='radar-grid' aria-hidden='true' />
@@ -169,9 +182,12 @@ export function RoomRadar({
                   const presence = discoveryPresenceCount(room);
                   const own = room.roomId === ownRoomId;
                   const aura = auraForTrack(room);
+                  const [x, y] = positions[slots.get(room.roomId)!];
+                  const showDetails = detailsId === room.roomId && dismissedDetailsId !== room.roomId;
+                  const tooltipId = `${id}-details-${room.roomId}`;
                   // One point per person at normal room capacity (24 listeners).
                   // Bound decorative DOM if an operator raises that capacity; the
-                  // exact count always remains visible in the label.
+                  // exact count remains available in the details and room list.
                   const points = Math.min(presence ?? 0, MAX_ORBIT_POINTS);
                   return (
                     <button
@@ -179,10 +195,13 @@ export function RoomRadar({
                       className='radar-room-dot'
                       data-worldwide={room.scope === 'worldwide'}
                       data-own={own}
+                      data-details-open={showDetails}
+                      data-details-side={x < 30 ? 'left' : x > 70 ? 'right' : 'center'}
+                      data-details-above={y > 50}
                       style={
                         {
-                          left: `${positions[slots.get(room.roomId)!][0]}%`,
-                          top: `${positions[slots.get(room.roomId)!][1]}%`,
+                          left: `${x}%`,
+                          top: `${y}%`,
                           '--dot-a': aura.a,
                           '--dot-b': aura.b,
                           '--dot-accent': aura.accent,
@@ -190,8 +209,26 @@ export function RoomRadar({
                         } as CSSProperties
                       }
                       type='button'
-                      onClick={() => setSelectedId(room.roomId)}
-                      aria-label={`Inspect ${own ? 'your room: ' : ''}${room.title}, ${roomDistanceLabel(room)}, ${room.hostName}, ${discoveryPresenceLabel(room)}`}
+                      onPointerEnter={event => {
+                        if (event.pointerType === 'touch') return;
+                        setHoveredId(room.roomId);
+                        setDismissedDetailsId(null);
+                      }}
+                      onPointerLeave={() => setHoveredId(null)}
+                      onFocus={event => {
+                        if (!event.currentTarget.matches(':focus-visible')) return;
+                        setFocusedId(room.roomId);
+                        setDismissedDetailsId(null);
+                      }}
+                      onBlur={() => setFocusedId(null)}
+                      onClick={() => {
+                        setHoveredId(null);
+                        setFocusedId(null);
+                        setSelectedId(room.roomId);
+                      }}
+                      aria-label={`Inspect ${own ? 'your room: ' : ''}${room.title}, ${room.artist}`}
+                      aria-describedby={tooltipId}
+                      aria-haspopup='dialog'
                     >
                       <span className='radar-room-sphere' aria-hidden='true'>
                         <span className='radar-room-halo' />
@@ -215,12 +252,21 @@ export function RoomRadar({
                         {own && <span className='radar-own-badge'>Your room</span>}
                       </span>
                       <strong>{room.title}</strong>
-                      <span className='radar-room-host'>
-                        <RoomScopeIcon worldwide={room.scope === 'worldwide'} />
-                        {room.hostName}
+                      <span className='radar-room-artist'>{room.artist}</span>
+                      <span className='radar-room-details' hidden={!showDetails}>
+                        <strong aria-hidden='true'>{room.title}</strong>
+                        <span className='radar-details-artist' aria-hidden='true'>
+                          {room.artist}
+                        </span>
+                        <span className='radar-room-metadata' id={tooltipId} role='tooltip'>
+                          <span className='radar-room-host'>
+                            <RoomScopeIcon worldwide={room.scope === 'worldwide'} />
+                            {room.hostName}
+                          </span>
+                          <span className='radar-details-presence'>{discoveryPresenceLabel(room)}</span>
+                          <span className='radar-room-distance'>{roomDistanceLabel(room)}</span>
+                        </span>
                       </span>
-                      <small>{discoveryPresenceLabel(room)}</small>
-                      <span className='radar-room-distance'>{roomDistanceLabel(room)}</span>
                     </button>
                   );
                 })}
