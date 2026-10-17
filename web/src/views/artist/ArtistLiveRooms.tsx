@@ -86,13 +86,13 @@ export function ArtistLiveRooms({ tracks, runtime }: { tracks: CatalogTrack[]; r
       </div>
       <div className='artist-live-metrics'>
         <p>
-          <strong>{known ? activity.snapshot!.roomCount : 'Not available'}</strong>
+          <strong data-unavailable={!known}>{known ? activity.snapshot!.roomCount : 'Not available'}</strong>
           <span>
             <Radio size={16} /> rooms with your music
           </span>
         </p>
         <p>
-          <strong>{known ? activity.snapshot!.connectedCount : 'Not available'}</strong>
+          <strong data-unavailable={!known}>{known ? activity.snapshot!.connectedCount : 'Not available'}</strong>
           <span>
             <Users size={16} /> connected sessions
           </span>
