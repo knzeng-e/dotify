@@ -5,7 +5,7 @@ async function hostRoom(page: Page) {
   await page.goto('/?e2eRoom=public');
   await page.getByRole('button', { name: 'Open a room', exact: true }).click();
   await page.getByRole('button', { name: 'Select E2E Public Room Track' }).click();
-  await page.getByLabel('Your name in the room').fill('Room host');
+  await page.getByLabel('Your name or nickname').fill('Room host');
   await page.getByRole('button', { name: 'Open the room', exact: true }).click();
   await expect(page.getByTestId('room-code')).toHaveText(/[A-Z0-9]{4,}/);
   return (await page.getByTestId('room-code').innerText()).trim();
@@ -25,7 +25,7 @@ test('chat survives busy Product-style fetch polling alongside typing and playba
       await route.continue();
     });
     await guest.goto(`/#/rooms/${roomId}`);
-    await guest.getByLabel('Your name in the room').fill('Polling guest');
+    await guest.getByLabel('Your name or nickname').fill('Polling guest');
     await guest.getByRole('button', { name: 'Join and listen' }).click();
     await expect(guest.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20000 });
     for (let index = 0; index < 3; index++) {
@@ -49,7 +49,7 @@ test('typing, mentions, replies, pins and muted activity coexist with room playb
   const guest = await context.newPage();
   try {
     await guest.goto(`/#/rooms/${roomId}`);
-    await guest.getByLabel('Your name in the room').fill('Mina');
+    await guest.getByLabel('Your name or nickname').fill('Mina');
     await guest.getByRole('button', { name: 'Join and listen' }).click();
     await expect(guest.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20000 });
     await guest.getByLabel('Message the room').fill('Writing a thought');
@@ -141,7 +141,7 @@ test('artist can use a private invitation and choose whether to announce their v
     await expect(visit).toContainText(room.roomId);
     const announce = page.getByRole('checkbox', { name: /Announce my presence/ });
     await expect(announce).not.toBeChecked();
-    await page.getByLabel('Your room name', { exact: true }).fill('Ada quietly');
+    await page.getByLabel('Your name or nickname', { exact: true }).fill('Ada quietly');
     await page.route('**/api/auth/session', route =>
       route.fulfill({
         status: 503,

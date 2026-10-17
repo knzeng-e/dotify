@@ -40,6 +40,27 @@ async function setup(t) {
   return { server, port, host, roomId, hostResumeToken, connect };
 }
 
+test('now playing ignores recaptures, canonical attribution and null recovery, but announces real changes', async t => {
+  const { host, roomId, server } = await setup(t);
+  const room = server.rooms.get(roomId);
+  // The acknowledged pin request is an ordered barrier on this socket.
+  const update = async value => {
+    host.emit('room:track', value);
+    await ack(host, 'room:pin', { id: null });
+  };
+  await update({ ...track, runtimeAddress: undefined });
+  await update(null);
+  await update(track);
+  assert.equal((room.activity ?? []).filter(event => event.kind === 'track').length, 0);
+  const next = { ...track, hash: `0x${'55'.repeat(32)}`, title: 'Next' };
+  await update(next);
+  await update({ ...next, duration: 300, updatedAt: Date.now(), runtimeAddress: undefined });
+  await update(track);
+  const events = room.activity.filter(event => event.kind === 'track');
+  assert.equal(events.length, 2);
+  assert.ok(events.every(event => !/[—–]/.test(event.text)));
+});
+
 test('typing is admitted, attributed, room-only, expires and never carries drafts', async t => {
   const { host, roomId, connect, port } = await setup(t);
   const guest = await connect();

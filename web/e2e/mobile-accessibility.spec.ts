@@ -59,7 +59,7 @@ for (const width of [390, 1440]) {
             await expect(page.getByRole('dialog')).toBeVisible();
           } else if (['chat', 'people', 'requests', 'share'].includes(surface)) {
             await page.getByRole('button', { name: 'Open a room', exact: true }).click();
-            await page.getByLabel('Your name in the room').fill('Accessibility host');
+            await page.getByLabel('Your name or nickname').fill('Accessibility host');
             await page.getByRole('button', { name: 'Open the room', exact: true }).click();
             await expect(page.getByTestId('room-code')).toHaveText(/[A-Z0-9]{4,}/);
             if (surface === 'share') await page.getByRole('button', { name: 'Share room', exact: true }).click();
@@ -94,7 +94,7 @@ for (const width of [390, 1440]) {
       await expect(page.locator('html')).toHaveAttribute('data-aura-source', 'cover');
       if (surface === 'room') {
         await page.getByRole('button', { name: 'Open a room', exact: true }).click();
-        await page.getByLabel('Your name in the room').fill('Contrast host');
+        await page.getByLabel('Your name or nickname').fill('Contrast host');
         await page.getByRole('button', { name: 'Open the room', exact: true }).click();
         await expect(page.getByTestId('room-code')).toHaveText(/[A-Z0-9]{4,}/);
       }

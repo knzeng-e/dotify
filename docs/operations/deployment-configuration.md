@@ -1,5 +1,48 @@
 # Deployment Configuration Runbook
 
+## Playback and discovery stability follow-up — 2026-10-17
+
+Deploy the API and signaling before the matching Web/Product clients. The API
+adds `GET /api/media/:cid` as a bounded ciphertext read-through; the client uses
+the existing `VITE_DOTIFY_API_URL` and keeps direct IPFS readers as fallbacks.
+There is no new secret, environment variable, origin, volume or paid service.
+Keep the API single-writer topology. This is a small process-local recovery
+cache, not the multi-region edge delivery planned in W33.
+
+The route accepts only the exact encrypted CID of an active release in the
+current catalog. Plain audio, arbitrary URLs, asset paths, query parameters,
+suffix/open/multi-range requests and unknown CIDs are refused. It sends no
+credentials upstream and never accesses a content key. CORS uses the existing
+origin allowlist and exposes `Content-Range` and `Accept-Ranges`. Decryption,
+AES-GCM authentication and access checks stay with their existing owners.
+
+Limits: two cold upstream reads at once, coalesced identical reads, a 64 MiB /
+128-entry encrypted memory cache, 64 MiB per complete object, 2 MiB per range,
+12 seconds per upstream attempt, three fixed gateways and a separate 64 MiB
+budget for responses still being sent to slow receivers. HTTP 503 with
+`Retry-After` protects overload; the client can try direct readers. Complete
+DAV2 bodies are structurally validated before caching; range boundaries and
+lengths are checked. Failures are not cached. Cache clearing is an API restart,
+which must follow the normal active-room/session prechecks. HTTP responses use
+`no-store`, since catalog eligibility is checked on every request, including
+internal cache hits. The cache contains no keys, clear audio, identity or
+location. Warmth is lost at restart; regional latency and load acceptance remain
+W33/W30 gates. No speed or global availability guarantee follows from this patch.
+
+Nearby no longer revokes a valid announcement after a transient refresh error.
+It retries a fresh fix within the existing lease; it cannot extend the lease
+with old coordinates. Explicit opt-out, denial, backgrounding and disconnect
+still stop publication. Search results keep only their original deadlines.
+Metadata-only capture updates do not invalidate discovery responses or duplicate
+chat track announcements. True release changes still do both.
+
+Rollback is the preceding client and API/signaling images, preserving the v4
+privacy contract and stable API session epoch. Before release, verify the API
+with Range and full ciphertext reads, rejected unregistered/plain refs, allowed
+CORS origins, cold/warm and overloaded behavior. Then verify automatic recovery
+and join UX in Web and installed Product Hosts. Browser fixtures do not certify
+native geolocation or background audio.
+
 ## Current published Product release — 0.1.53
 
 Product `[0, 1, 53]` is published from source `83512f708c34304338e6a70c599d38027a9bf68c` at executable/root CID
@@ -2100,9 +2143,10 @@ activity reuses `SIGNAL_CONTRIBUTION_API_URL`, chain and directory configuration
 and the existing Dotify session. Keep one signaling worker. Use the existing
 active-room drain/precheck procedure before rollout.
 
-The host's chosen mode is now separate from its network lease. Backgrounding or
-network/location errors may remove live visibility without resetting the chosen
-mode; foreground recovery rechecks permission and renews the same scope. Explicit
+The host's chosen mode is now separate from its network lease. Backgrounding,
+disconnect or lease expiry may remove live visibility without resetting the chosen
+mode. Transient refresh errors retain only the still-valid lease; foreground
+recovery rechecks permission and renews the same scope. Explicit
 Link only cancels renewal and preserves the unacknowledged-removal warning until
 confirmed. The client never stores location history or publishes while hidden.
 

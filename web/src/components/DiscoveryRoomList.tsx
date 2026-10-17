@@ -43,7 +43,11 @@ export function DiscoveryRoomList({ session, results, label, joining, onJoin, on
             </h3>
             <p>{room.artist}</p>
             <span className='discovery-distance'>
-              {room.scope === 'worldwide' || room.distanceBand === null ? 'Worldwide' : room.distanceBand ? `≈ ${room.distanceBand}` : 'Nearby'}
+              {room.scope === 'worldwide' || room.distanceBand === null
+                ? 'Worldwide'
+                : room.distanceBand
+                  ? `≈ ${room.distanceBand.replace(/\u2013/g, '-')}`
+                  : 'Nearby'}
             </span>
           </div>
           <button

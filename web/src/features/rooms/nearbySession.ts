@@ -62,6 +62,7 @@ export class NearbySession {
   private expiry: ReturnType<typeof setTimeout> | undefined;
   private resultExpiry: ReturnType<typeof setTimeout> | undefined;
   private resultDeadlines = new Map<string, number>();
+  private leaseDeadline = 0;
   private permission: PermissionStatus | null = null;
   private state = initial;
   private listeners = new Set<(state: NearbyState) => void>();
@@ -127,6 +128,7 @@ export class NearbySession {
     clearTimeout(this.cooldownTimer);
     clearTimeout(this.expiry);
     clearTimeout(this.resultExpiry);
+    this.leaseDeadline = 0;
     this.resultDeadlines.clear();
     if (this.permission) this.permission.onchange = null;
     this.permission = null;
@@ -168,6 +170,18 @@ export class NearbySession {
       ['HOST_LOCATION_UNAVAILABLE', 'HOST_TIMEOUT'].includes(code) ||
       (acquiringLocation && this.reauthorizeOnRefresh && ['UNAVAILABLE', 'TIMEOUT'].includes(code));
     if (hostLocationFailed) message = 'Your Polkadot app could not return a location. Continue in your browser for Nearby, or explore worldwide rooms here.';
+    const transient = ['TIMEOUT', 'INACCURATE', 'UNAVAILABLE', 'DISCONNECTED', 'RATE_LIMITED'].includes(code);
+    if (transient && !hostLocationFailed && this.source && this.env.visible() && this.port.connected && this.leaseDeadline > performance.now()) {
+      // A failed renewal is not opt-out. Keep only the still-valid server
+      // lease/cards, never renew using an old coordinate, and retry a fresh fix.
+      // The existing expiry timers remain authoritative if recovery fails.
+      this.set({ ...this.state, message: this.host ? 'Still visible. Retrying the connection…' : 'Updating rooms. Retrying the connection…' });
+      clearTimeout(this.refresh);
+      const rev = this.revision;
+      const delay = code === 'RATE_LIMITED' ? 60_000 : this.host ? 5000 : Math.max(10_000, this.nextSearchAt - Date.now());
+      this.refresh = setTimeout(() => void this.update(rev), delay);
+      return;
+    }
     this.permissionBlocked = code === 'DENIED' || code === 'CONFIRM_LOCATION';
     this.suspend(message, phase);
     this.hostLocationFailed = hostLocationFailed;
@@ -342,6 +356,7 @@ export class NearbySession {
       // The response owns the snapshot lease; each room owns only its card.
       // A short-lived room must not force a new Host permission/location cycle.
       const remaining = (reply.expiresInMs ?? 0) - (performance.now() - requestedAt);
+      this.leaseDeadline = performance.now() + Math.max(0, remaining);
       const snapshotOnly = this.deviceSnapshotOnly;
       this.expiry = setTimeout(
         () => {

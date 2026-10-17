@@ -62,7 +62,7 @@ it('stops the sweep with no active discovery but keeps worldwide live through a 
 it('does not invent exact people or orbit points from a legacy presence band', () => {
   const legacy = { ...room, listenerCount: undefined, distanceBand: undefined };
   const html = renderToStaticMarkup(<RoomRadar discovery={discovery('active', [legacy])} onJoin={vi.fn()} joining={false} />);
-  expect(html).toContain('4–9 here');
+  expect(html).toContain('4-9 here');
   expect(html).not.toContain('<i style=');
   expect(html).not.toContain('Your room');
   expect(html).toContain('class="discovery-distance">Worldwide');

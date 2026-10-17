@@ -20,8 +20,9 @@ describe('room catalog suggestions', () => {
   });
   it('keeps selected request identity after signaling normalizes catalog whitespace', () => {
     const one = track('one', 'Mon\n  cerveau', 'Lord\tÉkomy');
-    expect(roomTrackRequestText(one)).toBe('Mon cerveau — Lord Ékomy');
-    expect(resolveRequestedTrack([one], 'Mon cerveau — Lord Ékomy')).toBe(one);
+    expect(roomTrackRequestText(one)).toBe('Mon cerveau · Lord Ékomy');
+    expect(resolveRequestedTrack([one], 'Mon cerveau · Lord Ékomy')).toBe(one);
+    expect(resolveRequestedTrack([one], 'Mon cerveau \u2014 Lord Ékomy')).toBe(one);
   });
 });
 

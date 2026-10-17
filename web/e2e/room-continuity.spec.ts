@@ -54,13 +54,13 @@ for (const capture of ['standard', 'without-native-api']) {
       await host.getByRole('button', { name: 'Open a room', exact: true }).click();
       await host.getByRole('button', { name: 'Select E2E Public Room Track', exact: true }).click();
       const hostName = `Continuity ${capture}`;
-      await host.getByLabel('Your name in the room').fill(hostName);
+      await host.getByLabel('Your name or nickname').fill(hostName);
       await host.getByRole('button', { name: 'Open the room', exact: true }).click();
       const code = host.getByTestId('room-code');
       await expect(code).toHaveText(/[A-Z0-9]{4,}/);
       const roomId = (await code.textContent())!.trim();
       await guest.goto(`/#/rooms/${roomId}`);
-      await guest.getByLabel('Your name in the room').fill('Continuous listener');
+      await guest.getByLabel('Your name or nickname').fill('Continuous listener');
       await guest.getByRole('button', { name: 'Join and listen', exact: true }).click();
       await expect(guest.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20_000 });
       await guest.evaluate(async () => {

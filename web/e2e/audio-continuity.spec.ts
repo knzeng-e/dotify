@@ -53,6 +53,7 @@ function fixture(digit: string) {
 }
 
 type Fault =
+  | 'relay'
   | 'none'
   | 'retry'
   | 'fallback'
@@ -88,7 +89,7 @@ async function setup(page: Page, fault: Fault = 'none', holdRecovery = false) {
       });
     }
     if (url.startsWith('http://rpc.audio.test')) return route.fulfill({ json: { jsonrpc: '2.0', id: request.postDataJSON().id, result: '0x190f1b41' } });
-    const match = /\/ipfs\/continuity-([ab])/.exec(url);
+    const match = /\/ipfs\/continuity-([ab])/.exec(url) ?? /\/api\/media\/Qm([ab])\1{43}$/.exec(url);
     if (!match) return route.fulfill({ status: 503, body: 'No live network in media regression tests' });
     const name = match[1] as 'a' | 'b',
       item = media[name];
@@ -127,7 +128,7 @@ async function setup(page: Page, fault: Fault = 'none', holdRecovery = false) {
       headers: { 'content-range': `bytes ${start}-${end}/${item.bytes.length}`, 'content-type': 'application/octet-stream' }
     });
   });
-  await page.goto('/e2e/fixtures/audio-continuity.html');
+  await page.goto(`/e2e/fixtures/audio-continuity.html${fault === 'relay' ? '?mediaRelay=1' : ''}`);
   await page.evaluate(() => {
     Reflect.set(window, 'continuityEvents', []);
     document.addEventListener(
@@ -158,6 +159,14 @@ test('a transient 503 retries the same segment without replacing the player', as
   await expect.poll(probe.attempts).toBe(2);
   await expect(page.getByTestId('state')).toHaveAttribute('data-generation', '1');
   expect(probe.requests.some(request => request.endsWith('full'))).toBe(false);
+});
+
+test('the API relay provides real authenticated audio while direct public gateways are unavailable', async ({ page }) => {
+  const probe = await setup(page, 'relay');
+  await playing(page);
+  expect(probe.requests.length).toBeGreaterThan(0);
+  expect(probe.keyRequests()).toBe(1);
+  await expect(page.getByTestId('state')).toHaveAttribute('data-generation', '1');
 });
 
 test('full-file recovery resumes the media clock before any replacement playing event', async ({ page }) => {

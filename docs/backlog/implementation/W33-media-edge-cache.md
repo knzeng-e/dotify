@@ -18,6 +18,12 @@ Implement **W33** only. Read `AGENTS.md`, `docs/backlog/implementation/common.md
 
 ## Outcome
 
+The 2026-10-17 owner-feedback stabilization adds a bounded API ciphertext
+read-through as an interim recovery path. See
+[W08/W19 evidence](evidence/W08-W19-stability-2026-10-17.md). It does not complete
+this sequence's provider decision, multi-region edge, pre-warming or latency
+acceptance. Retain the remaining scope below.
+
 1. **Decision record.** Compare at least two options (for example Cloudflare or Bunny in front of a dedicated gateway, versus a dedicated Pinata gateway alone) on latency from three regions, cost, range support, cache control, and operational burden. Choose one.
 2. **Read-through cache.** Media objects are content-addressed and encrypted, so the edge caches `/ipfs/<cid>/...` as immutable. The cache never sees keys or plaintext and cannot serve different bytes for a CID without failing authentication in the client.
 3. **Pre-warming.** After publication, the API requests the first segments (or first DAV2 chunks) through the edge.

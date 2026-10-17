@@ -87,6 +87,13 @@ describe('getGatewayUrlsForAssetRef', () => {
 });
 
 describe('getAudioGatewayUrls', () => {
+  it('uses the API ciphertext relay first and keeps independent direct readers as fallback', async () => {
+    const { getAudioGatewayUrls, getAudioFallbackGatewayUrls } = await loadPinataService({ VITE_DOTIFY_API_URL: 'https://api.example/api' });
+    expect(getAudioGatewayUrls('QmAudioCid')).toEqual(['https://api.example/api/media/QmAudioCid', 'https://gateway.pinata.cloud/ipfs/QmAudioCid']);
+    expect(getAudioFallbackGatewayUrls('QmAudioCid')[0]).toBe('https://api.example/api/media/QmAudioCid');
+    expect(getAudioFallbackGatewayUrls('QmAudioCid')).toContain('https://ipfs.io/ipfs/QmAudioCid');
+    expect(getAudioGatewayUrls('cid/../../other')).not.toContain('https://api.example/api/media/cid/../../other');
+  });
   it('uses the Pinata gateway for browser audio byte reads by default', async () => {
     const { getAudioGatewayUrls } = await loadPinataService();
 

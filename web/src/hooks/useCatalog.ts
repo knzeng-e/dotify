@@ -1147,6 +1147,12 @@ export function useCatalog(deps: UseCatalogDeps) {
   async function fetchAndDecryptAudioV2(context: AudioV2StartupContext, key: Uint8Array): Promise<string> {
     try {
       const parsed = await fetchAudioV2Header(context);
+      if (!canStreamAudioV2WithMse(parsed.header)) {
+        // Complete-file playback is the normal compatibility path for this
+        // container/browser, not a streaming error requiring user intervention.
+        publishAudioV2StartupMetric(context, { phase: 'fallback', detail: 'Complete-file playback for this media type.' });
+        return fetchAndDecryptAudioV2Blob(context.cid, key, context.signal);
+      }
       return createAudioV2MseSource(context, parsed, key);
     } catch (streamError) {
       if (isAbortError(streamError) || !isAudioV2ContextActive(context)) {

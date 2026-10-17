@@ -15,6 +15,7 @@ import { keyRoutes } from './routes/keys.js';
 import { turnRoutes } from './routes/turn.js';
 import { uploadRoutes } from './routes/uploads.js';
 import { createCatalogRoutes } from './routes/catalog.js';
+import { createMediaRoutes } from './routes/media.js';
 import { NativeContributionLedger } from './services/nativeContributionLedger.js';
 import { createContributionHistoryRoutes } from './routes/contributionHistory.js';
 import { createNativeReceiptRoutes } from './routes/nativeReceipts.js';
@@ -89,7 +90,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   await app.register(cors, {
     origin: options.apiOrigins ?? config.API_ORIGINS,
     methods: ['GET', 'POST', 'OPTIONS'],
-    exposedHeaders: ['x-request-id', 'etag', 'x-catalog-state', 'x-catalog-block-lag']
+    exposedHeaders: ['x-request-id', 'etag', 'x-catalog-state', 'x-catalog-block-lag', 'content-range', 'accept-ranges']
   });
 
   // Multipart — required by upload routes. Register before routes.
@@ -158,6 +159,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     catalog.stop();
   });
   await app.register(createCatalogRoutes({ catalog }));
+  await app.register(createMediaRoutes({ catalog }));
 
   return app;
 }

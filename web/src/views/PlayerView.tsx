@@ -838,7 +838,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
                 }}
               >
                 <label className='create-room-label' htmlFor='room-display-name'>
-                  Your room name
+                  Your name or nickname
                 </label>
                 <div className='room-name-row'>
                   <input
