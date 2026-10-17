@@ -10,6 +10,10 @@ for separately identified API/signaling images, Web verification, finalized publ
 read-back and remaining device checks. Keep v3 privacy-safe signaling on client rollback.
 The API now has a stable server-only `SESSION_EPOCH`; content-key secrets were preserved.
 Netlify production follows `dev`, as observed in the hosted dashboard during this rollout.
+The Web identities in the dated record apply to that observation, not every
+later `dev` build. Each merge requires a fresh served-entry SHA/config-digest
+check before candidate-bound acceptance; record that observation in the merged
+PR's rollout follow-up without claiming the Product CID changed.
 The dated sections below preserve historical release/rollback pairs.
 
 ## Publication and room follow-up (#269)

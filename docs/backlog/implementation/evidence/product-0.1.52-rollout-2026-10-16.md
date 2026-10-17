@@ -1,5 +1,9 @@
 # Product 0.1.52 coordinated rollout — 2026-10-16
 
+This is a dated observation of the original rollout, not a live assertion about
+the Web artifact currently served by Netlify. Later `dev` merges generate new
+Web artifacts and require their own served-entry verification below.
+
 ## Artifact identities
 
 The owner authorized deployment after #296/#297/#298 merged on `dev`.
@@ -12,7 +16,7 @@ Subsequent documentation commits are not the source of the published bundle.
 
 - Root and executable CID:
   `bafybeicn6kz5i5yyuoalubbe3hsl7sr7qbunccysju5rki3wrtgi2dbz7m`.
-- Ordinary Web: merged application base `3b0bb68`, independently confirmed in
+- Ordinary Web **at the original rollout**: merged application base `3b0bb68`, independently confirmed in
   the public entry bundle after Netlify deploy `6ad2169182bc167db53545d6`.
   [Deployment](https://app.netlify.com/projects/muzinga/deploys/6ad2169182bc167db53545d6).
 - Backend source: `0cd1e4b01b5642dc45cffe370aff2c6080ee8f5a`, an
@@ -37,6 +41,26 @@ Netlify initially served `974568c` and production followed `main`. During the
 owner's dashboard intervention, production changed to `dev`; the operator then
 triggered and verified the successful `dev` deployment. Future automatic deploys
 therefore follow `dev`. No token was extracted from the browser.
+
+### Merge-triggered Web verification
+
+Merging #299 automatically builds a different Web artifact. This branch changes
+the bundled catalog bootstrap's indexing metadata, and Vite embeds the checked-out
+commit SHA. The earlier `3b0bb68` entry-bundle check cannot certify that new build,
+even though the 13 track payloads are unchanged. The signed Product artifact
+remains `92a9c11` / 0.1.52; a Git merge does not republish Product.
+
+After green CI and the merge, wait for Netlify to publish the merge commit, then
+retrieve the public HTML and its actual entry JavaScript with cache revalidation.
+Record the expected/observed full source SHA, embedded clean-build/config digest,
+entry asset URL and SHA-256, HTTP result and UTC observation time in a follow-up
+comment on #299. Link a Netlify deploy record when available. Check the ordinary
+Web profile and public API/signaling settings in that served artifact. Acceptance
+stays pending if Netlify serves an older SHA or the identity/config does not match.
+
+Keep that post-merge observation in the PR discussion so recording the verification
+does not itself trigger another Web build. This file preserves the original
+rollout evidence; every later `dev` merge needs a new artifact-bound observation.
 
 Product used pinned deployment CLI 0.20.0 and live Host Remote Config verification
 before/after publication. The signer was read only into process memory/child

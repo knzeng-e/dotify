@@ -35,6 +35,14 @@ See the [rollout record](../backlog/implementation/evidence/product-0.1.52-rollo
 for CI, source/image identities, Web status and physical acceptance still required.
 Current client rollback: 0.1.51; retain privacy-safe v3 signaling.
 
+The Web verification in that dated record applies to the rollout's `3b0bb68`
+artifact. Netlify production follows `dev`, so merging this release PR starts a
+new Web build, including the frozen bootstrap metadata and embedded merge SHA.
+After the merge, inspect the served entry bundle and record its SHA, config
+digest, entry URL/hash and observation time in the PR's rollout follow-up comment.
+Do not reuse the earlier Web acceptance for this new artifact. Product remains
+the separately signed 0.1.52 CID above; merging does not republish it.
+
 The following sections preserve historical rollout and rollback evidence.
 
 ## Product 0.1.51 published recovery release
@@ -482,7 +490,8 @@ the reversible pilot plan, contract inventory, and optional aggregate pilot
 metrics. Optional pilot evidence must use schema v2 and bind the decision to
 the candidate git SHA, Product appVersion, `product-cdm`/`devnet` profile,
 published executable CID, capture time, outcome metrics, privacy flags,
-rollback, and join-count invariants. Pass the published 0.1.51 CDM CID with
+rollback, and join-count invariants. Pass the published 0.1.52 CDM CID
+`bafybeicn6kz5i5yyuoalubbe3hsl7sr7qbunccysju5rki3wrtgi2dbz7m` with
 `--pilot-release-cid`; Product payment/key and room evidence must bind to that
 same CID. The command does not sign,
 deploy, contact participants, or treat missing live evidence as a pass.
@@ -493,12 +502,12 @@ gates pass, and the live CASH path remains blocked on a Product-confirmed
 CASH-to-runtime entitlement mechanism. A `fail` means the local boundary or an
 operator-supplied evidence file is unsafe and must block the release.
 
-Product releases 0.1.46 through 0.1.51 explicitly use `product-cdm` on `devnet` so
+Product releases 0.1.46 through 0.1.52 explicitly use `product-cdm` on `devnet` so
 Product account holders retain native tips and access payments. The Product
 build refuses an EVM-only profile; ordinary web still uses viem. Product SDK
 descriptors increase the bundle and Bulletin storage demand. The 0.1.45 viem
 publication regressed native tips by requesting an EVM wallet; it is historical
-evidence of that limitation. The current rollback artifact is 0.1.50, retaining
+evidence of that limitation. The current rollback artifact is 0.1.51, retaining
 the native Product profile. Validate native
 approval, exact account mapping and finalized receipt recovery on the installed
 Hosts after publication.
@@ -857,7 +866,7 @@ Then verify in the Product host:
 6. The tracked Product profile uses the `product-cdm` writer on `devnet`.
    A debug build is useful for a future pilot candidate, but it creates a
    different executable CID. Evidence from it cannot validate the published
-   0.1.51 CID; keep those live gates blocked until observations are captured
+   0.1.52 CID; keep those live gates blocked until observations are captured
    from the exact release artifact. To prepare a new candidate with the debug
    panel, publish from a clean committed worktree and record its own CID:
 
@@ -977,7 +986,7 @@ npm run smoke:product-journey -- \
    host approval UX, or post-payment access evidence is missing, the
    `product-cdm` build must report **Payment included, access not verified**
    with the transaction hash instead of marking the track open.
-   The published 0.1.51 profile remains `product-cdm`/`devnet`; keep its
+   The published 0.1.52 profile remains `product-cdm`/`devnet`; keep its
    acceptance blocked until this native payment and read-back are observed.
 
    Product CASH is a separate future rail, not a replacement for this native
@@ -1060,7 +1069,7 @@ npm run smoke:product-journey -- \
    from the Product Web gateway. A Product Desktop room smoke must not be reused
    as Product Web evidence.
 
-   For the current 0.1.51 gate, use the published `product-cdm` executable CID
+   For the current 0.1.52 gate, use the published `product-cdm` executable CID
    for the release and capture host evidence from that same artifact. A debug
    build with a different CID cannot validate the published release. Run the
    aggregate readiness gate with one release identity:
@@ -1192,7 +1201,7 @@ active.
   produced - that observation is the evidence, and until it is captured the
   accepted set stays deliberately wide.
 - Contract writes use the shared runtime writer port, with `product-cdm` selected
-  for the tracked 0.1.51 Product deployment. The Product CDM/PAPI runtime adapter has its
+  for the tracked 0.1.52 Product deployment. The Product CDM/PAPI runtime adapter has its
   generated manifest, contract types, live resolver, signer-account mapping
   checks, Classic unlock write path, and W05 royalty claim write path. It still
   needs real host-signed transaction evidence before the current release can
@@ -1220,7 +1229,7 @@ active.
   catalog recovery but is not required for API startup.
 - Product contract mode (`VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm`) covers
   catalog reads and runtime write submissions inside the Product host. The
-  tracked 0.1.51 deployment uses this profile; installed-host payment, approval
+  tracked 0.1.52 deployment uses this profile; installed-host payment, approval
   UX, and post-payment read-back still need candidate-bound observations.
   Product payment history is still not exposed
   by the current Product contract handle API, so the full royalty settlement
