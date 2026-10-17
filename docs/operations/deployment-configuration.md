@@ -1,17 +1,20 @@
 # Deployment Configuration Runbook
 
-## Current published Product release — 0.1.51
+## Current published Product release — 0.1.52
 
-Product `[0, 1, 51]` is published from source
-`cdb9ac245a865d085984b7750728aaaa358757b5` at executable/root CID
+Product `[0, 1, 52]` is published from source `92a9c1179dfd1ac67a88c6b3838853c528ddc14c` at executable/root CID
+`bafybeicn6kz5i5yyuoalubbe3hsl7sr7qbunccysju5rki3wrtgi2dbz7m`. The current client rollback is Product `[0, 1, 51]`, CID
 `bafybeihpprpso6vopekio67surwcygt2ygs6dnppdfsszmiul2qchib2me`.
-The current client rollback is Product `[0, 1, 50]`, CID
-`bafybeie3r7hmzucvqhmkv5prgt3tguyq2m3fictwgdm7uelm3ssmo6b72m`.
-Use the [0.1.51 rollout record](../backlog/implementation/evidence/product-0.1.51-rollout-2026-10-16.md)
-for the corresponding API/signaling images, publication read-back, restart incident
-and remaining device checks. Keep privacy-safe signaling when rolling back clients.
-The dated sections below preserve earlier release history; their rollback pairs
-apply to those historical rollouts, not today's current release.
+Use the [0.1.52 rollout record](../backlog/implementation/evidence/product-0.1.52-rollout-2026-10-16.md)
+for separately identified API/signaling images, Web verification, finalized publication
+read-back and remaining device checks. Keep v3 privacy-safe signaling on client rollback.
+The API now has a stable server-only `SESSION_EPOCH`; content-key secrets were preserved.
+Netlify production follows `dev`, as observed in the hosted dashboard during this rollout.
+The Web identities in the dated record apply to that observation, not every
+later `dev` build. Each merge requires a fresh served-entry SHA/config-digest
+check before candidate-bound acceptance; record that observation in the merged
+PR's rollout follow-up without claiming the Product CID changed.
+The dated sections below preserve historical release/rollback pairs.
 
 ## Publication and room follow-up (#269)
 
@@ -370,7 +373,7 @@ Required Product values:
 | `VITE_BULLETIN_WS_URL`          | `wss://bulletin-paseo.tservices.es:8443`                                                                                         |
 | `VITE_PINATA_GATEWAY`           | `https://gateway.pinata.cloud`                                                                                                   |
 | `VITE_IPFS_READ_GATEWAYS`       | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation` |
-| Product executable `appVersion` | `[0, 1, 51]` published discovery/media recovery release; `[0, 1, 50]` is the current client rollback artifact                            |
+| Product executable `appVersion` | `[0, 1, 52]` published galaxy/session release; `[0, 1, 51]` is the current client rollback artifact                            |
 
 The Product executable version is part of the published Product manifest. Bump
 it whenever the Product bundle changes runtime behavior, host SDK integration,
