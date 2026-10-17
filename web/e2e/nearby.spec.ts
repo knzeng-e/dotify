@@ -8,7 +8,7 @@ async function openHost(context: BrowserContext, visibility?: 'Nearby' | 'Everyo
   await host.goto('/?e2eRoom=protected-authorized&e2eSync=on&e2eAutoplay=on');
   await host.getByRole('button', { name: 'Open a room' }).click();
   await host.getByRole('button', { name: `Select ${title}` }).click();
-  await host.getByLabel('Your name in the room').fill('Radar host');
+  await host.getByLabel('Your name or nickname').fill('Radar host');
   if (visibility) await host.getByRole('radio', { name: visibility, exact: true }).check();
   await host.getByRole('button', { name: 'Open the room' }).click();
   await expect(host.getByTestId('room-code')).toHaveText(/[A-Z2-9]{6}/, { timeout: 15_000 });
@@ -58,7 +58,7 @@ test('automatic radar finds a later nearby publication, then joins real guest au
     await expect(host.getByRole('region', { name: 'Room visibility' })).toContainText('Visible nearby');
     // No user-triggered re-scan: the next bounded read finds the new host.
     await expect(radar.getByRole('heading', { name: title })).toBeVisible({ timeout: 25_000 });
-    await expect(radar.locator('.discovery-distance')).toHaveText('≈ 0–5 km');
+    await expect(radar.locator('.discovery-distance')).toHaveText('≈ 0-5 km');
     expect((await new AxeBuilder({ page: guest }).include('.room-radar').analyze()).violations).toEqual([]);
     await guest.screenshot({ path: testInfo.outputPath('radar-mobile.png'), fullPage: true });
     await guest.setViewportSize({ width: 1440, height: 1000 });
@@ -67,9 +67,9 @@ test('automatic radar finds a later nearby publication, then joins real guest au
     expect(await guest.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await radar.getByRole('button', { name: /^Inspect / }).click();
     const preview = guest.getByRole('dialog', { name: title });
-    await expect(preview).toContainText('≈ 0–5 km');
+    await expect(preview).toContainText('≈ 0-5 km');
     await preview.getByRole('button', { name: 'Join', exact: true }).click();
-    await guest.getByLabel('Your name in the room').fill('Nearby guest');
+    await guest.getByLabel('Your name or nickname').fill('Nearby guest');
     await guest.getByRole('button', { name: 'Join room', exact: true }).click();
     await expect(guest.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20_000 });
     await expect.poll(() => guest.evaluate(() => window.__DOTIFY_E2E_ROOM_JOIN__?.remotePlaybackCues ?? 0), { timeout: 15_000 }).toBeGreaterThan(0);
@@ -118,7 +118,7 @@ test('visibility and range live in a dismissible sheet; a draft never publishes'
   await page.getByRole('slider', { name: 'Visibility range' }).fill('17');
   expect(publications).toEqual([]);
   await page.getByRole('button', { name: `Select ${title}` }).click();
-  await page.getByLabel('Your name in the room').fill('Visible host');
+  await page.getByLabel('Your name or nickname').fill('Visible host');
   await page.getByRole('button', { name: 'Open the room' }).click();
   await expect(page.getByTestId('room-code')).toHaveText(/[A-Z2-9]{6}/);
   await page.getByRole('tab', { name: /People/ }).click();
@@ -161,7 +161,7 @@ test('worldwide rooms can be inspected and joined while the nearby fix is still 
     await guest.screenshot({ path: testInfo.outputPath('worldwide-during-location.png'), fullPage: true });
     await radar.getByRole('button', { name: /^Inspect / }).click();
     await guest.getByRole('dialog', { name: title }).getByRole('button', { name: 'Join', exact: true }).click();
-    await guest.getByLabel('Your name in the room').fill('World guest');
+    await guest.getByLabel('Your name or nickname').fill('World guest');
     await guest.getByRole('button', { name: 'Join room', exact: true }).click();
     await expect(guest.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20_000 });
   } finally {
@@ -244,7 +244,7 @@ test('cover galaxies show exact live people and distinguish my room from an iden
     await guest.getByRole('button', { name: 'Join by link', exact: true }).click();
     await guest.getByLabel('Room code or link').fill(hostRoomCode);
     await guest.getByRole('button', { name: 'Join', exact: true }).first().click();
-    await guest.getByLabel('Your name in the room').fill('Orbit listener');
+    await guest.getByLabel('Your name or nickname').fill('Orbit listener');
     await guest.getByRole('button', { name: 'Join room', exact: true }).click();
     await expect(guest.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20_000 });
     await host.getByRole('button', { name: 'Keep listening and browse', exact: true }).click();

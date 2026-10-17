@@ -133,14 +133,14 @@ export function CreateRoomModal({ tracks, initialTrack, displayName, onSetDispla
       )}
 
       <label className='create-room-label' htmlFor='create-room-name'>
-        Your name in the room
+        Your name or nickname
       </label>
       <input
         id='create-room-name'
         className='field'
         value={hasChosenName ? displayName : ''}
         onChange={event => onSetDisplayName(event.target.value)}
-        placeholder='How should people see you?'
+        placeholder='e.g. Alex'
         maxLength={32}
         autoComplete='nickname'
         autoFocus

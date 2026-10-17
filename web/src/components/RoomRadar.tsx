@@ -13,7 +13,7 @@ import type { DiscoveredRoom, useRoomDiscovery } from '../features/rooms/useRoom
 import '../styles/room-radar.css';
 
 export function roomDistanceLabel(room: Pick<DiscoveredRoom, 'scope' | 'distanceBand'>) {
-  return room.scope === 'worldwide' ? 'Worldwide' : room.distanceBand ? `≈ ${room.distanceBand}` : 'Nearby';
+  return room.scope === 'worldwide' ? 'Worldwide' : room.distanceBand ? `≈ ${room.distanceBand.replace(/\u2013/g, '-')}` : 'Nearby';
 }
 
 const MAX_ORBIT_POINTS = 128;
@@ -118,7 +118,12 @@ export function RoomRadar({
       <header className='radar-toolbar'>
         <div>
           <span className='discovery-eyebrow'>FIND YOUR PEOPLE</span>
-          <h2 id={`${id}-title`}>Room galaxy</h2>
+          <h2 id={`${id}-title`}>
+            Room galaxy{' '}
+            <span className='radar-room-count' aria-hidden='true'>
+              {rooms.length}
+            </span>
+          </h2>
         </div>
         <div className='radar-tools'>
           <button
@@ -283,10 +288,6 @@ export function RoomRadar({
           </div>
         )}
         <div className='radar-invitations'>
-          <header>
-            <h3>Open invitations</h3>
-            <span>{rooms.length}</span>
-          </header>
           {!rooms.length && (
             <div className='radar-empty'>
               <Radar size={28} strokeWidth={1.3} />

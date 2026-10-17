@@ -23,6 +23,7 @@ import { createRoomContributions } from './room-contributions.mjs';
 import { createRoomLife } from './room-life.mjs';
 import { createArtistRoomActivity } from './artist-room-activity.mjs';
 import { createNearby } from './nearby.mjs';
+import { sameRoomTrack } from './room-track.mjs';
 import {
   REQUEST_TEXT_MAX_LENGTH,
   clientKey,
@@ -761,9 +762,13 @@ export function startSignalingServer(overrides = {}, dependencies = {}) {
 
       touchHost(room);
       const nextTrack = sanitizeTrack(track);
-      if (nextTrack && (room.track?.hash !== nextTrack.hash || room.track?.runtimeAddress !== nextTrack.runtimeAddress)) {
-        life.activity(socket.data.roomId, 'track', `Now playing: ${nextTrack.title} — ${nextTrack.artist}`);
+      const previousTrack = room.lastAnnouncedTrack ?? room.track;
+      // Canonical attribution may fill in an omitted runtime between captures.
+      // A source recovery or a temporary null track is not a new selection.
+      if (nextTrack && !sameRoomTrack(previousTrack, nextTrack)) {
+        life.activity(socket.data.roomId, 'track', `Now playing: ${nextTrack.title} · ${nextTrack.artist}`);
       }
+      if (nextTrack || previousTrack) room.lastAnnouncedTrack = nextTrack ?? previousTrack;
       if (room.track?.hash !== nextTrack?.hash || room.track?.title !== nextTrack?.title) {
         room.playerState = null;
         room.playerStateReceivedAt = 0;

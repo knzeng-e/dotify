@@ -133,7 +133,7 @@ for (const [width, height] of sizes) {
       await capture(host, info, 'rooms');
       await host.locator('.player-dock-title').click();
       await host.getByRole('button', { name: 'Open a room', exact: true }).click();
-      await host.getByLabel('Your name in the room').fill('W28 host');
+      await host.getByLabel('Your name or nickname').fill('W28 host');
       await host.getByRole('button', { name: 'Open the room', exact: true }).click();
       await expect(host.getByTestId('room-code')).toHaveText(/[A-Z0-9]{4,}/);
       const roomId = (await host.getByTestId('room-code').textContent())!.trim();
@@ -154,7 +154,7 @@ for (const [width, height] of sizes) {
       await capture(host, info, 'host-200-text');
       await hostLargeText.evaluate(element => element.remove());
       await guest.goto(`${fixture}#/rooms/${roomId}`);
-      await guest.getByLabel('Your name in the room').fill('W28 guest');
+      await guest.getByLabel('Your name or nickname').fill('W28 guest');
       await guest.getByRole('button', { name: 'Join and listen', exact: true }).click();
       await expect(guest.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20_000 });
       await capture(guest, info, 'guest');
@@ -330,7 +330,7 @@ test('replacing room sharing with the projected QR adds only one Back step', asy
   await page.goto(fixture);
   await page.getByRole('button', { name: /^Play E2E Public Room Track by/ }).click();
   await page.getByRole('button', { name: 'Open a room', exact: true }).click();
-  await page.getByLabel('Your name in the room').fill('Sheet test host');
+  await page.getByLabel('Your name or nickname').fill('Sheet test host');
   await page.getByRole('button', { name: 'Open the room', exact: true }).click();
   const code = page.getByTestId('room-code');
   await expect(code).toHaveText(/[A-Z0-9]{4,}/);
@@ -350,7 +350,7 @@ test('room sharing stays closed when a room is replaced', async ({ page }) => {
   await page.goto(fixture);
   await page.getByRole('button', { name: /^Play E2E Public Room Track by/ }).click();
   await page.getByRole('button', { name: 'Open a room', exact: true }).click();
-  await page.getByLabel('Your name in the room').fill('Share state host');
+  await page.getByLabel('Your name or nickname').fill('Share state host');
   await page.getByRole('button', { name: 'Open the room', exact: true }).click();
   const roomCode = page.getByTestId('room-code');
   await expect(roomCode).toHaveText(/[A-Z0-9]{4,}/);

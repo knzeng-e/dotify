@@ -4,7 +4,7 @@ async function hostRoom(page: Page, captureMode = 'synthetic') {
   await page.goto(`/?e2eRoom=public&e2eSync=on&e2eCapture=${captureMode}`);
   await page.getByRole('button', { name: 'Open a room', exact: true }).click();
   await page.getByRole('button', { name: 'Select E2E Public Room Track' }).click();
-  await page.getByLabel('Your name in the room').fill('Sync host');
+  await page.getByLabel('Your name or nickname').fill('Sync host');
   await page.getByRole('button', { name: 'Open the room', exact: true }).click();
   await expect(page.getByTestId('room-code')).toHaveText(/[A-Z0-9]{4,}/);
   await expect
@@ -19,7 +19,7 @@ async function hostRoom(page: Page, captureMode = 'synthetic') {
 }
 async function join(page: Page, id: string) {
   await page.goto(`/#/rooms/${id}`);
-  await page.getByLabel('Your name in the room').fill('Sync guest');
+  await page.getByLabel('Your name or nickname').fill('Sync guest');
   await page.getByRole('button', { name: 'Join and listen' }).click();
   await expect(page.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20_000 });
 }

@@ -131,7 +131,7 @@ for (const width of [320, 390, 1440]) {
     await page.goto('/?e2eRoom=protected-authorized&e2eSync=on');
     await page.getByRole('button', { name: 'Open a room', exact: true }).click();
     await page.getByRole('button', { name: 'Select E2E Protected Room Track', exact: true }).click();
-    await page.getByLabel('Your name in the room').fill('Tip room host');
+    await page.getByLabel('Your name or nickname').fill('Tip room host');
     await page.getByRole('button', { name: 'Open the room', exact: true }).click();
     await expect(page.getByTestId('room-code')).toHaveText(/[A-Z0-9]{4,}/);
     const room = (await page.getByTestId('room-code').innerText()).trim();
@@ -139,7 +139,7 @@ for (const width of [320, 390, 1440]) {
     try {
       const guest = await guestContext.newPage();
       await guest.goto(`/?e2eRoom=public&e2eSync=on#/rooms/${room}`);
-      await guest.getByLabel('Your name in the room').fill('Tip room guest');
+      await guest.getByLabel('Your name or nickname').fill('Tip room guest');
       await guest.getByRole('button', { name: 'Join and listen', exact: true }).click();
       await expect(guest.getByTestId('room-listener-sync')).toHaveText('In sync');
       for (const [role, participant] of [
@@ -172,7 +172,7 @@ test('the host repairs legacy tip metadata while browsing outside the player', a
   await page.goto('/?e2eRoom=protected-authorized&e2eSync=on');
   await page.getByRole('button', { name: 'Open a room', exact: true }).click();
   await page.getByRole('button', { name: 'Select E2E Protected Room Track', exact: true }).click();
-  await page.getByLabel('Your name in the room').fill('Recovery host');
+  await page.getByLabel('Your name or nickname').fill('Recovery host');
   await page.getByRole('button', { name: 'Open the room', exact: true }).click();
   const roomCode = page.getByTestId('room-code');
   await expect(roomCode).toHaveText(/[A-Z0-9]{4,}/);
@@ -181,7 +181,7 @@ test('the host repairs legacy tip metadata while browsing outside the player', a
   try {
     const guest = await guestContext.newPage();
     await guest.goto(`/?e2eRoom=public&e2eSync=on#/rooms/${room}`);
-    await guest.getByLabel('Your name in the room').fill('Recovery guest');
+    await guest.getByLabel('Your name or nickname').fill('Recovery guest');
     await guest.getByRole('button', { name: 'Join and listen', exact: true }).click();
     await expect(guest.getByRole('button', { name: 'Tip this track', exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Keep listening and browse', exact: true }).click();
@@ -248,7 +248,7 @@ test('a legacy room keeps the tip location visible while attribution is unavaila
 
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(`/?e2eRoom=public&e2eSync=on#/rooms/${created.roomId}`);
-    await page.getByLabel('Your name in the room').fill('Legacy room guest');
+    await page.getByLabel('Your name or nickname').fill('Legacy room guest');
     await page.getByRole('button', { name: 'Join and listen', exact: true }).click();
 
     const unavailable = page.getByRole('button', { name: 'Tip this track unavailable', exact: true });

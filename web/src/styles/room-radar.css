@@ -36,6 +36,14 @@
 .radar-tools {
   gap: 0.5rem;
 }
+.radar-room-count {
+  display: inline-block;
+  margin-left: 0.5rem;
+  color: var(--radar-muted);
+  font-size: 0.85rem;
+  vertical-align: middle;
+  letter-spacing: 0;
+}
 .radar-tool {
   display: flex;
   align-items: center;
@@ -132,6 +140,8 @@
   background: conic-gradient(from 0deg, transparent 0 300deg, rgba(70, 223, 198, 0.07) 330deg, rgba(70, 223, 198, 0.3) 359deg, transparent 360deg);
   opacity: 0.23;
   pointer-events: none;
+  /* The beam washes over cover planets, while focused details stay above it. */
+  z-index: 2;
 }
 .radar-sky[data-live='true'] .radar-sweep {
   animation: radar-turn 6s linear infinite;
@@ -177,7 +187,7 @@
   animation: radar-arrive 0.35s ease-out both;
 }
 .radar-room-sphere {
-  --room-core-size: clamp(44px, 6.8vw, 82px);
+  --room-core-size: clamp(40px, 5.2vw, 64px);
   position: relative;
   display: block;
   width: var(--room-core-size);
@@ -681,7 +691,7 @@
     margin-block: 0.5rem 1rem;
   }
   .radar-room-sphere {
-    --room-core-size: clamp(42px, 13vw, 72px);
+    --room-core-size: clamp(36px, 10vw, 52px);
   }
   .radar-room-dot {
     width: 27%;

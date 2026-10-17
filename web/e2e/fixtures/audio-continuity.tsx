@@ -6,12 +6,13 @@ import { PersistentAudio } from '../../src/components/PersistentAudio';
 import type { CatalogTrack } from '../../src/shared/types';
 
 const noop = () => {};
+const useRelay = new URLSearchParams(location.search).has('mediaRelay');
 const tracks: CatalogTrack[] = ['a', 'b'].map((id, index) => ({
   id,
   source: 'seed',
   title: `Tone ${id}`,
   artist: 'Synthetic fixture',
-  audioRef: `dotify:enc:v2:ipfs://continuity-${id}`,
+  audioRef: `dotify:enc:v2:ipfs://${useRelay ? `Qm${id.repeat(44)}` : `continuity-${id}`}`,
   localUrl: `https://gateway.pinata.cloud/ipfs/continuity-${id}`,
   imageRef: '',
   hash: `0x${String(index + 1).repeat(64)}`,

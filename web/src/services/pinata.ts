@@ -140,7 +140,11 @@ function isPinataGateway(gateway: string): boolean {
 
 export function getAudioGatewayUrls(cid: string): string[] {
   const gateways = [GATEWAY, PINATA_PUBLIC_GATEWAY, ...(READ_GATEWAYS ?? []).filter(isPinataGateway)].filter(isPinataGateway);
-  return Array.from(new Set(gateways.map(gateway => `${gateway.replace(/\/$/, '')}/ipfs/${cid}`)));
+  return Array.from(new Set([...mediaRelayUrls(cid), ...gateways.map(gateway => `${gateway.replace(/\/$/, '')}/ipfs/${cid}`)]));
+}
+
+function mediaRelayUrls(cid: string): string[] {
+  return API_URL && /^[A-Za-z0-9]+$/.test(cid) ? [`${API_URL.replace(/\/api$/, '')}/api/media/${cid}`] : [];
 }
 
 // DAV2 range reads stay on gateways known to serve encrypted byte ranges
@@ -148,7 +152,7 @@ export function getAudioGatewayUrls(cid: string): string[] {
 // fallback may use every configured IPFS reader so a Pinata outage does not
 // silence an otherwise available release.
 export function getAudioFallbackGatewayUrls(cid: string): string[] {
-  return getGatewayUrls(cid);
+  return [...mediaRelayUrls(cid), ...getGatewayUrls(cid)];
 }
 
 function extractIpfsPath(ref: string): string | null {

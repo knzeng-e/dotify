@@ -89,21 +89,21 @@ export function ContributionLedger({
             <>
               <div>
                 <dt>Gifts generated</dt>
-                <dd>{known ? `${formatEther(total(owned.filter(row => row.contentHash === zeroHash)))} ${symbol}` : '—'}</dd>
+                <dd>{known ? `${formatEther(total(owned.filter(row => row.contentHash === zeroHash)))} ${symbol}` : 'Not available'}</dd>
               </div>
               <div>
                 <dt>Tips generated</dt>
-                <dd>{known ? `${formatEther(total(owned.filter(row => row.contentHash !== zeroHash)))} ${symbol}` : '—'}</dd>
+                <dd>{known ? `${formatEther(total(owned.filter(row => row.contentHash !== zeroHash)))} ${symbol}` : 'Not available'}</dd>
               </div>
             </>
           )}
           <div>
             <dt>Received by you</dt>
-            <dd>{known ? `${formatEther(received)} ${symbol}` : '—'}</dd>
+            <dd>{known ? `${formatEther(received)} ${symbol}` : 'Not available'}</dd>
           </div>
           <div>
             <dt>Available to claim</dt>
-            <dd>{known ? `${formatEther(pendingTotal)} ${symbol}` : '—'}</dd>
+            <dd>{known ? `${formatEther(pendingTotal)} ${symbol}` : 'Not available'}</dd>
           </div>
         </dl>
       )}

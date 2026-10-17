@@ -1593,6 +1593,10 @@
               <p>
                 Streaming acceptance also checks continuity after a network interruption, reopening a track, and protected listening without repeated
                 sign-in prompts. Protected listening requires reusable sessions; a session-service outage does not switch to signatures per track.
+                The current stability follow-up adds a bounded API cache for registered encrypted media to reduce public-gateway failures.
+                It holds ciphertext only and leaves access and keys outside the cache. A temporary discovery refresh failure retains only an already-valid invitation,
+                while expiry and opt-out still remove it. Entry asks clearly for a name or nickname without repeating an already-selected room code.
+                These changes require their own rollout and physical validation; the published release identity above remains the reference until then.
                 <a href="backlog/implementation/evidence/W08-audio-continuity-2026-10-08.md">Audio and session regression evidence</a>
                 distinguishes local browser tests from the remaining physical-device and room checks.
                 Release 0.1.46 adds one reusable sign-in for artists who explicitly announce a room visit and reliable chat delivery while the

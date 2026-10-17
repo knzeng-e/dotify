@@ -258,3 +258,34 @@ test('slow artwork cannot block visible rooms, and async enrichment respects hos
   resolveArtwork({ title: 'Song' });
   assert.deepEqual((await pending).results, []);
 });
+
+test('v4 keeps rooms during capture metadata refreshes but drops an actual release change', async () => {
+  let finish;
+  const track = { hash: 'same-release', title: 'Song', artist: 'Artist' };
+  const room = { hostId: 'host', hostName: 'Host', track, listeners: new Map() };
+  const service = createNearby({
+    enabled: true,
+    rooms: new Map([['ROOM', room]]),
+    maxListeners: 24,
+    getPublicTrack: () =>
+      new Promise(resolve => {
+        finish = resolve;
+      })
+  });
+  function client(id, role) {
+    const handlers = new Map();
+    service.register({ id, data: { role, roomId: 'ROOM' }, handshake: { address: id }, on: (event, fn) => handlers.set(event, fn) });
+    return (event, payload) => new Promise(resolve => handlers.get(event)(payload, resolve));
+  }
+  const host = client('host', 'host'),
+    guest = client('guest', 'listener');
+  await host('nearby:publish', area());
+  const first = guest('nearby:search', { ...area(), schemaVersion: 4 });
+  room.track = { ...track, duration: 240, updatedAt: Date.now() };
+  finish({ title: 'Song' });
+  assert.equal((await first).results.length, 1);
+  const changed = guest('nearby:search', { ...area(), schemaVersion: 4 });
+  room.track = { ...track, hash: 'different-release' };
+  finish({ title: 'Song' });
+  assert.deepEqual((await changed).results, []);
+});
