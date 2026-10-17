@@ -155,7 +155,7 @@ export function RoomRadar({
           {nearby.state.retryInSeconds ? `Retry in ${nearby.state.retryInSeconds}s` : 'Try location again'}
         </button>
       )}
-      {nearby.state.locationIssue === 'host-unavailable' && <ProductNearbyFallback roomId={ownRoomId} />}
+      {nearby.state.locationIssue === 'host-unavailable' && <ProductNearbyFallback />}
       <div className='radar-body' data-list-only={listOnly}>
         {!listOnly && (
           <div className='radar-stage'>

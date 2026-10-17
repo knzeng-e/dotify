@@ -56,9 +56,15 @@ activity that excluded private/out-of-range rooms. Refs #274 and #257.
 - Android `ProductWebChromeClient` handles camera/microphone PermissionRequest but does not override onGeolocationPermissionsShowPrompt in the inspected file: https://github.com/paritytech/trinity-user-agents/blob/a12214e1332b853afe8c65e1295354554614451d/hosts/android/feature/products/impl/src/main/java/io/paritytech/polkadotapp/feature_products_impl/domain/webView/ProductWebChromeClient.kt . No claim is made that all Android paths are unsupported; native-coordinate evidence remains required.
 - Public Trinity0.10.0 tags refer to TruAPI packages, not the mobile app version; mapping user mobileApp0.10.0 to an exact native source was not established. No Host was updated or permission setting changed.
 
-Implemented frontend response: distinguish a denied location from a Host that grants but cannot return a fix; retain the chosen host visibility while marking it unavailable; offer explicit Find Nearby in browser using the existing Host navigateTo API and configured public app URL. Copy says hosting/account remain in Product. Only the public route/room ID transfers, never session/host tokens or location. No automatic handoff, IP geolocation, or fake/coarse fallback location. Native location inside these builds remains unverified/unfixed until the host provides a working native coordinate path.
+Implemented frontend response: distinguish a denied location from a Host that grants but cannot return a fix; retain the chosen host visibility while marking it unavailable; offer explicit Find Nearby in browser using the existing Host navigateTo API and configured public app URL. Copy says hosting/account remain in Product. The browser always opens the discovery route `#/rooms`, without a room code, query, session/host token or location. This avoids a join prompt or an automatic join into the host's own room when the browser remembers an identity. No automatic handoff, IP geolocation, or fake/coarse fallback location. Native location inside these builds remains unverified/unfixed until the host provides a working native coordinate path.
 
 ## Validation
+
+Review follow-up: 45 targeted tests pass across the browser recovery URL,
+Product Host navigation and RoomRadar suites. URL regression cases always open
+`#/rooms`, strip existing query/room-entry fragments and retain an app subpath.
+Web build, targeted ESLint and formatting pass. Opening the recovery can no
+longer enter a host's room through this URL builder.
 
 Visual-refinement follow-up to `7154fb1`: all six RoomRadar unit tests, Web build,
 targeted ESLint and formatting pass. The real two-room Chromium scenario passes

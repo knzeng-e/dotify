@@ -2119,4 +2119,7 @@ coordinates were not established. Current upstream iOS still marks its native
 location bridge as TODO; it is not proven to match the user's mobile 0.10.0
 package. Dotify must not add an IP-based or credential-bearing fallback. The
 explicit browser recovery uses existing `VITE_PUBLIC_APP_URL` and Host navigation,
-transferring only a public route/room code; hosting authority stays in Product.
+always opening the discovery route `#/rooms`. Room codes and existing URL
+queries/fragments are not transferred; hosting authority stays in Product.
+Validate this recovery while hosting a room: the browser must show the radar,
+without a join prompt or an automatic join using a remembered browser identity.

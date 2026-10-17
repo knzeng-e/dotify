@@ -4,11 +4,11 @@ import { openProductHostExternalUrl, requiresExplicitProductRoomEntry } from '..
 import { productNearbyBrowserUrl } from '../features/productHost/productNearbyFallback';
 
 /** Explicit navigation only: this never sends the Host's location to another surface. */
-export function ProductNearbyFallback({ roomId = '' }: { roomId?: string }) {
+export function ProductNearbyFallback() {
   const [opening, setOpening] = useState(false);
   const [error, setError] = useState('');
   if (!requiresExplicitProductRoomEntry()) return null;
-  const url = productNearbyBrowserUrl(import.meta.env.VITE_PUBLIC_APP_URL, window.location.hash, roomId);
+  const url = productNearbyBrowserUrl(import.meta.env.VITE_PUBLIC_APP_URL);
   if (!url) return null;
   const open = async () => {
     if (opening) return;
