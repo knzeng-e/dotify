@@ -16,7 +16,8 @@ credentials upstream and never accesses a content key. CORS uses the existing
 origin allowlist and exposes `Content-Range` and `Accept-Ranges`. Decryption,
 AES-GCM authentication and access checks stay with their existing owners.
 
-Limits: two cold upstream reads at once, coalesced identical reads, a 64 MiB /
+Limits: two cold upstream reads at once (at most one complete-object read),
+a 66 MiB reservation for their worst-case bodies, coalesced identical reads, a 64 MiB /
 128-entry encrypted memory cache, 64 MiB per complete object, 2 MiB per range,
 12 seconds per upstream attempt, three fixed gateways and a separate 64 MiB
 budget for responses still being sent to slow receivers. HTTP 503 with

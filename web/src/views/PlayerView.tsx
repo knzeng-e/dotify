@@ -876,8 +876,8 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
               aria-labelledby='room-tab-queue'
               hidden={roomPanel !== 'queue'}
             >
-              <HostLineup key={roomId} />
-              <RoomRequests key={roomId} />
+              <HostLineup key={`lineup:${roomId}`} />
+              <RoomRequests key={`requests:${roomId}`} />
             </div>
           </div>
         )}

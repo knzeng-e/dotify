@@ -45,6 +45,10 @@ for (const [width, height] of [
   [1024, 768]
 ]) {
   test(`room conversation fits ${width}×${height} without losing playback or drafts`, async ({ page }, testInfo) => {
+    const duplicateKeys: string[] = [];
+    page.on('console', message => {
+      if (message.text().includes('Encountered two children with the same key')) duplicateKeys.push(message.text());
+    });
     await page.setViewportSize({ width, height });
     await hostRoom(page);
     await expectConversationFits(page);
@@ -78,6 +82,7 @@ for (const [width, height] of [
     await page.getByRole('tab', { name: 'Chat', exact: true }).click();
     await page.getByRole('tab', { name: 'Chat', exact: true }).press('ArrowRight');
     await expect(page.getByRole('tab', { name: /Queue/ })).toBeFocused();
+    expect(duplicateKeys, 'Room panels must keep distinct component identities').toEqual([]);
   });
 }
 

@@ -114,6 +114,25 @@ it('serves full ciphertext and reuses it for ranges without another download', a
   assert.equal(calls, 2);
 });
 
+it('reserves space for one cold full object while allowing a concurrent range', async () => {
+  let finishFull!: (response: Response) => void;
+  const reader = createEncryptedMediaReader(async (_url, init) => {
+    if (init?.headers && 'Range' in init.headers) return ranged();
+    return new Promise<Response>(resolve => {
+      finishFull = resolve;
+    });
+  });
+  const full = reader.read(cid, null);
+  await assert.rejects(reader.read('another-full-object', null), { statusCode: 503 });
+  assert.deepEqual([...(await reader.read('range-object', { start: 10, end: 12 })).bytes], [1, 2, 3]);
+  finishFull(new Response(new Uint8Array([1, 2, 3, 4])));
+  await full;
+  // The reservation is released after the first body settles.
+  const next = reader.read('another-full-object', null);
+  finishFull(new Response(new Uint8Array([5])));
+  assert.deepEqual([...(await next).bytes], [5]);
+});
+
 it('only serves current active encrypted catalog assets and never accepts a caller URL/query', async () => {
   let active = true;
   let encrypted = true;

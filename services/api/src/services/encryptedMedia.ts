@@ -51,6 +51,7 @@ export function createEncryptedMediaReader(fetchImpl: typeof fetch = fetch) {
   const pending = new Map<string, Promise<EncryptedMedia>>();
   let cacheBytes = 0;
   let active = 0;
+  let reservedBytes = 0;
   let generation = 0;
   const store = (key: string, value: EncryptedMedia) => {
     cache.set(key, value);
@@ -143,8 +144,13 @@ export function createEncryptedMediaReader(fetchImpl: typeof fetch = fetch) {
       }
       const shared = pending.get(key);
       if (shared) return shared;
-      if (active >= 2) throw new MediaError(503, 'MEDIA_BUSY');
+      // Reserve worst-case body space before starting a cold read. One complete
+      // object can coexist with a range, but never another complete object on
+      // the 512 MiB API instance (assembly/validation also need working space).
+      const reservation = range ? range.end - range.start + 1 : MAX_BYTES;
+      if (active >= 2 || reservedBytes + reservation > MAX_BYTES + MAX_RANGE_BYTES) throw new MediaError(503, 'MEDIA_BUSY');
       active++;
+      reservedBytes += reservation;
       const atStart = generation;
       const request = download(cid, range, dav2).then(value => {
         if (generation === atStart) store(key, value);
@@ -155,6 +161,7 @@ export function createEncryptedMediaReader(fetchImpl: typeof fetch = fetch) {
         return await request;
       } finally {
         active--;
+        reservedBytes -= reservation;
         pending.delete(key);
       }
     },
