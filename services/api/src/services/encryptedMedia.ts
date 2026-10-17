@@ -23,6 +23,7 @@ function safeGatewayRedirect(url: URL): boolean {
 
 export type MediaRange = { start: number; end: number };
 export type EncryptedMedia = { bytes: Buffer; total: number; start: number; partial: boolean };
+type PendingRead = { controller: AbortController; promise: Promise<EncryptedMedia>; consumers: number; settled: boolean };
 export class MediaError extends Error {
   constructor(
     public readonly statusCode: number,
@@ -49,7 +50,7 @@ export function encryptedMediaCid(ref: string): string | null {
 
 export function createEncryptedMediaReader(fetchImpl: typeof fetch = fetch) {
   const cache = new Map<string, EncryptedMedia>();
-  const pending = new Map<string, Promise<EncryptedMedia>>();
+  const pending = new Map<string, PendingRead>();
   let cacheBytes = 0;
   let active = 0;
   let reservedBytes = 0;
@@ -63,8 +64,9 @@ export function createEncryptedMediaReader(fetchImpl: typeof fetch = fetch) {
       cache.delete(oldest);
     }
   };
-  async function download(cid: string, range: MediaRange | null, dav2: boolean): Promise<EncryptedMedia> {
+  async function download(cid: string, range: MediaRange | null, dav2: boolean, signal: AbortSignal): Promise<EncryptedMedia> {
     for (const gateway of GATEWAYS) {
+      signal.throwIfAborted();
       const controller = new AbortController();
       // Hard total bound, including a slow/dripping body. No unbounded queues.
       const deadline = setTimeout(() => controller.abort(), 12_000);
@@ -74,9 +76,10 @@ export function createEncryptedMediaReader(fetchImpl: typeof fetch = fetch) {
         for (let redirects = 0; redirects <= 2; redirects++) {
           response = await fetchImpl(url, {
             headers: range ? { Range: `bytes=${range.start}-${range.end}` } : {},
-            signal: controller.signal,
+            signal: AbortSignal.any([controller.signal, signal]),
             redirect: 'manual'
           });
+          signal.throwIfAborted();
           if (![301, 302, 303, 307, 308].includes(response.status)) break;
           const location = response.headers.get('location');
           void response.body?.cancel().catch(() => undefined);
@@ -104,6 +107,7 @@ export function createEncryptedMediaReader(fetchImpl: typeof fetch = fetch) {
         try {
           while (true) {
             const part = await reader.read();
+            signal.throwIfAborted();
             if (part.done) break;
             size += part.value.byteLength;
             if (size > lengthLimit) throw new Error('oversized');
@@ -126,6 +130,9 @@ export function createEncryptedMediaReader(fetchImpl: typeof fetch = fetch) {
         }
         return { bytes, total, start: range?.start ?? 0, partial: Boolean(range) };
       } catch {
+        // Client cancellation is terminal for this shared read; unlike an
+        // upstream timeout it must not consume the next gateway's budget.
+        signal.throwIfAborted();
         // A transport failure can switch readers. Authentication never happens here.
       } finally {
         clearTimeout(deadline);
@@ -134,8 +141,42 @@ export function createEncryptedMediaReader(fetchImpl: typeof fetch = fetch) {
     }
     throw new MediaError(502, 'MEDIA_UNAVAILABLE');
   }
+  function subscribe(key: string, operation: PendingRead, signal?: AbortSignal): Promise<EncryptedMedia> {
+    operation.consumers++;
+    return new Promise((resolve, reject) => {
+      let finished = false;
+      const finish = () => {
+        if (finished) return false;
+        finished = true;
+        signal?.removeEventListener('abort', abort);
+        operation.consumers--;
+        if (!operation.consumers && !operation.settled) {
+          // Detach before aborting so a new caller cannot join an abandoned read.
+          if (pending.get(key) === operation) pending.delete(key);
+          operation.controller.abort();
+        }
+        return true;
+      };
+      const abort = () => {
+        if (finish()) reject(signal!.reason);
+      };
+      // Both handlers remain attached even if this consumer has already left,
+      // so a last-consumer abort can never create an unhandled rejection.
+      operation.promise.then(
+        value => {
+          if (finish()) resolve(value);
+        },
+        error => {
+          if (finish()) reject(error);
+        }
+      );
+      signal?.addEventListener('abort', abort, { once: true });
+      if (signal?.aborted) abort();
+    });
+  }
   return {
-    async read(cid: string, range: MediaRange | null, dav2 = false): Promise<EncryptedMedia> {
+    async read(cid: string, range: MediaRange | null, dav2 = false, signal?: AbortSignal): Promise<EncryptedMedia> {
+      signal?.throwIfAborted();
       const prefix = `${cid}:${dav2 ? 'dav2' : 'enc'}:`;
       const key = `${prefix}${range ? `${range.start}-${range.end}` : 'full'}`;
       const hit = cache.get(key);
@@ -149,7 +190,7 @@ export function createEncryptedMediaReader(fetchImpl: typeof fetch = fetch) {
         return { bytes: full.bytes.subarray(range.start, Math.min(range.end + 1, full.total)), total: full.total, start: range.start, partial: true };
       }
       const shared = pending.get(key);
-      if (shared) return shared;
+      if (shared) return subscribe(key, shared, signal);
       // Reserve worst-case body space before starting a cold read. One complete
       // object can coexist with a range, but never another complete object on
       // the 512 MiB API instance (assembly/validation also need working space).
@@ -158,18 +199,23 @@ export function createEncryptedMediaReader(fetchImpl: typeof fetch = fetch) {
       active++;
       reservedBytes += reservation;
       const atStart = generation;
-      const request = download(cid, range, dav2).then(value => {
-        if (generation === atStart) store(key, value);
-        return value;
-      });
-      pending.set(key, request);
-      try {
-        return await request;
-      } finally {
-        active--;
-        reservedBytes -= reservation;
-        pending.delete(key);
-      }
+      const controller = new AbortController();
+      // Defer starting transport until the first subscriber is attached.
+      const promise = Promise.resolve()
+        .then(() => download(cid, range, dav2, controller.signal))
+        .then(value => {
+          if (!controller.signal.aborted && generation === atStart) store(key, value);
+          return value;
+        })
+        .finally(() => {
+          operation.settled = true;
+          active--;
+          reservedBytes -= reservation;
+          if (pending.get(key) === operation) pending.delete(key);
+        });
+      const operation: PendingRead = { controller, promise, consumers: 0, settled: false };
+      pending.set(key, operation);
+      return subscribe(key, operation, signal);
     },
     clear() {
       generation++;

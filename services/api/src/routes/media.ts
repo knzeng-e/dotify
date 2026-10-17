@@ -21,9 +21,17 @@ export function createMediaRoutes({
         !Object.keys(request.query as object).length &&
         catalog.getSnapshot()?.releases.find(release => release.active && release.encrypted && encryptedMediaCid(release.audioRef) === cid);
       if (!known) return reply.code(404).send({ code: 'MEDIA_NOT_FOUND', error: 'Audio is not available here.', requestId: request.id });
+      const controller = new AbortController();
+      const abort = () => controller.abort();
+      const close = () => {
+        if (!reply.raw.writableFinished) abort();
+      };
+      request.raw.once('aborted', abort);
+      reply.raw.once('close', close);
+      if (request.raw.aborted || reply.raw.destroyed) abort();
       try {
         const range = parseMediaRange(request.headers.range);
-        const media = await reader.read(cid, range, known.audioRef.startsWith('dotify:enc:v2:'));
+        const media = await reader.read(cid, range, known.audioRef.startsWith('dotify:enc:v2:'), controller.signal);
         if (reply.raw.destroyed || reply.raw.writableEnded) return reply;
         // Slow HTTP receivers must not retain unbounded evicted buffers outside
         // the cache budget. Rejection leaves independent IPFS readers usable.
@@ -45,9 +53,13 @@ export function createMediaRoutes({
         if (media.partial) reply.code(206).header('content-range', `bytes ${media.start}-${media.start + media.bytes.length - 1}/${media.total}`);
         return reply.send(media.bytes);
       } catch (error) {
+        if (controller.signal.aborted || reply.raw.destroyed || reply.raw.writableEnded) return reply;
         const failure = error instanceof MediaError ? error : new MediaError(502, 'MEDIA_UNAVAILABLE');
         if (failure.statusCode === 503) reply.header('retry-after', '2');
         return reply.code(failure.statusCode).send({ code: failure.code, error: failure.message, requestId: request.id });
+      } finally {
+        request.raw.off('aborted', abort);
+        reply.raw.off('close', close);
       }
     });
   };

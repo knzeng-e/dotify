@@ -31,6 +31,15 @@ internal cache hits. The cache contains no keys, clear audio, identity or
 location. Warmth is lost at restart; regional latency and load acceptance remain
 W33/W30 gates. No speed or global availability guarantee follows from this patch.
 
+Each HTTP media request subscribes to its shared cold read. A disconnected or
+aborted client leaves that read; the last departure cancels upstream headers/body
+delivery and releases its slot/reservation when transport settles. An abandoned
+read is detached immediately, cannot populate the cache, and does not try another
+gateway. Other subscribers keep their shared read. Upstream timeouts still allow
+fallback while a subscriber remains. For rollout validation, disconnect one of
+two clients reading the same range, then the last client: verify the survivor
+receives audio, and an abandoned read does not block a new cold request.
+
 Nearby no longer revokes a valid announcement after a transient refresh error.
 It retries a fresh fix within the existing lease; it cannot extend the lease
 with old coordinates. Explicit opt-out, denial, backgrounding and disconnect
