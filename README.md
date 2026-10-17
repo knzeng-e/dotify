@@ -32,13 +32,18 @@ aura lights the whole field (`web/src/styles/aura.css`).
 - **Music**: an actionable horizontal catalog first, followed by real open rooms, policy-aware listening,
   and one-step room hosting without a permanent player navigation tab.
 - **Rooms**: link/code-only by default, with an explicit visibility switch and
-  an approximate-distance slider for Nearby in Web and Product. A compact radar
-  lists only opted-in rooms inside both participants' areas. Room guests should be able to join and
+  an approximate-distance slider for Nearby in Web and Product. The cover-based
+  galaxy shows opted-in Nearby rooms inside both participants' areas and Worldwide
+  invitations, exact connected presence and your own room. Host visibility choices
+  survive temporary interruptions; actual publication still requires permission
+  and a working location provider. Room guests should be able to join and
   listen without wallet friction.
 - **Artist portal**: a dedicated `/artists` onboarding and studio surface where
   artists connect a wallet, create their runtime, upload releases, configure
   access, add additional rights holders for royalty splits, and manage royalty
-  records outside the listener-first app shell.
+  records outside the listener-first app shell. Verified artists see aggregate
+  live room activity, including private rooms without their identities, and can
+  join public rooms carrying their music regardless of distance.
 
 ## Screenshots
 
@@ -47,8 +52,9 @@ access mode its artist chose at upload. Any track can be opened as a room.
 
 ![Dotify catalog](docs/images/dotify-catalog.png)
 
-**Listening rooms** — the earlier galaxy prototype below is a visual reference.
-Current discovery uses consented Nearby results; opening a room alone no longer
+**Listening rooms** — the earlier galaxy screenshot below remains a visual reference
+for cover planets and orbiting presence. Current discovery uses consented Nearby
+and Worldwide results; opening a room alone no longer
 adds it to a public galaxy. Discovery starts from someone sharing a listening
 moment, with direct links available independently of location.
 

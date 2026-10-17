@@ -39,3 +39,29 @@ it('keeps the compact host control unconfirmed until the server removes its invi
   expect(confirmed).not.toContain('90 seconds');
   expect(vi.getTimerCount()).toBe(0);
 });
+
+it('shows the chosen Nearby mode as unavailable after a denied fix instead of silently switching to Link only', async () => {
+  const session = new NearbySession(
+    {
+      connected: true,
+      request: (_e: unknown, _i: unknown, _o: unknown, done: (error: null, reply: unknown) => void) => done(null, { ok: true })
+    } as unknown as RoomRealtimePort,
+    true,
+    true,
+    {
+      visible: () => true,
+      supported: () => true,
+      locate: async () => {
+        throw new Error('DENIED');
+      },
+      permission: async () => null
+    }
+  );
+  await session.start({ kind: 'device' }, 17);
+  await Promise.resolve();
+  const html = renderToStaticMarkup(<NearbyControls nearby={{ session, state: session.snapshot() }} />);
+  expect(html).toContain('Nearby · 17 km · unavailable');
+  expect(html).toContain('Retry visibility');
+  expect(html).not.toContain('>Link only<');
+  session.stop();
+});

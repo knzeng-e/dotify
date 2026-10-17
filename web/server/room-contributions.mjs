@@ -1,5 +1,16 @@
-import { randomBytes } from 'node:crypto';
-import { createPublicClient, http, parseAbi, keccak256, encodeAbiParameters, zeroAddress, zeroHash, isAddress } from 'viem';
+import { createHash, randomBytes } from 'node:crypto';
+import {
+  createPublicClient,
+  http,
+  parseAbi,
+  keccak256,
+  encodeAbiParameters,
+  zeroAddress,
+  zeroHash,
+  isAddress,
+  BaseError,
+  ContractFunctionRevertedError
+} from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 
 const abi = parseAbi([
@@ -32,12 +43,84 @@ export function createRoomContributions(config, dependencies = {}) {
     return client;
   }
   async function knownTrack(runtime, hash) {
-    if (!isAddress(runtime) || !hashPattern.test(hash) || !isAddress(config.directory ?? '')) throw new Error('Unknown release.');
+    if (!isAddress(runtime) || !hashPattern.test(hash) || !isAddress(config.directory ?? ''))
+      throw Object.assign(new Error('Unknown release.'), { code: 'INVALID_RELEASE' });
     const rpc = await chain();
     const [track] = await rpc.readContract({ address: runtime, abi, functionName: 'musicRegGetTrack', args: [hash] });
     const registered = await rpc.readContract({ address: config.directory, abi, functionName: 'runtimeOf', args: [track.artist] });
-    if (registered.toLowerCase() !== runtime.toLowerCase() || !track.active) throw new Error('The release could not be verified.');
+    if (registered.toLowerCase() !== runtime.toLowerCase() || !track.active)
+      throw Object.assign(new Error('The release could not be verified.'), { code: 'INVALID_RELEASE' });
     return track;
+  }
+
+  // Public registry metadata only. Bounded, short-lived and coalesced so room
+  // cards do not issue a read for every viewer or every listener count update.
+  const publicTracks = new Map();
+  let publicTrackReads = 0;
+  async function publicTrackStatus(track) {
+    const runtime = track?.runtimeAddress;
+    const hash = track?.hash;
+    if (!isAddress(runtime ?? '') || !hashPattern.test(hash ?? '')) return { status: 'invalid' };
+    const key = `${runtime}:${hash}`.toLowerCase();
+    const cached = publicTracks.get(key);
+    if (cached?.until > Date.now()) return cached.promise;
+    for (const [id, value] of publicTracks) if (value.until <= Date.now()) publicTracks.delete(id);
+    if (publicTracks.size >= 2000 || publicTrackReads >= 8) return { status: 'unavailable' };
+    publicTrackReads++;
+    const entry = { until: Infinity, promise: null };
+    const promise = knownTrack(runtime, hash)
+      .then(release => ({ status: 'verified', release }))
+      .catch(error => ({
+        status:
+          error.code === 'INVALID_RELEASE' ||
+          (error instanceof BaseError && error.walk(cause => cause instanceof ContractFunctionRevertedError) instanceof ContractFunctionRevertedError)
+            ? 'invalid'
+            : 'unavailable'
+      }))
+      .finally(() => {
+        publicTrackReads--;
+        entry.until = Date.now() + 30_000;
+      });
+    entry.promise = promise;
+    publicTracks.set(key, entry);
+    return promise;
+  }
+
+  async function publicTrack(track) {
+    const result = await publicTrackStatus(track);
+    return result.status === 'verified' ? result.release : null;
+  }
+
+  const artistIdentities = new Map();
+  async function verifyArtistRuntime(runtime, token) {
+    if (!config.api || !isAddress(runtime ?? '') || !isAddress(config.directory ?? '') || typeof token !== 'string' || !token || token.length > 4096)
+      throw new Error('Connect your artist account to see live activity.');
+    const key = createHash('sha256').update(`${runtime.toLowerCase()}:${token}`).digest('hex');
+    const cached = artistIdentities.get(key);
+    if (cached?.until > Date.now()) return cached.identity;
+    for (const [id, value] of artistIdentities) if (value.until <= Date.now()) artistIdentities.delete(id);
+    const response = await request(`${config.api.replace(/\/$/, '')}/auth/identity`, {
+      headers: { Authorization: `Bearer ${token}` },
+      signal: globalThis.AbortSignal.timeout(10000)
+    });
+    if (!response.ok && response.status !== 401) throw new Error('Artist verification is temporarily unavailable.');
+    const identity = response.ok ? await response.json() : null;
+    if (!identity || !isAddress(identity.address ?? '') || identity.chainId !== config.chainId)
+      throw Object.assign(new Error('Reconnect your artist account to see live activity.'), { code: 'SESSION_INVALID' });
+    const rpc = await chain();
+    const registered = await rpc.readContract({ address: config.directory, abi, functionName: 'runtimeOf', args: [identity.address] });
+    if (registered.toLowerCase() !== runtime.toLowerCase()) throw new Error('This runtime does not belong to your artist account.');
+    const verified = { address: identity.address.toLowerCase(), runtime: runtime.toLowerCase() };
+    // This token has just passed the API verifier. Its signed expiry only
+    // shortens a 20s revalidation window; malformed/legacy tokens are uncached.
+    try {
+      const expiry = JSON.parse(Buffer.from(token.split('.')[0], 'base64url').toString('utf8')).exp;
+      if (Number.isSafeInteger(expiry) && expiry > Date.now() && artistIdentities.size < 2000)
+        artistIdentities.set(key, { identity: verified, until: Math.min(expiry, Date.now() + 20_000) });
+    } catch {
+      /* An opaque token remains valid for this one API-verified read. */
+    }
+    return verified;
   }
 
   async function uniqueCatalogRelease(hash) {
@@ -70,6 +153,9 @@ export function createRoomContributions(config, dependencies = {}) {
 
   return {
     recoverTrack,
+    publicTrack,
+    publicTrackStatus,
+    verifyArtistRuntime,
     async verifyArtist(room, token) {
       if (!config.api || typeof token !== 'string' || !token || token.length > 4096) throw new Error('Connect to Dotify before announcing your artist visit.');
       const expectedTrack = room.track;

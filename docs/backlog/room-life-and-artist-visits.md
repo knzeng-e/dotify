@@ -63,3 +63,17 @@ structured `dotify.track.v2` publication fields and the story-first in-app
 release sheet for the next test-data reset. It deliberately adds no migration
 for earlier development manifests. Installed Product gesture checks and the
 broader pilot reliability evidence remain open after this change.
+
+
+## Live activity privacy amendment — 2026-10-17
+
+The owner requests all-room totals for their tracks, including private rooms,
+and artist discovery of public rooms beyond the listener radius. A separate
+server-authorized artist activity view supplies aggregate room/session counts
+and only opted-in public room cards. Link-only rooms never expose their IDs,
+host names, locations or join actions through this view. Runtime ownership and
+canonical release matching are verified by the server; a caller-supplied runtime
+alone is insufficient. Existing explicit artist announcement and wallet-free
+room guest behavior remain intact. See the
+[W19 amendment](implementation/W19-nearby-rooms.md) and
+[privacy contract](../design/dotify-nearby-discovery-privacy.md).

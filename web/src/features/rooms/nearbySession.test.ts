@@ -11,7 +11,12 @@ const manual = { kind: 'manual' as const, cell };
 function harness(
   host = false,
   enabled = true,
-  options: { authorize?: (signal: AbortSignal) => Promise<void>; continuousDevice?: () => boolean; reauthorizeOnRefresh?: () => boolean } = {}
+  options: {
+    authorize?: (signal: AbortSignal) => Promise<void>;
+    continuousDevice?: () => boolean;
+    reauthorizeOnRefresh?: () => boolean;
+    visible?: () => boolean;
+  } = {}
 ) {
   const events: { event: string; input: unknown }[] = [];
   let permissionState = 'granted';
@@ -206,7 +211,7 @@ describe('nearby consent and lifecycle', () => {
     const f = harness();
     await f.session.start(manual, 5);
     expect(f.locate).not.toHaveBeenCalled();
-    expect(f.events).toEqual([{ event: 'nearby:search', input: { schemaVersion: 3, cell, radiusKm: 5 } }]);
+    expect(f.events).toEqual([{ event: 'nearby:search', input: { schemaVersion: 4, cell, radiusKm: 5 } }]);
     f.session.stop();
   });
   it('aborts an outstanding fix and ignores its late callback after stop', async () => {
@@ -361,7 +366,7 @@ it('keeps the phase stable during background refreshes', async () => {
   expect(phases).not.toContain('locating');
   f.session.stop();
 });
-it('names the withdrawn mode and says a failed host attempt leaves the room link-only', async () => {
+it('names an explicit withdrawal and keeps the chosen mode after a failed host attempt', async () => {
   vi.useFakeTimers();
   const f = harness(true);
   await f.session.start({ kind: 'worldwide' }, 5);
@@ -371,7 +376,9 @@ it('names the withdrawn mode and says a failed host attempt leaves the room link
 
   f.locate.mockRejectedValueOnce(new Error('DENIED'));
   await f.session.start({ kind: 'device' }, 5);
-  expect(f.session.snapshot().message).toContain('Your room is available by link only.');
+  expect(f.session.snapshot().message).toContain('Location access was not granted');
+  expect(f.session.selection().source).toEqual({ kind: 'device' });
+  expect(f.session.snapshot().phase).toBe('denied');
 });
 it('tells the listener when the device answered but not precisely enough yet', async () => {
   const f = harness();
@@ -459,7 +466,7 @@ it.each(['nearby', 'worldwide'] as const)('keeps the %s expiry warning through d
   await vi.advanceTimersByTimeAsync(30_000);
   expect(revocations).toHaveLength(1);
   expect(f.session.snapshot().revocationPending).toBe(true);
-  expect(f.session.snapshot().message).toContain(`Visible ${scope} is off on this device`);
+  expect(f.session.selection().source?.kind).toBe(scope === 'worldwide' ? 'worldwide' : 'manual');
   expect(f.session.snapshot().message).toContain('90 seconds');
   expect(f.session.snapshot().message).not.toContain('available by link only');
   revocations[0](null, { ok: false, code: 'RATE_LIMITED' });
@@ -500,4 +507,140 @@ it('does not let a late revocation acknowledgement overwrite a newer publication
   expect(f.session.snapshot().message).toContain('Visible around your chosen city centre');
   expect(f.session.snapshot().revocationPending).toBeUndefined();
   f.session.stop();
+});
+
+it('keeps Nearby selected and renews after a transient refresh failure with a new fix', async () => {
+  vi.useFakeTimers();
+  const f = harness(true);
+  await f.session.start({ kind: 'device' }, 17);
+  f.locate.mockRejectedValueOnce(new Error('TIMEOUT'));
+  await vi.advanceTimersByTimeAsync(30_000);
+  expect(f.session.snapshot().phase).toBe('stale');
+  expect(f.session.selection()).toEqual({ source: { kind: 'device' }, radius: 17 });
+  expect(f.events.filter(event => event.event === 'nearby:publish')).toHaveLength(1);
+  await vi.advanceTimersByTimeAsync(30_000);
+  expect(f.session.snapshot().phase).toBe('active');
+  expect(f.locate).toHaveBeenCalledTimes(3);
+  expect(f.events.filter(event => event.event === 'nearby:publish')).toHaveLength(2);
+  f.session.stop();
+});
+
+it.each(['device', 'worldwide'] as const)('resumes the chosen %s mode after foregrounding or reconnect without widening it', async kind => {
+  vi.useFakeTimers();
+  let visible = true;
+  const f = harness(true, true, { visible: () => visible });
+  await f.session.start({ kind }, 17);
+  visible = false;
+  f.session.suspend();
+  await f.session.resume();
+  await vi.advanceTimersByTimeAsync(120_000);
+  expect(f.session.selection()).toEqual({ source: { kind }, radius: 17 });
+  expect(f.events.filter(event => event.event === 'nearby:publish')).toHaveLength(1);
+  visible = true;
+  f.port.connected = false;
+  await f.session.resume();
+  expect(f.events.filter(event => event.event === 'nearby:publish')).toHaveLength(1);
+  f.port.connected = true;
+  await f.session.resume();
+  expect(f.session.snapshot().phase).toBe('active');
+  expect(f.events.filter(event => event.event === 'nearby:publish')).toHaveLength(2);
+  expect(f.locate).toHaveBeenCalledTimes(kind === 'device' ? 2 : 0);
+  f.session.stop();
+  await f.session.resume();
+  expect(f.session.selection().source).toBeNull();
+  expect(vi.getTimerCount()).toBe(0);
+});
+
+it('keeps a denied host choice without re-prompting on reconnect or after the lease would expire', async () => {
+  vi.useFakeTimers();
+  const authorize = vi.fn(async () => {});
+  const f = harness(true, true, { authorize });
+  await f.session.start({ kind: 'device' }, 42);
+  f.revoke();
+  await vi.advanceTimersByTimeAsync(120_000);
+  f.session.suspend();
+  await f.session.resume();
+  expect(f.session.selection()).toEqual({ source: { kind: 'device' }, radius: 42 });
+  expect(f.events.filter(event => event.event === 'nearby:publish')).toHaveLength(1);
+  expect(authorize).toHaveBeenCalledOnce();
+  f.session.stop();
+});
+
+it('retains the host choice across an observer-less lease expiry without claiming it is live', async () => {
+  vi.useFakeTimers();
+  const f = harness(true, true, { continuousDevice: () => false });
+  await f.session.start({ kind: 'device' }, 17);
+  await vi.advanceTimersByTimeAsync(90_000);
+  expect(f.session.snapshot().phase).toBe('stale');
+  expect(f.session.selection().source).toEqual({ kind: 'device' });
+  expect(f.locate).toHaveBeenCalledOnce();
+  expect(f.events.filter(event => event.event === 'nearby:publish')).toHaveLength(1);
+  f.session.stop();
+});
+
+it('does not equate a Product grant with native coordinates or repeatedly prompt after native failure', async () => {
+  vi.useFakeTimers();
+  const authorize = vi.fn(async () => {});
+  const f = harness(true, true, { authorize, reauthorizeOnRefresh: () => true });
+  f.locate.mockRejectedValueOnce(new Error('TIMEOUT'));
+  await f.session.start({ kind: 'device' }, 17);
+  await vi.advanceTimersByTimeAsync(120_000);
+  expect(f.session.snapshot().phase).toBe('stale');
+  expect(f.session.snapshot().locationIssue).toBe('host-unavailable');
+  expect(f.session.snapshot().message).toContain('could not return a location');
+  expect(f.session.selection().source).toEqual({ kind: 'device' });
+  expect(authorize).toHaveBeenCalledOnce();
+  expect(f.events.some(event => event.event === 'nearby:publish')).toBe(false);
+  f.session.stop();
+});
+
+it('falls back to an older discovery schema only on a version/area rejection and remembers it', async () => {
+  vi.useFakeTimers();
+  const f = harness();
+  f.port.request = (event, input, _opts, done) => {
+    f.events.push({ event, input });
+    const version = (input as { schemaVersion: number }).schemaVersion;
+    done(null, version === 4 ? { ok: false, code: 'INVALID_AREA' } : { ok: true, schemaVersion: 3, expiresInMs: 90_000, results: [] });
+  };
+  await f.session.start(manual, 5);
+  expect(f.events.map(event => (event.input as { schemaVersion: number }).schemaVersion)).toEqual([4, 3]);
+  await vi.advanceTimersByTimeAsync(15_000);
+  expect((f.events[f.events.length - 1].input as { schemaVersion: number }).schemaVersion).toBe(3);
+  f.session.stop();
+});
+
+it('retains a host choice made as the page backgrounds, then obtains a fresh fix on return', async () => {
+  vi.useFakeTimers();
+  let visible = false;
+  const f = harness(true, true, { visible: () => visible });
+  await f.session.start({ kind: 'device' }, 17);
+  expect(f.session.selection()).toEqual({ source: { kind: 'device' }, radius: 17 });
+  expect(f.locate).not.toHaveBeenCalled();
+  visible = true;
+  await f.session.resume();
+  expect(f.locate).toHaveBeenCalledOnce();
+  expect(f.session.snapshot().phase).toBe('active');
+  f.session.stop();
+});
+
+it('explicitly stopping visibility cancels an in-flight recovery and its late grant', async () => {
+  vi.useFakeTimers();
+  let finish!: () => void;
+  const authorize = vi.fn(async () => {});
+  const f = harness(true, true, { authorize });
+  await f.session.start({ kind: 'device' }, 17);
+  f.session.suspend();
+  authorize.mockImplementationOnce(
+    () =>
+      new Promise(resolve => {
+        finish = resolve;
+      })
+  );
+  const recovery = f.session.resume();
+  f.session.stop();
+  finish();
+  await recovery;
+  expect(f.session.selection().source).toBeNull();
+  expect(f.events.filter(event => event.event === 'nearby:publish')).toHaveLength(1);
+  expect(vi.getTimerCount()).toBe(0);
 });

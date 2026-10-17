@@ -5,6 +5,7 @@ import { Dialog } from '../../components/Dialog';
 import { CoverImage } from '../../components/CoverImage';
 import type { CatalogTrack, OpenRoom } from '../../shared/types';
 import { artistLiveRooms, liveRoomState } from '../../features/artist-studio/liveRooms';
+import { useArtistRoomActivity } from '../../features/artist-studio/useArtistRoomActivity';
 import { artistVisitSession } from '../../features/artist-studio/artistVisitSession';
 import { normalizeRoomCode } from '../../shared/utils/format';
 
@@ -12,6 +13,7 @@ export function ArtistLiveRooms({ tracks, runtime }: { tracks: CatalogTrack[]; r
   const session = useSessionContext();
   const wallet = useWalletContext();
   const catalog = useCatalogContext();
+  const activity = useArtistRoomActivity(runtime);
   const [visit, setVisit] = useState<OpenRoom | null>(null);
   const [invitation, setInvitation] = useState('');
   const [invitedRoomId, setInvitedRoomId] = useState('');
@@ -33,23 +35,15 @@ export function ArtistLiveRooms({ tracks, runtime }: { tracks: CatalogTrack[]; r
     },
     []
   );
-  useEffect(() => {
-    // The standalone artist portal does not mount listener discovery.
-    void session.requestOpenRooms();
-    // One subscription per mounted panel; Socket.IO owns subsequent updates.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
   const online = session.socketStatus === 'online';
-  const known = online && catalog.catalogIsAuthoritative;
-  const rows = catalog.catalogIsAuthoritative ? artistLiveRooms(session.openRooms, tracks, runtime) : [];
+  const known = online && catalog.catalogIsAuthoritative && activity.snapshot !== null;
+  const rows = catalog.catalogIsAuthoritative ? artistLiveRooms(activity.snapshot?.rooms ?? [], tracks, runtime) : [];
   const currentVisit = rows.find(row => row.room.roomId === visit?.roomId);
   const targetRoomId = invitedRoomId || currentVisit?.room.roomId;
   function closeVisit() {
     setVisit(null);
     setInvitedRoomId('');
   }
-  const playing = rows.filter(({ room }) => liveRoomState(room) === 'Playing');
-  const present = playing.reduce((sum, { room }) => sum + room.listenerCount + 1, 0);
   async function enter() {
     if (!targetRoomId || !online || !name.trim() || joining) return;
     const attempt = ++attemptRef.current;
@@ -87,27 +81,33 @@ export function ArtistLiveRooms({ tracks, runtime }: { tracks: CatalogTrack[]; r
           <h2 id='artist-live-title'>Your music, live</h2>
         </div>
         <span className='artist-live-status' data-online={online}>
-          {online ? 'Live updates' : 'Connection interrupted'}
+          {known ? 'Updates every few seconds' : online ? 'Connecting…' : 'Connection interrupted'}
         </span>
       </div>
       <div className='artist-live-metrics'>
         <p>
-          <strong>{known ? playing.length : '—'}</strong>
+          <strong>{known ? activity.snapshot!.roomCount : '—'}</strong>
           <span>
-            <Radio size={16} /> visible rooms playing
+            <Radio size={16} /> rooms with your music
           </span>
         </p>
         <p>
-          <strong>{known ? present : '—'}</strong>
+          <strong>{known ? activity.snapshot!.connectedCount : '—'}</strong>
           <span>
             <Users size={16} /> connected sessions
           </span>
         </p>
       </div>
       <p className='artist-live-explanation'>
-        Only rooms visible to you appear here. Hosts choose whether to share their room nearby; other rooms stay accessible by invitation. Counts cover these
-        rooms, not all listening to your music.
+        Counts include every room with your music. Public rooms welcome you from anywhere; link-only rooms remain private. Connected sessions include hosts and
+        listeners, not unique people.
       </p>
+      {activity.message && <p role='status'>{activity.message}</p>}
+      {activity.needsSession && (
+        <button type='button' className='secondary-action compact-action' disabled={activity.connecting} onClick={() => void activity.connect()}>
+          {activity.connecting ? 'Verifying…' : 'Show live activity'}
+        </button>
+      )}
       <form
         className='room-action-form'
         onSubmit={event => {
@@ -141,10 +141,10 @@ export function ArtistLiveRooms({ tracks, runtime }: { tracks: CatalogTrack[]; r
         <p role='status'>Live updates are unavailable. Reconnecting…</p>
       ) : !catalog.catalogIsAuthoritative ? (
         <p role='status'>Waiting for the verified catalog to match your releases.</p>
-      ) : !rows.length ? (
+      ) : !known ? null : !rows.length ? (
         <div className='artist-live-empty'>
           <Headphones size={22} />
-          <p>No room playing your releases is visible here. Find opted-in rooms through Nearby or join a room using an invitation link.</p>
+          <p>No public room with your music is open right now. You can still join a private room with an invitation.</p>
         </div>
       ) : (
         <div className='artist-live-rooms'>
@@ -170,7 +170,7 @@ export function ArtistLiveRooms({ tracks, runtime }: { tracks: CatalogTrack[]; r
                   setName(session.displayName === 'Listener' ? '' : session.displayName);
                 }}
               >
-                Visit room <ArrowUpRight size={16} />
+                Join <ArrowUpRight size={16} />
               </button>
             </article>
           ))}

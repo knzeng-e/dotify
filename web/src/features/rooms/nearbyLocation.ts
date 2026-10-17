@@ -80,29 +80,35 @@ export function locateNearbyCell(signal: AbortSignal, onCoarseFix?: () => void):
     const abort = () => finish(undefined, 'STOPPED');
     const timer = setTimeout(() => finish(undefined, sawCoarseFix ? 'INACCURATE' : 'TIMEOUT'), 32_000);
     signal.addEventListener('abort', abort, { once: true });
-    watch.id = navigator.geolocation.watchPosition(
-      position => {
-        const { latitude, longitude, accuracy } = position.coords;
-        if (
-          !Number.isFinite(accuracy) ||
-          accuracy < 0 ||
-          accuracy > 1000 ||
-          !Number.isFinite(position.timestamp) ||
-          Math.abs(Date.now() - position.timestamp) > 30_000
-        ) {
-          // A mobile first fix can be coarse or stale. Keep this bounded watch
-          // alive for a fresh accurate fix instead of rejecting immediately.
-          if (!sawCoarseFix) {
-            sawCoarseFix = true;
-            onCoarseFix?.();
+    try {
+      watch.id = navigator.geolocation.watchPosition(
+        position => {
+          const { latitude, longitude, accuracy } = position.coords;
+          if (
+            !Number.isFinite(accuracy) ||
+            accuracy < 0 ||
+            accuracy > 1000 ||
+            !Number.isFinite(position.timestamp) ||
+            Math.abs(Date.now() - position.timestamp) > 30_000
+          ) {
+            // A mobile first fix can be coarse or stale. Keep this bounded watch
+            // alive for a fresh accurate fix instead of rejecting immediately.
+            if (!sawCoarseFix) {
+              sawCoarseFix = true;
+              onCoarseFix?.();
+            }
+            return;
           }
-          return;
-        }
-        finish(coarseNearbyCell(latitude, longitude) ?? undefined);
-      },
-      error => finish(undefined, error.code === 1 ? 'DENIED' : error.code === 3 ? (sawCoarseFix ? 'INACCURATE' : 'TIMEOUT') : 'UNAVAILABLE'),
-      { enableHighAccuracy: true, maximumAge: 15_000, timeout: 30_000 }
-    );
-    if (finished) navigator.geolocation.clearWatch(watch.id);
+          finish(coarseNearbyCell(latitude, longitude) ?? undefined);
+        },
+        error => finish(undefined, error.code === 1 ? 'DENIED' : error.code === 3 ? (sawCoarseFix ? 'INACCURATE' : 'TIMEOUT') : 'UNAVAILABLE'),
+        { enableHighAccuracy: true, maximumAge: 15_000, timeout: 30_000 }
+      );
+      if (finished) navigator.geolocation.clearWatch(watch.id);
+    } catch {
+      // A Host may expose the API but throw before registering a native watch.
+      // Cancel our deadline and abort handler in the same way as async failure.
+      finish(undefined, 'UNAVAILABLE');
+    }
   });
 }

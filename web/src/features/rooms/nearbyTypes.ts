@@ -1,3 +1,4 @@
+import { publicCoverRef } from '../../../shared/public-cover.mjs';
 import type { NearbyArea } from '../../../shared/nearby-v2.mjs';
 import { exactKeys, NEARBY_MAX_RESULTS, NEARBY_TTL_MS } from '../../../shared/nearby-v2.mjs';
 export type { NearbyArea };
@@ -11,9 +12,12 @@ export type NearbyResult = {
   presence: string;
   isFull: boolean;
   distanceBand?: string | null;
+  /** Connected listeners, excluding the host. Only v4 exposes exact counts. */
+  listenerCount?: number;
+  imageRef?: string | null;
 };
 export type NearbyReply = { ok: false; code: string } | { ok: true; expiresInMs?: number };
-export type NearbySearchReply = { ok: false; code: string } | { ok: true; schemaVersion: 2 | 3; expiresInMs: number; results: NearbyResult[] };
+export type NearbySearchReply = { ok: false; code: string } | { ok: true; schemaVersion: 2 | 3 | 4; expiresInMs: number; results: NearbyResult[] };
 
 export function safeNearbyReply(reply: unknown, host: boolean): reply is NearbyReply | NearbySearchReply {
   if (!reply || typeof reply !== 'object') return false;
@@ -24,7 +28,7 @@ export function safeNearbyReply(reply: unknown, host: boolean): reply is NearbyR
   if (
     !exactKeys(value, ['ok', 'schemaVersion', 'expiresInMs', 'results']) ||
     value.ok !== true ||
-    (value.schemaVersion !== 2 && value.schemaVersion !== 3) ||
+    (value.schemaVersion !== 2 && value.schemaVersion !== 3 && value.schemaVersion !== 4) ||
     !expiry(value.expiresInMs) ||
     !Array.isArray(value.results) ||
     value.results.length > NEARBY_MAX_RESULTS
@@ -41,11 +45,17 @@ export function safeNearbyReply(reply: unknown, host: boolean): reply is NearbyR
         'artist',
         'presence',
         'isFull',
-        ...(value.schemaVersion === 3 ? ['distanceBand'] : [])
+        ...(value.schemaVersion !== 2 ? ['distanceBand'] : []),
+        ...(value.schemaVersion === 4 ? ['listenerCount', 'imageRef'] : [])
       ]) &&
       (value.schemaVersion === 2 ||
         item.distanceBand === null ||
         (typeof item.distanceBand === 'string' && /^(0–5|5–10|10–15|15–20|20–25|25–30|30–35|35–40|40–45) km$/.test(item.distanceBand))) &&
+      (value.schemaVersion !== 4 ||
+        (Number.isSafeInteger(item.listenerCount) &&
+          item.listenerCount! >= 0 &&
+          item.listenerCount! <= 10000 &&
+          (item.imageRef === null || (typeof item.imageRef === 'string' && publicCoverRef(item.imageRef) === item.imageRef)))) &&
       typeof item.roomId === 'string' &&
       /^[A-Z2-9]{6}$/.test(item.roomId) &&
       typeof item.discoveryId === 'string' &&

@@ -17,6 +17,7 @@ export type NearbyState = {
   results: NearbyResult[];
   retryInSeconds?: number;
   revocationPending?: boolean;
+  locationIssue?: 'host-unavailable';
 };
 type Source = { kind: 'device' } | { kind: 'manual'; cell: string } | { kind: 'worldwide' };
 type Environment = {
@@ -47,6 +48,11 @@ export class NearbySession {
   private nextSearchAt = 0;
   private cooldownTimer: ReturnType<typeof setTimeout> | undefined;
   private source: Source | null = null;
+  // The host's explicit room-lifetime choice is independent of a short network lease.
+  private desiredSource: Source | null = null;
+  private permissionBlocked = false;
+  private hostLocationFailed = false;
+  private searchVersion: 2 | 3 | 4 = 4;
   private pendingVisibilityScope: 'nearby' | 'worldwide' | null = null;
   private radius = 5;
   private deviceSnapshotOnly = false;
@@ -79,7 +85,7 @@ export class NearbySession {
     };
   }
   snapshot = () => this.state;
-  selection = () => ({ radius: this.radius, source: this.source });
+  selection = () => ({ radius: this.radius, source: this.host ? this.desiredSource : this.source });
   subscribe = (listener: (state: NearbyState) => void) => {
     this.listeners.add(listener);
     return () => {
@@ -87,8 +93,8 @@ export class NearbySession {
     };
   };
   private set(state: NearbyState) {
-    this.state = state;
-    this.listeners.forEach(listener => listener(state));
+    this.state = { ...state, ...(this.hostLocationFailed ? { locationIssue: 'host-unavailable' as const } : {}) };
+    this.listeners.forEach(listener => listener(this.state));
   }
   private request<K extends keyof RoomRequests>(event: K, payload: RoomRequests[K]['input']): Promise<RoomRequests[K]['output']> {
     return new Promise((resolve, reject) => {
@@ -104,7 +110,12 @@ export class NearbySession {
       });
     });
   }
-  stop(message = '', phase: NearbyState['phase'] = 'off') {
+  stop(message = '', phase: NearbyState['phase'] = 'off', preserveChoice = false) {
+    if (!preserveChoice) {
+      this.desiredSource = null;
+      this.permissionBlocked = false;
+      this.hostLocationFailed = false;
+    }
     const hadSource = this.source !== null || this.pendingVisibilityScope !== null;
     const scope = this.pendingVisibilityScope ?? (this.source?.kind === 'worldwide' ? 'worldwide' : 'nearby');
     const rev = ++this.revision;
@@ -121,7 +132,7 @@ export class NearbySession {
     this.permission = null;
     if (this.host && hadSource) {
       this.pendingVisibilityScope = scope;
-      const pending = `${message ? `${message} ` : ''}Visible ${scope} is off on this device. The room may remain discoverable for up to 90 seconds.`;
+      const pending = `${message ? `${message} ` : ''}${preserveChoice ? 'The previous invitation' : `Visible ${scope} is off on this device. The room`} may remain discoverable for up to 90 seconds.`;
       this.set({ phase, message: pending, results: [], revocationPending: true });
       void this.request('nearby:off', {})
         .then(reply => {
@@ -129,7 +140,11 @@ export class NearbySession {
           // non-OK replies and transport failures, never claim link-only early.
           if (rev !== this.revision || reply.ok !== true) return;
           this.pendingVisibilityScope = null;
-          this.set({ phase, message: message ? `${message} Your room is available by link only.` : `Your room is no longer visible ${scope}.`, results: [] });
+          this.set({
+            phase,
+            message: preserveChoice ? message : message ? `${message} Your room is available by link only.` : `Your room is no longer visible ${scope}.`,
+            results: []
+          });
         })
         .catch(() => {
           // The already-visible bounded-expiry warning remains authoritative.
@@ -137,24 +152,54 @@ export class NearbySession {
     } else this.set({ phase, message, results: [] });
   }
 
+  /** Withdraw the current lease, retaining only the explicit visibility choice. */
+  suspend(message = 'Visibility paused. Your choice is saved.', phase: NearbyState['phase'] = 'stale') {
+    this.stop(message, phase, this.host);
+  }
+  async resume() {
+    if (!this.host || !this.desiredSource || this.permissionBlocked || this.hostLocationFailed || !this.port.connected || !this.env.visible()) return;
+    if (['locating', 'checking', 'active'].includes(this.state.phase)) return;
+    await this.start(this.desiredSource, this.radius, true);
+  }
+  private failed(code: string, message: string, acquiringLocation = false) {
+    const phase = code === 'DENIED' ? 'denied' : 'stale';
+    const snapshotOnly = this.deviceSnapshotOnly;
+    const hostLocationFailed =
+      ['HOST_LOCATION_UNAVAILABLE', 'HOST_TIMEOUT'].includes(code) ||
+      (acquiringLocation && this.reauthorizeOnRefresh && ['UNAVAILABLE', 'TIMEOUT'].includes(code));
+    if (hostLocationFailed) message = 'Your Polkadot app could not return a location. Continue in your browser for Nearby, or explore worldwide rooms here.';
+    this.permissionBlocked = code === 'DENIED' || code === 'CONFIRM_LOCATION';
+    this.suspend(message, phase);
+    this.hostLocationFailed = hostLocationFailed;
+    if (hostLocationFailed) this.set(this.state);
+    // A failed fix never renews the previous area. Retry only while foregrounded;
+    // explicit denial requires a new user action, not repeated permission prompts.
+    if (this.host && this.desiredSource && !this.permissionBlocked && !snapshotOnly && !hostLocationFailed)
+      this.refresh = setTimeout(() => void this.resume(), code === 'RATE_LIMITED' ? 60_000 : NEARBY_REFRESH_MS);
+  }
   pause() {
     this.stop();
     if (!this.host) this.showCooldown();
   }
-  async start(source: Source, radius: number) {
+  async start(source: Source, radius: number, automatic = false) {
     if (this.state.phase === 'locating' || this.state.phase === 'checking') return;
     if (!this.host && Date.now() < this.nextSearchAt) {
       this.showCooldown();
       return;
     }
+    if (!this.enabled || !NEARBY_RADII.includes(radius)) return;
     this.stop();
-    if (!this.enabled || !NEARBY_RADII.includes(radius) || !this.env.visible()) return;
+    if (this.host) this.desiredSource = source;
+    this.radius = radius;
+    if (!this.env.visible()) {
+      this.set({ phase: 'stale', message: 'Visibility paused while you were away. Your choice is saved.', results: [] });
+      return;
+    }
     if (!this.port.connected) {
       this.set({ phase: 'disconnected', message: 'Reconnect, then try Nearby again.', results: [] });
       return;
     }
     this.source = source;
-    this.radius = radius;
     // Capture the policy before an asynchronous Host handshake. Losing a Host
     // marker/port must never turn a snapshot into continuous browser tracking.
     this.reauthorizeOnRefresh = source.kind === 'device' && this.env.reauthorizeOnRefresh?.() === true;
@@ -162,7 +207,7 @@ export class NearbySession {
     const rev = ++this.revision;
     if (source.kind === 'device') {
       if (!this.env.supported()) {
-        this.stop(copy.UNAVAILABLE, 'denied');
+        this.failed('UNAVAILABLE', copy.UNAVAILABLE, true);
         return;
       }
       this.abort = new AbortController();
@@ -171,7 +216,7 @@ export class NearbySession {
         if (this.env.authorize) await this.env.authorize(this.abort.signal);
         if (rev !== this.revision) return;
         if (!this.env.visible() || !this.port.connected) {
-          this.stop('Nearby stopped. Start again when you are ready.');
+          this.suspend('Visibility paused. Your choice is saved.');
           return;
         }
         const permission = await this.env.permission(this.abort.signal);
@@ -180,15 +225,19 @@ export class NearbySession {
         this.permission = permission;
         if (permission)
           permission.onchange = () => {
-            if (permission.state !== 'granted') this.stop(copy.DENIED, 'denied');
+            if (permission.state !== 'granted') this.failed('DENIED', copy.DENIED);
           };
         if (permission?.state === 'denied') {
-          this.stop(copy.DENIED, 'denied');
+          this.failed('DENIED', copy.DENIED);
+          return;
+        }
+        if (automatic && !this.reauthorizeOnRefresh && permission?.state !== 'granted') {
+          this.failed('CONFIRM_LOCATION', 'Your Nearby choice is saved. Confirm location to make your room visible again.');
           return;
         }
       } catch (error) {
         const code = error instanceof Error ? error.message : '';
-        if (rev === this.revision) this.stop(copy[code] ?? copy.UNAVAILABLE, 'denied');
+        if (rev === this.revision) this.failed(code, copy[code] ?? copy.UNAVAILABLE, true);
         return;
       }
     }
@@ -198,9 +247,10 @@ export class NearbySession {
     const source = this.source;
     if (!source || rev !== this.revision) return;
     if (!this.env.visible()) {
-      this.stop('Nearby paused while you were away. Start again to continue.');
+      this.suspend('Visibility paused while you were away. Your choice is saved.');
       return;
     }
+    let acquiringLocation = source.kind === 'device';
     try {
       this.abort = new AbortController();
       if (source.kind === 'device' && !explicit) {
@@ -224,6 +274,7 @@ export class NearbySession {
       };
       const cell = source.kind === 'device' ? await this.env.locate(this.abort.signal, coarseFix) : source.kind === 'manual' ? source.cell : null;
       if (rev !== this.revision) return;
+      acquiringLocation = false;
       const area =
         source.kind === 'worldwide'
           ? { schemaVersion: 2 as const, worldwide: true as const }
@@ -238,7 +289,14 @@ export class NearbySession {
         });
       if (!this.host) this.nextSearchAt = Date.now() + 10_000;
       const requestedAt = performance.now();
-      const reply = this.host ? await this.request('nearby:publish', area) : await this.request('nearby:search', { ...area, schemaVersion: 3 });
+      let reply = this.host ? await this.request('nearby:publish', area) : await this.request('nearby:search', { ...area, schemaVersion: this.searchVersion });
+      // Older signaling releases reject an unknown version before consuming a
+      // search budget. Negotiate once per session; never downgrade on denial or
+      // transport failures, and retain the strict reply validator.
+      while (!this.host && !reply.ok && reply.code === 'INVALID_AREA' && this.searchVersion > 2 && rev === this.revision) {
+        this.searchVersion = this.searchVersion === 4 ? 3 : 2;
+        reply = await this.request('nearby:search', { ...area, schemaVersion: this.searchVersion });
+      }
       if (rev !== this.revision) return;
       if (!safeNearbyReply(reply, this.host)) throw new Error('UNAVAILABLE');
       if (!reply.ok) {
@@ -288,7 +346,7 @@ export class NearbySession {
       this.expiry = setTimeout(
         () => {
           if (rev !== this.revision) return;
-          if (snapshotOnly) this.stop('This location snapshot has expired. Try location again to update rooms around you.', 'stale');
+          if (snapshotOnly) this.suspend('This location snapshot has expired. Try location again to update rooms around you.', 'stale');
           else this.set({ phase: 'stale', message: 'Updating nearby availability…', results: [] });
         },
         Math.max(0, remaining)
@@ -298,7 +356,7 @@ export class NearbySession {
     } catch (error) {
       if (rev !== this.revision) return;
       const code = error instanceof Error ? error.message : '';
-      this.stop(copy[code] ?? 'Nearby could not refresh. Reconnect and try again.', code === 'DENIED' ? 'denied' : 'stale');
+      this.failed(code, copy[code] ?? 'Visibility is temporarily unavailable. Your choice is saved; we will retry when connected.', acquiringLocation);
       if (!this.host) this.showCooldown();
     }
   }

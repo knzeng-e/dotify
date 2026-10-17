@@ -21,6 +21,7 @@ import { Server } from 'socket.io';
 import { createRoomRealtimeMembers } from './room-realtime-members.mjs';
 import { createRoomContributions } from './room-contributions.mjs';
 import { createRoomLife } from './room-life.mjs';
+import { createArtistRoomActivity } from './artist-room-activity.mjs';
 import { createNearby } from './nearby.mjs';
 import {
   REQUEST_TEXT_MAX_LENGTH,
@@ -140,8 +141,21 @@ export function startSignalingServer(overrides = {}, dependencies = {}) {
     throw new Error('SIGNAL_TURN_CAPABILITY_SECRET must contain at least 32 characters');
   }
   const rooms = new Map();
-  const nearby = createNearby({ enabled: config.nearbyEnabled, rooms, trustProxy: config.trustProxy, maxListeners: config.maxListenersPerRoom });
   const contributions = createRoomContributions(config.contributions ?? {}, dependencies.contributions);
+  const nearby = createNearby({
+    enabled: config.nearbyEnabled,
+    rooms,
+    trustProxy: config.trustProxy,
+    maxListeners: config.maxListenersPerRoom,
+    getPublicTrack: contributions.publicTrack
+  });
+  const artistRoomActivity = createArtistRoomActivity({
+    rooms,
+    nearby,
+    contributions,
+    maxListeners: config.maxListenersPerRoom,
+    trustProxy: config.trustProxy
+  });
   const contributionTrackRecoveries = new WeakMap();
   const realtimeMembers = createRoomRealtimeMembers();
   const clockIdentity = randomBytes(16).toString('hex');
@@ -453,6 +467,7 @@ export function startSignalingServer(overrides = {}, dependencies = {}) {
       });
     }
     nearby.register(socket);
+    artistRoomActivity.register(socket);
     socket.emit('rooms:updated', publicRooms());
     socket.emit('presence:solo:updated', publicSoloPresence());
 

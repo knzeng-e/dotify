@@ -356,6 +356,8 @@ export function ListenerShell() {
                     onJoinRoom={handleJoinRoomRequest}
                     onJoinSession={handleJoinSession}
                     onStartRoom={() => showCreateRoom()}
+                    ownRoomId={session.mode === 'host' ? session.roomId : undefined}
+                    onOpenOwnRoom={() => navigateToView('player')}
                   />
                 )}
 

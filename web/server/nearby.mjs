@@ -10,10 +10,11 @@ import {
   NEARBY_MAX_RESULTS,
   NEARBY_TTL_MS
 } from '../shared/nearby-v2.mjs';
+import { publicCoverRef } from '../shared/public-cover.mjs';
 import { clientKey } from './signaling-utils.mjs';
 
 // No payloads go to logs, publicRoom, /status, analytics or durable stores.
-export function createNearby({ enabled, rooms, trustProxy, maxListeners, now = Date.now }) {
+export function createNearby({ enabled, rooms, trustProxy, maxListeners, getPublicTrack = async () => null, now = Date.now }) {
   const presence = new Map();
   const budgets = new Map();
   const secret = randomBytes(32);
@@ -48,10 +49,30 @@ export function createNearby({ enabled, rooms, trustProxy, maxListeners, now = D
     const room = rooms.get(roomId);
     return socket.data.role === 'host' && room?.hostId === socket.id ? roomId : null;
   }
+  async function artwork(track) {
+    let timer;
+    try {
+      // Discovery must remain usable when the registry is slow. The shared
+      // metadata promise continues warming its cache for the following scan.
+      return await Promise.race([
+        getPublicTrack(track).catch(() => null),
+        new Promise(resolve => {
+          timer = setTimeout(() => resolve(null), 300);
+        })
+      ]);
+    } finally {
+      clearTimeout(timer);
+    }
+  }
   return {
     prune,
     remove: roomId => presence.delete(roomId),
     diagnostics: () => ({ ...totals }),
+    publicVisibility(roomId) {
+      prune();
+      const item = enabled && presence.get(roomId);
+      return item ? (item.worldwide ? 'worldwide' : 'nearby') : null;
+    },
     register(socket) {
       const handler = (event, action) =>
         socket.on(event, (payload, ack) => {
@@ -60,7 +81,9 @@ export function createNearby({ enabled, rooms, trustProxy, maxListeners, now = D
             ack(fail('DISABLED'));
             return;
           }
-          ack(action(payload));
+          const result = action(payload);
+          if (result?.then) result.then(ack, () => ack(fail('UNAVAILABLE')));
+          else ack(result);
         });
       handler('nearby:publish', payload => {
         if (!allowed(socket, 'publish', 12)) return fail('RATE_LIMITED');
@@ -78,6 +101,9 @@ export function createNearby({ enabled, rooms, trustProxy, maxListeners, now = D
           expiresAt: now() + NEARBY_TTL_MS
         };
         presence.set(roomId, record);
+        // Warm the canonical cover while the host opens visibility, without
+        // putting registry latency on the publication acknowledgement.
+        void getPublicTrack(rooms.get(roomId)?.track).catch(() => null);
         totals.publications++;
         return { ok: true, expiresInMs: NEARBY_TTL_MS };
       });
@@ -113,9 +139,31 @@ export function createNearby({ enabled, rooms, trustProxy, maxListeners, now = D
             artist: room.track?.artist ?? '',
             presence: nearbyBucket(room.listeners.size + 1),
             isFull: room.listeners.size >= maxListeners,
-            ...(payload.schemaVersion === 3 ? { distanceBand: item.worldwide ? null : nearbyDistanceBand(item.cell, area.cell) } : {})
+            ...(payload.schemaVersion >= 3 ? { distanceBand: item.worldwide ? null : nearbyDistanceBand(item.cell, area.cell) } : {})
           });
           if (results.length === NEARBY_MAX_RESULTS) break;
+        }
+        if (payload.schemaVersion === 4) {
+          return Promise.all(
+            results.map(async result => {
+              const room = rooms.get(result.roomId);
+              const track = room?.track;
+              const release = await artwork(track);
+              prune();
+              const lease = presence.get(result.roomId);
+              // Do not finish an asynchronous read after revocation/track change.
+              if (!room?.hostId || rooms.get(result.roomId) !== room || room.track !== track || lease?.discoveryId !== result.discoveryId) return null;
+              return {
+                ...result,
+                expiresInMs: Math.max(0, lease.expiresAt - now()),
+                title: release?.title?.slice(0, 160) || result.title,
+                artist: release?.artistName?.slice(0, 160) || result.artist,
+                listenerCount: room.listeners.size,
+                isFull: room.listeners.size >= maxListeners,
+                imageRef: publicCoverRef(release?.imageRef)
+              };
+            })
+          ).then(hydrated => ({ ok: true, schemaVersion: 4, expiresInMs: 45_000, results: hydrated.filter(Boolean) }));
         }
         return { ok: true, schemaVersion: payload.schemaVersion, expiresInMs: 45_000, results };
       });
