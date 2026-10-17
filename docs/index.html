@@ -1574,14 +1574,14 @@
                 validation evidence, not an accepted aggregate pilot or a successful Desktop-signed payment.
               </p>
               <p>
-                The current published default release is <code>[0, 1, 52]</code>, built from tested source
-                <code>92a9c1179dfd1ac67a88c6b3838853c528ddc14c</code> and published at CID
-                <code>bafybeicn6kz5i5yyuoalubbe3hsl7sr7qbunccysju5rki3wrtgi2dbz7m</code>. It retains native Product payments and adds automatic galaxy discovery,
-                explicit worldwide visibility, coarse distance bands and stable API sessions. Rooms remain private by default;
+                The current published default release is <code>[0, 1, 53]</code>, built from tested source
+                <code>83512f708c34304338e6a70c599d38027a9bf68c</code> and published at CID
+                <code>bafybeihj6vrdu3dqnaqfofw4l3qiysc4by4rau3mldmlom637waemgmqr4</code>. It retains native Product payments and adds the restored cover galaxy,
+                exact connected presence, stable host visibility and verified-artist live-room aggregates. Rooms remain private by default;
                 location requires consent and is never continuously tracked. CI and synthetic deployed-service checks passed,
-                alongside finalized DotNS and public-content read-back. Product 0.1.51 is the client rollback artifact.
+                alongside finalized DotNS and public-content read-back. Product 0.1.52 is the client rollback artifact.
                 Installed Desktop/mobile permission behavior, prolonged room audio and paid tips still need physical verification.
-                The <a href="backlog/implementation/evidence/product-0.1.52-rollout-2026-10-16.md">rollout record</a> identifies each deployed artifact and its validation limits.
+                The <a href="backlog/implementation/evidence/product-0.1.53-rollout-2026-10-17.md">rollout record</a> identifies each deployed artifact and its validation limits.
                 W13 also requires first-sound and room measurements, a matching rollback rehearsal, and a consented aggregate pilot before an evidence-backed go/no-go decision.
               </p>
               <p>
@@ -1648,7 +1648,7 @@
                 treats it as delivered. Building on the Product 0.1.50 test release, W19 includes Nearby by default in new Web and Product builds: find opted-in live rooms around you, or make your own room visible
                 within a chosen approximate radius in kilometres. Compact Join by link and Open a room controls stay within reach; temporary sheets hold search and visibility settings.
                 One choice, available when creating the room and inside it, decides who can find it: Link only by default, Nearby, or Everyone. Host visibility and listener search are separate choices;
-                precise coordinates stay on the device, and sparse results offer explicit search widening. The published 0.1.52 release retains a slider from 5 to 42 km, in one-kilometre steps,
+                precise coordinates stay on the device, and sparse results offer explicit search widening. The published 0.1.53 release retains a slider from 5 to 42 km, in one-kilometre steps,
                 respecting both participants' areas. Hosts who choose Everyone are told that their name and track become visible to anyone on Dotify; those public invitations appear without requesting a listener's location, and can be hidden or reported. The published radar starts foreground discovery automatically at app entry through the device permission gate. Nearby and worldwide invitations appear independently as they arrive, so a slow location fix never blocks inspection or joining. Nearby cards show approximate five-kilometre distance bands; worldwide rooms show their worldwide scope without inventing a distance. The galaxy is illustrative, not a map.
                 City exploration is removed. Product rechecks its Location permission gate before each foreground fix; denial stops automatic retries and physical Host prompt/revocation behavior still needs verification. Location work stops in the background, and host publication remains an explicit choice.
                 The physical-test follow-up restores circular album covers, exact connected-session counts and orbiting presence around each room, with a clear marker for your own room and the real Dotify logo in cyan neon at the radar's centre. Room labels show the title and artist; hover or keyboard focus reveals the details, also available by touch. A host's visibility choice survives temporary suspension; the interface distinguishes that choice from a currently published invitation.

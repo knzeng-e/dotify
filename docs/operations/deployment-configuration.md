@@ -1,13 +1,13 @@
 # Deployment Configuration Runbook
 
-## Current published Product release — 0.1.52
+## Current published Product release — 0.1.53
 
-Product `[0, 1, 52]` is published from source `92a9c1179dfd1ac67a88c6b3838853c528ddc14c` at executable/root CID
-`bafybeicn6kz5i5yyuoalubbe3hsl7sr7qbunccysju5rki3wrtgi2dbz7m`. The current client rollback is Product `[0, 1, 51]`, CID
-`bafybeihpprpso6vopekio67surwcygt2ygs6dnppdfsszmiul2qchib2me`.
-Use the [0.1.52 rollout record](../backlog/implementation/evidence/product-0.1.52-rollout-2026-10-16.md)
-for separately identified API/signaling images, Web verification, finalized publication
-read-back and remaining device checks. Keep v3 privacy-safe signaling on client rollback.
+Product `[0, 1, 53]` is published from source `83512f708c34304338e6a70c599d38027a9bf68c` at executable/root CID
+`bafybeihj6vrdu3dqnaqfofw4l3qiysc4by4rau3mldmlom637waemgmqr4`. The current client rollback is Product `[0, 1, 52]`, CID
+`bafybeicn6kz5i5yyuoalubbe3hsl7sr7qbunccysju5rki3wrtgi2dbz7m`.
+Use the [0.1.53 rollout record](../backlog/implementation/evidence/product-0.1.53-rollout-2026-10-17.md)
+for the signaling image, Web identity, finalized publication read-back and remaining
+device checks. Keep v4 privacy-safe signaling on client rollback.
 The API now has a stable server-only `SESSION_EPOCH`; content-key secrets were preserved.
 Netlify production follows `dev`, as observed in the hosted dashboard during this rollout.
 The Web identities in the dated record apply to that observation, not every
