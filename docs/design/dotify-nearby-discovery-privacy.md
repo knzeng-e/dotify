@@ -1,10 +1,45 @@
 # Dotify Nearby Discovery Privacy Contract
 
-Status: W19 is available by default in Web and Product builds. The current implementation adds automatic permission-gated foreground search and v3 distance bands; deployment and physical Host validation remain pending. Hosts explicitly choose publication. W18 v1 is inert historical scaffolding.
+Status: W19 is available by default in Web and Product builds. The October 17 follow-up adds v4 room identity, stable host choices and authenticated artist activity; this follow-up is not deployed. Physical native-location validation remains open. Hosts explicitly choose publication. W18 v1 is inert historical scaffolding.
 
-Last reviewed: 2026-10-16. The amendment immediately below governs automatic listener search; older dated sections are historical where they conflict.
+Last reviewed: 2026-10-17. The newest amendment governs room visibility, public presence and artist activity; older dated sections are historical where they conflict.
 
-## Automatic foreground discovery — 2026-10-16
+## Room identity, stable choices and artist activity — 2026-10-17
+
+Following physical tests, the owner explicitly requests exact listener counts,
+cover-based room nodes and artist activity across visibility scopes. Public
+v4 discovery therefore exposes an exact connected listener count (excluding the
+host) and a validated public artwork reference. It never exposes audio/source
+references, participant identities, wallets, coordinates or cell IDs. V2/v3 retain
+their exact earlier response shape. Exact counts reveal changes in attendance;
+this is a deliberate change from bucketed counts. It is not a unique-human or
+verified-listen metric. Orbits represent these counts, never invented listeners.
+
+A host's explicit Nearby/Everyone choice lasts for the current room. Transient
+lease expiry, disconnect or backgrounding suspends live publication without
+rewriting that choice to Link only. Foreground recovery may renew the previously
+chosen scope only after fresh permission/location validation. Denial or missing
+native coordinates leaves a visible unavailable/retry state, never a falsely
+published invitation. Location remains ephemeral and background collection is
+disabled. Explicit Link only clears the choice and follows acknowledged removal
+semantics; no late renewal may undo it. New rooms still start Link only.
+
+Artist Overview uses a separate authenticated view. Server-verified runtime
+ownership and canonical release matching authorize aggregate counts across all
+rooms playing that artist's releases. Private/link-only rooms contribute only
+to the aggregate: no code, host, participant, location, track-per-room record or
+join action is disclosed. Opted-in Nearby and Worldwide rooms may be listed to
+the verified artist regardless of distance, with no location disclosed. This is
+an explicit exception for the artist, not a global public room-list API. Public
+visibility copy must disclose that the track's artist can discover the room from
+anywhere. Counts cover current connected sessions, not historical analytics.
+
+The existing TTL, disconnect cleanup and moderation boundaries still apply.
+Artwork must be public and canonical, with unsafe/unverified references omitted.
+The owner's own room marker is based on the current authoritative room ID, not a
+match on title, cover, distance or alias. The radar remains an illustration.
+
+## Automatic foreground discovery — 2026-10-16 (historical where superseded above)
 
 The owner requested discovery on app entry without an extra scan button.
 `useRoomDiscovery` owns two independent ephemeral readers in the listener shell:

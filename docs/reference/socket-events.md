@@ -638,7 +638,7 @@ socket.emit('peer:connected', { targetId: string /* host socket ID */ });
 // Host receives
 socket.on('peer:connected', (payload: { from: string }) => { ... });
 ```
-## Nearby v2 publication / v2–v3 search (W19, available by default)
+## Nearby v2 publication / v2–v4 search (W19, available by default)
 
 Unset or exact `on` includes Nearby for `SIGNAL_NEARBY` and the client setting
 `VITE_DOTIFY_NEARBY`. Explicit `off` or an invalid value disables the respective
@@ -647,7 +647,7 @@ All requests use connected-only acknowledgements without disconnected buffering.
 All four events are non-volatile so connected polling backpressure cannot silently discard an initial search, publication or revocation. Unknown fields,
 unsupported schemas, cell arrays and unsupported radii are rejected. Publication and v2 search accept exactly `{ schemaVersion: 2, cell: "n2:<band>:<sector>", radiusKm }`
 with an integer radius from 5 through 42, or exactly `{ schemaVersion: 2, worldwide: true }`.
-Search additionally accepts these exact shapes with `schemaVersion: 3`, returning a versioned coarse distance band. Publication rejects v3.
+Search additionally accepts these exact shapes with `schemaVersion: 3` or `4`. V3 returns a coarse distance band; v4 also returns exact listener counts and public artwork. Publication still accepts v2 only.
 The worldwide mode has no cell/radius and matches worldwide publications only.
 Publishing either mode replaces the previous lease. Neither mode enters legacy
 global room snapshots.
@@ -661,7 +661,7 @@ The cell is computed on-device; precise fixes never enter Socket.IO.
 | `nearby:report`, `{discoveryId, reason}` | Reason is `unwanted`, `misleading` or `offensive`; `{ok:true}` counts an aggregate safety signal. Not a durable moderation case. |
 
 Each result contains only `roomId`, `discoveryId`, `expiresInMs`, `hostName`,
-`title`, `artist`, bucketed `presence`, and `isFull`. v3 adds `distanceBand`: one of `0–5 km`, `5–10 km`, …, `40–45 km`, or `null` for Worldwide. v2 retains its exact old shape. There is no area, precise distance, bearing, wallet, image/source reference or exact count. Join uses the existing
+`title`, `artist`, bucketed `presence`, and `isFull`. v3 adds `distanceBand`: one of `0–5 km`, `5–10 km`, …, `40–45 km`, or `null` for Worldwide. v4 additionally includes `listenerCount` (connected listeners excluding the host) and `imageRef` (validated public artwork or null). V2/v3 retain their exact old shapes. There is no area, precise distance, bearing, wallet or protected source reference. Join uses the existing
 room flow. Search leases are bounded at 45 seconds and by remaining host presence (90 seconds maximum); the client subtracts the
 request round trip, avoiding dependence on synchronized device/server clocks.
 Failures are `{ok:false,code}` with `DISABLED`, `HOST_REQUIRED`,
@@ -672,9 +672,35 @@ search budget, so default public browsing does not consume geographical scans.
 Nearby never enters ordinary public room snapshots.
 See [privacy contract](../design/dotify-nearby-discovery-privacy.md) for retention,
 coarse-boundary uncertainty, residual inference and Product permission limits.
-Nearby foreground reads run every 15 seconds, Worldwide every 30; channels render independently. Listener reconnect/foreground resume is automatic unless paused or denied. Host publication never auto-resumes. No city-exploration UI remains.
+Nearby foreground reads run every 15 seconds, Worldwide every 30; channels render independently. Listener reconnect/foreground resume is automatic unless paused or denied. The host selection persists for the room lifetime: transient suspension does not select Link only. Publication resumes in the foreground only after the required permission/location checks; denial requires explicit recovery. No city-exploration UI remains.
 
 `room:tip-bind` may return `code: "SESSION_INVALID"` when the API rejects the
 listener session with HTTP 401. The host may discard only the rejected token
 and establish a fresh signed session once. Network/service failures never
 trigger repeated reauthorization; server verification remains authoritative.
+
+
+## Artist live room activity — 2026-10-17
+
+`artist:rooms` is a connected-only acknowledgement request with exactly
+`{runtime, token}`. It verifies the existing Dotify session through the API and
+checks registered runtime ownership. Canonical registered releases determine
+which rooms contribute; arbitrary host artist names cannot claim ownership.
+
+A successful snapshot returns `{ok:true, roomCount, connectedCount, rooms,
+updatedAt}`. Counts include private rooms with that artist's music. `rooms`
+contains only currently opted-in public invitations (Nearby or Worldwide),
+regardless of the requesting artist's location. Private codes, host names,
+location and per-room details are never included. Public cards carry sanitized
+track/playback data, connected listener counts and `visibility`; artwork is
+validated and protected audio/manifest references are excluded. Up to 100 public
+cards are returned; aggregate totals may exceed that list.
+
+The artist panel requests a bounded snapshot every five seconds while visible
+and connected; account changes, disconnect and unmount clear data and invalidate
+in-flight reads. Missing/rejected authentication shows an unavailable/connect
+state, never a fabricated zero. Errors are `{ok:false, code}` with
+`SESSION_INVALID` or `UNAVAILABLE`. Server limits bound polls, in-flight work,
+network budgets and caches; tokens are never logged. A short verified-identity
+cache does not exceed the token expiry and bounds revocation observation.
+This is current session presence, not historical listens or proof of audibility.

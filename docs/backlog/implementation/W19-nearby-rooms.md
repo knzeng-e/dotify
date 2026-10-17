@@ -13,7 +13,40 @@ Implement **W19** only. Read `AGENTS.md`, `docs/backlog/implementation/common.md
 - Existing issue: #274.
 - Product purpose: effortless shared listening, meaningful artist control, transparent value, and a coherent poetic interface. Product DevNet is a first-class target alongside ordinary web.
 
-## Automatic galaxy amendment — 2026-10-16 (current scope)
+## Physical-test feedback — 2026-10-17 (current scope)
+
+The owner tested Product 0.1.52 and ordinary Web and requests this continuation
+of #274 and #257. Base: tested `dev` `3b0bb68`.
+
+- Restore circular album-cover room nodes, exact connected listener counts and
+  orbiting listener points. Keep public scope as a small planet/radar indicator,
+  use the same Dotify logo as the header at the centre, and mark the host's own
+  room with a direct return action. Layout remains illustrative, not geographic.
+- Keep the sweep visible throughout active discovery; short HTTP/socket replies
+  must not make it appear broken. Reduced-motion, paused/error and background
+  states must remain honest.
+- Treat the host's visibility selection as room-lifetime intent. Expiry,
+  backgrounding and transient network/permission failures may suspend actual
+  publication, but must not silently select Link only. Reconnect/foreground
+  recovery uses fresh permission/location checks and bounded retries. Explicit
+  opt-out still requires acknowledged server removal or an honest TTL warning.
+- Product permission approval and native coordinate delivery are distinct. Audit
+  the installed Host path, fix application defects and document any upstream
+  capability gap; passing a fake Host test is not physical location proof.
+- A verified artist sees aggregate counts for every room carrying their tracks,
+  including link-only rooms, with no private room identifiers. Public opted-in
+  rooms are listed/joinable for the artist regardless of radius. Ordinary
+  discovery remains constrained by both host and listener radius.
+- V4 discovery adds exact listener counts and a validated public cover reference;
+  preserve v2/v3 response compatibility and prohibit audio/key/source leakage.
+  Counts are connected sessions, never verified unique humans or audible plays.
+
+This amendment supersedes earlier count bucketing, explicit host re-enablement
+and artist-visible-subset wording. See the corresponding
+[privacy amendment](../../design/dotify-nearby-discovery-privacy.md) and
+[validation/native Host evidence](evidence/W19-room-feedback-2026-10-17.md).
+
+## Automatic galaxy amendment — 2026-10-16 (historical scope)
 
 The owner explicitly requests automatic foreground discovery at app entry and
 when returning to Rooms, progressive results, a restored room galaxy, approximate

@@ -66,3 +66,33 @@ test('Product async grant wins over the false Electron query and is rechecked be
   expect(await page.evaluate(() => window.identityFixture.locationRequests)).toBe(2);
   expect(await page.evaluate(() => window.identityFixture.requests)).toBe(0);
 });
+
+test('a Host grant without native coordinates stays unavailable and does not invent a location', async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.assign(window, { __HOST_WEBVIEW_MARK__: true });
+    Object.defineProperty(navigator, 'geolocation', {
+      configurable: true,
+      value: {
+        watchPosition: (_ok: PositionCallback, error?: PositionErrorCallback) => {
+          queueMicrotask(() => error?.({ code: 2, message: 'Native location bridge unavailable' } as GeolocationPositionError));
+          return 1;
+        },
+        clearWatch: () => {}
+      }
+    });
+  });
+  const searches: string[] = [];
+  page.on('websocket', socket =>
+    socket.on('framesent', frame => {
+      const message = String(frame.payload);
+      if (message.includes('nearby:search') && message.includes('radiusKm')) searches.push(message);
+    })
+  );
+  await page.goto('/e2e/fixtures/product-host.html?e2eRoom=listener');
+  await page.getByRole('button', { name: 'Rooms', exact: true }).click();
+  const radar = page.getByRole('region', { name: 'Room galaxy' });
+  await expect(radar).toContainText('Your Polkadot app could not return a location');
+  await expect(radar).toContainText('worldwide rooms');
+  expect(await page.evaluate(() => window.identityFixture.locationRequests)).toBe(1);
+  expect(searches).toEqual([]);
+});

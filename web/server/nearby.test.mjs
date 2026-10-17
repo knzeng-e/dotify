@@ -182,7 +182,79 @@ test('v3 distance bands are coarse and v2 exact response shapes remain compatibl
   host('nearby:publish', { schemaVersion: 2, worldwide: true });
   const world = f.client('world')('nearby:search', { schemaVersion: 3, worldwide: true });
   assert.equal(world.results[0].distanceBand, null);
-  for (const extra of [{ latitude: 0 }, { distanceBand: '0–5 km' }, { schemaVersion: 4 }]) {
+  for (const extra of [{ latitude: 0 }, { distanceBand: '0–5 km' }, { schemaVersion: 5 }]) {
     assert.equal(f.client('bad' + JSON.stringify(extra))('nearby:search', { ...area(), schemaVersion: 3, ...extra }).code, 'INVALID_AREA');
   }
+});
+
+test('v4 restores exact listener counts and canonical artwork without changing v2/v3 or leaking source fields', async () => {
+  const imageRef = 'ipfs://Qmc1s9HahFvSTuKk23KXpToF8PBaJraj5Re8qKMU1Ntxdq/cover/640.webp';
+  const room = {
+    hostId: 'host',
+    hostName: 'Ada',
+    track: { title: 'Host title', imageRef: 'https://tracker.invalid', audioRef: 'private-source' },
+    listeners: new Map([
+      ['one', {}],
+      ['two', {}]
+    ])
+  };
+  const rooms = new Map([['ABC234', room]]);
+  const service = createNearby({
+    enabled: true,
+    rooms,
+    maxListeners: 24,
+    getPublicTrack: async () => ({ title: 'Canonical song', artistName: 'Canonical artist', imageRef })
+  });
+  function client(id, role = 'listener') {
+    const handlers = new Map();
+    service.register({ id, data: { role, roomId: 'ABC234' }, handshake: { address: id }, on: (event, handler) => handlers.set(event, handler) });
+    return (event, payload) => new Promise(resolve => handlers.get(event)(payload, resolve));
+  }
+  const host = client('host', 'host');
+  const observer = client('observer');
+  await host('nearby:publish', area());
+  const v4 = await observer('nearby:search', { ...area(), schemaVersion: 4 });
+  assert.equal(v4.results[0].listenerCount, 2);
+  assert.equal(v4.results[0].imageRef, imageRef);
+  assert.equal(v4.results[0].title, 'Canonical song');
+  assert.doesNotMatch(JSON.stringify(v4), /tracker|private-source|audioRef|metadataRef|wallet|cell/);
+  for (const version of [2, 3]) {
+    const legacy = await observer('nearby:search', { ...area(), schemaVersion: version });
+    assert.equal(Object.hasOwn(legacy.results[0], 'listenerCount'), false);
+    assert.equal(Object.hasOwn(legacy.results[0], 'imageRef'), false);
+  }
+  room.listeners.delete('one');
+  assert.equal((await observer('nearby:search', { ...area(), schemaVersion: 4 })).results[0].listenerCount, 1);
+});
+
+test('slow artwork cannot block visible rooms, and async enrichment respects host opt-out', async () => {
+  let resolveArtwork;
+  const room = { hostId: 'host', hostName: 'Ada', track: { title: 'Song' }, listeners: new Map() };
+  const rooms = new Map([['ABC234', room]]);
+  const service = createNearby({
+    enabled: true,
+    rooms,
+    maxListeners: 24,
+    getPublicTrack: async () =>
+      new Promise(resolve => {
+        resolveArtwork = resolve;
+      })
+  });
+  function client(id, role = 'listener') {
+    const handlers = new Map();
+    service.register({ id, data: { role, roomId: 'ABC234' }, handshake: { address: id }, on: (event, handler) => handlers.set(event, handler) });
+    return (event, payload) => new Promise(resolve => handlers.get(event)(payload, resolve));
+  }
+  const host = client('host', 'host');
+  const observer = client('observer');
+  await host('nearby:publish', area());
+  const started = Date.now();
+  const slow = await observer('nearby:search', { ...area(), schemaVersion: 4 });
+  assert.equal(slow.results.length, 1);
+  assert.equal(slow.results[0].imageRef, null);
+  assert.ok(Date.now() - started < 1000);
+  const pending = observer('nearby:search', { ...area(), schemaVersion: 4 });
+  await host('nearby:off', {});
+  resolveArtwork({ title: 'Song' });
+  assert.deepEqual((await pending).results, []);
 });

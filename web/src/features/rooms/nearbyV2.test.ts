@@ -44,6 +44,34 @@ describe('Nearby v2 privacy geometry', () => {
     ])
       expect(coarseNearbyCell(lat, lon)).toBeNull();
   });
+  it('v4 admits exact counts and immutable covers only, with no arbitrary URL or legacy shape extension', () => {
+    const item = {
+      roomId: 'ABC234',
+      discoveryId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+      expiresInMs: 45000,
+      hostName: 'Host',
+      title: 'Song',
+      artist: 'Artist',
+      presence: '4–9',
+      isFull: false,
+      distanceBand: null,
+      listenerCount: 4,
+      imageRef: 'ipfs://Qmc1s9HahFvSTuKk23KXpToF8PBaJraj5Re8qKMU1Ntxdq/cover/640.webp'
+    };
+    const reply = { ok: true, schemaVersion: 4, expiresInMs: 45000, results: [item] };
+    expect(safeNearbyReply(reply, false)).toBe(true);
+    expect(safeNearbyReply({ ...reply, results: [{ ...item, imageRef: null }] }, false)).toBe(true);
+    for (const imageRef of [
+      'https://tracking.invalid/cover',
+      'data:image/svg+xml,test',
+      'ipfs://not-a-cid',
+      item.imageRef + '?token=secret',
+      item.imageRef + '/../manifest'
+    ])
+      expect(safeNearbyReply({ ...reply, results: [{ ...item, imageRef }] }, false)).toBe(false);
+    for (const listenerCount of [-1, 1.5, 10001, NaN, '4']) expect(safeNearbyReply({ ...reply, results: [{ ...item, listenerCount }] }, false)).toBe(false);
+    expect(safeNearbyReply({ ...reply, schemaVersion: 3 }, false)).toBe(false);
+  });
   it('rejects unknown fields, lists, old/mixed scales and unsupported radius values', () => {
     const good = area(0, 0);
     expect(validNearbyArea(good)).toBe(true);

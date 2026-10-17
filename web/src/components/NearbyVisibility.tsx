@@ -1,5 +1,5 @@
 import { useId } from 'react';
-import { Globe2, Link2, Radar } from 'lucide-react';
+import { Globe, Link2, Radar } from 'lucide-react';
 import { NEARBY_RADII } from '../../shared/nearby-v2.mjs';
 
 export type RoomVisibilityChoice = { visibleNearby: boolean; worldwide?: boolean; radiusKm: number };
@@ -50,7 +50,7 @@ export type DiscoveryMode = 'link' | 'nearby' | 'everyone';
 const discoveryOptions = [
   { mode: 'link', label: 'Link only', hint: 'People with your link or room code.', Icon: Link2 },
   { mode: 'nearby', label: 'Nearby', hint: 'People around you, within the range you choose.', Icon: Radar },
-  { mode: 'everyone', label: 'Everyone', hint: 'Anyone on Dotify sees your name and this track, and can join. No location shared.', Icon: Globe2 }
+  { mode: 'everyone', label: 'Everyone', hint: 'Anyone on Dotify sees your name and this track, and can join. No location shared.', Icon: Globe }
 ] as const;
 
 /** One choice for who can find a room; the three modes exclude each other. */
@@ -107,6 +107,7 @@ export function NearbyVisibility({ value, onChange }: { value: RoomVisibilityCho
         labelledBy={`${id}-title`}
         onChange={next => onChange({ ...value, visibleNearby: next === 'nearby', worldwide: next === 'everyone' })}
       />
+      {mode !== 'link' && <p className='nearby-hint'>The artist can also find your public room, wherever they are.</p>}
       {value.visibleNearby && (
         <>
           <NearbyRadius value={value.radiusKm} onChange={radiusKm => onChange({ ...value, radiusKm })} label='Visibility range' />

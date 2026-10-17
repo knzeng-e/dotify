@@ -134,3 +134,40 @@ it('waits for a fresh mobile fix after an inaccurate first fix', async () => {
   expect(await locateNearbyCell(new AbortController().signal)).toMatch(/^n2:/);
   expect(clearWatch).toHaveBeenCalledWith(1);
 });
+
+it('does not accept a cached stale fix and clears the watch after cancellation', async () => {
+  vi.useFakeTimers();
+  const clearWatch = vi.fn();
+  let answer!: PositionCallback;
+  vi.stubGlobal('navigator', {
+    geolocation: {
+      clearWatch,
+      watchPosition: (ok: PositionCallback) => {
+        answer = ok;
+        return 4;
+      }
+    }
+  });
+  const abort = new AbortController();
+  const result = expect(locateNearbyCell(abort.signal)).rejects.toThrow('STOPPED');
+  answer({ timestamp: Date.now() - 60_000, coords: { latitude: 0, longitude: 0, accuracy: 100 } } as GeolocationPosition);
+  expect(clearWatch).not.toHaveBeenCalled();
+  abort.abort();
+  await result;
+  expect(clearWatch).toHaveBeenCalledWith(4);
+  expect(vi.getTimerCount()).toBe(0);
+});
+
+it('cleans its deadline when a native Host throws before registering a watch', async () => {
+  vi.useFakeTimers();
+  vi.stubGlobal('navigator', {
+    geolocation: {
+      clearWatch: vi.fn(),
+      watchPosition: () => {
+        throw new Error('Native implementation unavailable');
+      }
+    }
+  });
+  await expect(locateNearbyCell(new AbortController().signal)).rejects.toThrow('UNAVAILABLE');
+  expect(vi.getTimerCount()).toBe(0);
+});

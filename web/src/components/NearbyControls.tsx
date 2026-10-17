@@ -1,8 +1,9 @@
 import { useId, useState } from 'react';
-import { ChevronRight, Globe2, Link2, Radar, X } from 'lucide-react';
+import { ChevronRight, Globe, Link2, Radar, X } from 'lucide-react';
 import type { useNearby } from '../features/rooms/useNearby';
 import { DiscoveryChoice, NearbyRadius, type DiscoveryMode } from './NearbyVisibility';
 import { Dialog } from './Dialog';
+import { ProductNearbyFallback } from './ProductNearbyFallback';
 
 /** Host publication is always an explicit choice, independently of scanning. */
 export function NearbyControls({ nearby }: { nearby: ReturnType<typeof useNearby>; host?: boolean }) {
@@ -15,8 +16,9 @@ export function NearbyControls({ nearby }: { nearby: ReturnType<typeof useNearby
   const selection = session.selection();
   const activeMode: DiscoveryMode = selection.source?.kind === 'worldwide' ? 'everyone' : selection.source ? 'nearby' : 'link';
   const busy = state.phase === 'locating' || state.phase === 'checking';
+  const unavailable = ['stale', 'denied', 'disconnected'].includes(state.phase);
   const label = activeMode === 'everyone' ? 'Worldwide' : activeMode === 'nearby' ? `Nearby · ${selection.radius} km` : 'Link only';
-  const Icon = activeMode === 'everyone' ? Globe2 : activeMode === 'nearby' ? Radar : Link2;
+  const Icon = activeMode === 'everyone' ? Globe : activeMode === 'nearby' ? Radar : Link2;
   const edit = () => {
     setMode(activeMode);
     setRadius(selection.radius);
@@ -25,7 +27,7 @@ export function NearbyControls({ nearby }: { nearby: ReturnType<typeof useNearby
   const apply = () => {
     setOpen(false);
     if (mode === 'link') session.stop();
-    else if (mode !== activeMode || (mode === 'nearby' && radius !== selection.radius)) {
+    else if (mode !== activeMode || (mode === 'nearby' && radius !== selection.radius) || unavailable) {
       // Cancel a pending grant before changing mode; late replies cannot publish.
       session.stop();
       void session.start({ kind: mode === 'everyone' ? 'worldwide' : 'device' }, radius);
@@ -38,7 +40,15 @@ export function NearbyControls({ nearby }: { nearby: ReturnType<typeof useNearby
         <span>
           <small>Who can find this room?</small>
           <strong>
-            {state.revocationPending ? 'Updating visibility…' : state.phase === 'locating' ? 'Finding your area…' : busy ? 'Updating visibility…' : label}
+            {state.revocationPending
+              ? 'Updating visibility…'
+              : state.phase === 'locating'
+                ? 'Finding your area…'
+                : busy
+                  ? 'Updating visibility…'
+                  : unavailable && activeMode !== 'link'
+                    ? `${label} · unavailable`
+                    : label}
           </strong>
         </span>
         <ChevronRight size={19} aria-hidden='true' />
@@ -48,6 +58,12 @@ export function NearbyControls({ nearby }: { nearby: ReturnType<typeof useNearby
           {state.message}
         </p>
       )}
+      {unavailable && activeMode !== 'link' && (
+        <button className='text-action' type='button' onClick={() => void session.start(selection.source!, selection.radius)}>
+          Retry visibility
+        </button>
+      )}
+      {state.locationIssue === 'host-unavailable' && <ProductNearbyFallback />}
       {open && (
         <Dialog className='discovery-sheet' labelledBy={`${id}-title`} onClose={() => setOpen(false)} historyDismiss>
           <header className='discovery-sheet-heading'>
@@ -70,6 +86,7 @@ export function NearbyControls({ nearby }: { nearby: ReturnType<typeof useNearby
                   ? 'Removal is not confirmed yet. The room may remain discoverable for up to 90 seconds.'
                   : 'Only people with your link or room code can find you.'}
           </p>
+          {mode !== 'link' && <p className='nearby-hint'>The artist can also find your public room, wherever they are.</p>}
           <button type='button' className='primary-action discovery-done' onClick={apply}>
             Done
           </button>

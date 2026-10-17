@@ -2084,3 +2084,39 @@ server with a creation budget of 1,000/minute because isolated browser users
 all share loopback. This fixture is excluded from the production image; the
 production CLI retains 10/minute. Signaling integration tests independently
 verify the production default and refusal behavior.
+
+
+## Physical-test discovery follow-up — 2026-10-17
+
+Deploy signaling with v4 discovery and authenticated `artist:rooms` before the
+new clients. V2/v3 response shapes remain compatible. V4 carries safe canonical
+cover references and exact listener counts; public artwork enrichment must not
+make room discovery depend on a slow registry response. No new credentials,
+contract, volume, CORS origin or infrastructure service is introduced. Artist
+activity reuses `SIGNAL_CONTRIBUTION_API_URL`, chain and directory configuration
+and the existing Dotify session. Keep one signaling worker. Use the existing
+active-room drain/precheck procedure before rollout.
+
+The host's chosen mode is now separate from its network lease. Backgrounding or
+network/location errors may remove live visibility without resetting the chosen
+mode; foreground recovery rechecks permission and renews the same scope. Explicit
+Link only cancels renewal and preserves the unacknowledged-removal warning until
+confirmed. The client never stores location history or publishes while hidden.
+
+Verify two-client count/orbit updates, return to own room without rejoining,
+selected scope across lease/reconnect failures and explicit opt-out. For an
+artist, verify aggregate private-room counts without private identifiers and
+public room access across radius; another account must be refused. Revalidate
+Product location on installed Desktop/mobile before claiming it works: an SDK
+permission grant is not evidence that the native WebView supplies coordinates.
+A failed Host fix must offer an honest recovery path while Worldwide/link access
+remains usable. This implementation does not deploy itself.
+
+Native-location source audit and exact automated evidence live in
+[W19 physical-feedback evidence](../backlog/implementation/evidence/W19-room-feedback-2026-10-17.md).
+The installed Desktop 0.1.3 permission callback was inspected, but successful
+coordinates were not established. Current upstream iOS still marks its native
+location bridge as TODO; it is not proven to match the user's mobile 0.10.0
+package. Dotify must not add an IP-based or credential-bearing fallback. The
+explicit browser recovery uses existing `VITE_PUBLIC_APP_URL` and Host navigation,
+transferring only a public route/room code; hosting authority stays in Product.

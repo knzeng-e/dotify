@@ -81,6 +81,7 @@ export type RoomOutgoingEvents = {
 };
 
 export type RoomRequests = {
+  'artist:rooms': { input: { runtime: string; token: string }; output: import('../artist-studio/artistRoomActivity').ArtistRoomActivityReply };
   'nearby:publish': { input: NearbyArea | { schemaVersion: 2; worldwide: true }; output: NearbyReply };
   'nearby:off': { input: Record<string, never>; output: NearbyReply };
   'nearby:search': { input: DiscoverySearchArea; output: NearbySearchReply };

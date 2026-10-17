@@ -14,9 +14,21 @@ type RoomsViewProps = {
   onJoinRoom: (roomId: string) => void;
   onJoinSession: (event: FormEvent<HTMLFormElement>) => void;
   onStartRoom: () => void;
+  ownRoomId?: string;
+  onOpenOwnRoom?: () => void;
 };
 
-export function RoomsView({ discovery, joinCode, sessionAction, onSetJoinCode, onJoinRoom, onJoinSession, onStartRoom }: RoomsViewProps) {
+export function RoomsView({
+  discovery,
+  joinCode,
+  sessionAction,
+  onSetJoinCode,
+  onJoinRoom,
+  onJoinSession,
+  onStartRoom,
+  ownRoomId,
+  onOpenOwnRoom
+}: RoomsViewProps) {
   const [joinLinkOpen, setJoinLinkOpen] = useState(false);
   const isJoining = sessionAction === 'joining';
   return (
@@ -68,7 +80,9 @@ export function RoomsView({ discovery, joinCode, sessionAction, onSetJoinCode, o
           </form>
         </Dialog>
       )}
-      {roomExperienceFlags.nearby && <RoomRadar discovery={discovery} onJoin={onJoinRoom} joining={isJoining} />}
+      {roomExperienceFlags.nearby && (
+        <RoomRadar discovery={discovery} onJoin={onJoinRoom} joining={isJoining} ownRoomId={ownRoomId} onOpenOwnRoom={onOpenOwnRoom} />
+      )}
     </section>
   );
 }

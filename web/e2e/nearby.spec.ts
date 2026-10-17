@@ -96,7 +96,7 @@ test('automatic radar finds a later nearby publication, then joins real guest au
       Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' });
       document.dispatchEvent(new Event('visibilitychange'));
     });
-    await expect(host.getByRole('region', { name: 'Room visibility' })).toContainText('Link only');
+    await expect(host.getByRole('region', { name: 'Room visibility' })).toContainText('Nearby');
   } finally {
     await Promise.allSettled([hostContext.close(), guestContext.close()]);
   }
@@ -205,4 +205,74 @@ test('worldwide discovery resumes after a fast reconnect without another click',
   await closeConnection!();
   await expect.poll(() => connections, { timeout: 5000 }).toBeGreaterThan(1);
   await expect.poll(() => searches, { timeout: 16_000 }).toBeGreaterThan(before);
+});
+
+test('radar sweep remains live after a fast response and after returning to Rooms; reduced motion stays still', async ({ page, context }) => {
+  await context.grantPermissions(['geolocation']);
+  await context.setGeolocation(fix);
+  await page.goto('/?e2eRoom=listener');
+  let radar = await rooms(page);
+  const sky = radar.getByTestId('room-galaxy');
+  await expect(sky).toHaveAttribute('data-scanning', 'false');
+  await expect(sky).toHaveAttribute('data-live', 'true');
+  const sweep = radar.locator('.radar-sweep');
+  await expect(sweep).toHaveCSS('animation-name', 'radar-turn');
+  const firstTransform = await sweep.evaluate(element => getComputedStyle(element).transform);
+  await expect.poll(() => sweep.evaluate(element => getComputedStyle(element).transform)).not.toBe(firstTransform);
+  // Ordinary navigation used to hide every short scan acknowledgement.
+  await page.getByRole('button', { name: 'Music', exact: true }).click();
+  radar = await rooms(page);
+  await expect(radar.locator('.radar-sweep')).toHaveCSS('animation-name', 'radar-turn');
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await expect(radar.locator('.radar-sweep')).toHaveCSS('animation-name', 'none');
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await expect(radar.locator('.radar-sweep')).toHaveCSS('animation-name', 'radar-turn');
+});
+
+test('cover galaxies show exact live people and distinguish my room from an identical track next door', async ({ browser }, testInfo) => {
+  test.setTimeout(90_000);
+  const hostContext = await browser.newContext({ permissions: ['geolocation'], geolocation: fix });
+  const otherContext = await browser.newContext({ permissions: ['geolocation'], geolocation: fix });
+  const guestContext = await browser.newContext({ permissions: ['geolocation'], geolocation: fix });
+  try {
+    const host = await openHost(hostContext, 'Everyone');
+    const hostRoomCode = (await host.getByTestId('room-code').textContent())!;
+    await openHost(otherContext, 'Everyone');
+    const guest = await guestContext.newPage();
+    await guest.goto('/?e2eRoom=listener');
+    await guest.getByRole('button', { name: 'Rooms', exact: true }).click();
+    await guest.getByRole('button', { name: 'Join by link', exact: true }).click();
+    await guest.getByLabel('Room code or link').fill(hostRoomCode);
+    await guest.getByRole('button', { name: 'Join', exact: true }).first().click();
+    await guest.getByLabel('Your name in the room').fill('Orbit listener');
+    await guest.getByRole('button', { name: 'Join room', exact: true }).click();
+    await expect(guest.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20_000 });
+    await host.getByRole('button', { name: 'Keep listening and browse', exact: true }).click();
+    const radar = await rooms(host);
+    const own = radar.locator('.radar-room-dot[data-own="true"]');
+    const other = radar.locator('.radar-room-dot[data-own="false"]');
+    await expect(own).toContainText('Your room', { timeout: 25_000 });
+    await expect(own).toContainText('2 listening');
+    await expect(other).toHaveCount(1);
+    await expect(other).toContainText('1 listening');
+    await expect(own.locator('.radar-room-orbit i')).toHaveCount(2);
+    await expect(other.locator('.radar-room-orbit i')).toHaveCount(1);
+    await expect(own.locator('.radar-room-core img')).toBeVisible();
+    await expect(own.locator('.radar-room-host .lucide-globe')).toBeVisible();
+    // The center uses exactly the same mark geometry as the top-bar logo.
+    const orbitShapes = (selector: string) => host.locator(selector).evaluate(element => element.innerHTML);
+    expect(await orbitShapes('.radar-logo .brand-mark-orbit')).toBe(await orbitShapes('.topbar .brand-mark-orbit'));
+    expect((await new AxeBuilder({ page: host }).include('.room-radar').analyze()).violations).toEqual([]);
+    await host.screenshot({ path: testInfo.outputPath('cover-galaxy-desktop.png'), fullPage: true });
+    await host.setViewportSize({ width: 390, height: 844 });
+    await host.screenshot({ path: testInfo.outputPath('cover-galaxy-mobile.png'), fullPage: true });
+    expect(await host.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await own.click();
+    const preview = host.getByRole('dialog', { name: title });
+    await expect(preview).toContainText('Your room · 2 listening');
+    await preview.getByRole('button', { name: 'Back to your room', exact: true }).click();
+    await expect(host.getByTestId('room-code')).toHaveText(hostRoomCode);
+  } finally {
+    await Promise.allSettled([hostContext.close(), otherContext.close(), guestContext.close()]);
+  }
 });
