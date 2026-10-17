@@ -23,6 +23,24 @@ or timed-out request; Dotify cannot undo the Host's permission decision.
 Operational rollback uses `VITE_DOTIFY_NEARBY=off` and/or `SIGNAL_NEARBY=off`;
 there is no Product-specific feature gate. Old snapshots expire within 90 seconds.
 
+## Product 0.1.53 published room-presence release
+
+Based on merged #300 (`726310b2fe0aee901da64fefb7df9ad56e3efaf8`),
+published from exact green candidate `83512f708c34304338e6a70c599d38027a9bf68c`.
+Executable `[0, 1, 53]` retains `product-cdm` on `devnet` at root/executable CID
+`bafybeihj6vrdu3dqnaqfofw4l3qiysc4by4rau3mldmlom637waemgmqr4`.
+Signaling release 34 precedes Product and provides privacy-safe v4 discovery,
+exact connected presence and bounded canonical artwork while preserving v2/v3.
+No API, contract, secret, storage or permission migration was required.
+
+Independent finalized resolver and public-CAR read-back passed. The local signer
+was removed after publication. See the
+[0.1.53 rollout record](../backlog/implementation/evidence/product-0.1.53-rollout-2026-10-17.md)
+for transactions, deployed identities, validation and remaining physical Host
+checks. Current client rollback: 0.1.52; retain privacy-safe v4 signaling.
+
+The following sections preserve historical rollout and rollback evidence.
+
 ## Product 0.1.52 published galaxy and session release
 
 Based on merged #296/#297/#298 (`3b0bb68`), published from `92a9c1179dfd1ac67a88c6b3838853c528ddc14c`.
@@ -60,7 +78,8 @@ DotNS/version and public CAR read-back passed. See the
 for service images, tests, restart incident and remaining physical checks.
 
 The following release sections retain their original deployment and rollback history.
-The current release/rollback pair is 0.1.52 / 0.1.51 above.
+The historical release/rollback pair in this section was 0.1.52 / 0.1.51. The
+current pair is 0.1.53 / 0.1.52 above.
 
 ## Product 0.1.50 published radar and audio release
 
