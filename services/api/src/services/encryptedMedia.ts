@@ -3,6 +3,7 @@
 import { parseAudioV2Container } from './audioV2.js';
 const MAX_BYTES = 64 * 1024 * 1024;
 const MAX_RANGE_BYTES = 2 * 1024 * 1024;
+const MAX_DAV2_HEADER_BYTES = 64 * 1024;
 const MAX_CACHE_BYTES = 64 * 1024 * 1024;
 const MAX_ENTRIES = 128;
 const GATEWAYS = ['https://gateway.pinata.cloud', 'https://ipfs.io', 'https://dweb.link'];
@@ -117,7 +118,12 @@ export function createEncryptedMediaReader(fetchImpl: typeof fetch = fetch) {
         if (!response.headers.has('content-encoding') && declared > 0 && size !== declared) continue;
         if (!size || size !== expected || !Number.isSafeInteger(total) || total < (range?.start ?? 0) + size || total > MAX_BYTES) continue;
         const bytes = Buffer.concat(chunks, size);
-        if (!range && dav2) parseAudioV2Container(bytes);
+        if (!range && dav2) {
+          // Catalog registration does not make an upstream JSON table trusted.
+          // Bound parsing work separately from the much larger audio body.
+          if (bytes.length >= 8 && bytes.readUInt32BE(4) > MAX_DAV2_HEADER_BYTES) throw new Error('oversized DAV2 header');
+          parseAudioV2Container(bytes);
+        }
         return { bytes, total, start: range?.start ?? 0, partial: Boolean(range) };
       } catch {
         // A transport failure can switch readers. Authentication never happens here.

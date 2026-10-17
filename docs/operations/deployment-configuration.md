@@ -22,7 +22,8 @@ a 66 MiB reservation for their worst-case bodies, coalesced identical reads, a 6
 12 seconds per upstream attempt, three fixed gateways and a separate 64 MiB
 budget for responses still being sent to slow receivers. HTTP 503 with
 `Retry-After` protects overload; the client can try direct readers. Complete
-DAV2 bodies are structurally validated before caching; range boundaries and
+DAV2 bodies are structurally validated before caching, with a 64 KiB JSON header
+limit on complete objects to bound parsing work; range boundaries and
 lengths are checked. Failures are not cached. Cache clearing is an API restart,
 which must follow the normal active-room/session prechecks. HTTP responses use
 `no-store`, since catalog eligibility is checked on every request, including

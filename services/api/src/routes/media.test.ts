@@ -77,6 +77,11 @@ it('never caches a malformed complete DAV2 container or an oversized declared bo
   assert.equal(calls, 6);
   const oversized = createEncryptedMediaReader(async () => new Response('small body', { headers: { 'content-length': String(65 * 1024 * 1024) } }));
   await assert.rejects(oversized.read(cid, null), { statusCode: 502 });
+  const oversizedHeader = Buffer.alloc(65 * 1024 + 8, 32);
+  oversizedHeader.write('DAV2', 0);
+  oversizedHeader.writeUInt32BE(65 * 1024, 4);
+  const largeTable = createEncryptedMediaReader(async () => new Response(oversizedHeader));
+  await assert.rejects(largeTable.read(cid, null, true), { statusCode: 502 });
 });
 
 it('coalesces the same range and bounds independent cold downloads to two', async () => {
