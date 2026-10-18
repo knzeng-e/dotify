@@ -23,6 +23,20 @@ or timed-out request; Dotify cannot undo the Host's permission decision.
 Operational rollback uses `VITE_DOTIFY_NEARBY=off` and/or `SIGNAL_NEARBY=off`;
 there is no Product-specific feature gate. Old snapshots expire within 90 seconds.
 
+## Product 0.1.54 stability candidate
+
+The owner authorized a coordinated rollout after #302 merged into `dev`
+at `02bb83595754672870d136d743509e718117faa1`. The candidate increments the
+executable to `[0, 1, 54]`, retains the existing `product-cdm` / `devnet`
+profile and freezes the current 13-track public catalog. Deploy the bounded
+ciphertext API relay and matching signaling first, then verify ordinary Web
+and publish Product from the clean, validated packaging commit.
+
+The [candidate record](../backlog/implementation/evidence/product-0.1.54-candidate-2026-10-18.md)
+describes the preparation boundary. Publication, service identities and physical
+acceptance must be recorded independently; a version bump is not a deployment.
+Product 0.1.53 remains published and is the intended client rollback artifact.
+
 ## Product 0.1.53 published room-presence release
 
 Based on merged #300 (`726310b2fe0aee901da64fefb7df9ad56e3efaf8`),
