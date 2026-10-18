@@ -51,7 +51,7 @@ export function createRoomLife({ io, rooms, historyLimit = 50, graceMs = 8000, n
         activity(
           roomId,
           member.artist ? 'artist-joined' : 'joined',
-          member.artist ? `${member.artist.name} is here — the artist behind “${member.artist.title}”.` : `${member.name} joined.`,
+          member.artist ? `${member.artist.name} is here, the artist behind “${member.artist.title}”.` : `${member.name} joined.`,
           member.artist
         );
       }, 1200);

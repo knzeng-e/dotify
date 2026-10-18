@@ -18,7 +18,7 @@ for (const width of [320, 390, 430, 1440]) {
       await host.goto(fixture);
       await host.getByRole('button', { name: 'Open a room', exact: true }).click();
       await host.getByRole('button', { name: 'Select E2E Public Room Track', exact: true }).click();
-      await host.getByLabel('Your name in the room').fill('Live host');
+      await host.getByLabel('Your name or nickname').fill('Live host');
       await host.getByRole('button', { name: 'Open the room', exact: true }).click();
       const code = host.getByTestId('room-code');
       await expect(code).toHaveText(/[A-Z0-9]{4,}/);
@@ -36,7 +36,7 @@ for (const width of [320, 390, 430, 1440]) {
       await guest.getByRole('button', { name: 'Join by link', exact: true }).click();
       await guest.getByLabel('Room code or link').fill(roomId);
       await guest.getByRole('button', { name: 'Join', exact: true }).click();
-      await guest.getByLabel('Your name in the room').fill('Live guest');
+      await guest.getByLabel('Your name or nickname').fill('Live guest');
       await guest.getByRole('button', { name: 'Join room', exact: true }).click();
       await expect(guest.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20_000 });
       const roomCover = await guest.locator('.cover img').getAttribute('src');

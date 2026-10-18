@@ -464,9 +464,13 @@ it.each(['nearby', 'worldwide'] as const)('keeps the %s expiry warning through d
     else done(null, { ok: false, code: 'UNAVAILABLE' });
   };
   await vi.advanceTimersByTimeAsync(30_000);
+  expect(revocations).toHaveLength(0);
+  expect(f.session.selection().source?.kind).toBe(scope === 'worldwide' ? 'worldwide' : 'manual');
+  // A failed renewal does not revoke the still-live lease. An explicit opt-out
+  // must nevertheless retain uncertainty until its own acknowledgement.
+  f.session.stop('Visibility stopped.');
   expect(revocations).toHaveLength(1);
   expect(f.session.snapshot().revocationPending).toBe(true);
-  expect(f.session.selection().source?.kind).toBe(scope === 'worldwide' ? 'worldwide' : 'manual');
   expect(f.session.snapshot().message).toContain('90 seconds');
   expect(f.session.snapshot().message).not.toContain('available by link only');
   revocations[0](null, { ok: false, code: 'RATE_LIMITED' });
@@ -515,13 +519,42 @@ it('keeps Nearby selected and renews after a transient refresh failure with a ne
   await f.session.start({ kind: 'device' }, 17);
   f.locate.mockRejectedValueOnce(new Error('TIMEOUT'));
   await vi.advanceTimersByTimeAsync(30_000);
-  expect(f.session.snapshot().phase).toBe('stale');
+  expect(f.session.snapshot().phase).toBe('active');
+  expect(f.events.filter(event => event.event === 'nearby:off')).toHaveLength(0);
   expect(f.session.selection()).toEqual({ source: { kind: 'device' }, radius: 17 });
   expect(f.events.filter(event => event.event === 'nearby:publish')).toHaveLength(1);
-  await vi.advanceTimersByTimeAsync(30_000);
+  await vi.advanceTimersByTimeAsync(5000);
   expect(f.session.snapshot().phase).toBe('active');
   expect(f.locate).toHaveBeenCalledTimes(3);
   expect(f.events.filter(event => event.event === 'nearby:publish')).toHaveLength(2);
+  f.session.stop();
+});
+
+it('expires a host lease after repeated failed fixes without republishing an old location', async () => {
+  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'performance', 'Date'] });
+  const f = harness(true);
+  await f.session.start({ kind: 'device' }, 17);
+  f.locate.mockRejectedValue(new Error('TIMEOUT'));
+  await vi.advanceTimersByTimeAsync(89_999);
+  expect(f.session.snapshot().phase).toBe('active');
+  expect(f.events.filter(event => event.event === 'nearby:publish')).toHaveLength(1);
+  expect(f.events.filter(event => event.event === 'nearby:off')).toHaveLength(0);
+  await vi.advanceTimersByTimeAsync(1);
+  expect(f.session.snapshot().phase).toBe('stale');
+  f.session.stop();
+  expect(vi.getTimerCount()).toBe(0);
+});
+
+it('keeps valid listener results through a transient search error, but never extends their deadline', async () => {
+  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'performance', 'Date'] });
+  const f = harness();
+  replyWithRooms(f, [result('SHORT2', 25_000, 1)]);
+  await f.session.start({ kind: 'device' }, 5);
+  f.port.request = (_event, _input, _opts, done) => done(null, { ok: false, code: 'UNAVAILABLE' });
+  await vi.advanceTimersByTimeAsync(15_000);
+  expect(f.session.snapshot().results).toHaveLength(1);
+  await vi.advanceTimersByTimeAsync(10_000);
+  expect(f.session.snapshot().results).toEqual([]);
   f.session.stop();
 });
 

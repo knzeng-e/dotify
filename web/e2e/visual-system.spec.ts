@@ -99,7 +99,7 @@ for (const viewport of viewports) {
 
     await page.getByRole('button', { name: 'Open a room', exact: true }).click();
     await page.getByRole('button', { name: 'Select E2E Public Room Track', exact: true }).click();
-    await page.getByLabel('Your name in the room').fill('Visual host');
+    await page.getByLabel('Your name or nickname').fill('Visual host');
     await page.getByRole('button', { name: 'Open the room', exact: true }).click();
     await expect(page.getByTestId('room-code')).toHaveText(/[A-Z0-9]{4,}/);
     const roomId = (await page.getByTestId('room-code').innerText()).trim();
@@ -110,7 +110,7 @@ for (const viewport of viewports) {
       const guest = await guestContext.newPage();
       await guest.emulateMedia({ reducedMotion: 'reduce' });
       await guest.goto(`/?e2eRoom=public&e2eSync=on#/rooms/${roomId}`);
-      await guest.getByLabel('Your name in the room').fill('Visual guest');
+      await guest.getByLabel('Your name or nickname').fill('Visual guest');
       await guest.getByRole('button', { name: 'Join and listen', exact: true }).click();
       await expect(guest.getByTestId('room-code')).toHaveText(roomId);
       await capture(guest, testInfo, 'guest-room');

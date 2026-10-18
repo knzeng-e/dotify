@@ -42,7 +42,7 @@ test('a superseded creation ACK cannot replace the new room or publish its old v
   await page.getByRole('button', { name: 'Open a room', exact: true }).click();
   let dialog = page.getByRole('dialog', { name: 'Open a room' });
   await dialog.getByRole('button', { name: 'Select E2E Public Room Track' }).click();
-  await dialog.getByLabel('Your name in the room').fill('First host');
+  await dialog.getByLabel('Your name or nickname').fill('First host');
   await dialog.getByRole('radio', { name: 'Nearby', exact: true }).check();
   await dialog.getByRole('button', { name: 'Open the room', exact: true }).click();
   await expect.poll(() => oldRoomId).toMatch(/[A-Z2-9]{6}/);
@@ -53,7 +53,7 @@ test('a superseded creation ACK cannot replace the new room or publish its old v
   await page.getByRole('button', { name: 'Open a room', exact: true }).click();
   dialog = page.getByRole('dialog', { name: 'Open a room' });
   await expect(dialog.getByRole('radio', { name: 'Nearby', exact: true })).not.toBeChecked();
-  await dialog.getByLabel('Your name in the room').fill('Replacement host');
+  await dialog.getByLabel('Your name or nickname').fill('Replacement host');
   await dialog.getByRole('button', { name: 'Open the room', exact: true }).click();
   const roomCode = page.getByTestId('room-code');
   await expect(roomCode).toHaveText(/[A-Z2-9]{6}/);

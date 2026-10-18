@@ -22,7 +22,7 @@ test('host username labels the account and seeds a room without publishing it on
   await page.getByRole('button', { name: 'Close', exact: true }).click();
   await page.getByRole('button', { name: 'Open a room', exact: true }).click();
   await page.getByRole('button', { name: 'Select E2E Public Room Track', exact: true }).click();
-  await expect(page.getByLabel('Your name in the room')).toHaveValue('gaby.dot');
+  await expect(page.getByLabel('Your name or nickname')).toHaveValue('gaby.dot');
   await page.screenshot({ path: testInfo.outputPath('host-name-room.png'), animations: 'disabled' });
   expect(await page.evaluate(() => Object.keys(localStorage).filter(key => key.startsWith('dotify:display-name:')))).toEqual([]);
 });
@@ -55,10 +55,10 @@ test('denied name sharing keeps a usable account and a room alias stays editable
   await connect(page);
   await page.getByRole('button', { name: 'Open a room', exact: true }).click();
   await page.getByRole('button', { name: 'Select E2E Public Room Track', exact: true }).click();
-  await page.getByLabel('Your name in the room').fill('My circle name');
+  await page.getByLabel('Your name or nickname').fill('My circle name');
   await page.evaluate(() => window.identityFixture.resolveName());
   await expect(page.locator('.wallet-pill-open')).toHaveText('arrives-later.dot');
-  await expect(page.getByLabel('Your name in the room')).toHaveValue('My circle name');
+  await expect(page.getByLabel('Your name or nickname')).toHaveValue('My circle name');
 });
 
 test('remembered aliases stay account scoped and long usernames fit the mobile header', async ({ page }) => {
@@ -73,14 +73,14 @@ test('remembered aliases stay account scoped and long usernames fit the mobile h
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.getByRole('button', { name: 'Open a room', exact: true }).click();
   await page.getByRole('button', { name: 'Select E2E Public Room Track', exact: true }).click();
-  await expect(page.getByLabel('Your name in the room')).toHaveValue('Saved circle name');
+  await expect(page.getByLabel('Your name or nickname')).toHaveValue('Saved circle name');
   await page.getByRole('button', { name: 'Cancel', exact: true }).click();
   await page.getByRole('button', { name: 'Disconnect wallet' }).click();
   await page.evaluate(() => window.identityFixture.setProfile('next.dot', 34));
   await connect(page);
   await page.getByRole('button', { name: 'Open a room', exact: true }).click();
   await page.getByRole('button', { name: 'Select E2E Public Room Track', exact: true }).click();
-  await expect(page.getByLabel('Your name in the room')).toHaveValue('next.dot');
+  await expect(page.getByLabel('Your name or nickname')).toHaveValue('next.dot');
 });
 
 test('extension events follow the extension account and cannot replace a Product connection', async ({ page }) => {

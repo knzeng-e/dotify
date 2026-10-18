@@ -86,13 +86,13 @@ export function ArtistLiveRooms({ tracks, runtime }: { tracks: CatalogTrack[]; r
       </div>
       <div className='artist-live-metrics'>
         <p>
-          <strong>{known ? activity.snapshot!.roomCount : '—'}</strong>
+          <strong data-unavailable={!known}>{known ? activity.snapshot!.roomCount : 'Not available'}</strong>
           <span>
             <Radio size={16} /> rooms with your music
           </span>
         </p>
         <p>
-          <strong>{known ? activity.snapshot!.connectedCount : '—'}</strong>
+          <strong data-unavailable={!known}>{known ? activity.snapshot!.connectedCount : 'Not available'}</strong>
           <span>
             <Users size={16} /> connected sessions
           </span>
@@ -192,7 +192,7 @@ export function ArtistLiveRooms({ tracks, runtime }: { tracks: CatalogTrack[]; r
                 : 'This room is no longer playing one of your releases.'}
           </p>
           <label className='artist-visit-name'>
-            Your room name
+            Your name or nickname
             <input className='field' disabled={joining} value={name} onChange={event => setName(event.target.value)} maxLength={32} autoComplete='off' />
           </label>
           <label className='artist-visit-consent'>

@@ -12,6 +12,7 @@ import {
 } from '../shared/nearby-v2.mjs';
 import { publicCoverRef } from '../shared/public-cover.mjs';
 import { clientKey } from './signaling-utils.mjs';
+import { sameRoomTrack } from './room-track.mjs';
 
 // No payloads go to logs, publicRoom, /status, analytics or durable stores.
 export function createNearby({ enabled, rooms, trustProxy, maxListeners, getPublicTrack = async () => null, now = Date.now }) {
@@ -152,7 +153,13 @@ export function createNearby({ enabled, rooms, trustProxy, maxListeners, getPubl
               prune();
               const lease = presence.get(result.roomId);
               // Do not finish an asynchronous read after revocation/track change.
-              if (!room?.hostId || rooms.get(result.roomId) !== room || room.track !== track || lease?.discoveryId !== result.discoveryId) return null;
+              if (
+                !room?.hostId ||
+                rooms.get(result.roomId) !== room ||
+                (room.track !== track && !sameRoomTrack(room.track, track)) ||
+                lease?.discoveryId !== result.discoveryId
+              )
+                return null;
               return {
                 ...result,
                 expiresInMs: Math.max(0, lease.expiresAt - now()),

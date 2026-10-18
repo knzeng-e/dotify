@@ -75,7 +75,7 @@ async function openHostRoom(
   // before the room exists. Pick the track inside the modal, then open.
   await page.getByRole('button', { name: 'Open a room' }).click();
   await page.getByRole('button', { name: `Select ${trackTitle}` }).click();
-  await page.getByLabel('Your name in the room').fill('Room host');
+  await page.getByLabel('Your name or nickname').fill('Room host');
   await page.getByRole('button', { name: 'Open the room' }).click();
 
   const roomCode = page.getByTestId('room-code');
@@ -180,9 +180,9 @@ async function joinAsListener(context: BrowserContext, roomId: string, options: 
   if (options.displayName) {
     await expect(page.locator('#join-room-title')).toContainText('Join', { timeout: 15_000 });
     await expect(page.locator('.room-threshold-preview')).toHaveCount(0);
-    await expect(page.locator('.room-threshold-code')).toContainText(roomId);
+    await expect(page.getByLabel('Room code', { exact: true })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Join and listen' })).toBeDisabled();
-    await page.getByLabel('Your name in the room').fill(options.displayName);
+    await page.getByLabel('Your name or nickname').fill(options.displayName);
     await page.getByRole('button', { name: 'Join and listen' }).click();
   }
   return page;
@@ -274,7 +274,7 @@ test('public room: listener joins via link, hears full playback, no wallet, no c
     await expect(secondListener.locator('.listener-list')).toContainText('Zed', { timeout: 20_000 });
 
     await listener.getByRole('tab', { name: /People/ }).click();
-    await listener.getByLabel('Your room name').fill('Nia');
+    await listener.getByLabel('Your name or nickname').fill('Nia');
     await listener.getByRole('button', { name: 'Update room name' }).click();
     await expect(host.locator('.listener-list')).toContainText('Nia', { timeout: 20_000 });
     await expect(secondListener.locator('.listener-list')).toContainText('Nia', { timeout: 20_000 });
@@ -304,8 +304,8 @@ test('embedded Product Web guest can join a private room by link before media pe
     const embeddedDotify = listenerHost.frameLocator('iframe[title="Product Web"]');
     await expect(embeddedDotify.locator('#join-room-title')).toContainText('Join', { timeout: 15_000 });
     await expect(embeddedDotify.locator('.room-threshold-preview')).toHaveCount(0);
-    await expect(embeddedDotify.locator('.room-threshold-code')).toContainText(roomId);
-    await expect(embeddedDotify.getByLabel('Your name in the room')).toHaveValue('Product guest');
+    await expect(embeddedDotify.getByLabel('Room code', { exact: true })).toHaveCount(0);
+    await expect(embeddedDotify.getByLabel('Your name or nickname')).toHaveValue('Product guest');
     await expect(embeddedDotify.getByRole('button', { name: 'Join and listen' })).toBeEnabled();
   } finally {
     await hostContext.close();
@@ -387,7 +387,7 @@ test('Product Mobile without RTCPeerConnection sends room audio to the external 
 
     await page.getByRole('button', { name: 'Open a room' }).click();
     await page.getByRole('button', { name: `Select ${PUBLIC_TITLE}` }).click();
-    await page.getByLabel('Your name in the room').fill('Room host');
+    await page.getByLabel('Your name or nickname').fill('Room host');
     await page.getByRole('button', { name: 'Open the room' }).click();
 
     await expect(page.getByTestId('session-error')).toContainText('does not expose Product WebRTC');
@@ -552,7 +552,7 @@ test('host explicitly closes: the room is removed and the listener sees a clear 
     // Reopening on the same element/source reuses the retained live capture
     // and must restore the host-ready UI even though no new media event fires.
     await host.getByRole('button', { name: 'Open a room', exact: true }).click();
-    await host.getByLabel('Your name in the room').fill('Room host');
+    await host.getByLabel('Your name or nickname').fill('Room host');
     await host.getByRole('button', { name: 'Open the room', exact: true }).click();
     await expect(host.getByTestId('room-code')).toHaveText(/[A-Z0-9]{4,}/, { timeout: 15_000 });
     await expect(host.locator('.player-stage .cover')).toHaveAttribute('data-live', 'true');
@@ -575,9 +575,9 @@ test('missing room link reports authoritative join failure without exposing othe
   await page.goto(`/#/rooms/${roomId}`);
 
   await expect(page.locator('#join-room-title')).toContainText('Join');
-  await expect(page.locator('.room-threshold-code')).toContainText(roomId);
+  await expect(page.getByLabel('Room code', { exact: true })).toHaveCount(0);
   await expect(page.locator('.room-threshold-preview')).toHaveCount(0);
-  await page.getByLabel('Your name in the room').fill('Invited guest');
+  await page.getByLabel('Your name or nickname').fill('Invited guest');
   await page.getByRole('button', { name: 'Join and listen', exact: true }).click();
   await expect(page.getByText(/room not found|room is unavailable|room no longer exists/i)).toBeVisible();
   await expect(page.getByTestId('room-code')).toHaveCount(0);

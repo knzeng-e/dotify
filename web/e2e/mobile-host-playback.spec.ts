@@ -41,7 +41,7 @@ async function openRoom(page: Page, autoplay = false) {
   await page.goto(`/?e2eRoom=public&e2eSync=on&e2eCatalog=sequence&e2eCapture=web-audio&e2eAutoplay=${autoplay ? 'on' : 'off'}`);
   await page.getByRole('button', { name: 'Open a room', exact: true }).click();
   await page.getByRole('button', { name: 'Select E2E Public Room Track', exact: true }).click();
-  await page.getByLabel('Your name in the room').fill('Mobile host');
+  await page.getByLabel('Your name or nickname').fill('Mobile host');
   await page.getByRole('button', { name: 'Open the room', exact: true }).click();
   await expect(page.getByTestId('room-code')).toHaveText(/[A-Z0-9]{4,}/);
   await expect(page.locator('.transport-play')).toBeEnabled();
@@ -162,7 +162,7 @@ test('opening a room with another track re-arms playback after a solo pause', as
   await page.getByRole('button', { name: 'Rooms', exact: true }).click();
   await page.getByRole('button', { name: 'Open a room', exact: true }).click();
   await page.getByRole('button', { name: 'Select Second room track', exact: true }).click();
-  await page.getByLabel('Your name in the room').fill('Paused mobile host');
+  await page.getByLabel('Your name or nickname').fill('Paused mobile host');
   await page.getByRole('button', { name: 'Open the room', exact: true }).click();
 
   await expect(page.getByTestId('room-code')).toHaveText(/[A-Z0-9]{4,}/);

@@ -30,7 +30,7 @@ for (const width of [390, 1440]) {
     await page.screenshot({ path: testInfo.outputPath(`room-arrival-${width}.png`), fullPage: true });
     await code.fill('ABC123');
     await sheet.getByRole('button', { name: 'Join', exact: true }).click();
-    await expect(page.getByLabel('Your name in the room')).toBeVisible();
+    await expect(page.getByLabel('Your name or nickname')).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   });
 }

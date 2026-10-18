@@ -68,7 +68,9 @@ function encodeHeader(header: AudioV2Header): Buffer {
 }
 
 export function parseAudioV2Container(bytes: Uint8Array): ParsedAudioV2 {
-  const buffer = Buffer.from(bytes);
+  // Parsing is read-only. Avoid duplicating an already bounded relay/upload
+  // Buffer merely to inspect its header and byte length.
+  const buffer = Buffer.isBuffer(bytes) ? bytes : Buffer.from(bytes);
   if (buffer.length < PREFIX_BYTES) throw new Error('DAV2 container is too short');
   if (!buffer.subarray(0, 4).equals(MAGIC)) throw new Error('Invalid DAV2 magic');
 

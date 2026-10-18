@@ -7,5 +7,5 @@ export function discoveryPresenceCount(room: Pick<NearbyResult, 'listenerCount'>
 
 export function discoveryPresenceLabel(room: Pick<NearbyResult, 'listenerCount' | 'presence'>): string {
   const count = discoveryPresenceCount(room);
-  return count === null ? `${room.presence} here` : `${count} listening`;
+  return count === null ? `${room.presence.replace(/\u2013/g, '-')} here` : `${count} listening`;
 }

@@ -13,7 +13,7 @@ import type { DiscoveredRoom, useRoomDiscovery } from '../features/rooms/useRoom
 import '../styles/room-radar.css';
 
 export function roomDistanceLabel(room: Pick<DiscoveredRoom, 'scope' | 'distanceBand'>) {
-  return room.scope === 'worldwide' ? 'Worldwide' : room.distanceBand ? `≈ ${room.distanceBand}` : 'Nearby';
+  return room.scope === 'worldwide' ? 'Worldwide' : room.distanceBand ? `≈ ${room.distanceBand.replace(/\u2013/g, '-')}` : 'Nearby';
 }
 
 const MAX_ORBIT_POINTS = 128;
@@ -118,7 +118,12 @@ export function RoomRadar({
       <header className='radar-toolbar'>
         <div>
           <span className='discovery-eyebrow'>FIND YOUR PEOPLE</span>
-          <h2 id={`${id}-title`}>Room galaxy</h2>
+          <h2 id={`${id}-title`}>
+            Room galaxy{' '}
+            <span className='radar-room-count' aria-hidden='true'>
+              {rooms.length}
+            </span>
+          </h2>
         </div>
         <div className='radar-tools'>
           <button
@@ -180,6 +185,9 @@ export function RoomRadar({
                 .filter(room => slots.has(room.roomId))
                 .map(room => {
                   const presence = discoveryPresenceCount(room);
+                  // Grow with real connected presence (host included), up to
+                  // the normal 25-person room. Keep unknown legacy counts neutral.
+                  const intensity = Math.min(Math.max((presence ?? 1) - 1, 0) / 24, 1);
                   const own = room.roomId === ownRoomId;
                   const aura = auraForTrack(room);
                   const [x, y] = positions[slots.get(room.roomId)!];
@@ -205,6 +213,12 @@ export function RoomRadar({
                           '--dot-a': aura.a,
                           '--dot-b': aura.b,
                           '--dot-accent': aura.accent,
+                          '--room-presence-scale': 1 + intensity * 0.6,
+                          '--room-glow-opacity': 0.35 + intensity * 0.65,
+                          '--room-glow-radius': `${4 + intensity * 16}px`,
+                          '--room-orbit-clearance': points
+                            ? `calc(var(--room-orbit-radius) + ${Math.floor((points - 1) / 12)} * var(--room-orbit-spacing))`
+                            : '0px',
                           '--orbit-duration': `${16 + (hashHue(room.roomId) % 9)}s`
                         } as CSSProperties
                       }
@@ -243,7 +257,7 @@ export function RoomRadar({
                               <i
                                 key={index}
                                 style={{
-                                  transform: `rotate(${((index % 12) * 360) / count}deg) translateX(calc(var(--room-core-size) / 2 + ${9 + ring * 6}px))`
+                                  transform: `rotate(${((index % 12) * 360) / count}deg) translateX(calc(var(--room-core-size) / 2 + var(--room-orbit-radius) + ${ring} * var(--room-orbit-spacing)))`
                                 }}
                               />
                             );
@@ -283,10 +297,6 @@ export function RoomRadar({
           </div>
         )}
         <div className='radar-invitations'>
-          <header>
-            <h3>Open invitations</h3>
-            <span>{rooms.length}</span>
-          </header>
           {!rooms.length && (
             <div className='radar-empty'>
               <Radar size={28} strokeWidth={1.3} />

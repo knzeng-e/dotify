@@ -8,7 +8,7 @@ async function hostRoom(browser: Browser) {
   await host.goto('/?e2eRoom=public');
   await host.getByRole('button', { name: 'Open a room' }).click();
   await host.getByRole('button', { name: `Select ${PUBLIC_TITLE}` }).click();
-  await host.getByLabel('Your name in the room').fill('Discovery host');
+  await host.getByLabel('Your name or nickname').fill('Discovery host');
   await host.getByRole('radio', { name: 'Nearby', exact: true }).check();
   await host.getByRole('button', { name: 'Open the room' }).click();
   await expect(host.getByTestId('room-code')).toHaveText(/[A-Z2-9]{6}/, { timeout: 15_000 });
@@ -63,7 +63,7 @@ test('galaxy and direct joining work without WebGL', async ({ browser, page }) =
     const radar = await openNearby(page);
     await expect(radar.getByTestId('room-galaxy')).toBeVisible();
     await radar.getByRole('button', { name: 'Join', exact: true }).click();
-    await page.getByLabel('Your name in the room').fill('No WebGL guest');
+    await page.getByLabel('Your name or nickname').fill('No WebGL guest');
     await page.getByRole('button', { name: 'Join room', exact: true }).click();
     await expect(page.getByTestId('room-code')).toHaveText(room.roomId);
     await expect(page.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20_000 });
@@ -103,7 +103,7 @@ test('mobile galaxy and inspection sheet stay touch-safe with no horizontal over
     await page.screenshot({ path: testInfo.outputPath('room-preview-mobile.png'), fullPage: true });
     await page.getByRole('dialog', { name: PUBLIC_TITLE }).getByRole('button', { name: 'Join', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Join room', exact: true })).toBeDisabled();
-    await page.getByLabel('Your name in the room').fill('Mobile guest');
+    await page.getByLabel('Your name or nickname').fill('Mobile guest');
     await page.getByRole('button', { name: 'Join room', exact: true }).click();
     await expect(page.getByTestId('room-code')).toHaveText(room.roomId);
   } finally {

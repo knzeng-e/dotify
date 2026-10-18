@@ -6,6 +6,7 @@ const normalize = (value: string) =>
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
+    .replace(/\s+[—·]\s+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 
@@ -18,7 +19,7 @@ export function searchRoomCatalog(tracks: CatalogTrack[], query: string): Catalo
 // match is a convenience for host curation, never signing or playback authority.
 export function roomTrackRequestText(track: CatalogTrack): string {
   return (
-    `${track.title} — ${track.artist}`
+    `${track.title} · ${track.artist}`
       // Match the signaling service's single-line text normalization before its cap.
       // eslint-disable-next-line no-control-regex
       .replace(/[\u0000-\u001f\u007f]/g, ' ')

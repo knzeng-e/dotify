@@ -44,7 +44,6 @@ export function JoinRoomModal({
   const roomTrack = room?.track;
   const hostDisplayName = roomHostDisplayName(room?.hostName);
   const peopleHere = room ? roomPresenceCount(room.listenerCount, true) : 0;
-  const displayedRoomCode = room?.roomId ?? joinCode.trim().toUpperCase();
   const allowAutomaticFocus = typeof window !== 'undefined' && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 
   function handleSubmit(event: FormEvent) {
@@ -81,7 +80,7 @@ export function JoinRoomModal({
   const description = room
     ? isFull
       ? `${peopleHere} ${peopleHere === 1 ? 'person is' : 'people are'} here, which is the current listener cap.`
-      : `${peopleHere} ${peopleHere === 1 ? 'person is' : 'people are'} here. Choose a name to join.`
+      : 'Enter your name or nickname to join the chat and listen.'
     : isResolving
       ? 'Loading host, track, and presence.'
       : isServiceUnavailable
@@ -89,7 +88,7 @@ export function JoinRoomModal({
         : isRoomUnavailable
           ? 'This room may have ended or expired.'
           : thresholdState === 'ready'
-            ? 'Choose a name. The room’s details appear once you join.'
+            ? 'Enter your name or nickname to join and listen.'
             : 'Paste a room code or link.';
 
   return (
@@ -133,14 +132,14 @@ export function JoinRoomModal({
         {!isServiceUnavailable && !isRoomUnavailable && (
           <>
             <label className='create-room-label' htmlFor='join-room-name'>
-              Your name in the room
+              Your name or nickname
             </label>
             <input
               id='join-room-name'
               className='field'
-              value={displayName}
+              value={hasChosenName ? displayName : ''}
               onChange={event => onSetDisplayName(event.target.value)}
-              placeholder='How should people see you?'
+              placeholder='e.g. Alex'
               maxLength={32}
               autoComplete='nickname'
               autoFocus={hasPrefilledCode && allowAutomaticFocus}
@@ -148,12 +147,7 @@ export function JoinRoomModal({
           </>
         )}
 
-        {isThreshold ? (
-          <div className='room-threshold-code' aria-label={`Room code ${displayedRoomCode}`}>
-            <span>Room code</span>
-            <code>{displayedRoomCode}</code>
-          </div>
-        ) : (
+        {!isThreshold && (
           <>
             <label className='create-room-label' htmlFor='join-room-code'>
               Room code

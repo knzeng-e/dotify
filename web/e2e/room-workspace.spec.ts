@@ -4,7 +4,7 @@ async function hostRoom(page: Page) {
   await page.goto('/?e2eRoom=public');
   await page.getByRole('button', { name: 'Open a room', exact: true }).click();
   await page.getByRole('button', { name: 'Select E2E Public Room Track' }).click();
-  await page.getByLabel('Your name in the room').fill('Room host');
+  await page.getByLabel('Your name or nickname').fill('Room host');
   await page.getByRole('button', { name: 'Open the room', exact: true }).click();
   await expect(page.getByTestId('room-code')).toHaveText(/[A-Z0-9]{4,}/);
   return (await page.getByTestId('room-code').innerText()).trim();
@@ -45,6 +45,10 @@ for (const [width, height] of [
   [1024, 768]
 ]) {
   test(`room conversation fits ${width}×${height} without losing playback or drafts`, async ({ page }, testInfo) => {
+    const duplicateKeys: string[] = [];
+    page.on('console', message => {
+      if (message.text().includes('Encountered two children with the same key')) duplicateKeys.push(message.text());
+    });
     await page.setViewportSize({ width, height });
     await hostRoom(page);
     await expectConversationFits(page);
@@ -78,6 +82,7 @@ for (const [width, height] of [
     await page.getByRole('tab', { name: 'Chat', exact: true }).click();
     await page.getByRole('tab', { name: 'Chat', exact: true }).press('ArrowRight');
     await expect(page.getByRole('tab', { name: /Queue/ })).toBeFocused();
+    expect(duplicateKeys, 'Room panels must keep distinct component identities').toEqual([]);
   });
 }
 
@@ -89,7 +94,7 @@ test('chat tab counts unread arrivals while viewing suggestions and preserves th
     const roomId = await hostRoom(host);
     const guest = await guestContext.newPage();
     await guest.goto(`/#/rooms/${roomId}`);
-    await guest.getByRole('textbox', { name: 'Your name in the room' }).fill('Mina');
+    await guest.getByRole('textbox', { name: 'Your name or nickname' }).fill('Mina');
     await guest.getByRole('button', { name: 'Join and listen' }).click();
     await expect(guest.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20000 });
     await guest.evaluate(() => {
@@ -169,7 +174,7 @@ test('a catalog suggestion can be curated into Up next without starting or payin
     const roomId = await hostRoom(host);
     const guest = await guestContext.newPage();
     await guest.goto(`/#/rooms/${roomId}`);
-    await guest.getByLabel('Your name in the room').fill('Mina');
+    await guest.getByLabel('Your name or nickname').fill('Mina');
     await guest.getByRole('button', { name: 'Join and listen' }).click();
     await guest.getByRole('tab', { name: /Queue/ }).click();
     const search = guest.getByRole('textbox', { name: 'Request a track' });
@@ -216,7 +221,7 @@ test('a host sees one room code and an invite-first state while alone', async ({
 test('a room requires a chosen host name instead of presenting a role as identity', async ({ page }) => {
   await page.goto('/?e2eRoom=public');
   await page.getByRole('button', { name: 'Open a room', exact: true }).click();
-  const name = page.getByLabel('Your name in the room');
+  const name = page.getByLabel('Your name or nickname');
   const open = page.getByRole('button', { name: 'Open the room', exact: true });
 
   await expect(name).toHaveValue('');
@@ -545,7 +550,7 @@ test('live reactions reach both participants, stay available in Queue, and do no
     const guest = await guestContext.newPage();
     guest.setDefaultTimeout(5000);
     await guest.goto(`/#/rooms/${code}`);
-    await guest.getByLabel('Your name in the room').fill('Mina');
+    await guest.getByLabel('Your name or nickname').fill('Mina');
     await guest.getByRole('button', { name: 'Join and listen' }).click();
     await expect(guest.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20000 });
     await host.getByRole('textbox', { name: 'Message the room' }).fill('That bassline. Stay for the next track.');
@@ -593,7 +598,7 @@ test('live chat lets readers pause history and catch up after visiting another t
     const code = await hostRoom(host);
     const guest = await guestContext.newPage();
     await guest.goto(`/#/rooms/${code}`);
-    await guest.getByLabel('Your name in the room').fill('Mina');
+    await guest.getByLabel('Your name or nickname').fill('Mina');
     await guest.getByRole('button', { name: 'Join and listen' }).click();
     await expect(guest.getByRole('log')).toBeVisible();
     for (let index = 0; index < 7; index++) {

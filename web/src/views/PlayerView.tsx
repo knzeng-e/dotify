@@ -838,7 +838,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
                 }}
               >
                 <label className='create-room-label' htmlFor='room-display-name'>
-                  Your room name
+                  Your name or nickname
                 </label>
                 <div className='room-name-row'>
                   <input
@@ -876,8 +876,8 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
               aria-labelledby='room-tab-queue'
               hidden={roomPanel !== 'queue'}
             >
-              <HostLineup key={roomId} />
-              <RoomRequests key={roomId} />
+              <HostLineup key={`lineup:${roomId}`} />
+              <RoomRequests key={`requests:${roomId}`} />
             </div>
           </div>
         )}
