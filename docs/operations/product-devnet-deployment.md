@@ -23,19 +23,23 @@ or timed-out request; Dotify cannot undo the Host's permission decision.
 Operational rollback uses `VITE_DOTIFY_NEARBY=off` and/or `SIGNAL_NEARBY=off`;
 there is no Product-specific feature gate. Old snapshots expire within 90 seconds.
 
-## Product 0.1.54 stability candidate
+## Product 0.1.54 published stability release
 
 The owner authorized a coordinated rollout after #302 merged into `dev`
-at `02bb83595754672870d136d743509e718117faa1`. The candidate increments the
-executable to `[0, 1, 54]`, retains the existing `product-cdm` / `devnet`
-profile and freezes the current 13-track public catalog. Deploy the bounded
-ciphertext API relay and matching signaling first, then verify ordinary Web
-and publish Product from the clean, validated packaging commit.
+at `02bb83595754672870d136d743509e718117faa1`. Clean, green packaging commit
+`0d002e373f42c5a4a03100306a58efcc9156da2d` was published with executable
+`[0, 1, 54]` at root/executable CID
+`bafybeiepuhymockmxkkqkjtjqrgak4fhlxyxjep2k7aev7mt4h45nb5csa`.
+It retains the existing `product-cdm` / `devnet` profile and frozen 13-track
+catalog. API release 28 and signaling release 35 preceded signed publication;
+ordinary Web independently serves the merged application commit.
 
-The [candidate record](../backlog/implementation/evidence/product-0.1.54-candidate-2026-10-18.md)
-describes the preparation boundary. Publication, service identities and physical
-acceptance must be recorded independently; a version bump is not a deployment.
-Product 0.1.53 remains published and is the intended client rollback artifact.
+Independent finalized DotNS read-back confirmed the exact CID and executable
+version. Public CAR verification checked 125 block hashes and byte-for-byte
+equality of the index/entry bundle against the signed build. The local signer
+was removed. See the [rollout record](../backlog/implementation/evidence/product-0.1.54-rollout-2026-10-18.md)
+for service identities, validation and remaining physical acceptance.
+Product 0.1.53 is the client rollback artifact; keep privacy-safe v4 signaling.
 
 ## Product 0.1.53 published room-presence release
 

@@ -61,19 +61,28 @@ unknown legacy counts keep neutral decoration, and visual growth is bounded at
 radars use smaller caps and tighter orbits; reduced-motion settings disable the
 size/halo transitions. No discovery payload, service setting or access rule changes.
 
-## Product 0.1.54 coordinated stability candidate
+## Current published Product release - 0.1.54
 
-Prepared after #302 merged at `02bb83595754672870d136d743509e718117faa1`.
-The executable becomes `[0, 1, 54]` with the same native Product profile and
-frozen 13-track catalog. Deploy API, signaling, ordinary Web and Product in that
-order. Recheck zero active rooms/listeners immediately before each service
-mutation. The existing API session epoch and content-key secrets must survive.
-No contract, permission, secret, origin, storage or scaling change is required.
-See the [candidate record](../backlog/implementation/evidence/product-0.1.54-candidate-2026-10-18.md).
-Product 0.1.53 remains the published identity until finalized publication and
-public artifact read-back are recorded.
+Published after #302 merged at `02bb83595754672870d136d743509e718117faa1`,
+from clean green packaging commit `0d002e373f42c5a4a03100306a58efcc9156da2d`.
+Executable `[0, 1, 54]` and root/app CID
+`bafybeiepuhymockmxkkqkjtjqrgak4fhlxyxjep2k7aev7mt4h45nb5csa` retain the native
+Product profile and frozen 13-track catalog. API release 28 and signaling release
+35 were deployed after fresh zero-session checks, before Product publication.
+Netlify serves the merged application SHA independently. The API session epoch,
+content-key secret digests, volume and one-machine topology were preserved.
+No contract, permission, secret, origin, storage or scaling change was required.
 
-## Current published Product release — 0.1.53
+See the [rollout record](../backlog/implementation/evidence/product-0.1.54-rollout-2026-10-18.md)
+for exact images, finalized/public read-back, deployed media and discovery
+checks, and remaining physical acceptance. The local signer was removed.
+Product 0.1.53 is the client rollback artifact. Do not restore globally
+enumerating signaling when rolling clients back. A fresh-profile Web check also
+found that direct `#/rooms` currently lands on Music; the Rooms navigation
+works, and this remaining W19 browser-recovery routing issue is recorded without
+claiming that native Host location has been repaired.
+
+## Previous Product release — 0.1.53
 
 Product `[0, 1, 53]` is published from source `83512f708c34304338e6a70c599d38027a9bf68c` at executable/root CID
 `bafybeihj6vrdu3dqnaqfofw4l3qiysc4by4rau3mldmlom637waemgmqr4`. The current client rollback is Product `[0, 1, 52]`, CID
@@ -446,7 +455,7 @@ Required Product values:
 | `VITE_BULLETIN_WS_URL`          | `wss://bulletin-paseo.tservices.es:8443`                                                                                         |
 | `VITE_PINATA_GATEWAY`           | `https://gateway.pinata.cloud`                                                                                                   |
 | `VITE_IPFS_READ_GATEWAYS`       | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation` |
-| Product executable `appVersion` | `[0, 1, 54]` stability candidate; `[0, 1, 53]` remains published until the coordinated rollout is verified                            |
+| Product executable `appVersion` | `[0, 1, 54]` published stability release; `[0, 1, 53]` is the current client rollback artifact                            |
 
 The Product executable version is part of the published Product manifest. Bump
 it whenever the Product bundle changes runtime behavior, host SDK integration,
