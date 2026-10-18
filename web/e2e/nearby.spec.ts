@@ -1,4 +1,4 @@
-import { expect, test, type Page, type BrowserContext } from '@playwright/test';
+import { expect, test, type Page, type BrowserContext, type Locator } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
 const fix = { latitude: 0.392, longitude: 9.454, accuracy: 100 };
@@ -24,6 +24,12 @@ async function editVisibility(host: Page, mode: 'Nearby' | 'Everyone' | 'Link on
 async function rooms(page: Page) {
   await page.getByRole('button', { name: 'Rooms', exact: true }).click();
   return page.getByRole('region', { name: 'Room galaxy', exact: true });
+}
+async function planetVisuals(room: Locator) {
+  return room.locator('.radar-room-sphere').evaluate(sphere => ({
+    size: Number.parseFloat(getComputedStyle(sphere).width),
+    glow: Number.parseFloat(getComputedStyle(sphere.querySelector('.radar-room-halo')!).opacity)
+  }));
 }
 
 test('automatic radar finds a later nearby publication, then joins real guest audio without keys', async ({ browser }, testInfo) => {
@@ -230,7 +236,7 @@ test('radar sweep remains live after a fast response and after returning to Room
 });
 
 test('cover galaxies show exact live people and distinguish my room from an identical track next door', async ({ browser }, testInfo) => {
-  test.setTimeout(90_000);
+  test.setTimeout(120_000);
   const hostContext = await browser.newContext({ permissions: ['geolocation'], geolocation: fix });
   const otherContext = await browser.newContext({ permissions: ['geolocation'], geolocation: fix });
   const guestContext = await browser.newContext({ permissions: ['geolocation'], geolocation: fix });
@@ -258,6 +264,8 @@ test('cover galaxies show exact live people and distinguish my room from an iden
     await expect(other).toContainText('1 listening');
     await expect(own.locator('.radar-room-orbit i')).toHaveCount(2);
     await expect(other.locator('.radar-room-orbit i')).toHaveCount(1);
+    await expect.poll(async () => (await planetVisuals(own)).size > (await planetVisuals(other)).size).toBe(true);
+    await expect.poll(async () => (await planetVisuals(own)).glow > (await planetVisuals(other)).glow).toBe(true);
     await expect(own.locator('.radar-room-core img')).toBeVisible();
     await radar.getByTestId('room-galaxy').scrollIntoViewIfNeeded();
     await expect(own.locator('.radar-room-artist')).toBeVisible();
@@ -286,6 +294,7 @@ test('cover galaxies show exact live people and distinguish my room from an iden
     expect((await new AxeBuilder({ page: host }).include('.room-radar').analyze()).violations).toEqual([]);
     await host.screenshot({ path: testInfo.outputPath('cover-galaxy-desktop.png'), fullPage: true });
     await host.setViewportSize({ width: 390, height: 844 });
+    await expect.poll(async () => (await planetVisuals(own)).size > (await planetVisuals(other)).size).toBe(true);
     await host.screenshot({ path: testInfo.outputPath('cover-galaxy-mobile.png'), fullPage: true });
     expect(await host.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await own.click();
@@ -293,6 +302,13 @@ test('cover galaxies show exact live people and distinguish my room from an iden
     await expect(preview).toContainText('Your room · 2 listening');
     await preview.getByRole('button', { name: 'Back to your room', exact: true }).click();
     await expect(host.getByTestId('room-code')).toHaveText(hostRoomCode);
+    await guestContext.close();
+    await host.getByRole('button', { name: 'Keep listening and browse', exact: true }).click();
+    await rooms(host);
+    // A real departure dims/shrinks the same planet on the next discovery read.
+    await expect(own).toContainText('1 listening', { timeout: 35_000 });
+    await expect.poll(async () => (await planetVisuals(own)).size).toBe((await planetVisuals(other)).size);
+    await expect.poll(async () => (await planetVisuals(own)).glow).toBe((await planetVisuals(other)).glow);
   } finally {
     await Promise.allSettled([hostContext.close(), otherContext.close(), guestContext.close()]);
   }

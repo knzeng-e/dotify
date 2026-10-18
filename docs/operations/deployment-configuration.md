@@ -54,6 +54,13 @@ CORS origins, cold/warm and overloaded behavior. Then verify automatic recovery
 and join UX in Web and installed Product Hosts. Browser fixtures do not certify
 native geolocation or background audio.
 
+The matching radar restores count-driven cover size and halo intensity. Check
+arrival and departure updates in Web and Product: counts include the host,
+unknown legacy counts keep neutral decoration, and visual growth is bounded at
+25 connected sessions while larger exact totals remain readable. Mobile/dense
+radars use smaller caps and tighter orbits; reduced-motion settings disable the
+size/halo transitions. No discovery payload, service setting or access rule changes.
+
 ## Current published Product release — 0.1.53
 
 Product `[0, 1, 53]` is published from source `83512f708c34304338e6a70c599d38027a9bf68c` at executable/root CID

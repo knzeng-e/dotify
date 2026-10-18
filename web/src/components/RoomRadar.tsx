@@ -185,6 +185,9 @@ export function RoomRadar({
                 .filter(room => slots.has(room.roomId))
                 .map(room => {
                   const presence = discoveryPresenceCount(room);
+                  // Grow with real connected presence (host included), up to
+                  // the normal 25-person room. Keep unknown legacy counts neutral.
+                  const intensity = Math.min(Math.max((presence ?? 1) - 1, 0) / 24, 1);
                   const own = room.roomId === ownRoomId;
                   const aura = auraForTrack(room);
                   const [x, y] = positions[slots.get(room.roomId)!];
@@ -210,6 +213,12 @@ export function RoomRadar({
                           '--dot-a': aura.a,
                           '--dot-b': aura.b,
                           '--dot-accent': aura.accent,
+                          '--room-presence-scale': 1 + intensity * 0.6,
+                          '--room-glow-opacity': 0.35 + intensity * 0.65,
+                          '--room-glow-radius': `${4 + intensity * 16}px`,
+                          '--room-orbit-clearance': points
+                            ? `calc(var(--room-orbit-radius) + ${Math.floor((points - 1) / 12)} * var(--room-orbit-spacing))`
+                            : '0px',
                           '--orbit-duration': `${16 + (hashHue(room.roomId) % 9)}s`
                         } as CSSProperties
                       }
@@ -248,7 +257,7 @@ export function RoomRadar({
                               <i
                                 key={index}
                                 style={{
-                                  transform: `rotate(${((index % 12) * 360) / count}deg) translateX(calc(var(--room-core-size) / 2 + ${9 + ring * 6}px))`
+                                  transform: `rotate(${((index % 12) * 360) / count}deg) translateX(calc(var(--room-core-size) / 2 + var(--room-orbit-radius) + ${ring} * var(--room-orbit-spacing)))`
                                 }}
                               />
                             );
