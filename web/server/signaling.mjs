@@ -283,7 +283,7 @@ export function startSignalingServer(overrides = {}, dependencies = {}) {
     void recovery
       .then(recoveredTrack => {
         if (!recoveredTrack) return;
-        nearby.changed();
+        nearby.changed(roomId);
         io.to(roomId).emit('room:track', recoveredTrack);
         logEvent('room:track-attribution-recovered', {
           roomId,
@@ -344,7 +344,7 @@ export function startSignalingServer(overrides = {}, dependencies = {}) {
   }
 
   function emitListenerRoster(roomId, room) {
-    nearby.changed();
+    nearby.changed(roomId);
     io.to(roomId).emit('room:listeners', {
       listenerCount: room.listeners.size,
       listeners: listenerRoster(room)
@@ -494,7 +494,7 @@ export function startSignalingServer(overrides = {}, dependencies = {}) {
         return;
       }
       room.profile = profile;
-      nearby.changed();
+      nearby.changed(socket.data.roomId);
       if (typeof ack === 'function') ack({ ok: true, profile });
     });
     artistRoomActivity.register(socket);
@@ -807,7 +807,7 @@ export function startSignalingServer(overrides = {}, dependencies = {}) {
         socket.to(socket.data.roomId).emit('player:state', null);
       }
       room.track = nextTrack;
-      nearby.changed();
+      nearby.changed(socket.data.roomId);
       socket.to(socket.data.roomId).emit('room:track', room.track);
       recoverRoomContributionTrack(socket.data.roomId, room, nextTrack);
     });
@@ -871,7 +871,7 @@ export function startSignalingServer(overrides = {}, dependencies = {}) {
       if (participant.role === 'host') {
         participant.room.hostName = displayName;
         touchHost(participant.room);
-        nearby.changed();
+        nearby.changed(participant.roomId);
         io.to(participant.roomId).emit('host:renamed', { displayName });
         reply?.({ ok: true, displayName });
         return;
@@ -967,7 +967,7 @@ export function startSignalingServer(overrides = {}, dependencies = {}) {
       const member = participant?.room.lifeMembers?.get(socket.data.lifeToken);
       if (member) {
         member.artist = undefined;
-        nearby.changed();
+        nearby.changed(participant.roomId);
       }
     });
     socket.on('room:chat', (payload = {}, ack) => {

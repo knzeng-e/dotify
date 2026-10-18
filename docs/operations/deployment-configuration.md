@@ -11,7 +11,9 @@ editing or background holds. Keep single-process signaling; no horizontal
 subscription/presence coherence is implemented. Rollback requires both client and
 signaling if withdrawing the new background policy.
 
-A 200 ms coalescer updates active watchers; a one-second sweep handles expiry.
+A 200 ms coalescer updates only watchers intersecting the changed room's old or
+new public area; private/no-op activity does no watch work. Identical queries
+share a snapshot/enrichment within that batch. A one-second sweep handles expiry.
 There are at most 2,000 watched sockets and two 45-second queries each. Public
 snapshots only are emitted. Payloads, coarse areas and watch IDs must not enter
 logs, analytics, persistence or diagnostic endpoints. See the authoritative
@@ -38,7 +40,9 @@ The returned reference/block is saved before receipt verification. A pending
 receipt recheck resumes on foreground return without another payment. No timer
 assumes failure or resubmits. UI success still requires
 a matching finalized receipt. The reported live pending tip has not been
-independently reconciled: there is no transaction reference in the report.
+independently reconciled: the supplied hash has no indexed EVM receipt or
+native explorer detail, so its native receipt block is still needed. Absence
+from an index does not establish payment failure.
 
 Validate with the focused evidence in
 [room presence and tip continuity](../backlog/implementation/evidence/room-presence-tip-continuity-2026-10-18.md).

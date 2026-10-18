@@ -6,11 +6,11 @@ import { announcedArtistPresent, roomProfile } from './room-profile.mjs';
 import { coarseNearbyCell } from '../shared/nearby-v2.mjs';
 const area = { schemaVersion: 2, cell: coarseNearbyCell(0, 0), radiusKm: 5 };
 const tick = () => new Promise(resolve => setTimeout(resolve, 250));
-function fixture(t) {
+function fixture(t, getPublicTrack) {
   let time = 1000;
   const room = { hostId: 'host', hostName: 'Host', track: { title: 'Song', artist: 'Artist' }, listeners: new Map(), lifeMembers: new Map() };
   const rooms = new Map([['ABCDEF', room]]);
-  const service = createNearby({ enabled: true, rooms, maxListeners: 24, now: () => time });
+  const service = createNearby({ enabled: true, rooms, maxListeners: 24, now: () => time, getPublicTrack });
   t.after(() => service.close());
   function client(id, role = 'listener') {
     const handlers = new Map();
@@ -55,7 +55,7 @@ test('scoped live discovery publishes immediately and removes on opt-out without
   assert.equal(guest.pushed[0].data.reply.results[0].roomId, 'ABCDEF');
   assert.equal(guest.pushed[0].data.reply.sequence, initial.sequence + 1);
   f.rooms.set('SECRET', { ...f.room });
-  f.service.changed();
+  f.service.changed('SECRET');
   await tick();
   assert.equal(guest.pushed.length, 1, 'unrelated private activity sends no frame or sequence gap');
   await host.request('nearby:off', {});
@@ -82,6 +82,63 @@ test('watches cannot widen location scope and expire without query renewal', asy
   await host.request('nearby:publish', area);
   await tick();
   assert.equal(guest.pushed.length, 0, 'expired queries never receive new invitations');
+});
+test('private, unchanged and out-of-area activity does no watch enrichment work', async t => {
+  let reads = 0;
+  const f = fixture(t, async () => {
+    reads++;
+    return null;
+  });
+  const host = f.client('host', 'host');
+  const guest = f.client('guest');
+  await host.request('nearby:publish', area);
+  await guest.request('nearby:search', { ...area, schemaVersion: 5, watchId: randomUUID() });
+  const before = reads;
+  f.rooms.set('SECRET', { ...f.room, listeners: new Map() });
+  for (let i = 0; i < 2000; i++) {
+    f.rooms.get('SECRET').hostName = `Private ${i}`;
+    f.service.changed('SECRET');
+    f.service.changed('ABCDEF'); // listener renames do not change public fields
+  }
+  await tick();
+  assert.equal(reads, before);
+  assert.equal(guest.pushed.length, 0);
+  const distant = f.client('distant', 'host');
+  distant.socket.data.roomId = 'FARAWAY';
+  f.rooms.set('FARAWAY', { ...f.room, hostId: 'distant' });
+  await distant.request('nearby:publish', { ...area, cell: coarseNearbyCell(10, 10) });
+  const afterWarmup = reads;
+  for (let i = 0; i < 100; i++) {
+    f.rooms.get('FARAWAY').hostName = `Distant ${i}`;
+    f.service.changed('FARAWAY');
+  }
+  await tick();
+  assert.equal(reads, afterWarmup, 'no unrelated watch rescans/enrichments');
+  assert.equal(guest.pushed.length, 0);
+});
+test('matching watchers share enrichment and a scope change invalidates both old and new areas', async t => {
+  let reads = 0;
+  const f = fixture(t, async () => {
+    reads++;
+    return null;
+  });
+  const host = f.client('host', 'host');
+  await host.request('nearby:publish', area);
+  const guests = Array.from({ length: 40 }, (_, i) => f.client(`guest-${i}`));
+  await Promise.all(guests.map(guest => guest.request('nearby:search', { ...area, schemaVersion: 5, watchId: randomUUID() })));
+  const global = f.client('worldwide');
+  await global.request('nearby:search', { schemaVersion: 5, worldwide: true, watchId: randomUUID() });
+  const before = reads;
+  f.room.hostName = 'Renamed host';
+  f.service.changed('ABCDEF');
+  await tick();
+  assert.equal(reads, before + 1, 'one query snapshot for 40 matching watches');
+  for (const guest of guests) assert.equal(guest.pushed.at(-1).data.reply.results[0].hostName, 'Renamed host');
+  assert.equal(global.pushed.length, 0);
+  await host.request('nearby:publish', { schemaVersion: 2, worldwide: true });
+  await tick();
+  for (const guest of guests) assert.deepEqual(guest.pushed.at(-1).data.reply.results, []);
+  assert.equal(global.pushed.at(-1).data.reply.results[0].roomId, 'ABCDEF');
 });
 test('held background room renews only with live host activity, then reconnects briefly before removal', async t => {
   const f = fixture(t),

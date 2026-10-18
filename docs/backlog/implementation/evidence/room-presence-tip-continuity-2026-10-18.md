@@ -37,6 +37,9 @@ from the wallet triggers an immediate pending receipt check.
    a bounded per-socket watch over the existing authorized search area. Public
    changes are coalesced for 200 ms. There are no global discovery broadcasts;
    private and out-of-scope changes produce neither frames nor sequence gaps.
+   Invalidation follows the changed room's old/new public areas. Private rooms
+   and public no-ops do no watch work; matching watches share one query snapshot
+   and artwork enrichment per coalesced batch.
    One watch per mode, 45-second expiry, at most 2,000 watched sockets and one
    in-flight snapshot per watch bound the pilot implementation. Old schemas keep
    their response shapes. Profile writes are host-only and bounded. Artist
@@ -54,7 +57,8 @@ from the wallet triggers an immediate pending receipt check.
    reversible local exclusion. Late profile replies cannot apply settings to a
    dismissed/unmounted panel. Reconnecting rooms cannot be joined from discovery.
 4. `ArtistDonationButton.tsx`, `contributionFlow.ts`,
-   `contributionReconciliation.ts`, `productCdmRuntimeAdapter.ts`: only the
+   `contributionReconciliation.ts`, `runtimeWriterProvider.ts`,
+   `productCdmRuntimeAdapter.ts`: only the
    non-financial draft survives account connection. Quotes, receipt monitoring
    and payment scope remain account/network/runtime/work specific. Product
    lifecycle callbacks expose status only. The installed SDK does not expose an
@@ -75,7 +79,7 @@ tradeoff is that the displayed area may be stale until foreground return.
 - Full frontend unit suite: 1,000 tests in 125 files passed in CI. The affected
   `nearbySession` suite passed all 43 tests locally. It covers background timing, no opt-out during reconnect,
   ordered pushes, permission revocation, expiry and reversible Hide.
-- Full signaling suite: 121 tests passed. Live room-life tests cover scoped publication,
+- Full signaling suite: 123 tests passed. Live room-life tests cover scoped publication,
   explicit opt-out, query expiry, the eight-second reconnect grace, host-only
   profile writes and artist arrival/departure/discreet entry. The server package
   boot test uses the runtime directories copied by the signaling Dockerfile.
@@ -126,9 +130,24 @@ and [privacy amendment](../../../design/dotify-nearby-discovery-privacy.md#live-
   discovery grace starts after disconnection is detected. OS suspension may
   still stop the connection or audio; this patch does not promise background
   execution the host OS cannot provide.
-- The reported live pending tip has no transaction reference in the supplied
-  evidence and has not been reconciled independently. Native funded payment,
-  finalized receipt and room-chat acceptance remain open.
+- The owner supplied the pending tip hash during review. Read-only checks on
+  October 19 returned no EVM receipt, no Blockscout transaction and no populated
+  native explorer detail. Those absences do not prove failure or non-submission.
+  A native receipt block is still needed for independent chain verification;
+  no replacement payment was submitted. User-specific references remain local.
+  Native funded payment, finalized receipt and room-chat acceptance remain open.
 - Signaling is single-process and memory-only. There is no cross-replica watch
   coherence, durable room profile, staffed moderation inbox or new performance
   guarantee. Load acceptance and the existing public-pilot gates remain open.
+
+## Review follow-up, 2026-10-19
+
+- Scoped invalidation tests cover 2,000 private/no-op changes without additional
+  enrichment, distant activity without unrelated work, 40 same-area watches
+  sharing one enrichment, and withdrawal from the old area after a scope change.
+- The lazy Product writer now forwards contribution status to the selected
+  adapter. The provider regression observes broadcasting before hash return and
+  retains the finalized block callback; 24 provider/adapter tests pass.
+- Artist publishing browser coverage activates the native details disclosure by
+  keyboard and explicitly advances the delayed catalog/reconciliation timers in
+  the disconnect case. Assertions still require a visible release and one write.

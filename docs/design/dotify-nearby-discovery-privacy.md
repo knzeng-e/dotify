@@ -14,7 +14,10 @@ connection. A random watch ID and increasing sequence reject stale replies.
 Nearby and Worldwide remain separate; both Nearby radii must match. Each socket
 has at most one watch per mode, each expires after 45 seconds, and the service
 accepts at most 2,000 watching sockets. Changed public snapshots are coalesced for
-200 ms. Private or out-of-scope activity does not emit frames or sequence gaps.
+200 ms. Invalidation is scoped to a changed room's old/new public areas; private
+rooms and unchanged public fields trigger no watch work. Identical queries share
+one snapshot/enrichment per batch. Private or out-of-scope activity does not emit
+frames or sequence gaps.
 Foreground reads still renew every 15/30 seconds. Unwatch, disconnect, expiry and
 hidden listener pages end the subscription. Pushes cannot extend the client's
 last acknowledged query lease. V2/v3/v4 retain their response shapes.
