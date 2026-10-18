@@ -69,9 +69,8 @@ tradeoff is that the displayed area may be stale until foreground return.
 
 ## Local validation
 
-- Full frontend unit suite: 998 tests in 125 files passed. Two subsequent
-  lifecycle regressions were added; the complete affected `nearbySession` suite
-  passed all 43 tests. It covers background timing, no opt-out during reconnect,
+- Full frontend unit suite: 1,000 tests in 125 files passed in CI. The affected
+  `nearbySession` suite passed all 43 tests locally. It covers background timing, no opt-out during reconnect,
   ordered pushes, permission revocation, expiry and reversible Hide.
 - Full signaling suite: 121 tests passed. Live room-life tests cover scoped publication,
   explicit opt-out, query expiry, the eight-second reconnect grace, host-only
@@ -90,6 +89,9 @@ tradeoff is that the displayed area may be stale until foreground return.
   390-pixel mobile widths. The seal is visible before hover; the mobile preview
   separates identities and passes its axe accessibility check. Screenshots are
   reproducible from `web/e2e/room-presence-visual.spec.ts`.
+- Adaptive-room browser fixtures explicitly close their rooms during cleanup.
+  Closing the tab alone is now a reconnectable disconnect and correctly leaves
+  a short-lived invitation, which must not leak into the next test's setup.
 - Web and frozen Product builds passed. Lint has zero errors and two existing
   `App.tsx` hook warnings. Formatting and whitespace checks passed.
 
