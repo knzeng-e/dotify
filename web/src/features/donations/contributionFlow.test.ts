@@ -234,22 +234,22 @@ describe('persistent contributions', () => {
   });
 });
 
-it('journals broadcast immediately while a wallet still awaits finality and never sends it twice', async () => {
+it('journals the returned reference before notifying the UI or awaiting its receipt, without sending twice', async () => {
   const f = fixture();
-  let finish!: (hash: Hash) => void;
-  const send = vi.fn(async (submitted: (hash: Hash) => void) => {
-    submitted(f.receipt.transactionHash);
-    return new Promise<Hash>(resolve => {
+  let finish!: (receipt: ContributionReceipt) => void;
+  const confirm = vi.fn(async () => {
+    return new Promise<ContributionReceipt>(resolve => {
       finish = resolve;
     });
   });
-  const onSubmitted = vi.fn();
-  const pending = runContribution({ ...f, send, onSubmitted });
+  const onSubmitted = vi.fn(() => {
+    expect(JSON.parse(f.storage.getItem(contributionStorageKey(f.intent))!).hash).toBe(f.receipt.transactionHash);
+  });
+  const pending = runContribution({ ...f, confirm, onSubmitted });
   await vi.waitFor(() => expect(onSubmitted).toHaveBeenCalledWith(f.receipt.transactionHash));
-  expect(JSON.parse(f.storage.getItem(contributionStorageKey(f.intent))!).hash).toBe(f.receipt.transactionHash);
-  const duplicate = runContribution({ ...f, send });
-  finish(f.receipt.transactionHash);
+  const duplicate = runContribution(f);
+  finish(f.receipt);
   expect((await pending).status).toBe('confirmed');
   await duplicate;
-  expect(send).toHaveBeenCalledTimes(1);
+  expect(f.send).toHaveBeenCalledTimes(1);
 });

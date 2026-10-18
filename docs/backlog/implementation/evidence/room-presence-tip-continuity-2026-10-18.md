@@ -56,8 +56,11 @@ from the wallet triggers an immediate pending receipt check.
 4. `ArtistDonationButton.tsx`, `contributionFlow.ts`,
    `contributionReconciliation.ts`, `productCdmRuntimeAdapter.ts`: only the
    non-financial draft survives account connection. Quotes, receipt monitoring
-   and payment scope remain account/network/runtime/work specific. Native
-   broadcast references enter the existing journal before finality completes.
+   and payment scope remain account/network/runtime/work specific. Product
+   lifecycle callbacks expose status only. The installed SDK does not expose an
+   early transaction hash; the returned hash/block enters the journal before
+   receipt verification. An interrupted SDK call can still require manual
+   transaction/block recovery, and must never be treated as proof of failure.
    An uncertain result never triggers a resend; success still requires a
    matching finalized receipt. Confirmation delays retain bounded backoff.
 

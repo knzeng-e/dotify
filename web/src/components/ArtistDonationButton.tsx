@@ -277,7 +277,7 @@ function ContributionButton({ track, kind = 'gift', draft }: ContributionButtonP
                   setPendingHash(hash);
                   setCheckingFinality(true);
                 },
-                send: async submitted => {
+                send: async () => {
                   try {
                     if ((await reader.client.getChainId()) !== prepared.network) throw new Error('The network changed.');
                     const latest = await reader.quote(prepared.runtime, prepared.context, prepared.amount);
@@ -297,8 +297,7 @@ function ContributionButton({ track, kind = 'gift', draft }: ContributionButtonP
                     block => {
                       nativeBlock = block;
                     },
-                    (status, hash) => {
-                      if (hash && /^0x[0-9a-f]{64}$/i.test(hash)) submitted(hash);
+                    status => {
                       if (mounted.current && ['broadcasting', 'in-block', 'finalized'].includes(status)) setCheckingFinality(true);
                     }
                   );
@@ -473,7 +472,7 @@ function ContributionButton({ track, kind = 'gift', draft }: ContributionButtonP
                   {checkingFinality
                     ? pendingHash
                       ? 'Network confirmation can take a little longer. Keep listening; Dotify will let you know when your contribution is confirmed.'
-                      : 'Dotify is checking the wallet result. You can keep listening while we wait.'
+                      : 'Dotify is checking confirmation with your wallet and the network. You can keep listening while we wait.'
                     : slow
                       ? 'Your wallet has not returned a result yet. Check it for an approval request. Dotify has saved this attempt and will not resend it.'
                       : 'Approve this contribution in your wallet, then return here. Network confirmation can take a few moments.'}

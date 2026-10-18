@@ -32,9 +32,11 @@ revocation; never trust a client-supplied artist badge.
 
 Contributions keep only amount/open state across wallet connection, then quote
 again for the connected payer. Financial state remains scoped to account,
-network, runtime and work. Broadcast references are saved before waiting for
-native finality. A pending receipt recheck resumes on foreground return without
-another payment. No timer assumes failure or resubmits. UI success still requires
+network, runtime and work. Product lifecycle callbacks update progress while
+waiting for finality; the installed SDK exposes status only, not an early hash.
+The returned reference/block is saved before receipt verification. A pending
+receipt recheck resumes on foreground return without another payment. No timer
+assumes failure or resubmits. UI success still requires
 a matching finalized receipt. The reported live pending tip has not been
 independently reconciled: there is no transaction reference in the report.
 

@@ -87,7 +87,7 @@ function rememberUncertainty(saved: Saved | undefined, error: unknown, key: stri
 export async function runContribution(input: {
   intent: ContributionIntent;
   storage: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
-  send: (submitted: (hash: Hash) => void) => Promise<Hash | { hash: Hash; nativeBlock?: NativeContributionBlock }>;
+  send: () => Promise<Hash | { hash: Hash; nativeBlock?: NativeContributionBlock }>;
   onSubmitted?: (hash: Hash) => void;
   confirm: (hash: Hash, id: Hash, nativeBlock?: NativeContributionBlock) => Promise<ContributionReceipt>;
   recover: (id: Hash) => Promise<ContributionReceipt | undefined>;
@@ -112,12 +112,7 @@ export async function runContribution(input: {
         input.storage.setItem(key, JSON.stringify(reservation));
         saved = reservation;
         submitting = true;
-        const submission = await input.send(hash => {
-          if (!saved || !/^0x[0-9a-f]{64}$/i.test(hash)) return;
-          saved.hash = hash;
-          input.storage.setItem(key, JSON.stringify(saved));
-          input.onSubmitted?.(hash);
-        });
+        const submission = await input.send();
         saved.hash = typeof submission === 'string' ? submission : submission.hash;
         if (typeof submission !== 'string') saved.nativeBlock = submission.nativeBlock;
         input.storage.setItem(key, JSON.stringify(saved));
