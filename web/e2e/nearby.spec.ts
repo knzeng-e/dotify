@@ -62,8 +62,8 @@ test('automatic radar finds a later nearby publication, then joins real guest au
     await expect(radar.getByText('Explore a city')).toHaveCount(0);
     await editVisibility(host, 'Nearby');
     await expect(host.getByRole('region', { name: 'Room visibility' })).toContainText('Visible nearby');
-    // No user-triggered re-scan: the next bounded read finds the new host.
-    await expect(radar.getByRole('heading', { name: title })).toBeVisible({ timeout: 25_000 });
+    // A scoped push finds the host before the next 15-second refresh.
+    await expect(radar.getByRole('heading', { name: title })).toBeVisible({ timeout: 3000 });
     await expect(radar.locator('.discovery-distance')).toHaveText('≈ 0-5 km');
     expect((await new AxeBuilder({ page: guest }).include('.room-radar').analyze()).violations).toEqual([]);
     await guest.screenshot({ path: testInfo.outputPath('radar-mobile.png'), fullPage: true });
@@ -162,7 +162,7 @@ test('worldwide rooms can be inspected and joined while the nearby fix is still 
     await guest.goto('/?e2eRoom=listener');
     const radar = await rooms(guest);
     await expect(radar).toContainText('Finding your approximate area');
-    await expect(radar.getByRole('heading', { name: title })).toBeVisible();
+    await expect(radar.getByRole('heading', { name: title }).first()).toBeVisible();
     await expect(radar.locator('.discovery-distance')).toHaveText('Worldwide');
     await guest.screenshot({ path: testInfo.outputPath('worldwide-during-location.png'), fullPage: true });
     await radar.getByRole('button', { name: /^Inspect / }).click();
@@ -299,7 +299,8 @@ test('cover galaxies show exact live people and distinguish my room from an iden
     expect(await host.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await own.click();
     const preview = host.getByRole('dialog', { name: title });
-    await expect(preview).toContainText('Your room · 2 listening');
+    await expect(preview).toContainText('Hosted by you · Radar host');
+    await expect(preview).toContainText('2 listening');
     await preview.getByRole('button', { name: 'Back to your room', exact: true }).click();
     await expect(host.getByTestId('room-code')).toHaveText(hostRoomCode);
     await guestContext.close();
@@ -311,5 +312,47 @@ test('cover galaxies show exact live people and distinguish my room from an iden
     await expect.poll(async () => (await planetVisuals(own)).glow).toBe((await planetVisuals(other)).glow);
   } finally {
     await Promise.allSettled([hostContext.close(), otherContext.close(), guestContext.close()]);
+  }
+});
+
+test('room identity and reversible Hide update live without another scan', async ({ browser }, info) => {
+  test.setTimeout(60_000);
+  const hostContext = await browser.newContext();
+  const observerContext = await browser.newContext({ permissions: ['geolocation'], geolocation: fix });
+  try {
+    const host = await openHost(hostContext, 'Everyone');
+    const observer = await observerContext.newPage();
+    await observer.goto('/?e2eRoom=listener');
+    const radar = await rooms(observer);
+    await expect(radar.getByRole('heading', { name: title }).first()).toBeVisible();
+    await host.getByRole('button', { name: /Who can find this room/ }).click();
+    const settings = host.getByRole('dialog', { name: 'Who can find this room?' });
+    await settings.getByText('Room name and invitation', { exact: true }).click();
+    await settings.getByLabel('Room name (optional)', { exact: true }).fill('Escale à Libreville');
+    await settings.getByLabel('A short invitation (optional)', { exact: true }).fill('Découvertes et discussion');
+    await settings.getByRole('button', { name: 'Done', exact: true }).click();
+    await expect(radar.getByRole('heading', { name: 'Escale à Libreville' })).toBeVisible({ timeout: 3000 });
+    await radar.getByRole('button', { name: 'Escale à Libreville', exact: true }).click();
+    await expect(observer.getByRole('dialog')).toContainText('Hosted by Radar host');
+    await expect(observer.getByRole('dialog')).toContainText('Découvertes et discussion');
+    await observer.screenshot({ path: info.outputPath('room-preview-desktop.png') });
+    await observer.setViewportSize({ width: 390, height: 844 });
+    await observer.screenshot({ path: info.outputPath('room-preview-mobile.png') });
+    await observer.keyboard.press('Escape');
+    await radar
+      .locator('.nearby-room')
+      .filter({ has: observer.getByRole('heading', { name: 'Escale à Libreville' }) })
+      .getByLabel(`Options for ${title}`)
+      .click();
+    await radar.getByRole('button', { name: 'Hide', exact: true }).click();
+    await expect(radar.getByRole('heading', { name: 'Escale à Libreville' })).toHaveCount(0);
+    await radar.getByRole('button', { name: 'Hidden rooms (1)' }).click();
+    await observer.getByRole('button', { name: 'Show again', exact: true }).click();
+    await observer.keyboard.press('Escape');
+    await expect(radar.getByRole('heading', { name: 'Escale à Libreville' })).toBeVisible();
+    await host.getByRole('button', { name: 'Close room', exact: true }).click();
+    await expect(radar.getByRole('heading', { name: 'Escale à Libreville' })).toHaveCount(0, { timeout: 3000 });
+  } finally {
+    await Promise.allSettled([hostContext.close(), observerContext.close()]);
   }
 });

@@ -226,3 +226,35 @@ test('activity and pin retention is bounded and room close cancels pending work'
   t.mock.timers.tick(2000);
   assert.equal(events.length, count);
 });
+
+test('discovery exposes announced current artists and host invitation text, never a client badge or private invitation', async t => {
+  const { host, roomId, connect } = await setup(t);
+  const observer = await connect();
+  assert.equal((await ack(observer, 'room:profile', { name: 'Forged', introduction: '' })).ok, false);
+  assert.equal((await ack(observer, 'room:profile:get', {})).ok, false);
+  assert.equal((await ack(host, 'room:profile', { name: 'Escale', introduction: 'Discover together' })).ok, true);
+  await ack(host, 'nearby:publish', { schemaVersion: 2, worldwide: true });
+  const query = { schemaVersion: 5, worldwide: true, watchId: '00000000-0000-4000-a000-000000000001' };
+  const first = await ack(observer, 'nearby:search', query);
+  assert.equal(first.results[0].roomName, 'Escale');
+  assert.equal(first.results[0].artistPresent, false);
+  const artist = await connect();
+  assert.equal((await ack(artist, 'room:join', { roomId, displayName: 'Artist', announceArtist: true, artistToken: 'forged' })).ok, false);
+  const next = () =>
+    new Promise((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error('Missing live artist update')), 2500);
+      observer.once('nearby:updated', value => {
+        clearTimeout(timer);
+        resolve(value.reply);
+      });
+    });
+  const arrival = next();
+  assert.equal((await ack(artist, 'room:join', { roomId, displayName: 'Artist', announceArtist: true, artistToken: 'valid' })).ok, true);
+  assert.equal((await arrival).results[0].artistPresent, true);
+  const clear = next();
+  artist.emit('room:artist-clear');
+  assert.equal((await clear).results[0].artistPresent, false);
+  const off = next();
+  await ack(host, 'nearby:off', {});
+  assert.deepEqual((await off).results, []);
+});

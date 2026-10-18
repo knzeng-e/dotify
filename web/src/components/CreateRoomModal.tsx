@@ -5,6 +5,7 @@
 // fabricated URL); the room header then exposes the real Copy link.
 
 import { useEffect, useState } from 'react';
+import { RoomProfileFields, type RoomProfile } from './RoomProfileFields';
 import { CoverImage } from './CoverImage';
 import { Dialog } from './Dialog';
 import { roomHostDisplayName } from '../features/rooms/roomState';
@@ -60,7 +61,7 @@ type CreateRoomModalProps = {
   displayName: string;
   onSetDisplayName: (name: string) => void;
   onClose: () => void;
-  onOpenRoom: (track: CatalogTrack, visibility: RoomVisibilityChoice) => void;
+  onOpenRoom: (track: CatalogTrack, visibility: RoomVisibilityChoice, profile: RoomProfile) => void;
   onTrackIntent: (track: CatalogTrack) => void;
 };
 
@@ -69,6 +70,7 @@ export function CreateRoomModal({ tracks, initialTrack, displayName, onSetDispla
   const { openWalletModal } = useUiFeedback();
   const [picked, setPicked] = useState<CatalogTrack | undefined>(initialTrack ?? tracks[0]);
   const [visibility, setVisibility] = useState<RoomVisibilityChoice>({ visibleNearby: false, radiusKm: 5 });
+  const [profile, setProfile] = useState<RoomProfile>({ name: '', introduction: '' });
   const hasChosenName = roomHostDisplayName(displayName) !== null;
 
   useEffect(() => {
@@ -146,6 +148,12 @@ export function CreateRoomModal({ tracks, initialTrack, displayName, onSetDispla
         autoFocus
       />
 
+      <details className='room-profile-optional'>
+        <summary>
+          Name your room <span>(optional)</span>
+        </summary>
+        <RoomProfileFields value={profile} onChange={setProfile} />
+      </details>
       {roomExperienceFlags.nearby && <NearbyVisibility value={visibility} onChange={setVisibility} />}
 
       <div className='create-room-actions'>
@@ -167,7 +175,12 @@ export function CreateRoomModal({ tracks, initialTrack, displayName, onSetDispla
             </button>
           </div>
         )}
-        <button className='primary-action wide' type='button' disabled={!picked || !hasChosenName} onClick={() => picked && onOpenRoom(picked, visibility)}>
+        <button
+          className='primary-action wide'
+          type='button'
+          disabled={!picked || !hasChosenName}
+          onClick={() => picked && onOpenRoom(picked, visibility, profile)}
+        >
           <SvgBroadcast size={16} />
           Open the room
         </button>

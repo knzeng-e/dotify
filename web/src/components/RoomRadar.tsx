@@ -1,6 +1,7 @@
 import { useEffect, useId, useState, type CSSProperties } from 'react';
-import { ArrowRight, List, Pause, Play, Radar, RefreshCw, ShieldCheck, SlidersHorizontal, X } from 'lucide-react';
+import { ArrowRight, Eye, List, Pause, Play, Radar, RefreshCw, ShieldCheck, SlidersHorizontal, X } from 'lucide-react';
 import { Dialog } from './Dialog';
+import { ArtistPresenceBadge } from './ArtistPresenceBadge';
 import { CoverImage } from './CoverImage';
 import { DotifyMark } from './DotifyMark';
 import { RoomScopeIcon } from './RoomScopeIcon';
@@ -43,6 +44,7 @@ export function RoomRadar({
   onOpenOwnRoom?: () => void;
 }) {
   const id = useId();
+  const [hiddenOpen, setHiddenOpen] = useState(false);
   const [settings, setSettings] = useState(false);
   const [draftRadius, setDraftRadius] = useState(discovery.radius);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -154,6 +156,11 @@ export function RoomRadar({
         <span className='radar-status-dot' data-scanning={scanning} />
         <span>{status}</span>
       </div>
+      {!!discovery.hiddenRooms?.length && (
+        <button className='text-action radar-hidden-control' type='button' onClick={() => setHiddenOpen(true)}>
+          <Eye size={16} aria-hidden='true' /> Hidden rooms ({discovery.hiddenRooms.length})
+        </button>
+      )}
       {failed && (
         <button className='text-action radar-retry' type='button' disabled={!!nearby.state.retryInSeconds} onClick={discovery.retry}>
           <RefreshCw size={15} />
@@ -203,6 +210,8 @@ export function RoomRadar({
                       className='radar-room-dot'
                       data-worldwide={room.scope === 'worldwide'}
                       data-own={own}
+                      data-artist-present={room.artistPresent}
+                      data-reconnecting={room.connection === 'reconnecting'}
                       data-details-open={showDetails}
                       data-details-side={x < 30 ? 'left' : x > 70 ? 'right' : 'center'}
                       data-details-above={y > 50}
@@ -240,7 +249,7 @@ export function RoomRadar({
                         setFocusedId(null);
                         setSelectedId(room.roomId);
                       }}
-                      aria-label={`Inspect ${own ? 'your room: ' : ''}${room.title}, ${room.artist}`}
+                      aria-label={`Inspect ${own ? 'your room: ' : ''}${room.roomName || room.title}, ${room.artist}${room.artistPresent ? ', artist here' : ''}`}
                       aria-describedby={tooltipId}
                       aria-haspopup='dialog'
                     >
@@ -264,19 +273,23 @@ export function RoomRadar({
                           })}
                         </span>
                         {own && <span className='radar-own-badge'>Your room</span>}
+                        {room.artistPresent && <ArtistPresenceBadge compact />}
                       </span>
-                      <strong>{room.title}</strong>
-                      <span className='radar-room-artist'>{room.artist}</span>
+                      <strong>{room.roomName || room.title}</strong>
+                      <span className='radar-room-artist'>{room.roomName ? `${room.title} · ${room.artist}` : room.artist}</span>
+                      {room.connection === 'reconnecting' && <span className='room-reconnecting'>Reconnecting</span>}
                       <span className='radar-room-details' hidden={!showDetails}>
-                        <strong aria-hidden='true'>{room.title}</strong>
+                        <strong aria-hidden='true'>{room.roomName || room.title}</strong>
                         <span className='radar-details-artist' aria-hidden='true'>
-                          {room.artist}
+                          Now playing: {room.title} · {room.artist}
                         </span>
                         <span className='radar-room-metadata' id={tooltipId} role='tooltip'>
                           <span className='radar-room-host'>
                             <RoomScopeIcon worldwide={room.scope === 'worldwide'} />
-                            {room.hostName}
+                            Host: {room.hostName}
                           </span>
+                          {room.introduction && <span className='radar-room-introduction'>{room.introduction}</span>}
+                          {room.artistPresent && <ArtistPresenceBadge />}
                           <span className='radar-details-presence'>{discoveryPresenceLabel(room)}</span>
                           <span className='radar-room-distance'>{roomDistanceLabel(room)}</span>
                         </span>
@@ -292,6 +305,7 @@ export function RoomRadar({
               <span>
                 <RoomScopeIcon worldwide /> Worldwide
               </span>
+              {rooms.some(room => room.artistPresent) && <ArtistPresenceBadge />}
               <small>Approximate distances · not a map</small>
             </div>
           </div>
@@ -313,6 +327,7 @@ export function RoomRadar({
             joining={joining}
             onJoin={room => join(room as DiscoveredRoom)}
             onInspect={room => setSelectedId(room.roomId)}
+            onHide={discovery.hide}
             ownRoomId={ownRoomId}
             onOpenOwnRoom={onOpenOwnRoom}
           />
@@ -330,6 +345,28 @@ export function RoomRadar({
           )}
         </div>
       </div>
+      {hiddenOpen && (
+        <Dialog className='discovery-sheet' labelledBy={`${id}-hidden`} onClose={() => setHiddenOpen(false)} historyDismiss>
+          <header className='discovery-sheet-heading'>
+            <h2 id={`${id}-hidden`}>Hidden rooms</h2>
+            <button className='icon-button' aria-label='Close hidden rooms' onClick={() => setHiddenOpen(false)}>
+              <X size={21} />
+            </button>
+          </header>
+          <p className='nearby-hint'>Hidden only for you during this visit. Restoring a room shows it again if it is still available in your search.</p>
+          {!discovery.hiddenRooms?.length && <p>No hidden rooms.</p>}
+          <ul className='radar-hidden-list'>
+            {discovery.hiddenRooms?.map(room => (
+              <li key={room.roomId}>
+                <span>{room.title}</span>
+                <button className='secondary-action' onClick={() => discovery.restore(room.roomId)}>
+                  Show again
+                </button>
+              </li>
+            ))}
+          </ul>
+        </Dialog>
+      )}
       {settings && (
         <Dialog className='discovery-sheet' labelledBy={`${id}-settings`} onClose={() => setSettings(false)} historyDismiss>
           <header className='discovery-sheet-heading'>
@@ -386,17 +423,25 @@ export function RoomRadar({
               <Radar size={55} strokeWidth={1} />
             )}
           </div>
-          <h2 id={`${id}-room`}>{selected?.title ?? 'This room is no longer visible'}</h2>
+          <h2 id={`${id}-room`}>{selected?.roomName || selected?.title || 'This room is no longer visible'}</h2>
           {selected ? (
             <>
-              <p>{selected.artist}</p>
-              <p className='nearby-hint'>
-                {selected.roomId === ownRoomId ? 'Your room' : `${selected.hostName} hosts`} · {discoveryPresenceLabel(selected)}
-              </p>
+              <p className='radar-preview-host'>{selected.roomId === ownRoomId ? `Hosted by you · ${selected.hostName}` : `Hosted by ${selected.hostName}`}</p>
+              {selected.introduction && <p className='radar-preview-introduction'>{selected.introduction}</p>}
+              <div className='radar-preview-playing'>
+                <small>NOW PLAYING</small>
+                <strong>{selected.title}</strong>
+                <span>Artist: {selected.artist}</span>
+              </div>
+              <div className='radar-preview-presence'>
+                <span>{discoveryPresenceLabel(selected)}</span>
+                {selected.artistPresent && <ArtistPresenceBadge />}
+              </div>
+              {selected.connection === 'reconnecting' && <p className='room-reconnecting'>The host is reconnecting. You can join when they return.</p>}
               <button
                 className='primary-action discovery-done'
                 type='button'
-                disabled={joining || (selected.isFull && selected.roomId !== ownRoomId)}
+                disabled={joining || selected.connection === 'reconnecting' || (selected.isFull && selected.roomId !== ownRoomId)}
                 onClick={() => join(selected)}
               >
                 {selected.roomId === ownRoomId ? 'Back to your room' : selected.isFull ? 'Room full' : 'Join'}

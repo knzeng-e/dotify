@@ -299,11 +299,11 @@ export function createProductCdmRuntimeReader(deps: ProductCdmRuntimeAdapterDeps
 export function createProductCdmRuntimeWriter(deps: ProductCdmRuntimeWriterDeps): RuntimeWritePort {
   return {
     contributionConfirmationMode: 'finalized-event',
-    contributionCall(runtime, method, args, value = 0n, onFinalized) {
+    contributionCall(runtime, method, args, value = 0n, onFinalized, onStatus) {
       return txContract(
         deps.contracts.getRuntimeContract(runtime),
         method,
-        [...args, { value: evmValueToNativeUnits(value, deps.nativeTokenDecimals), waitFor: 'finalized' }],
+        [...args, { value: evmValueToNativeUnits(value, deps.nativeTokenDecimals), waitFor: 'finalized', ...(onStatus ? { onStatus } : {}) }],
         onFinalized
       );
     },

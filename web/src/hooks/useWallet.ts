@@ -192,6 +192,7 @@ export function useWallet() {
     // free: the room flow must work with no wallet, and this also stops the
     // classic-unlock flag from auto-connecting a wallet in those tabs.
     if (isRoomJoinE2eContext()) return { status: 'disconnected' };
+    if (isClassicUnlockE2e && new URLSearchParams(location.search).get('e2eGift') === 'connect') return { status: 'disconnected' };
     if (isClassicUnlockE2e) return { status: 'connected', wallet: createClassicUnlockE2eWallet() };
     return { status: 'disconnected' };
   });
@@ -203,6 +204,10 @@ export function useWallet() {
 
   const connectExtension = useCallback(async () => {
     const attempt = ++connectionAttemptRef.current;
+    if (isClassicUnlockE2e && new URLSearchParams(location.search).get('e2eGift') === 'connect') {
+      setState({ status: 'connected', wallet: createClassicUnlockE2eWallet() });
+      return;
+    }
     if (isArtistPublishE2e) {
       setState({ status: 'connected', wallet: createArtistPublishE2eWallet() });
       return;

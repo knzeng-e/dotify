@@ -217,3 +217,9 @@ link-only, removes global enumeration and simplifies the opt-in controls. Its
 deployment and physical-device gates remain explicit in that handoff.
 
 Write `docs/backlog/implementation/evidence/W19.md` using `evidence-template.md`. Include the initial base SHA, implementation SHA, PR, artifacts, operational changes, known risks, and the next eligible sequences. Keep Project 5 as the workflow-status source. End with an implementation summary and the exact next step; do not start another sequence automatically.
+
+## October 18 follow-up
+
+Owner-approved room presence, optional invitation identity, reversible Hide and
+contribution continuity are tracked in [the shared evidence note](evidence/room-presence-tip-continuity-2026-10-18.md). This does not close outstanding
+physical Host/location or funded-receipt acceptance gates.

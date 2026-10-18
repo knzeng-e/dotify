@@ -707,7 +707,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
           {roomId && mode === 'host' && (
             <>
               {sessionLink && hostIsAlone && <p className='room-track-search-hint'>Invite someone using the button above. They can join without an account.</p>}
-              <NearbyControls nearby={session.nearbyHost} host />
+              <NearbyControls key={roomId} nearby={session.nearbyHost} port={session.socketRef.current} host />
 
               <div className='listener-list'>
                 <div className='list-row'>

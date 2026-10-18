@@ -18,7 +18,7 @@ export function useNearby(port: RoomRealtimePort | null, host: boolean, roomId =
   useEffect(() => {
     if (!session || !port) return;
     const disconnect = () => {
-      if (host) session.suspend('Reconnecting visibility. Your choice is saved.', 'disconnected');
+      if (host) session.connectionLost();
       else if (session.snapshot().phase !== 'denied') session.stop('Nearby stopped. Start again when you are ready.', 'disconnected');
     };
     const close = () => session.stop();
@@ -27,10 +27,10 @@ export function useNearby(port: RoomRealtimePort | null, host: boolean, roomId =
     };
     const visibility = () => {
       if (document.visibilityState === 'visible') resume();
-      else if (host) session.suspend('Visibility paused while you were away. Your choice is saved.');
+      else if (host) session.background();
       else if (session.snapshot().phase !== 'denied') session.stop('Nearby paused while you were away. Start again to continue.');
     };
-    const pagehide = () => (host ? session.suspend('Visibility paused. Your choice is saved.') : session.stop());
+    const pagehide = () => (host ? session.background() : session.stop());
     port.on('disconnect', disconnect);
     port.on('connect', resume);
     port.on('room:closed', close);

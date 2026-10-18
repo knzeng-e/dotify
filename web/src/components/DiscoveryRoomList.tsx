@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { EyeOff, Flag, MoreHorizontal } from 'lucide-react';
 import { RoomScopeIcon } from './RoomScopeIcon';
+import { ArtistPresenceBadge } from './ArtistPresenceBadge';
 import { CoverImage } from './CoverImage';
 import { discoveryPresenceLabel } from '../features/rooms/roomDiscoveryPresentation';
 import type { NearbySession } from '../features/rooms/nearbySession';
@@ -14,11 +15,12 @@ type Props = {
   ownRoomId?: string;
   onOpenOwnRoom?: () => void;
   onJoin: (room: NearbyResult) => void;
+  onHide?: (room: NearbyResult) => void;
   onInspect?: (room: NearbyResult) => void;
 };
 
 /** Discovered rooms with Join, plus Hide and Report for every public listing. */
-export function DiscoveryRoomList({ session, results, label, joining, onJoin, onInspect, ownRoomId, onOpenOwnRoom }: Props) {
+export function DiscoveryRoomList({ session, results, label, joining, onJoin, onInspect, onHide, ownRoomId, onOpenOwnRoom }: Props) {
   const [reportId, setReportId] = useState<string | null>(null);
   return (
     <ul className='nearby-results' aria-label={label}>
@@ -35,28 +37,32 @@ export function DiscoveryRoomList({ session, results, label, joining, onJoin, on
             <h3>
               {onInspect ? (
                 <button className='discovery-inspect' type='button' onClick={() => onInspect(room)}>
-                  {room.title}
+                  {room.roomName || room.title}
                 </button>
               ) : (
-                room.title
+                room.roomName || room.title
               )}
             </h3>
-            <p>{room.artist}</p>
-            <span className='discovery-distance'>
-              {room.scope === 'worldwide' || room.distanceBand === null
-                ? 'Worldwide'
-                : room.distanceBand
-                  ? `≈ ${room.distanceBand.replace(/\u2013/g, '-')}`
-                  : 'Nearby'}
-            </span>
+            <p>{room.roomName ? `${room.title} · ${room.artist}` : room.artist}</p>
+            <div className='discovery-room-presence'>
+              {room.artistPresent && <ArtistPresenceBadge />}
+              {room.connection === 'reconnecting' && <span className='room-reconnecting'>Reconnecting</span>}
+              <span className='discovery-distance'>
+                {room.scope === 'worldwide' || room.distanceBand === null
+                  ? 'Worldwide'
+                  : room.distanceBand
+                    ? `≈ ${room.distanceBand.replace(/\u2013/g, '-')}`
+                    : 'Nearby'}
+              </span>
+            </div>
           </div>
           <button
             type='button'
             className='primary-action'
-            disabled={joining || (room.isFull && room.roomId !== ownRoomId)}
+            disabled={joining || room.connection === 'reconnecting' || (room.isFull && room.roomId !== ownRoomId)}
             onClick={() => (room.roomId === ownRoomId && onOpenOwnRoom ? onOpenOwnRoom() : onJoin(room))}
           >
-            {room.roomId === ownRoomId ? 'Open' : room.isFull ? 'Full' : 'Join'}
+            {room.connection === 'reconnecting' ? 'Reconnecting' : room.roomId === ownRoomId ? 'Open' : room.isFull ? 'Full' : 'Join'}
           </button>
           {room.roomId !== ownRoomId && (
             <details className='nearby-room-actions'>
@@ -64,7 +70,13 @@ export function DiscoveryRoomList({ session, results, label, joining, onJoin, on
                 <MoreHorizontal size={19} aria-hidden='true' />
               </summary>
               <div className='nearby-room-menu'>
-                <button type='button' className='text-action' onClick={() => (typeof session === 'function' ? session(room) : session).hide(room.roomId)}>
+                <button
+                  type='button'
+                  className='text-action'
+                  onClick={() =>
+                    onHide ? onHide(room) : (typeof session === 'function' ? session(room) : session).hide(room.roomId, room.roomName || room.title)
+                  }
+                >
                   <EyeOff size={15} aria-hidden='true' />
                   Hide
                 </button>
@@ -82,7 +94,7 @@ export function DiscoveryRoomList({ session, results, label, joining, onJoin, on
           )}
           {reportId === room.discoveryId && (
             <div className='nearby-report'>
-              <p>Hide this room and send a safety count. Reports do not open a moderation case.</p>
+              <p>This hides the room for you and adds an anonymous safety count. No moderator is notified. You can show the room again in Hidden rooms.</p>
               {(['unwanted', 'misleading', 'offensive'] as const).map(reason => (
                 <button
                   className='secondary-action'
@@ -90,6 +102,7 @@ export function DiscoveryRoomList({ session, results, label, joining, onJoin, on
                   key={reason}
                   onClick={() => {
                     setReportId(null);
+                    onHide?.(room);
                     void (typeof session === 'function' ? session(room) : session).report(room, reason);
                   }}
                 >

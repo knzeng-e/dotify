@@ -191,7 +191,7 @@ export function ListenerShell() {
   // Opens the room after the user has confirmed their display name in the modal.
   // Access model v2: rooms always carry the full track; a host who cannot play
   // the chosen track opens the room without a stream and sees the access gate.
-  async function executeArtistRoom(track: CatalogTrack, visibility: RoomVisibilityChoice) {
+  async function executeArtistRoom(track: CatalogTrack, visibility: RoomVisibilityChoice, profile: import('../components/RoomProfileFields').RoomProfile) {
     const creationSignal = session.beginRoomCreation();
     const onCreated =
       visibility.visibleNearby || visibility.worldwide
@@ -202,7 +202,7 @@ export function ListenerShell() {
     if (isCurrentReadyTrack) {
       if (!playback.transport.playing) void playback.togglePlay();
       prepareLocalStream();
-      session.createSession(trackInfo, 'full', undefined, { audioSourceHint: catalog.audioSource, onCreated, creationSignal });
+      session.createSession(trackInfo, 'full', undefined, { audioSourceHint: catalog.audioSource, onCreated, creationSignal, profile });
       return;
     }
 
@@ -212,7 +212,7 @@ export function ListenerShell() {
     playback.requestAutoplay();
     const selection = await catalog.openTrack(track, undefined, undefined, undefined, true).catch(() => null);
     if (creationSignal.aborted) return;
-    session.createSession(trackInfo, 'full', undefined, { audioSourceHint: selection?.audioSource ?? null, onCreated, creationSignal });
+    session.createSession(trackInfo, 'full', undefined, { audioSourceHint: selection?.audioSource ?? null, onCreated, creationSignal, profile });
   }
 
   function showCreateRoom(track?: CatalogTrack) {
@@ -481,10 +481,10 @@ export function ListenerShell() {
               setCreateRoomOpen(false);
               setPendingArtistTrack(null);
             }}
-            onOpenRoom={(track, visibility) => {
+            onOpenRoom={(track, visibility, profile) => {
               setCreateRoomOpen(false);
               setPendingArtistTrack(null);
-              void executeArtistRoom(track, visibility);
+              void executeArtistRoom(track, visibility, profile);
             }}
           />
         )}

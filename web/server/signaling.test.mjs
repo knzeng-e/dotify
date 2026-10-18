@@ -141,7 +141,7 @@ describe('signaling server', () => {
     });
   }
 
-  it('does not restore Nearby publication when a host resumes the room', async () => {
+  it('preserves the chosen Nearby publication through a brief authenticated host reconnect', async () => {
     const host = connectClient();
     const created = await createRoom(host);
     const observer = connectClient();
@@ -164,7 +164,7 @@ describe('signaling server', () => {
       ).ok,
       true
     );
-    assert.deepEqual((await emitAck(observer, 'nearby:search', area)).results, []);
+    assert.equal((await emitAck(observer, 'nearby:search', area)).results[0].roomId, created.roomId);
     assert.deepEqual(await new Promise(resolve => observer.emit('rooms:list', resolve)), []);
     assert.equal((await emitAck(observer, 'room:join', { roomId: created.roomId })).ok, true);
   });

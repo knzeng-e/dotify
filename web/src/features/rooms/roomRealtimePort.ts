@@ -24,6 +24,7 @@ export type RoomContributionReply =
   | { ok: true; host: `0x${string}`; room: `0x${string}`; expiresAt: string; proof: `0x${string}` };
 
 export type RoomIncomingEvents = {
+  'nearby:updated': [update: { watchId: string; reply: NearbySearchReply }];
   'room:activity': [activity: RoomActivity];
   'room:typing': [typing: RoomTyping[]];
   'room:pin': [message: RoomChatMessage | null];
@@ -57,6 +58,7 @@ export type RoomIncomingEvents = {
 };
 
 export type RoomOutgoingEvents = {
+  'nearby:unwatch': [payload: { watchId: string }];
   'room:typing': [payload: { active: boolean }];
   'room:artist-clear': [];
   'room:realtime-unregister': [membership: { scope: string; self: string }];
@@ -83,6 +85,9 @@ export type RoomOutgoingEvents = {
 export type RoomRequests = {
   'artist:rooms': { input: { runtime: string; token: string }; output: import('../artist-studio/artistRoomActivity').ArtistRoomActivityReply };
   'nearby:publish': { input: NearbyArea | { schemaVersion: 2; worldwide: true }; output: NearbyReply };
+  'nearby:hold': { input: Record<string, never>; output: NearbyReply };
+  'room:profile:get': { input: Record<string, never>; output: { ok: boolean; profile?: { name: string; introduction: string } } };
+  'room:profile': { input: { name: string; introduction: string }; output: { ok: boolean; profile?: { name: string; introduction: string } } };
   'nearby:off': { input: Record<string, never>; output: NearbyReply };
   'nearby:search': { input: DiscoverySearchArea; output: NearbySearchReply };
   'nearby:report': { input: { discoveryId: string; reason: 'unwanted' | 'misleading' | 'offensive' }; output: NearbyReply };
@@ -95,7 +100,10 @@ export type RoomRequests = {
   };
   'room:realtime-clock': { input: Record<string, never>; output: { ok: true; time: number; server: string } | { ok: false } };
   'room:realtime-register': { input: { publicKey: string }; output: RealtimeRegistration };
-  'room:create': { input: { displayName: string; track: TrackInfo | null; playbackMode: RoomPlaybackMode }; output: CreateRoomResponse };
+  'room:create': {
+    input: { displayName: string; track: TrackInfo | null; playbackMode: RoomPlaybackMode; profile?: { name: string; introduction: string } };
+    output: CreateRoomResponse;
+  };
   'room:join': {
     input: { roomId: string; displayName: string; announceArtist?: boolean; artistToken?: string; listenerResumeToken?: string };
     output: JoinRoomResponse;

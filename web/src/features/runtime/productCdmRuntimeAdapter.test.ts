@@ -284,9 +284,10 @@ describe('createProductCdmRuntimeWriter', () => {
       contracts: { getDirectoryContract: () => ({}), getFactoryContract: () => ({}), getRuntimeContract: () => ({ musicGiftContribute }) }
     });
     const onFinalized = vi.fn();
-    await expect(writer.contributionCall!(runtime, 'musicGiftContribute', [hash], 1_000_000_000_000_000_000n, onFinalized)).resolves.toBe(txHash);
+    const onStatus = vi.fn();
+    await expect(writer.contributionCall!(runtime, 'musicGiftContribute', [hash], 1_000_000_000_000_000_000n, onFinalized, onStatus)).resolves.toBe(txHash);
     expect(onFinalized).toHaveBeenCalledExactlyOnceWith({ hash: txHash, number: 123, index: 2 });
-    expect(musicGiftContribute.tx).toHaveBeenCalledWith(hash, { value: 10_000_000_000n, waitFor: 'finalized' });
+    expect(musicGiftContribute.tx).toHaveBeenCalledWith(hash, { value: 10_000_000_000n, waitFor: 'finalized', onStatus });
   });
   it('routes runtime writes through Product CDM contract tx methods', async () => {
     const createRuntime = txMethod();

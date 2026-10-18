@@ -107,7 +107,8 @@ export interface RuntimeWritePort {
     method: 'musicGiftContribute' | 'musicGiftSetPolicy' | 'musicGiftClaim',
     args: readonly unknown[],
     value?: bigint,
-    onFinalized?: (block: NativeContributionBlock) => void
+    onFinalized?: (block: NativeContributionBlock) => void,
+    onStatus?: PaymentObserver
   ): Promise<Hash>;
   readFinalizedContributionLogs?(hash: Hash, block: NativeContributionBlock): Promise<NativeContributionLog[]>;
   createRuntime(factoryAddress: Address): Promise<Hash>;

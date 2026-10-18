@@ -73,7 +73,12 @@ export function validWorldwideArea(value) {
 // response shape. Publication remains v2 and never reveals the host cell.
 export function validDiscoverySearch(value) {
   if (validNearbyArea(value) || validWorldwideArea(value)) return true;
-  if (!value || (value.schemaVersion !== 3 && value.schemaVersion !== 4)) return false;
+  if (!value || ![3, 4, 5].includes(value.schemaVersion)) return false;
+  if (value.schemaVersion === 5) {
+    if (typeof value.watchId !== 'string' || !/^[a-f0-9-]{36}$/.test(value.watchId)) return false;
+    const { watchId: _id, ...area } = value;
+    return validNearbyArea({ ...area, schemaVersion: 2 }) || validWorldwideArea({ ...area, schemaVersion: 2 });
+  }
   return validNearbyArea({ ...value, schemaVersion: 2 }) || validWorldwideArea({ ...value, schemaVersion: 2 });
 }
 export function nearbyDistanceBand(a, b) {

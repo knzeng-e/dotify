@@ -13,17 +13,80 @@ import {
 import { publicCoverRef } from '../shared/public-cover.mjs';
 import { clientKey } from './signaling-utils.mjs';
 import { sameRoomTrack } from './room-track.mjs';
+import { announcedArtistPresent } from './room-profile.mjs';
 
 // No payloads go to logs, publicRoom, /status, analytics or durable stores.
 export function createNearby({ enabled, rooms, trustProxy, maxListeners, getPublicTrack = async () => null, now = Date.now }) {
   const presence = new Map();
+  const watches = new Map(); // socket -> at most two short-lived search areas
+  let timer;
+  let closed = false;
+  const WATCH_MS = 45_000;
+  const GRACE_MS = 8000;
+  function changed() {
+    if (closed || timer || !watches.size) return;
+    timer = setTimeout(() => {
+      timer = undefined;
+      prune();
+      for (const [socket, entries] of watches) for (const watch of entries.values()) void push(socket, watch);
+    }, 200);
+    timer.unref?.();
+  }
+  async function push(socket, watch) {
+    if (watch.busy) {
+      watch.dirty = true;
+      return;
+    }
+    watch.busy = true;
+    const sequence = watch.sequence + 1;
+    try {
+      const reply = await search(watch.area, watch, sequence);
+      const fingerprint = signature(reply, watch);
+      if (
+        !closed &&
+        socket.connected &&
+        watches.get(socket)?.get(watch.area.watchId) === watch &&
+        watch.expiresAt > now() &&
+        fingerprint !== watch.fingerprint
+      ) {
+        watch.fingerprint = fingerprint;
+        watch.sequence = sequence;
+        socket.emit('nearby:updated', { watchId: watch.area.watchId, reply });
+      }
+    } catch {
+      // Keep the last bounded snapshot. A failed enrichment never widens scope.
+    } finally {
+      watch.busy = false;
+      if (watch.dirty) {
+        watch.dirty = false;
+        changed();
+      }
+    }
+  }
+  function signature(reply, watch) {
+    // Unrelated/private room activity must not generate observable empty pushes
+    // or sequence gaps. Compare public fields and absolute lease deadlines.
+    return JSON.stringify(
+      reply.results.map(({ expiresInMs: _ttl, ...item }) => ({ ...item, deadline: Math.min(presence.get(item.roomId)?.expiresAt ?? 0, watch.expiresAt) }))
+    );
+  }
   const budgets = new Map();
   const secret = randomBytes(32);
   const totals = { searches: 0, publications: 0, reports: 0, throttled: 0 };
   const fail = code => ({ ok: false, code });
   function prune() {
     const time = now();
-    for (const [id, value] of presence) if (value.expiresAt <= time || !rooms.get(id)?.hostId) presence.delete(id);
+    let removed = false;
+    for (const [id, value] of presence)
+      if (value.expiresAt <= time || !rooms.has(id)) {
+        presence.delete(id);
+        removed = true;
+      }
+    for (const [socket, entries] of watches) {
+      for (const [id, watch] of entries) if (watch.expiresAt <= time || socket.connected === false) entries.delete(id);
+      if (!entries.size) watches.delete(socket);
+    }
+    if (removed) changed();
     for (const [id, value] of budgets) if (value.until <= time) budgets.delete(id);
   }
   function allowed(socket, kind, limit) {
@@ -65,9 +128,110 @@ export function createNearby({ enabled, rooms, trustProxy, maxListeners, getPubl
       clearTimeout(timer);
     }
   }
+
+  function search(payload, watch, sequence) {
+    const { watchId: _id, ...searchArea } = payload;
+    const area = { ...searchArea, schemaVersion: 2 };
+    const results = [];
+    // Stable per-lease ordering, never distance ordering; no cells in replies.
+    for (const [roomId, item] of [...presence].sort((a, b) => a[1].discoveryId.localeCompare(b[1].discoveryId))) {
+      const room = rooms.get(roomId);
+      if (!room || (!room.hostId && payload.schemaVersion !== 5)) continue;
+      if (
+        validWorldwideArea(area) ? !item.worldwide : item.worldwide || !nearbyAreasMatch({ schemaVersion: 2, cell: item.cell, radiusKm: item.radiusKm }, area)
+      )
+        continue;
+      results.push({
+        roomId,
+        discoveryId: item.discoveryId,
+        expiresInMs: Math.max(0, item.expiresAt - now()),
+        hostName: room.hostName,
+        title: room.track?.title ?? 'Listening room',
+        artist: room.track?.artist ?? '',
+        presence: nearbyBucket(room.listeners.size + 1),
+        isFull: room.listeners.size >= maxListeners,
+        ...(payload.schemaVersion >= 3 ? { distanceBand: item.worldwide ? null : nearbyDistanceBand(item.cell, area.cell) } : {})
+      });
+      if (results.length === NEARBY_MAX_RESULTS) break;
+    }
+    if (payload.schemaVersion >= 4) {
+      return Promise.all(
+        results.map(async result => {
+          const room = rooms.get(result.roomId);
+          const track = room?.track;
+          const release = await artwork(track);
+          prune();
+          const lease = presence.get(result.roomId);
+          // Do not finish an asynchronous read after revocation/track change.
+          if (
+            !room ||
+            (!room.hostId && payload.schemaVersion !== 5) ||
+            rooms.get(result.roomId) !== room ||
+            (room.track !== track && !sameRoomTrack(room.track, track)) ||
+            lease?.discoveryId !== result.discoveryId
+          )
+            return null;
+          return {
+            ...result,
+            expiresInMs: Math.max(0, Math.min(lease.expiresAt, watch?.expiresAt ?? Infinity) - now()),
+            title: release?.title?.slice(0, 160) || result.title,
+            artist: release?.artistName?.slice(0, 160) || result.artist,
+            listenerCount: room.listeners.size,
+            isFull: room.listeners.size >= maxListeners,
+            imageRef: publicCoverRef(release?.imageRef),
+            ...(payload.schemaVersion === 5
+              ? {
+                  roomName: room.profile?.name ?? '',
+                  introduction: room.profile?.introduction ?? '',
+                  artistPresent: announcedArtistPresent(room),
+                  connection: room.hostId ? 'online' : 'reconnecting'
+                }
+              : {})
+          };
+        })
+      ).then(hydrated => ({
+        ok: true,
+        schemaVersion: payload.schemaVersion,
+        expiresInMs: Math.max(0, Math.min(WATCH_MS, (watch?.expiresAt ?? Infinity) - now())),
+        results: hydrated.filter(item => item && item.expiresInMs > 0),
+        ...(watch ? { sequence } : {})
+      }));
+    }
+    return { ok: true, schemaVersion: payload.schemaVersion, expiresInMs: 45_000, results };
+  }
   return {
     prune,
-    remove: roomId => presence.delete(roomId),
+    changed,
+    remove(roomId) {
+      if (presence.delete(roomId)) changed();
+    },
+    touch(roomId) {
+      const record = presence.get(roomId);
+      if (record?.hold && record.expiresAt > now() && rooms.get(roomId)?.hostId) {
+        record.expiresAt = now() + NEARBY_TTL_MS;
+        changed();
+      }
+    },
+    disconnected(roomId) {
+      const record = presence.get(roomId);
+      if (record) {
+        record.expiresAt = Math.min(record.expiresAt, now() + GRACE_MS);
+        changed();
+      }
+    },
+    resumed(roomId) {
+      const record = presence.get(roomId);
+      if (record && record.expiresAt > now()) {
+        record.expiresAt = now() + NEARBY_TTL_MS;
+        changed();
+      }
+    },
+    close() {
+      closed = true;
+      clearTimeout(timer);
+      watches.clear();
+      presence.clear();
+    },
     diagnostics: () => ({ ...totals }),
     publicVisibility(roomId) {
       prune();
@@ -106,73 +270,59 @@ export function createNearby({ enabled, rooms, trustProxy, maxListeners, getPubl
         // putting registry latency on the publication acknowledgement.
         void getPublicTrack(rooms.get(roomId)?.track).catch(() => null);
         totals.publications++;
+        changed();
         return { ok: true, expiresInMs: NEARBY_TTL_MS };
       });
       // Revocation is never rate limited; no stale payload can target another room.
       handler('nearby:off', payload => {
         if (!exactKeys(payload, [])) return fail('INVALID_AREA');
         const roomId = hostRoom(socket);
-        if (roomId) presence.delete(roomId);
+        if (roomId && presence.delete(roomId)) changed();
         return { ok: true };
       });
+      handler('nearby:hold', payload => {
+        if (!exactKeys(payload, [])) return fail('INVALID_AREA');
+        prune();
+        const record = presence.get(hostRoom(socket));
+        if (!record) return fail('HOST_REQUIRED');
+        record.hold = true;
+        return { ok: true, expiresInMs: Math.max(0, record.expiresAt - now()) };
+      });
+      socket.on('nearby:unwatch', payload => {
+        if (!exactKeys(payload, ['watchId']) || typeof payload.watchId !== 'string') return;
+        const entries = watches.get(socket);
+        entries?.delete(payload.watchId);
+        if (!entries?.size) watches.delete(socket);
+      });
+      socket.on('disconnect', () => watches.delete(socket));
       handler('nearby:search', payload => {
         if (!allowed(socket, payload?.worldwide === true ? 'worldwide-search' : 'search', 6)) return fail('RATE_LIMITED');
         if (!validDiscoverySearch(payload)) return fail('INVALID_AREA');
-        const area = { ...payload, schemaVersion: 2 };
         totals.searches++;
-        const results = [];
-        // Stable per-lease ordering, never distance ordering; no cells in replies.
-        for (const [roomId, item] of [...presence].sort((a, b) => a[1].discoveryId.localeCompare(b[1].discoveryId))) {
-          const room = rooms.get(roomId);
-          if (!room?.hostId) continue;
-          if (
-            validWorldwideArea(area)
-              ? !item.worldwide
-              : item.worldwide || !nearbyAreasMatch({ schemaVersion: 2, cell: item.cell, radiusKm: item.radiusKm }, area)
-          )
-            continue;
-          results.push({
-            roomId,
-            discoveryId: item.discoveryId,
-            expiresInMs: Math.max(0, item.expiresAt - now()),
-            hostName: room.hostName,
-            title: room.track?.title ?? 'Listening room',
-            artist: room.track?.artist ?? '',
-            presence: nearbyBucket(room.listeners.size + 1),
-            isFull: room.listeners.size >= maxListeners,
-            ...(payload.schemaVersion >= 3 ? { distanceBand: item.worldwide ? null : nearbyDistanceBand(item.cell, area.cell) } : {})
+        if (payload.schemaVersion !== 5) return search(payload);
+        let entries = watches.get(socket);
+        if (!entries) {
+          if (watches.size >= 2000) return fail('BUSY');
+          entries = new Map();
+          watches.set(socket, entries);
+        }
+        // One watch per mode; a changed query invalidates older async responses.
+        for (const [id, old] of entries) if (old.area.worldwide === payload.worldwide && id !== payload.watchId) entries.delete(id);
+        const previous = entries.get(payload.watchId);
+        const watch = { area: payload, expiresAt: now() + WATCH_MS, sequence: (previous?.sequence ?? 0) + 1, busy: true };
+        entries.set(payload.watchId, watch);
+        return search(payload, watch, watch.sequence)
+          .then(reply => {
+            watch.fingerprint = signature(reply, watch);
+            return reply;
+          })
+          .finally(() => {
+            watch.busy = false;
+            if (watch.dirty) {
+              watch.dirty = false;
+              changed();
+            }
           });
-          if (results.length === NEARBY_MAX_RESULTS) break;
-        }
-        if (payload.schemaVersion === 4) {
-          return Promise.all(
-            results.map(async result => {
-              const room = rooms.get(result.roomId);
-              const track = room?.track;
-              const release = await artwork(track);
-              prune();
-              const lease = presence.get(result.roomId);
-              // Do not finish an asynchronous read after revocation/track change.
-              if (
-                !room?.hostId ||
-                rooms.get(result.roomId) !== room ||
-                (room.track !== track && !sameRoomTrack(room.track, track)) ||
-                lease?.discoveryId !== result.discoveryId
-              )
-                return null;
-              return {
-                ...result,
-                expiresInMs: Math.max(0, lease.expiresAt - now()),
-                title: release?.title?.slice(0, 160) || result.title,
-                artist: release?.artistName?.slice(0, 160) || result.artist,
-                listenerCount: room.listeners.size,
-                isFull: room.listeners.size >= maxListeners,
-                imageRef: publicCoverRef(release?.imageRef)
-              };
-            })
-          ).then(hydrated => ({ ok: true, schemaVersion: 4, expiresInMs: 45_000, results: hydrated.filter(Boolean) }));
-        }
-        return { ok: true, schemaVersion: payload.schemaVersion, expiresInMs: 45_000, results };
       });
       handler('nearby:report', payload => {
         if (!allowed(socket, 'report', 3)) return fail('RATE_LIMITED');

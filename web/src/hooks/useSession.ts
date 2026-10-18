@@ -88,6 +88,7 @@ type PlaceholderAudioStream = {
 };
 
 type CreateSessionOptions = {
+  profile?: { name: string; introduction: string };
   audioSourceHint?: string | null;
   onCreated?: (roomId: string) => void;
   creationSignal?: AbortSignal;
@@ -1623,7 +1624,7 @@ export function useSession(deps: UseSessionDeps) {
 
     emitAckWhenConnected(
       'room:create',
-      { displayName: chosenDisplayName, track: currentTrackInfo, playbackMode },
+      { displayName: chosenDisplayName, track: currentTrackInfo, playbackMode, ...(options.profile ? { profile: options.profile } : {}) },
       (response: CreateRoomResponse) => {
         if (!roomCreationRef.current.finish(creationSignal)) return;
         setSessionAction('idle');

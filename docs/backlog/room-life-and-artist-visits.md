@@ -77,3 +77,9 @@ alone is insufficient. Existing explicit artist announcement and wallet-free
 room guest behavior remain intact. See the
 [W19 amendment](implementation/W19-nearby-rooms.md) and
 [privacy contract](../design/dotify-nearby-discovery-privacy.md).
+
+## October 18 follow-up
+
+Owner-approved room presence, optional invitation identity, reversible Hide and
+contribution continuity are tracked in [the shared evidence note](implementation/evidence/room-presence-tip-continuity-2026-10-18.md). This does not close outstanding
+physical Host/location or funded-receipt acceptance gates.

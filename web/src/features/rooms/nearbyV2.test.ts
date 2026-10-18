@@ -95,3 +95,36 @@ describe('Nearby v2 privacy geometry', () => {
     expect(nearbyCellDistanceKm(area(-90, 0).cell, area(90, 0).cell)).toBeGreaterThan(19_000);
   });
 });
+
+it('v5 accepts only bounded invitation data and a sequenced server artist flag', () => {
+  const item = {
+    roomId: 'ABC234',
+    discoveryId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+    expiresInMs: 45_000,
+    hostName: 'Host',
+    title: 'Track',
+    artist: 'Artist',
+    presence: '1–3',
+    isFull: false,
+    distanceBand: null,
+    listenerCount: 1,
+    imageRef: null,
+    roomName: 'Escale',
+    introduction: '',
+    artistPresent: true,
+    connection: 'online'
+  };
+  const reply = { ok: true, schemaVersion: 5, sequence: 1, expiresInMs: 45_000, results: [item] };
+  expect(safeNearbyReply(reply, false)).toBe(true);
+  for (const sequence of [undefined, 0, -1, 1.5, Infinity, '1']) expect(safeNearbyReply({ ...reply, sequence }, false)).toBe(false);
+  for (const patch of [
+    { roomName: 'a'.repeat(61) },
+    { introduction: 'a'.repeat(241) },
+    { artistPresent: 'true' },
+    { connection: 'unverified' },
+    { wallet: 'secret' },
+    { cell: area(0, 0).cell }
+  ])
+    expect(safeNearbyReply({ ...reply, results: [{ ...item, ...patch }] }, false)).toBe(false);
+  expect(safeNearbyReply({ ...reply, schemaVersion: 4 }, false)).toBe(false);
+});

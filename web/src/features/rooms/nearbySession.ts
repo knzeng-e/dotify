@@ -1,7 +1,7 @@
 import { requiresExplicitProductRoomEntry } from '../productHost/productHost';
 import { NEARBY_RADII, NEARBY_REFRESH_MS } from '../../../shared/nearby-v2.mjs';
 import type { RoomRealtimePort, RoomRequests } from './roomRealtimePort';
-import type { NearbyResult } from './nearbyTypes';
+import type { NearbyResult, NearbySearchReply } from './nearbyTypes';
 import { safeNearbyReply } from './nearbyTypes';
 import {
   authorizeNearbyDeviceLocation,
@@ -16,6 +16,7 @@ export type NearbyState = {
   message: string;
   results: NearbyResult[];
   retryInSeconds?: number;
+  hiddenRooms?: { roomId: string; title: string }[];
   revocationPending?: boolean;
   locationIssue?: 'host-unavailable';
 };
@@ -52,7 +53,13 @@ export class NearbySession {
   private desiredSource: Source | null = null;
   private permissionBlocked = false;
   private hostLocationFailed = false;
-  private searchVersion: 2 | 3 | 4 = 4;
+  private searchVersion: 2 | 3 | 4 | 5 = 5;
+  private watchId: string | null = null;
+  private watchSequence = 0;
+  private backgrounded = false;
+  private lastResults: NearbyResult[] = [];
+  private watchListening = false;
+  private watchStarted = false;
   private pendingVisibilityScope: 'nearby' | 'worldwide' | null = null;
   private radius = 5;
   private deviceSnapshotOnly = false;
@@ -66,7 +73,7 @@ export class NearbySession {
   private permission: PermissionStatus | null = null;
   private state = initial;
   private listeners = new Set<(state: NearbyState) => void>();
-  private hidden = new Set<string>();
+  private hidden = new Map<string, string>();
   private env: Environment;
 
   constructor(
@@ -94,7 +101,11 @@ export class NearbySession {
     };
   };
   private set(state: NearbyState) {
-    this.state = { ...state, ...(this.hostLocationFailed ? { locationIssue: 'host-unavailable' as const } : {}) };
+    this.state = {
+      ...state,
+      hiddenRooms: [...this.hidden].map(([roomId, title]) => ({ roomId, title })),
+      ...(this.hostLocationFailed ? { locationIssue: 'host-unavailable' as const } : {})
+    };
     this.listeners.forEach(listener => listener(this.state));
   }
   private request<K extends keyof RoomRequests>(event: K, payload: RoomRequests[K]['input']): Promise<RoomRequests[K]['output']> {
@@ -117,6 +128,14 @@ export class NearbySession {
       this.permissionBlocked = false;
       this.hostLocationFailed = false;
     }
+    this.backgrounded = false;
+    if (this.watchId && this.watchStarted && this.port.connected) this.port.emit('nearby:unwatch', { watchId: this.watchId });
+    if (this.watchListening) this.port.off('nearby:updated', this.onUpdate);
+    this.watchListening = false;
+    this.watchStarted = false;
+    this.watchId = null;
+    this.watchSequence = 0;
+    this.lastResults = [];
     const hadSource = this.source !== null || this.pendingVisibilityScope !== null;
     const scope = this.pendingVisibilityScope ?? (this.source?.kind === 'worldwide' ? 'worldwide' : 'nearby');
     const rev = ++this.revision;
@@ -160,8 +179,76 @@ export class NearbySession {
   }
   async resume() {
     if (!this.host || !this.desiredSource || this.permissionBlocked || this.hostLocationFailed || !this.port.connected || !this.env.visible()) return;
+    if ((this.backgrounded || this.state.phase === 'disconnected') && this.source) {
+      this.backgrounded = false;
+      await this.update(this.revision);
+      return;
+    }
     if (['locating', 'checking', 'active'].includes(this.state.phase)) return;
     await this.start(this.desiredSource, this.radius, true);
+  }
+  /** Transport loss is not opt-out. The server owns the short reconnect grace. */
+  connectionLost() {
+    if (!this.host) {
+      this.suspend('Reconnect to update rooms.', 'disconnected');
+      return;
+    }
+    ++this.revision;
+    this.abort?.abort();
+    clearTimeout(this.refresh);
+    clearTimeout(this.expiry);
+    this.set({ phase: 'disconnected', message: 'Reconnecting visibility. Your choice is saved.', results: [] });
+  }
+  /** Freeze the last consented area, not the room. No background location read. */
+  background() {
+    if (this.backgrounded) return;
+    if (!this.host || !this.source || this.leaseDeadline <= performance.now()) {
+      this.suspend('Visibility paused. Your choice is saved.');
+      return;
+    }
+    this.backgrounded = true;
+    ++this.revision;
+    this.abort?.abort();
+    clearTimeout(this.refresh);
+    clearTimeout(this.expiry);
+    void this.request('nearby:hold', {})
+      .then(reply => {
+        if (this.backgrounded && !reply.ok) this.suspend('Visibility could not stay connected. Your choice is saved.');
+      })
+      .catch(() => {
+        if (this.backgrounded) this.suspend('Reconnecting visibility. Your choice is saved.', 'disconnected');
+      });
+  }
+  private onUpdate = (update: { watchId: string; reply: NearbySearchReply }) => {
+    if (
+      !this.source ||
+      this.leaseDeadline <= performance.now() ||
+      !this.env.visible() ||
+      update?.watchId !== this.watchId ||
+      !safeNearbyReply(update.reply, false) ||
+      !update.reply.ok ||
+      update.reply.schemaVersion !== 5
+    )
+      return;
+    this.acceptResults(update.reply, performance.now(), this.revision, this.leaseDeadline);
+  };
+  private acceptResults(reply: Extract<NearbySearchReply, { ok: true }>, requestedAt: number, rev: number, maxDeadline = Infinity) {
+    if (reply.schemaVersion === 5) {
+      if (!reply.sequence || reply.sequence <= this.watchSequence) return false;
+      this.watchSequence = reply.sequence;
+    }
+    this.resultDeadlines.clear();
+    const receivedAt = performance.now();
+    this.lastResults = reply.results.filter(item => {
+      const deadline = Math.min(maxDeadline, requestedAt + Math.min(item.expiresInMs, reply.expiresInMs));
+      if (deadline <= receivedAt) return false;
+      this.resultDeadlines.set(item.discoveryId, deadline);
+      return true;
+    });
+    const results = this.lastResults.filter(item => !this.hidden.has(item.roomId));
+    this.set({ ...this.state, results, phase: results.length ? 'active' : 'empty' });
+    this.expireResults(rev);
+    return true;
   }
   private failed(code: string, message: string, acquiringLocation = false) {
     const phase = code === 'DENIED' ? 'denied' : 'stale';
@@ -214,6 +301,11 @@ export class NearbySession {
       return;
     }
     this.source = source;
+    if (!this.host) {
+      this.watchId = crypto.randomUUID();
+      this.port.on('nearby:updated', this.onUpdate);
+      this.watchListening = true;
+    }
     // Capture the policy before an asynchronous Host handshake. Losing a Host
     // marker/port must never turn a snapshot into continuous browser tracking.
     this.reauthorizeOnRefresh = source.kind === 'device' && this.env.reauthorizeOnRefresh?.() === true;
@@ -261,7 +353,8 @@ export class NearbySession {
     const source = this.source;
     if (!source || rev !== this.revision) return;
     if (!this.env.visible()) {
-      this.suspend('Visibility paused while you were away. Your choice is saved.');
+      if (this.host) this.background();
+      else this.suspend('Visibility paused while you were away. Your choice is saved.');
       return;
     }
     let acquiringLocation = source.kind === 'device';
@@ -303,12 +396,18 @@ export class NearbySession {
         });
       if (!this.host) this.nextSearchAt = Date.now() + 10_000;
       const requestedAt = performance.now();
-      let reply = this.host ? await this.request('nearby:publish', area) : await this.request('nearby:search', { ...area, schemaVersion: this.searchVersion });
-      // Older signaling releases reject an unknown version before consuming a
-      // search budget. Negotiate once per session; never downgrade on denial or
+      if (!this.host && this.searchVersion === 5) this.watchStarted = true;
+      let reply = this.host
+        ? await this.request('nearby:publish', area)
+        : await this.request('nearby:search', {
+            ...area,
+            schemaVersion: this.searchVersion,
+            ...(this.searchVersion === 5 ? { watchId: this.watchId! } : {})
+          } as import('../../../shared/nearby-v2.mjs').DiscoverySearchArea);
+      // Negotiate once per session for older signaling releases. Never downgrade on denial or
       // transport failures, and retain the strict reply validator.
       while (!this.host && !reply.ok && reply.code === 'INVALID_AREA' && this.searchVersion > 2 && rev === this.revision) {
-        this.searchVersion = this.searchVersion === 4 ? 3 : 2;
+        this.searchVersion = this.searchVersion === 5 ? 4 : this.searchVersion === 4 ? 3 : 2;
         reply = await this.request('nearby:search', { ...area, schemaVersion: this.searchVersion });
       }
       if (rev !== this.revision) return;
@@ -318,17 +417,8 @@ export class NearbySession {
         throw new Error(reply.code);
       }
       if (this.host) this.pendingVisibilityScope = null;
-      const receivedAt = performance.now();
-      this.resultDeadlines.clear();
-      const results =
-        'results' in reply
-          ? reply.results.filter(item => {
-              const deadline = requestedAt + Math.min(item.expiresInMs, reply.expiresInMs ?? 0);
-              if (this.hidden.has(item.roomId) || deadline <= receivedAt) return false;
-              this.resultDeadlines.set(item.discoveryId, deadline);
-              return true;
-            })
-          : [];
+      if ('results' in reply) this.acceptResults(reply, requestedAt, rev);
+      const results = this.state.results;
       this.set({
         phase: this.host || results.length ? 'active' : 'empty',
         results,
@@ -367,6 +457,7 @@ export class NearbySession {
         Math.max(0, remaining)
       );
       this.expireResults(rev);
+      clearTimeout(this.refresh);
       if (!snapshotOnly) this.refresh = setTimeout(() => void this.update(rev), this.host || source.kind === 'worldwide' ? NEARBY_REFRESH_MS : 15_000);
     } catch (error) {
       if (rev !== this.revision) return;
@@ -403,13 +494,19 @@ export class NearbySession {
       this.resultExpiry = setTimeout(() => this.expireResults(rev), Math.max(0, next - now));
     }
   }
-  hide(roomId: string) {
-    if (this.hidden.size < 200) this.hidden.add(roomId);
+  hide(roomId: string, title = 'Listening room') {
+    if (this.hidden.size < 200) this.hidden.set(roomId, title);
     const results = this.state.results.filter(item => item.roomId !== roomId);
     this.set({ ...this.state, results });
   }
+  restore(roomId: string) {
+    this.hidden.delete(roomId);
+    const results = this.lastResults.filter(item => !this.hidden.has(item.roomId) && (this.resultDeadlines.get(item.discoveryId) ?? 0) > performance.now());
+    this.set({ ...this.state, results, phase: this.source ? (results.length ? 'active' : 'empty') : this.state.phase });
+    this.expireResults(this.revision);
+  }
   async report(item: NearbyResult, reason: 'unwanted' | 'misleading' | 'offensive') {
-    this.hide(item.roomId);
+    this.hide(item.roomId, item.roomName || item.title);
     const rev = this.revision;
     try {
       const reply = await this.request('nearby:report', { discoveryId: item.discoveryId, reason });

@@ -90,6 +90,15 @@ export function useRoomDiscovery(port: RoomRealtimePort | null, enabled: boolean
     worldwide,
     rooms,
     radius,
+    hiddenRooms: [...new Map([...(nearby.state.hiddenRooms ?? []), ...(worldwide.state.hiddenRooms ?? [])].map(room => [room.roomId, room])).values()],
+    hide: (room: NearbyResult) => {
+      nearby.session?.hide(room.roomId, room.roomName || room.title);
+      worldwide.session?.hide(room.roomId, room.roomName || room.title);
+    },
+    restore: (roomId: string) => {
+      nearby.session?.restore(roomId);
+      worldwide.session?.restore(roomId);
+    },
     locationDenied,
     paused,
     rangePending,
