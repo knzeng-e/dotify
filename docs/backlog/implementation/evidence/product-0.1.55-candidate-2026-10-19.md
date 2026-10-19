@@ -6,6 +6,9 @@ Refs #88, #89, #274, #257 and #229. The owner requested deployment for testing.
 This is candidate preparation, not evidence of publication or installed-device
 acceptance. A separate rollout record must identify the signed commit and CID.
 
+The [subsequent rollout record](product-0.1.55-rollout-2026-10-19.md) now captures
+publication from this exact packaging commit and its independent verification.
+
 ## Package and rollout boundary
 
 - Executable `[0, 1, 55]`, `product-cdm` on `devnet`, existing permissions,

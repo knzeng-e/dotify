@@ -1574,14 +1574,15 @@
                 validation evidence, not an accepted aggregate pilot or a successful Desktop-signed payment.
               </p>
               <p>
-                The current published default release is <code>[0, 1, 54]</code>, built from tested source
-                <code>0d002e373f42c5a4a03100306a58efcc9156da2d</code> and published at CID
-                <code>bafybeiepuhymockmxkkqkjtjqrgak4fhlxyxjep2k7aev7mt4h45nb5csa</code>. It retains native Product payments and adds bounded encrypted-media recovery,
-                stable discovery refreshes, clearer room entry, and galaxy size and light driven by exact connected presence. Rooms remain private by default;
-                location requires consent and is never continuously tracked. CI and synthetic deployed-service checks passed,
-                alongside finalized DotNS and public-content read-back. Product 0.1.53 is the client rollback artifact.
+                The current published default release is <code>[0, 1, 55]</code>, built from tested source
+                <code>74effe95da53394dec9394666f30d4e14bac024c</code> and published at CID
+                <code>bafybeig5b2hue5db3oftgvjzlvb2wezslwdn7j5efj547225s4y4b5zwmy</code>. It retains native Product payments and encrypted-media recovery,
+                adds live scoped room updates, optional room names and invitations, a visible verified artist seal and reversible hiding,
+                and preserves tip review across account connection. Rooms remain private by default. A connected host may keep the last consented area visible
+                in the background without tracking movement. CI and synthetic deployed-service checks passed,
+                alongside finalized DotNS and public-content read-back. Product 0.1.54 is the client rollback artifact.
                 Installed Desktop/mobile permission behavior, prolonged room audio and paid tips still need physical verification.
-                The <a href="backlog/implementation/evidence/product-0.1.54-rollout-2026-10-18.md">rollout record</a> identifies each deployed artifact and its validation limits.
+                The <a href="backlog/implementation/evidence/product-0.1.55-rollout-2026-10-19.md">rollout record</a> identifies each deployed artifact and its validation limits.
                 W13 also requires first-sound and room measurements, a matching rollback rehearsal, and a consented aggregate pilot before an evidence-backed go/no-go decision.
               </p>
               <p>
@@ -1596,7 +1597,7 @@
                 The current stability follow-up adds a bounded API cache for registered encrypted media to reduce public-gateway failures.
                 It holds ciphertext only and leaves access and keys outside the cache. A temporary discovery refresh failure retains only an already-valid invitation,
                 while expiry and opt-out still remove it. Entry asks clearly for a name or nickname without repeating an already-selected room code.
-                Product 0.1.54 publishes this stability follow-up from merged #302, including bounded presence-driven planet size and light.
+                Product 0.1.54 published this stability follow-up from merged #302, including bounded presence-driven planet size and light.
                 API and signaling were deployed first; prolonged listening and installed Host capability still require physical validation.
                 <a href="backlog/implementation/evidence/W08-audio-continuity-2026-10-08.md">Audio and session regression evidence</a>
                 distinguishes local browser tests from the remaining physical-device and room checks.

@@ -2,7 +2,12 @@
 
 ## Live room invitations and contribution continuity, 2026-10-18
 
-Candidate only. Deploy signaling before the Web/Product client. There are no new
+Published as Product 0.1.55 from clean packaging commit
+`74effe95da53394dec9394666f30d4e14bac024c`; signaling release 36 preceded the
+clients. See the [rollout record](../backlog/implementation/evidence/product-0.1.55-rollout-2026-10-19.md)
+for finalized CID/version, public-byte verification and live tests. Physical
+Desktop/mobile background, location, audio and funded-tip acceptance remains open.
+For subsequent rollouts, deploy signaling before the Web/Product client. There are no new
 credentials, environment flags, CORS origins, storage mounts or contract changes.
 The v5 search protocol adds scoped `nearby:updated` snapshots and
 `nearby:unwatch`; legacy schemas remain available. New clients negotiate down on
@@ -47,6 +52,14 @@ from an index does not establish payment failure.
 Validate with the focused evidence in
 [room presence and tip continuity](../backlog/implementation/evidence/room-presence-tip-continuity-2026-10-18.md).
 Earlier background/disconnect statements below are historical where superseded.
+
+Netlify was observed following `main` automatically, with manually published
+`dev` artifacts. This rollout temporarily selected `dev`, published tested SHA
+`893418de06b9eda8379a350b3bca8912a8ebb4b8`, then restored `main` and read the
+setting back. Branch deploys and PR previews remain disabled. Future `dev` merges
+need an explicit Web deployment unless the owner changes that policy. Verify the
+served entry SHA after each publication; merging a release record alone is not
+proof that Netlify updated. Product remains independently signed and resolved.
 
 ## Playback and discovery stability follow-up — 2026-10-17
 
