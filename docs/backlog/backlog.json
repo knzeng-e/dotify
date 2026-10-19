@@ -25,6 +25,15 @@
   },
   "items": [
     {
+      "id": "mobile-form-continuity",
+      "doc": "docs/backlog/mobile-form-continuity.md",
+      "issue": 306,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Room reliability",
+      "phase": "Now"
+    },
+    {
       "id": "claude-verification-tooling",
       "doc": "docs/backlog/claude-verification-tooling.md",
       "issue": 265,

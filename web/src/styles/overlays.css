@@ -13,13 +13,15 @@
 .modal-card {
   width: min(100%, 31rem);
   max-height: min(90vh, 52rem);
-  border: 1px solid rgb(255 255 255 / 0.14);
+  border: 1px solid var(--line-strong);
   border-radius: var(--radius-lg);
-  background: var(--surface);
+  background: linear-gradient(160deg, color-mix(in srgb, var(--surface) 90%, var(--night-raised)), var(--surface) 60%);
   color: var(--ink);
   padding: clamp(1.25rem, 3vw, 2rem);
   overflow-y: auto;
-  box-shadow: var(--shadow-dialog);
+  box-shadow:
+    var(--shadow-dialog),
+    inset 0 1px 0 color-mix(in srgb, var(--ink) 7%, transparent);
   animation: dialog-enter var(--duration-state) var(--ease) both;
 }
 
@@ -39,6 +41,30 @@
   to {
     opacity: 1;
     transform: none;
+  }
+}
+
+@keyframes sheet-enter {
+  from {
+    opacity: 0;
+    transform: translateY(1.25rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (max-width: 48rem) {
+  .modal-card {
+    /* Entrance only: changing keyboard/viewport height never replays it. */
+    animation-name: sheet-enter;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modal-card {
+    animation: none;
   }
 }
 
@@ -78,15 +104,20 @@
   display: grid;
   width: 2.75rem;
   height: 2.75rem;
+  flex-shrink: 0;
   place-items: center;
-  border: 1px solid var(--line);
+  border: 1px solid transparent;
   border-radius: 50%;
-  background: var(--surface);
+  background: var(--surface-soft);
   color: var(--ink-soft);
+  transition:
+    background-color var(--duration-fast) var(--ease),
+    color var(--duration-fast) var(--ease),
+    transform var(--duration-fast) var(--ease);
 }
 
-.modal-close:hover {
-  border-color: var(--ink);
+.modal-close:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--surface-soft) 90%, var(--ink));
   color: var(--ink);
 }
 
@@ -395,6 +426,7 @@
 .create-room-preview,
 .room-threshold-preview {
   display: grid;
+  container-type: inline-size;
   grid-template-columns: 7rem minmax(0, 1fr);
   gap: 1rem;
   margin-top: 1.4rem;
@@ -433,6 +465,23 @@
   flex-direction: column;
   align-items: flex-start;
   justify-content: center;
+  overflow-wrap: anywhere;
+}
+
+.create-room-preview > div > *,
+.room-threshold-copy > * {
+  /* Flex children must wrap inside the remaining column at enlarged text. */
+  max-width: 100%;
+}
+
+/* Text enlargement reduces the useful width without changing screen pixels. */
+@container (max-width: 14rem) {
+  .create-room-preview > img,
+  .room-threshold-art,
+  .create-room-preview > div,
+  .room-threshold-copy {
+    grid-column: 1 / -1;
+  }
 }
 
 .create-room-preview strong,
@@ -1276,6 +1325,10 @@
   border-radius: 8px;
   color: var(--ink);
   background: transparent;
+  transition:
+    background-color var(--duration-fast) var(--ease),
+    border-color var(--duration-fast) var(--ease),
+    color var(--duration-fast) var(--ease);
 }
 .gift-amount-options button[aria-pressed='true'] {
   color: var(--action);
