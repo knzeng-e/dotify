@@ -4,6 +4,8 @@ Prepared from merged and tested `dev`
 `b08966698709b06378349a6ffd0567cda5dc8f53`, after #305 and #307.
 Refs #88, #89 and #306. The owner requested deployment for testing.
 This preparation record is not proof of publication or physical keyboard support.
+The [rollout record](product-0.1.56-rollout-2026-10-19.md) now records publication
+from the exact clean packaging commit and independent finality/content checks.
 
 ## Package and rollout boundary
 

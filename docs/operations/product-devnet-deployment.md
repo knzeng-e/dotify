@@ -23,6 +23,25 @@ or timed-out request; Dotify cannot undo the Host's permission decision.
 Operational rollback uses `VITE_DOTIFY_NEARBY=off` and/or `SIGNAL_NEARBY=off`;
 there is no Product-specific feature gate. Old snapshots expire within 90 seconds.
 
+## Product 0.1.56 published mobile-form release
+
+Published from clean green packaging commit
+`c9becc990b26949445e9af69da357c08789d4f28`, after #307 merged into tested
+`dev` at `b08966698709b06378349a6ffd0567cda5dc8f53`. Executable `[0, 1, 56]`
+retains `product-cdm` on `devnet` at root/app CID
+`bafybeieactmt5ci6iqp62foewyh7frb6gqamvo6d7hdivgy2tiyinfgn2u`.
+API 28 and signaling 36 remain compatible and were not restarted. The Web
+independently serves the merged-dev interface.
+
+Finalized root/app version and public CAR checks passed, including all 125
+block hashes and byte-for-byte index/entry equality with the signed build.
+The local signer is removed. See the [rollout record](../backlog/implementation/evidence/product-0.1.56-rollout-2026-10-19.md)
+for Web form checks and the bounded installed Desktop 0.1.3 smoke. Physical
+mobile keyboard/rotation and prolonged audio acceptance remains open.
+Current client rollback: **0.1.55**, with the same API/signaling versions.
+
+The following release sections preserve historical rollout and rollback evidence.
+
 ## Product 0.1.55 published live-presence release
 
 Published from clean, green packaging commit
@@ -37,7 +56,7 @@ Finalized DotNS/version and public CAR checks passed, including 125 block hashes
 the local logical-directory root and exact index/entry bytes. The local signer
 was removed. See the [rollout record](../backlog/implementation/evidence/product-0.1.55-rollout-2026-10-19.md)
 for deployed identities, temporary Netlify branch selection, validation and
-remaining physical Host gates. Current client rollback: **0.1.54**. Withdrawing
+remaining physical Host gates. Client rollback at that rollout: **0.1.54**. Withdrawing
 background holds requires the compatible client/signaling pair and a fresh
 active-session check before any restart.
 
@@ -119,7 +138,7 @@ for service images, tests, restart incident and remaining physical checks.
 
 The following release sections retain their original deployment and rollback history.
 The historical release/rollback pair in this section was 0.1.52 / 0.1.51. The
-current pair is 0.1.55 / 0.1.54 above.
+current pair is 0.1.56 / 0.1.55 above.
 
 ## Product 0.1.50 published radar and audio release
 
@@ -560,12 +579,12 @@ gates pass, and the live CASH path remains blocked on a Product-confirmed
 CASH-to-runtime entitlement mechanism. A `fail` means the local boundary or an
 operator-supplied evidence file is unsafe and must block the release.
 
-Product releases 0.1.46 through 0.1.55 explicitly use `product-cdm` on `devnet` so
+Product releases 0.1.46 through 0.1.56 explicitly use `product-cdm` on `devnet` so
 Product account holders retain native tips and access payments. The Product
 build refuses an EVM-only profile; ordinary web still uses viem. Product SDK
 descriptors increase the bundle and Bulletin storage demand. The 0.1.45 viem
 publication regressed native tips by requesting an EVM wallet; it is historical
-evidence of that limitation. The current rollback artifact is 0.1.54, retaining
+evidence of that limitation. The current rollback artifact is 0.1.55, retaining
 the native Product profile. Validate native
 approval, exact account mapping and finalized receipt recovery on the installed
 Hosts after publication.
