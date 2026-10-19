@@ -2,7 +2,12 @@
 
 ## Live room invitations and contribution continuity, 2026-10-18
 
-Candidate only. Deploy signaling before the Web/Product client. There are no new
+Published as Product 0.1.55 from clean packaging commit
+`74effe95da53394dec9394666f30d4e14bac024c`; signaling release 36 preceded the
+clients. See the [rollout record](../backlog/implementation/evidence/product-0.1.55-rollout-2026-10-19.md)
+for finalized CID/version, public-byte verification and live tests. Physical
+Desktop/mobile background, location, audio and funded-tip acceptance remains open.
+For subsequent rollouts, deploy signaling before the Web/Product client. There are no new
 credentials, environment flags, CORS origins, storage mounts or contract changes.
 The v5 search protocol adds scoped `nearby:updated` snapshots and
 `nearby:unwatch`; legacy schemas remain available. New clients negotiate down on
@@ -47,6 +52,14 @@ from an index does not establish payment failure.
 Validate with the focused evidence in
 [room presence and tip continuity](../backlog/implementation/evidence/room-presence-tip-continuity-2026-10-18.md).
 Earlier background/disconnect statements below are historical where superseded.
+
+Netlify was observed following `main` automatically, with manually published
+`dev` artifacts. This rollout temporarily selected `dev`, published tested SHA
+`893418de06b9eda8379a350b3bca8912a8ebb4b8`, then restored `main` and read the
+setting back. Branch deploys and PR previews remain disabled. Future `dev` merges
+need an explicit Web deployment unless the owner changes that policy. Verify the
+served entry SHA after each publication; merging a release record alone is not
+proof that Netlify updated. Product remains independently signed and resolved.
 
 ## Playback and discovery stability follow-up — 2026-10-17
 
@@ -109,7 +122,31 @@ unknown legacy counts keep neutral decoration, and visual growth is bounded at
 radars use smaller caps and tighter orbits; reduced-motion settings disable the
 size/halo transitions. No discovery payload, service setting or access rule changes.
 
-## Current published Product release - 0.1.54
+## Current published Product release - 0.1.55
+
+Published after #303/#304 merged at
+`893418de06b9eda8379a350b3bca8912a8ebb4b8`, from clean green packaging commit
+`74effe95da53394dec9394666f30d4e14bac024c`. Executable `[0, 1, 55]` and root/app
+CID `bafybeig5b2hue5db3oftgvjzlvb2wezslwdn7j5efj547225s4y4b5zwmy` retain
+`product-cdm` on `devnet` and the paired frozen 13-release catalog. Signaling
+release 36 was deployed before the clients after a fresh zero-session check.
+The compatible API remains on release 28, preserving its writer, volume,
+session epoch and content-key secrets. Netlify independently serves the merged
+application SHA above; its automatic branch remains `main`, so later `dev`
+merges require an explicit Web deployment and served-entry verification.
+
+See the [0.1.55 rollout record](../backlog/implementation/evidence/product-0.1.55-rollout-2026-10-19.md)
+for exact service images, finalized Product/public-byte read-back and live
+room checks. The local signer was removed. Physical Host permission,
+background/audio and funded-tip acceptance remains open.
+
+The current client rollback artifact is **Product 0.1.54**, CID
+`bafybeiepuhymockmxkkqkjtjqrgak4fhlxyxjep2k7aev7mt4h45nb5csa`.
+Withdrawing the background-hold policy also requires the compatible signaling
+release 35 image recorded in the rollout record. Recheck active sessions before
+any restart and preserve privacy-safe discovery and API state.
+
+## Previous Product release - 0.1.54
 
 Published after #302 merged at `02bb83595754672870d136d743509e718117faa1`,
 from clean green packaging commit `0d002e373f42c5a4a03100306a58efcc9156da2d`.
@@ -124,16 +161,16 @@ No contract, permission, secret, origin, storage or scaling change was required.
 See the [rollout record](../backlog/implementation/evidence/product-0.1.54-rollout-2026-10-18.md)
 for exact images, finalized/public read-back, deployed media and discovery
 checks, and remaining physical acceptance. The local signer was removed.
-Product 0.1.53 is the client rollback artifact. Do not restore globally
+Product 0.1.53 was the client rollback artifact for that release. Do not restore globally
 enumerating signaling when rolling clients back. A fresh-profile Web check also
-found that direct `#/rooms` currently lands on Music; the Rooms navigation
-works, and this remaining W19 browser-recovery routing issue is recorded without
+found that direct `#/rooms` landed on Music; the Rooms navigation
+worked, and that W19 browser-recovery routing observation is recorded without
 claiming that native Host location has been repaired.
 
-## Previous Product release — 0.1.53
+## Historical Product release - 0.1.53
 
 Product `[0, 1, 53]` is published from source `83512f708c34304338e6a70c599d38027a9bf68c` at executable/root CID
-`bafybeihj6vrdu3dqnaqfofw4l3qiysc4by4rau3mldmlom637waemgmqr4`. The current client rollback is Product `[0, 1, 52]`, CID
+`bafybeihj6vrdu3dqnaqfofw4l3qiysc4by4rau3mldmlom637waemgmqr4`. The client rollback recorded for that release was Product `[0, 1, 52]`, CID
 `bafybeicn6kz5i5yyuoalubbe3hsl7sr7qbunccysju5rki3wrtgi2dbz7m`.
 Use the [0.1.53 rollout record](../backlog/implementation/evidence/product-0.1.53-rollout-2026-10-17.md)
 for the signaling image, Web identity, finalized publication read-back and remaining
@@ -503,7 +540,7 @@ Required Product values:
 | `VITE_BULLETIN_WS_URL`          | `wss://bulletin-paseo.tservices.es:8443`                                                                                         |
 | `VITE_PINATA_GATEWAY`           | `https://gateway.pinata.cloud`                                                                                                   |
 | `VITE_IPFS_READ_GATEWAYS`       | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation` |
-| Product executable `appVersion` | `[0, 1, 54]` published stability release; `[0, 1, 53]` is the current client rollback artifact                            |
+| Product executable `appVersion` | `[0, 1, 55]` published live-presence release; `[0, 1, 54]` is the current client rollback artifact                         |
 
 The Product executable version is part of the published Product manifest. Bump
 it whenever the Product bundle changes runtime behavior, host SDK integration,

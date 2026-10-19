@@ -23,6 +23,26 @@ or timed-out request; Dotify cannot undo the Host's permission decision.
 Operational rollback uses `VITE_DOTIFY_NEARBY=off` and/or `SIGNAL_NEARBY=off`;
 there is no Product-specific feature gate. Old snapshots expire within 90 seconds.
 
+## Product 0.1.55 published live-presence release
+
+Published from clean, green packaging commit
+`74effe95da53394dec9394666f30d4e14bac024c`, after #303/#304 merged into tested
+`dev` at `893418de06b9eda8379a350b3bca8912a8ebb4b8`. Executable `[0, 1, 55]`
+retains `product-cdm` on `devnet` at root/app CID
+`bafybeig5b2hue5db3oftgvjzlvb2wezslwdn7j5efj547225s4y4b5zwmy`.
+Signaling release 36 provides live scoped discovery and background holds;
+the compatible API remains on release 28. Web independently serves merged dev.
+
+Finalized DotNS/version and public CAR checks passed, including 125 block hashes,
+the local logical-directory root and exact index/entry bytes. The local signer
+was removed. See the [rollout record](../backlog/implementation/evidence/product-0.1.55-rollout-2026-10-19.md)
+for deployed identities, temporary Netlify branch selection, validation and
+remaining physical Host gates. Current client rollback: **0.1.54**. Withdrawing
+background holds requires the compatible client/signaling pair and a fresh
+active-session check before any restart.
+
+The following release sections preserve historical rollout and rollback evidence.
+
 ## Product 0.1.54 published stability release
 
 The owner authorized a coordinated rollout after #302 merged into `dev`
@@ -39,7 +59,7 @@ version. Public CAR verification checked 125 block hashes and byte-for-byte
 equality of the index/entry bundle against the signed build. The local signer
 was removed. See the [rollout record](../backlog/implementation/evidence/product-0.1.54-rollout-2026-10-18.md)
 for service identities, validation and remaining physical acceptance.
-Product 0.1.53 is the client rollback artifact; keep privacy-safe v4 signaling.
+At that rollout, Product 0.1.53 was the client rollback artifact; keep privacy-safe v4 signaling.
 
 The following release sections preserve historical rollout and rollback evidence.
 
@@ -99,7 +119,7 @@ for service images, tests, restart incident and remaining physical checks.
 
 The following release sections retain their original deployment and rollback history.
 The historical release/rollback pair in this section was 0.1.52 / 0.1.51. The
-current pair is 0.1.54 / 0.1.53 above.
+current pair is 0.1.55 / 0.1.54 above.
 
 ## Product 0.1.50 published radar and audio release
 
@@ -540,12 +560,12 @@ gates pass, and the live CASH path remains blocked on a Product-confirmed
 CASH-to-runtime entitlement mechanism. A `fail` means the local boundary or an
 operator-supplied evidence file is unsafe and must block the release.
 
-Product releases 0.1.46 through 0.1.54 explicitly use `product-cdm` on `devnet` so
+Product releases 0.1.46 through 0.1.55 explicitly use `product-cdm` on `devnet` so
 Product account holders retain native tips and access payments. The Product
 build refuses an EVM-only profile; ordinary web still uses viem. Product SDK
 descriptors increase the bundle and Bulletin storage demand. The 0.1.45 viem
 publication regressed native tips by requesting an EVM wallet; it is historical
-evidence of that limitation. The current rollback artifact is 0.1.53, retaining
+evidence of that limitation. The current rollback artifact is 0.1.54, retaining
 the native Product profile. Validate native
 approval, exact account mapping and finalized receipt recovery on the installed
 Hosts after publication.

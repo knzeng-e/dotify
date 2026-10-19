@@ -1574,14 +1574,15 @@
                 validation evidence, not an accepted aggregate pilot or a successful Desktop-signed payment.
               </p>
               <p>
-                The current published default release is <code>[0, 1, 54]</code>, built from tested source
-                <code>0d002e373f42c5a4a03100306a58efcc9156da2d</code> and published at CID
-                <code>bafybeiepuhymockmxkkqkjtjqrgak4fhlxyxjep2k7aev7mt4h45nb5csa</code>. It retains native Product payments and adds bounded encrypted-media recovery,
-                stable discovery refreshes, clearer room entry, and galaxy size and light driven by exact connected presence. Rooms remain private by default;
-                location requires consent and is never continuously tracked. CI and synthetic deployed-service checks passed,
-                alongside finalized DotNS and public-content read-back. Product 0.1.53 is the client rollback artifact.
+                The current published default release is <code>[0, 1, 55]</code>, built from tested source
+                <code>74effe95da53394dec9394666f30d4e14bac024c</code> and published at CID
+                <code>bafybeig5b2hue5db3oftgvjzlvb2wezslwdn7j5efj547225s4y4b5zwmy</code>. It retains native Product payments and encrypted-media recovery,
+                adds live scoped room updates, optional room names and invitations, a visible verified artist seal and reversible hiding,
+                and preserves tip review across account connection. Rooms remain private by default. A connected host may keep the last consented area visible
+                in the background without tracking movement. CI and synthetic deployed-service checks passed,
+                alongside finalized DotNS and public-content read-back. Product 0.1.54 is the client rollback artifact.
                 Installed Desktop/mobile permission behavior, prolonged room audio and paid tips still need physical verification.
-                The <a href="backlog/implementation/evidence/product-0.1.54-rollout-2026-10-18.md">rollout record</a> identifies each deployed artifact and its validation limits.
+                The <a href="backlog/implementation/evidence/product-0.1.55-rollout-2026-10-19.md">rollout record</a> identifies each deployed artifact and its validation limits.
                 W13 also requires first-sound and room measurements, a matching rollback rehearsal, and a consented aggregate pilot before an evidence-backed go/no-go decision.
               </p>
               <p>
@@ -1596,7 +1597,7 @@
                 The current stability follow-up adds a bounded API cache for registered encrypted media to reduce public-gateway failures.
                 It holds ciphertext only and leaves access and keys outside the cache. A temporary discovery refresh failure retains only an already-valid invitation,
                 while expiry and opt-out still remove it. Entry asks clearly for a name or nickname without repeating an already-selected room code.
-                Product 0.1.54 publishes this stability follow-up from merged #302, including bounded presence-driven planet size and light.
+                Product 0.1.54 published this stability follow-up from merged #302, including bounded presence-driven planet size and light.
                 API and signaling were deployed first; prolonged listening and installed Host capability still require physical validation.
                 <a href="backlog/implementation/evidence/W08-audio-continuity-2026-10-08.md">Audio and session regression evidence</a>
                 distinguishes local browser tests from the remaining physical-device and room checks.
@@ -1647,16 +1648,16 @@
                 for capacity, playback, and joining. W27 introduces a typed room transport
                 boundary and opt-in Celerity presence and encrypted social-event observation, disabled by default. Celerity and Statement Store are the same protocol;
                 paired capture tooling records bounded delivery observations and clock uncertainty, but real Product measurements remain required before any event class moves away from Socket.IO. Anonymous room-link entry remains an invariant, private messages require application
-                encryption with membership-bound ephemeral keys, and WebRTC remains the audio path. The next discovery build restores a room galaxy and accessible room list;
+                encryption with membership-bound ephemeral keys, and WebRTC remains the audio path. Published discovery includes a room galaxy and accessible room list;
                 graphics never imply exact location and never prevent joining. The earlier 3D prototype remains separate from the consented discovery path.
                 Product-host compatibility remains awaiting real host smoke evidence before Dotify
                 treats it as delivered. Building on the Product 0.1.50 test release, W19 includes Nearby by default in new Web and Product builds: find opted-in live rooms around you, or make your own room visible
                 within a chosen approximate radius in kilometres. Compact Join by link and Open a room controls stay within reach; temporary sheets hold search and visibility settings.
                 One choice, available when creating the room and inside it, decides who can find it: Link only by default, Nearby, or Everyone. Host visibility and listener search are separate choices;
-                precise coordinates stay on the device, and sparse results offer explicit search widening. The published 0.1.54 release retains a slider from 5 to 42 km, in one-kilometre steps,
+                precise coordinates stay on the device, and sparse results offer explicit search widening. The published 0.1.55 release retains a slider from 5 to 42 km, in one-kilometre steps,
                 respecting both participants' areas. Hosts who choose Everyone are told that their name and track become visible to anyone on Dotify; those public invitations appear without requesting a listener's location, and can be hidden or reported. The published radar starts foreground discovery automatically at app entry through the device permission gate. Nearby and worldwide invitations appear independently as they arrive, so a slow location fix never blocks inspection or joining. Nearby cards show approximate five-kilometre distance bands; worldwide rooms show their worldwide scope without inventing a distance. The galaxy is illustrative, not a map.
                 City exploration is removed. Product rechecks its Location permission gate before each foreground fix; denial stops automatic retries and physical Host prompt/revocation behavior still needs verification. Location work stops in the background, and host publication remains an explicit choice.
-                The physical-test follow-up restores circular album covers, exact connected-session counts and orbiting presence around each room, with a clear marker for your own room and the real Dotify logo in cyan neon at the radar's centre. Room labels show the title and artist; hover or keyboard focus reveals the details, also available by touch. The next stability candidate restores bounded cover growth and brighter halos as more sessions join, keeping smaller rooms visible. A host's visibility choice survives temporary interruptions. The next candidate pushes scoped room changes, keeps a connected background host visible at its last shared area, and briefly marks a lost connection before withdrawing it. Optional room names and invitations remain stable when tracks change. A visible verified seal identifies a room where the current artist has announced their presence; Hide becomes reversible.
+                The published radar uses circular album covers, exact connected-session counts and orbiting presence around each room, with a clear marker for your own room and the real Dotify logo in cyan neon at the radar's centre. Room labels show the title and artist; hover or keyboard focus reveals the details, also available by touch. Product 0.1.54 introduced bounded cover growth and brighter halos as more sessions join, keeping smaller rooms visible. A host's visibility choice survives temporary interruptions. Published Product 0.1.55 pushes scoped room changes, keeps a connected background host visible at its last shared area, and briefly marks a lost connection before withdrawing it. Optional room names and invitations remain stable when tracks change. A visible verified seal identifies a room where the current artist has announced their presence; Hide is reversible. Installed Desktop/mobile background and audio behavior still require physical acceptance, as recorded in the rollout evidence.
                 A verified artist can see aggregate activity across rooms carrying their music and visit publicly discoverable rooms from anywhere. Private rooms contribute only to totals and expose no invitation, identity or location. These are current sessions, not historical or verified unique listeners.
                 W19 builds on W18's amended privacy contract, with room-link alternatives,
                 expiry and no wallet-location binding. It does not depend on 3D or a new payment rail. Publication still requires privacy, supported-device

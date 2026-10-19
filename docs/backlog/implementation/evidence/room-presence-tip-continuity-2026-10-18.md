@@ -4,6 +4,10 @@ Candidate based on tested `dev` at `02bb83595754672870d136d743509e718117faa1`.
 Refs #274, #257 and #229. This record is local implementation evidence, not a
 deployment or physical Product acceptance record.
 
+Deployment follow-up: [Product 0.1.55 rollout](product-0.1.55-rollout-2026-10-19.md)
+records publication and synthetic live-service validation on October 19. The
+candidate limitations below remain physical acceptance gates where specified.
+
 ## Intended behavior
 
 An opted-in room appears or disappears on the next scoped discovery update,
@@ -122,7 +126,8 @@ storage mounts, CORS origins or contracts. See the
 [deployment runbook](../../../operations/deployment-configuration.md#live-room-invitations-and-contribution-continuity-2026-10-18)
 and [privacy amendment](../../../design/dotify-nearby-discovery-privacy.md#live-invitations-and-background-continuity-2026-10-18).
 
-- This candidate has not been deployed. Physical Product Desktop/mobile checks
+- At implementation handoff this candidate had not been deployed; the rollout
+  follow-up above records its later publication. Physical Product Desktop/mobile checks
   remain for lock/unlock, app switching, permission revocation, network loss,
   authenticated reconnect and audio continuity. Native hosts without a silent
   permission observer can only recheck OS revocation on return to the app.
