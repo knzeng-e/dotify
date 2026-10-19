@@ -24,7 +24,9 @@ async function openGift(page: Page, query = '') {
 }
 async function review(page: Page, amount = '0.25', kind: 'gift' | 'tip' = 'gift') {
   await amountField(page, kind).fill(amount);
-  await contributionDialog(page).getByRole('button', { name: /^Review (tip|gift)$/ }).click();
+  await contributionDialog(page)
+    .getByRole('button', { name: /^Review (tip|gift)$/ })
+    .click();
 }
 async function giftState(page: Page) {
   return page.evaluate(() => Reflect.get(window, '__DOTIFY_E2E_DONATION__') as { sends: number; confirmed: boolean; finalizedReads?: number });
@@ -272,10 +274,10 @@ test('a pending contribution can close and reopen without another transfer', asy
   await openGift(page, '?e2eGift=pending');
   await review(page, '0.1');
   await page.getByRole('button', { name: 'Confirm gift · 0.1 PAS', exact: true }).click();
-  await expect(contributionDialog(page).getByRole('status')).toContainText('Waiting for confirmation');
+  await expect(contributionDialog(page).getByRole('status')).toContainText('Confirming your contribution');
   await page.getByRole('button', { name: /^Close (tip|gift)$/ }).click();
   await page.getByRole('button', { name: 'Send a gift', exact: true }).click();
-  await expect(contributionDialog(page).getByRole('status')).toContainText('Waiting for confirmation');
+  await expect(contributionDialog(page).getByRole('status')).toContainText('Confirming your contribution');
   expect((await giftState(page)).sends).toBe(1);
   await page.evaluate(() => Reflect.get(window, '__DOTIFY_E2E_DONATION__').complete());
   await expect(contributionDialog(page).getByRole('heading', { name: 'Gift sent', exact: true })).toBeVisible();
@@ -284,7 +286,7 @@ test('a reload resumes the saved contribution without a new signature', async ({
   await openGift(page, '?e2eGift=pending');
   await review(page, '0.1');
   await page.getByRole('button', { name: 'Confirm gift · 0.1 PAS', exact: true }).click();
-  await expect(contributionDialog(page).getByRole('status')).toContainText('Waiting for confirmation');
+  await expect(contributionDialog(page).getByRole('status')).toContainText('Confirming your contribution');
   await expect
     .poll(
       () =>
@@ -304,7 +306,7 @@ test('a reload resumes the saved contribution without a new signature', async ({
   await page.reload();
   await page.locator('.catalogue-card .artist-text-button').first().click();
   await page.getByRole('main').getByRole('button', { name: 'Send a gift', exact: true }).click();
-  await expect(contributionDialog(page).getByRole('status')).toContainText('Waiting for confirmation');
+  await expect(contributionDialog(page).getByRole('status')).toContainText('Confirming your contribution');
   await expect(amountField(page)).toHaveCount(0);
   expect(await page.evaluate(key => localStorage.getItem(key), saved!.key)).toBe(saved!.value);
   expect(await page.evaluate(() => Reflect.get(window, '__DOTIFY_E2E_DONATION__')?.sends ?? 0)).toBe(0);
@@ -313,7 +315,7 @@ test('an interrupted contribution is recovered without a second payment', async 
   await openGift(page, '?e2eGift=delayed');
   await review(page, '0.1');
   await page.getByRole('button', { name: 'Confirm gift · 0.1 PAS', exact: true }).click();
-  await expect(contributionDialog(page).getByRole('status')).toContainText('Checking network finality');
+  await expect(contributionDialog(page).getByRole('status')).toContainText('Confirming your contribution');
   await page.evaluate(() => {
     Reflect.get(window, '__DOTIFY_E2E_DONATION__').confirmed = true;
   });
@@ -336,8 +338,8 @@ test('a mobile confirmation timeout keeps checking without exposing raw wallet e
   await review(page, '0.1');
   await page.getByRole('button', { name: 'Confirm gift · 0.1 PAS', exact: true }).click();
   const dialog = contributionDialog(page);
-  await expect(dialog.getByRole('status')).toContainText('Checking network finality');
-  await expect(dialog.getByRole('status')).toContainText('without sending another payment');
+  await expect(dialog.getByRole('status')).toContainText('Confirming your contribution');
+  await expect(dialog.getByRole('status')).toContainText('Do not send another payment');
   const state = await giftState(page);
   expect(state.sends).toBe(1);
   expect(state.finalizedReads).toBe(1);
@@ -356,7 +358,7 @@ test('a mobile host timeout preserves its diagnostic across reload without anoth
   await review(page, '0.1');
   await page.getByRole('button', { name: 'Confirm gift · 0.1 PAS', exact: true }).click();
   const dialog = contributionDialog(page);
-  await expect(dialog.getByRole('status')).toContainText('Checking payment status');
+  await expect(dialog.getByRole('status')).toContainText('Confirming your contribution');
   await dialog.getByText('Technical details', { exact: true }).click();
   await expect(dialog.getByText(/Transaction timed out after 300s/)).toBeVisible();
   await expect(dialog).toContainText('Contribution reference:');
@@ -364,7 +366,7 @@ test('a mobile host timeout preserves its diagnostic across reload without anoth
   await page.reload();
   await page.locator('.catalogue-card .artist-text-button').first().click();
   await page.getByRole('main').getByRole('button', { name: 'Send a gift', exact: true }).click();
-  await expect(dialog.getByRole('status')).toContainText('Checking payment status');
+  await expect(dialog.getByRole('status')).toContainText('Confirming your contribution');
   await dialog.getByText('Technical details', { exact: true }).click();
   await expect(dialog.getByText(/Transaction timed out after 300s/)).toBeVisible();
   expect((await giftState(page)).sends).toBe(0);
@@ -377,7 +379,7 @@ test('an older Product payment recovers from its native receipt block without re
   await review(page, '0.1');
   await page.getByRole('button', { name: 'Confirm gift · 0.1 PAS', exact: true }).click();
   const dialog = contributionDialog(page);
-  await expect(dialog.getByRole('status')).toContainText('Checking contribution receipt');
+  await expect(dialog.getByRole('status')).toContainText('Confirming your contribution');
   await expect(dialog.getByRole('link', { name: 'View transaction' })).toHaveAttribute('href', /assethub-paseo\.subscan\.io\/extrinsic\//);
   await dialog.getByText('Technical details', { exact: true }).click();
   await dialog.getByLabel('Receipt block number').fill('123');
@@ -441,7 +443,7 @@ for (const available of [true, false]) {
     await review(page, '0.1');
     await page.getByRole('button', { name: 'Confirm gift · 0.1 PAS', exact: true }).click();
     const dialog = contributionDialog(page);
-    await expect(dialog.getByRole('status')).toContainText('Checking contribution receipt');
+    await expect(dialog.getByRole('status')).toContainText('Confirming your contribution');
     await dialog.getByText('Technical details', { exact: true }).click();
     await dialog.getByLabel('Receipt block number').fill('123');
     await dialog.getByRole('button', { name: 'Check receipt block' }).click();
@@ -456,3 +458,26 @@ for (const available of [true, false]) {
     expect((await giftState(page)).sends).toBe(1);
   });
 }
+
+test('wallet connection resumes the chosen contribution at review without sending automatically', async ({ page }) => {
+  await openGift(page, '?e2eGift=connect');
+  await review(page, '0.42');
+  await expect(contributionDialog(page)).toHaveCount(0);
+  await page.getByRole('button', { name: /Use browser wallet/ }).click();
+  const confirm = page.getByRole('button', { name: 'Confirm gift · 0.42 PAS', exact: true });
+  await expect(confirm).toBeVisible();
+  expect((await giftState(page)).sends).toBe(0);
+  await confirm.click();
+  await expect(contributionDialog(page).getByRole('heading', { name: 'Gift sent', exact: true })).toBeVisible();
+  expect((await giftState(page)).sends).toBe(1);
+});
+
+test('a disconnected listener resumes a track tip with the same amount after connecting', async ({ page }) => {
+  await page.goto('/?e2eGift=connect');
+  await page.getByTestId('track-card-open').first().click();
+  await page.getByRole('button', { name: 'Tip this track', exact: true }).click();
+  await review(page, '0.37', 'tip');
+  await page.getByRole('button', { name: /Use browser wallet/ }).click();
+  await expect(page.getByRole('button', { name: 'Confirm tip · 0.37 PAS', exact: true })).toBeVisible();
+  expect((await giftState(page)).sends).toBe(0);
+});

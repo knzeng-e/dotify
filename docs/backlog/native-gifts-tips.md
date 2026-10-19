@@ -42,3 +42,9 @@ authorized by this implementation ticket.
 - [Design and operational contract](../design/native-contributions.md)
 - [Evidence](implementation/evidence/native-gifts-tips.md)
 - [Deployment configuration](../operations/deployment-configuration.md)
+
+## October 18 follow-up
+
+Owner-approved room presence, optional invitation identity, reversible Hide and
+contribution continuity are tracked in [the shared evidence note](implementation/evidence/room-presence-tip-continuity-2026-10-18.md). This does not close outstanding
+physical Host/location or funded-receipt acceptance gates.

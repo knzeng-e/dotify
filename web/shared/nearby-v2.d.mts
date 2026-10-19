@@ -14,6 +14,9 @@ export function nearbyBucket(count: number): string;
 export type WorldwideArea = { schemaVersion: 2; worldwide: true };
 export function validWorldwideArea(value: unknown): value is WorldwideArea;
 
-export type DiscoverySearchArea = { schemaVersion: 2 | 3 | 4; cell: string; radiusKm: number } | { schemaVersion: 2 | 3 | 4; worldwide: true };
+export type DiscoverySearchArea =
+  | { schemaVersion: 2 | 3 | 4; cell: string; radiusKm: number }
+  | { schemaVersion: 2 | 3 | 4; worldwide: true }
+  | ({ schemaVersion: 5; watchId: string } & ({ cell: string; radiusKm: number } | { worldwide: true }));
 export function validDiscoverySearch(value: unknown): value is DiscoverySearchArea;
 export function nearbyDistanceBand(a: string, b: string): string | null;

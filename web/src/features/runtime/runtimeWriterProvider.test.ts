@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { DOTIFY_FALLBACK_NATIVE_RUNTIME_ASSET, createNativeRuntimeAccessPaymentIntent } from '../payments/paymentModel';
+import type { RuntimeWritePort } from './runtimePorts';
 
 const txHash = '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' as const;
 const factory = '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb' as const;
@@ -24,6 +25,7 @@ const viemWriter = {
 };
 
 const productWriter = {
+  contributionCall: vi.fn<NonNullable<RuntimeWritePort['contributionCall']>>(async () => txHash),
   createRuntime: vi.fn(async () => txHash),
   installRuntimeStep: vi.fn(async () => txHash),
   registerTrack: vi.fn(async () => txHash),
@@ -132,6 +134,7 @@ describe('createRuntimeWriter', () => {
     const intent = accessIntent(42n);
     await expect(writer.payForAccess(intent)).resolves.toBe(txHash);
     await expect(writer.claimRoyalty(runtime, productH160Address)).resolves.toBe(txHash);
+
     await expect(writer.waitForTransaction(txHash)).resolves.toBeUndefined();
 
     const { createViemRuntimeWriter } = await import('./viemRuntimeAdapter');
@@ -209,6 +212,17 @@ describe('createRuntimeWriter', () => {
     expect(productWriter.createRuntime).toHaveBeenCalledWith(factory);
     expect(productWriter.payForAccess).toHaveBeenCalledWith(intent);
     expect(productWriter.claimRoyalty).toHaveBeenCalledWith(runtime, productH160Address);
+    const onFinalized = vi.fn();
+    const onStatus = vi.fn();
+    productWriter.contributionCall.mockImplementationOnce(async (_runtime, _method, _args, _value, finalized, status) => {
+      status?.('broadcasting');
+      expect(onStatus).toHaveBeenCalledWith('broadcasting');
+      finalized?.({ number: 123 });
+      return txHash;
+    });
+    await expect(writer.contributionCall!(runtime, 'musicGiftContribute', [hash], 7n, onFinalized, onStatus)).resolves.toBe(txHash);
+    expect(productWriter.contributionCall).toHaveBeenCalledWith(runtime, 'musicGiftContribute', [hash], 7n, onFinalized, onStatus);
+    expect(onFinalized).toHaveBeenCalledWith({ number: 123 });
     expect(writer.contributionConfirmationMode).toBe('finalized-event');
     expect(createViemRuntimeWriter).not.toHaveBeenCalled();
     expect(getViemWalletClient).not.toHaveBeenCalled();

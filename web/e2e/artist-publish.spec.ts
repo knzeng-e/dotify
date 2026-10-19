@@ -98,7 +98,10 @@ async function completeReleaseDraft(page: Page, options: { royaltySharePercent?:
   await page.getByRole('button', { name: 'Continue' }).click();
   await page.getByTestId('release-title-input').fill('E2E Published Signal');
   await page.getByTestId('release-description-input').fill('A deterministic artist publish e2e release.');
-  await page.getByText('More release details', { exact: true }).click();
+  // Keyboard activation avoids racing the page's smooth scroll when this
+  // disclosure sits at the viewport edge, and checks its native accessibility.
+  await page.locator('.release-editorial-details > summary').press('Enter');
+  await expect(page.locator('.release-editorial-details')).toHaveAttribute('open', '');
   await page.getByTestId('release-kind-input').selectOption('album-track');
   await page.getByTestId('release-project-input').fill('E2E Night Lines');
   await page.getByTestId('release-date-input').fill('2026');
@@ -366,6 +369,7 @@ test('artist publish remains recoverable while catalog read-back is delayed', as
 });
 
 test('approved publication keeps read-only recovery after the artist disconnects', async ({ page }) => {
+  await page.clock.install();
   await createArtistProfile(page, 'catalog-delay');
   await completeReleaseDraft(page);
   await page.getByTestId('publish-release-button').click();
@@ -373,6 +377,9 @@ test('approved publication keeps read-only recovery after the artist disconnects
   await expect(dialog).toContainText('Making your release visible');
   await dialog.getByRole('button', { name: 'Close', exact: true }).click();
   await page.getByRole('button', { name: 'Disconnect wallet', exact: true }).click();
+  // Run the delayed catalog insertion and the next read-only poll explicitly;
+  // this test checks disconnect recovery, not the browser's timer scheduling.
+  await page.clock.runFor(6000);
   await page.getByRole('button', { name: 'View payment status: Release published', exact: true }).click({ timeout: 15000 });
   await expect(page.getByRole('dialog')).toContainText('Release published', { timeout: 15000 });
   expect((await readArtistPublishState(page))?.registerTrackTransactions).toBe(1);

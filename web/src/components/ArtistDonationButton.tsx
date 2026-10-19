@@ -27,18 +27,40 @@ type ContributionButtonProps = { track: CatalogTrack; kind?: 'gift' | 'tip' };
 export function ArtistDonationButton(props: ContributionButtonProps) {
   const wallet = useWalletContext();
   const session = useSessionContext();
-  const chainScope = wallet.expectedChainId ?? wallet.connectedWallet?.chainId ?? 'pending';
-  const scope = `${chainScope}:${wallet.ethRpcUrl}:${wallet.listenerEvmAddress}:${props.track.id}:${props.kind}:${session.roomId}`;
-  return <ContributionButton key={scope} {...props} />;
+  const scope = `${wallet.ethRpcUrl}:${props.track.id}:${props.kind}:${session.roomId}`;
+  return <ContributionDraft key={scope} {...props} />;
 }
 
-function ContributionButton({ track, kind = 'gift' }: ContributionButtonProps) {
+// A wallet connection preserves only the non-financial draft. Quotes, receipts
+// and monitors still belong to one paying account and are reset on a switch.
+function ContributionDraft(props: ContributionButtonProps) {
   const wallet = useWalletContext();
-  const session = useSessionContext();
-  const { openWalletModal, pushNotice } = useUiFeedback();
-  const writer = useContributionWriter();
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState('');
+  const [resumeReview, setResumeReview] = useState(false);
+  return (
+    <ContributionButton
+      key={`${wallet.expectedChainId ?? wallet.connectedWallet?.chainId}:${wallet.listenerEvmAddress ?? 'guest'}`}
+      {...props}
+      draft={{ open, setOpen, amount, setAmount, resumeReview, setResumeReview }}
+    />
+  );
+}
+type Draft = {
+  open: boolean;
+  setOpen: (value: boolean) => void;
+  amount: string;
+  setAmount: (value: string) => void;
+  resumeReview: boolean;
+  setResumeReview: (value: boolean) => void;
+};
+function ContributionButton({ track, kind = 'gift', draft }: ContributionButtonProps & { draft: Draft }) {
+  const wallet = useWalletContext();
+  const session = useSessionContext();
+  const { openWalletModal, showWalletModal, pushNotice } = useUiFeedback();
+  const writer = useContributionWriter();
+  const { open, setOpen, amount, setAmount, resumeReview, setResumeReview } = draft;
+  const [slow, setSlow] = useState(false);
   const [intent, setIntent] = useState<ContributionIntent>();
   const [outcome, setOutcome] = useState<ContributionOutcome>();
   const [error, setError] = useState('');
@@ -91,6 +113,7 @@ function ContributionButton({ track, kind = 'gift' }: ContributionButtonProps) {
     const reader = contributionReader(wallet.ethRpcUrl);
     const expectedChainId = wallet.expectedChainId ?? wallet.connectedWallet?.chainId ?? (contributionE2e ? await reader.client.getChainId() : null);
     if (!wallet.listenerEvmAddress || !expectedChainId) {
+      setResumeReview(true);
       openWalletModal('support');
       return;
     }
@@ -171,13 +194,36 @@ function ContributionButton({ track, kind = 'gift' }: ContributionButtonProps) {
       setBusy(false);
     }
   }
+  const resumeRef = useRef(() => {});
+  useLayoutEffect(() => {
+    resumeRef.current = () => {
+      if (!resumeReview || !open || showWalletModal || !contributionScope) return;
+      setResumeReview(false);
+      // An existing payment always takes precedence over preparing a new quote.
+      try {
+        if (readSavedContribution(contributionScope, localStorage)) startMonitoring();
+        else void review();
+      } catch (failure) {
+        setError(failure instanceof Error ? failure.message : 'Could not read this contribution.');
+      }
+    };
+  });
+  useEffect(() => {
+    resumeRef.current();
+  }, [resumeReview, open, showWalletModal, wallet.listenerEvmAddress, network]);
+  useEffect(() => {
+    setSlow(false);
+    if (!pending) return;
+    const timer = setTimeout(() => setSlow(true), 30_000);
+    return () => clearTimeout(timer);
+  }, [pending]);
   async function monitor(prepared?: ContributionIntent) {
     if (monitoring.current || !contributionScope) return;
     const abort = new AbortController();
     monitorAbort.current = abort;
     monitoring.current = true;
     setPending(true);
-    setCheckingFinality(false);
+    setCheckingFinality(!prepared);
     if (prepared) setPendingHash(undefined);
     setOutcome(undefined);
     setPendingDiagnostic(undefined);
@@ -226,6 +272,11 @@ function ContributionButton({ track, kind = 'gift' }: ContributionButtonProps) {
                 intent: prepared,
                 storage: localStorage,
                 ...check,
+                onSubmitted: hash => {
+                  if (!mounted.current) return;
+                  setPendingHash(hash);
+                  setCheckingFinality(true);
+                },
                 send: async () => {
                   try {
                     if ((await reader.client.getChainId()) !== prepared.network) throw new Error('The network changed.');
@@ -245,6 +296,9 @@ function ContributionButton({ track, kind = 'gift' }: ContributionButtonProps) {
                     prepared.amount,
                     block => {
                       nativeBlock = block;
+                    },
+                    status => {
+                      if (mounted.current && ['broadcasting', 'in-block', 'finalized'].includes(status)) setCheckingFinality(true);
                     }
                   );
                   return { hash, nativeBlock };
@@ -379,8 +433,17 @@ function ContributionButton({ track, kind = 'gift' }: ContributionButtonProps) {
           </span>
         )}
       </button>
-      {open && (
-        <Dialog historyDismiss className='artist-gift-dialog' size='compact' labelledBy='contribution-title' onClose={() => setOpen(false)}>
+      {open && !showWalletModal && (
+        <Dialog
+          historyDismiss
+          className='artist-gift-dialog'
+          size='compact'
+          labelledBy='contribution-title'
+          onClose={() => {
+            setOpen(false);
+            setResumeReview(false);
+          }}
+        >
           <div className='modal-header'>
             <div>
               <p className='eyebrow contribution-purpose'>
@@ -389,7 +452,14 @@ function ContributionButton({ track, kind = 'gift' }: ContributionButtonProps) {
               </p>
               <h2 id='contribution-title'>{kind === 'tip' ? track.title : `Gift to ${track.artist}`}</h2>
             </div>
-            <button className='modal-close' aria-label={kind === 'tip' ? 'Close tip' : 'Close gift'} onClick={() => setOpen(false)}>
+            <button
+              className='modal-close'
+              aria-label={kind === 'tip' ? 'Close tip' : 'Close gift'}
+              onClick={() => {
+                setOpen(false);
+                setResumeReview(false);
+              }}
+            >
               <X size={18} />
             </button>
           </div>
@@ -397,22 +467,17 @@ function ContributionButton({ track, kind = 'gift' }: ContributionButtonProps) {
             <div className='contribution-pending' role='status' aria-live='polite'>
               <LoaderCircle className='spin' size={23} aria-hidden='true' />
               <div>
-                <strong>
-                  {checkingFinality
-                    ? pendingHash
-                      ? writer.contributionConfirmationMode === 'finalized-event'
-                        ? 'Checking contribution receipt'
-                        : 'Checking network finality'
-                      : 'Checking payment status'
-                    : 'Waiting for confirmation'}
-                </strong>
+                <strong>{checkingFinality ? 'Confirming your contribution' : slow ? 'Still waiting for your wallet' : 'Approve in your wallet'}</strong>
                 <p>
                   {checkingFinality
                     ? pendingHash
-                      ? 'We will keep checking the finalized contribution receipt without sending another payment.'
-                      : 'The wallet result is incomplete. We will keep checking this saved contribution without sending another payment.'
-                    : 'Approve in your wallet if asked. You can close this window while Dotify checks the result.'}
+                      ? 'Network confirmation can take a little longer. Keep listening; Dotify will let you know when your contribution is confirmed.'
+                      : 'Dotify is checking confirmation with your wallet and the network. You can keep listening while we wait.'
+                    : slow
+                      ? 'Your wallet has not returned a result yet. Check it for an approval request. Dotify has saved this attempt and will not resend it.'
+                      : 'Approve this contribution in your wallet, then return here. Network confirmation can take a few moments.'}
                 </p>
+                <p className='nearby-hint'>You can close this window. Do not send another payment while this one is being checked.</p>
                 {pendingHash && (
                   <a
                     href={getTransactionProofUrl(

@@ -82,3 +82,15 @@ it('bounds decoration for unusually large operator capacities without rounding t
   expect(html).toContain('501 listening');
   expect(html.match(/<i style=/g)).toHaveLength(128);
 });
+
+it('shows a verified artist seal without hovering and a stable room name alongside the current track', () => {
+  const named = { ...room, roomName: 'Escale à Libreville', introduction: 'Découvertes et discussion', artistPresent: true };
+  const html = renderToStaticMarkup(<RoomRadar discovery={discovery('active', [named])} onJoin={vi.fn()} joining={false} />);
+  expect(html).toContain('room-artist-seal');
+  expect(html).toContain('Artist here');
+  expect(html).toContain('Escale à Libreville');
+  expect(html).toContain('Same song');
+  expect(html).toContain('Découvertes et discussion');
+  const discreet = renderToStaticMarkup(<RoomRadar discovery={discovery('active')} onJoin={vi.fn()} joining={false} />);
+  expect(discreet).not.toContain('room-artist-seal');
+});

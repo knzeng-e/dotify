@@ -188,7 +188,7 @@ export function createRuntimeWriter(deps: RuntimeWriterDeps): RuntimeWritePort {
       if (!PRODUCT_CDM_ENABLED || config.kind !== 'product-cdm') throw new Error('Native contribution receipts require the Product CDM profile.');
       return readNativeContributionReceiptApi({ apiUrl: deps.nativeReceiptApiUrl ?? import.meta.env.VITE_DOTIFY_API_URL, hash, block });
     },
-    contributionCall: async (runtime, method, args, value, onFinalized) => {
+    contributionCall: async (runtime, method, args, value, onFinalized, observer) => {
       let port: RuntimeWritePort;
       try {
         port = await portForWrite();
@@ -197,7 +197,7 @@ export function createRuntimeWriter(deps: RuntimeWriterDeps): RuntimeWritePort {
       }
       if (!port.contributionCall) throw new SupportNotSubmittedError(new Error('This wallet cannot submit contributions.'));
       try {
-        return await port.contributionCall(runtime, method, args, value, onFinalized);
+        return await port.contributionCall(runtime, method, args, value, onFinalized, observer);
       } catch (error) {
         if (config.kind === 'product-cdm' && productCdmPaymentWasNotSubmitted(error)) throw new SupportNotSubmittedError(error);
         throw error;

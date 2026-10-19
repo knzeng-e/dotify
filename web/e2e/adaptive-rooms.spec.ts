@@ -14,7 +14,22 @@ async function hostRoom(browser: Browser) {
   await expect(host.getByTestId('room-code')).toHaveText(/[A-Z2-9]{6}/, { timeout: 15_000 });
   await host.getByRole('tab', { name: /People/ }).click();
   await expect(host.getByRole('region', { name: 'Room visibility' })).toContainText('Visible nearby');
-  return { context, roomId: (await host.getByTestId('room-code').textContent())!.trim() };
+  return {
+    roomId: (await host.getByTestId('room-code').textContent())!.trim(),
+    close: async () => {
+      try {
+        // Closing a tab is now a reconnectable disconnect. Explicitly end the
+        // fixture room so its grace-period invitation cannot enter the next test.
+        await host.getByRole('button', { name: 'Close room', exact: true }).click();
+        const confirm = host.getByRole('button', { name: 'Close for everyone', exact: true });
+        await expect.poll(async () => (await host.getByTestId('room-code').count()) === 0 || (await confirm.isVisible())).toBe(true);
+        if (await confirm.isVisible()) await confirm.click();
+        await expect(host.getByTestId('room-code')).toHaveCount(0);
+      } finally {
+        await context.close();
+      }
+    }
+  };
 }
 async function openNearby(page: Page) {
   await page.context().grantPermissions(['geolocation']);
@@ -46,7 +61,7 @@ test('desktop galaxy opens automatically; range and pause settings keep keyboard
     await expect(radar.getByRole('heading', { name: PUBLIC_TITLE })).toHaveCount(0);
     await expect(radar).toContainText('Nearby paused');
   } finally {
-    await room.context.close();
+    await room.close();
   }
 });
 
@@ -68,7 +83,7 @@ test('galaxy and direct joining work without WebGL', async ({ browser, page }) =
     await expect(page.getByTestId('room-code')).toHaveText(room.roomId);
     await expect(page.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20_000 });
   } finally {
-    await room.context.close();
+    await room.close();
   }
 });
 
@@ -84,7 +99,7 @@ test('reduced motion keeps room actions usable and clears hidden results', async
     await expect(radar.getByRole('heading', { name: PUBLIC_TITLE })).toHaveCount(0);
     await expect(radar.getByRole('button', { name: /^Inspect / })).toHaveCount(0);
   } finally {
-    await room.context.close();
+    await room.close();
   }
 });
 
@@ -107,6 +122,6 @@ test('mobile galaxy and inspection sheet stay touch-safe with no horizontal over
     await page.getByRole('button', { name: 'Join room', exact: true }).click();
     await expect(page.getByTestId('room-code')).toHaveText(room.roomId);
   } finally {
-    await room.context.close();
+    await room.close();
   }
 });

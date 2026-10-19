@@ -28,13 +28,16 @@ function harness(
   };
   const locate = vi.fn(async (_signal: AbortSignal, _onCoarseFix?: () => void) => cell);
   const port = {
+    on: vi.fn(),
+    off: vi.fn(),
+    emit: vi.fn(),
     connected: true,
     request: (event: string, input: unknown, _opts: unknown, reply: (error: null, value: unknown) => void) => {
       events.push({ event, input });
       reply(null, event === 'nearby:search' ? { ok: true, schemaVersion: 2, expiresInMs: 30_000, results: [] } : { ok: true, expiresInMs: NEARBY_TTL_MS });
     }
   };
-  const session = new NearbySession(port as RoomRealtimePort, host, enabled, {
+  const session = new NearbySession(port as unknown as RoomRealtimePort, host, enabled, {
     visible: () => true,
     supported: () => true,
     locate,
@@ -211,7 +214,7 @@ describe('nearby consent and lifecycle', () => {
     const f = harness();
     await f.session.start(manual, 5);
     expect(f.locate).not.toHaveBeenCalled();
-    expect(f.events).toEqual([{ event: 'nearby:search', input: { schemaVersion: 4, cell, radiusKm: 5 } }]);
+    expect(f.events).toEqual([{ event: 'nearby:search', input: { schemaVersion: 5, cell, radiusKm: 5, watchId: expect.any(String) } }]);
     f.session.stop();
   });
   it('aborts an outstanding fix and ignores its late callback after stop', async () => {
@@ -633,10 +636,10 @@ it('falls back to an older discovery schema only on a version/area rejection and
   f.port.request = (event, input, _opts, done) => {
     f.events.push({ event, input });
     const version = (input as { schemaVersion: number }).schemaVersion;
-    done(null, version === 4 ? { ok: false, code: 'INVALID_AREA' } : { ok: true, schemaVersion: 3, expiresInMs: 90_000, results: [] });
+    done(null, version >= 4 ? { ok: false, code: 'INVALID_AREA' } : { ok: true, schemaVersion: 3, expiresInMs: 90_000, results: [] });
   };
   await f.session.start(manual, 5);
-  expect(f.events.map(event => (event.input as { schemaVersion: number }).schemaVersion)).toEqual([4, 3]);
+  expect(f.events.map(event => (event.input as { schemaVersion: number }).schemaVersion)).toEqual([5, 4, 3]);
   await vi.advanceTimersByTimeAsync(15_000);
   expect((f.events[f.events.length - 1].input as { schemaVersion: number }).schemaVersion).toBe(3);
   f.session.stop();
@@ -676,4 +679,104 @@ it('explicitly stopping visibility cancels an in-flight recovery and its late gr
   expect(f.session.selection().source).toBeNull();
   expect(f.events.filter(event => event.event === 'nearby:publish')).toHaveLength(1);
   expect(vi.getTimerCount()).toBe(0);
+});
+
+it('holds a connected host in the background without requesting another location, then refreshes on return', async () => {
+  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'performance', 'Date'] });
+  let visible = true;
+  const f = harness(true, true, { visible: () => visible });
+  await f.session.start({ kind: 'device' }, 5);
+  const before = f.events.length;
+  visible = false;
+  f.session.background();
+  await vi.advanceTimersByTimeAsync(120_000);
+  expect(f.events.slice(before).map(item => item.event)).toEqual(['nearby:hold']);
+  expect(f.session.snapshot().phase).toBe('active');
+  expect(f.locate).toHaveBeenCalledTimes(1);
+  visible = true;
+  await f.session.resume();
+  expect(f.locate).toHaveBeenCalledTimes(2);
+  expect(f.events[f.events.length - 1]?.event).toBe('nearby:publish');
+  f.revoke();
+  expect(f.events[f.events.length - 1]?.event).toBe('nearby:off');
+  f.session.stop();
+});
+
+it('accepts only current ordered pushes, keeps Hide reversible and never revives an expired query', async () => {
+  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'performance', 'Date'] });
+  const f = harness();
+  f.port.request = (event, input, _opts, done) => {
+    f.events.push({ event, input });
+    done(null, { ok: true, schemaVersion: 5, sequence: 1, expiresInMs: 1000, results: [] });
+  };
+  await f.session.start(manual, 5);
+  const watchId = (f.events[0].input as { watchId: string }).watchId;
+  const update = f.port.on.mock.calls[0][1] as (value: unknown) => void;
+  const room = {
+    ...result('ABCDEF', 90_000, 1),
+    distanceBand: '0–5 km',
+    listenerCount: 1,
+    imageRef: null,
+    roomName: 'Escale',
+    introduction: '',
+    artistPresent: true,
+    connection: 'online'
+  };
+  const reply = { ok: true, schemaVersion: 5, sequence: 2, expiresInMs: 45_000, results: [room] };
+  update({ watchId: 'wrong', reply });
+  expect(f.session.snapshot().results).toEqual([]);
+  update({ watchId, reply });
+  expect(f.session.snapshot().results).toHaveLength(1);
+  update({ watchId, reply: { ...reply, sequence: 1, results: [] } });
+  expect(f.session.snapshot().results).toHaveLength(1);
+  f.session.hide(room.roomId, room.roomName);
+  expect(f.session.snapshot().results).toEqual([]);
+  f.session.restore(room.roomId);
+  expect(f.session.snapshot().results).toHaveLength(1);
+  await vi.advanceTimersByTimeAsync(1001);
+  update({ watchId, reply: { ...reply, sequence: 3 } });
+  f.session.restore(room.roomId);
+  expect(f.session.snapshot().results).toEqual([]);
+  f.session.stop();
+  expect(f.port.off).toHaveBeenCalledWith('nearby:updated', update);
+  expect(f.port.emit).toHaveBeenCalledWith('nearby:unwatch', { watchId });
+});
+
+it('does not send opt-out during a brief host reconnect before refreshing the chosen area', async () => {
+  const f = harness(true);
+  await f.session.start({ kind: 'device' }, 22);
+  f.port.connected = false;
+  f.session.connectionLost();
+  f.port.connected = true;
+  await f.session.resume();
+  expect(f.events.map(item => item.event)).toEqual(['nearby:publish', 'nearby:publish']);
+  expect(f.locate).toHaveBeenCalledTimes(2);
+  expect(f.session.selection().radius).toBe(22);
+  f.session.stop();
+});
+
+it('holds the host lease when a refresh observes backgrounding before the visibility event', async () => {
+  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'performance', 'Date'] });
+  let visible = true;
+  const f = harness(true, true, { visible: () => visible });
+  await f.session.start({ kind: 'device' }, 5);
+  visible = false;
+  await vi.advanceTimersByTimeAsync(30_000);
+  expect(f.events.map(item => item.event)).toEqual(['nearby:publish', 'nearby:hold']);
+  expect(f.locate).toHaveBeenCalledOnce();
+  f.session.stop();
+});
+
+it('rearms the original card expiry when a hidden room is restored after the visible cards expire', async () => {
+  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'performance', 'Date'] });
+  const f = harness(false, true, { continuousDevice: () => false });
+  replyWithRooms(f, [result('SHORT2', 1000, 1), result('LONG34', 5000, 2)]);
+  await f.session.start({ kind: 'device' }, 5);
+  f.session.hide('LONG34');
+  await vi.advanceTimersByTimeAsync(2000);
+  f.session.restore('LONG34');
+  expect(f.session.snapshot().results.map(item => item.roomId)).toEqual(['LONG34']);
+  await vi.advanceTimersByTimeAsync(3001);
+  expect(f.session.snapshot().results).toEqual([]);
+  f.session.stop();
 });

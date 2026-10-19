@@ -50,8 +50,10 @@ name alone never does. Explicit leave ends the visit immediately. A reconnect
 creates fresh WebRTC and realtime membership; this token grants no host role,
 keys or access. Pending state and timers are deleted at room closure.
 
-Typing, activities, pins, messages, continuity credentials and verified artist
-badges never appear on `/status`, public discovery or Statement Store beacons.
+Typing, activities, pins, messages and continuity credentials never appear on
+`/status`, public discovery or Statement Store beacons. The October 18 v5
+discovery amendment permits only a boolean indicating an announced, verified
+artist of the current track is connected, with no participant identity or token.
 No notification sound is added; scrolling older messages never forces a return
 to the bottom. The unread button moves only the chat scroll container.
 

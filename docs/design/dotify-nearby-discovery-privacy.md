@@ -1,8 +1,56 @@
 # Dotify Nearby Discovery Privacy Contract
 
-Status: W19 is available by default in Web and Product builds. The October 17 follow-up adds v4 room identity, stable host choices and authenticated artist activity; this follow-up is not deployed. Physical native-location validation remains open. Hosts explicitly choose publication. W18 v1 is inert historical scaffolding.
+Status: W19 is available by default in Web and Product builds. V4 supplies room identity, stable host choices and authenticated artist activity. The October 18 v5 live-presence follow-up below is a candidate, not deployed. Physical native-location validation remains open. Hosts explicitly choose publication. W18 v1 is inert historical scaffolding.
 
-Last reviewed: 2026-10-17. The newest amendment governs room visibility, public presence and artist activity; older dated sections are historical where they conflict.
+Last reviewed: 2026-10-18. The newest amendment governs room visibility, public presence and artist activity; older dated sections are historical where they conflict.
+
+## Live invitations and background continuity, 2026-10-18
+
+Owner-approved follow-up, not deployed. This amendment supersedes earlier
+background/disconnect rules below.
+
+Search v5 subscribes to a scoped, in-memory snapshot on the existing Socket.IO
+connection. A random watch ID and increasing sequence reject stale replies.
+Nearby and Worldwide remain separate; both Nearby radii must match. Each socket
+has at most one watch per mode, each expires after 45 seconds, and the service
+accepts at most 2,000 watching sockets. Changed public snapshots are coalesced for
+200 ms. Invalidation is scoped to a changed room's old/new public areas; private
+rooms and unchanged public fields trigger no watch work. Identical queries share
+one snapshot/enrichment per batch. Private or out-of-scope activity does not emit
+frames or sequence gaps.
+Foreground reads still renew every 15/30 seconds. Unwatch, disconnect, expiry and
+hidden listener pages end the subscription. Pushes cannot extend the client's
+last acknowledged query lease. V2/v3/v4 retain their response shapes.
+
+A host who backgrounds Dotify may explicitly hold the last published area through
+`nearby:hold`. Live transport pongs/host activity renew that existing 90-second
+lease without a new location read. This is continued publication at the last
+consented area, not movement tracking. Returning to foreground requests a fresh
+fix. Denial, explicit Link only and room closure revoke visibility. Native Hosts
+without a silent permission observer can only recheck an OS revocation on return;
+this limitation must be included in device acceptance. A missing hold, failed
+connection or expired lease cannot be renewed by a later heartbeat alone.
+
+After a detected host disconnect, v5 shows Reconnecting for at most eight seconds
+and disables Join. Authenticated host resumption inside that window preserves
+visibility. After expiry it requires fresh publication. Old clients omit offline
+rooms. Explicit close/removal is pushed immediately after the 200 ms coalescing
+window; network failure detection still depends on transport timeouts. This does
+not promise uninterrupted background audio on a suspended operating system.
+
+V5 adds optional host-written name (60 characters) and invitation (240), plus
+connection state and a boolean `artistPresent`. The boolean requires an existing
+server-verified, explicitly announced artist member still connected to the exact
+currently playing runtime/release. It reveals that presence in the public room;
+it never exports the member's identity, token or wallet. A pink verified seal is
+visible without hover. Link-only rooms remain absent from public discovery.
+Profile text stays only for the room lifetime and grants no identity/artist role.
+
+Hide is local to this mounted discovery session and reversible in Hidden rooms.
+Restoring removes the local exclusion; it cannot restore an expired or private
+invitation. Report remains an aggregate counter, not a moderation inbox: no
+moderator is notified, and the UI states that limitation. Neither action changes
+what other listeners see.
 
 ## Room identity, stable choices and artist activity — 2026-10-17
 

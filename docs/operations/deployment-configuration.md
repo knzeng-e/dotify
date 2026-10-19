@@ -1,5 +1,53 @@
 # Deployment Configuration Runbook
 
+## Live room invitations and contribution continuity, 2026-10-18
+
+Candidate only. Deploy signaling before the Web/Product client. There are no new
+credentials, environment flags, CORS origins, storage mounts or contract changes.
+The v5 search protocol adds scoped `nearby:updated` snapshots and
+`nearby:unwatch`; legacy schemas remain available. New clients negotiate down on
+`INVALID_AREA` only. Older servers cannot offer live pushes, optional room profile
+editing or background holds. Keep single-process signaling; no horizontal
+subscription/presence coherence is implemented. Rollback requires both client and
+signaling if withdrawing the new background policy.
+
+A 200 ms coalescer updates only watchers intersecting the changed room's old or
+new public area; private/no-op activity does no watch work. Identical queries
+share a snapshot/enrichment within that batch. A one-second sweep handles expiry.
+There are at most 2,000 watched sockets and two 45-second queries each. Public
+snapshots only are emitted. Payloads, coarse areas and watch IDs must not enter
+logs, analytics, persistence or diagnostic endpoints. See the authoritative
+[privacy amendment](../design/dotify-nearby-discovery-privacy.md#live-invitations-and-background-continuity-2026-10-18).
+
+A held background host stays discoverable at its last area while transport pongs
+or host activity prove the session lives. Disconnection enters an eight-second
+discovery grace after transport failure is detected. Explicit close removes the
+invitation on the next coalesced push. Browser/OS suspension is not equivalent to
+intentional room closure. Verify screen lock, app switching, network loss,
+authenticated resume and opt-out on the exact supported Desktop/mobile builds;
+local fixtures cannot prove native lifecycle or uninterrupted audio.
+
+Room names/invitations are optional, bounded, host-only and ephemeral. The public
+artist-presence flag is derived from a verified announced member and the current
+release. Test artist arrival, discreet entry, track change, departure and
+revocation; never trust a client-supplied artist badge.
+
+Contributions keep only amount/open state across wallet connection, then quote
+again for the connected payer. Financial state remains scoped to account,
+network, runtime and work. Product lifecycle callbacks update progress while
+waiting for finality; the installed SDK exposes status only, not an early hash.
+The returned reference/block is saved before receipt verification. A pending
+receipt recheck resumes on foreground return without another payment. No timer
+assumes failure or resubmits. UI success still requires
+a matching finalized receipt. The reported live pending tip has not been
+independently reconciled: the supplied hash has no indexed EVM receipt or
+native explorer detail, so its native receipt block is still needed. Absence
+from an index does not establish payment failure.
+
+Validate with the focused evidence in
+[room presence and tip continuity](../backlog/implementation/evidence/room-presence-tip-continuity-2026-10-18.md).
+Earlier background/disconnect statements below are historical where superseded.
+
 ## Playback and discovery stability follow-up — 2026-10-17
 
 Deploy the API and signaling before the matching Web/Product clients. The API

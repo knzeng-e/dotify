@@ -10,52 +10,32 @@ export function contributionReconciliationDelay(retry: number): number | undefin
   return contributionReconciliationDelaysMs[retry];
 }
 
-function waitForDelay(milliseconds: number, signal: AbortSignal): Promise<boolean> {
+/** Recheck on foreground return instead of restarting a long backoff after a
+ * wallet excursion. Hidden pages never initiate a confirmation read. */
+export function waitForContributionReconciliation(milliseconds: number, signal: AbortSignal, visibility: VisibilitySource = document): Promise<boolean> {
   return new Promise(resolve => {
     if (signal.aborted) {
       resolve(false);
       return;
     }
-    const timer = setTimeout(() => finish(true), milliseconds);
-    const abort = () => finish(false);
-    function finish(completed: boolean) {
-      clearTimeout(timer);
-      signal.removeEventListener('abort', abort);
-      resolve(completed);
-    }
-    signal.addEventListener('abort', abort, { once: true });
-  });
-}
-
-function waitUntilVisible(signal: AbortSignal, visibility: VisibilitySource): Promise<boolean> {
-  return new Promise(resolve => {
-    if (signal.aborted) {
-      resolve(false);
-      return;
-    }
-    if (visibility.visibilityState !== 'hidden') {
-      resolve(true);
-      return;
-    }
-    const changed: EventListener = () => {
+    let wasHidden = visibility.visibilityState === 'hidden';
+    let elapsed = false;
+    const timer = setTimeout(() => {
+      elapsed = true;
       if (visibility.visibilityState !== 'hidden') finish(true);
+    }, milliseconds);
+    const changed: EventListener = () => {
+      if (visibility.visibilityState === 'hidden') wasHidden = true;
+      else if (wasHidden || elapsed) finish(true);
     };
     const abort = () => finish(false);
-    function finish(visible: boolean) {
+    function finish(value: boolean) {
+      clearTimeout(timer);
       visibility.removeEventListener('visibilitychange', changed);
       signal.removeEventListener('abort', abort);
-      resolve(visible);
+      resolve(value);
     }
     visibility.addEventListener('visibilitychange', changed);
     signal.addEventListener('abort', abort, { once: true });
   });
-}
-
-export async function waitForContributionReconciliation(milliseconds: number, signal: AbortSignal, visibility: VisibilitySource = document): Promise<boolean> {
-  while (!signal.aborted) {
-    if (!(await waitUntilVisible(signal, visibility))) return false;
-    if (!(await waitForDelay(milliseconds, signal))) return false;
-    if (visibility.visibilityState !== 'hidden') return true;
-  }
-  return false;
 }

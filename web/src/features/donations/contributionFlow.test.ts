@@ -233,3 +233,23 @@ describe('persistent contributions', () => {
     }
   });
 });
+
+it('journals the returned reference before notifying the UI or awaiting its receipt, without sending twice', async () => {
+  const f = fixture();
+  let finish!: (receipt: ContributionReceipt) => void;
+  const confirm = vi.fn(async () => {
+    return new Promise<ContributionReceipt>(resolve => {
+      finish = resolve;
+    });
+  });
+  const onSubmitted = vi.fn(() => {
+    expect(JSON.parse(f.storage.getItem(contributionStorageKey(f.intent))!).hash).toBe(f.receipt.transactionHash);
+  });
+  const pending = runContribution({ ...f, confirm, onSubmitted });
+  await vi.waitFor(() => expect(onSubmitted).toHaveBeenCalledWith(f.receipt.transactionHash));
+  const duplicate = runContribution(f);
+  finish(f.receipt);
+  expect((await pending).status).toBe('confirmed');
+  await duplicate;
+  expect(f.send).toHaveBeenCalledTimes(1);
+});

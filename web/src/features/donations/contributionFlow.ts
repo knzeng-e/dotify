@@ -88,6 +88,7 @@ export async function runContribution(input: {
   intent: ContributionIntent;
   storage: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
   send: () => Promise<Hash | { hash: Hash; nativeBlock?: NativeContributionBlock }>;
+  onSubmitted?: (hash: Hash) => void;
   confirm: (hash: Hash, id: Hash, nativeBlock?: NativeContributionBlock) => Promise<ContributionReceipt>;
   recover: (id: Hash) => Promise<ContributionReceipt | undefined>;
   currentAccount: () => boolean;
@@ -115,6 +116,7 @@ export async function runContribution(input: {
         saved.hash = typeof submission === 'string' ? submission : submission.hash;
         if (typeof submission !== 'string') saved.nativeBlock = submission.nativeBlock;
         input.storage.setItem(key, JSON.stringify(saved));
+        input.onSubmitted?.(saved.hash);
         receipt = await input.confirm(saved.hash, saved.id, saved.nativeBlock);
       }
       verifyReceipt(receipt, saved, input.intent);

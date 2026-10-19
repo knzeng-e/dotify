@@ -777,3 +777,124 @@
     margin-inline: auto;
   }
 }
+
+/* The verified artist accent is distinct from the cyan host/presence orbit. */
+.discovery-room-presence {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+}
+.room-artist-presence {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: #ffabd2;
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+.room-artist-seal {
+  position: absolute;
+  right: -6px;
+  bottom: -4px;
+  width: 23px;
+  height: 23px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #ff9bc9;
+  border-radius: 50%;
+  color: #ffb4d6;
+  background: #331a32;
+  box-shadow: 0 0 14px #ed148755;
+  z-index: 1;
+}
+.radar-room-dot[data-artist-present='true'] .radar-room-core {
+  outline: 1px solid #ff9bc9;
+  outline-offset: 3px;
+}
+.room-reconnecting {
+  color: #e9c79b;
+  font-size: 0.75rem;
+}
+.radar-room-dot[data-reconnecting='true'] .radar-room-core {
+  opacity: 0.65;
+}
+.radar-preview-host {
+  font-size: 0.9rem;
+}
+.radar-preview-introduction {
+  line-height: 1.6;
+}
+.radar-preview-playing {
+  display: grid;
+  gap: 0.35rem;
+  padding-block: 1rem;
+  margin-block: 1rem;
+  border-block: 1px solid #7ebfca30;
+}
+.radar-preview-playing small {
+  font-size: 0.65rem;
+  letter-spacing: 0.12em;
+  color: #9bb3c4;
+}
+.radar-preview-playing span {
+  color: #aed4d4;
+}
+.radar-preview-presence {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  align-items: center;
+}
+.radar-room-introduction {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  white-space: normal;
+  line-height: 1.4;
+  margin-block: 0.25rem;
+}
+.radar-hidden-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-block: 0 0.8rem;
+}
+.radar-hidden-list {
+  list-style: none;
+  margin: 1rem 0;
+  padding: 0;
+}
+.radar-hidden-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #7ebfca30;
+}
+.radar-hidden-list li span {
+  overflow-wrap: anywhere;
+}
+.room-profile-optional {
+  margin-block: 1rem;
+}
+.room-profile-optional summary {
+  cursor: pointer;
+  padding-block: 0.5rem;
+}
+.room-profile-optional summary span,
+.room-profile-fields small {
+  color: var(--muted);
+  font-weight: normal;
+}
+.room-profile-fields {
+  display: grid;
+  gap: 0.6rem;
+  margin-block: 1rem;
+}
+.room-profile-fields textarea {
+  resize: vertical;
+  min-height: 5rem;
+}

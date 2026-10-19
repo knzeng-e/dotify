@@ -31,9 +31,7 @@ describe('contribution reconciliation schedule', () => {
       expect(settled).toBe(false);
 
       visibility.set('visible');
-      await vi.advanceTimersByTimeAsync(4_999);
-      expect(settled).toBe(false);
-      await vi.advanceTimersByTimeAsync(1);
+      await vi.advanceTimersByTimeAsync(0);
       await expect(pending).resolves.toBe(true);
     } finally {
       vi.useRealTimers();
