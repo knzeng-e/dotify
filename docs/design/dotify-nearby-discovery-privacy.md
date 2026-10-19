@@ -1,12 +1,14 @@
 # Dotify Nearby Discovery Privacy Contract
 
-Status: W19 is available by default in Web and Product builds. V4 supplies room identity, stable host choices and authenticated artist activity. The October 18 v5 live-presence follow-up below is a candidate, not deployed. Physical native-location validation remains open. Hosts explicitly choose publication. W18 v1 is inert historical scaffolding.
+Status: W19 is available by default in Web and Product builds. V4 supplies room identity, stable host choices and authenticated artist activity. The October 18 v5 live-presence follow-up below is published in Product 0.1.55 and signaling release 36. Physical native-location and background validation remain open. Hosts explicitly choose publication. W18 v1 is inert historical scaffolding.
 
-Last reviewed: 2026-10-18. The newest amendment governs room visibility, public presence and artist activity; older dated sections are historical where they conflict.
+Last reviewed: 2026-10-19. The newest amendment governs room visibility, public presence and artist activity; older dated sections are historical where they conflict.
 
 ## Live invitations and background continuity, 2026-10-18
 
-Owner-approved follow-up, not deployed. This amendment supersedes earlier
+Owner-approved follow-up, published in Product 0.1.55 after the signaling update.
+See the [rollout evidence](../backlog/implementation/evidence/product-0.1.55-rollout-2026-10-19.md).
+Physical Host acceptance remains separate. This amendment supersedes earlier
 background/disconnect rules below.
 
 Search v5 subscribes to a scoped, in-memory snapshot on the existing Socket.IO

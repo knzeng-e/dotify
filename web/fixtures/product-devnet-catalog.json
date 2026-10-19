@@ -487,9 +487,9 @@
   "meta": {
     "state": "fresh",
     "cacheAvailable": true,
-    "indexedAt": "2026-10-18T10:55:54.832Z",
-    "lastIndexedBlock": 14597005,
-    "chainHeadBlock": 14597007,
+    "indexedAt": "2026-10-19T10:31:51.392Z",
+    "lastIndexedBlock": 14638879,
+    "chainHeadBlock": 14638881,
     "blockLag": 2,
     "staleAfterMs": 60000,
     "lastErrorCode": null
