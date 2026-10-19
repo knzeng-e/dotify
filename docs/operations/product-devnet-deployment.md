@@ -36,8 +36,9 @@ independently serves the merged-dev interface.
 Finalized root/app version and public CAR checks passed, including all 125
 block hashes and byte-for-byte index/entry equality with the signed build.
 The local signer is removed. See the [rollout record](../backlog/implementation/evidence/product-0.1.56-rollout-2026-10-19.md)
-for Web form checks and the bounded installed Desktop 0.1.3 smoke. Physical
-mobile keyboard/rotation and prolonged audio acceptance remains open.
+for Web form checks and the bounded installed Desktop 0.1.3 smoke. The owner
+confirmed expected mobile keyboard behavior on 2026-10-20; full device-matrix,
+rotation and prolonged audio acceptance remains open.
 Current client rollback: **0.1.55**, with the same API/signaling versions.
 
 The following release sections preserve historical rollout and rollback evidence.

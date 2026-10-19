@@ -87,9 +87,13 @@ differs by design from the transport CID wrapping the chunked CAR.
   rendered correctly. Existing Host permissions were already allowed; none
   was changed. This bounded native desktop smoke does not certify mobile
   keyboard behavior or inspect the loaded JavaScript source SHA.
-- Physical iPhone/Android and Product Mobile keyboard/rotation, first-tap after
-  native keyboard closing, prolonged audio and funded native receipt/chat
-  acceptance remain open. Follow the [form acceptance record](mobile-form-continuity-2026-10-19.md).
+- On 2026-10-20, the owner reported that the mobile keyboard behaves as expected.
+  This is positive owner-observed mobile keyboard evidence. Device, OS and
+  browser/Host version were not supplied for that observation; it does not
+  establish the complete iPhone/Android/Product matrix or rotation/first-tap cases.
+- Remaining device-matrix coverage, rotation, first-tap after native keyboard
+  closing, prolonged audio and funded native receipt/chat acceptance remain open.
+  Follow the [form acceptance record](mobile-form-continuity-2026-10-19.md).
   Reopen Product and verify 0.1.56 before recording device acceptance. No funded
   contribution was submitted during this rollout.
 

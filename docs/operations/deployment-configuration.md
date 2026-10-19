@@ -139,8 +139,9 @@ The current client rollback artifact is **Product 0.1.55**, CID
 Keep the existing API/signaling pair on a presentation rollback. See the
 [0.1.56 rollout record](../backlog/implementation/evidence/product-0.1.56-rollout-2026-10-19.md)
 for finalized root/app identity, public-byte verification, Web and bounded
-native Desktop smoke. The signer is removed. Physical mobile keyboard,
-rotation and prolonged listening acceptance remains open.
+native Desktop smoke. The signer is removed. On 2026-10-20, the owner confirmed
+expected mobile keyboard behavior. Full device-matrix, rotation and prolonged
+listening acceptance remains open.
 
 ## Previous Product release - 0.1.55
 
