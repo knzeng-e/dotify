@@ -71,6 +71,9 @@ export function Dialog({
     const frame = window.requestAnimationFrame(() => {
       const dialog = dialogRef.current;
       if (!dialog) return;
+      // A tap or an explicitly focused form control may beat this frame. Do
+      // not steal that focus or reset a scroll the user has already started.
+      if (dialog.contains(document.activeElement)) return;
       dialog.scrollTop = 0;
       const focusable = getFocusableElements(dialog);
       (initialFocus === 'dialog' ? dialog : (focusable[0] ?? dialog)).focus({ preventScroll: true });
@@ -117,7 +120,7 @@ export function Dialog({
       } else {
         appRoot?.setAttribute('aria-hidden', previousAriaHidden);
       }
-      previousActive?.focus();
+      previousActive?.focus({ preventScroll: true });
     };
   }, [dismissible, initialFocus]);
 

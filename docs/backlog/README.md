@@ -27,6 +27,11 @@ implemented by PR #264.
 
 ## Product north star
 
+The post-0.1.55 mobile keyboard correction and shared interaction polish are
+tracked by [#306](https://github.com/knzeng-e/dotify/issues/306),
+[mobile form continuity](mobile-form-continuity.md). This is a focused follow-up
+to completed W28, with physical Product keyboard verification kept explicit.
+
 Post-0.1.47 owner feedback is tracked by [#269](https://github.com/knzeng-e/dotify/issues/269),
 [publication, artwork and room follow-up](release-room-followup.md). It covers
 confirmation convergence, Product navigation, public-image caching, automatic

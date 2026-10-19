@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef } from 'react';
-import { keyboardOccludesRoom } from './roomViewport';
+import { keyboardOccludesRoom, roomComposerSelector } from './roomViewport';
 
 // Focus arms composition; valid visual viewport measurements own its geometry.
 export function useRoomViewport(active: boolean) {
@@ -33,10 +33,7 @@ export function useRoomViewport(active: boolean) {
       )
         return;
       const focused = document.activeElement;
-      const editing =
-        focused instanceof HTMLElement &&
-        shell.contains(focused) &&
-        focused.matches('.room-chat-form input, .room-chat-form textarea, .room-request-search-form input, .host-lineup input, .room-composer-done');
+      const editing = focused instanceof HTMLElement && shell.contains(focused) && focused.matches(`${roomComposerSelector}, .room-composer-done`);
       if (!initialized) {
         baselineHeight = window.innerHeight;
         // A keyboard may already be opening before the first valid sample.

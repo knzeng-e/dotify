@@ -533,9 +533,9 @@
   align-items: center;
 }
 .discovery-sheet {
-  border: 1px solid rgba(120, 190, 205, 0.25);
-  background: #0b1b2b;
-  color: #edf7ff;
+  border: 1px solid var(--line-strong);
+  background: var(--surface-sheet);
+  color: var(--ink);
 }
 .discovery-sheet-heading {
   align-items: flex-start;
@@ -551,11 +551,26 @@
   min-width: 44px;
   min-height: 44px;
   display: grid;
+  flex-shrink: 0;
   place-items: center;
-  color: inherit;
-  background: transparent;
-  border: 1px solid rgba(170, 211, 221, 0.18);
+  color: var(--ink-soft);
+  background: var(--surface-soft);
+  border: 1px solid transparent;
   border-radius: 50%;
+  transition:
+    background-color var(--duration-fast) var(--ease),
+    color var(--duration-fast) var(--ease),
+    transform var(--duration-fast) var(--ease);
+}
+.discovery-sheet .icon-button:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--surface-soft) 90%, var(--ink));
+  color: var(--ink);
+}
+.discovery-option {
+  transition:
+    background-color var(--duration-fast) var(--ease),
+    border-color var(--duration-fast) var(--ease),
+    color var(--duration-fast) var(--ease);
 }
 .discovery-done {
   display: flex;
@@ -879,10 +894,27 @@
 }
 .room-profile-optional {
   margin-block: 1rem;
+  border-block: 1px solid var(--line);
+}
+.create-room-modal .room-profile-optional {
+  /* The visibility section below already owns the next divider. */
+  border-bottom: 0;
 }
 .room-profile-optional summary {
   cursor: pointer;
-  padding-block: 0.5rem;
+  min-height: var(--touch-target);
+  padding-block: var(--space-3);
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+  font-weight: 650;
+  transition: color var(--duration-fast) var(--ease);
+}
+.room-profile-optional summary::marker {
+  color: var(--muted);
+}
+.room-profile-optional[open] summary,
+.room-profile-optional summary:hover {
+  color: var(--ink);
 }
 .room-profile-optional summary span,
 .room-profile-fields small {
@@ -893,6 +925,19 @@
   display: grid;
   gap: 0.6rem;
   margin-block: 1rem;
+}
+.room-profile-fields > label {
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+  font-weight: 650;
+}
+.room-profile-fields > .field + label {
+  margin-top: var(--space-2);
+}
+.room-profile-fields > .nearby-hint {
+  margin-top: var(--space-1);
+  font-size: var(--text-xs);
+  line-height: 1.5;
 }
 .room-profile-fields textarea {
   resize: vertical;

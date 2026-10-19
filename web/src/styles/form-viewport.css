@@ -1,0 +1,45 @@
+/* VisualViewport follows the keyboard in WebKit, browsers and Product WebViews.
+   dvh alone describes browser chrome; it does not reliably exclude a keyboard. */
+.modal-backdrop {
+  inset: auto;
+  top: var(--form-viewport-top, 0px);
+  left: var(--form-viewport-left, 0px);
+  width: var(--form-viewport-width, 100%);
+  height: var(--form-viewport-height, 100dvh);
+  overflow: hidden;
+}
+.modal-backdrop > .modal-card {
+  min-height: 0;
+  max-height: min(52rem, calc(var(--form-viewport-height, 100dvh) - 2rem));
+  overscroll-behavior: contain;
+  scroll-padding-block: 1rem;
+  overflow-anchor: none;
+}
+:is(input, textarea, [contenteditable='true']) {
+  scroll-margin-block: 1rem;
+}
+html:has(.modal-backdrop),
+html[data-keyboard-visible='true'] {
+  scroll-behavior: auto;
+}
+html[data-form-keyboard='true'] #root {
+  padding-bottom: var(--form-keyboard-inset, 0px);
+}
+html[data-form-keyboard='true'] :is(.bottom-nav, .player-dock) {
+  visibility: hidden;
+  pointer-events: none;
+}
+@media (max-width: 48rem) {
+  .modal-backdrop > .modal-card {
+    max-height: calc(var(--form-viewport-height, 100dvh) - max(0.75rem, env(safe-area-inset-top)));
+  }
+  html[data-keyboard-visible='true'] .modal-backdrop > .modal-card {
+    padding-bottom: 1rem;
+  }
+  /* iOS auto-zooms smaller text fields. Keep text enlargement available. */
+  input:not([type='range']):not([type='checkbox']):not([type='radio']),
+  textarea,
+  select {
+    font-size: max(16px, 1em);
+  }
+}

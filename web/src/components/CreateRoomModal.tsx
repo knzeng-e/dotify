@@ -5,6 +5,7 @@
 // fabricated URL); the room header then exposes the real Copy link.
 
 import { useEffect, useState } from 'react';
+import { X } from 'lucide-react';
 import { RoomProfileFields, type RoomProfile } from './RoomProfileFields';
 import { CoverImage } from './CoverImage';
 import { Dialog } from './Dialog';
@@ -78,11 +79,14 @@ export function CreateRoomModal({ tracks, initialTrack, displayName, onSetDispla
   }, [onTrackIntent, picked]);
 
   return (
-    <Dialog className='create-room-modal' size='wide' labelledBy='create-room-title' onClose={onClose}>
+    <Dialog className='create-room-modal' size='wide' labelledBy='create-room-title' initialFocus='dialog' onClose={onClose}>
       <div className='modal-header'>
         <div className='modal-icon' data-tone='success'>
           <SvgBroadcast size={20} />
         </div>
+        <button className='modal-close' type='button' onClick={onClose} aria-label='Close'>
+          <X size={18} />
+        </button>
       </div>
       <div className='modal-copy'>
         <h2 id='create-room-title'>Open a room</h2>
@@ -145,7 +149,6 @@ export function CreateRoomModal({ tracks, initialTrack, displayName, onSetDispla
         placeholder='e.g. Alex'
         maxLength={32}
         autoComplete='nickname'
-        autoFocus
       />
 
       <details className='room-profile-optional'>
