@@ -1574,15 +1574,16 @@
                 validation evidence, not an accepted aggregate pilot or a successful Desktop-signed payment.
               </p>
               <p>
-                The current published default release is <code>[0, 1, 55]</code>, built from tested source
-                <code>74effe95da53394dec9394666f30d4e14bac024c</code> and published at CID
-                <code>bafybeig5b2hue5db3oftgvjzlvb2wezslwdn7j5efj547225s4y4b5zwmy</code>. It retains native Product payments and encrypted-media recovery,
-                adds live scoped room updates, optional room names and invitations, a visible verified artist seal and reversible hiding,
-                and preserves tip review across account connection. Rooms remain private by default. A connected host may keep the last consented area visible
+                The current published default release is <code>[0, 1, 56]</code>, built from tested source
+                <code>c9becc990b26949445e9af69da357c08789d4f28</code> and published at CID
+                <code>bafybeieactmt5ci6iqp62foewyh7frb6gqamvo6d7hdivgy2tiyinfgn2u</code>. It adds keyboard-aware form placement, quieter controls and restrained mobile sheet transitions.
+                It retains native Product payments, encrypted-media recovery, live scoped room updates, optional room names and invitations, a visible verified artist seal,
+                reversible hiding and tip review across account connection. Rooms remain private by default. A connected host may keep the last consented area visible
                 in the background without tracking movement. CI and synthetic deployed-service checks passed,
-                alongside finalized DotNS and public-content read-back. Product 0.1.54 is the client rollback artifact.
-                Installed Desktop/mobile permission behavior, prolonged room audio and paid tips still need physical verification.
-                The <a href="backlog/implementation/evidence/product-0.1.55-rollout-2026-10-19.md">rollout record</a> identifies each deployed artifact and its validation limits.
+                alongside finalized DotNS and public-content read-back. Product 0.1.55 is the client rollback artifact.
+                A bounded installed Desktop form check passed, and the owner confirmed expected mobile keyboard behavior on 2026-10-20.
+                Full device-matrix coverage, rotation, permission behavior, prolonged room audio and paid tips still need verification.
+                The <a href="backlog/implementation/evidence/product-0.1.56-rollout-2026-10-19.md">rollout record</a> identifies each deployed artifact and its validation limits.
                 W13 also requires first-sound and room measurements, a matching rollback rehearsal, and a consented aggregate pilot before an evidence-backed go/no-go decision.
               </p>
               <p>
@@ -1618,7 +1619,7 @@
                 needed; technical status and infrastructure explanations stay out of the normal listening path. Artist pages lead with releases and real
                 sessions, while personal access-payment records keep entitlements distinct from voluntary contributions. Returning to an active room preserves
                 the current role and listening session. Inside a room, a compact writing mode keeps the player and composer together while the visible viewport adapts to the
-                keyboard. A mobile-form refinement under review extends that visible-screen behavior to room names, support sheets and artist forms,
+                keyboard. Published Product 0.1.56 extends that visible-screen behavior to room names, support sheets and artist forms,
                 with quiet controls, readable fields and reduced-motion-aware sheet transitions. Physical keyboard validation remains a separate release gate.
                 The full player and room retain the timeline and playback modes on small screens. The mobile solo player has its own return control,
                 with previous/play/next above secondary queue, repeat and local sound controls. A labeled track tip stays beside the artist attribution rather

@@ -122,7 +122,28 @@ unknown legacy counts keep neutral decoration, and visual growth is bounded at
 radars use smaller caps and tighter orbits; reduced-motion settings disable the
 size/halo transitions. No discovery payload, service setting or access rule changes.
 
-## Current published Product release - 0.1.55
+## Current published Product release - 0.1.56
+
+Published after #307 merged at `b08966698709b06378349a6ffd0567cda5dc8f53`,
+from clean green packaging commit `c9becc990b26949445e9af69da357c08789d4f28`.
+Executable `[0, 1, 56]` and root/app CID
+`bafybeieactmt5ci6iqp62foewyh7frb6gqamvo6d7hdivgy2tiyinfgn2u` preserve
+`product-cdm` on `devnet`, existing permissions and the paired 13-release catalog.
+The shared form viewport and sheet refinement is frontend-only. API release 28
+and signaling release 36 are unchanged and were not restarted. Web independently
+serves the merged application SHA above; its existing Netlify deployment was
+verified rather than repeated or reconfigured.
+
+The current client rollback artifact is **Product 0.1.55**, CID
+`bafybeig5b2hue5db3oftgvjzlvb2wezslwdn7j5efj547225s4y4b5zwmy`.
+Keep the existing API/signaling pair on a presentation rollback. See the
+[0.1.56 rollout record](../backlog/implementation/evidence/product-0.1.56-rollout-2026-10-19.md)
+for finalized root/app identity, public-byte verification, Web and bounded
+native Desktop smoke. The signer is removed. On 2026-10-20, the owner confirmed
+expected mobile keyboard behavior. Full device-matrix, rotation and prolonged
+listening acceptance remains open.
+
+## Previous Product release - 0.1.55
 
 Published after #303/#304 merged at
 `893418de06b9eda8379a350b3bca8912a8ebb4b8`, from clean green packaging commit
@@ -140,13 +161,13 @@ for exact service images, finalized Product/public-byte read-back and live
 room checks. The local signer was removed. Physical Host permission,
 background/audio and funded-tip acceptance remains open.
 
-The current client rollback artifact is **Product 0.1.54**, CID
+The client rollback artifact for that release was **Product 0.1.54**, CID
 `bafybeiepuhymockmxkkqkjtjqrgak4fhlxyxjep2k7aev7mt4h45nb5csa`.
 Withdrawing the background-hold policy also requires the compatible signaling
 release 35 image recorded in the rollout record. Recheck active sessions before
 any restart and preserve privacy-safe discovery and API state.
 
-## Previous Product release - 0.1.54
+## Historical Product release - 0.1.54
 
 Published after #302 merged at `02bb83595754672870d136d743509e718117faa1`,
 from clean green packaging commit `0d002e373f42c5a4a03100306a58efcc9156da2d`.
@@ -540,7 +561,7 @@ Required Product values:
 | `VITE_BULLETIN_WS_URL`          | `wss://bulletin-paseo.tservices.es:8443`                                                                                         |
 | `VITE_PINATA_GATEWAY`           | `https://gateway.pinata.cloud`                                                                                                   |
 | `VITE_IPFS_READ_GATEWAYS`       | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation` |
-| Product executable `appVersion` | `[0, 1, 55]` published live-presence release; `[0, 1, 54]` is the current client rollback artifact                         |
+| Product executable `appVersion` | `[0, 1, 56]` published mobile-form release; `[0, 1, 55]` is the current client rollback artifact                          |
 
 The Product executable version is part of the published Product manifest. Bump
 it whenever the Product bundle changes runtime behavior, host SDK integration,

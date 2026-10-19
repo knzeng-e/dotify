@@ -108,5 +108,14 @@ Safari, Android Chrome and supported Product Mobile/Desktop:
    covered without resized geometry, record that native bridge limitation;
    browser simulation cannot certify it away.
 
-Physical-device results are **not yet verified**. No new Product CID or live
-release is associated with this change.
+## Subsequent release and owner feedback
+
+This implementation was subsequently published in Product 0.1.56. See the
+[rollout record](product-0.1.56-rollout-2026-10-19.md) for signed source/CID,
+public integrity checks and bounded installed Desktop evidence.
+
+On 2026-10-20, the owner confirmed that the keyboard behaves as expected on
+mobile. Record this as a positive owner-observed keyboard result; device, OS
+and browser/Host version were not specified. The complete device matrix,
+rotation, first-tap after dismissal and prolonged-listening checks above remain
+separate acceptance items.
