@@ -23,6 +23,26 @@ or timed-out request; Dotify cannot undo the Host's permission decision.
 Operational rollback uses `VITE_DOTIFY_NEARBY=off` and/or `SIGNAL_NEARBY=off`;
 there is no Product-specific feature gate. Old snapshots expire within 90 seconds.
 
+## Product 0.1.54 published stability release
+
+The owner authorized a coordinated rollout after #302 merged into `dev`
+at `02bb83595754672870d136d743509e718117faa1`. Clean, green packaging commit
+`0d002e373f42c5a4a03100306a58efcc9156da2d` was published with executable
+`[0, 1, 54]` at root/executable CID
+`bafybeiepuhymockmxkkqkjtjqrgak4fhlxyxjep2k7aev7mt4h45nb5csa`.
+It retains the existing `product-cdm` / `devnet` profile and frozen 13-track
+catalog. API release 28 and signaling release 35 preceded signed publication;
+ordinary Web independently serves the merged application commit.
+
+Independent finalized DotNS read-back confirmed the exact CID and executable
+version. Public CAR verification checked 125 block hashes and byte-for-byte
+equality of the index/entry bundle against the signed build. The local signer
+was removed. See the [rollout record](../backlog/implementation/evidence/product-0.1.54-rollout-2026-10-18.md)
+for service identities, validation and remaining physical acceptance.
+Product 0.1.53 is the client rollback artifact; keep privacy-safe v4 signaling.
+
+The following release sections preserve historical rollout and rollback evidence.
+
 ## Product 0.1.53 published room-presence release
 
 Based on merged #300 (`726310b2fe0aee901da64fefb7df9ad56e3efaf8`),
@@ -37,7 +57,7 @@ Independent finalized resolver and public-CAR read-back passed. The local signer
 was removed after publication. See the
 [0.1.53 rollout record](../backlog/implementation/evidence/product-0.1.53-rollout-2026-10-17.md)
 for transactions, deployed identities, validation and remaining physical Host
-checks. Current client rollback: 0.1.52; retain privacy-safe v4 signaling.
+checks. Client rollback at that rollout: 0.1.52; retain privacy-safe v4 signaling.
 
 The following sections preserve historical rollout and rollback evidence.
 
@@ -51,7 +71,7 @@ supports v3 distance bands while retaining v2 compatibility. Keep one signaling
 worker and a stable server-only API session epoch. The local signer was removed.
 See the [rollout record](../backlog/implementation/evidence/product-0.1.52-rollout-2026-10-16.md)
 for CI, source/image identities, Web status and physical acceptance still required.
-Current client rollback: 0.1.51; retain privacy-safe v3 signaling.
+Client rollback at that rollout: 0.1.51; retain privacy-safe v3 signaling.
 
 The Web verification in that dated record applies to the rollout's `3b0bb68`
 artifact. Netlify production follows `dev`, so merging this release PR starts a
@@ -79,7 +99,7 @@ for service images, tests, restart incident and remaining physical checks.
 
 The following release sections retain their original deployment and rollback history.
 The historical release/rollback pair in this section was 0.1.52 / 0.1.51. The
-current pair is 0.1.53 / 0.1.52 above.
+current pair is 0.1.54 / 0.1.53 above.
 
 ## Product 0.1.50 published radar and audio release
 
@@ -509,8 +529,7 @@ the reversible pilot plan, contract inventory, and optional aggregate pilot
 metrics. Optional pilot evidence must use schema v2 and bind the decision to
 the candidate git SHA, Product appVersion, `product-cdm`/`devnet` profile,
 published executable CID, capture time, outcome metrics, privacy flags,
-rollback, and join-count invariants. Pass the published 0.1.52 CDM CID
-`bafybeicn6kz5i5yyuoalubbe3hsl7sr7qbunccysju5rki3wrtgi2dbz7m` with
+rollback, and join-count invariants. Pass the candidate's published CDM CID with
 `--pilot-release-cid`; Product payment/key and room evidence must bind to that
 same CID. The command does not sign,
 deploy, contact participants, or treat missing live evidence as a pass.
@@ -521,12 +540,12 @@ gates pass, and the live CASH path remains blocked on a Product-confirmed
 CASH-to-runtime entitlement mechanism. A `fail` means the local boundary or an
 operator-supplied evidence file is unsafe and must block the release.
 
-Product releases 0.1.46 through 0.1.52 explicitly use `product-cdm` on `devnet` so
+Product releases 0.1.46 through 0.1.54 explicitly use `product-cdm` on `devnet` so
 Product account holders retain native tips and access payments. The Product
 build refuses an EVM-only profile; ordinary web still uses viem. Product SDK
 descriptors increase the bundle and Bulletin storage demand. The 0.1.45 viem
 publication regressed native tips by requesting an EVM wallet; it is historical
-evidence of that limitation. The current rollback artifact is 0.1.51, retaining
+evidence of that limitation. The current rollback artifact is 0.1.53, retaining
 the native Product profile. Validate native
 approval, exact account mapping and finalized receipt recovery on the installed
 Hosts after publication.
@@ -1088,7 +1107,7 @@ npm run smoke:product-journey -- \
    from the Product Web gateway. A Product Desktop room smoke must not be reused
    as Product Web evidence.
 
-   For the current 0.1.52 gate, use the published `product-cdm` executable CID
+   For the release being evaluated, use the published `product-cdm` executable CID
    for the release and capture host evidence from that same artifact. A debug
    build with a different CID cannot validate the published release. Run the
    aggregate readiness gate with one release identity:
