@@ -1,5 +1,27 @@
 # Deployment Configuration Runbook
 
+## Release publication and documentation hosting, 2026-10-20
+
+GitHub 1.4.0 tags final main `9788ec0`; Product `[0,1,57]` was separately signed
+from clean packaging `a789d8e` at root/app CID
+`bafybeifba24wrvu2ywkurapvsjmeub3llviu2tybc3hkzljobww3ordqqm`.
+The native profile, frozen catalog, origins and permissions are unchanged.
+Netlify deploy `6ad794bc91a585c41cecef08` already serves tested dev `615ad44`,
+whose full tree equals the final main source, so no redundant rebuild was made.
+API 28/signaling 36 remain source-compatible and healthy without restart or
+configuration/key/contract changes. Client rollback is 0.1.56. See the
+[rollout record](../backlog/implementation/evidence/product-0.1.57-rollout-2026-10-20.md)
+for byte/finality evidence and remaining native/latency acceptance.
+
+GitHub Pages is enabled using **legacy source `main`, path `/docs`**, with the
+existing `docs/.nojekyll`. It serves https://knzeng-e.github.io/dotify/.
+The source build from `9788ec0` and public gallery return 200. Keep optional
+`ENABLE_GITHUB_PAGES` unset: the two opt-in Actions workflows publish different
+app/docs outputs and must not compete. Future docs changes appear there only
+when promoted to main. This is documentation hosting, not an app deployment or
+new API/CORS origin. Restore this exact source if Pages configuration drifts;
+do not enable both optional workflows as a workaround.
+
 ## Live room invitations and contribution continuity, 2026-10-18
 
 Published as Product 0.1.55 from clean packaging commit
@@ -122,7 +144,7 @@ unknown legacy counts keep neutral decoration, and visual growth is bounded at
 radars use smaller caps and tighter orbits; reduced-motion settings disable the
 size/halo transitions. No discovery payload, service setting or access rule changes.
 
-## Current published Product release - 0.1.56
+## Previous Product release - 0.1.56
 
 Published after #307 merged at `b08966698709b06378349a6ffd0567cda5dc8f53`,
 from clean green packaging commit `c9becc990b26949445e9af69da357c08789d4f28`.
@@ -134,7 +156,7 @@ and signaling release 36 are unchanged and were not restarted. Web independently
 serves the merged application SHA above; its existing Netlify deployment was
 verified rather than repeated or reconfigured.
 
-The current client rollback artifact is **Product 0.1.55**, CID
+The client rollback artifact at that rollout was **Product 0.1.55**, CID
 `bafybeig5b2hue5db3oftgvjzlvb2wezslwdn7j5efj547225s4y4b5zwmy`.
 Keep the existing API/signaling pair on a presentation rollback. See the
 [0.1.56 rollout record](../backlog/implementation/evidence/product-0.1.56-rollout-2026-10-19.md)
@@ -561,7 +583,7 @@ Required Product values:
 | `VITE_BULLETIN_WS_URL`          | `wss://bulletin-paseo.tservices.es:8443`                                                                                         |
 | `VITE_PINATA_GATEWAY`           | `https://gateway.pinata.cloud`                                                                                                   |
 | `VITE_IPFS_READ_GATEWAYS`       | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation` |
-| Product executable `appVersion` | `[0, 1, 56]` published mobile-form release; `[0, 1, 55]` is the current client rollback artifact                          |
+| Product executable `appVersion` | `[0, 1, 57]` published release follow-up; `[0, 1, 56]` is the current client rollback artifact                          |
 
 The Product executable version is part of the published Product manifest. Bump
 it whenever the Product bundle changes runtime behavior, host SDK integration,
