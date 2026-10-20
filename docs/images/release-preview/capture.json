@@ -1,8 +1,8 @@
 {
-  "source": "179bc0c46cdb02a806b60c0b2463568116ed3df6",
+  "source": "964eaab320400abef240938c942cb4b39cde08f8",
   "applicationTree": "e6a759e14b2d50f47e2159402438c8e2cfd165c3",
   "profile": "web/playwright.docs.config.ts",
-  "capturedAt": "2026-10-20T12:04:22.924Z",
+  "capturedAt": "2026-10-20T14:43:25.974Z",
   "browser": "149.0.7827.55",
   "surfaces": [
     "music-desktop",

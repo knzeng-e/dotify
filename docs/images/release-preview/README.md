@@ -28,13 +28,22 @@ unknown reads and has no signer. No verified artist-presence badge is fabricated
 | `room-mobile.jpg`    | The same guest room at a 390 × 844 browser viewport.                                                         |
 | `artist-desktop.jpg` | Artist studio's Releases view.                                                                               |
 
-`capture.json` records the application source/tree, capture profile, time and browser.
+`capture.json.source` identifies the committed checkout containing both the
+application and the capture recipe used to produce the gallery.
+`applicationTree` identifies `web/src`; the record also includes the capture
+profile, time and browser.
 Artworks are served locally at their synthetic content-addressed paths; nothing
 is pinned to a public gateway. JPEG
 quality 85 keeps the gallery small; images have not been manually retouched.
 The mobile image is browser emulation, not a screenshot from a physical phone.
 
 ## Reproduce
+
+For the recorded gallery, use a checkout at `capture.json.source`. When updating
+the recipe, commit the recipe, profile and fixture changes **before** running it;
+keep those inputs and application source unchanged during capture. Commit the
+generated images and metadata afterwards. The source revision can therefore
+precede the artifact commit while still containing the exact recipe used.
 
 With Node 22 and npm 10+, from the repository root:
 

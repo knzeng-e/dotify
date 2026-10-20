@@ -37,6 +37,12 @@ the default browser suite. No real participant, production key, wallet signature
 upload or payment is involved. A documentation-only server uses the normal
 registry metadata path with synthetic reads, without a signer or live chain.
 
+Review correction: the gallery was regenerated from committed recipe revision
+`964eaab320400abef240938c942cb4b39cde08f8`, which contains the three-room flow
+and its shared registry fixtures. `capture.json.source` now points to that
+revision rather than the earlier one-room recipe. Generated artifacts are stored
+in a subsequent commit; the capture guide makes that ordering explicit.
+
 ## Verification
 
 - `npm run build` in `web`: passed; existing large-chunk/Browserslist notices.
