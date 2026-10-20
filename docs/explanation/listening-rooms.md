@@ -6,31 +6,18 @@
 
 ## What a listening room is
 
-A listening room is a shared audio session. A host plays music from their browser. Listeners anywhere in the world join with a room code and hear the same audio in real time — synchronized, live, peer-to-peer.
+A listening room is a shared audio session. An authorized host plays a track;
+guests join by invitation without a wallet or source-file access. WebRTC carries
+audio directly or through TURN when necessary. Socket.IO signaling carries
+membership, negotiation and ephemeral social events, not the audio.
 
-No account is required to join a room. No audio passes through a server. The host's browser streams directly to each listener's browser using WebRTC.
+For step-by-step hosting, joining and visibility controls, use
+[Listen together](../how-to/listen-together.md). Rooms start Link only; opening
+one does not automatically publish it to the galaxy. Nearby and Worldwide are
+explicit host visibility choices, and location permission is separate.
 
----
-
-## How it works for a host
-
-1. Select a track in the Discover view.
-2. Open the player and switch to **Host** mode.
-3. Click **Start a room**. A six-character room code appears.
-4. Share the generated `#/rooms/<roomId>` link or the room code with listeners.
-5. Press Play. The audio streams to everyone who has joined.
-
-Listeners can join before you press Play. They will hear audio as soon as you start playing.
-
----
-
-## How it works for a listener
-
-1. Open a shared room link, go to the **Rooms** view to see all open rooms, or enter a room code directly.
-2. Click **Join**. The room connects.
-3. Audio begins playing automatically when the host starts streaming.
-
-If autoplay is blocked by the browser, a manual play prompt appears.
+If autoplay is blocked, use the displayed play action. A connected room or
+progress indicator alone is not proof of audible playback.
 
 ---
 
@@ -84,37 +71,38 @@ Host browser                    Signaling server (Socket.IO)                List
      │─── webrtc:ice-candidate ──────────►│──────────────────────────────────────►│
      │◄── webrtc:ice-candidate ──────────  │◄───────────────────────────────────── │
      │                                    │                                       │
-     │◄══════════════ WebRTC audio track (peer-to-peer, no server) ══════════════►│
+     │◄══════════════ WebRTC audio track (direct or TURN-relayed) ══════════════►│
 ```
 
-Once the WebRTC connection is established, the signaling server is no longer in the audio path.
+The signaling server is never in the audio path. TURN can relay WebRTC media
+when a direct route is unavailable.
 
 ### Signaling
 
-The signaling server (`server/signaling.mjs`) is a Socket.IO process that relays messages between peers by room membership. It does not inspect or store any content. Its only functions are:
+The signaling server (`web/server/signaling.mjs`) owns ephemeral room membership,
+chat, reactions, requests and presence. It routes SDP/ICE to admitted peers and
+expires abandoned rooms. Host-selected Nearby/Worldwide listings use scoped,
+bounded discovery; there is no global broadcast of private room identities.
 
-- Maintaining a registry of open rooms.
-- Maintaining an ephemeral, anonymous count of active solo listeners per track, with at most one active track per socket.
-- Routing SDP offers, answers, and ICE candidates between the correct peers.
-- Broadcasting `rooms:updated` when the room list changes and `presence:solo:updated` when solo presence changes.
-- Expiring rooms after their TTL and closing rooms whose host stops heartbeating.
-- Exposing `GET /health` and `GET /status` for uptime, public room metadata, capacity flags, and anonymous solo-listening aggregates.
+`GET /health` provides aggregate health/counts. `GET /status` deliberately
+returns an empty `rooms` array, even while rooms exist. Neither endpoint is a
+room directory or an admission/capacity decision; use join/resume acknowledgements
+and room events for those facts.
 
 See [socket-events.md](../reference/socket-events.md) for the full event schema.
 
 ### Audio capture
 
-The host's `<audio>` element plays the selected track locally. The browser's `captureStream()` API attaches a `MediaStream` to that element. Each audio track from that stream is added to a `RTCPeerConnection` for every connected listener.
+The host's media element plays authorized audio. A shared Web Audio output
+supports both the local speaker and a `MediaStreamDestination` for guests, with
+native `captureStream()` / `mozCaptureStream()` as an alternate path when
+available. Pause and source retirement gate playback so residual mobile frames
+do not remain audible after it stops. Host mute affects the local monitor,
+not the guests' stream.
 
-```typescript
-// Simplified from useSession.ts
-const stream = (audioElement as CapturableMediaElement).captureStream();
-for (const track of stream.getAudioTracks()) {
-  peerConnection.addTrack(track, stream);
-}
-```
-
-`captureStream()` is not universally supported. Firefox uses `mozCaptureStream()`. If neither is available, an error is shown and the room continues operating without streaming.
+Actual browser/Host capabilities are checked before negotiation. An unsupported
+media surface must produce an explicit recovery or browser continuation; a
+recorded Host permission is not proof that the JavaScript media API exists.
 
 ### Player state synchronisation
 
@@ -150,22 +138,26 @@ credentials are only a DevNet/static fallback.
 
 The host creates a separate `RTCPeerConnection` for each listener. Connections are tracked in `hostPeersRef` (a `Map<listenerId, RTCPeerConnection>`). When a listener leaves, their peer connection is closed and removed. When a new listener joins an active room, the host immediately creates a new offer and sends the current audio stream.
 
-The public room list includes `maxListeners` and `isFull` so clients can show
+Scoped discovery includes `maxListeners` and `isFull` so clients can show
 room capacity before a guest tries to join. The server still enforces the cap
 on `room:join`, and the frontend disables full room cards as a convenience, not
 as the security boundary.
 
-### Nearby Discovery Status
+### Nearby and Worldwide discovery
 
-Nearby room discovery is designed but not implemented. W18 defines the privacy
-contract in
-[dotify-nearby-discovery-privacy.md](../design/dotify-nearby-discovery-privacy.md):
-host and listener opt-in are separate, exact coordinates stay off the network,
-logs, chain, Statement Store, and durable stores. The 2026-10-14 amendment
-prioritizes W19 with separate approximate host/listener radii in km; sparse
-results offer explicit widening rather than silently exceeding consent. Current rooms remain discoverable through the existing room
-list, manual code entry, and shared links without requiring wallet or location
-permission.
+Discovery is implemented in the current Web and Product application paths;
+native execution still depends on the installed Host's location/media support.
+Host visibility and listener location consent are separate. Approximate areas
+and radii up to 42 km constrain Nearby matching on both sides. Exact coordinates
+stay off discovery payloads, chain, Statement Store, logs and durable app stores.
+Worldwide rooms can appear while a local fix is pending or unavailable.
+
+Search begins automatically, results are progressively inspectable, and scoped
+live updates supplement bounded refreshes. Distance bands are approximate; the
+radar is not a map. Temporary renewal failures do not rewrite the host's saved
+visibility choice or turn stale coordinates into a fresh fix. See the
+[privacy contract](../design/dotify-nearby-discovery-privacy.md) and
+[room-life model](room-life-and-artist-visits.md).
 
 When a host's signaling transport drops, the host closes existing
 `RTCPeerConnection` objects before resuming the room. Existing listeners keep
@@ -188,15 +180,11 @@ ICE candidate strings, IP addresses, audio source references, content keys, or
 wallet identifiers. The snapshot is page-local memory and clears on reload or
 `window.__DOTIFY_ROOM_QUALITY__.clear()`.
 
-The current iOS Product container is a deliberate exception to this browser
-architecture: its sandbox
-[removes `window.RTCPeerConnection` from Product scripts](https://github.com/Polkadot-Community-Foundation/polkadot-ios-community/blob/main/Packages/Products/product-container/src/index.ts#L79-L81).
-The Product `WebRtc` permission can still be recorded by the host, but
-it does not expose a JavaScript peer connection. Dotify cannot reach ICE or TURN
-inside that container, so executable `[0, 1, 11]` and later open the canonical
-HTTPS room in the system browser instead. Full in-app support requires a
-host-provided, permission-gated WebRTC bridge or restoring the browser API after
-permission.
+Product Host behavior varies by installed version and OS. The application
+checks actual media capabilities and can offer a canonical HTTPS browser
+continuation when room media is unavailable inside the container. Do not infer
+native support from a browser fixture, a permission label or a successful build;
+record exact Host/device versions in release evidence.
 
 ### Limitations
 
@@ -207,9 +195,8 @@ permission.
 - Room capacity is enforced by the signaling server and currently defaults to
   24 listeners per host. Larger sessions need SFU evaluation instead of simply
   raising the peer-to-peer fan-out.
-- The current iOS Product sandbox does not expose `RTCPeerConnection` to Product
-  scripts. Product Mobile listeners must continue the room in the external
-  browser until the host adds a permission-gated media API.
+- Product Host location and media availability require validation on each
+  supported installed Host/OS. Browser continuation may be necessary.
 - Socket reconnect can silently rejoin the room, but the host still needs to
   create a fresh WebRTC offer for the new socket. If the host leaves, expires,
   or times out, the room is closed and listeners must join another room.

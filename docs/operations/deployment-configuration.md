@@ -1951,7 +1951,7 @@ The API/key authority, CORS and contract addresses remain unchanged. Product
 payments request finalization before returning. Classic support recovery now
 uses a durable browser journal scoped by network/adapter endpoint, payer,
 runtime and content hash, migrating the matching old tab-local reference.
-See [current payment recovery boundaries](../../web/README.md#native-artist-support-validation-build)
+See [current payment recovery boundaries](../how-to/recover-a-payment.md)
 and [the original support recovery design](../design/product-host-support-recovery-2026-09-15.md).
 Before promotion, verify balance/fee availability and SDK lifecycle on a real
 Product host, close/reopen pending feedback, and reopen an uncertain payment
