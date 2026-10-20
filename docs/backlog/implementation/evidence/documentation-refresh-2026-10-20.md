@@ -29,12 +29,13 @@ mobile, and the artist Releases view. Their combined size is approximately
 300 KiB. The [gallery record](../../../images/release-preview/README.md) explains
 synthetic releases, participants, artwork and browser-emulated location.
 
-The opt-in Playwright recipe uses existing test adapters and real local room
-signaling. It blocks external HTTP delivery, provides local synthetic artwork,
+The opt-in Playwright recipe uses existing browser adapters, synthetic registry
+reads and real local room signaling. Three rooms run concurrently: two Worldwide
+and one Nearby, with 2, 3 and 1 connected sessions. It blocks external HTTP delivery, provides local synthetic artwork,
 and records source/tree, browser and time in `capture.json`. It is excluded from
 the default browser suite. No real participant, production key, wallet signature,
-upload or payment is involved. The normal discovery artwork fallback is retained
-when a canonical server catalog is unavailable.
+upload or payment is involved. A documentation-only server uses the normal
+registry metadata path with synthetic reads, without a signer or live chain.
 
 ## Verification
 

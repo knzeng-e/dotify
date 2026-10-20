@@ -1,8 +1,8 @@
 {
-  "source": "4582e37e0de1890dc96671271eba35d389e73d70",
+  "source": "179bc0c46cdb02a806b60c0b2463568116ed3df6",
   "applicationTree": "e6a759e14b2d50f47e2159402438c8e2cfd165c3",
   "profile": "web/playwright.docs.config.ts",
-  "capturedAt": "2026-10-20T11:26:45.937Z",
+  "capturedAt": "2026-10-20T12:04:22.924Z",
   "browser": "149.0.7827.55",
   "surfaces": [
     "music-desktop",
@@ -11,6 +11,19 @@
     "room-mobile",
     "artist-desktop"
   ],
+  "galaxy": {
+    "rooms": 3,
+    "connectedSessions": [
+      2,
+      3,
+      1
+    ],
+    "visibility": [
+      "Worldwide",
+      "Worldwide",
+      "Nearby"
+    ]
+  },
   "data": "Local synthetic releases, artwork, accounts and participants; not live activity.",
   "validation": "Visual documentation only, not native Product or pilot acceptance."
 }

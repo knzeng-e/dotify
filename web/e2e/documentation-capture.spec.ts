@@ -2,49 +2,9 @@ import { expect, test, type Page, type BrowserContext } from '@playwright/test';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
-import { createHash } from 'node:crypto';
-import { CID } from 'multiformats/cid';
-import { create as digest } from 'multiformats/hashes/digest';
+import { artist, covers, tracks } from './fixtures/documentation-releases.mjs';
 
 const output = path.resolve('..', 'docs/images/release-preview');
-const artist = '0x000000000000000000000000000000000000a711';
-const runtime = '0x000000000000000000000000000000000000a712';
-const titles = ['Riverlight', 'Night Crossing', 'Open Skies'];
-
-function artwork(title: string, color: string, index: number) {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640"><defs><linearGradient id="a" x2="1" y2="1"><stop stop-color="#0b2341"/><stop offset="1" stop-color="${color}"/></linearGradient></defs><rect width="640" height="640" fill="url(#a)"/><circle cx="${160 + index * 90}" cy="220" r="180" fill="none" stroke="#fff" stroke-opacity=".22" stroke-width="2"/><circle cx="390" cy="390" r="220" fill="none" stroke="#fff" stroke-opacity=".12" stroke-width="2"/><path d="M0 460 Q160 240 320 460 T640 460" stroke="#fff" stroke-opacity=".5" stroke-width="3" fill="none"/><text x="48" y="540" fill="#fff" font-family="sans-serif" font-size="44">${title}</text><text x="50" y="580" fill="#fff" fill-opacity=".7" font-family="sans-serif" font-size="17" letter-spacing="5">MINA · DEMO RELEASE</text></svg>`;
-  return svg;
-}
-
-const covers = titles.map((title, index) => {
-  const body = artwork(title, ['#176b67', '#693d70', '#285387'][index], index);
-  const cid = CID.createV1(0x55, digest(0x12, createHash('sha256').update(body).digest())).toString();
-  return { body, cid };
-});
-
-const tracks = titles.map((title, index) => ({
-  id: `${runtime}:0x${String(index + 1).padStart(64, '0')}`,
-  hash: `0x${String(index + 1).padStart(64, '0')}`,
-  artistAddress: artist,
-  title,
-  artist: 'Mina',
-  active: true,
-  source: 'artist',
-  zone: 'Demo',
-  audioRef: '/e2e/fixtures/continuity-tone.mp3',
-  localUrl: '/e2e/fixtures/continuity-tone.mp3',
-  imageRef: `ipfs://${covers[index].cid}`,
-  priceDot: '0',
-  description: 'A local demonstration release for the Dotify documentation.',
-  bulletinRef: '',
-  metadataRef: 'e2e:documentation',
-  royaltyBps: 10000,
-  durationLabel: 'Demo',
-  accessMode: 'free',
-  royaltySplits: [],
-  personhoodLevel: 'DIM1',
-  encrypted: false
-}));
 
 async function capture(page: Page, name: string) {
   await page.evaluate(async () => {
@@ -53,6 +13,16 @@ async function capture(page: Page, name: string) {
     window.scrollTo({ top: 0, behavior: 'instant' });
     await Promise.all(Array.from(document.images).map(image => image.decode().catch(() => {})));
   });
+  // Room geometry follows the visual viewport on the next animation frame.
+  // Wait for that layout after resizing instead of photographing a stale width.
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const shell = document.querySelector<HTMLElement>('[style*="--room-viewport-width"]');
+        return !shell || Number.parseFloat(shell.style.getPropertyValue('--room-viewport-width')) === innerWidth;
+      })
+    )
+    .toBe(true);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: path.join(output, `${name}.jpg`), type: 'jpeg', quality: 85, animations: 'disabled' });
 }
@@ -74,6 +44,26 @@ async function seed(context: BrowserContext) {
   );
 }
 
+async function openRoom(page: Page, title: string, nickname: string, name: string, visibility: 'Everyone' | 'Nearby') {
+  await page.getByRole('button', { name: 'Open a room', exact: true }).click();
+  await page.getByRole('button', { name: `Select ${title}`, exact: true }).click();
+  await page.getByLabel('Your name or nickname', { exact: true }).fill(nickname);
+  await page.locator('summary').filter({ hasText: 'Name your room' }).click();
+  await page.getByLabel('Room name', { exact: false }).fill(name);
+  await page.getByLabel('A short invitation', { exact: false }).fill('Come share a discovery. Stay for the conversation.');
+  await page.getByRole('radio', { name: visibility, exact: true }).check();
+  await page.getByRole('button', { name: 'Open the room', exact: true }).click();
+  await expect(page.getByTestId('room-code')).toHaveText(/[A-Z2-9]{6}/);
+  return (await page.getByTestId('room-code').innerText()).trim();
+}
+
+async function joinRoom(page: Page, code: string, nickname: string) {
+  await page.goto(`/?e2eRoom=listener#/rooms/${code}`);
+  await page.getByLabel('Your name or nickname').fill(nickname);
+  await page.getByRole('button', { name: 'Join and listen' }).click();
+  await expect(page.getByTestId('room-code')).toHaveText(code);
+}
+
 test('capture current documentation surfaces with disclosed local demo data', async ({ browser }) => {
   await mkdir(output, { recursive: true });
   const context = await browser.newContext({
@@ -86,26 +76,15 @@ test('capture current documentation surfaces with disclosed local demo data', as
   await seed(context);
   const host = await context.newPage();
   const guestContext = await browser.newContext({ viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce' });
+  const contexts = [context, guestContext];
   await seed(guestContext);
   try {
     await host.goto('/?e2eArtist=happy');
     await expect(host.getByTestId('track-card')).toHaveCount(3);
     await capture(host, 'music-desktop');
-    await host.getByRole('button', { name: 'Open a room', exact: true }).click();
-    await host.getByRole('button', { name: 'Select Riverlight', exact: true }).click();
-    await host.getByLabel('Your name or nickname', { exact: true }).fill('Mina');
-    await host.locator('summary').filter({ hasText: 'Name your room' }).click();
-    await host.getByLabel('Room name', { exact: false }).fill('Riverlight sessions');
-    await host.getByLabel('A short invitation', { exact: false }).fill('Come share a discovery. Stay for the conversation.');
-    await host.getByRole('radio', { name: 'Everyone', exact: true }).check();
-    await host.getByRole('button', { name: 'Open the room', exact: true }).click();
-    await expect(host.getByTestId('room-code')).toHaveText(/[A-Z2-9]{6}/);
-    const code = (await host.getByTestId('room-code').innerText()).trim();
+    const code = await openRoom(host, 'Riverlight', 'Mina', 'Riverlight sessions', 'Everyone');
     const guest = await guestContext.newPage();
-    await guest.goto(`/?e2eRoom=listener#/rooms/${code}`);
-    await guest.getByLabel('Your name or nickname').fill('Alex');
-    await guest.getByRole('button', { name: 'Join and listen' }).click();
-    await expect(guest.getByTestId('room-code')).toHaveText(code);
+    await joinRoom(guest, code, 'Alex');
     await guest.getByLabel('Message the room').fill('This feels like a good place to start.');
     await guest.getByRole('button', { name: 'Send message' }).click();
     await expect(host.getByRole('log')).toContainText('This feels like a good place to start.');
@@ -119,10 +98,37 @@ test('capture current documentation surfaces with disclosed local demo data', as
     await capture(guest, 'room-desktop');
     await guest.setViewportSize({ width: 390, height: 844 });
     await capture(guest, 'room-mobile');
+    await expect(guest.getByLabel('Message the room')).toBeInViewport();
+    // Open additional actual rooms before the galaxy capture, rather than
+    // painting planets or injecting discovery counts into the interface.
+    for (const room of [
+      { title: 'Night Crossing', nickname: 'Sam', name: 'After-hours discoveries', visibility: 'Everyone' as const, guests: ['Jamie', 'Lea'] },
+      { title: 'Open Skies', nickname: 'Noor', name: 'A little closer', visibility: 'Nearby' as const, guests: [] }
+    ]) {
+      const roomContext = await browser.newContext({
+        viewport: { width: 1440, height: 1000 },
+        permissions: ['geolocation'],
+        geolocation: { latitude: 0.395, longitude: 9.454, accuracy: 100 },
+        reducedMotion: 'reduce'
+      });
+      contexts.push(roomContext);
+      await seed(roomContext);
+      const roomHost = await roomContext.newPage();
+      await roomHost.goto('/?e2eArtist=happy');
+      const roomCode = await openRoom(roomHost, room.title, room.nickname, room.name, room.visibility);
+      for (const nickname of room.guests) {
+        const listenerContext = await browser.newContext({ reducedMotion: 'reduce' });
+        contexts.push(listenerContext);
+        await seed(listenerContext);
+        await joinRoom(await listenerContext.newPage(), roomCode, nickname);
+      }
+    }
     await host.bringToFront();
     await host.getByRole('button', { name: 'Rooms', exact: true }).click();
     const radar = host.getByRole('region', { name: 'Room galaxy', exact: true });
-    await expect(radar.getByRole('button', { name: /^Inspect / }), await radar.innerText()).toHaveCount(1, { timeout: 20_000 });
+    await expect(radar.getByRole('button', { name: /^Inspect / }), await radar.innerText()).toHaveCount(3, { timeout: 20_000 });
+    await expect(radar.locator('.radar-invitations').getByText(/3 listening/)).toBeVisible();
+    await expect(radar.locator('.radar-room-sphere img')).toHaveCount(3);
     await capture(host, 'rooms-desktop');
     await host.setViewportSize({ width: 1440, height: 1000 });
     await host.goto('/artists?e2eArtist=happy');
@@ -139,6 +145,7 @@ test('capture current documentation surfaces with disclosed local demo data', as
           capturedAt: new Date().toISOString(),
           browser: browser.version(),
           surfaces: ['music-desktop', 'rooms-desktop', 'room-desktop', 'room-mobile', 'artist-desktop'],
+          galaxy: { rooms: 3, connectedSessions: [2, 3, 1], visibility: ['Worldwide', 'Worldwide', 'Nearby'] },
           data: 'Local synthetic releases, artwork, accounts and participants; not live activity.',
           validation: 'Visual documentation only, not native Product or pilot acceptance.'
         },
@@ -147,6 +154,6 @@ test('capture current documentation surfaces with disclosed local demo data', as
       ) + '\n'
     );
   } finally {
-    await Promise.allSettled([guestContext.close(), context.close()]);
+    await Promise.allSettled(contexts.map(context => context.close()));
   }
 });

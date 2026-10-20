@@ -10,7 +10,7 @@ export default defineConfig({
   timeout: 90_000,
   webServer: [
     {
-      command: 'node e2e/fixtures/signaling-server.mjs',
+      command: 'node e2e/fixtures/documentation-server.mjs',
       url: 'http://127.0.0.1:8796/health',
       reuseExistingServer: false,
       env: { SIGNAL_HOST: '127.0.0.1', SIGNAL_PORT: '8796', SIGNAL_ORIGINS: 'http://127.0.0.1:5340' }

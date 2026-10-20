@@ -7,23 +7,26 @@ documents are retained at their original paths.
 ## What these images show
 
 These are browser captures of the application UI, not painted mockups. They use
-local, synthetic releases by **Mina**, generated cover artwork and two local
-browser participants. The real local signaling server carries the room/chat
+local, synthetic releases by **Mina**, generated cover artwork and six local
+browser sessions across three concurrently open rooms. Two rooms opt into
+Worldwide discovery; one opts into Nearby. Their connected counts are 2, 3 and 1,
+including hosts. The real local signaling server carries room/chat and presence
 flow. The gallery is a visual introduction, not evidence of live attendance,
 payments, physical audibility or native Product support.
 
 No real wallet, participant, source key, external catalog, location service or
 upload is used. The displayed location is a browser-emulated test fix. The
-discovery artwork may use the app's normal fallback because no canonical live
-catalog is supplied. No verified artist-presence badge is fabricated.
+documentation server supplies synthetic registry reads for those three releases
+so discovery uses their covers through the normal metadata path. It rejects
+unknown reads and has no signer. No verified artist-presence badge is fabricated.
 
-| File                 | Surface                                                                   |
-| -------------------- | ------------------------------------------------------------------------- |
-| `music-desktop.jpg`  | Catalog with three local demonstration releases.                          |
-| `rooms-desktop.jpg`  | Room galaxy with an opted-in Worldwide room and real local session count. |
-| `room-desktop.jpg`   | Guest's shared player and conversation.                                   |
-| `room-mobile.jpg`    | The same guest room at a 390 × 844 browser viewport.                      |
-| `artist-desktop.jpg` | Artist studio's Releases view.                                            |
+| File                 | Surface                                                                                                      |
+| -------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `music-desktop.jpg`  | Catalog with three local demonstration releases.                                                             |
+| `rooms-desktop.jpg`  | Three parallel Nearby/Worldwide rooms with covers, orbiting presence and distinct real local session counts. |
+| `room-desktop.jpg`   | Guest's shared player and conversation.                                                                      |
+| `room-mobile.jpg`    | The same guest room at a 390 × 844 browser viewport.                                                         |
+| `artist-desktop.jpg` | Artist studio's Releases view.                                                                               |
 
 `capture.json` records the application source/tree, capture profile, time and browser.
 Artworks are served locally at their synthetic content-addressed paths; nothing
@@ -43,8 +46,8 @@ npx playwright test --config playwright.docs.config.ts
 ```
 
 The dedicated configuration starts local Vite/signaling at ports 5340/8796 and
-uses only existing test adapters. External HTTP requests are blocked by the
-capture contexts. The recipe is excluded from the ordinary browser suite and
+uses existing browser adapters plus a documentation-only registry fixture.
+External HTTP requests are blocked by the capture contexts. The recipe is excluded from the ordinary browser suite and
 does not introduce a production feature flag or change application code.
 Do not use `VITE_E2E_*` settings in a published build.
 

@@ -46,7 +46,7 @@ of native Product support. [Capture source and reproduction](docs/images/release
 
 **Find a listening room**
 
-![Room galaxy with album covers and Nearby and Worldwide discovery](docs/images/release-preview/rooms-desktop.jpg)
+![Three parallel rooms with different covers, orbiting listeners and Nearby and Worldwide discovery](docs/images/release-preview/rooms-desktop.jpg)
 
 **Share the moment**
 
