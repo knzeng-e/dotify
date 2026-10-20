@@ -1,5 +1,22 @@
 # Deployment Configuration Runbook
 
+## W32 format foundation, 2026-10-20
+
+The inactive W32 format/codec slice does not change upload routes, running
+playback, keys, contracts, service images, secrets, origins, volumes or scaling.
+Existing releases remain DAV2. Its FFmpeg dependency is used in CI and local
+network-isolated probe images only; the production API image is unchanged.
+See [W32 evidence](../backlog/implementation/evidence/W32.md) and the
+[format/nonce decision](../adr/0032-streaming-renditions.md).
+
+Before eventual activation, review the W30 non-root/volume remainder, bounded
+durable job admission, measured worker packaging and real Host compatibility.
+Nonce reservations are permanent custody metadata: never recreate a missing
+ledger, recycle failed-job prefixes or restore an older ledger alone while its
+keys remain usable. A code/media-index rollback must preserve the union of all
+reservations. No initialization command, service restart or migration is
+authorized by this documentation-only operations amendment.
+
 ## Live room invitations and contribution continuity, 2026-10-18
 
 Published as Product 0.1.55 from clean packaging commit
