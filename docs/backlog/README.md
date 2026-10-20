@@ -27,10 +27,11 @@ implemented by PR #264.
 
 ## Product north star
 
-The post-0.1.55 mobile keyboard correction and shared interaction polish are
-tracked by [#306](https://github.com/knzeng-e/dotify/issues/306),
-[mobile form continuity](mobile-form-continuity.md). This is a focused follow-up
-to completed W28, with physical Product keyboard verification kept explicit.
+The mobile keyboard correction and shared interaction polish in
+[#306](https://github.com/knzeng-e/dotify/issues/306) are implemented by #307
+and published in Product 0.1.56. The owner confirmed expected mobile keyboard
+behavior on 2026-10-20. [Mobile form continuity](mobile-form-continuity.md)
+retains the separate full physical-device acceptance boundary.
 
 Post-0.1.47 owner feedback is tracked by [#269](https://github.com/knzeng-e/dotify/issues/269),
 [publication, artwork and room follow-up](release-room-followup.md). It covers
@@ -154,11 +155,13 @@ W29 reverses one earlier record: catalog cards show a short access cue again
 
 ## Remaining execution map
 
-The 2026-10-16 owner update makes **W30 / #285 the blocking Now gate** for
-the trusted pilot of at most 42 participants. It must be merged, deployed and
-operationally checked before the pilot starts. W31 is recommended pilot polish;
-it is not a W13 acceptance gate. W32-W35 form the Next streaming track,
-W36-W37 the Next scaling track, and W38-W39 remain Later.
+The [2026-10-20 delivery reconciliation](implementation/evidence/backlog-reconciliation-2026-10-20.md)
+records W30/W31 implementation and deployment already delivered through #296,
+#297 and the 0.1.52 rollout. W30 still has an explicit API non-root/volume
+ownership remainder; W31 still needs its dedicated Worldwide-report E2E.
+W30 remains a pilot release gate. W32-W35 form the streaming track, W36-W37
+the scaling track, and W38-W39 remain Later. The owner selected W32 as the next
+implementation on 2026-10-20; this does not waive its release prerequisites.
 
 W19's initial Nearby implementation is merged through #283. Its physical-device
 acceptance and subsequent discovery follow-ups remain work to verify, rather
@@ -168,8 +171,8 @@ Todo/In Progress/In Review; this map defines scope and remaining outcomes.
 
 | Priority | GitHub issue | Phase               | Remaining outcome                                                                                                                                              |
 | -------- | ------------ | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| P0       | #285 / W30   | Now                 | Harden and deploy hosted services for the trusted pilot; record real client identity, one signaling worker and TURN grants before starting. |
-| P1       | #286 / W31   | Now (pilot polish)  | Finish discovery recovery/visibility clarity and lazy-load the artist studio; recommended alongside W30, not a W13 gate. |
+| P0       | #285 / W30   | Now                 | Complete API non-root execution with safe existing-volume ownership, migration/restore evidence and rollback. Other hardening and the operational checks are deployed and recorded. |
+| P1       | #286 / W31   | Now (pilot polish)  | Add/verify the dedicated Worldwide-report E2E missing from the original evidence. Discovery controls and lazy studio are already delivered. |
 | P0       | #158 / W13   | Now                 | Bind Product payment/access, room, first-sound, rollback, release-profile, and consented pilot evidence to one accepted candidate.                             |
 | P0       | #88          | Next                | Measure DAV2 first sound on physical browsers/devices and real gateway conditions.                                                                             |
 | P1       | #87          | Next                | Validate responsive covers on live uploads/mobile and decide the cache-edge/legacy-backfill boundary.                                                          |

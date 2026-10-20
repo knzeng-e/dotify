@@ -28,10 +28,11 @@
       "id": "mobile-form-continuity",
       "doc": "docs/backlog/mobile-form-continuity.md",
       "issue": 306,
-      "kind": "work",
+      "kind": "record",
       "priority": "P1",
       "track": "Room reliability",
-      "phase": "Now"
+      "phase": "Record",
+      "note": "Delivered by #307 and published in Product 0.1.56 (#308). Owner confirmed mobile keyboard behavior 2026-10-20; full native matrix remains W13 acceptance."
     },
     {
       "id": "claude-verification-tooling",
@@ -538,7 +539,7 @@
       "priority": "P0",
       "track": "Production spine",
       "phase": "Now",
-      "note": "Pilot blocker from the 2026-10-15 architecture audit: real client identity behind Fly, no global broadcast per playback tick, rate-limited solo presence, CSPRNG room codes, room creation limits, catalog and sessions that survive a redeploy, no-store key responses, bounded RPC timeouts, non-root images. Must be deployed before the 2026-10-17 trusted pilot."
+      "note": "#296 is merged; 0.1.52 records deployment and proxy identity, single signaling worker and TURN checks. Remaining #285 scope: API non-root execution with safe volume ownership and migration/rollback evidence. See evidence/backlog-reconciliation-2026-10-20.md; do not repeat delivered hardening."
     },
     {
       "id": "W31",
@@ -548,7 +549,7 @@
       "priority": "P1",
       "track": "Room reliability",
       "phase": "Now",
-      "note": "Follow-ups from the PR #283 review: worldwide reconnect recovery, no refresh flicker, report on worldwide cards, one Link only / Nearby / Everyone choice, truthful location copy, lazy artist studio. Recommended, not a W13 evidence gate."
+      "note": "#297 is merged and deployed from 0.1.52; discovery controls, recovery and lazy ArtistShell are delivered. Remaining implementation verification: dedicated Worldwide-report E2E missing from W31 evidence. Native reliability remains separate device/pilot acceptance."
     },
     {
       "id": "W32",

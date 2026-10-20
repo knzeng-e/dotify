@@ -37,6 +37,15 @@ readable fields and restrained touch feedback.
 
 ## Delivery
 
+Implemented by #307, merged into `dev` at `b08966698709b06378349a6ffd0567cda5dc8f53`,
+and published as Product 0.1.56 with #308. The owner confirmed expected mobile
+keyboard behavior on 2026-10-20. The implementation scope is complete; the full
+native-device acceptance matrix remains separate under W13. See the
+[implementation evidence](implementation/evidence/mobile-form-continuity-2026-10-19.md)
+and [rollout record](implementation/evidence/product-0.1.56-rollout-2026-10-19.md).
+
+Original delivery instruction:
+
 Create from tested dev `893418de06b9eda8379a350b3bca8912a8ebb4b8`, implement one
 reviewable PR and retain a dated evidence record. Deployment and physical-device
 acceptance follow review. Broader speculative navigation redesign stays separate
