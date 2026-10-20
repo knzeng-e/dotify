@@ -160,6 +160,27 @@ jobs:
       - name: Run tests
         run: npm test
 
+      - name: Streaming codec and nonce round-trip
+        run: |
+          if ! command -v ffmpeg >/dev/null; then
+            sudo apt-get update
+            sudo apt-get install --no-install-recommends -y ffmpeg
+          fi
+          ffmpeg -version
+          ffmpeg -L
+          DOTIFY_TEST_FFMPEG="$(command -v ffmpeg)" npm run test:streaming
+
+      - name: Generate synthetic encrypted browser fixture
+        run: DOTIFY_TEST_FFMPEG="$(command -v ffmpeg)" node --import tsx src/scripts/streamingFixture.test.ts "${GITHUB_WORKSPACE}/web/.data/streaming-fixture.json"
+
+      - name: Retain synthetic codec fixture
+        uses: actions/upload-artifact@v4
+        with:
+          name: synthetic-streaming-fixture
+          path: web/.data/streaming-fixture.json
+          include-hidden-files: true
+          retention-days: 3
+
   evm-contracts:
     name: W01 / EVM contracts and ABI drift
     runs-on: ubuntu-latest
@@ -260,6 +281,7 @@ jobs:
   playwright:
     name: W01 / Playwright core flows
     runs-on: ubuntu-latest
+    needs: api
     defaults:
       run:
         working-directory: web
@@ -278,7 +300,13 @@ jobs:
         run: npm ci
 
       - name: Install Playwright browser
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install --with-deps chromium webkit firefox
+
+      - name: Fetch synthetic codec fixture from this commit
+        uses: actions/download-artifact@v4
+        with:
+          name: synthetic-streaming-fixture
+          path: web/.data
 
       - name: Run deterministic core flows
         run: npm run test:e2e
@@ -291,6 +319,9 @@ jobs:
 
       - name: Verify encrypted audio continuity
         run: npm run test:audio-continuity -- --project chromium
+
+      - name: Verify streaming format in all three engines
+        run: npx playwright test --config playwright.streaming.config.ts
 
       - name: Verify Product host identity
         working-directory: web
