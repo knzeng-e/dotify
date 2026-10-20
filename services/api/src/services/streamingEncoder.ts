@@ -5,7 +5,14 @@ import path from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { blake2b } from '@noble/hashes/blake2';
 import { detectAudioMedia } from './mediaValidation.js';
-import { STREAM_BITRATES, STREAM_MIME, StreamingEncryptor, type StreamingManifest, type StreamingScope } from './streamingFormat.js';
+import {
+  STREAM_BITRATES,
+  STREAM_MIME,
+  StreamingEncryptor,
+  validateStreamingScope,
+  type StreamingManifest,
+  type StreamingScope
+} from './streamingFormat.js';
 import type { StreamingNonceLedger } from './streamingNonces.js';
 
 const MAX_OUTPUT_BYTES = 80 * 1024 * 1024;
@@ -142,17 +149,24 @@ export async function encodeStreamingRelease(input: {
 }): Promise<StreamingEncodingResult> {
   const started = performance.now();
   if (!input.master.length || input.master.length > 50 * 1024 * 1024) throw new Error('Audio exceeds streaming upload budget');
-  const media = detectAudioMedia(input.master);
-  if (!media) throw new Error('Unsupported streaming master');
-  const hash = `0x${Buffer.from(blake2b(input.master, { dkLen: 32 })).toString('hex')}`;
-  if (input.scope.contentHash !== hash) throw new Error('Streaming master hash mismatch');
-  // Validate scope before reserving or touching plaintext on disk.
-  const reservation = await input.ledger.reserve(input.key);
-  const encryptor = new StreamingEncryptor(input.key, reservation, input.scope);
-  const directory = await mkdtemp(path.join(input.temporaryRoot ?? os.tmpdir(), 'dotify-stream-'));
+  const scope = { ...input.scope };
+  validateStreamingScope(scope);
+  if (input.key.length !== 32) throw new Error('Streaming encryption requires a 32-byte key');
+  // Snapshot before the first await: a caller clearing/reusing its upload buffer
+  // must not change the archive after we authenticated its content identity.
+  const master = Buffer.from(input.master);
+  const key = Buffer.from(input.key);
+  let directory: string | undefined;
   try {
+    const media = detectAudioMedia(master);
+    if (!media) throw new Error('Unsupported streaming master');
+    const hash = `0x${Buffer.from(blake2b(master, { dkLen: 32 })).toString('hex')}`;
+    if (scope.contentHash !== hash) throw new Error('Streaming master hash mismatch');
+    const reservation = await input.ledger.reserve(key);
+    const encryptor = new StreamingEncryptor(key, reservation, scope);
+    directory = await mkdtemp(path.join(input.temporaryRoot ?? os.tmpdir(), 'dotify-stream-'));
     const source = path.join(directory, `source.${media.extension}`);
-    await writeFile(source, input.master, { mode: 0o600, flag: 'wx' });
+    await writeFile(source, master, { mode: 0o600, flag: 'wx' });
     input.onProgress?.('measuring');
     const binary = input.ffmpegPath ?? 'ffmpeg';
     const loudnessLog = await ffmpeg(
@@ -182,7 +196,7 @@ export async function encodeStreamingRelease(input: {
     const loudness = streamingLoudness(loudnessLog);
     const files: StreamingEncodingResult['files'] = [];
     input.onProgress?.('encrypting');
-    const archive = encryptor.object(input.master, { rendition: 'archive', kind: 'master', index: 0, path: 'archive/master.bin' });
+    const archive = encryptor.object(master, { rendition: 'archive', kind: 'master', index: 0, path: 'archive/master.bin' });
     files.push({ name: archive.descriptor.path, bytes: archive.bytes });
     const renditions: StreamingManifest['renditions'] = [];
     let durationSeconds = 0;
@@ -276,6 +290,8 @@ export async function encodeStreamingRelease(input: {
     files.push({ name: 'manifest.json', bytes: Buffer.from(JSON.stringify(manifest)) });
     return { manifest, files, elapsedMs: Math.round(performance.now() - started) };
   } finally {
-    await rm(directory, { recursive: true, force: true });
+    master.fill(0);
+    key.fill(0);
+    if (directory) await rm(directory, { recursive: true, force: true });
   }
 }

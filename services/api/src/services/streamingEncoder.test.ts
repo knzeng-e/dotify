@@ -57,15 +57,24 @@ describe('streaming encoder', () => {
         await initializeStreamingNonceLedger(ledgerPath);
         const ledger = new StreamingNonceLedger(ledgerPath);
         const phases: string[] = [];
-        const result = await encodeStreamingRelease({
-          master,
-          key,
-          scope,
+        const mutableMaster = Buffer.from(master);
+        const mutableKey = Buffer.from(key);
+        const mutableScope = { ...scope };
+        const pendingResult = encodeStreamingRelease({
+          master: mutableMaster,
+          key: mutableKey,
+          scope: mutableScope,
           ledger,
           ffmpegPath: binary,
           temporaryRoot: directory,
-          onProgress: phase => phases.push(phase)
+          onProgress: phase => {
+            phases.push(phase);
+            if (phase === 'measuring') mutableMaster.fill(0);
+          }
         });
+        mutableKey.fill(0);
+        mutableScope.contentHash = `0x${'99'.repeat(32)}`;
+        const result = await pendingResult;
         verifyStreamingManifest(result.manifest, key, scope);
         assert.deepEqual(
           result.manifest.renditions.map(item => item.bitrateKbps),
