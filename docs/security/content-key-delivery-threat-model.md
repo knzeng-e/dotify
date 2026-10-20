@@ -206,6 +206,9 @@ Properties and boundaries:
   Successful responses acknowledge durable revocation; failed active-cache
   cleanup retains the inactive marker across reload. Expired queue entries are
   discarded after a five-minute clock margin. This does not extend server TTL.
+- A shared logout worker releases its own promise slot before settling. Callers
+  recheck entries queued during a successful empty flush before reporting
+  success; a failed flush rejects rather than looping network retries.
 - If browser/Host storage cannot be written, retries remain memory-only and the
   UI warns that server sign-out is incomplete, with an instruction to keep the
   app open. A closed page cannot guarantee delivery in that condition. A session

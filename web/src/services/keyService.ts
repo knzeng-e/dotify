@@ -420,16 +420,22 @@ export async function signOutOfDotifySession(address: string): Promise<void> {
 /** Also used after reload, foreground return and network recovery. Never signs. */
 export async function retryPendingSessionRevocations(): Promise<void> {
   if (!API_URL) return;
-  if (revocationRequest) return revocationRequest;
-  revocationRequest = flushPendingSessionRevocations();
-  try {
-    await revocationRequest;
-  } catch (error) {
-    for (const listener of pendingRevocationListeners) listener();
-    throw error;
-  } finally {
-    revocationRequest = null;
+  if (!revocationRequest) {
+    const request = flushPendingSessionRevocations()
+      .catch(error => {
+        for (const listener of pendingRevocationListeners) listener();
+        throw error;
+      })
+      .finally(() => {
+        if (revocationRequest === request) revocationRequest = null;
+      });
+    revocationRequest = request;
   }
+  // The shared worker releases its slot before settling. A successful empty
+  // worker can have gained entries in the same tick; every caller must cover
+  // those too. Failures reject above and never resubmit in this loop.
+  await revocationRequest;
+  if (sessionRevocations.entries().length) await retryPendingSessionRevocations();
 }
 
 async function flushPendingSessionRevocations(): Promise<void> {

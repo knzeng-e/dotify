@@ -38,7 +38,7 @@ is included in diagnostics or user-visible errors.
 
 ## Verification
 
-- All Web unit tests: 126 files, 1,007 tests passed. The 33 focused session/cache
+- All Web unit tests: 126 files, 1,009 tests passed. The 35 focused session/cache
   tests cover 503/network failures, reload, failed active-cache removal,
   memory-only storage, account switching, concurrent retries, late sign-ins,
   API isolation and expiry cleanup.
@@ -76,3 +76,18 @@ is not imported by application code, uses no new feature
 flag and is not a production entry. Its payment status is simulated and does
 not submit a transaction. CI evidence for the old `144891e` head remains
 historical; the amended head must pass the same eight gates before review.
+
+## Coalesced empty-flush race amendment
+
+A targeted same-tick test first reproduced a false successful logout: an empty
+flush had already resolved but still occupied the shared request slot, so a
+newly queued token inherited its result with zero logout requests. The shared
+worker now clears its own slot before settling, guarded by promise identity,
+and callers recheck for newly queued entries before reporting success. A
+failed worker rejects immediately; it never enters this success-only recheck.
+
+The regression passes for both HTTP 200 and 503 with three coalesced callers.
+All three observe the correct success/failure and exactly one network request
+occurs. This covers the red-to-green report while keeping network failures
+from producing an uncontrolled retry loop. The prior head's CI is historical;
+the final amended head requires its own eight passing gates.

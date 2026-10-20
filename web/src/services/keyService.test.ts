@@ -123,6 +123,27 @@ afterEach(() => {
 });
 
 describe('keyService sessions', () => {
+  it.each([200, 503])('covers same-tick queued tokens for coalesced callers without looping HTTP %s', async status => {
+    const scopeKey = `dotify:session:v2:${encodeURIComponent('https://api.test')}:${ADDRESS}:420420417:eip191`;
+    installLocalStorage([[scopeKey, JSON.stringify({ token: 'same-tick-logout', expiresAt: new Date(Date.now() + 3_600_000).toISOString() })]]);
+    const fetchMock = vi.fn(async () => jsonResponse({ ok: status === 200 }, status));
+    vi.stubGlobal('fetch', fetchMock);
+    const service = await loadKeyService();
+    const emptyFlush = service.retryPendingSessionRevocations();
+    const signOut = service.signOutOfDotifySession(ADDRESS);
+    const coalesced = service.retryPendingSessionRevocations();
+    const results = await Promise.allSettled([emptyFlush, signOut, coalesced]);
+    for (const result of results) {
+      expect(result.status).toBe(status === 200 ? 'fulfilled' : 'rejected');
+      if (result.status === 'rejected') expect(result.reason).toMatchObject({ code: 'SESSION_LOGOUT_PENDING' });
+    }
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://api.test/api/auth/logout',
+      expect.objectContaining({ body: JSON.stringify({ sessionToken: 'same-tick-logout' }) })
+    );
+  });
+
   it.each(['503', 'network'])('retains inactive logout credentials across reload after %s and removes them only after acknowledgement', async failure => {
     const scopeKey = `dotify:session:v2:${encodeURIComponent('https://api.test')}:${ADDRESS}:420420417:eip191`;
     const { store } = installLocalStorage([[scopeKey, JSON.stringify({ token: 'pending-logout', expiresAt: new Date(Date.now() + 3_600_000).toISOString() })]]);
