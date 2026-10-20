@@ -6,7 +6,9 @@ const SIGNAL_URL = `http://127.0.0.1:${SIGNAL_PORT}`;
 export default defineConfig({
   testDir: './e2e',
   testIgnore: [
+    '**/documentation-capture.spec.ts',
     '**/product-identity.spec.ts',
+    '**/session-logout.spec.ts',
     '**/audio-continuity.spec.ts',
     '**/nearby.spec.ts',
     '**/nearby-product.spec.ts',

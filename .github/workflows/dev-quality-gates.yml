@@ -326,3 +326,7 @@ jobs:
       - name: Verify Product host identity
         working-directory: web
         run: npx playwright test --config playwright.product-identity.config.ts --project=chromium --workers=2
+
+      - name: Verify incomplete sign-out recovery
+        working-directory: web
+        run: npx playwright test --config playwright.session-logout.config.ts --project=chromium --workers=2

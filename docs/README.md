@@ -1,61 +1,63 @@
-# Dotify Documentation
+# Dotify documentation
 
-Documentation for the Dotify decentralized music streaming platform, structured following the [Diátaxis framework](https://diataxis.fr/).
+Start with the task you want to complete. Dotify is a shared-listening hub with
+artist-owned runtimes; its [project overview](../README.md) explains the purpose
+and shows the current interface.
 
----
+## Use Dotify
 
-## Implementation playbook
+| I want to…                                        | Start here                                                                |
+| ------------------------------------------------- | ------------------------------------------------------------------------- |
+| Host, join or discover a listening room           | [Listen together](how-to/listen-together.md)                              |
+| Understand who needs a wallet or listening access | [Access policy](explanation/access-control-model.md)                      |
+| Understand source protection and recording limits | [Content protection](explanation/content-protection.md)                   |
+| Explore the interface                             | [Current captures and their provenance](images/release-preview/README.md) |
 
-[Agent implementation sequences](./backlog/implementation/README.md) provide
-copy-paste prompts, short-lived branch names, dependencies, acceptance criteria,
-and evidence handoffs for the Product DevNet/web pilot and later immersive and
-privacy-preserving nearby discovery. Preparation is tracked in issue #130.
+For an uncertain gift, tip or Classic purchase, use
+[Check a pending payment](how-to/recover-a-payment.md) before starting another attempt.
 
-## Explanation
+## Develop
 
-Conceptual documents that help you understand why Dotify works the way it does.
+| I want to…                                 | Start here                                                                                                      |
+| ------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
+| Run the app and its services               | [Local setup](how-to/develop-locally.md)                                                                        |
+| Find frontend commands and modules         | [Web README](../web/README.md)                                                                                  |
+| Understand the system and trust boundaries | [Architecture](explanation/architecture-overview.md)                                                            |
+| Work on contracts                          | [EVM contracts](../contracts/README.md)                                                                         |
+| Understand discovery and shared audio      | [Room mechanics](explanation/listening-rooms.md), [privacy contract](design/dotify-nearby-discovery-privacy.md) |
+| Understand Product integration             | [Product architecture](explanation/product-devnet-architecture.md)                                              |
+| Make a focused contribution                | [AGENTS.md](../AGENTS.md), [PR guide](explanation/pull-requests-as-knowledge-sharing.md)                        |
 
-| Document | Audience | Summary |
-|---|---|---|
-| [Architecture Overview](./explanation/architecture-overview.md) | All | How the six system layers (identity, IPFS, EVM, Bulletin, WebRTC, frontend) connect |
-| [Access Control Model](./explanation/access-control-model.md) | All | Human free vs Classic — what they mean for artists and listeners |
-| [Content Protection](./explanation/content-protection.md) | All | Audio encryption pipeline, what it protects, and what it does not |
-| [Royalty Settlement](./explanation/royalty-settlement.md) | All | How native runtime payments settle, become claimable on recipient failure, and stay separate from Product CASH |
-| [Listening Rooms](./explanation/listening-rooms.md) | All | WebRTC peer-to-peer streaming, signaling protocol, known limitations |
-| [Product DevNet Architecture](./explanation/product-devnet-architecture.md) | Maintainers | Dual-host boundaries, Product account capabilities, rooms, storage, and the proposed contract port |
-| [Product CASH Settlement Decision](./design/product-cash-settlement-decision.md) | Maintainers | Why CASH remains unavailable until Product supplies a verifiable CASH-to-runtime entitlement path |
+## Look something up
 
----
+- [Environment variables](reference/environment-variables.md)
+- [Socket events](reference/socket-events.md)
+- [DAV2 encrypted audio](reference/audio-v2-container.md)
+- [Contract reference](reference/contracts-api.md) and [generated bindings](../web/src/generated/contracts/)
+- [Shared TypeScript source](../web/src/shared/types.ts)
+- [Access and key-delivery threat model](security/content-key-delivery-threat-model.md)
+- [Native contributions](design/native-contributions.md) and [royalty settlement](explanation/royalty-settlement.md)
 
-## Reference
+## Operate and prepare a release
 
-Precise technical descriptions for developers integrating with or contributing to Dotify.
+- [Deployment configuration](operations/deployment-configuration.md): Web/API/signaling settings, persistent state and checks.
+- [Product publication](operations/product-devnet-deployment.md): package identity, signer boundary, publish and rollback.
+- [Quality gates](operations/dev-quality-gates.md): automated verification.
+- [Pilot release plan](operations/pilot-release-plan.md): device journeys, evidence and the release decision.
+- [Dated implementation and rollout evidence](backlog/implementation/evidence/).
 
-| Document | Summary |
-|---|---|
-| [Hooks API](./reference/hooks-api.md) | `useCatalog`, `useSession`, `useArtistConsole` — all state, refs, and functions |
-| [Contracts API](./reference/contracts-api.md) | Smart contract function signatures, parameters, events, and price conversion |
-| [Socket.IO Events](./reference/socket-events.md) | Full event schema for the signaling server |
-| [Dotify Audio V2 Container](./reference/audio-v2-container.md) | `DAV2` encrypted audio layout, playback contract, and startup metrics |
-| [TypeScript Types](./reference/types.md) | All shared types with field descriptions |
-| [Environment Variables](./reference/environment-variables.md) | Every env var, default, security note, and where it is used |
+Ready code, deployed builds and accepted pilot journeys are different states.
+A screenshot or browser fixture is not proof of native signing, settlement,
+background audio or physical-device behavior.
 
----
+## Direction and history
 
-## Operations
+The [implementation plan](backlog/implementation/README.md) defines scope and
+sequence; [Project 5](https://github.com/users/knzeng-e/projects/5) owns live
+workflow status. [Product memory](context/dotify-product-memory.md),
+[technical memory](context/dotify-technical-memory.md) and the
+[north star](context/dotify-philosophical-north-star.md) explain the intent.
+Older design notes and dated evidence retain their historical scope; use the
+current plan and code before treating an old proposal as current behavior.
 
-Runbooks for hosted configuration and production validation.
-
-| Document | Summary |
-|---|---|
-| [Deployment Configuration](./operations/deployment-configuration.md) | Netlify and Fly dashboard settings, secrets, catalog persistence, validation, and the update checklist for future env/config changes |
-| [Product DevNet Deployment](./operations/product-devnet-deployment.md) | Build, publish, validate, and roll back the `dotify-test01.dot` Product DevNet app |
-
----
-
-## Quick links
-
-- [spec.md](../spec.md) — complete product specification
-- [contracts/README.md](../contracts/README.md) — contract architecture and deployment
-- [web/README.md](../web/README.md) — frontend local setup and build commands
-- [CLAUDE.md](../../CLAUDE.md) — repository commands and development guidance
+[Public project page](index.html) · [Presentation](presentation/dotify-showcase-2026.pdf) · [Product specification](../spec.md)

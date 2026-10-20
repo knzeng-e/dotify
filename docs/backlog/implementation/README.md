@@ -4,6 +4,13 @@ Agent-ready work sequences for shipping a trustworthy musical commons on Product
 
 ## Owner priority update: trusted pilot and streaming track, 2026-10-16
 
+The [2026-10-20 reconciliation](evidence/backlog-reconciliation-2026-10-20.md)
+supersedes the delivery assumptions in this dated scheduling snapshot. W30/W31
+are merged and deployed; API non-root/volume migration and the dedicated
+Worldwide-report E2E remain explicit remainders. Mobile forms #306 are delivered
+in Product 0.1.56. W32 is selected for implementation, with its release gates
+unchanged. Do not reimplement delivered scopes from the older list below.
+
 The owner starts a trusted pilot of at most 42 participants on several
 continents on 2026-10-17 (see the W13 owner update). The 2026-10-15
 architecture audit and the PR #283 review produced ten sequences:

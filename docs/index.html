@@ -1264,6 +1264,48 @@
           box-shadow: none;
         }
       }
+      code {
+        overflow-wrap: anywhere;
+      }
+
+      .product-gallery-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 30rem), 1fr));
+        gap: 1.5rem;
+        margin-top: 2rem;
+      }
+      .product-gallery figure {
+        margin: 0;
+        min-width: 0;
+      }
+      .product-gallery img {
+        width: 100%;
+        height: auto;
+        border: 1px solid var(--line-strong);
+        border-radius: var(--radius-card);
+        background: var(--canvas);
+      }
+      .product-gallery figcaption {
+        margin-top: 0.8rem;
+        color: var(--slate);
+        font-size: 0.95rem;
+      }
+      .product-gallery figcaption strong {
+        color: var(--ink);
+      }
+      .product-gallery-more {
+        margin-top: 1.8rem;
+      }
+      .product-gallery-more summary {
+        cursor: pointer;
+        color: var(--cyan);
+        padding: 0.75rem 0;
+      }
+      .gallery-source {
+        margin-top: 1.5rem;
+        color: var(--slate);
+        font-size: 0.9rem;
+      }
     </style>
   </head>
   <body>
@@ -1292,13 +1334,14 @@
         </a>
 
         <nav class="site-nav" aria-label="Primary navigation">
+          <a href="#screenshots">In the app</a>
           <a href="#listening">Shared listening</a>
           <a href="#artists">Artist sovereignty</a>
           <a href="#trust">Invisible trust</a>
         </nav>
 
-        <a class="button button-primary header-action" href="design/dotify-shared-score.md">
-          <span class="header-action-label"><span class="header-action-prefix">Product </span>Blueprint</span>
+        <a class="button button-primary header-action" href="https://muzinga.netlify.app">
+          <span class="header-action-label">Open Dotify</span>
           <span class="arrow" aria-hidden="true">&#8599;</span>
         </a>
       </div>
@@ -1313,7 +1356,7 @@
             Dotify turns a simple link into a shared listening moment, while artist-owned runtimes keep access, rights, and value under the artist's control.
           </p>
           <div class="hero-actions" aria-label="Project resources">
-            <a class="button button-dark" href="design/dotify-shared-score.md">
+            <a class="button button-dark" href="#screenshots">
               Explore the experience
               <span class="arrow" aria-hidden="true">&#8594;</span>
             </a>
@@ -1326,43 +1369,74 @@
         </div>
       </section>
 
-      <figure class="score-figure shell" aria-labelledby="score-title">
-        <div class="score-board">
-          <div class="score-head">
-            <div>
-              <p class="score-label">Shared Score / 01</p>
-              <h2 id="score-title">One track. Four parts. One human moment.</h2>
-            </div>
-            <p class="score-disclosure">Relationship model — not live room data</p>
-          </div>
-
-          <ol class="score-lanes">
-            <li>
-              <span class="score-index">01</span>
-              <h3>The artist defines</h3>
-              <p>The track, its access policy, and its value flows begin in an artist-owned SmartRuntime.</p>
-            </li>
-            <li>
-              <span class="score-index">02</span>
-              <h3>The host opens</h3>
-              <p>A listener creates a temporary room around a track and becomes responsible for protected access.</p>
-            </li>
-            <li>
-              <span class="score-index">03</span>
-              <h3>The link travels</h3>
-              <p>The invitation carries the room context without turning entry into a wallet ritual.</p>
-            </li>
-            <li>
-              <span class="score-index">04</span>
-              <h3>People arrive</h3>
-              <p>Guests share the host's ephemeral audio stream and discover the artist through presence.</p>
-            </li>
-          </ol>
+      <section class="section shell product-gallery" id="screenshots" aria-labelledby="screenshots-title">
+        <p class="section-kicker">Inside Dotify</p>
+        <h2 class="section-title" id="screenshots-title">Find the music. Meet the people.</h2>
+        <p class="section-lead">
+          The current Web interface, captured with local demonstration data. Rooms, people and counts below are illustrative, not live activity.
+        </p>
+        <div class="product-gallery-grid">
+          <figure>
+            <a href="images/release-preview/music-desktop.jpg" aria-label="View the full Music screenshot">
+              <img
+                src="images/release-preview/music-desktop.jpg"
+                alt="Dotify Music catalog with three demonstration releases"
+                width="1440"
+                height="1000"
+                loading="lazy"
+                decoding="async"
+              />
+            </a>
+            <figcaption><strong>Start with the music.</strong> Open a track, then invite someone into the moment.</figcaption>
+          </figure>
+          <figure>
+            <a href="images/release-preview/rooms-desktop.jpg" aria-label="View the full room galaxy screenshot">
+              <img
+                src="images/release-preview/rooms-desktop.jpg"
+                alt="Dotify room galaxy with an opted-in Worldwide listening room"
+                width="1440"
+                height="1400"
+                loading="lazy"
+                decoding="async"
+              />
+            </a>
+            <figcaption><strong>Find your people.</strong> Three parallel rooms, distinct covers and orbiting presence, with Nearby and Worldwide visibility.</figcaption>
+          </figure>
         </div>
-        <figcaption>
-          This diagram explains Dotify's product relationship. It does not represent an active room, participant count, or current network state.
-        </figcaption>
-      </figure>
+        <details class="product-gallery-more">
+          <summary>See the room and artist studio</summary>
+          <div class="product-gallery-grid">
+            <figure>
+              <picture>
+                <source media="(max-width: 600px)" srcset="images/release-preview/room-mobile.jpg" width="390" height="844">
+                <img
+                  src="images/release-preview/room-desktop.jpg"
+                  alt="Shared player and room conversation"
+                  width="1440"
+                  height="1000"
+                  loading="lazy"
+                  decoding="async"
+                />
+              </picture>
+              <figcaption>The room brings playback and conversation together. The narrow view is browser emulation.</figcaption>
+            </figure>
+            <figure>
+              <img
+                src="images/release-preview/artist-desktop.jpg"
+                alt="Artist studio with release and live activity controls"
+                width="1440"
+                height="1000"
+                loading="lazy"
+                decoding="async"
+              />
+              <figcaption>A separate space for artists to manage their music.</figcaption>
+            </figure>
+          </div>
+        </details>
+        <p class="gallery-source">
+          <a href="images/release-preview/README.md">Capture source and reproduction</a> · <a href="how-to/listen-together.md">Hosting and joining guide</a>
+        </p>
+      </section>
 
       <section class="section section-rule" id="listening" aria-labelledby="listening-title">
         <div class="shell">
@@ -1574,17 +1648,18 @@
                 validation evidence, not an accepted aggregate pilot or a successful Desktop-signed payment.
               </p>
               <p>
-                The current published default release is <code>[0, 1, 56]</code>, built from tested source
-                <code>c9becc990b26949445e9af69da357c08789d4f28</code> and published at CID
-                <code>bafybeieactmt5ci6iqp62foewyh7frb6gqamvo6d7hdivgy2tiyinfgn2u</code>. It adds keyboard-aware form placement, quieter controls and restrained mobile sheet transitions.
-                It retains native Product payments, encrypted-media recovery, live scoped room updates, optional room names and invitations, a visible verified artist seal,
-                reversible hiding and tip review across account connection. Rooms remain private by default. A connected host may keep the last consented area visible
-                in the background without tracking movement. CI and synthetic deployed-service checks passed,
-                alongside finalized DotNS and public-content read-back. Product 0.1.55 is the client rollback artifact.
-                A bounded installed Desktop form check passed, and the owner confirmed expected mobile keyboard behavior on 2026-10-20.
-                Full device-matrix coverage, rotation, permission behavior, prolonged room audio and paid tips still need verification.
-                The <a href="backlog/implementation/evidence/product-0.1.56-rollout-2026-10-19.md">rollout record</a> identifies each deployed artifact and its validation limits.
-                W13 also requires first-sound and room measurements, a matching rollback rehearsal, and a consented aggregate pilot before an evidence-backed go/no-go decision.
+                The current published default release is <code>[0, 1, 57]</code>, built from tested packaging source
+                <code>a789d8ecb63287013a46a4e268827184c2e67ca4</code> at CID
+                <code>bafybeifba24wrvu2ywkurapvsjmeub3llviu2tybc3hkzljobww3ordqqm</code>.
+                It adds durable sign-out recovery to the mobile-form and live-presence release. Native Product payments,
+                protected audio, optional room names, verified artist presence and reversible hiding remain part of the experience.
+                Rooms stay private by default. A connected host can keep the last consented area visible in the background without tracking movement.
+                Finalized DotNS, public-content integrity and Web desktop/mobile checks passed. Public artifact retrieval initially timed out and succeeded with resume;
+                native location still uses the browser fallback on the checked Desktop Host. Product 0.1.56 is the client rollback artifact.
+                The <a href="https://github.com/knzeng-e/dotify/releases/tag/1.4.0">GitHub 1.4.0 testnet prerelease</a>
+                and <a href="backlog/implementation/evidence/product-0.1.57-rollout-2026-10-20.md">rollout record</a> distinguish deployed identities from acceptance.
+                Physical-device coverage, prolonged audio, native paid receipts and a matching rollback rehearsal remain open.
+                W13 still requires a consented aggregate pilot and an evidence-backed go/no-go decision.
               </p>
               <p>
                 Product DevNet is a first-class delivery target alongside ordinary mobile and desktop web. The next pilot must demonstrate discovery, listening,
@@ -1676,9 +1751,10 @@
                 and preserved masters. Upload jobs, player integration and device acceptance remain separate steps; published listening has not switched formats.
               </p>
               <p>
-                A trusted pilot of at most 42 people on several continents starts in October 2026. Before it opens, the hosted services must
-                recognize each participant behind the hosting proxy, stop sending room updates to everyone on every playback tick, and keep sign-in
-                and the catalog across a redeploy. During the pilot, the next steps aim at a streaming experience that starts within a second:
+                The hosted-service hardening is deployed: client limits account for the hosting proxy, playback no longer broadcasts room lists globally,
+                and sign-in and catalog state survive redeploys. API non-root execution with safe volume ownership still needs completion.
+                A trusted pilot of at most 42 people remains subject to device, listening and payment acceptance.
+                The remaining streaming work aims at first sound within a second:
                 releases encoded for streaming with the same encryption and access checks, encrypted media served through a cache that cannot read it,
                 content keys prepared ahead for signed-in listeners, and gapless playback with system controls. Room guests still join from a link and
                 never receive a key. These are planned steps with measurement targets, not capabilities of the current release.
@@ -1735,6 +1811,12 @@
           </div>
 
           <ul class="resource-list">
+            <li>
+              <a class="resource-link" href="README.md">
+                <span><strong>Documentation map</strong><span>Find a guide for listening, development or release operation.</span></span>
+                <span class="arrow" aria-hidden="true">&#8594;</span>
+              </a>
+            </li>
             <li>
               <a class="resource-link" href="design/dotify-shared-score.md">
                 <span>

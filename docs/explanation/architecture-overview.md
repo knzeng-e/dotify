@@ -1,191 +1,123 @@
-# Architecture Overview
+# Architecture overview
 
-> **Reading level:** This document has two levels.
->
-> - The first section is for anyone who wants to understand what Dotify is made of.
-> - The [Technical deep-dive](#technical-deep-dive) section is for developers integrating with or contributing to the codebase.
+Dotify connects a familiar listening interface to artist-owned rights and access
+rules. Its social unit is a room: an authorized host shares audio, and guests
+join through an invitation without obtaining source files or content keys.
 
----
+## Components and trust boundaries
 
-## What Dotify is built from
+| Component             | Responsibility                                                                                        | Boundary                                                                                |
+| --------------------- | ----------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| Web or Product client | Catalog, player, rooms and artist studio.                                                             | Public code; no production master secrets or Pinata credentials.                        |
+| Backend API           | Catalog read model, upload authorization, encryption, sessions, key delivery and bounded media relay. | Verifies identity and current on-chain access; holds key material.                      |
+| Artist runtime        | Catalog, ownership, access policy and value-flow rules.                                               | Contract state is authoritative; UI labels cannot grant access.                         |
+| IPFS and pinning      | Encrypted audio, public covers and metadata.                                                          | Content addressing is not a promise of permanent availability.                          |
+| Signaling             | Membership, scoped discovery, conversation, presence and WebRTC negotiation.                          | Current single-process room state is ephemeral. No public enumeration of private rooms. |
+| WebRTC / TURN         | Host-to-guest media delivery.                                                                         | Guests can record what they hear; this is not absolute DRM.                             |
+| Bulletin / DotNS      | Product app distribution and optional metadata archival.                                              | Publication and retention depend on the relevant network and operator setup.            |
 
-Dotify is a decentralized music streaming platform. When you stream a track, upload a release, or join a listening room, your actions touch several independent systems — none of which are owned by Dotify itself.
+These boundaries make components replaceable, but do not eliminate dependencies.
+An unavailable key service can prevent new protected playback; a failed
+signaling session can interrupt a room. The current API also depends on
+backend-held key custody and a single-writer catalog. Artist ownership of a
+runtime does not mean every hosted component is already decentralized.
 
-Those systems are:
+## Publishing
 
-| Layer                   | Technology                         | What it does                                                  |
-| ----------------------- | ---------------------------------- | ------------------------------------------------------------- |
-| **Identity**            | EVM wallet or Product host account | Proves account authority only when an action needs it         |
-| **Storage**             | IPFS via Pinata                    | Holds audio files, cover images, and track metadata           |
-| **Backend API**         | Node.js + Fastify                  | Keeps Pinata credentials and content-key material server-side |
-| **On-chain registry**   | Paseo Asset Hub (EVM)              | Records track ownership, access rules, and payments           |
-| **Archival**            | Polkadot Bulletin Chain            | Permanent, tamper-proof backup of the rights manifest         |
-| **Real-time streaming** | WebRTC + Socket.IO                 | Delivers live audio to listening rooms                        |
-| **Frontend**            | React SPA                          | The user interface that ties all of the above together        |
-
-These systems are intentionally separate. If any one of them goes down or is replaced, the others keep working. Your music is not locked into Dotify — it lives on open networks.
-
----
-
-## How a track moves through the system
-
-### Publishing (artist's journey)
-
-```
-Artist selects audio file
-        │
-        ▼
-blake2b-256 hash computed      ← content identity, used everywhere
-        │
-        ▼
-AES-256-GCM encryption         ← backend path protects audio before pinning
-        │
-        ▼
-Upload to IPFS via Pinata      ← backend pins encrypted audio; CID stored on-chain
-Cover image → IPFS             ← cover CID stored on-chain
-        │
-        ▼
-Rights manifest built          ← JSON: title, artist, CIDs, access mode, royalties
-        │
-        ├──► Upload to IPFS    ← canonical metadata path
-        │
-        └──► Upload to Bulletin Chain (optional) ← permanent archival
-                │
-                ▼
-        musicRegRegister() called on SmartRuntime
-        ← on-chain track record created
-        ← NFT minted, royalty splits registered
-        ← access rules enforced from this point forward
+```text
+Artist account
+  -> signed session and runtime-ownership verification
+  -> bounded, single-use upload authorization
+  -> API validates media bytes and content hash
+  -> release-scoped AES-GCM encryption and IPFS pinning
+  -> artist approves runtime registration
+  -> catalog confirms the canonical release
 ```
 
-### Listening (listener's journey)
+The browser computes the content hash; the API verifies the bytes it receives.
+Audio, cover and editorial metadata have separate references. Runtime access,
+ownership and payment rules remain separate from descriptive metadata. A
+confirmed transaction and a release visible in the catalog are distinct states.
 
-```
-Listener opens Dotify
-        │
-        ▼
-ArtistDirectory queried        ← finds all registered artist runtimes
-        │
-        ▼
-Each runtime's track list fetched ← on-chain catalog
-        │
-        ▼
-Track selected → access checked
-        │
-        ├── Has access?  ──► Content key requested, full audio decrypted and played
-        │
-        └── No access?  ──► Unlock/personhood gate shown, no protected audio
-                │
-                ├── Pay native  → musicRoyPayAccess() → access granted
-                └── Prove PoP   → registrar confirms personhood → access granted
+Existing production-format uploads use the versioned DAV2 container. The W32
+segmented-encoding work remains a separate, incomplete integration; it must not
+be inferred from a build or screenshot of this release.
+
+## Individual listening
+
+```text
+Open catalog -> API snapshot -> choose a track
+  -> verify canonical release and current access
+  -> receive an allowed content key
+  -> fetch ciphertext through the configured gateway/relay path
+  -> authenticate, decrypt and play
 ```
 
----
+Free tracks can request a key without a wallet after the API checks public
+access. Gated tracks require the applicable identity and access. Standalone
+signatures use EIP-191; Product account proofs use the implemented Host adapter
+and API verification scheme. If verification is unavailable or ambiguous, key
+release fails closed.
 
-## Technical deep-dive
+The catalog API avoids enumerating every artist runtime on each browser visit.
+Its single-writer snapshot advances from confirmed events and reconciliation.
+Cache freshness, transaction preflight and actual access checks are different
+facts. [Content protection](content-protection.md) explains key scope and its
+limits.
 
-### Frontend (React SPA)
+## Shared listening and discovery
 
-The frontend lives at `Dotify/web/src/` and is a Vite + React + TypeScript
-application. It talks directly to public RPCs and IPFS gateways for reads, and
-uses the backend API when `VITE_DOTIFY_API_URL` is configured for server-side
-uploads and wallet-signed content-key delivery.
+A room guest receives WebRTC media from the authorized host, not an encrypted
+source or a content key. Socket.IO carries negotiation, room state and ephemeral
+social events; media may travel directly or through TURN. The signaling service
+is not an audio relay.
 
-**Key modules:**
+Rooms start Link only. Nearby and Worldwide discovery require host opt-in;
+Nearby uses bounded approximate areas and both parties' selected ranges. Scoped
+updates keep discovery current without a global private-room list. Artist
+activity can include private-room totals without disclosing their identifiers.
+See [room mechanics](listening-rooms.md) and the
+[privacy contract](../design/dotify-nearby-discovery-privacy.md).
 
-```
-src/
-├── App.tsx                    # Root: composes hooks, routes to views
-├── types.ts                   # All shared TypeScript types
-├── hooks/
-│   ├── useCatalog.ts          # Catalog state, IPFS resolution, access gating
-│   ├── useSession.ts          # WebRTC + Socket.IO room management
-│   ├── useArtistConsole.ts    # /artists registration, releases, royalties
-│   └── useWallet.ts           # Wallet tiers: EVM extension + Product host account
-├── features/runtime/
-│   ├── runtimePorts.ts        # RuntimeReadPort / RuntimeWritePort contracts
-│   ├── viemRuntimeAdapter.ts  # Current EVM implementation behind the ports
-│   └── productCdmRuntimeAdapter.ts
-│                               # Experimental Product CDM/PAPI adapter
-├── views/                     # One file per screen / tab
-│   ├── ListenView.tsx
-│   ├── PlayerView.tsx
-│   ├── RoomsView.tsx
-│   └── artist/                # ArtistOnboarding, ArtistConsole + sub-tabs
-└── services/
-    ├── keyService.ts          # Wallet-signed content-key requests
-    └── pinata.ts              # Backend/demo uploads + gateway fallback reads
-```
+## Find the implementation
 
-The three custom hooks own all non-UI state and logic. View components are thin — they receive props and render JSX.
+- `web/src/app/`: listener/artist shells, providers and navigation.
+- `web/src/features/`: catalog, player, rooms, access, publishing, contributions,
+  runtime ports and Product adapters.
+- `web/src/hooks/`: orchestration around these modules.
+- `web/src/services/`: API clients and asset resolution.
+- `web/src/shared/`: types, configuration and utilities.
+- `web/server/`: signaling and its tests.
+- `services/api/`: the API and its persistence/custody services.
+- `contracts/evm/`: factory, directory, SmartRuntime and music pallets.
 
 ### Backend API
 
-The backend API lives in `services/api/`. It is a Node.js 22 + Fastify service
-for production boundaries that must not be bundled into the frontend:
+The API uses Node 22, TypeScript and Fastify. It owns server-side pinning,
+key-version custody, nonce/signature verification, durable session revocation,
+catalog indexing and bounded content delivery. Its readiness diagnostics can
+fail even when the HTTP process is alive. Refer to
+[deployment configuration](../operations/deployment-configuration.md) before
+changing origins, key versions, persistent storage or service scaling.
 
-- server-side Pinata uploads;
-- server-side AES-256-GCM audio encryption;
-- nonce issuance and replay protection;
-- wallet-signature verification;
-- runtime access checks before content-key delivery.
+### Artist-owned runtimes
 
-It exposes health, auth nonce, upload, and track key-request routes. It fails
-closed when key material, RPC, or access checks are unavailable.
+The factory creates a SmartRuntime for an artist and the directory indexes the
+finalized association. Runtime music pallets are implemented through a Diamond
+proxy: each runtime has isolated storage while code can be shared. Runtime
+ownership, track NFT ownership, authorship and royalty recipients are separate
+facts. Use the [contract documentation](../../contracts/README.md) and generated
+bindings for current interfaces.
 
-### Smart contracts (EVM)
+### Product and release evidence
 
-Every artist owns a personal **SmartRuntime** — a Diamond proxy (ERC-2535) that routes function calls to stateless pallet implementations. This means:
+Product Host capabilities sit behind typed adapters; ordinary Web keeps its
+own account and media paths. Capability detection, permission and a supported
+installed Host are required. A browser test or frozen Product build does not
+establish native media, location, signing or settlement on a physical device.
 
-- Pallets are deployed once, shared across all artists.
-- Each artist's runtime has its own isolated storage.
-- Pallets can be upgraded without redeploying the runtime.
-
-```
-ArtistRuntimeFactory
-        │
-        └──► deploys SmartRuntime per artist
-                │
-                ├── DiamondCutPallet     (upgrades)
-                ├── DiamondLoupePallet   (introspection)
-                ├── OwnershipPallet      (runtime owner)
-                ├── MusicRegistryPallet  (track CRUD)
-                ├── MusicNFTPallet       (ERC-721 ownership)
-                ├── MusicRoyaltiesPallet (payments + splits)
-                └── MusicAccessPallet   (access checks)
-
-ArtistDirectory
-        └──► global index: artist address → runtime address
-```
-
-See [contracts-api.md](../reference/contracts-api.md) for full function signatures.
-
-### Bulletin Chain integration
-
-When an artist enables Bulletin archival, the rights manifest (a compact JSON document) is written to the Polkadot Bulletin Chain via the `TransactionStorage` pallet. This creates a content-addressed, immutable record that cannot be deleted or altered — even by Dotify.
-
-The stored CID is included in the on-chain track record as `metadataRef`, allowing any third party to verify the manifest without trusting any central server.
-
-### Signaling server
-
-The signaling server is a lightweight Socket.IO process (`server/signaling.mjs`) whose only job is to relay WebRTC handshake messages between peers. It never touches audio. Once WebRTC negotiation completes, audio flows peer-to-peer (host → listener) with no server involvement.
-
-The current Product Mobile iOS host is an explicit exception to that browser
-WebRTC model: the Product sandbox does not expose `RTCPeerConnection` to
-Product scripts. Dotify therefore continues mobile Product rooms in the
-external browser until the host provides a permission-gated WebRTC/media
-capability.
-
----
-
-## What Dotify does not own
-
-- Your audio files — they live on IPFS.
-- Your identity — it lives in your wallet.
-- Your payments — they go directly to your EVM address via smart contract.
-- Your track records — they live on Paseo Asset Hub (and optionally Bulletin Chain).
-
-The standalone frontend is deployed through Netlify. The Product DevNet build
-is publishable through Bulletin/DotNS as `dotify-test01.dot` and resolves
-publicly at `https://dotify-test01.dev-dot.li`; the older `dotify.dot.li`
-artifact remains legacy deployment evidence.
+Web, Product, API and signaling are released independently. Record the served
+SHA, Product executable/CID and service versions separately, then validate the
+actual journeys. Start with the [Product architecture](product-devnet-architecture.md),
+[publication runbook](../operations/product-devnet-deployment.md) and
+[pilot plan](../operations/pilot-release-plan.md).

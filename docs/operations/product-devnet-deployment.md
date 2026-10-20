@@ -23,6 +23,27 @@ or timed-out request; Dotify cannot undo the Host's permission decision.
 Operational rollback uses `VITE_DOTIFY_NEARBY=off` and/or `SIGNAL_NEARBY=off`;
 there is no Product-specific feature gate. Old snapshots expire within 90 seconds.
 
+## Product 0.1.57 published release follow-up
+
+Published from clean green packaging commit
+`a789d8ecb63287013a46a4e268827184c2e67ca4`, based on tested dev `615ad44`
+whose full tree equals final GitHub 1.4.0 source `9788ec0`. Executable
+`[0,1,57]` retains `product-cdm` / `devnet`, frozen catalog and permissions at CID
+`bafybeifba24wrvu2ywkurapvsjmeub3llviu2tybc3hkzljobww3ordqqm`.
+It includes the durable-logout correction missing from 0.1.56. API 28 and
+signaling 36 remain healthy and were not restarted; Web independently serves
+the tested source. Finalized DotNS and all 125 public CAR block hashes pass,
+with exact signed index/entry bytes. The local signer was removed.
+
+Current client rollback: **0.1.56**, prior fallback **0.1.55**. See the
+[dated rollout record](../backlog/implementation/evidence/product-0.1.57-rollout-2026-10-20.md)
+for identities, resumable but initially slow public retrieval, Web/mobile-form
+checks and bounded installed Desktop rendering. Native location still falls
+back to Web; physical-device audio/payment/location and pilot acceptance remain
+open. GitHub 1.4.0 is a testnet prerelease, not a passed public pilot.
+
+The following sections preserve historical rollout and rollback evidence.
+
 ## Product 0.1.56 published mobile-form release
 
 Published from clean green packaging commit
@@ -39,7 +60,7 @@ The local signer is removed. See the [rollout record](../backlog/implementation/
 for Web form checks and the bounded installed Desktop 0.1.3 smoke. The owner
 confirmed expected mobile keyboard behavior on 2026-10-20; full device-matrix,
 rotation and prolonged audio acceptance remains open.
-Current client rollback: **0.1.55**, with the same API/signaling versions.
+Client rollback at that rollout: **0.1.55**, with the same API/signaling versions.
 
 The following release sections preserve historical rollout and rollback evidence.
 
@@ -139,7 +160,7 @@ for service images, tests, restart incident and remaining physical checks.
 
 The following release sections retain their original deployment and rollback history.
 The historical release/rollback pair in this section was 0.1.52 / 0.1.51. The
-current pair is 0.1.56 / 0.1.55 above.
+current pair is 0.1.57 / 0.1.56 above.
 
 ## Product 0.1.50 published radar and audio release
 
@@ -580,12 +601,12 @@ gates pass, and the live CASH path remains blocked on a Product-confirmed
 CASH-to-runtime entitlement mechanism. A `fail` means the local boundary or an
 operator-supplied evidence file is unsafe and must block the release.
 
-Product releases 0.1.46 through 0.1.56 explicitly use `product-cdm` on `devnet` so
+Product releases 0.1.46 through 0.1.57 explicitly use `product-cdm` on `devnet` so
 Product account holders retain native tips and access payments. The Product
 build refuses an EVM-only profile; ordinary web still uses viem. Product SDK
 descriptors increase the bundle and Bulletin storage demand. The 0.1.45 viem
 publication regressed native tips by requesting an EVM wallet; it is historical
-evidence of that limitation. The current rollback artifact is 0.1.55, retaining
+evidence of that limitation. The current rollback artifact is 0.1.56, retaining
 the native Product profile. Validate native
 approval, exact account mapping and finalized receipt recovery on the installed
 Hosts after publication.

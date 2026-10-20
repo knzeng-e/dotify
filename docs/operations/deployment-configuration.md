@@ -1,5 +1,27 @@
 # Deployment Configuration Runbook
 
+## Release publication and documentation hosting, 2026-10-20
+
+GitHub 1.4.0 tags final main `9788ec0`; Product `[0,1,57]` was separately signed
+from clean packaging `a789d8e` at root/app CID
+`bafybeifba24wrvu2ywkurapvsjmeub3llviu2tybc3hkzljobww3ordqqm`.
+The native profile, frozen catalog, origins and permissions are unchanged.
+Netlify deploy `6ad794bc91a585c41cecef08` already serves tested dev `615ad44`,
+whose full tree equals the final main source, so no redundant rebuild was made.
+API 28/signaling 36 remain source-compatible and healthy without restart or
+configuration/key/contract changes. Client rollback is 0.1.56. See the
+[rollout record](../backlog/implementation/evidence/product-0.1.57-rollout-2026-10-20.md)
+for byte/finality evidence and remaining native/latency acceptance.
+
+GitHub Pages is enabled using **legacy source `main`, path `/docs`**, with the
+existing `docs/.nojekyll`. It serves https://knzeng-e.github.io/dotify/.
+The source build from `9788ec0` and public gallery return 200. Keep optional
+`ENABLE_GITHUB_PAGES` unset: the two opt-in Actions workflows publish different
+app/docs outputs and must not compete. Future docs changes appear there only
+when promoted to main. This is documentation hosting, not an app deployment or
+new API/CORS origin. Restore this exact source if Pages configuration drifts;
+do not enable both optional workflows as a workaround.
+
 ## W32 format foundation, 2026-10-20
 
 The inactive W32 format/codec slice does not change upload routes, running
@@ -139,7 +161,7 @@ unknown legacy counts keep neutral decoration, and visual growth is bounded at
 radars use smaller caps and tighter orbits; reduced-motion settings disable the
 size/halo transitions. No discovery payload, service setting or access rule changes.
 
-## Current published Product release - 0.1.56
+## Previous Product release - 0.1.56
 
 Published after #307 merged at `b08966698709b06378349a6ffd0567cda5dc8f53`,
 from clean green packaging commit `c9becc990b26949445e9af69da357c08789d4f28`.
@@ -151,7 +173,7 @@ and signaling release 36 are unchanged and were not restarted. Web independently
 serves the merged application SHA above; its existing Netlify deployment was
 verified rather than repeated or reconfigured.
 
-The current client rollback artifact is **Product 0.1.55**, CID
+The client rollback artifact at that rollout was **Product 0.1.55**, CID
 `bafybeig5b2hue5db3oftgvjzlvb2wezslwdn7j5efj547225s4y4b5zwmy`.
 Keep the existing API/signaling pair on a presentation rollback. See the
 [0.1.56 rollout record](../backlog/implementation/evidence/product-0.1.56-rollout-2026-10-19.md)
@@ -578,7 +600,7 @@ Required Product values:
 | `VITE_BULLETIN_WS_URL`          | `wss://bulletin-paseo.tservices.es:8443`                                                                                         |
 | `VITE_PINATA_GATEWAY`           | `https://gateway.pinata.cloud`                                                                                                   |
 | `VITE_IPFS_READ_GATEWAYS`       | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation` |
-| Product executable `appVersion` | `[0, 1, 56]` published mobile-form release; `[0, 1, 55]` is the current client rollback artifact                          |
+| Product executable `appVersion` | `[0, 1, 57]` published release follow-up; `[0, 1, 56]` is the current client rollback artifact                          |
 
 The Product executable version is part of the published Product manifest. Bump
 it whenever the Product bundle changes runtime behavior, host SDK integration,
@@ -1968,7 +1990,7 @@ The API/key authority, CORS and contract addresses remain unchanged. Product
 payments request finalization before returning. Classic support recovery now
 uses a durable browser journal scoped by network/adapter endpoint, payer,
 runtime and content hash, migrating the matching old tab-local reference.
-See [current payment recovery boundaries](../../web/README.md#native-artist-support-validation-build)
+See [current payment recovery boundaries](../how-to/recover-a-payment.md)
 and [the original support recovery design](../design/product-host-support-recovery-2026-09-15.md).
 Before promotion, verify balance/fee availability and SDK lifecycle on a real
 Product host, close/reopen pending feedback, and reopen an uncertain payment
@@ -2260,6 +2282,18 @@ Repair the volume and retry before restarting: a restart against the older,
 still-readable snapshot can restore an unpersisted token until its 24-hour
 expiry. Rotate `SESSION_EPOCH` if that recovery cannot be completed safely.
 An unreadable snapshot at boot still forces a fresh random epoch.
+
+The PR #309 client retains failed logout credentials in a separate inactive,
+API-scoped browser/Host storage queue before clearing the active session. A
+503 or network failure shows an incomplete sign-out notice and retry action;
+startup, online/foreground return and a foreground-only 60-second timer also
+retry without signing or restoring the old session. Requests are coalesced,
+limited to four in flight, and bounded to 15 seconds each. Only an acknowledged
+logout or expiry plus a five-minute local clock margin removes retry material.
+If storage is blocked, retries are memory-only: keep the app open until server
+sign-out is confirmed. No environment change is required. Validate a simulated
+503 followed by recovery in Web and Product; a successful wallet disconnect
+alone is not proof of durable server revocation.
 
 Deploy order: API, then signaling, then clients (no client change is
 required). Before opening the pilot, record these read-only checks:

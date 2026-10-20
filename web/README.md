@@ -1,750 +1,109 @@
 # Dotify Web
 
-React frontend for Dotify, a decentralized shared-listening experience built
-around real-time rooms, artist catalog management, encrypted IPFS audio, and
-track NFT rights.
+The React, TypeScript and Vite client for shared listening. **Music**, **Rooms**
+and **You** form the listener app; `/artists` opens the artist studio.
 
-Visible product areas:
+[Project overview](../README.md) ·
+[Local setup](../docs/how-to/develop-locally.md) ·
+[Documentation map](../docs/README.md)
 
-- `Music`: artist-grouped catalog browsing, track artwork, descriptions, access
-  badges, policy-aware player, and room hosting.
-- `Rooms`: open room discovery through the default 2D sky/list path, the
-  optional Three.js galaxy, and room-code entry.
-- `/artists`: dedicated artist onboarding and studio flow for artist runtime
-  creation, audio upload, cover upload, primary artist share plus additional
-  rights-holder royalty splits, Human free / Classic mode selection, Pinata IPFS
-  pinning, optional Bulletin Chain metadata publication, and contract
-  registration.
+## Run locally
 
-## Run Locally
+Use Node 22 and npm 10+. From this directory:
 
-Use Node 22 and npm 10+.
-
-```bash
-npm install
+```sh
+npm ci
+cp .env.example .env.local
 npm run dev:listen
 ```
 
-The script starts Vite at `http://localhost:5273` and the Socket.IO signaling
-server at `http://localhost:8788`. Open the listener app at `/` and the artist
-portal at `/artists`.
+The app runs at <http://localhost:5273>, the artist studio at
+<http://localhost:5273/artists>, and signaling at <http://localhost:8788>.
+This command does **not** start the API. The example configuration expects it
+at port 8790; see the [complete setup](../docs/how-to/develop-locally.md).
 
-Useful environment variables:
+Configuration has one [reference](../docs/reference/environment-variables.md).
+The common entry points are:
 
-- `VITE_SIGNAL_URL`: Socket.IO signaling server for listening rooms.
-- `VITE_DOTIFY_API_URL`: backend API for server-side uploads and
-  wallet-signed content-key requests.
-- `VITE_DOTIFY_DEBUG_PANEL`: set to `true` to show the read-only Production
-  readiness panel under the `You` tab.
-- `VITE_DOTIFY_HOST_MODE`, `VITE_DOTIFY_PRODUCT_ID`, and
-  `VITE_PUBLIC_APP_URL`: Product-host detection, app-scoped account identifier,
-  and canonical room-link origin.
-- `VITE_LOCAL_WS_URL` / `VITE_LOCAL_ETH_RPC_URL`: local development endpoints.
-- `VITE_BULLETIN_WS_URL`: Product DevNet Bulletin Chain RPC.
-- `VITE_PINATA_JWT`: restricted browser-exposed Pinata JWT for demo uploads
-  when `VITE_DOTIFY_API_URL` is unset.
-- `VITE_PINATA_GATEWAY`: primary gateway used when rendering IPFS assets.
-- `VITE_IPFS_READ_GATEWAYS`: comma-separated read fallback gateways for IPFS
-  manifests and encrypted audio.
-- `VITE_CONTENT_SECRET`: optional 32-byte hex secret used for best-effort
-  browser-side encrypted audio. It is bundled into the app, so it is not a
-  production DRM boundary.
-- `VITE_TURN_URL` / `VITE_TURN_USERNAME` / `VITE_TURN_CREDENTIAL`: optional
-  browser-visible TURN fallback for reliable room WebRTC across restrictive
-  NATs. Prefer backend TURN grants through `VITE_DOTIFY_API_URL`.
-- `VITE_BLOCKSCOUT_BASE_URL`: optional Blockscout explorer base URL.
+| Setting                                          | Purpose                                                             |
+| ------------------------------------------------ | ------------------------------------------------------------------- |
+| `VITE_DOTIFY_API_URL`                            | Catalog, backend uploads and access-checked key requests.           |
+| `VITE_SIGNAL_URL`                                | Room signaling and scoped discovery.                                |
+| `VITE_DOTIFY_HOST_MODE`                          | Web versus Product Host integration. Ordinary local Web uses `off`. |
+| `VITE_PINATA_GATEWAY`, `VITE_IPFS_READ_GATEWAYS` | Public asset and encrypted-byte reads.                              |
 
-See `.env.example` for local defaults and script-only variables.
+Every `VITE_` value is browser-visible. Keep Pinata credentials and content-key
+secrets on the API. Browser-only upload/encryption fallback is local demo
+behavior; production builds reject its secret variables.
 
-## Audio And IPFS
+## Find the code
 
-Uploaded audio is always hashed locally with blake2b-256. When
-`VITE_DOTIFY_API_URL` is configured, the browser sends the raw audio plus
-content hash to the backend, and the backend encrypts with the active
-content-key version secret before pinning to Pinata. In local demo mode, when
-`VITE_DOTIFY_API_URL` is unset, the browser encrypts with `VITE_CONTENT_SECRET`
-and pins directly with `VITE_PINATA_JWT`.
+| Path                                                  | What lives here                                             |
+| ----------------------------------------------------- | ----------------------------------------------------------- |
+| `src/app/`                                            | Shells, shared providers, routing and viewport behavior.    |
+| `src/views/`, `src/components/`                       | Screens and reusable presentation.                          |
+| `src/features/catalog/`, `player/`, `rooms/`          | Catalog, audio and room state/transport helpers.            |
+| `src/features/artist-studio/`, `payments/`, `access/` | Publishing, contributions and access flows.                 |
+| `src/features/runtime/`, `productHost/`               | Typed runtime and Host adapters.                            |
+| `src/hooks/`, `src/services/`, `src/shared/`          | Orchestration, API clients, configuration and shared types. |
+| `src/generated/contracts/`                            | Generated ABI bindings; do not edit by hand.                |
+| `server/`                                             | Socket.IO signaling and its integration tests.              |
+| `e2e/`                                                | Browser journeys, isolated fixtures and capture recipes.    |
+| `scripts/`                                            | Build, deployment guards and evidence tools.                |
 
-New backend uploads store `dotify:enc:v2:key-vN:ipfs://CID` in the on-chain
-`audioRef`, where `key-vN` maps to a retained backend
-`dotify-content-key-vN` secret. The default active version remains v2; legacy
-encrypted refs remain supported. The raw IPFS object is not directly playable
-by an HTML audio element.
+Use [architecture](../docs/explanation/architecture-overview.md) for the data
+flow, [room mechanics](../docs/explanation/listening-rooms.md) for transport,
+and the [key-delivery threat model](../docs/security/content-key-delivery-threat-model.md)
+for trust boundaries. Current type definitions are in `src/shared/types.ts`;
+contract bindings are generated with `npm run generate:abis` from `contracts/evm`.
 
-Cover images and track manifests are also pinned through Pinata. Manifest reads
-and encrypted audio downloads use `fetchIpfsCid`, which tries the configured
-primary gateway first and then falls back to public IPFS gateways. This avoids
-breaking playback when a custom Pinata gateway returns `401` for public files.
+## Verification
 
-The production protection boundary is the backend API:
+Run checks that match the changed boundary:
 
-- Pinata credentials stay server-side.
-- Content keys are derived from retained backend version secrets. New backend
-  uploads bind the key scope to the key version, chain ID, runtime address, and
-  content hash.
-- Full-track key delivery requires a signed-in session (one wallet signature
-  per ~24h) or a wallet-signed request, plus an on-chain access check on
-  every key request. Standalone clients use `eip191`; Product-host clients can
-  use the API-side `product-sr25519-v1` scheme once the frontend sends the
-  host-signed proof shape.
-- Room guests never receive keys; only an authorized host may request a
-  `room_host` key. Catalog-backed requests include the canonical release
-  identity so the backend does not guess between runtimes with the same hash.
-
-The fallback browser-only protection model is best-effort:
-
-- the browser derives the content key from `VITE_CONTENT_SECRET` plus the track
-  hash;
-- the encrypted CID is public, but the bytes are not directly playable;
-- the secret is still shipped to the browser, so production key release should
-  use the backend path instead.
-
-## Access Policy
-
-Registered tracks use three artist-chosen access modes (changeable on-chain at
-any time via `musicRegSetAccessMode`, without re-uploading the audio):
-
-- `Free`: playable by everyone, wallet or not. The key service releases the
-  content key without authentication after re-verifying the mode on-chain.
-- `Human free`: available to accounts whose on-chain personhood level satisfies
-  the track requirement (`DIM1` or `DIM2`).
-- `Classic`: paid access in DOT through `musicRoyPayAccess`.
-
-Before playback, the frontend calls `musicAccCanAccess(contentHash, listener)`
-(guests probe with the zero address, which only Free tracks grant). If access
-is granted, the encrypted IPFS audio is decrypted and the full track is loaded.
-If access is denied, nothing plays: the app shows an honest unlock gate naming
-the door (pay, verify humanity, or sign in). The 42% preview is retired
-(access model v2, `docs/design/dotify-v2-access-and-streaming.md`).
-
-Denial specifics:
-
-- Users without a connected wallet can play Free tracks; for gated tracks they
-  are asked to sign in before access can be checked.
-- Human free tracks instruct the listener to verify personhood.
-- Classic tracks show a payment action and retry playback after the transaction
-  confirms.
-
-This enforces the current product policy in the UI, but it is not a substitute
-for server-side key delivery in production because all frontend code is public.
-
-## Chain Integration
-
-The app reads artist runtimes from `ArtistDirectory`, then aggregates releases
-from each artist `SmartRuntime`. Artist registration calls
-`ArtistRuntimeFactory.createRuntime`; release registration calls
-`musicRegRegister` on the artist runtime.
-
-Contract ABIs are generated from the Hardhat artifacts, not hand-maintained.
-`src/generated/contracts/` holds one auto-generated module per contract
-(`artistDirectoryAbi`, `artistRuntimeFactoryAbi`, `musicRegistryAbi`,
-`musicRoyaltiesAbi`, `musicAccessAbi`, `musicNFTAbi`); `src/shared/config/contracts.ts`
-re-exports them so callers import from one place. Regenerate after any contract
-change:
-
-```bash
-cd ../contracts/evm
-npm run generate:abis   # hardhat compile + write web/src/generated/contracts
-```
-
-The generated files are committed and excluded from lint/format (they are machine
-output) but still typechecked, so a contract signature change that is not
-regenerated surfaces as a TypeScript error. CI (`ci-evm`) regenerates and fails on
-drift. `SmartRuntime` is a diamond: the app calls it through the facet ABIs above
-at the runtime address, so it needs no separate binding.
-
-Bulletin Chain interactions use the PAPI descriptors in `.papi/` and can publish
-compact metadata JSON as an additional availability layer. Regenerate descriptors
-with:
-
-```bash
-npm run update-types
-npm run codegen
-```
-
-## Build And Deploy
-
-```bash
+```sh
+npm run fmt:check
+npm run lint
+npm run test:unit
 npm run build
-npm run build:bulletin
-npm run deploy:bulletin
-npm run build:product-devnet
-npm run build:product-devnet:frozen
-npm run deploy:product-devnet
+npm run test:signal
+npm run test:e2e
+npm run test:nearby
+npm run test:audio-continuity
 ```
 
-`build:bulletin` produces a single-file build via `vite-plugin-singlefile` so it
-can be distributed from a flat IPFS CID / DotNS record. The DAV2 decrypt Worker
-is inlined as a Blob Worker for this target, and the build fails if `index.html`
-references an external Worker or script asset.
-
-`build:product-devnet` produces `dist-product` with the checked-in
-`.env.product-devnet` profile and refreshes the bootstrap catalogue when the
-configured API is available. `build:product-devnet:frozen` performs no catalogue
-request and builds the reviewed, committed snapshot. Signer-free CI and
-`deploy:product-devnet` both use that frozen build so publication cannot pick up
-unreviewed live catalogue drift. `deploy:product-devnet` uses
-`@parity/polkadot-app-deploy@0.20.0` through `npm exec`, verifies its DevNet
-deploy API and the committed `product-devnet-host.environments.json` override,
-then verifies the registry and resolver Product Desktop currently receives from
-Remote Config. Drift, a missing client key or an unavailable live configuration
-blocks publication instead of accepting a different DotNS generation. The
-command uploads static chunks to Product DevNet Bulletin with an authorized
-storage pool signer, and binds
-`dotify-test01.dot` with the owner mnemonic through DotNS. Run
-`npm run verify:product-deploy-environment` for the same read-only check without
-building or publishing. Set the operator-only `PRODUCT_HOST_FIREBASE_API_KEY`,
-or configure `{"apiKey":"<Product Firebase client API key>"}` in the ignored
-`.product-host-check.local.json` file (mode 600). This is the host's public
-Firebase client identifier, never a wallet seed or admin credential; it is not
-a `VITE_` variable. CI reads the same value from an Actions secret. See the
-[deployment configuration guide](../docs/operations/deployment-configuration.md)
-for monitoring setup and the default-branch requirement for daily checks.
-Publication checks the host configuration again before and after writing;
-this does not certify the bundle loaded by an already-open host. Compare its
-Production readiness SHA/version with the published candidate as well.
-The owner mnemonic is accepted
-only from the local `MNEMONIC` environment and is never an argument or GitHub
-Actions secret; inject it with a silent prompt and unset it immediately after
-publication. Browse listing is a separate operator step because it has its own
-signer/personhood boundary. The Product account currently provides app-scoped
-identity for presence and rooms in the shipped UI. The API can verify
-`product-sr25519-v1` key/session requests, but native Product contract writes
-remain opt-in behind `VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm` until live host
-payment evidence is recorded.
-
-See
-[`docs/explanation/product-devnet-architecture.md`](../docs/explanation/product-devnet-architecture.md)
-and
-[`docs/operations/product-devnet-deployment.md`](../docs/operations/product-devnet-deployment.md).
-
-### Production Deploy: Netlify + Fly
-
-Dotify's production web app is a static Vite build, but listening rooms require
-a separately hosted Socket.IO signaling server. Deploy the signaling server
-first, then build the frontend with `VITE_SIGNAL_URL` pointing at that public
-server.
-
-Use
-[`docs/operations/deployment-configuration.md`](../docs/operations/deployment-configuration.md)
-as the dashboard checklist for Netlify/Fly environment values, secrets, catalog
-persistence, and future env/config changes.
-
-#### 1. Deploy the signaling server on Fly
-
-The signaling server lives in `server/signaling.mjs` and is packaged by
-`Dockerfile.signal`.
-
-```bash
-flyctl deploy -c fly.signal.toml
-flyctl status -c fly.signal.toml
-curl -s https://dotify-signal.fly.dev/health
-```
-
-Keep the signaling service on one active machine unless a shared Socket.IO
-adapter is added. Rooms, solo-presence aggregates, chat, reactions, and request
-queues are in memory; with multiple active machines, two browsers can connect
-to different presence and room maps.
-
-```bash
-flyctl scale count 1 -c fly.signal.toml --yes
-```
-
-Fly variables come from `fly.signal.toml`:
-
-- `SIGNAL_PORT=8788`
-- `SIGNAL_HOST=0.0.0.0`
-- `SIGNAL_ROOM_TTL_MS=21600000`
-- `SIGNAL_HOST_TIMEOUT_MS=120000`
-- `SIGNAL_MAX_LISTENERS=24`
-- `SIGNAL_ORIGINS`: set this explicitly for production frontend origins when
-  the public URL is stable.
-
-Health endpoints:
-
-- `/health`: process health, uptime, room count, in-room listener count, and
-  active solo-listener count.
-- `/status`: an always-empty `rooms` array plus aggregate solo presence by
-  track hash. It is not a room directory or a capacity/expiry probe. Use
-  join/resume acknowledgements for room state and admission failures, and
-  `room:closed` events for closure. Socket identities, private chat and request
-  text are not exposed by this endpoint.
-
-#### 2. Deploy the frontend on Netlify
-
-For a repo-root Netlify site, set:
-
-- Base directory: `web`
-- Build command: `npm run build`
-- Publish directory: `web/dist`
-- Node version: `22`
-
-Required production environment variables:
-
-- `VITE_DOTIFY_DEPLOYMENT=production`
-- `VITE_SIGNAL_URL=https://dotify-signal.fly.dev`
-- `VITE_DOTIFY_API_URL=<public backend API URL>` for server-side uploads and
-  wallet-signed key delivery.
-- `VITE_PINATA_GATEWAY=<public IPFS gateway>`
-- `VITE_IPFS_READ_GATEWAYS=<comma-separated gateway list>`
-
-Recommended for reliable rooms:
-
-- Backend API `TURN_URLS` plus `TURN_REST_SECRET`, exposed to the frontend as
-  short-lived `/api/turn/grant` credentials.
-- `VITE_TURN_URL`, `VITE_TURN_USERNAME`, `VITE_TURN_CREDENTIAL` only as a
-  browser-visible DevNet/static fallback.
-
-Do not set unrestricted Pinata credentials in Netlify. `VITE_PINATA_JWT` is
-browser-exposed and is for restricted local/demo uploads only. Do not treat
-`VITE_CONTENT_SECRET` as a production content-key boundary; production playback
-should use the backend key service.
-
-With `VITE_DOTIFY_DEPLOYMENT=production`, the frontend build fails before
-deployment if the required production URLs are missing, point at loopback or
-insecure origins, or if `VITE_PINATA_JWT` / `VITE_CONTENT_SECRET` are present
-in the browser environment.
-
-Before changing Netlify/Fly production variables, run:
-
-```bash
-npm run smoke:production-env
-```
-
-The command exercises the build guard against missing production URLs,
-browser-exposed demo secrets, and a safe public production env. CI runs the
-same check for Project 5 issue #37.
-
-#### 3. Production smoke checks
-
-After deploying both services:
-
-```bash
-curl -s https://dotify-signal.fly.dev/health
-curl -s https://dotify-signal.fly.dev/status
-npm run smoke:signal -- --url https://dotify-signal.fly.dev --origin https://<netlify-app>
-```
-
-An empty `/status.rooms` is expected even while rooms are active. The smoke
-script creates a temporary private room, joins by its code and checks the
-admitted state; `/health` provides only aggregate counts. Nearby discovery
-requires a separate explicit host opt-in and bounded search.
-
-When `SIGNAL_ORIGINS` is explicit, also check that an unrelated browser origin
-is rejected at both the HTTP CORS and Socket.IO handshake layers:
-
-```bash
-npm run smoke:signal -- \
-  --url https://dotify-signal.fly.dev \
-  --origin https://<netlify-app> \
-  --denied-origin https://not-dotify.example
-```
-
-To validate the room create/join path without opening browsers, add `--room`.
-The command creates a temporary room, joins it as a guest, confirms
-`listenersNeedWalletAccess=false`, and disconnects both sockets. Paste the
-output into Project 5 issue #36 as hosted-signaling evidence after each public
-deployment.
-
-Then verify the user flow in two browser contexts or devices:
-
-1. Open the Netlify app and create a room from a playable track.
-2. Copy the `#/rooms/<roomId>` link and open it as a guest.
-3. Confirm the guest joins without wallet/signature prompts.
-4. Send one chat message and one reaction; both browsers should receive the
-   server echo.
-5. Start playback; if audio negotiation fails across networks, configure TURN
-   on the API and confirm `GET /api/turn/grant` returns `iceServers`.
-6. In each browser console, inspect
-   `window.__DOTIFY_ROOM_QUALITY__.snapshot()`. The host should show
-   `offer-sent`; the guest should show `room-joined`, `remote-audio-cued`, and
-   either `peer-connected` stats or a clear retry/timeout phase. Relay/direct
-   evidence appears in `relayConnectionCount` and each connected peer's
-   candidate-type summary when the browser exposes stats.
-
-For operator smoke checks, temporarily set `VITE_DOTIFY_DEBUG_PANEL=true` and
-open `You -> Production readiness`. The panel checks backend readiness,
-signaling health, chain RPC, factory/directory contract code, wallet-chain
-mismatch, catalog status, and IPFS gateway reads without exposing secrets or
-starting write flows. A Product candidate can additionally export payment/key
-and room evidence bound to its build SHA, app version, and deployed CID. The
-room capture reads creation, stream, peer, listener, and canonical-link facts
-from the active host session; the operator confirms walletless guest arrival,
-audible audio, and sync on the guest device before export.
-
-For W13, bind the Product deployment first, then open a Classic track that the
-connected Product account already paid for. The operator capture reads
-`hasPaid` and `canAccess` and exports an `access-readback` event before the key
-request. It never submits a payment, and makes no extra reads outside a bound
-capture for the current build. Only a subsequent key release for the same
-account, network, runtime and track satisfies the backend-key check.
-An existing entitlement does not prove a new transaction: approval, native
-value and transaction read-back gates remain blocked when only read-only
-evidence is supplied. Keep the operator export private because it includes
-account/release identifiers; do not include it in aggregate pilot data. Reset
-the capture after the check to stop collecting diagnostic events.
-
-### Production Troubleshooting
-
-| Symptom                                                                      | Likely cause                                                                                                                                            | Check                                                                                                                                                                                                                                                       | Fix                                                                                                                                                                                       |
-| ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Frontend shows `Signal server unavailable`                                   | `VITE_SIGNAL_URL` points to the wrong host, the Fly app is down, or `SIGNAL_ORIGINS` blocks the frontend origin.                                        | Browser console, Netlify env vars, `curl -s <signal-url>/health`, `flyctl status -c fly.signal.toml`.                                                                                                                                                       | Set `VITE_SIGNAL_URL` to the HTTPS Fly URL, redeploy Netlify, start/redeploy Fly, and add the Netlify origin to `SIGNAL_ORIGINS`.                                                         |
-| Room creation works locally but not in production                            | Netlify was built without the production signaling URL.                                                                                                 | Inspect the deployed JS env by trying to create a room; the UI error includes the signal URL.                                                                                                                                                               | Set `VITE_SIGNAL_URL` in Netlify and trigger a fresh frontend deploy.                                                                                                                     |
-| Guests can join, but chat, reactions, or requests do not appear for everyone | The Fly signaling image is stale, or more than one active Fly machine is serving separate in-memory room maps.                                          | `flyctl status -c fly.signal.toml`; compare image name and active machine count.                                                                                                                                                                            | Run `flyctl deploy -c fly.signal.toml`, then `flyctl scale count 1 -c fly.signal.toml --yes` until a shared Socket.IO adapter exists.                                                     |
-| `/health` works but clients cannot join the same active room by code         | Multiple signaling instances may be active without shared state.                                                                                        | Check active machine count and per-instance `/health` counts; compare join acknowledgements for the known code. An empty `/status.rooms` is always expected.                                                                                                | Keep one active machine for the current in-memory signaling design.                                                                                                                       |
-| Product Mobile reports `create-peer` / missing `RTCPeerConnection`           | The current iOS Product sandbox removes the browser WebRTC constructor even after granting the `WebRtc` host permission. ICE and TURN have not started. | Fly `webrtc:diagnostic` shows `peerConnectionAvailable=false`, `protocol=polkadot:`, and phase `listener:create-peer-failed`. Coturn receives no allocation.                                                                                                | Publish Product executable `[0, 1, 11]` or later and use **Continue in browser**. In-app audio requires a Product Mobile host change that exposes a permission-gated peer connection API. |
-| Listener joins but audio negotiation times out after peer creation           | WebRTC cannot establish a media path across the host/listener networks. Signaling can be healthy while audio still fails.                               | Check `window.__DOTIFY_ROOM_QUALITY__.snapshot()`, `https://dotify-api.fly.dev/api/turn/grant`, coturn allocation logs, and Fly `dotify-signal` diagnostics. `peerConnectionAvailable=true` separates this path from the Product Mobile sandbox limitation. | Configure API TURN grants and verify the relay ports/firewall. Redeploy the frontend/Product bundle only if browser-visible `VITE_TURN_*` changed.                                        |
-| A room appears in Nearby but cannot be entered                               | The discovery result may be stale, the room may be full, or the host may be reconnecting.                                                               | The join acknowledgement is authoritative: inspect `ROOM_FULL`, `HOST_RECONNECTING` or room-not-found. Admitted join/resume state supplies the connected listener count; `/health` echoes the configured cap.                                               | Wait for reconnection or capacity, refresh Nearby explicitly, or use another room. Keep the cap conservative until SFU evidence supports a larger fan-out.                                |
-| Mobile host sees `captureStream()` unsupported                               | Safari/iOS does not expose `HTMLMediaElement.captureStream()` for host audio capture.                                                                   | Host card shows the capture error before any guest can hear the room.                                                                                                                                                                                       | Use the Web Audio fallback path; if both media capture APIs are unavailable, host from desktop/Android Chrome and join as a listener on iOS.                                              |
-| Production upload or full-track playback fails                               | Backend API is missing or cannot release keys.                                                                                                          | Check `VITE_DOTIFY_API_URL`, backend `/health`, and browser network requests to key/upload endpoints.                                                                                                                                                       | Deploy/fix the backend API and keep `PINATA_JWT` plus the content-key secrets server-side.                                                                                                |
-| Protected track takes too long to start                                      | The IPFS gateway cannot serve DAV2 Range requests quickly, MSE is unsupported for the media type, or the backend key route is slow.                     | Inspect `window.__DOTIFY_AUDIO_STARTUP__.snapshot()` in the browser, or listen for `dotify:dav2-startup` and `dotify:host-audio-startup`, then inspect key/upload network requests.                                                                         | Compare selected gateway, hedged header/first-chunk timing, and first-audio timing; then decide whether a backend read-through gateway is needed.                                         |
-| A room closes or disappears from Nearby while the host tab is open           | A discovery lease may have expired independently of the room; heartbeat loss, disconnect or room TTL can close it.                                      | Check the host connection, `room:closed`, join/resume replies and aggregate `/health` counts. Defaults: 90-second Nearby lease, 120-second heartbeat timeout, 6-hour room TTL. Do not infer closure from `/status`.                                         | Renew Nearby explicitly if only discovery expired; otherwise reconnect the host. Change heartbeat/room TTL deliberately.                                                                  |
-
-## Tests
-
-```bash
-npm run test:unit     # Vitest - pure domain logic (access policy, room state)
-npm run test:signal   # node:test - signaling server lifecycle
-npm run smoke:production-env # production env guard evidence
-npm run smoke:signal  # operator smoke check for a local or hosted signal URL
-npm run test:e2e      # Playwright - deterministic trust flows
-```
-
-`test:unit` runs Vitest over the extracted pure modules under `src/features/*`
-(currently access policy and room state).
-
-`test:e2e` runs Playwright against deterministic mock modes. It covers Classic
-locked/access/payment behavior, artist runtime creation plus release
-publication, and the listening-room join + host-access playback flow, without requiring live
-funds, Pinata, or a chain. Artist publish coverage also asserts missing wallet,
-wrong network, upload failure, and transaction failure states.
-
-## Frontend Structure
-
-The frontend is migrating from an `App.tsx`-centric shell toward feature modules
-so logic can be unit-tested and evolved in isolation (backlog ticket 08). The
-target shape is:
-
-```txt
-src/
-  app/        # app-level routing/history + navigation model (pure, unit-tested)
-    providers/  # React context stack: UI feedback, wallet identity, ... (composition root)
-  features/   # domain logic grouped by product surface
-    access/   # track access policy predicates (pure, unit-tested)
-    rooms/    # room share-link + presence helpers (pure, unit-tested)
-    catalog/  # track model: TrackInfo mapping, runtime-id parsing (pure, unit-tested)
-    player/   # playback status labels + transport progress (pure, unit-tested)
-    wallet/   # EIP-1193 chain helpers + chain-mismatch message (pure, unit-tested)
-    uploads/  # draft track model + upload status transitions (pure, unit-tested)
-    runtime/  # access-policy encode/decode between app model and chain (pure, unit-tested)
-    artist-studio/  # release wizard step machine + studio-state derivations (pure, unit-tested)
-  components/ # presentational UI (shells, modals, dock, nav)
-  views/      # page-level compositions
-  hooks/      # stateful orchestration (useCatalog, useSession, ...)
-  services/   # IPFS, key service
-  shared/     # cross-cutting building blocks
-    ui/       # presentational primitives (Metric, StatusPill, ...)
-    config/   # chain + deployment config
-    utils/    # framework-agnostic helpers
-    types.ts  # shared domain types
-```
-
-The `shared/` tree is in place (`ui`, `config`, `utils`, `types.ts` relocated
-from `components/ui`, `config`, `utils`, and `types.ts`). Its `errors/` and
-`hooks/` subfolders from the original target are not created yet; the stateful
-hooks remain under `hooks/` as orchestration, and a dedicated `errors/` module
-is introduced when there is shared error handling to hold.
-
-Pure domain logic lives in `features/*` with co-located `*.test.ts` files and no
-DOM or chain dependencies; helpers that read `window.location` accept an explicit
-argument so they stay testable. Extraction is incremental and behavior-preserving:
-each module is wired back into the existing hooks/views without changing product
-behavior. So far the extracted, tested modules are `features/access/accessPolicy.ts`
-(the policy-managed-track predicate, previously duplicated across `App.tsx`,
-`useCatalog.ts`, and `PlayerView.tsx`), `features/rooms/roomState.ts` (share-link
-parsing/building and room presence count), and `features/catalog/trackModel.ts`
-(`TrackInfo` mapping and runtime-id parsing, previously inline in `App.tsx` and
-duplicated across `useCatalog.ts` and `ReleasesTab.tsx`), and
-`features/player/playbackStatus.ts` (the `AudioStatus` model, status labels, and
-transport progress math, previously in `usePlayback.ts` and `PlayerView.tsx`), and
-`features/wallet/network.ts` (EIP-1193 chain-id parsing/encoding, provider error
-codes, and the chain-mismatch message previously duplicated in `App.tsx` and
-`useArtistConsole.ts`), and `features/uploads/uploadModel.ts` (the draft-track
-builder, title-from-filename rule, and upload-status transitions pulled out of
-`App.tsx`, plus `priceDotForAccessMode`/`localAudioRef` in `trackModel.ts` that
-de-duplicate the price and local-ref logic shared with `useArtistConsole.ts`),
-`features/runtime/accessEncoding.ts` (bidirectional access-mode / personhood
-codecs between the app model and the on-chain uint8s, previously inline in
-`useArtistConsole.ts` (encode) and `useCatalog.ts` (decode)), and
-`features/artist-studio/releaseForm.ts` (the release wizard step machine,
-`canReviewRelease`, and the artist setup/lock derivations, pulled out of `App.tsx`
-and de-duplicated with `NewReleaseTab.tsx`'s local step list), and
-`app/routing.ts` (the view enum guard, initial-view, artist-portal-path, and
-history/popstate resolution helpers, pulled out of `App.tsx`), and
-`app/navigation.ts` (the static `VIEW_COPY` and `NAV_ITEMS` nav model, with
-handlers still attached in `App.tsx`).
-
-Alongside the pure modules, `App.tsx` is being decomposed behind a React context
-stack under `app/providers/` (backlog `08b-providers-design.md`), so the shell
-becomes composition-only rather than the state container. The first providers
-own UI feedback (`UiFeedbackProvider`: the transaction modal + wallet-modal
-visibility) and wallet identity (`WalletProvider`: `useWallet` plus the derived
-active EVM/Substrate identity, the frozen RPC endpoint, `getActiveWalletClient`,
-and the network-switch flow); `AppProviders` composes them in `main.tsx`. Each
-accessor (`useUiFeedback`, `useWalletContext`) fails closed by throwing outside
-its provider. `TopBar`, `WalletModal`, and `TransactionModal` read this state
-from context instead of prop drilling. `NavigationProvider` (`useNavigation`)
-then owns the shell's route/view state (active view, artist-portal open, public
-artist profile, rail collapse) plus `navigateToView`, `openArtistStudio`, and the
-popstate/history integration, so route state is no longer threaded into
-`useCatalog`/`useSession` and the views. `ReleaseFormProvider` (`useReleaseForm`)
-then owns the artist release draft and shared identity fields (title, description,
-artist name, price, primary artist share, additional rights-holder royalty
-splits, access mode, personhood level, cover file,
-Bulletin toggle, upload action, studio tab, wizard step) plus the Bulletin manifest
-ref, which retires the write-only `artistConsoleBulletinRef` hack that App.tsx
-carried "to break a circular dependency". `CatalogProvider` (`useCatalogContext`)
-and `SessionProvider` (`useSessionContext`) then wrap the `useCatalog` and
-`useSession` hooks: the hooks keep their dependency-injection signatures, the
-wiring App.tsx used to do moves into the providers, and the catalog-owned effects
-(load the on-chain catalog, sync per-track access) and the one-link room-join
-effect move with them. This removes the catalog/session prop drilling into the
-views. Finally `ArtistStudioProvider` (`useArtistStudio`) wraps `useArtistConsole`
-plus the royalty summary, and `PlaybackProvider` (`usePlaybackContext`) wraps
-`usePlayback` and owns the cross-domain open-track / prepare-stream / host-startup
-handlers. With that, `App.tsx` calls no feature hooks and owns no business state:
-it reads from the contexts and composes the render tree.
-
-The render tree is then split by shell. `views/ListenerShell.tsx` holds the entire
-listener-facing tree (top bar, nav rail, page views, player dock, room modals) plus
-the listener-only UI state and handlers. `views/ArtistShell.tsx` holds the artist
-portal content (the release studio or onboarding) plus the artist upload handlers,
-wizard-step navigation, studio-state derivations, and the two artist-portal-gated
-effects (royalty refresh, stored-name sync on entry), rendered inside
-`views/ArtistPortalView.tsx`. Both shells are self-contained, consuming the provider
-stack directly. `App.tsx` is now a thin switch between them (`isArtistPortal ?
-<ArtistShell /> : <ListenerShell />`) plus the handful of effects that span both
-shells: cleanup, the living-light body classes, the aura engine, and the
-artist-identity seeds (initial name sync, runtime resolution) that also feed the
-listener account view. It is under 80 lines, down from ~990 at the start of ticket 08.
-
-Two cross-shell pieces are shared, not duplicated: the "artists backed / tracks
-unlocked" rollup is a pure, tested helper (`features/wallet/supportSummary.ts`), and
-the wallet + transaction modals both shells show are rendered through
-`components/AccountWalletModal.tsx` (the context adapter for the presentational
-`WalletModal`).
-
-Page-level views then consume context directly rather than taking large prop
-lists. `views/PlayerView.tsx` reads its track/session/playback state from
-`useCatalogContext`/`useSessionContext`/`usePlaybackContext` (plus navigation, UI
-feedback, and the release-form draft), so `ListenerShell` renders it with just the
-two room-modal triggers whose open state it owns (down from ~30 props to 2).
-`views/artist/ArtistConsole.tsx` and `views/artist/ArtistOnboarding.tsx` do the
-same: the console reads context and owns the upload handlers + studio derivations,
-distributing to its presentational studio tabs (OverviewTab, NewReleaseTab, ...)
-which keep their prop interfaces. As a result `ArtistShell` collapses to the two
-portal-gated effects plus a prop-free `<ArtistConsole /> | <ArtistOnboarding />`
-switch (~34 lines).
-
-Remaining follow-up, intentionally deferred: split `PlaybackProvider` into a
-separate fast-ticking transport context. That is an optimization to make only if
-profiling shows the transport updates re-render the tree wastefully. The studio
-tabs beneath `ArtistConsole` remain presentational (fed by the console), which is
-appropriate component composition rather than shell-level prop drilling.
-
-## Current Limitations
-
-- Browser-side Pinata uploads are demo/local mode only. Production should set
-  `VITE_DOTIFY_API_URL` and configure `PINATA_JWT` on the backend.
-- Playback protection is client-side best-effort only when the backend API is
-  not configured. Production key delivery uses wallet-signed backend requests
-  with explicit `eip191` or `product-sr25519-v1` signature schemes.
-- Key rotation is additive, not retroactive revocation. Existing protected
-  audio stays readable only while its exact key version secret is retained; a
-  client that already learned a derived key may keep using it outside Dotify's
-  grant window.
-- Artist registration and release publication require a connected EVM wallet in
-  the tracked build. Local EVM dev accounts are no longer exposed as public
-  artist fallbacks.
-- Proof of Personhood levels are contract storage controlled by the runtime
-  registrar; live Individuality integration is not implemented yet.
-- The signaling server must be hosted separately for DotNS / Bulletin builds.
-- Frontend e2e coverage exists for the Classic locked/access/payment, artist
-  publish, and room join trust flows. Broader wallet/provider coverage is still
-  open.
-
-## Improvement Backlog
-
-1. Harden injected EVM provider support for production usage, and only re-add
-   passkeys as a backend-bound factor attached to an existing EVM or Product
-   account.
-2. Move Pinata uploads and content-key release behind a backend or artist-run key
-   service.
-3. Replace bundled-content-secret protection with per-track key custody and
-   wallet-signed key requests.
-4. Add Playwright or Vitest coverage for WebRTC room flows.
-5. Split `App.tsx` into focused modules for catalog, player, artist portal,
-   rooms, and chain access.
-6. Add release draft persistence and edit flows for the `/artists` portal.
-7. Add production monitoring for gateway fallback failures and signaling uptime.
-
-### Native artist-support validation build
-
-`npm run build:product-devnet:support` builds the existing Product CDM profile
-with recoverable Classic support payments. It does not deploy or enable CASH.
-See [the support recovery design](../docs/design/product-host-support-recovery-2026-09-15.md)
-for native-device acceptance and the original recovery design.
-
-Classic support now reserves a payment reference in `localStorage` before asking
-for a signature. The key includes the network/adapter endpoint, payer, artist
-runtime and content hash. Existing `sessionStorage` references migrate when that
-exact scope is opened. Only the amount, asset symbol and transaction hash are
-stored; the journal contains no signing or content keys and never grants access.
-An uncertain attempt stays recoverable without another payment, including after
-closing the tab. Storage failures block new payments. Web Locks serialize the
-same payment across tabs where supported; without Web Locks, avoid simultaneous
-payments from multiple tabs. Storage is origin-specific, so clearing browser
-data or changing the deployment origin/RPC endpoint can lose this protection.
-
-Before signing, the native flow shows the payer, track, known amount, available
-balance when readable, and explicitly estimated or unavailable fees. Product
-spendable balance excludes frozen funds and the account's existential deposit;
-contract storage charges and exact network fees still need host confirmation.
-The installed Product contract API forwards signing/broadcast/inclusion/finality
-status but exposes its hash only in the completed result, not in `onStatus`.
-Finality alone never opens audio: fresh Dotify access checks remain required.
-Closing the payment dialog does not cancel the transaction; its status can be
-reopened. Reloading requires reopening the release to check access. Full error,
-account mapping, recipient split and settlement records are under Technical details.
-
-CASH remains non-executable, including at runtime writer boundaries. Future
-integration requires an authenticated Dotify order/payment binding, the correct
-entitlement beneficiary, replay protection, and a reconciliation/refund strategy.
-Changing contract VM does not provide those guarantees.
-
-Gifts and tips are native UI; `VITE_DOTIFY_ARTIST_DONATIONS` is retired.
-Gifts use the artist's profile allocation; work tips deduct any enabled host
-share first, then distribute the remainder across the work's rights holders. Both require an
-upgraded contribution runtime and keep listening access unchanged. Product
-signing still requires the CDM writer profile. Live host validation and
-owner-approved upgrades are separate release gates. See
-[native contributions](../docs/design/native-contributions.md).
-
-After a gift or tip is submitted, its sheet checks for a finalized contribution
-without sending a second transaction. Automatic checks use a bounded backoff,
-pause while the page is hidden, and stop after six retries to protect the shared
-RPC. They can continue while the sheet is closed; reopening a saved contribution
-or choosing `Check status again` starts another bounded reconciliation window.
-After a reload, reopening the gift/tip action resumes the saved intent for the
-connected payer. A finalized receipt is required for success; after submission,
-a finalized reverted EVM receipt is required to report a network failure. If
-Product supplies no usable transaction receipt or the read network remains
-unavailable, Dotify cannot prove either outcome and keeps the intent pending; do
-not clear browser storage or repeat the payment. The sheet shows a transaction
-link when an EVM hash is available.
-
-Pending checks expose Technical details with the original uncertainty error and
-contribution reference. The error survives empty read-back and reloads. A missing
-wallet transaction reference is labelled `Checking payment status`; a finalized
-Product extrinsic still awaiting its contract event is labelled `Checking
-contribution receipt`. Neither label proves that a payment failed.
-
-Product gifts/tips now verify native `Revive.ContractEmitted` events from the
-transaction's canonical finalized block, including the exact extrinsic hash,
-dispatch result, runtime, contribution ID, payer, work and amount. The Ethereum
-log index does not expose native `Revive.call` payments. New payments preserve
-the SDK's block/hash/index reference for recovery when usable. Pending payments
-with a native transaction hash but no usable SDK block reference need their
-receipt block once: open Technical details, follow `View transaction`, and enter the explorer's block number using `Check
-receipt block`. That number is an untrusted location hint; the native chain must
-verify the transaction and receipt before clearing the journal. Checking never
-submits a payment or requests a signer. Native receipts link to Subscan; the
-complete cross-device ledger still needs native-event indexing.
-
-The Product package for API-backed native receipt confirmation is `[0, 1, 39]`;
-`[0, 1, 38]` used the superseded host-RPC reader, and `[0, 1, 37]` introduced
-pending diagnostics. Merging into `dev` does not publish or refresh an installed host app. After an authorized
-Product CDM deployment, verify both the loaded version and build SHA in You →
-Production readiness on each tested device. Version `[0, 1, 36]` at build
-`9c2a476` predates the pending-state/reconciliation fix in PR #239. Preserve
-saved contribution intents across an update and use `Check status again`;
-a timeout alone does not establish whether a payment was submitted.
-
-### Listening and contribution actions
-
-The player separates audio controls from voluntary contributions and access
-payments. Icons supplement visible labels whenever an action can send money.
-
-| Action                    | Icon and label                                           | Placement                                            |
-| ------------------------- | -------------------------------------------------------- | ---------------------------------------------------- |
-| Paid listening access     | Key, `Unlock listening`; quote: `Pay <amount> to unlock` | Locked track and access dialog                       |
-| Work-specific tip         | Coins, `Tip this track` (`Tip` on compact screens)       | Beside the track's artist, outside playback controls |
-| Artist gift               | Hand holding a heart, `Send a gift`                      | Artist profile                                       |
-| Host contribution account | Coins, `Receive room tips`                               | Room People panel                                    |
-| Local sound               | Speaker, `Mute` / `Unmute`                               | Playback controls, one tap                           |
-| Playback modes and queue  | Shuffle, repeat-one, music list                          | Secondary audio controls                             |
-| Release information       | Information circle, `About this release`                 | Contextual details sheet                             |
-| Shared presence           | Radio, people, share, QR                                 | Room entry, presence and invitation                  |
-
-A standalone heart is not a money action. Heart reactions remain ephemeral room
-reactions; there is no new favorites feature. Existing play/pause, navigation,
-copy, download, refresh, close and external-link symbols retain their familiar
-meaning. The artist's name opens their profile. The obsolete artist/support
-shortcut and mute-only options sheet have been removed.
-
-The gift/tip sheet names the contribution purpose and states that listening
-access stays unchanged. Recipient quotes, wallet approval, finality checks and
-recovery remain the same. Room guests can continue listening without an account.
-Catalog playback carries the runtime address into room metadata so both host and
-guest can resolve the live work by its runtime and content hash before tipping.
-The always-mounted session repairs legacy room metadata missing a runtime only
-when the authoritative catalog contains one active release for that hash, then
-broadcasts the repaired track. This continues while the host browses Music or
-You and retries after catalog verification or signaling reconnection. Guests
-cannot repair room attribution themselves; conflicting runtimes and ambiguous
-hashes keep tips unavailable. No listening access or second payment is needed
-for this metadata recovery.
-
-The signaling service provides the same fail-closed repair for rooms created by
-an older or cached host. It accepts only a unique active release from a fresh
-API catalog snapshot, verifies the release and artist runtime on-chain, and then
-rebroadcasts the recovered runtime to the whole room. Catalog outages,
-ambiguity, inactive releases, runtime conflicts and tracks that change during
-verification remain unavailable for tipping.
-
-The signaling recovery and contribution configuration were deployed on
-2026-10-08. The dedicated server attestor is approved in the artist runtime's
-profile policy and inherited by works that do not set their own authority.
-After the signaling restart, reopen the room and use People > Receive room tips
-if the host has no current Dotify sign-in session. The server-side rollout and
-remaining physical-device checks are recorded in the deployment runbook.
-
-Review the action mapping in `PlayerView`, `PlayerTransport`,
-`ArtistDonationButton` and `AccessGateOverlay`. Browser coverage lives in
-`artist-gift.spec.ts`, `classic-unlock.spec.ts`, `player-presence.spec.ts`,
-`room-workspace.spec.ts` and `mobile-accessibility.spec.ts`.
-
-### Iconography review (2026-10-02)
-
-The review covers the listener shell, catalog, full/docked player, artist profile,
-room discovery and workspace, account/access/contribution dialogs, artist studio,
-and readiness tools. It is an action-semantics review, not a new visual system.
-Existing Lucide icons, visible labels and accessible button names remain the
-baseline; color alone never identifies a financial action.
-
-| Surface                          | Finding and decision                                                                                                                                                                  |
-| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Catalog, recent listening, queue | Show Play only when existing access allows playback; an arrow opens listening options. Room guest covers inspect the release, never promise independent playback.                     |
-| Recent listening                 | Trash means clear session history; X remains dismiss/close.                                                                                                                           |
-| Wallet                           | Log out consistently means disconnect; power remains the studio's release activation control.                                                                                         |
-| Studio earnings                  | A chevron opens internal release details; external-link icons remain on explorer links.                                                                                               |
-| Host queue                       | Skip-forward means play the next item; `Clear queue` names the affected collection. Reorder/remove controls have hover labels.                                                        |
-| Room discovery                   | Map represents the spatial 2D view, not a list. Center, zoom, motion and reset controls have hover labels as well as accessible names. Mobile keeps the existing card/sheet fallback. |
-| Navigation, sharing and chat     | Retain headphones/radio/person, share/QR/copy, send and reactions: these already match their actions. A chat heart expresses appreciation, not payment.                               |
-| Publishing, rights and readiness | Retain upload/save/shield, download/copy/refresh and status icons with labels; technical tools stay outside the listening controls.                                                   |
-
-No donation policy, access decision, wallet permission, room count or transaction
-is changed by this audit. Financial actions continue to require a quote and user
-approval. Browser fixtures check touch layouts, keyboard access, protected-track
-selection, wallet-free room guests and a painted interactive 3D canvas. These are
-not substitutes for a physical Product/iPhone acceptance run.
+Playwright starts isolated local signaling/Vite servers. Its fixtures replace
+wallets, chain responses and source audio where needed; they do not establish
+funded payments, physical audibility or native Host compatibility. Install its
+Chromium browser first with `npx playwright install chromium`.
+
+Test services use ports 5274 and 8789. The specialized Nearby and audio suites
+have their own configurations; run them sequentially to avoid port conflicts.
+See [quality gates](../docs/operations/dev-quality-gates.md) and the
+[pilot plan](../docs/operations/pilot-release-plan.md) for candidate-bound,
+real-device evidence.
+
+The README gallery is reproducible through the
+[documentation capture recipe](../docs/images/release-preview/README.md).
+
+## Build and publish
+
+| Command                               | Result                                                                               |
+| ------------------------------------- | ------------------------------------------------------------------------------------ |
+| `npm run build`                       | Ordinary Web build in `dist/`.                                                       |
+| `npm run build:product-devnet:frozen` | Product package from the committed catalog snapshot; no catalog refresh.             |
+| `npm run build:product-devnet`        | Product build that first refreshes its catalog bootstrap. Inspect generated changes. |
+| `npm run build:bulletin`              | Separate single-file Bulletin build.                                                 |
+
+A successful build does not publish anything. Web hosting, API/signaling
+operation and Product publication have different configuration and rollback
+boundaries:
+
+- [Deployment configuration](../docs/operations/deployment-configuration.md)
+- [Product build, publication and rollback](../docs/operations/product-devnet-deployment.md)
+- [Environment variables](../docs/reference/environment-variables.md)
+
+Use these runbooks rather than historical deploy snippets. Product publication
+uses local operator authority and verified Host configuration; no signer is
+needed for the frozen build or CI. Keep release-specific SHAs, CIDs, service
+versions and device results in the dated rollout evidence.
