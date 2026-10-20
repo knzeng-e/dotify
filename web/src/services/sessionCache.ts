@@ -4,7 +4,7 @@ export type SessionScope = { address: string; chainId: number; identity: string 
 const REFRESH_MARGIN_MS = 60_000;
 
 /** Identity tokens only. Access is still checked by the server for every key. */
-export function createSessionCache(apiUrl: string) {
+export function createSessionCache(apiUrl: string, isInactive: (token: string) => boolean = () => false) {
   const prefix = `dotify:session:v2:${encodeURIComponent(apiUrl)}:`;
   const memory = new Map<string, StoredSession>();
   const volatile = new Set<string>();
@@ -17,7 +17,14 @@ export function createSessionCache(apiUrl: string) {
   function valid(value: unknown, fresh: boolean): value is StoredSession {
     if (!value || typeof value !== 'object') return false;
     const session = value as StoredSession;
-    if (typeof session.token !== 'string' || !session.token || typeof session.expiresAt !== 'string' || forgotten.has(session.token)) return false;
+    if (
+      typeof session.token !== 'string' ||
+      !session.token ||
+      typeof session.expiresAt !== 'string' ||
+      forgotten.has(session.token) ||
+      isInactive(session.token)
+    )
+      return false;
     const expires = Date.parse(session.expiresAt);
     return Number.isFinite(expires) && (!fresh || expires > Date.now() + REFRESH_MARGIN_MS);
   }
@@ -74,10 +81,11 @@ export function createSessionCache(apiUrl: string) {
         // Reuse in this page even when persistent Host/browser storage fails.
       }
     },
-    clear(address: string, expectedToken?: string): StoredSession[] {
+    clear(address: string, expectedToken?: string, beforeForget?: (session: StoredSession) => void): StoredSession[] {
       const removed: StoredSession[] = [];
       for (const [key, session] of entries(address)) {
         if (expectedToken && expectedToken !== session.token) continue;
+        beforeForget?.(session);
         memory.delete(key);
         volatile.delete(key);
         clearedKeys.add(key);
@@ -96,6 +104,7 @@ export function createSessionCache(apiUrl: string) {
         const raw = window.localStorage.getItem(legacyKey);
         const session: unknown = raw ? JSON.parse(raw) : null;
         if (valid(session, false) && (!expectedToken || expectedToken === session.token)) {
+          beforeForget?.(session);
           forgotten.add(session.token);
           removed.push(session);
           window.localStorage.removeItem(legacyKey);

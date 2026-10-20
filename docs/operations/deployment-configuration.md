@@ -2244,6 +2244,18 @@ still-readable snapshot can restore an unpersisted token until its 24-hour
 expiry. Rotate `SESSION_EPOCH` if that recovery cannot be completed safely.
 An unreadable snapshot at boot still forces a fresh random epoch.
 
+The PR #309 client retains failed logout credentials in a separate inactive,
+API-scoped browser/Host storage queue before clearing the active session. A
+503 or network failure shows an incomplete sign-out notice and retry action;
+startup, online/foreground return and a foreground-only 60-second timer also
+retry without signing or restoring the old session. Requests are coalesced,
+limited to four in flight, and bounded to 15 seconds each. Only an acknowledged
+logout or expiry plus a five-minute local clock margin removes retry material.
+If storage is blocked, retries are memory-only: keep the app open until server
+sign-out is confirmed. No environment change is required. Validate a simulated
+503 followed by recovery in Web and Product; a successful wallet disconnect
+alone is not proof of durable server revocation.
+
 Deploy order: API, then signaling, then clients (no client change is
 required). Before opening the pilot, record these read-only checks:
 

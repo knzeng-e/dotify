@@ -12,7 +12,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { zeroAddress } from 'viem';
 import type { PolkadotSigner } from 'polkadot-api';
 
-import { signOutOfDotifySession } from '../../services/keyService';
+import { retryPendingSessionRevocations, signOutOfDotifySession } from '../../services/keyService';
 import { useWallet, type ConnectedWallet, type WalletState } from '../../hooks/useWallet';
 import { devAccounts, type DevAccount } from '../../hooks/useDevAccounts';
 import { getDefaultEthRpcUrl } from '../../shared/config/network';
@@ -80,10 +80,58 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   // machine does not keep listening rights after the wallet leaves.
   const connectedAddress = canRequestProtectedPlayback(connectedWallet) ? connectedWallet?.evmAddress : undefined;
   const lastConnectedAddressRef = useRef<`0x${string}` | null>(null);
+  const logoutWarningShown = useRef(false);
+  const showIncompleteLogout = useCallback(() => {
+    if (logoutWarningShown.current) return;
+    logoutWarningShown.current = true;
+    const show = () =>
+      setTransactionFeedback({
+        operationId: 'session-logout',
+        tone: 'error',
+        title: 'Sign-out still finishing',
+        message:
+          'Your account is disconnected here. Server sign-out is not confirmed yet. Keep Dotify open while we retry, especially if your device cannot save app data.',
+        recoveryAction: { label: 'Retry sign-out', run: retry }
+      });
+    const retry = () => {
+      void retryPendingSessionRevocations()
+        .then(() => {
+          logoutWarningShown.current = false;
+          setTransactionFeedback({ tone: 'success', title: 'Signed out', message: 'Server sign-out is confirmed.' });
+        })
+        .catch(show);
+    };
+    show();
+  }, [setTransactionFeedback]);
+
+  useEffect(() => {
+    const retry = () => {
+      if (document.visibilityState === 'hidden') return;
+      void retryPendingSessionRevocations()
+        .then(() => {
+          if (!logoutWarningShown.current) return;
+          logoutWarningShown.current = false;
+          setTransactionFeedback(current =>
+            current?.operationId === 'session-logout' ? { tone: 'success', title: 'Signed out', message: 'Server sign-out is confirmed.' } : current
+          );
+        })
+        .catch(showIncompleteLogout);
+    };
+    retry();
+    const timer = window.setInterval(retry, 60_000);
+    window.addEventListener('online', retry);
+    document.addEventListener('visibilitychange', retry);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener('online', retry);
+      document.removeEventListener('visibilitychange', retry);
+    };
+  }, [showIncompleteLogout, setTransactionFeedback]);
+
   const disconnect = useCallback(() => {
-    if (connectedAddress) void signOutOfDotifySession(connectedAddress);
+    if (connectedAddress) void signOutOfDotifySession(connectedAddress).catch(showIncompleteLogout);
     disconnectWalletOnly();
-  }, [connectedAddress, disconnectWalletOnly]);
+  }, [connectedAddress, disconnectWalletOnly, showIncompleteLogout]);
 
   // Wallet extensions can disconnect or switch accounts outside Dotify's own
   // disconnect button. Revoke the session for the address that just left.
@@ -91,10 +139,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     const previousAddress = lastConnectedAddressRef.current;
     const currentAddress = connectedAddress ?? null;
     if (previousAddress && previousAddress.toLowerCase() !== currentAddress?.toLowerCase()) {
-      void signOutOfDotifySession(previousAddress);
+      void signOutOfDotifySession(previousAddress).catch(showIncompleteLogout);
     }
     lastConnectedAddressRef.current = currentAddress;
-  }, [connectedAddress]);
+  }, [connectedAddress, showIncompleteLogout]);
 
   const currentBulletinAccount = devAccounts[bulletinAccountIndex];
   const activeEvmAddress = connectedWallet?.evmAddress ?? zeroAddress;
