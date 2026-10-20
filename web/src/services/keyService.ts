@@ -123,6 +123,15 @@ export type ContentKeyReleaseIdentity = {
 const sessionRevocations = createSessionRevocations(API_URL ?? '');
 const sessionCache = createSessionCache(API_URL ?? '', token => sessionRevocations.has(token));
 let revocationRequest: Promise<void> | null = null;
+const pendingRevocationListeners = new Set<() => void>();
+
+/** Observe even failures from a sign-in response that arrives after disconnect. */
+export function onSessionRevocationPending(listener: () => void): () => void {
+  pendingRevocationListeners.add(listener);
+  return () => {
+    pendingRevocationListeners.delete(listener);
+  };
+}
 let sessionCapability: { available: boolean; expiresAt: number } | null = null;
 const sessionRequests = new Map<string, Promise<string | null>>();
 const sessionEpochs = new Map<string, number>();
@@ -415,6 +424,9 @@ export async function retryPendingSessionRevocations(): Promise<void> {
   revocationRequest = flushPendingSessionRevocations();
   try {
     await revocationRequest;
+  } catch (error) {
+    for (const listener of pendingRevocationListeners) listener();
+    throw error;
   } finally {
     revocationRequest = null;
   }

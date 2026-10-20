@@ -12,7 +12,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { zeroAddress } from 'viem';
 import type { PolkadotSigner } from 'polkadot-api';
 
-import { retryPendingSessionRevocations, signOutOfDotifySession } from '../../services/keyService';
+import { onSessionRevocationPending, retryPendingSessionRevocations, signOutOfDotifySession } from '../../services/keyService';
 import { useWallet, type ConnectedWallet, type WalletState } from '../../hooks/useWallet';
 import { devAccounts, type DevAccount } from '../../hooks/useDevAccounts';
 import { getDefaultEthRpcUrl } from '../../shared/config/network';
@@ -54,7 +54,7 @@ function canRequestProtectedPlayback(wallet: ConnectedWallet | null): boolean {
 }
 
 export function WalletProvider({ children }: { children: ReactNode }) {
-  const { setTransactionFeedback, setShowWalletModal } = useUiFeedback();
+  const { transactionFeedback, setTransactionFeedback, setShowWalletModal } = useUiFeedback();
   const {
     state: walletState,
     connectExtension,
@@ -81,30 +81,38 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const connectedAddress = canRequestProtectedPlayback(connectedWallet) ? connectedWallet?.evmAddress : undefined;
   const lastConnectedAddressRef = useRef<`0x${string}` | null>(null);
   const logoutWarningShown = useRef(false);
+  useEffect(() => {
+    logoutWarningShown.current = transactionFeedback?.operationId === 'session-logout';
+  }, [transactionFeedback?.operationId]);
   const showIncompleteLogout = useCallback(() => {
     if (logoutWarningShown.current) return;
-    logoutWarningShown.current = true;
-    const show = () =>
-      setTransactionFeedback({
-        operationId: 'session-logout',
-        tone: 'error',
-        title: 'Sign-out still finishing',
-        message:
-          'Your account is disconnected here. Server sign-out is not confirmed yet. Keep Dotify open while we retry, especially if your device cannot save app data.',
-        recoveryAction: { label: 'Retry sign-out', run: retry }
+    const show = (onlyIfCurrent = false) =>
+      setTransactionFeedback(current => {
+        if ((onlyIfCurrent && current?.operationId !== 'session-logout') || (current && current.operationId !== 'session-logout')) return current;
+        return {
+          operationId: 'session-logout',
+          tone: 'error',
+          title: 'Sign-out still finishing',
+          message:
+            'Your account is disconnected here. Server sign-out is not confirmed yet. Keep Dotify open while we retry, especially if your device cannot save app data.',
+          recoveryAction: { label: 'Retry sign-out', run: retry }
+        };
       });
     const retry = () => {
       void retryPendingSessionRevocations()
         .then(() => {
           logoutWarningShown.current = false;
-          setTransactionFeedback({ tone: 'success', title: 'Signed out', message: 'Server sign-out is confirmed.' });
+          setTransactionFeedback(current =>
+            current?.operationId === 'session-logout' ? { tone: 'success', title: 'Signed out', message: 'Server sign-out is confirmed.' } : current
+          );
         })
-        .catch(show);
+        .catch(() => show(true));
     };
     show();
   }, [setTransactionFeedback]);
 
   useEffect(() => {
+    const unsubscribe = onSessionRevocationPending(showIncompleteLogout);
     const retry = () => {
       if (document.visibilityState === 'hidden') return;
       void retryPendingSessionRevocations()
@@ -122,6 +130,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     window.addEventListener('online', retry);
     document.addEventListener('visibilitychange', retry);
     return () => {
+      unsubscribe();
       window.clearInterval(timer);
       window.removeEventListener('online', retry);
       document.removeEventListener('visibilitychange', retry);

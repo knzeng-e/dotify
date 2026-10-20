@@ -210,8 +210,14 @@ Properties and boundaries:
   UI warns that server sign-out is incomplete, with an instruction to keep the
   app open. A closed page cannot guarantee delivery in that condition. A session
   returned after disconnect is queued for revocation rather than installed.
+  A typed failure subscription immediately surfaces incomplete revocation for
+  such late sessions; cancellation does not silently defer the warning until
+  the next lifecycle timer.
   A late 401 for an old token must not erase a newer token installed by another
   request. Tokens are not written to diagnostics or exposed in UI messages.
+- A delayed logout result can update only its own feedback operation. A newer
+  payment's status cannot be replaced by a logout success or failure; pending
+  logout warnings defer while another feedback operation is displayed.
 - Legacy address-only cache entries are not reused across unverified scopes.
   Upgrading can require one new sign-in; Free playback and room guests are
   unaffected. Explicit sign-out also removes/revokes readable legacy entries.

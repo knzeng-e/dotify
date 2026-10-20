@@ -54,3 +54,25 @@ API storage failure, stolen-token scenario, Product physical-device sign-out,
 new publication or deployment was performed. Existing dependency advisories
 and bundle-size warnings remain separate maintenance work. Product 0.1.56
 remains the previously signed test artifact and does not contain this new fix.
+
+## Late-feedback review amendment
+
+The final review also found that a delayed manual logout retry could replace a
+newer payment's feedback on either success or failure. Both paths now update
+only the current `session-logout` operation. Initial/lifecycle warning display
+defers while another feedback operation is present. The warning's shown state
+is observed in an effect after the actual feedback state changes, not mutated
+inside a functional React state updater.
+
+An isolated E2E entry uses the real `UiFeedbackProvider`, `WalletProvider` and
+`TransactionModal` under StrictMode. Chromium and WebKit pass five cases each:
+reload/recovery, late manual HTTP 200, late manual HTTP 503, and a delayed
+startup failure followed by deferred warning display after payment feedback
+closes, plus immediate notification of a late sign-in's failed logout when Host
+storage is blocked. A typed revocation-failure subscription notifies the wallet
+provider immediately, even when the sign-in caller must still receive
+`SESSION_CANCELLED`; it does not wait for the minute retry timer. The fixture
+is not imported by application code, uses no new feature
+flag and is not a production entry. Its payment status is simulated and does
+not submit a transaction. CI evidence for the old `144891e` head remains
+historical; the amended head must pass the same eight gates before review.

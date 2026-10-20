@@ -227,12 +227,16 @@ describe('keyService sessions', () => {
       })
     );
     const service = await loadKeyService();
+    const notify = vi.fn();
+    const unsubscribe = service.onSessionRevocationPending(notify);
     const pending = service.ensureDotifySessionForSigner(productSigner(), 420420417);
     const rejected = expect(pending).rejects.toMatchObject({ code: 'SESSION_CANCELLED' });
     await vi.waitFor(() => expect(fetch).toHaveBeenCalledWith('https://api.test/api/auth/session', expect.objectContaining({ method: 'POST' })));
     await service.signOutOfDotifySession(ADDRESS);
     finish(jsonResponse({ sessionToken: 'late-pending', expiresAt: new Date(Date.now() + 3_600_000).toISOString() }));
     await rejected;
+    expect(notify).toHaveBeenCalledTimes(1);
+    unsubscribe();
     expect(service.existingDotifySession(productSigner(), 420420417)).toBeNull();
     const reloaded = await loadKeyService();
     await expect(reloaded.retryPendingSessionRevocations()).rejects.toMatchObject({ code: 'SESSION_LOGOUT_PENDING' });
