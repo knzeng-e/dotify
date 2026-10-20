@@ -50,7 +50,13 @@ async function ffmpeg(binary: string, args: string[], signal?: AbortSignal, outp
         DEMUXERS,
         ...args
       ],
-      { stdio: ['ignore', 'ignore', 'pipe'] }
+      {
+        stdio: ['ignore', 'ignore', 'pipe'],
+        // Never inherit the API's key-custody/upload/session secrets into the
+        // media parser. Packaging must additionally isolate filesystem/process
+        // access before this worker accepts real untrusted uploads.
+        env: { PATH: process.env.PATH ?? '/usr/bin:/bin', LANG: 'C', LC_ALL: 'C' }
+      }
     );
     let log = '';
     let failure: Error | undefined;

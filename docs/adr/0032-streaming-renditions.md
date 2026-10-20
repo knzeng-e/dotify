@@ -23,6 +23,11 @@ Verification checks the expected canonical release before decrypting anything.
 The key service keeps its existing signed/session/Free authority; no new key,
 frontend master secret, guest key or client-provided access decision is added.
 
+Archive exclusion is a playback rule, not artist-only cryptographic custody:
+someone who already has the release key can manually fetch and decrypt the
+archival object too. A separate archival key/authority would change the selected
+same-key scope and is not introduced silently. Do not present this as DRM.
+
 Existing DAV2 refs remain unchanged and playable. A later owner-authenticated
 migration job may register a manifest CID in a durable off-chain rendition index
 bound to the exact original audio ref and canonical release. Removing that index
@@ -97,6 +102,12 @@ output count/bytes, deadline and cancellation. FFmpeg still parses untrusted
 media: limit its process/container resources and keep it patched. Plain files
 exist only inside a private ephemeral job directory and are removed in finally;
 the durable queue contains ciphertext and metadata, never raw keys or plaintext.
+The parser child receives only PATH and fixed C locale, not the API's secrets.
+This is not an OS sandbox: a parser exploit running with the API's privileges
+could still access its files/processes. Real-upload integration therefore needs
+an isolated worker filesystem/process boundary, in addition to W30's non-root
+execution and bounded resources. The inactive codec slice does not deploy that
+boundary or accept public uploads.
 
 Loudness is measured by EBU R128 without a normalization filter in the encoded
 signal path. Store integrated LUFS and bounded playback gain toward -14 LUFS;

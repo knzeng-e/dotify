@@ -116,23 +116,32 @@ describe('streaming encoder', () => {
         // A trusted executable stub ensures cancellation happens during a running
         // child, not only during the initial signal precheck. No orphan child.
         const blockedEncoder = path.join(directory, 'blocked-encoder');
-        await writeFile(blockedEncoder, '#!/bin/sh\nexec /bin/sleep 10\n', { mode: 0o700 });
+        await writeFile(blockedEncoder, '#!/bin/sh\nif [ -n "$DOTIFY_SYNTHETIC_SENTINEL" ]; then exit 42; fi\nexec /bin/sleep 10\n', {
+          mode: 0o700
+        });
         const controller = new AbortController();
-        await assert.rejects(
-          encodeStreamingRelease({
-            master,
-            key,
-            scope,
-            ledger,
-            ffmpegPath: blockedEncoder,
-            temporaryRoot: directory,
-            signal: controller.signal,
-            onProgress: phase => {
-              if (phase === 'measuring') setTimeout(() => controller.abort(), 30);
-            }
-          }),
-          /cancelled/
-        );
+        const previousSentinel = process.env.DOTIFY_SYNTHETIC_SENTINEL;
+        process.env.DOTIFY_SYNTHETIC_SENTINEL = 'synthetic-fixture-only';
+        try {
+          await assert.rejects(
+            encodeStreamingRelease({
+              master,
+              key,
+              scope,
+              ledger,
+              ffmpegPath: blockedEncoder,
+              temporaryRoot: directory,
+              signal: controller.signal,
+              onProgress: phase => {
+                if (phase === 'measuring') setTimeout(() => controller.abort(), 30);
+              }
+            }),
+            /cancelled/
+          );
+        } finally {
+          if (previousSentinel === undefined) delete process.env.DOTIFY_SYNTHETIC_SENTINEL;
+          else process.env.DOTIFY_SYNTHETIC_SENTINEL = previousSentinel;
+        }
         await rm(blockedEncoder);
         assert.deepEqual(await readdir(directory), ['ledger']);
       } finally {
