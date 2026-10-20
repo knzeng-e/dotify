@@ -7,6 +7,7 @@
 
 import type { WalletClient } from 'viem';
 import { createSessionCache, type SessionScope } from './sessionCache';
+import { createSessionRevocations } from './sessionRevocations';
 
 import { publishProductHostKeySmokeMetric, type ProductHostKeySmokeMetric } from '../features/productHost/productCdmHostSmokeEvidence';
 
@@ -119,7 +120,18 @@ export type ContentKeyReleaseIdentity = {
 // The backend re-checks the on-chain policy per track on every request.
 // ---------------------------------------------------------------------------
 
-const sessionCache = createSessionCache(API_URL ?? '');
+const sessionRevocations = createSessionRevocations(API_URL ?? '');
+const sessionCache = createSessionCache(API_URL ?? '', token => sessionRevocations.has(token));
+let revocationRequest: Promise<void> | null = null;
+const pendingRevocationListeners = new Set<() => void>();
+
+/** Observe even failures from a sign-in response that arrives after disconnect. */
+export function onSessionRevocationPending(listener: () => void): () => void {
+  pendingRevocationListeners.add(listener);
+  return () => {
+    pendingRevocationListeners.delete(listener);
+  };
+}
 let sessionCapability: { available: boolean; expiresAt: number } | null = null;
 const sessionRequests = new Map<string, Promise<string | null>>();
 const sessionEpochs = new Map<string, number>();
@@ -327,7 +339,9 @@ async function openDotifySessionForSigner(signer: KeyRequestSigner, chainId: num
 
     const body = (await res.json()) as { sessionToken: string; expiresAt: string };
     if (!isCurrent()) {
-      await revokeSession(body.sessionToken);
+      sessionRevocations.add(signer.address, { token: body.sessionToken, expiresAt: body.expiresAt });
+      // Disconnect stays authoritative even if durable revocation must retry.
+      await retryPendingSessionRevocations().catch(() => {});
       assertCurrent();
     }
     sessionCache.store(scope, { token: body.sessionToken, expiresAt: body.expiresAt });
@@ -392,29 +406,68 @@ export async function ensureDotifySession(walletClient: WalletClient, chainId: n
   return signer ? ensureDotifySessionForSigner(signer, chainId) : null;
 }
 
-/** Sign out: revoke the session server-side and forget the stored token. */
+/** Stop local use immediately; retain inactive credentials until durable logout. */
 export async function signOutOfDotifySession(address: string): Promise<void> {
   const key = address.toLowerCase();
   sessionEpochs.set(key, (sessionEpochs.get(key) ?? 0) + 1);
   for (const [scope, interrupted] of interruptedSignIns) {
     if (interrupted.address === key) interruptedSignIns.delete(scope);
   }
-  const stored = sessionCache.clear(address);
-  await Promise.all(stored.map(session => revokeSession(session.token)));
+  sessionCache.clear(address, undefined, session => sessionRevocations.add(address, session));
+  await retryPendingSessionRevocations();
 }
 
-async function revokeSession(token: string): Promise<void> {
+/** Also used after reload, foreground return and network recovery. Never signs. */
+export async function retryPendingSessionRevocations(): Promise<void> {
   if (!API_URL) return;
-  try {
-    await fetch(`${API_URL}/api/auth/logout`, {
-      method: 'POST',
-      signal: keyServiceTimeout(),
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionToken: token })
-    });
-  } catch {
-    // Best-effort: the local token is already gone and the server token expires.
+  if (!revocationRequest) {
+    const request = flushPendingSessionRevocations()
+      .catch(error => {
+        for (const listener of pendingRevocationListeners) listener();
+        throw error;
+      })
+      .finally(() => {
+        if (revocationRequest === request) revocationRequest = null;
+      });
+    revocationRequest = request;
   }
+  // The shared worker releases its slot before settling. A successful empty
+  // worker can have gained entries in the same tick; every caller must cover
+  // those too. Failures reject above and never resubmit in this loop.
+  await revocationRequest;
+  if (sessionRevocations.entries().length) await retryPendingSessionRevocations();
+}
+
+async function flushPendingSessionRevocations(): Promise<void> {
+  const attempted = new Set<string>();
+  for (;;) {
+    const pending = sessionRevocations
+      .entries()
+      .filter(session => !attempted.has(session.token))
+      .slice(0, 4);
+    if (!pending.length) break;
+    await Promise.all(
+      pending.map(async session => {
+        attempted.add(session.token);
+        try {
+          const res = await fetch(`${API_URL}/api/auth/logout`, {
+            method: 'POST',
+            signal: keyServiceTimeout(),
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sessionToken: session.token })
+          });
+          if (res.ok) sessionRevocations.complete(session.token);
+        } catch {
+          // Retain the inactive token for the next explicit/lifecycle retry.
+        }
+      })
+    );
+  }
+  if (sessionRevocations.entries().length)
+    throw new KeyServiceError(
+      'Your account is disconnected here, but server sign-out is not confirmed. Keep Dotify open and retry when connected.',
+      'SESSION_LOGOUT_PENDING'
+    );
 }
 
 function releaseIdentityRequestFields(release: ContentKeyReleaseIdentity | undefined): Record<string, string> {

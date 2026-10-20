@@ -188,16 +188,39 @@ Properties and boundaries:
 - A stolen token is bounded by TTL, server-side revocation (logout, also
   triggered by wallet disconnect in the app), and the fact that it can only
   fetch keys the address could already obtain.
-- Revocation is an in-memory jti blocklist: process-lifetime, matching the
-  single-instance deployment. Scale-out needs a shared store first.
+- Revocation uses an in-memory jti blocklist and a durable single-writer
+  snapshot when a stable `SESSION_EPOCH` is configured. A failed snapshot write
+  returns 503 rather than acknowledging logout; the in-memory denial alone
+  cannot survive a restart. Scale-out still needs a shared store first.
 - The frontend caches identity tokens by API URL, account, chain, and signing
   identity. Memory remains authoritative when persistent browser/Host storage
   cannot be written. The 60-second refresh margin and server expiry remain in
   force; storage failure does not extend a token or remove per-track access checks.
-- A disconnect clears cached tokens even if persistent removal fails, revokes
-  them best-effort, and invalidates pending sign-ins. A session returned after
-  disconnect is revoked rather than installed. A late 401 for an old token must
-  not erase a newer token installed by another request.
+- A disconnect immediately stops local token reuse and invalidates pending
+  sign-ins. Before removing an active cache entry, the client retains its token
+  and expiry in a separate API-scoped, inactive logout queue. Only logout uses
+  these credentials; neither playback nor upload can reactivate them. HTTP 503
+  and transport failures retain them for a coalesced retry on app startup,
+  foreground/network return, once per foreground minute, or the explicit retry
+  action. At most four logout requests run together, each bounded to 15 seconds.
+  Successful responses acknowledge durable revocation; failed active-cache
+  cleanup retains the inactive marker across reload. Expired queue entries are
+  discarded after a five-minute clock margin. This does not extend server TTL.
+- A shared logout worker releases its own promise slot before settling. Callers
+  recheck entries queued during a successful empty flush before reporting
+  success; a failed flush rejects rather than looping network retries.
+- If browser/Host storage cannot be written, retries remain memory-only and the
+  UI warns that server sign-out is incomplete, with an instruction to keep the
+  app open. A closed page cannot guarantee delivery in that condition. A session
+  returned after disconnect is queued for revocation rather than installed.
+  A typed failure subscription immediately surfaces incomplete revocation for
+  such late sessions; cancellation does not silently defer the warning until
+  the next lifecycle timer.
+  A late 401 for an old token must not erase a newer token installed by another
+  request. Tokens are not written to diagnostics or exposed in UI messages.
+- A delayed logout result can update only its own feedback operation. A newer
+  payment's status cannot be replaced by a logout success or failure; pending
+  logout warnings defer while another feedback operation is displayed.
 - Legacy address-only cache entries are not reused across unverified scopes.
   Upgrading can require one new sign-in; Free playback and room guests are
   unaffected. Explicit sign-out also removes/revokes readable legacy entries.
