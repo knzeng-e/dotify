@@ -328,6 +328,34 @@ describe('createViemRuntimeReader', () => {
 });
 
 describe('createViemRuntimeWriter', () => {
+  it('estimates fees and reads the paying balance without submitting, while refusing CASH', async () => {
+    const writeContract = vi.fn();
+    const getBalance = vi.fn(async () => 100n);
+    const estimateContractGas = vi.fn(async () => 3n);
+    const writer = createViemRuntimeWriter({
+      ethRpcUrl: 'http://localhost:8545',
+      walletClient: { account: { address: artist }, writeContract } as never,
+      publicClient: { getBalance, estimateContractGas, getGasPrice: async () => 2n } as never
+    });
+    const intent = createNativeRuntimeAccessPaymentIntent({
+      runtimeAddress: runtime,
+      contentHash: hash,
+      amountPlanck: 10n,
+      asset: DOTIFY_FALLBACK_NATIVE_RUNTIME_ASSET
+    });
+    await expect(writer.inspectPayment!(intent)).resolves.toMatchObject({ availableBalance: 100n, estimatedFee: 6n });
+    expect(getBalance).toHaveBeenCalledWith({ address: artist });
+    expect(estimateContractGas).toHaveBeenCalledWith(expect.objectContaining({ account: artist, address: runtime, args: [hash], value: 10n }));
+    estimateContractGas.mockRejectedValue(new Error('Fee estimate unavailable'));
+    await expect(writer.inspectPayment!(intent)).resolves.toMatchObject({
+      availableBalance: 100n,
+      estimatedFee: undefined,
+      detail: expect.stringContaining('Fee estimate unavailable')
+    });
+    expect(() => writer.payForAccess({ ...intent, rail: 'product-cash' } as never)).toThrow(/CASH settlement is not executable/);
+    expect(writeContract).not.toHaveBeenCalled();
+  });
+
   function runtimeRegistration() {
     return {
       contentHash: hash,

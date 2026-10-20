@@ -5,10 +5,15 @@
 // fabricated URL); the room header then exposes the real Copy link.
 
 import { useEffect, useState } from 'react';
+import { X } from 'lucide-react';
+import { RoomProfileFields, type RoomProfile } from './RoomProfileFields';
 import { CoverImage } from './CoverImage';
 import { Dialog } from './Dialog';
 import { roomHostDisplayName } from '../features/rooms/roomState';
 import type { CatalogTrack } from '../shared/types';
+import { useUiFeedback, useWalletContext } from '../app/providers';
+import { NearbyVisibility, type RoomVisibilityChoice } from './NearbyVisibility';
+import { roomExperienceFlags } from '../features/rooms/roomExperienceFlags';
 
 function SvgBroadcast({ size }: { size: number }) {
   return (
@@ -57,12 +62,16 @@ type CreateRoomModalProps = {
   displayName: string;
   onSetDisplayName: (name: string) => void;
   onClose: () => void;
-  onOpenRoom: (track: CatalogTrack) => void;
+  onOpenRoom: (track: CatalogTrack, visibility: RoomVisibilityChoice, profile: RoomProfile) => void;
   onTrackIntent: (track: CatalogTrack) => void;
 };
 
 export function CreateRoomModal({ tracks, initialTrack, displayName, onSetDisplayName, onClose, onOpenRoom, onTrackIntent }: CreateRoomModalProps) {
+  const { connectedWallet } = useWalletContext();
+  const { openWalletModal } = useUiFeedback();
   const [picked, setPicked] = useState<CatalogTrack | undefined>(initialTrack ?? tracks[0]);
+  const [visibility, setVisibility] = useState<RoomVisibilityChoice>({ visibleNearby: false, radiusKm: 5 });
+  const [profile, setProfile] = useState<RoomProfile>({ name: '', introduction: '' });
   const hasChosenName = roomHostDisplayName(displayName) !== null;
 
   useEffect(() => {
@@ -70,16 +79,18 @@ export function CreateRoomModal({ tracks, initialTrack, displayName, onSetDispla
   }, [onTrackIntent, picked]);
 
   return (
-    <Dialog className='create-room-modal' size='wide' labelledBy='create-room-title' onClose={onClose}>
+    <Dialog className='create-room-modal' size='wide' labelledBy='create-room-title' initialFocus='dialog' onClose={onClose}>
       <div className='modal-header'>
         <div className='modal-icon' data-tone='success'>
           <SvgBroadcast size={20} />
         </div>
+        <button className='modal-close' type='button' onClick={onClose} aria-label='Close'>
+          <X size={18} />
+        </button>
       </div>
       <div className='modal-copy'>
-        <p className='modal-eyebrow'>Start a room</p>
-        <h2 id='create-room-title'>As easy as sharing a link</h2>
-        <p>Open a room and share the link.</p>
+        <h2 id='create-room-title'>Open a room</h2>
+        <p>Pick a track, share the link, listen together. Guests join without an account.</p>
       </div>
 
       {picked && (
@@ -118,6 +129,9 @@ export function CreateRoomModal({ tracks, initialTrack, displayName, onSetDispla
                 aria-pressed={picked?.id === track.id}
               >
                 <CoverImage src={track.imageRef} alt='' fallbackLabel={track.title} />
+                <span className='create-room-pick-title' aria-hidden='true'>
+                  {track.title}
+                </span>
               </button>
             ))}
           </div>
@@ -125,21 +139,51 @@ export function CreateRoomModal({ tracks, initialTrack, displayName, onSetDispla
       )}
 
       <label className='create-room-label' htmlFor='create-room-name'>
-        Your name in the room
+        Your name or nickname
       </label>
       <input
         id='create-room-name'
         className='field'
         value={hasChosenName ? displayName : ''}
         onChange={event => onSetDisplayName(event.target.value)}
-        placeholder='How should people see you?'
+        placeholder='e.g. Alex'
         maxLength={32}
         autoComplete='nickname'
-        autoFocus
       />
 
+      <details className='room-profile-optional'>
+        <summary>
+          Name your room <span>(optional)</span>
+        </summary>
+        <RoomProfileFields value={profile} onChange={setProfile} />
+      </details>
+      {roomExperienceFlags.nearby && <NearbyVisibility value={visibility} onChange={setVisibility} />}
+
       <div className='create-room-actions'>
-        <button className='primary-action wide' type='button' disabled={!picked || !hasChosenName} onClick={() => picked && onOpenRoom(picked)}>
+        {!connectedWallet && (
+          <div className='room-host-tip-warning' role='status'>
+            <strong>You will not receive a host share without connecting.</strong>
+            <p>
+              When an artist shares tips with hosts, your share goes to the artist’s recipients until your account is connected. You can still open the room.
+            </p>
+            <button
+              type='button'
+              className='secondary-action'
+              onClick={() => {
+                onClose();
+                openWalletModal('support');
+              }}
+            >
+              Connect my account
+            </button>
+          </div>
+        )}
+        <button
+          className='primary-action wide'
+          type='button'
+          disabled={!picked || !hasChosenName}
+          onClick={() => picked && onOpenRoom(picked, visibility, profile)}
+        >
           <SvgBroadcast size={16} />
           Open the room
         </button>
@@ -147,7 +191,6 @@ export function CreateRoomModal({ tracks, initialTrack, displayName, onSetDispla
           Cancel
         </button>
       </div>
-      <p className='create-room-foot'>You host the track. Guests hear the room stream.</p>
     </Dialog>
   );
 }

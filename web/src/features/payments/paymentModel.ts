@@ -60,6 +60,17 @@ export type CashAccessPaymentIntent = {
 export type TrackAccessPaymentIntent = NativeRuntimeAccessPaymentIntent | CashAccessPaymentIntent;
 export type ExecutableTrackAccessPaymentIntent = NativeRuntimeAccessPaymentIntent;
 
+export function assertNativeAccessPayment(intent: TrackAccessPaymentIntent): asserts intent is NativeRuntimeAccessPaymentIntent {
+  if (intent.rail !== 'runtime-native' || intent.asset.kind !== 'native') throw new Error(cashSettlementUnavailableReason());
+}
+
+// All amounts use the contract's 18-decimal units, including Product balances.
+export type PaymentAccountState = {
+  availableBalance?: bigint;
+  estimatedFee?: bigint;
+  detail?: string;
+};
+
 export function nativeRuntimePaymentAssetFromChain(chain: Pick<Chain, 'nativeCurrency'> | null | undefined): DotifyNativeRuntimeAsset {
   const currency = chain?.nativeCurrency;
   const symbol = currency?.symbol?.trim() || DOTIFY_FALLBACK_NATIVE_RUNTIME_ASSET.symbol;

@@ -1,4 +1,4 @@
-import { Pause, Play, Repeat1, Shuffle, SkipBack, SkipForward, Volume2, VolumeX } from 'lucide-react';
+import { Info, ListMusic, Pause, Play, Repeat1, Shuffle, SkipBack, SkipForward, Volume2, VolumeX } from 'lucide-react';
 import type { CSSProperties } from 'react';
 import type { PlaybackControls } from '../hooks/usePlayback';
 import { transportProgressPercent } from '../features/player/playbackStatus';
@@ -6,11 +6,52 @@ import { formatTime } from '../shared/utils/format';
 
 // Presentation only: the shared playback controller still owns transport and
 // host authority. Room guests see the host clock without a local seek action.
-export function PlayerTransport({ playback, duration, listener }: { playback: PlaybackControls; duration: number; listener: boolean }) {
+export function PlayerTransport({
+  playback,
+  duration,
+  listener,
+  onOpenQueue,
+  onOpenDetails
+}: {
+  playback: PlaybackControls;
+  duration: number;
+  listener: boolean;
+  onOpenQueue?: () => void;
+  onOpenDetails?: () => void;
+}) {
   const { transport } = playback;
+  const immersive = Boolean(onOpenQueue);
+  const shuffle = (
+    <button
+      className='transport-secondary'
+      type='button'
+      onClick={playback.toggleShuffle}
+      disabled={!playback.canShuffle}
+      aria-label='Shuffle'
+      aria-pressed={playback.canShuffle && playback.shuffleEnabled}
+      data-active={playback.canShuffle && playback.shuffleEnabled}
+      title={playback.canShuffle ? 'Shuffle' : 'Add more tracks to shuffle'}
+    >
+      <Shuffle size={18} />
+    </button>
+  );
+  const repeat = (
+    <button
+      className='transport-secondary'
+      type='button'
+      onClick={playback.toggleRepeat}
+      disabled={!playback.canRepeat || !playback.canUseTransport}
+      aria-label='Repeat this track'
+      aria-pressed={playback.canRepeat && playback.repeatEnabled}
+      data-active={playback.canRepeat && playback.repeatEnabled}
+      title='Repeat this track'
+    >
+      <Repeat1 size={18} />
+    </button>
+  );
   const progress = transportProgressPercent(transport.currentTime, duration);
   return (
-    <div className='player-transport' data-playing={transport.playing} role='group' aria-label='Playback controls'>
+    <div className='player-transport' data-playing={transport.playing} data-immersive={immersive || undefined} role='group' aria-label='Playback controls'>
       <div className='transport-progress'>
         <span>{formatTime(transport.currentTime)}</span>
         <input
@@ -32,17 +73,6 @@ export function PlayerTransport({ playback, duration, listener }: { playback: Pl
         {!listener && (
           <>
             <button
-              type='button'
-              onClick={playback.toggleShuffle}
-              disabled={!playback.canShuffle}
-              aria-label='Shuffle'
-              aria-pressed={playback.canShuffle && playback.shuffleEnabled}
-              data-active={playback.canShuffle && playback.shuffleEnabled}
-              title={playback.canShuffle ? 'Shuffle' : 'Add more tracks to shuffle'}
-            >
-              <Shuffle size={18} />
-            </button>
-            <button
               className='transport-skip'
               type='button'
               onClick={() => playback.skip('previous')}
@@ -62,7 +92,7 @@ export function PlayerTransport({ playback, duration, listener }: { playback: Pl
           type='button'
           onClick={() => void playback.togglePlay()}
           disabled={!playback.canUseTransport}
-          aria-label={transport.playing ? 'Pause' : 'Play'}
+          aria-label={listener ? (transport.playing ? 'Pause for me' : 'Resume room audio') : transport.playing ? 'Pause' : 'Play'}
           title={listener ? (transport.playing ? 'Pause for me' : 'Resume room audio') : transport.playing ? 'Pause' : 'Play'}
         >
           {transport.playing ? <Pause size={24} /> : <Play size={24} fill='currentColor' />}
@@ -82,28 +112,29 @@ export function PlayerTransport({ playback, duration, listener }: { playback: Pl
             >
               <SkipForward size={20} />
             </button>
-            <button
-              type='button'
-              onClick={playback.toggleRepeat}
-              disabled={!playback.canRepeat || !playback.canUseTransport}
-              aria-label='Repeat this track'
-              aria-pressed={playback.canRepeat && playback.repeatEnabled}
-              data-active={playback.canRepeat && playback.repeatEnabled}
-              title='Repeat this track'
-            >
-              <Repeat1 size={18} />
-            </button>
           </>
         )}
       </div>
-      <div className='transport-actions' role='group' aria-label='Volume'>
+      <div className='transport-actions' role='group' aria-label='Secondary playback controls'>
+        {onOpenDetails && (
+          <button type='button' onClick={onOpenDetails} aria-label='About this release' title='About this release'>
+            <Info size={18} />
+          </button>
+        )}
+        {!listener && shuffle}
+        {!listener && repeat}
+        {onOpenQueue && (
+          <button type='button' onClick={onOpenQueue} aria-label='Queue' title='Queue'>
+            <ListMusic size={18} />
+          </button>
+        )}
         <button
           type='button'
           onClick={playback.toggleMute}
-          aria-pressed={playback.muted}
-          data-active={playback.muted}
           aria-label={playback.muted ? 'Unmute' : 'Mute'}
           title={playback.muted ? 'Unmute' : 'Mute'}
+          aria-pressed={playback.muted}
+          data-active={playback.muted}
         >
           {playback.muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
         </button>

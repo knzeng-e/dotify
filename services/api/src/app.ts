@@ -1,7 +1,7 @@
 // Fastify app assembly, extracted from index.ts so tests can build the full
 // app (request IDs, error envelope, route registration) without listening.
 
-import Fastify, { type FastifyError, type FastifyInstance, type FastifyServerOptions } from 'fastify';
+import Fastify, { type FastifyError, type FastifyInstance, type FastifyRequest, type FastifyServerOptions } from 'fastify';
 import cors from '@fastify/cors';
 import multipart from '@fastify/multipart';
 import rateLimit from '@fastify/rate-limit';
@@ -15,6 +15,11 @@ import { keyRoutes } from './routes/keys.js';
 import { turnRoutes } from './routes/turn.js';
 import { uploadRoutes } from './routes/uploads.js';
 import { createCatalogRoutes } from './routes/catalog.js';
+import { createMediaRoutes } from './routes/media.js';
+import { NativeContributionLedger } from './services/nativeContributionLedger.js';
+import { createContributionHistoryRoutes } from './routes/contributionHistory.js';
+import { createNativeReceiptRoutes } from './routes/nativeReceipts.js';
+import { createNativeReceiptService } from './services/nativeReceipts.js';
 import { catalogReadModel as defaultCatalogReadModel } from './services/catalog/index.js';
 import type { CatalogReadModel } from './services/catalog/readModel.js';
 
@@ -36,7 +41,25 @@ function genReqId(request: IncomingMessage): string {
   return randomUUID();
 }
 
+// Fly's edge sets Fly-Client-IP on every request it forwards; a client value
+// is overwritten. Use it only when the deployment says Fly is in front.
+export function clientIdentity(request: Pick<FastifyRequest, 'headers' | 'ip'>, trustProxy: 'off' | 'fly') {
+  if (trustProxy === 'fly') {
+    const header = request.headers['fly-client-ip'];
+    const value = Array.isArray(header) ? header[0] : header;
+    if (value && value.trim()) return { key: value.trim(), source: 'fly-client-ip' };
+  }
+  return { key: request.ip, source: 'socket' };
+}
+
+export function rateLimitKey(request: Pick<FastifyRequest, 'headers' | 'ip'>, trustProxy: 'off' | 'fly'): string {
+  return clientIdentity(request, trustProxy).key;
+}
+
 export type BuildAppOptions = {
+  trustProxy?: 'off' | 'fly';
+  // Test sink observes the exact bounded fields sent to the production logger.
+  identityDiagnostic?: (fields: { event: string; source: string; clientMatchesPeer: boolean }) => void;
   // Tests disable logging; production always logs.
   logging?: boolean;
   catalog?: CatalogReadModel;
@@ -46,24 +69,39 @@ export type BuildAppOptions = {
 export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyInstance> {
   const serverOptions: FastifyServerOptions = {
     logger: options.logging === false ? false : fastifyLoggerOptions,
-    genReqId,
+    genReqId
   };
   const app = Fastify(serverOptions);
+  // Five trusted-header samples per process, with no IP, token, wallet, room
+  // or location attached. Use the same resolver as rate limiting, not a second
+  // interpretation of the proxy headers. Direct/health probes consume no samples.
+  let identitySamples = 0;
+  app.addHook('onRequest', async request => {
+    if (identitySamples >= 5) return;
+    const identity = clientIdentity(request, options.trustProxy ?? config.API_TRUST_PROXY);
+    if (identity.source === 'socket') return;
+    identitySamples += 1;
+    const fields = { event: 'network:client-identity', source: identity.source, clientMatchesPeer: identity.key === request.ip };
+    request.log.info(fields, 'Trusted proxy client identity');
+    options.identityDiagnostic?.(fields);
+  });
 
   // CORS — restricted to the configured standalone and Product-host origins.
   await app.register(cors, {
     origin: options.apiOrigins ?? config.API_ORIGINS,
     methods: ['GET', 'POST', 'OPTIONS'],
-    exposedHeaders: ['x-request-id', 'etag', 'x-catalog-state', 'x-catalog-block-lag'],
+    exposedHeaders: ['x-request-id', 'etag', 'x-catalog-state', 'x-catalog-block-lag', 'content-range', 'accept-ranges']
   });
 
   // Multipart — required by upload routes. Register before routes.
   await app.register(multipart);
 
-  // Rate limiting — placeholder; tune limits before production traffic.
+  // Rate limiting per client. Behind Fly every connection comes from the
+  // proxy, so without API_TRUST_PROXY=fly all users would share one budget.
   await app.register(rateLimit, {
     max: 100,
     timeWindow: '1 minute',
+    keyGenerator: request => rateLimitKey(request, options.trustProxy ?? config.API_TRUST_PROXY)
   });
 
   app.addHook('onSend', async (request, reply) => {
@@ -91,13 +129,26 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     const body: ApiErrorBody = {
       error: status >= 500 ? 'Internal server error' : error.message,
       code: status >= 500 ? 'INTERNAL_ERROR' : (error.code ?? 'REQUEST_ERROR'),
-      requestId: String(request.id),
+      requestId: String(request.id)
     };
     return reply.status(status).send(body);
   });
 
   // Routes.
   await app.register(healthRoutes);
+  const nativeReceipts = createNativeReceiptService({ rpcUrl: config.PASEO_ASSET_HUB_NATIVE_RPC, chainId: config.DOTIFY_CHAIN_ID });
+  const contributionLedger = new NativeContributionLedger(config.NATIVE_CONTRIBUTION_SNAPSHOT_PATH);
+  await app.register(
+    createNativeReceiptRoutes({
+      serviceToken: config.NATIVE_RECEIPT_SERVICE_TOKEN,
+      read: async input => {
+        const receipt = await nativeReceipts.read(input);
+        await contributionLedger.record(receipt);
+        return receipt;
+      }
+    })
+  );
+  await app.register(createContributionHistoryRoutes(contributionLedger, Boolean(config.PASEO_ASSET_HUB_NATIVE_RPC) && config.DOTIFY_CHAIN_ID === 420420417));
   await app.register(authRoutes, { prefix: '/api/auth' });
   await app.register(turnRoutes, { prefix: '/api/turn' });
   await app.register(keyRoutes, { prefix: '/api/tracks' });
@@ -108,6 +159,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     catalog.stop();
   });
   await app.register(createCatalogRoutes({ catalog }));
+  await app.register(createMediaRoutes({ catalog }));
 
   return app;
 }

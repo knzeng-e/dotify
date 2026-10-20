@@ -171,7 +171,9 @@ record, [Dotify Nearby Discovery Privacy Contract](../design/dotify-nearby-disco
 keeps it server-ephemeral and opt-in: hosts choose whether one live room appears
 in approximate-area discovery, listeners choose whether to search by device
 area or manual area, and no exact coordinates, wallet addresses, IP addresses,
-geohashes, or distance values enter the protocol.
+geohashes, or exact distance values enter the protocol. The 2026-10-14 W19
+plan adds separate approximate host/listener radius controls in km after
+schema/privacy review; no native Product geolocation support is implied.
 
 Product Desktop adds an extra constraint. The current Product permission model
 is host-governed and manifest-based; Dotify has verified remote/WebRTC
@@ -179,6 +181,19 @@ permission paths, but no official Product host location capability for this
 app. W19 must therefore treat Product-native nearby as unsupported until an
 official host API is verified. The safe Product paths are manual area,
 venue QR, or external-browser continuation.
+
+## Room realtime observation
+
+W27 adds a typed `RoomRealtimePort` for the existing authoritative Socket.IO
+events and an isolated Product-only Celerity observer. The default remains off.
+An opt-in validation build can subscribe to aggregate presence, or dual-publish
+host counts without changing playback, admission or guest identity rules.
+The sponsored Statement Store signature does not authenticate Dotify host
+authority. A second opt-in namespace now mirrors accepted reactions, short
+chat and requests through membership-bound ephemeral ECDH/HKDF/AES-GCM channels.
+These measurements never replace Socket.IO delivery or queue acknowledgements.
+Player state and SDP/ICE remain excluded. See [the responsibility matrix](room-realtime-transports.md) for
+the encoding limits, offline signaling experiment and remaining live gates.
 
 ## Storage Boundaries
 
@@ -274,7 +289,14 @@ for transactions submitted through the EVM JSON-RPC path. The Subscan extrinsic
 shows the `Revive.call` and its raw `Revive.ContractEmitted` records. Turning
 those records into the cross-device artist royalty ledger still belongs in a
 native-event backend indexer; a browser-local payment history would be
-incomplete and easy to lose.
+incomplete and easy to lose. Gift/tip confirmation now reads those native events
+for the exact finalized transaction block instead of querying `eth_getLogs`.
+The writer preserves the SDK's block reference in the pending intent. Recovery
+uses a read-only host connection, checks the canonical finalized block and native
+extrinsic hash, isolates its dispatch/events, and verifies the receiving runtime,
+work, contribution ID, payer and amount. Older intents without a block can supply
+an explorer block number as an untrusted locator; success still requires native
+chain proof. This targeted receipt path does not provide a complete native ledger.
 
 ### The CDM Manifest Is Generated, Not Installed
 
@@ -531,19 +553,19 @@ one infrastructure adapter at a time.
 
 The current baseline is:
 
-| Component                                            | Pinned/target value                |
-| ---------------------------------------------------- | ---------------------------------- |
-| Node                                                 | 22                                 |
-| `@parity/product-sdk`                                | `0.27.0`                           |
-| `@parity/product-sdk-host`                           | `0.19.1`                           |
-| `@parity/product-sdk-statement-store`                | `0.6.9`                            |
-| `@parity/product-sdk-descriptors`                    | `0.11.0`                           |
-| `polkadot-api`                                       | `1.23.3`                           |
-| `@polkadot-community-foundation/polkadot-app-deploy` | `0.16.2` in the deploy command     |
-| Product network                                      | `devnet`                           |
-| Product domain                                       | `dotify-test01.dot`                |
-| Public gateway                                       | `https://dotify-test01.dev-dot.li` |
-| Asset Hub EVM chain ID                               | `420420417`                        |
+| Component                             | Pinned/target value                          |
+| ------------------------------------- | -------------------------------------------- |
+| Node                                  | 22                                           |
+| `@parity/product-sdk`                 | `0.27.0`                                     |
+| `@parity/product-sdk-host`            | `0.19.1`                                     |
+| `@parity/product-sdk-statement-store` | `0.6.9`                                      |
+| `@parity/product-sdk-descriptors`     | `0.11.0`                                     |
+| `polkadot-api`                        | `1.23.3`                                     |
+| `@parity/polkadot-app-deploy`         | `0.20.0` plus host-profile and API preflight |
+| Product network                       | `devnet`                                     |
+| Product domain                        | `dotify-test01.dot`                          |
+| Public gateway                        | `https://dotify-test01.dev-dot.li`           |
+| Asset Hub EVM chain ID                | `420420417`                                  |
 
 Checked against npm on 2026-09-12 after the Product DevNet registry/runtime
 refresh: the Product SDK package set above is current. npm also publishes

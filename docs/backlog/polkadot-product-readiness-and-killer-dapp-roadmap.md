@@ -3,15 +3,29 @@
 Status: active execution note; the Product DevNet baseline is delivered on
 `dev` and remains tracked through Product compatibility issue #85.
 
-Last Product SDK package check: 2026-09-12. Dotify currently pins
-`@parity/product-sdk` 0.27.0, host 0.19.1, statement-store 0.6.9,
-descriptors 0.11.0, and
-`@polkadot-community-foundation/polkadot-app-deploy` 0.16.2. This aligns the
-Product app bundle and descriptors with the September 2026 Product DevNet
-DotNS/CDM registry refresh. npm also publishes `polkadot-api` 3.0.0, but
-Dotify keeps root PAPI on 1.23.3 because the current Product SDK packages use
-PAPI 2.2.x and `@polkadot-apps` chain-client/keys/signer use PAPI 1.23.x. Root
-PAPI 3 remains blocked until the official SDK graph converges.
+Host incident update: 2026-10-10. The 0.1.44 rollout timed out on owner-reported
+Desktop 0.1.3 and mobile 0.10.0. Recovery candidate 0.1.45 restores SDK 0.27.0,
+host 0.19.1, statement-store 0.6.9, descriptors 0.11.0 and transaction helpers
+0.4.7, with TruAPI 0.13.1 explicitly pinned to retain codec 1. The 0.1.44 family
+ships codec 3; its simulated Host tests bypassed wire negotiation. A new raw
+handshake test guards that boundary. Publication and real-device recovery are
+still required. Deploy CLI remains 0.20.0. Dotify keeps root PAPI
+on 1.23.3 because `@polkadot-apps` chain-client/keys/signer still use that
+line. Product SDK uses its own PAPI 2.2.x graph. Future SDK adoption requires
+actual supported-Host wire evidence before promoting the default bundle.
+
+## Alignment and scheduling update — 2026-10-14
+
+[Current priorities](polkadot-alignment-and-nearby-priority.md) make W19 Nearby
+the next product expansion. #85 retains the existing adapter boundary and owns
+assessment of SDK 0.36's coordinated signing/PAPI/Host changes, exact physical
+Host compatibility and a shared versioned network/deployment profile.
+Browser/manual-area Nearby does not require this SDK migration. Product
+geolocation claims require documented permission/capability plus device evidence.
+Stablecoin/Coinage reassessment is Later; new clearing-reference proposals merit
+future review but do not grant access or prove shipped Host support by themselves.
+Keep the W16 decision as dated evidence. JAM is a watch item; no rewrite is
+scheduled. Artist features and key portability have scoped Next follow-ups.
 
 ## Verdict
 

@@ -12,16 +12,24 @@ import { requiresExplicitProductRoomEntry } from '../../features/productHost/pro
 import { useWalletContext } from './WalletProvider';
 import { useNavigation } from './NavigationProvider';
 import { useCatalogContext } from './CatalogProvider';
+import { useRoomContributionTrackRecovery } from '../../features/donations/useRoomContributionTrackRecovery';
+import { useHostTipBinding } from '../../features/donations/useHostTipBinding';
+import { useNearby } from '../../features/rooms/useNearby';
+import { useRoomVisibilityIntent } from '../../features/rooms/useRoomVisibilityIntent';
 
 const signalUrl = import.meta.env.VITE_SIGNAL_URL ?? `${window.location.protocol}//${window.location.hostname}:8788`;
 const publicAppUrl = import.meta.env.VITE_PUBLIC_APP_URL?.trim() || null;
 
-type SessionValue = ReturnType<typeof useSession>;
+type SessionValue = ReturnType<typeof useSession> & {
+  hostTipBinding: ReturnType<typeof useHostTipBinding>;
+  nearbyHost: ReturnType<typeof useNearby>;
+  enableNearbyForRoom: ReturnType<typeof useRoomVisibilityIntent>;
+};
 
 const SessionContext = createContext<SessionValue | null>(null);
 
 export function SessionProvider({ children }: { children: ReactNode }) {
-  const { activeIdentityAddress, connectedWallet } = useWalletContext();
+  const { activeIdentityAddress, connectedWallet, expectedChainId, getActiveWalletClient } = useWalletContext();
   const { navigateToView } = useNavigation();
   const catalog = useCatalogContext();
 
@@ -39,6 +47,36 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     navigateToView,
     setAudioSource: catalog.setAudioSource
   });
+  useRoomContributionTrackRecovery({
+    mode: session.mode,
+    roomId: session.roomId,
+    socketStatus: session.socketStatus,
+    tracks: catalog.catalogTracks,
+    catalogIsAuthoritative: catalog.catalogIsAuthoritative,
+    trackInfo: catalog.trackInfo,
+    setTrackInfo: catalog.setTrackInfo,
+    socketEmit: session.socketEmit
+  });
+  const hostSocket = session.socketRef.current;
+  const nearbyHost = useNearby(hostSocket, true, session.mode === 'host' ? session.roomId : '');
+  const enableNearbyForRoom = useRoomVisibilityIntent(session.mode === 'host' ? session.roomId : '', nearbyHost.session);
+  const hostAccount = connectedWallet?.evmAddress;
+  const hostTipBinding = useHostTipBinding({
+    mode: session.mode,
+    roomId: session.roomId,
+    socketStatus: session.socketStatus,
+    socket: hostSocket,
+    wallet: connectedWallet,
+    chainId: expectedChainId,
+    getWallet: getActiveWalletClient
+  });
+  const previousAccountRef = useRef(hostAccount);
+  useEffect(() => {
+    if (previousAccountRef.current !== hostAccount) session.clearArtistPresence();
+    previousAccountRef.current = hostAccount;
+    // Only an identity change should clear the in-memory visit continuity.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hostAccount]);
 
   // One-link join: a guest landing on a #/rooms/<id> share link joins
   // immediately only when a wallet-scoped or guest name is already remembered.
@@ -83,7 +121,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     });
   }, [activeIdentityAddress, hostDisplayName, session.roomId, setDisplayName]);
 
-  return <SessionContext.Provider value={session}>{children}</SessionContext.Provider>;
+  return <SessionContext.Provider value={{ ...session, hostTipBinding, nearbyHost, enableNearbyForRoom }}>{children}</SessionContext.Provider>;
 }
 
 export function useSessionContext(): SessionValue {

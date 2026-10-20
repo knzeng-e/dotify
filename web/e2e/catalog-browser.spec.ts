@@ -9,13 +9,19 @@ for (const width of [390, 1440]) {
     await expect(page.getByTestId('track-card')).toHaveCount(13);
     await catalog.scrollIntoViewIfNeeded();
     expect(await catalog.evaluate(element => element.scrollWidth > element.clientWidth)).toBe(true);
-    await page.getByRole('button', { name: 'Next tracks', exact: true }).click();
+    if (width <= 768) {
+      await expect(page.getByRole('button', { name: 'Next tracks', exact: true })).toBeHidden();
+      await catalog.focus();
+      await catalog.press('ArrowRight');
+    } else await page.getByRole('button', { name: 'Next tracks', exact: true }).click();
     await expect.poll(() => catalog.evaluate(element => element.scrollLeft)).toBeGreaterThan(0);
     await catalog.focus();
     await catalog.press('Home');
-    await expect(page.getByRole('button', { name: 'Previous tracks', exact: true })).toBeDisabled();
+    await expect.poll(() => catalog.evaluate(element => element.scrollLeft)).toBeLessThanOrEqual(2);
+    if (width > 768) await expect(page.getByRole('button', { name: 'Previous tracks', exact: true })).toBeDisabled();
     await catalog.press('End');
-    await expect(page.getByRole('button', { name: 'Next tracks', exact: true })).toBeDisabled();
+    await expect.poll(() => catalog.evaluate(element => element.scrollWidth - element.clientWidth - element.scrollLeft)).toBeLessThanOrEqual(2);
+    if (width > 768) await expect(page.getByRole('button', { name: 'Next tracks', exact: true })).toBeDisabled();
     await page.getByRole('button', { name: 'Show all tracks', exact: true }).click();
     await expect(catalog).toHaveAttribute('data-layout', 'grid');
     await expect(page.getByTestId('track-card')).toHaveCount(13);
@@ -89,4 +95,39 @@ test('new covers expose responsive browser hints while legacy cards remain compa
   await expect(image).toHaveAttribute('srcset', /cover\/64\.webp 64w.*cover\/640\.webp 640w/);
   await expect(image).toHaveAttribute('data-cover-loaded', 'true');
   await expect.poll(() => Array.from(requested).some(path => /\/cover\/(64|160|320|640)\.webp$/.test(path))).toBe(true);
+});
+
+test('cached artwork stays visible and resumes native loading if its blob cannot be displayed', async ({ page }) => {
+  const cid = `bafy${'a'.repeat(50)}`;
+  const webp = Buffer.from('UklGRjgAAABXRUJQVlA4ICwAAACwAQCdASoCAAIAAUAmJaACdLoABdQAAP6k15FIsZW//DlP/DlP/DlP+F/AAA==', 'base64');
+  await page.route(`**/ipfs/${cid}/cover/**`, route =>
+    route.fulfill({
+      status: 200,
+      contentType: 'image/webp',
+      body: webp,
+      headers: { 'access-control-allow-origin': '*' }
+    })
+  );
+  await page.goto('/?e2eRoom=public&e2eCachedCover=on');
+  const image = page.getByTestId('track-card').filter({ hasText: 'E2E Public Room Track' }).locator('img');
+  await image.scrollIntoViewIfNeeded();
+  await expect(image).toHaveAttribute('src', /^blob:/);
+  await expect(image).toHaveAttribute('data-cover-loaded', 'true');
+  await expect(image).toHaveCSS('opacity', '1');
+  await image.dispatchEvent('error');
+  await expect(image).toHaveAttribute('src', /\/ipfs\/.*\/cover\/640\.webp$/);
+  await expect(image).toHaveAttribute('data-cover-loaded', 'true');
+  await expect(image).toHaveCSS('opacity', '1');
+});
+
+test('a flat legacy directory recovers its real artwork after the recorded nested path returns 404', async ({ page }) => {
+  const webp = Buffer.from('UklGRjgAAABXRUJQVlA4ICwAAACwAQCdASoCAAIAAUAmJaACdLoABdQAAP6k15FIsZW//DlP/DlP/DlP+F/AAA==', 'base64');
+  await page.route('**/ipfs/bafy-e2e-cover/**', route =>
+    route.fulfill(route.request().url().includes('/cover/') ? { status: 404, body: 'Not found' } : { status: 200, contentType: 'image/webp', body: webp })
+  );
+  await page.goto('/?e2eRoom=public&e2eResponsiveCover=on');
+  const image = page.getByTestId('track-card').filter({ hasText: 'E2E Public Room Track' }).locator('img');
+  await image.scrollIntoViewIfNeeded();
+  await expect.poll(() => image.evaluate(node => (node as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
+  await expect(image).toHaveAttribute('src', /\/bafy-e2e-cover\/640\.webp$/);
 });

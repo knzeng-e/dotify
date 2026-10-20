@@ -6,6 +6,7 @@ import { LibMusicRoyalties } from '../libraries/LibMusicRoyalties.sol';
 import { LibMusicAccess } from '../libraries/LibMusicAccess.sol';
 import { LibMusicNFT } from '../libraries/LibMusicNFT.sol';
 import { LibReentrancyGuard } from '../libraries/LibReentrancyGuard.sol';
+import { MusicContributionsPallet } from './MusicContributionsPallet.sol';
 
 /// @title MusicRoyaltiesPallet
 /// @notice Smart Pallet for on-chain payment collection and royalty distribution.
@@ -24,7 +25,7 @@ import { LibReentrancyGuard } from '../libraries/LibReentrancyGuard.sol';
 ///         Storage: LibMusicRoyalties (owns), LibMusicRegistry (reads),
 ///                  LibMusicAccess (writes paidAccess), LibMusicNFT (reads owner)
 ///         Prefix:  musicRoy — avoids selector collisions with other pallets
-contract MusicRoyaltiesPallet {
+contract MusicRoyaltiesPallet is MusicContributionsPallet {
   // -------------------------------------------------------------------------
   // Events
   // -------------------------------------------------------------------------

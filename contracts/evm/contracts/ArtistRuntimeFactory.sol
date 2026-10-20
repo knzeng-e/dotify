@@ -10,6 +10,7 @@ import { OwnershipPallet } from './pallets/OwnershipPallet.sol';
 import { MusicRegistryPallet } from './pallets/MusicRegistryPallet.sol';
 import { MusicNFTPallet } from './pallets/MusicNFTPallet.sol';
 import { MusicRoyaltiesPallet } from './pallets/MusicRoyaltiesPallet.sol';
+import { MusicContributionsPallet } from './pallets/MusicContributionsPallet.sol';
 import { MusicAccessPallet } from './pallets/MusicAccessPallet.sol';
 
 /// @title ArtistRuntimeFactory
@@ -245,7 +246,7 @@ contract ArtistRuntimeFactory {
   }
 
   function _musicRoyaltiesSelectors() private pure returns (bytes4[] memory selectors) {
-    selectors = new bytes4[](7);
+    selectors = new bytes4[](13);
     selectors[0] = MusicRoyaltiesPallet.musicRoyPayAccess.selector;
     selectors[1] = MusicRoyaltiesPallet.musicRoyRecordListen.selector;
     selectors[2] = MusicRoyaltiesPallet.musicRoySplitCount.selector;
@@ -253,6 +254,12 @@ contract ArtistRuntimeFactory {
     selectors[4] = MusicRoyaltiesPallet.musicRoyTotalBps.selector;
     selectors[5] = MusicRoyaltiesPallet.musicRoyClaimable.selector;
     selectors[6] = MusicRoyaltiesPallet.musicRoyClaim.selector;
+    selectors[7] = MusicContributionsPallet.musicGiftPolicy.selector;
+    selectors[8] = MusicContributionsPallet.musicGiftSetPolicy.selector;
+    selectors[9] = MusicContributionsPallet.musicGiftQuote.selector;
+    selectors[10] = MusicContributionsPallet.musicGiftContribute.selector;
+    selectors[11] = MusicContributionsPallet.musicGiftPending.selector;
+    selectors[12] = MusicContributionsPallet.musicGiftClaim.selector;
   }
 
   /// @dev The two registrar selectors are retained so already-deployed runtimes keep a

@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { DOTIFY_FALLBACK_NATIVE_RUNTIME_ASSET, createNativeRuntimeAccessPaymentIntent } from '../payments/paymentModel';
+import type { RuntimeWritePort } from './runtimePorts';
 
 const txHash = '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' as const;
 const factory = '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb' as const;
@@ -9,6 +10,8 @@ const productPublicKey = `0x${'11'.repeat(32)}` as const;
 const differentProductPublicKey = `0x${'22'.repeat(32)}` as const;
 const productH160Address = '0x9999999999999999999999999999999999999999' as const;
 const differentProductH160Address = '0x8888888888888888888888888888888888888888' as const;
+const nativeReceiptApi = vi.hoisted(() => vi.fn(async () => []));
+vi.mock('./nativeContributionReceiptApi', () => ({ readNativeContributionReceiptApi: nativeReceiptApi }));
 
 const viemWriter = {
   createRuntime: vi.fn(async () => txHash),
@@ -22,6 +25,7 @@ const viemWriter = {
 };
 
 const productWriter = {
+  contributionCall: vi.fn<NonNullable<RuntimeWritePort['contributionCall']>>(async () => txHash),
   createRuntime: vi.fn(async () => txHash),
   installRuntimeStep: vi.fn(async () => txHash),
   registerTrack: vi.fn(async () => txHash),
@@ -95,6 +99,27 @@ function accessIntent(amountPlanck: bigint) {
 }
 
 describe('createRuntimeWriter', () => {
+  it('checks native receipts through the API without creating a host chain connection or signer', async () => {
+    vi.stubEnv('VITE_DOTIFY_RUNTIME_ADAPTER', 'product-cdm');
+    const { SignerManager, signerManager } = mockProductSigner();
+    const createProductCdmContracts = vi.fn();
+    vi.doMock('./productCdmContracts', () => ({ createProductCdmContracts }));
+    vi.resetModules();
+    const createRuntimeWriter = await loadProvider();
+    const getViemWalletClient = vi.fn();
+    const writer = createRuntimeWriter({
+      ethRpcUrl: 'https://rpc.example',
+      getViemWalletClient,
+      nativeReceiptApiUrl: 'https://api.dotify.example',
+      config: { kind: 'product-cdm', productEnvironment: 'devnet' }
+    });
+    await expect(writer.readFinalizedContributionLogs!(txHash, { number: 123 })).resolves.toEqual([]);
+    expect(nativeReceiptApi).toHaveBeenCalledWith({ apiUrl: 'https://api.dotify.example', hash: txHash, block: { number: 123 } });
+    expect(createProductCdmContracts).not.toHaveBeenCalled();
+    expect(SignerManager).not.toHaveBeenCalled();
+    expect(signerManager.connect).not.toHaveBeenCalled();
+    expect(getViemWalletClient).not.toHaveBeenCalled();
+  });
   it('uses the viem writer by default and resolves the active wallet per write', async () => {
     const createRuntimeWriter = await loadProvider();
     const walletClient = { writeContract: vi.fn() };
@@ -109,6 +134,7 @@ describe('createRuntimeWriter', () => {
     const intent = accessIntent(42n);
     await expect(writer.payForAccess(intent)).resolves.toBe(txHash);
     await expect(writer.claimRoyalty(runtime, productH160Address)).resolves.toBe(txHash);
+
     await expect(writer.waitForTransaction(txHash)).resolves.toBeUndefined();
 
     const { createViemRuntimeWriter } = await import('./viemRuntimeAdapter');
@@ -186,6 +212,18 @@ describe('createRuntimeWriter', () => {
     expect(productWriter.createRuntime).toHaveBeenCalledWith(factory);
     expect(productWriter.payForAccess).toHaveBeenCalledWith(intent);
     expect(productWriter.claimRoyalty).toHaveBeenCalledWith(runtime, productH160Address);
+    const onFinalized = vi.fn();
+    const onStatus = vi.fn();
+    productWriter.contributionCall.mockImplementationOnce(async (_runtime, _method, _args, _value, finalized, status) => {
+      status?.('broadcasting');
+      expect(onStatus).toHaveBeenCalledWith('broadcasting');
+      finalized?.({ number: 123 });
+      return txHash;
+    });
+    await expect(writer.contributionCall!(runtime, 'musicGiftContribute', [hash], 7n, onFinalized, onStatus)).resolves.toBe(txHash);
+    expect(productWriter.contributionCall).toHaveBeenCalledWith(runtime, 'musicGiftContribute', [hash], 7n, onFinalized, onStatus);
+    expect(onFinalized).toHaveBeenCalledWith({ number: 123 });
+    expect(writer.contributionConfirmationMode).toBe('finalized-event');
     expect(createViemRuntimeWriter).not.toHaveBeenCalled();
     expect(getViemWalletClient).not.toHaveBeenCalled();
   });

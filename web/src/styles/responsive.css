@@ -135,8 +135,8 @@
   :root {
     --content-pad: 1rem;
     --header-height: 4.25rem;
-    --dock-height: 4.55rem;
-    --mobile-nav-height: 4.55rem;
+    --dock-height: 4rem;
+    --mobile-nav-height: 3.5rem;
   }
 
   body::before {
@@ -200,7 +200,7 @@
   .bottom-nav-item {
     position: relative;
     display: flex;
-    min-height: 3.8rem;
+    min-height: 2.75rem;
     flex-direction: column;
     align-items: center;
     justify-content: center;
@@ -238,8 +238,8 @@
   }
 
   .player-dock-art {
-    width: 3.4rem;
-    height: 3.4rem;
+    width: 2.75rem;
+    height: 2.75rem;
   }
 
   .player-dock-center {
@@ -664,6 +664,25 @@
     border: 1px solid var(--line);
   }
 
+  .release-credit-row,
+  .release-editorial-facts,
+  .release-credits-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .release-credit-row {
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .release-credit-remove {
+    justify-self: end;
+  }
+
+  .release-details-hero {
+    grid-template-columns: 6.5rem minmax(0, 1fr);
+  }
+
   .royalty-toolbar {
     align-items: stretch;
     flex-direction: column;
@@ -756,7 +775,7 @@
     padding: 1.25rem 1rem calc(1.5rem + env(safe-area-inset-bottom));
   }
 
-  .modal-copy h2 {
+  .join-room-modal .modal-copy h2 {
     font-size: var(--text-display-sm);
   }
 
@@ -1170,10 +1189,6 @@
   .player-dock-art {
     width: 3rem;
     height: 3rem;
-  }
-
-  .player-dock-artist {
-    display: none;
   }
 
   .artist-release-card {

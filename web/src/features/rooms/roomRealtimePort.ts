@@ -1,0 +1,138 @@
+import type { DiscoverySearchArea } from '../../../shared/nearby-v2.mjs';
+import type {
+  CreateRoomResponse,
+  JoinRoomResponse,
+  ResumeRoomResponse,
+  TurnCapabilityResponse,
+  OpenRoom,
+  TrackInfo,
+  PlayerState,
+  RoomPlaybackMode,
+  RoomLineupItem,
+  RoomPresenceListener,
+  RoomChatMessage,
+  RoomReactionEvent,
+  RoomRequest
+} from '../../shared/types';
+import type { RoomTyping, RoomActivity } from '../../shared/types';
+import type { RealtimeRegistration, RealtimeRoster } from './celerityPrivateTypes';
+import type { NearbyArea, NearbyReply, NearbySearchReply } from './nearbyTypes';
+
+type ListenerJoined = { listenerId: string; displayName: string; listenerCount: number };
+export type RoomContributionReply =
+  | { ok: false; error: string }
+  | { ok: true; host: `0x${string}`; room: `0x${string}`; expiresAt: string; proof: `0x${string}` };
+
+export type RoomIncomingEvents = {
+  'nearby:updated': [update: { watchId: string; reply: NearbySearchReply }];
+  'room:activity': [activity: RoomActivity];
+  'room:typing': [typing: RoomTyping[]];
+  'room:pin': [message: RoomChatMessage | null];
+  'room:realtime-roster': [roster: RealtimeRoster];
+  connect: [];
+  disconnect: [reason: string];
+  connect_error: [error: Error];
+  'rooms:updated': [rooms: OpenRoom[]];
+  'presence:solo:updated': [counts: unknown];
+  'listener:joined': [listener: ListenerJoined];
+  'listener:ready': [listener: ListenerJoined];
+  'listener:left': [listener: { listenerId: string; listenerCount: number }];
+  'listener:renamed': [listener: { listenerId: string; displayName: string }];
+  'room:listeners': [roster: { listenerCount: number; listeners: RoomPresenceListener[] }];
+  'host:renamed': [host: { displayName: string }];
+  'room:listener-count': [count: { listenerCount: number }];
+  'room:track': [track: TrackInfo | null];
+  'room:lineup': [lineup: RoomLineupItem[]];
+  'player:state': [state: PlayerState | null];
+  'room:playback-mode': [mode: { playbackMode?: RoomPlaybackMode }];
+  'room:closed': [reason: { reason?: string }];
+  'room:host-connection': [state: { status?: string }];
+  'webrtc:offer': [offer: { from: string; offer: RTCSessionDescriptionInit }];
+  'webrtc:answer': [answer: { from: string; answer: RTCSessionDescriptionInit }];
+  'webrtc:ice-candidate': [ice: { from: string; candidate: RTCIceCandidateInit }];
+  'peer:connected': [peer: { from: string }];
+  'room:stream-ready': [];
+  'room:chat': [message: RoomChatMessage];
+  'room:reaction': [reaction: RoomReactionEvent];
+  'room:requests': [requests: RoomRequest[]];
+};
+
+export type RoomOutgoingEvents = {
+  'nearby:unwatch': [payload: { watchId: string }];
+  'room:typing': [payload: { active: boolean }];
+  'room:artist-clear': [];
+  'room:realtime-unregister': [membership: { scope: string; self: string }];
+  'rooms:list': [reply: (rooms: OpenRoom[]) => void];
+  'presence:solo': [presence: { trackHash: string | null }];
+  'room:leave': [];
+  'host:heartbeat': [];
+  'listener:ready': [];
+  'room:track': [track: TrackInfo | null];
+  'room:lineup': [lineup: RoomLineupItem[]];
+  'player:state': [state: PlayerState];
+  'room:playback-mode': [mode: { playbackMode: RoomPlaybackMode }];
+  'room:stream-ready': [];
+  'room:reaction': [reaction: { emoji: string }];
+  'room:request:remove': [request: { id: string }];
+  'room:request:clear': [];
+  'webrtc:offer': [offer: { targetId: string; offer: RTCSessionDescriptionInit }];
+  'webrtc:answer': [answer: { targetId: string; answer: RTCSessionDescriptionInit | null }];
+  'webrtc:ice-candidate': [ice: { targetId: string; candidate: RTCIceCandidateInit }];
+  'peer:connected': [peer: { targetId: string }];
+  'webrtc:diagnostic': [diagnostic: Record<string, unknown>];
+};
+
+export type RoomRequests = {
+  'artist:rooms': { input: { runtime: string; token: string }; output: import('../artist-studio/artistRoomActivity').ArtistRoomActivityReply };
+  'nearby:publish': { input: NearbyArea | { schemaVersion: 2; worldwide: true }; output: NearbyReply };
+  'nearby:hold': { input: Record<string, never>; output: NearbyReply };
+  'room:profile:get': { input: Record<string, never>; output: { ok: boolean; profile?: { name: string; introduction: string } } };
+  'room:profile': { input: { name: string; introduction: string }; output: { ok: boolean; profile?: { name: string; introduction: string } } };
+  'nearby:off': { input: Record<string, never>; output: NearbyReply };
+  'nearby:search': { input: DiscoverySearchArea; output: NearbySearchReply };
+  'nearby:report': { input: { discoveryId: string; reason: 'unwanted' | 'misleading' | 'offensive' }; output: NearbyReply };
+  'room:pin': { input: { id: string | null }; output: { ok: boolean } };
+  'room:tip-bind': { input: { token: string }; output: { ok: boolean; error?: string; code?: 'SESSION_INVALID' } };
+  'room:tip-quote': { input: { runtime: string; contentHash: string; sender: string; intentId: string; amount: string }; output: RoomContributionReply };
+  'room:tip-notify': {
+    input: { runtime: string; hash: string; nativeBlock?: import('../runtime/runtimePorts').NativeContributionBlock };
+    output: { ok: boolean; error?: string };
+  };
+  'room:realtime-clock': { input: Record<string, never>; output: { ok: true; time: number; server: string } | { ok: false } };
+  'room:realtime-register': { input: { publicKey: string }; output: RealtimeRegistration };
+  'room:create': {
+    input: { displayName: string; track: TrackInfo | null; playbackMode: RoomPlaybackMode; profile?: { name: string; introduction: string } };
+    output: CreateRoomResponse;
+  };
+  'room:join': {
+    input: { roomId: string; displayName: string; announceArtist?: boolean; artistToken?: string; listenerResumeToken?: string };
+    output: JoinRoomResponse;
+  };
+  'room:resume': { input: { roomId: string; hostResumeToken: string }; output: ResumeRoomResponse };
+  'room:turn-capability': { input: Record<string, never>; output: TurnCapabilityResponse };
+  'room:rename': { input: { displayName: string }; output: { ok: boolean; displayName?: string; error?: string } };
+  'room:chat': { input: { text: string; replyTo?: string; mentions?: string[] }; output: { ok?: boolean; message?: string } };
+  'room:request': { input: { text: string }; output: { ok?: boolean; message?: string } };
+};
+
+/** The event transport owns no media peers, access keys or room authority. */
+export interface RoomRealtimePort {
+  readonly id: string | undefined;
+  readonly connected: boolean;
+  readonly transportName: string | undefined;
+  connect(): void;
+  disconnect(): void;
+  on<K extends keyof RoomIncomingEvents>(event: K, handler: (...args: RoomIncomingEvents[K]) => void): void;
+  once<K extends keyof RoomIncomingEvents>(event: K, handler: (...args: RoomIncomingEvents[K]) => void): void;
+  off<K extends keyof RoomIncomingEvents>(event: K, handler: (...args: RoomIncomingEvents[K]) => void): void;
+  emit<K extends keyof RoomOutgoingEvents>(event: K, ...args: RoomOutgoingEvents[K]): void;
+  emitVolatile<K extends keyof RoomOutgoingEvents>(event: K, ...args: RoomOutgoingEvents[K]): void;
+  request<K extends keyof RoomRequests>(
+    event: K,
+    input: RoomRequests[K]['input'],
+    options: { timeoutMs: number; volatile?: boolean; connectedOnly?: boolean },
+    reply: (error: Error | null, response: RoomRequests[K]['output'] | undefined) => void
+  ): void;
+}
+
+export type RoomTrackEmitter = <K extends 'room:track' | 'room:playback-mode'>(event: K, ...args: RoomOutgoingEvents[K]) => void;

@@ -1,4 +1,7 @@
-import { createPublicClient, http, parseAbiItem, zeroAddress, type Address, type Hash } from 'viem';
+import { createPublicClient, encodeFunctionData, http, parseAbiItem, zeroAddress, type Abi, type Address, type Hash } from 'viem';
+import { SupportNotSubmittedError } from '../payments/supportPayment';
+import { musicMetadataAbi } from '../../generated/contracts/musicMetadata';
+import { assertNativeAccessPayment } from '../payments/paymentModel';
 import {
   artistDirectoryAbi,
   artistRuntimeFactoryAbi,
@@ -615,6 +618,46 @@ export function createViemRuntimeWriter(deps: ViemRuntimeWriterDeps): RuntimeWri
   const { walletClient } = deps;
 
   return {
+    contributionConfirmationMode: 'evm-receipt',
+    async contributionCall(runtime, method, args, value = 0n) {
+      let data: Hash;
+      try {
+        await assertWalletChainMatchesRpc(client(), walletClient);
+        data = encodeFunctionData({ abi: musicRoyaltiesAbi as Abi, functionName: method, args });
+        await client().estimateGas({ account: walletAccountAddress(walletClient), to: runtime, data, value });
+      } catch (error) {
+        throw new SupportNotSubmittedError(error);
+      }
+      return walletClient.sendTransaction({ to: runtime, data, value });
+    },
+    async inspectPayment(intent) {
+      assertNativeAccessPayment(intent);
+      const account = walletAccountAddress(walletClient);
+      if (!account) throw new Error('Reconnect the paying account.');
+      const [balance, fee] = await Promise.allSettled([
+        client().getBalance({ address: account }),
+        Promise.all([
+          client().estimateContractGas({
+            account,
+            address: intent.runtimeAddress,
+            abi: musicRoyaltiesAbi,
+            functionName: 'musicRoyPayAccess',
+            args: [intent.contentHash],
+            value: intent.amountPlanck
+          }),
+          client().getGasPrice()
+        ]).then(([gas, price]) => gas * price)
+      ]);
+      return {
+        availableBalance: balance.status === 'fulfilled' ? balance.value : undefined,
+        estimatedFee: fee.status === 'fulfilled' ? fee.value : undefined,
+        detail:
+          [balance, fee]
+            .filter(result => result.status === 'rejected')
+            .map(result => String(result.reason))
+            .join('\n') || undefined
+      };
+    },
     createRuntime(factoryAddress) {
       return walletClient.writeContract({
         address: factoryAddress,
@@ -643,7 +686,17 @@ export function createViemRuntimeWriter(deps: ViemRuntimeWriterDeps): RuntimeWri
       });
     },
 
+    updateMetadata(runtimeAddress, contentHash, title, description, metadataRef, expectedMetadataRef) {
+      return walletClient.writeContract({
+        address: runtimeAddress,
+        abi: musicMetadataAbi,
+        functionName: 'musicRegUpdateMetadata',
+        args: [contentHash, title, description, metadataRef, expectedMetadataRef]
+      });
+    },
+
     payForAccess(intent) {
+      assertNativeAccessPayment(intent);
       return walletClient.writeContract({
         address: intent.runtimeAddress,
         abi: musicRoyaltiesAbi,

@@ -184,9 +184,26 @@ configured API is available. `build:product-devnet:frozen` performs no catalogue
 request and builds the reviewed, committed snapshot. Signer-free CI and
 `deploy:product-devnet` both use that frozen build so publication cannot pick up
 unreviewed live catalogue drift. `deploy:product-devnet` uses
-`@polkadot-community-foundation/polkadot-app-deploy@0.16.2` through `npx`,
-uploads static chunks to Product DevNet Bulletin, and binds `dotify-test01.dot`
-through the post-September 2026 DotNS tooling. The owner mnemonic is accepted
+`@parity/polkadot-app-deploy@0.20.0` through `npm exec`, verifies its DevNet
+deploy API and the committed `product-devnet-host.environments.json` override,
+then verifies the registry and resolver Product Desktop currently receives from
+Remote Config. Drift, a missing client key or an unavailable live configuration
+blocks publication instead of accepting a different DotNS generation. The
+command uploads static chunks to Product DevNet Bulletin with an authorized
+storage pool signer, and binds
+`dotify-test01.dot` with the owner mnemonic through DotNS. Run
+`npm run verify:product-deploy-environment` for the same read-only check without
+building or publishing. Set the operator-only `PRODUCT_HOST_FIREBASE_API_KEY`,
+or configure `{"apiKey":"<Product Firebase client API key>"}` in the ignored
+`.product-host-check.local.json` file (mode 600). This is the host's public
+Firebase client identifier, never a wallet seed or admin credential; it is not
+a `VITE_` variable. CI reads the same value from an Actions secret. See the
+[deployment configuration guide](../docs/operations/deployment-configuration.md)
+for monitoring setup and the default-branch requirement for daily checks.
+Publication checks the host configuration again before and after writing;
+this does not certify the bundle loaded by an already-open host. Compare its
+Production readiness SHA/version with the published candidate as well.
+The owner mnemonic is accepted
 only from the local `MNEMONIC` environment and is never an argument or GitHub
 Actions secret; inject it with a silent prompt and unset it immediately after
 publication. Browse listing is a separate operator step because it has its own
@@ -247,9 +264,11 @@ Health endpoints:
 
 - `/health`: process health, uptime, room count, in-room listener count, and
   active solo-listener count.
-- `/status`: public room metadata, `maxListeners` / `isFull` capacity flags,
-  plus aggregate solo presence by track hash. It deliberately omits socket
-  identities, chat history, and request text.
+- `/status`: an always-empty `rooms` array plus aggregate solo presence by
+  track hash. It is not a room directory or a capacity/expiry probe. Use
+  join/resume acknowledgements for room state and admission failures, and
+  `room:closed` events for closure. Socket identities, private chat and request
+  text are not exposed by this endpoint.
 
 #### 2. Deploy the frontend on Netlify
 
@@ -306,6 +325,11 @@ curl -s https://dotify-signal.fly.dev/status
 npm run smoke:signal -- --url https://dotify-signal.fly.dev --origin https://<netlify-app>
 ```
 
+An empty `/status.rooms` is expected even while rooms are active. The smoke
+script creates a temporary private room, joins by its code and checks the
+admitted state; `/health` provides only aggregate counts. Nearby discovery
+requires a separate explicit host opt-in and bounded search.
+
 When `SIGNAL_ORIGINS` is explicit, also check that an unrelated browser origin
 is rejected at both the HTTP CORS and Socket.IO handshake layers:
 
@@ -348,6 +372,18 @@ room capture reads creation, stream, peer, listener, and canonical-link facts
 from the active host session; the operator confirms walletless guest arrival,
 audible audio, and sync on the guest device before export.
 
+For W13, bind the Product deployment first, then open a Classic track that the
+connected Product account already paid for. The operator capture reads
+`hasPaid` and `canAccess` and exports an `access-readback` event before the key
+request. It never submits a payment, and makes no extra reads outside a bound
+capture for the current build. Only a subsequent key release for the same
+account, network, runtime and track satisfies the backend-key check.
+An existing entitlement does not prove a new transaction: approval, native
+value and transaction read-back gates remain blocked when only read-only
+evidence is supplied. Keep the operator export private because it includes
+account/release identifiers; do not include it in aggregate pilot data. Reset
+the capture after the check to stop collecting diagnostic events.
+
 ### Production Troubleshooting
 
 | Symptom                                                                      | Likely cause                                                                                                                                            | Check                                                                                                                                                                                                                                                       | Fix                                                                                                                                                                                       |
@@ -355,14 +391,14 @@ audible audio, and sync on the guest device before export.
 | Frontend shows `Signal server unavailable`                                   | `VITE_SIGNAL_URL` points to the wrong host, the Fly app is down, or `SIGNAL_ORIGINS` blocks the frontend origin.                                        | Browser console, Netlify env vars, `curl -s <signal-url>/health`, `flyctl status -c fly.signal.toml`.                                                                                                                                                       | Set `VITE_SIGNAL_URL` to the HTTPS Fly URL, redeploy Netlify, start/redeploy Fly, and add the Netlify origin to `SIGNAL_ORIGINS`.                                                         |
 | Room creation works locally but not in production                            | Netlify was built without the production signaling URL.                                                                                                 | Inspect the deployed JS env by trying to create a room; the UI error includes the signal URL.                                                                                                                                                               | Set `VITE_SIGNAL_URL` in Netlify and trigger a fresh frontend deploy.                                                                                                                     |
 | Guests can join, but chat, reactions, or requests do not appear for everyone | The Fly signaling image is stale, or more than one active Fly machine is serving separate in-memory room maps.                                          | `flyctl status -c fly.signal.toml`; compare image name and active machine count.                                                                                                                                                                            | Run `flyctl deploy -c fly.signal.toml`, then `flyctl scale count 1 -c fly.signal.toml --yes` until a shared Socket.IO adapter exists.                                                     |
-| `/health` works but `/status` shows rooms split or missing                   | Multiple signaling instances are active without shared state.                                                                                           | `flyctl status -c fly.signal.toml`.                                                                                                                                                                                                                         | Keep one active machine for the current in-memory signaling design.                                                                                                                       |
+| `/health` works but clients cannot join the same active room by code         | Multiple signaling instances may be active without shared state.                                                                                        | Check active machine count and per-instance `/health` counts; compare join acknowledgements for the known code. An empty `/status.rooms` is always expected.                                                                                                | Keep one active machine for the current in-memory signaling design.                                                                                                                       |
 | Product Mobile reports `create-peer` / missing `RTCPeerConnection`           | The current iOS Product sandbox removes the browser WebRTC constructor even after granting the `WebRtc` host permission. ICE and TURN have not started. | Fly `webrtc:diagnostic` shows `peerConnectionAvailable=false`, `protocol=polkadot:`, and phase `listener:create-peer-failed`. Coturn receives no allocation.                                                                                                | Publish Product executable `[0, 1, 11]` or later and use **Continue in browser**. In-app audio requires a Product Mobile host change that exposes a permission-gated peer connection API. |
 | Listener joins but audio negotiation times out after peer creation           | WebRTC cannot establish a media path across the host/listener networks. Signaling can be healthy while audio still fails.                               | Check `window.__DOTIFY_ROOM_QUALITY__.snapshot()`, `https://dotify-api.fly.dev/api/turn/grant`, coturn allocation logs, and Fly `dotify-signal` diagnostics. `peerConnectionAvailable=true` separates this path from the Product Mobile sandbox limitation. | Configure API TURN grants and verify the relay ports/firewall. Redeploy the frontend/Product bundle only if browser-visible `VITE_TURN_*` changed.                                        |
-| A room appears but cannot be entered                                         | The room reached the current listener cap, or the host is reconnecting and temporarily hidden from `/status`.                                           | `/status` exposes `listenerCount`, `maxListeners`, and `isFull` for visible rooms. The join ack returns `ROOM_FULL` or `HOST_RECONNECTING` for authoritative failures.                                                                                      | Wait for a listener to leave, open another room, or keep the cap conservative until SFU evidence supports a larger fan-out.                                                               |
+| A room appears in Nearby but cannot be entered                               | The discovery result may be stale, the room may be full, or the host may be reconnecting.                                                               | The join acknowledgement is authoritative: inspect `ROOM_FULL`, `HOST_RECONNECTING` or room-not-found. Admitted join/resume state supplies the connected listener count; `/health` echoes the configured cap.                                               | Wait for reconnection or capacity, refresh Nearby explicitly, or use another room. Keep the cap conservative until SFU evidence supports a larger fan-out.                                |
 | Mobile host sees `captureStream()` unsupported                               | Safari/iOS does not expose `HTMLMediaElement.captureStream()` for host audio capture.                                                                   | Host card shows the capture error before any guest can hear the room.                                                                                                                                                                                       | Use the Web Audio fallback path; if both media capture APIs are unavailable, host from desktop/Android Chrome and join as a listener on iOS.                                              |
 | Production upload or full-track playback fails                               | Backend API is missing or cannot release keys.                                                                                                          | Check `VITE_DOTIFY_API_URL`, backend `/health`, and browser network requests to key/upload endpoints.                                                                                                                                                       | Deploy/fix the backend API and keep `PINATA_JWT` plus the content-key secrets server-side.                                                                                                |
 | Protected track takes too long to start                                      | The IPFS gateway cannot serve DAV2 Range requests quickly, MSE is unsupported for the media type, or the backend key route is slow.                     | Inspect `window.__DOTIFY_AUDIO_STARTUP__.snapshot()` in the browser, or listen for `dotify:dav2-startup` and `dotify:host-audio-startup`, then inspect key/upload network requests.                                                                         | Compare selected gateway, hedged header/first-chunk timing, and first-audio timing; then decide whether a backend read-through gateway is needed.                                         |
-| A room disappears while the host tab is open                                 | Host heartbeat stopped, the host disconnected, or the room TTL expired.                                                                                 | Fly logs and `/status`; defaults are 120 seconds heartbeat timeout and 6 hours TTL.                                                                                                                                                                         | Keep the host tab awake/reconnected, or adjust `SIGNAL_HOST_TIMEOUT_MS` / `SIGNAL_ROOM_TTL_MS` deliberately.                                                                              |
+| A room closes or disappears from Nearby while the host tab is open           | A discovery lease may have expired independently of the room; heartbeat loss, disconnect or room TTL can close it.                                      | Check the host connection, `room:closed`, join/resume replies and aggregate `/health` counts. Defaults: 90-second Nearby lease, 120-second heartbeat timeout, 6-hour room TTL. Do not infer closure from `/status`.                                         | Renew Nearby explicitly if only discovery expired; otherwise reconnect the host. Change heartbeat/room TTL deliberately.                                                                  |
 
 ## Tests
 
@@ -557,12 +593,158 @@ appropriate component composition rather than shell-level prop drilling.
 `npm run build:product-devnet:support` builds the existing Product CDM profile
 with recoverable Classic support payments. It does not deploy or enable CASH.
 See [the support recovery design](../docs/design/product-host-support-recovery-2026-09-15.md)
-for native-device acceptance and the tab-local payment reference boundary.
+for native-device acceptance and the original recovery design.
 
-The support validation build also enables `VITE_DOTIFY_ARTIST_DONATIONS=on`.
-Ordinary builds keep gifts off. A gift sends a chosen amount directly to the
-release's artist; it does not unlock access or follow the release's royalty
-splits. Native gifts use chain-reported precision and verified recipient
-mapping. Keep this flag gated until a real host approval and receipt have been
-checked. No live funds are used by the automated test fixtures. See
-[direct artist gifts](../docs/design/artist-gifts-2026-09-16.md).
+Classic support now reserves a payment reference in `localStorage` before asking
+for a signature. The key includes the network/adapter endpoint, payer, artist
+runtime and content hash. Existing `sessionStorage` references migrate when that
+exact scope is opened. Only the amount, asset symbol and transaction hash are
+stored; the journal contains no signing or content keys and never grants access.
+An uncertain attempt stays recoverable without another payment, including after
+closing the tab. Storage failures block new payments. Web Locks serialize the
+same payment across tabs where supported; without Web Locks, avoid simultaneous
+payments from multiple tabs. Storage is origin-specific, so clearing browser
+data or changing the deployment origin/RPC endpoint can lose this protection.
+
+Before signing, the native flow shows the payer, track, known amount, available
+balance when readable, and explicitly estimated or unavailable fees. Product
+spendable balance excludes frozen funds and the account's existential deposit;
+contract storage charges and exact network fees still need host confirmation.
+The installed Product contract API forwards signing/broadcast/inclusion/finality
+status but exposes its hash only in the completed result, not in `onStatus`.
+Finality alone never opens audio: fresh Dotify access checks remain required.
+Closing the payment dialog does not cancel the transaction; its status can be
+reopened. Reloading requires reopening the release to check access. Full error,
+account mapping, recipient split and settlement records are under Technical details.
+
+CASH remains non-executable, including at runtime writer boundaries. Future
+integration requires an authenticated Dotify order/payment binding, the correct
+entitlement beneficiary, replay protection, and a reconciliation/refund strategy.
+Changing contract VM does not provide those guarantees.
+
+Gifts and tips are native UI; `VITE_DOTIFY_ARTIST_DONATIONS` is retired.
+Gifts use the artist's profile allocation; work tips deduct any enabled host
+share first, then distribute the remainder across the work's rights holders. Both require an
+upgraded contribution runtime and keep listening access unchanged. Product
+signing still requires the CDM writer profile. Live host validation and
+owner-approved upgrades are separate release gates. See
+[native contributions](../docs/design/native-contributions.md).
+
+After a gift or tip is submitted, its sheet checks for a finalized contribution
+without sending a second transaction. Automatic checks use a bounded backoff,
+pause while the page is hidden, and stop after six retries to protect the shared
+RPC. They can continue while the sheet is closed; reopening a saved contribution
+or choosing `Check status again` starts another bounded reconciliation window.
+After a reload, reopening the gift/tip action resumes the saved intent for the
+connected payer. A finalized receipt is required for success; after submission,
+a finalized reverted EVM receipt is required to report a network failure. If
+Product supplies no usable transaction receipt or the read network remains
+unavailable, Dotify cannot prove either outcome and keeps the intent pending; do
+not clear browser storage or repeat the payment. The sheet shows a transaction
+link when an EVM hash is available.
+
+Pending checks expose Technical details with the original uncertainty error and
+contribution reference. The error survives empty read-back and reloads. A missing
+wallet transaction reference is labelled `Checking payment status`; a finalized
+Product extrinsic still awaiting its contract event is labelled `Checking
+contribution receipt`. Neither label proves that a payment failed.
+
+Product gifts/tips now verify native `Revive.ContractEmitted` events from the
+transaction's canonical finalized block, including the exact extrinsic hash,
+dispatch result, runtime, contribution ID, payer, work and amount. The Ethereum
+log index does not expose native `Revive.call` payments. New payments preserve
+the SDK's block/hash/index reference for recovery when usable. Pending payments
+with a native transaction hash but no usable SDK block reference need their
+receipt block once: open Technical details, follow `View transaction`, and enter the explorer's block number using `Check
+receipt block`. That number is an untrusted location hint; the native chain must
+verify the transaction and receipt before clearing the journal. Checking never
+submits a payment or requests a signer. Native receipts link to Subscan; the
+complete cross-device ledger still needs native-event indexing.
+
+The Product package for API-backed native receipt confirmation is `[0, 1, 39]`;
+`[0, 1, 38]` used the superseded host-RPC reader, and `[0, 1, 37]` introduced
+pending diagnostics. Merging into `dev` does not publish or refresh an installed host app. After an authorized
+Product CDM deployment, verify both the loaded version and build SHA in You →
+Production readiness on each tested device. Version `[0, 1, 36]` at build
+`9c2a476` predates the pending-state/reconciliation fix in PR #239. Preserve
+saved contribution intents across an update and use `Check status again`;
+a timeout alone does not establish whether a payment was submitted.
+
+### Listening and contribution actions
+
+The player separates audio controls from voluntary contributions and access
+payments. Icons supplement visible labels whenever an action can send money.
+
+| Action                    | Icon and label                                           | Placement                                            |
+| ------------------------- | -------------------------------------------------------- | ---------------------------------------------------- |
+| Paid listening access     | Key, `Unlock listening`; quote: `Pay <amount> to unlock` | Locked track and access dialog                       |
+| Work-specific tip         | Coins, `Tip this track` (`Tip` on compact screens)       | Beside the track's artist, outside playback controls |
+| Artist gift               | Hand holding a heart, `Send a gift`                      | Artist profile                                       |
+| Host contribution account | Coins, `Receive room tips`                               | Room People panel                                    |
+| Local sound               | Speaker, `Mute` / `Unmute`                               | Playback controls, one tap                           |
+| Playback modes and queue  | Shuffle, repeat-one, music list                          | Secondary audio controls                             |
+| Release information       | Information circle, `About this release`                 | Contextual details sheet                             |
+| Shared presence           | Radio, people, share, QR                                 | Room entry, presence and invitation                  |
+
+A standalone heart is not a money action. Heart reactions remain ephemeral room
+reactions; there is no new favorites feature. Existing play/pause, navigation,
+copy, download, refresh, close and external-link symbols retain their familiar
+meaning. The artist's name opens their profile. The obsolete artist/support
+shortcut and mute-only options sheet have been removed.
+
+The gift/tip sheet names the contribution purpose and states that listening
+access stays unchanged. Recipient quotes, wallet approval, finality checks and
+recovery remain the same. Room guests can continue listening without an account.
+Catalog playback carries the runtime address into room metadata so both host and
+guest can resolve the live work by its runtime and content hash before tipping.
+The always-mounted session repairs legacy room metadata missing a runtime only
+when the authoritative catalog contains one active release for that hash, then
+broadcasts the repaired track. This continues while the host browses Music or
+You and retries after catalog verification or signaling reconnection. Guests
+cannot repair room attribution themselves; conflicting runtimes and ambiguous
+hashes keep tips unavailable. No listening access or second payment is needed
+for this metadata recovery.
+
+The signaling service provides the same fail-closed repair for rooms created by
+an older or cached host. It accepts only a unique active release from a fresh
+API catalog snapshot, verifies the release and artist runtime on-chain, and then
+rebroadcasts the recovered runtime to the whole room. Catalog outages,
+ambiguity, inactive releases, runtime conflicts and tracks that change during
+verification remain unavailable for tipping.
+
+The signaling recovery and contribution configuration were deployed on
+2026-10-08. The dedicated server attestor is approved in the artist runtime's
+profile policy and inherited by works that do not set their own authority.
+After the signaling restart, reopen the room and use People > Receive room tips
+if the host has no current Dotify sign-in session. The server-side rollout and
+remaining physical-device checks are recorded in the deployment runbook.
+
+Review the action mapping in `PlayerView`, `PlayerTransport`,
+`ArtistDonationButton` and `AccessGateOverlay`. Browser coverage lives in
+`artist-gift.spec.ts`, `classic-unlock.spec.ts`, `player-presence.spec.ts`,
+`room-workspace.spec.ts` and `mobile-accessibility.spec.ts`.
+
+### Iconography review (2026-10-02)
+
+The review covers the listener shell, catalog, full/docked player, artist profile,
+room discovery and workspace, account/access/contribution dialogs, artist studio,
+and readiness tools. It is an action-semantics review, not a new visual system.
+Existing Lucide icons, visible labels and accessible button names remain the
+baseline; color alone never identifies a financial action.
+
+| Surface                          | Finding and decision                                                                                                                                                                  |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Catalog, recent listening, queue | Show Play only when existing access allows playback; an arrow opens listening options. Room guest covers inspect the release, never promise independent playback.                     |
+| Recent listening                 | Trash means clear session history; X remains dismiss/close.                                                                                                                           |
+| Wallet                           | Log out consistently means disconnect; power remains the studio's release activation control.                                                                                         |
+| Studio earnings                  | A chevron opens internal release details; external-link icons remain on explorer links.                                                                                               |
+| Host queue                       | Skip-forward means play the next item; `Clear queue` names the affected collection. Reorder/remove controls have hover labels.                                                        |
+| Room discovery                   | Map represents the spatial 2D view, not a list. Center, zoom, motion and reset controls have hover labels as well as accessible names. Mobile keeps the existing card/sheet fallback. |
+| Navigation, sharing and chat     | Retain headphones/radio/person, share/QR/copy, send and reactions: these already match their actions. A chat heart expresses appreciation, not payment.                               |
+| Publishing, rights and readiness | Retain upload/save/shield, download/copy/refresh and status icons with labels; technical tools stay outside the listening controls.                                                   |
+
+No donation policy, access decision, wallet permission, room count or transaction
+is changed by this audit. Financial actions continue to require a quote and user
+approval. Browser fixtures check touch layouts, keyboard access, protected-track
+selection, wallet-free room guests and a painted interactive 3D canvas. These are
+not substitutes for a physical Product/iPhone acceptance run.

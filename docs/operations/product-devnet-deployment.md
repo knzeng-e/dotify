@@ -1,20 +1,241 @@
 # Deploy Dotify To Product DevNet
 
+## Nearby in the default Product build
+
+Nearby is included by default, matching Web. Build-only validation uses
+`npm --prefix web run build:product-devnet:frozen`;
+it does not publish, refresh the catalog or modify manifest permissions.
+Signaling also includes Nearby by default and must run on one worker. Existing
+explicit `VITE_DOTIFY_NEARBY=off` / `SIGNAL_NEARBY=off` settings still disable it;
+audit them before release. The removed Product-specific flag has no effect.
+
+Discovery scans automatically when the app/room browser opens, subject to location
+consent and bounded retries. Worldwide rooms are available without a location fix;
+private rooms remain link-only until the host explicitly enables discovery.
+Location is a bounded snapshot, never continuous movement tracking. The city picker
+has been removed. Product uses its asynchronous SDK/native permission gate rather
+than Electron's intermediate synchronous state. A secure WebView with working
+Geolocation is still required. Capture the
+[physical-device checklist](../backlog/implementation/evidence/W19-product-location.md)
+before claiming installed Host support. A late Host grant cannot restart a stopped
+or timed-out request; Dotify cannot undo the Host's permission decision.
+
+Operational rollback uses `VITE_DOTIFY_NEARBY=off` and/or `SIGNAL_NEARBY=off`;
+there is no Product-specific feature gate. Old snapshots expire within 90 seconds.
+
+## Product 0.1.56 published mobile-form release
+
+Published from clean green packaging commit
+`c9becc990b26949445e9af69da357c08789d4f28`, after #307 merged into tested
+`dev` at `b08966698709b06378349a6ffd0567cda5dc8f53`. Executable `[0, 1, 56]`
+retains `product-cdm` on `devnet` at root/app CID
+`bafybeieactmt5ci6iqp62foewyh7frb6gqamvo6d7hdivgy2tiyinfgn2u`.
+API 28 and signaling 36 remain compatible and were not restarted. The Web
+independently serves the merged-dev interface.
+
+Finalized root/app version and public CAR checks passed, including all 125
+block hashes and byte-for-byte index/entry equality with the signed build.
+The local signer is removed. See the [rollout record](../backlog/implementation/evidence/product-0.1.56-rollout-2026-10-19.md)
+for Web form checks and the bounded installed Desktop 0.1.3 smoke. The owner
+confirmed expected mobile keyboard behavior on 2026-10-20; full device-matrix,
+rotation and prolonged audio acceptance remains open.
+Current client rollback: **0.1.55**, with the same API/signaling versions.
+
+The following release sections preserve historical rollout and rollback evidence.
+
+## Product 0.1.55 published live-presence release
+
+Published from clean, green packaging commit
+`74effe95da53394dec9394666f30d4e14bac024c`, after #303/#304 merged into tested
+`dev` at `893418de06b9eda8379a350b3bca8912a8ebb4b8`. Executable `[0, 1, 55]`
+retains `product-cdm` on `devnet` at root/app CID
+`bafybeig5b2hue5db3oftgvjzlvb2wezslwdn7j5efj547225s4y4b5zwmy`.
+Signaling release 36 provides live scoped discovery and background holds;
+the compatible API remains on release 28. Web independently serves merged dev.
+
+Finalized DotNS/version and public CAR checks passed, including 125 block hashes,
+the local logical-directory root and exact index/entry bytes. The local signer
+was removed. See the [rollout record](../backlog/implementation/evidence/product-0.1.55-rollout-2026-10-19.md)
+for deployed identities, temporary Netlify branch selection, validation and
+remaining physical Host gates. Client rollback at that rollout: **0.1.54**. Withdrawing
+background holds requires the compatible client/signaling pair and a fresh
+active-session check before any restart.
+
+The following release sections preserve historical rollout and rollback evidence.
+
+## Product 0.1.54 published stability release
+
+The owner authorized a coordinated rollout after #302 merged into `dev`
+at `02bb83595754672870d136d743509e718117faa1`. Clean, green packaging commit
+`0d002e373f42c5a4a03100306a58efcc9156da2d` was published with executable
+`[0, 1, 54]` at root/executable CID
+`bafybeiepuhymockmxkkqkjtjqrgak4fhlxyxjep2k7aev7mt4h45nb5csa`.
+It retains the existing `product-cdm` / `devnet` profile and frozen 13-track
+catalog. API release 28 and signaling release 35 preceded signed publication;
+ordinary Web independently serves the merged application commit.
+
+Independent finalized DotNS read-back confirmed the exact CID and executable
+version. Public CAR verification checked 125 block hashes and byte-for-byte
+equality of the index/entry bundle against the signed build. The local signer
+was removed. See the [rollout record](../backlog/implementation/evidence/product-0.1.54-rollout-2026-10-18.md)
+for service identities, validation and remaining physical acceptance.
+At that rollout, Product 0.1.53 was the client rollback artifact; keep privacy-safe v4 signaling.
+
+The following release sections preserve historical rollout and rollback evidence.
+
+## Product 0.1.53 published room-presence release
+
+Based on merged #300 (`726310b2fe0aee901da64fefb7df9ad56e3efaf8`),
+published from exact green candidate `83512f708c34304338e6a70c599d38027a9bf68c`.
+Executable `[0, 1, 53]` retains `product-cdm` on `devnet` at root/executable CID
+`bafybeihj6vrdu3dqnaqfofw4l3qiysc4by4rau3mldmlom637waemgmqr4`.
+Signaling release 34 precedes Product and provides privacy-safe v4 discovery,
+exact connected presence and bounded canonical artwork while preserving v2/v3.
+No API, contract, secret, storage or permission migration was required.
+
+Independent finalized resolver and public-CAR read-back passed. The local signer
+was removed after publication. See the
+[0.1.53 rollout record](../backlog/implementation/evidence/product-0.1.53-rollout-2026-10-17.md)
+for transactions, deployed identities, validation and remaining physical Host
+checks. Client rollback at that rollout: 0.1.52; retain privacy-safe v4 signaling.
+
+The following sections preserve historical rollout and rollback evidence.
+
+## Product 0.1.52 published galaxy and session release
+
+Based on merged #296/#297/#298 (`3b0bb68`), published from `92a9c1179dfd1ac67a88c6b3838853c528ddc14c`.
+Executable `[0, 1, 52]` retains `product-cdm` on `devnet` and uses CID
+`bafybeicn6kz5i5yyuoalubbe3hsl7sr7qbunccysju5rki3wrtgi2dbz7m`. Finalized DotNS root/executable read-back confirms this identity.
+API release 27 and signaling release 33 precede this publication; the server
+supports v3 distance bands while retaining v2 compatibility. Keep one signaling
+worker and a stable server-only API session epoch. The local signer was removed.
+See the [rollout record](../backlog/implementation/evidence/product-0.1.52-rollout-2026-10-16.md)
+for CI, source/image identities, Web status and physical acceptance still required.
+Client rollback at that rollout: 0.1.51; retain privacy-safe v3 signaling.
+
+The Web verification in that dated record applies to the rollout's `3b0bb68`
+artifact. Netlify production follows `dev`, so merging this release PR starts a
+new Web build, including the frozen bootstrap metadata and embedded merge SHA.
+After the merge, inspect the served entry bundle and record its SHA, config
+digest, entry URL/hash and observation time in the PR's rollout follow-up comment.
+Do not reuse the earlier Web acceptance for this new artifact. Product remains
+the separately signed 0.1.52 CID above; merging does not republish it.
+
+The following sections preserve historical rollout and rollback evidence.
+
+## Product 0.1.51 published recovery release
+
+Based on merged #283, `974568c`. Executable `[0, 1, 51]` retains `product-cdm`
+on `devnet`; private-by-default rooms, explicit worldwide discovery, 5–42 km
+radii, native permission recovery and media loading fixes are included. Deploy
+signaling first, then the API upload-path correction, then publish frozen Product.
+At this rollout, Netlify was validated at the tested merged application commit. Later merge-triggered Web builds need their own SHA/config-digest validation. The previous
+0.1.50 executable is retained as rollback; do not restore globally enumerating
+signaling. Published source `cdb9ac2`, root CID
+`bafybeihpprpso6vopekio67surwcygt2ygs6dnppdfsszmiul2qchib2me`. Independent
+DotNS/version and public CAR read-back passed. See the
+[rollout record](../backlog/implementation/evidence/product-0.1.51-rollout-2026-10-16.md)
+for service images, tests, restart incident and remaining physical checks.
+
+The following release sections retain their original deployment and rollback history.
+The historical release/rollback pair in this section was 0.1.52 / 0.1.51. The
+current pair is 0.1.56 / 0.1.55 above.
+
+## Product 0.1.50 published radar and audio release
+
+The published release starts from tested `dev` `99658622d120c043854a75c071de6e790623ad47`
+(merged #280 and #281). Executable `[0, 1, 50]` distinguishes the consented radar
+and complete-body audio recovery from the published 0.1.49 build. The native
+`product-cdm` / `devnet` profile and existing origins remain unchanged. The
+public catalog snapshot and its offline fixture are refreshed together; frozen
+builds never query a mutable catalog during publication.
+
+Signaling release 31 was deployed before Product from release source
+`e4ce5a14587956dd16b66326e7c78459193c5ae4`. For subsequent rollouts, deploy one
+signaling worker with the privacy change before publishing Product. Verify that `/status.rooms`
+and global Socket.IO lists remain empty while code-based entry works; only an
+explicit Nearby lease may enter bounded search. Keep `VITE_DOTIFY_ROOM_REALTIME`
+**off**. Restart clears ephemeral rooms, so check aggregate room counts first.
+The API and contracts need no deployment for this follow-up.
+
+Netlify's tracked fallback list drops the retired `paseo-ipfs.polkadot.io` host;
+the application also filters retired readers. A missing original cover still
+needs storage repair; the bundled placeholder does not restore it. Recheck the
+loaded Web SHA and Product SHA/version/CID after publication. Validate privacy,
+location consent, artist invitation and multi-track audio on physical Desktop
+and mobile Hosts before recording acceptance.
+
+The published root/executable CID is
+`bafybeie3r7hmzucvqhmkv5prgt3tguyq2m3fictwgdm7uelm3ssmo6b72m`. Independent
+finalized DotNS and public gateway read-back passed; the local signer was removed.
+0.1.49 is the prior client rollback artifact. See the
+[rollout evidence](../backlog/implementation/evidence/product-0.1.50-rollout-2026-10-15.md)
+for exact identities, transactions and remaining physical-device checks.
+
+## Product 0.1.49 published Nearby test release
+
+The release is based on merged #279 (`6de81d1`) and bumps the executable to
+`[0, 1, 49]` so installed Hosts can identify the Nearby integration. The default
+Product profile remains `product-cdm` on `devnet`, with explicit location consent.
+Use a clean committed release checkout and verify the embedded SHA/version after
+publication. The prior 0.1.48 executable remains the rollback reference.
+The executable/root CID is
+`bafybeigm4ndvikxjf5w44clzy4mkizmsbploxrrqswftumqxieyxhqmicq`;
+see [rollout evidence](../backlog/implementation/evidence/product-0.1.49-rollout-2026-10-15.md)
+for the exact source, finality/read-back, deployed checks and device checklist.
+
+The signaling image must include both `server` and `shared`: Nearby imports
+`shared/nearby-v2.mjs`. The packaged-runtime smoke boots the directories declared
+by `Dockerfile.signal`; deploying source tests alone cannot prove image startup.
+Deploy one signaling worker before testing discovery. Recheck active rooms before
+restart and verify `/health` reports `nearbyEnabled: true`. No API or contract
+change is needed for this slice. The location checklist above remains required
+on the installed Desktop/mobile versions; publication is not device evidence.
+
+## Product 0.1.48 published follow-up
+
+The published executable is `[0, 1, 48]` for the publication, artwork,
+room-tip and release-editor follow-up in #269/#270. Build from the tested
+release commit and preserve `product-cdm` on `devnet`. Deploy matching API and
+signaling services, with the shared server-only native-receipt token configured,
+before publishing the ordinary Web and Product bundles. See the
+[configuration runbook](deployment-configuration.md#publication-and-room-follow-up-269).
+
+Published source: `fc7faf5a49e6d5b3392285bab2ee957d325b4cb6`; executable CID:
+`bafybeicqj4ekyiz7pmbt7ry2ixpwvpa24v5liialmhe3zwonjslt47wvna`. Independent DotNS and public
+CAR read-back passed. 0.1.47 remains the rollback artifact; see the
+[rollout evidence](../backlog/implementation/evidence/product-0.1.48-rollout-2026-10-12.md). The metadata editor
+requires an owner-approved additive runtime upgrade; frontend publication does
+not install it. Installed Desktop/mobile verification, one native tip with one
+chat announcement, publication reconciliation, and correction/read-back remain
+physical acceptance gates. Never submit another payment to repair an announcement.
+
 This runbook publishes the Product build to Bulletin/DotNS and connects it to
-the existing Fly API and signaling services. It does not deploy contracts or
-change production secrets.
+the existing Fly API and signaling services. The frontend publish command does
+not deploy contracts or configure backend secrets. For the 0.1.48 coordinated
+rollout, operators must first stage the same randomly generated 32–256-character
+value as API `NATIVE_RECEIPT_SERVICE_TOKEN` and signaling
+`SIGNAL_NATIVE_RECEIPT_SERVICE_TOKEN` in their respective Fly secret stores,
+then deploy the API and signaling services to activate it. Verify matching
+platform digests and deployed status on both apps before frontend publication;
+staging alone does not activate the token. Keep its value out of frontend
+variables, artifacts and logs. Follow the linked configuration runbook for this
+required production-secret addition, even in environments where it has not yet
+been staged.
 
 ## September 2026 Product DevNet Platform Refresh
 
-The Product DevNet update published on 2026-09-08/2026-09-09 moved DotNS to a
-new contract set, moved CDM `ContractRegistry` to
+The Product DevNet update published on 2026-09-08/2026-09-09 moved DotNS and
+CDM `ContractRegistry` to
 `0x05662b3dbd5dd9f2ff92d67630477e84b0b37c1f`, and required fresh chain
-descriptors after runtime upgrades. Dotify must therefore publish Product app
-bundles with `@polkadot-community-foundation/polkadot-app-deploy@0.16.2` or
-newer, publish CDM names against the new registry, and keep the checked-in
-Bulletin descriptor pinned to the current DevNet runtime. Older `pad`/DotNS
-tooling can report a successful publish while writing to retired contracts that
-new Product hosts no longer observe.
+descriptors after runtime upgrades. A later tooling transition made
+`polkadot-app-deploy@0.16.2` unsafe for Dotify publication: its `devnet` preset
+writes to a registry/resolver generation that Product Desktop does not observe.
+Dotify now pins `@parity/polkadot-app-deploy@0.20.0`, whose DevNet profile uses
+registry `0xb052E5EfC5ADEff1f21d48DEfb5169Cb394A1a73` and content resolver
+`0x7e75491ecfb04900EB05ee63CABA2B33900aABB5`. The deploy command verifies
+that profile before building. A successful upload against any other generation
+is not evidence that a Product host can resolve the candidate.
 
 ## Frontend Publish Does Not Deploy Contracts
 
@@ -161,7 +382,7 @@ Use `-n devnet`, never `-n paseo`: the `paseo` preset targets paseo-next
 - a clean build from the intended commit
 - access to the `dotify-test01.dot` deployment account
 - Fly access for `dotify-api` and `dotify-signal`
-- the current `@polkadot-community-foundation/polkadot-app-deploy` DevNet prerequisites (`0.16.2` is the pinned Dotify deploy CLI)
+- the current `@parity/polkadot-app-deploy` DevNet prerequisites (`0.20.0` is the pinned Dotify deploy CLI)
 
 The CLI is reference/experimental tooling. Do not store a mnemonic in the
 repository, shell history, `.env` files, Netlify, or Fly.
@@ -254,7 +475,7 @@ audio and cover CIDs resolve before generic public IPFS gateways catch up:
 
 ```txt
 VITE_PINATA_GATEWAY=https://gateway.pinata.cloud
-VITE_IPFS_READ_GATEWAYS=https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation,https://bulletin-kubo.tservices.es:9443
+VITE_IPFS_READ_GATEWAYS=https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation
 ```
 
 Do not make `https://devnet-ipfs.api.polkadotcommunity.foundation`, `ipfs.io`,
@@ -346,10 +567,11 @@ CDM unlock as `blocked` and the room journey as `not-run`. Treat a static
 package. It additionally verifies W01-W12 local evidence, issue/backlog mapping,
 the reversible pilot plan, contract inventory, and optional aggregate pilot
 metrics. Optional pilot evidence must use schema v2 and bind the decision to
-the candidate git SHA, Product appVersion, default `viem` release CID, capture
-time, outcome metrics, privacy flags, rollback, and join-count invariants. Pass
-that independently recorded release CID with `--pilot-release-cid`; the command
-never substitutes the earlier `product-cdm` smoke or room CID. It does not sign,
+the candidate git SHA, Product appVersion, `product-cdm`/`devnet` profile,
+published executable CID, capture time, outcome metrics, privacy flags,
+rollback, and join-count invariants. Pass the candidate's published CDM CID with
+`--pilot-release-cid`; Product payment/key and room evidence must bind to that
+same CID. The command does not sign,
 deploy, contact participants, or treat missing live evidence as a pass.
 
 `smoke:product-cash-settlement` is also read-only. The expected result for the
@@ -358,21 +580,53 @@ gates pass, and the live CASH path remains blocked on a Product-confirmed
 CASH-to-runtime entitlement mechanism. A `fail` means the local boundary or an
 operator-supplied evidence file is unsafe and must block the release.
 
-The default build keeps the viem runtime adapter, which tree-shakes the Product
-contract graph away and publishes at roughly 4.4 MB. Building with
-`VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm` pulls in the Product SDK descriptors
-and roughly doubles that. Bulletin storage is a finite quota, so only opt in
-when the Product contract path is actually being exercised.
+Product releases 0.1.46 through 0.1.56 explicitly use `product-cdm` on `devnet` so
+Product account holders retain native tips and access payments. The Product
+build refuses an EVM-only profile; ordinary web still uses viem. Product SDK
+descriptors increase the bundle and Bulletin storage demand. The 0.1.45 viem
+publication regressed native tips by requesting an EVM wallet; it is historical
+evidence of that limitation. The current rollback artifact is 0.1.55, retaining
+the native Product profile. Validate native
+approval, exact account mapping and finalized receipt recovery on the installed
+Hosts after publication.
 
 ## 5. Authenticate The Deploy Tool
 
 The repository pins the CLI version in the npm deploy command but does not add
 the experimental deploy tool to the application dependency tree.
 
+Before loading any signer, verify the package's embedded DevNet profile:
+
+```bash
+npm run verify:product-deploy-environment
+```
+
+The command is read-only. It must report CLI `0.20.0` and the registry and
+content-resolver addresses named at the top of this runbook. It fails closed
+when npm serves another version, the `devnet` preset is absent, or any
+Product-facing DotNS address has drifted.
+
 `npm run deploy:product-devnet` signs DotNS updates with the owner mnemonic from
-`MNEMONIC`. Do not rely on `pad login` for this path: `pad login` and
-`pad whoami` describe the mobile Product session only, not the local owner
-signer.
+`MNEMONIC`, while Bulletin bytes are stored through an authorized deploy pool
+account. This separation is intentional for
+`@parity/polkadot-app-deploy@0.20.0`: the raw `pad` CLI treats a supplied
+mnemonic as the Bulletin storage signer too, so an otherwise valid DotNS owner
+can fail with `authorization expired` if that owner account is not also
+authorized for TransactionStorage. Dotify's wrapper keeps the owner mnemonic
+local for DotNS and injects the testnet storage pool signer for Bulletin
+uploads. Override the pool only with `BULLETIN_POOL_MNEMONIC` or
+`BULLETIN_POOL_ACCOUNT_INDEX` after checking it with `pad-bootstrap --env
+devnet`.
+
+The printed `Bulletin storage signer` address is pool account `//deploy/0`
+derived from the deploy tool's public DevNet phrase by default. It is
+expected to differ from the DotNS owner address derived from `MNEMONIC`.
+The DotNS preflight identifies the owner before any upload; compare that owner
+with the intended account. The Bulletin chain's `Renew` tab extends stored
+data retention, not account authorization.
+
+Do not rely on `pad login` for this path: `pad login` and `pad whoami` describe
+the mobile Product session only, not the local owner signer.
 
 ```bash
 read -rs MNEMONIC
@@ -397,7 +651,8 @@ Product candidate** workflow accepts only an exact full commit SHA and a
 `validation` or `release` profile. It checks out and builds that immutable
 candidate with no mnemonic, signer, upload, or network write. The validation
 profile enables the Product CDM adapter, artist gifts, and the operator-only
-readiness panel; the release profile retains the tracked viem defaults.
+readiness panel. The release profile uses the tracked `product-cdm`/`devnet`
+settings; new releases must preserve that native payment path.
 
 ```bash
 gh workflow run deploy-frontend.yml \
@@ -425,14 +680,15 @@ npm run deploy:product-devnet
 The command:
 
 1. refuses to continue when `MNEMONIC` is empty;
-2. builds from the committed Product catalog snapshot without querying the
+2. verifies the pinned deploy CLI's Product-facing DotNS profile;
+3. builds from the committed Product catalog snapshot without querying the
    mutable Fly catalog API;
-3. rebuilds `dist-product`;
-4. validates `polkadot-app-deploy.config.ts`;
-5. creates content-addressed chunks with the JavaScript merkle implementation;
-6. uploads changed content to Product DevNet Bulletin;
-7. updates `dotify-test01.dot` directly with the `$MNEMONIC` owner signer;
-8. writes the Product manifest and executable records.
+4. rebuilds `dist-product`;
+5. validates `polkadot-app-deploy.config.ts`;
+6. creates content-addressed chunks with the JavaScript merkle implementation;
+7. uploads changed content to Product DevNet Bulletin;
+8. updates `dotify-test01.dot` directly with the `$MNEMONIC` owner signer;
+9. writes the Product manifest and executable records.
 
 After recording the finalized CID, remove the local process credential:
 
@@ -446,7 +702,31 @@ behavior, host SDK integration, permissions, metadata, or cache-sensitive
 assets. A successful `pad` publish writes a new CID, but the mobile host can
 also use executable metadata while refreshing an already-opened app.
 
-The tracked Product executable candidate is `[0, 1, 28]`. This version protects
+The historical Product executable candidate `[0, 1, 34]` invalidated host
+caches for the verified room-tip affordance while retaining `[0, 1, 33]`
+artist earnings and native-contribution behavior. Verify the embedded SHA and
+this appVersion after reopening Product; a new CID carrying the previous
+appVersion is not sufficient evidence that a cache-sensitive UI change loaded.
+
+Version `[0, 1, 32]` is the separately authorized W27 correction candidate
+that keeps Celerity observers alive after an uncertain publish and queues later
+mirrors within their private TTL. That validation build used
+`VITE_DOTIFY_ROOM_REALTIME=dual` and `VITE_DOTIFY_DEBUG_PANEL=true` with the
+default viem runtime, disabled beacons and existing payment policy. Its paired
+capture procedure remains documented in
+[the Celerity room realtime guide](../how-to/capture-celerity-room-realtime.md).
+The tracked realtime flag remains off and no live acceptance is implied.
+Version `[0, 1, 31]` is the earlier operator-panel candidate whose publish
+timeout stopped the observer. Version `[0, 1, 30]` is the console-only W27
+candidate and does not contain the operator panel.
+
+Version `[0, 1, 29]` gates
+local host output on pause, preserves paused Next/Previous, retires obsolete
+audio sources, and restores desktop room colors on mobile. Publish the new
+frontend and reopen the mobile app; this fix needs no CDM/contract redeploy.
+The physical-device sequence is in
+[deployment configuration](deployment-configuration.md#playback-synchronization-verification).
+It retains `[0, 1, 28]`, which protects
 TURN credentials with short-lived room-membership proof and restores an
 independent IPFS source for bounded full-file audio recovery. Its version bump
 also gives Product hosts an explicit cache-refresh signal for the changed room
@@ -661,14 +941,14 @@ Then verify in the Product host:
    In every rejected case, playback must stop and offer an EVM wallet fallback.
    No path may release a key without a verified signature.
 
-6. The tracked Product profile intentionally uses the `viem` writer, so that
-   published profile asks for an EVM-compatible wallet when it needs to write.
-   To test payment through the Product host instead, publish an explicit Product
-   CDM smoke build from the candidate commit:
+6. The tracked Product profile uses the `product-cdm` writer on `devnet`.
+   A debug build is useful for a future pilot candidate, but it creates a
+   different executable CID. Evidence from it cannot validate the published
+   0.1.52 CID; keep those live gates blocked until observations are captured
+   from the exact release artifact. To prepare a new candidate with the debug
+   panel, publish from a clean committed worktree and record its own CID:
 
 ```bash
-VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm \
-VITE_DOTIFY_ARTIST_DONATIONS=on \
 VITE_DOTIFY_DEBUG_PANEL=true \
 npm run deploy:product-devnet
 ```
@@ -695,12 +975,18 @@ npm run deploy:product-devnet
    the raw dry-run payload. An unknown post-submission failure is different and
    must retain its payment reference rather than offering another payment.
 
-   Before collecting evidence, verify that the Product host is actually
-   rendering the expected candidate. If the candidate's `Production readiness`
-   panel is absent or labels match an older build, stop: the host cache is not
-   valid release evidence. In Product Desktop, close Dotify, clear only the
-   Dotify app cache from its app settings, reopen the DotNS app, accept the
-   required domain/WebRTC permissions, and verify the expected UI and
+   Before collecting evidence, run
+   `npm run verify:product-deploy-environment`, then verify that the Product
+   host is actually rendering the expected candidate. If the candidate's
+   `Production readiness` panel is absent or labels match an older build, stop.
+   Compare the finalized CID and loaded bundle with the deployment output before
+   blaming local cache. A host that resolves another CID or bundle is a DotNS
+   environment mismatch and must not be repaired by repeated cache deletion.
+
+   Only after the deploy profile, resolved CID, and candidate identity agree may
+   stale local storage be considered. In Product Desktop, close Dotify, clear
+   only the Dotify app cache from its app settings, reopen the DotNS app, accept
+   the required domain/WebRTC permissions, and verify the expected UI and
    `appVersion` before continuing. Clearing the cache is a local destructive
    operation and requires the operator's explicit confirmation; it does not
    authorize a payment or a publish.
@@ -712,9 +998,26 @@ npm run deploy:product-devnet
    malformed CIDs with the standards-compliant IPFS parser, and clears events
    whenever SHA, Product appVersion, or CID changes.
 
-   Use a funded Product account that has not already paid for the target
-   Classic track. Do not use this as the default `dotify-test01.dot` release
-   gate until it has passed once end to end. Verify:
+   First reuse an existing paid Classic entitlement: open that track with the
+   connected Product account after binding the deployment. This captures a
+   read-only `access-readback` event (`hasPaid`, `canAccess`, chain, listener,
+   runtime and content hash), followed by the normal backend key request.
+   The browser and CLI require that the key follows the read and matches its
+   account, network, runtime and track. An RPC failure records unknown access;
+   changing account, track or capture while reading discards the stale result.
+   The collector makes no extra reads without a bound capture for this build.
+
+   This proves current entitlement/key delivery only. It does not fabricate a
+   transaction hash, paid amount or host approval. The host-approval,
+   native-value and payment-readback gates remain blocked in the CLI when
+   only this read-only evidence is available. Do not pay again merely to make
+   those gates green. Reset the capture when finished; keep the diagnostic
+   export private because it links an account to a release, and never merge
+   it into aggregate participant evidence.
+
+   A separately authorized new-payment test still needs a funded Product
+   account without access to the target Classic track. Do not use this as the
+   sole `dotify-test01.dot` release gate until it has passed end to end. Verify:
    - the connected Dotify Product account and the host-selected signer expose
      the same public key;
    - deriving `pallet-revive` H160 from that public key gives the same H160
@@ -761,7 +1064,8 @@ npm run smoke:product-journey -- \
    host approval UX, or post-payment access evidence is missing, the
    `product-cdm` build must report **Payment included, access not verified**
    with the transaction hash instead of marking the track open.
-   Keep the shipped profile on `viem`.
+   The published 0.1.52 profile remains `product-cdm`/`devnet`; keep its
+   acceptance blocked until this native payment and read-back are observed.
 
    Product CASH is a separate future rail, not a replacement for this native
    runtime smoke. A Host `PaymentManager` status of `Completed` is not enough
@@ -843,30 +1147,23 @@ npm run smoke:product-journey -- \
    from the Product Web gateway. A Product Desktop room smoke must not be reused
    as Product Web evidence.
 
-   This completes the validation deployment track. Before an authorized pilot,
-   republish the same SHA and Product appVersion with the tracked default
-   `viem` profile:
-
-```bash
-npm run deploy:product-devnet
-```
-
-   Record the new CID printed by this command. It is the pilot release CID and
-   is expected to differ from the earlier `product-cdm` CID because the bundles
-   differ. Run the aggregate readiness gate with both identities kept separate:
+   For the release being evaluated, use the published `product-cdm` executable CID
+   for the release and capture host evidence from that same artifact. A debug
+   build with a different CID cannot validate the published release. Run the
+   aggregate readiness gate with one release identity:
 
 ```bash
 npm run smoke:pilot-release -- \
   --product-smoke-json /path/to/product-cdm-host-smoke.json \
   --room-json /path/to/product-cdm-room-evidence.json \
-  --pilot-release-cid <default-viem-pilot-release-cid> \
+  --pilot-release-cid <published-product-cdm-cid> \
   --pilot-json /path/to/aggregate-pilot-evidence.json
 ```
 
    The command rejects pilot evidence when `--pilot-release-cid` is absent,
-   malformed, or different from `pilot-json.candidate.deployedCid`. Product CDM
-   and room evidence can validate the experimental writer, but cannot approve
-   the release bundle used by participants.
+   malformed, or different from `pilot-json.candidate.deployedCid`, and rejects
+   Product payment/key or room evidence from another CID. Capture real Host and
+   participant observations against the exact published bundle.
 
 10. A Netlify-origin host and Product-origin guest also connect.
 11. Briefly interrupting the mobile network preserves and resumes the same room
@@ -981,26 +1278,28 @@ active.
   step for `product-sr25519-v1` records which shape the live host actually
   produced - that observation is the evidence, and until it is captured the
   accepted set stays deliberately wide.
-- Contract writes use the shared runtime writer port, with viem still selected
-  for the tracked deployment. The Product CDM/PAPI runtime adapter now has its
+- Contract writes use the shared runtime writer port, with `product-cdm` selected
+  for the tracked 0.1.52 Product deployment. The Product CDM/PAPI runtime adapter has its
   generated manifest, contract types, live resolver, signer-account mapping
   checks, Classic unlock write path, and W05 royalty claim write path. It still
-  needs real host-signed transaction evidence before Product CDM becomes the
-  default. Dotify validates that the selected Product host signer public key
+  needs real host-signed transaction evidence before the current release can
+  pass acceptance. Dotify validates that the selected Product host signer public key
   maps to the same `pallet-revive` H160 account used by the connected Product
   identity before a CDM write can be submitted, and Product CDM Classic unlocks
   poll `musicAccHasPaid` and `musicAccCanAccess` for that H160 account before
   surfacing success. If the payment was included but verification fails, the UI
   preserves the transaction hash in the error state.
-- Product Web's current gateway can reject native Product CDM chain setup with
-  `Malformed protocol error payload: expected 3 bytes, received 6`. Version
-  `[0, 1, 28]` retains the `[0, 1, 23]` safeguard that prevents that
-  host/version mismatch from running merely because
-  a guest opened the catalog or a room link. Catalog API and public room
-  discovery remain available; an actual protected-track access read still
-  fails closed until Product Web and the pinned TruAPI/Product SDK protocol are
-  compatible. Product Desktop remains the supported Product CDM payment
-  surface for the pilot candidate.
+- Earlier Product Web gateway/protocol combinations rejected native Product
+  CDM chain setup with `Malformed protocol error payload: expected 3 bytes,
+  received 6`. The guest safeguard still avoids starting that chain merely
+  because someone opened the catalog or a room link; protected access fails
+  closed when host and SDK are incompatible. On the 0.1.29 validation CID,
+  Product Web did complete a native payment, access read-back, and full key
+  release. This does not certify every Product Web host version. A separate
+  Product Desktop payment request was canceled because the approval prompt
+  did not arrive in Polkadot Mobile; Desktop-signed payment remains unproven
+  for that candidate. See the
+  [W13 live evidence](../backlog/implementation/evidence/W13-candidate-0-1-29-live-2026-09-28.md).
 - Rooms still depend on one in-memory Fly signaling machine.
 - Product-host cloud storage does not hold Dotify audio or content keys.
 - Product personhood is not yet an access decision source.
@@ -1008,9 +1307,9 @@ active.
   catalog recovery but is not required for API startup.
 - Product contract mode (`VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm`) covers
   catalog reads and runtime write submissions inside the Product host. The
-  tracked deployment still keeps the default `viem` adapter until
-  native value forwarding, host approval UX, and successful post-payment
-  read-back evidence are captured. Product payment history is still not exposed
+  tracked 0.1.52 deployment uses this profile; installed-host payment, approval
+  UX, and post-payment read-back still need candidate-bound observations.
+  Product payment history is still not exposed
   by the current Product contract handle API, so the full royalty settlement
   ledger needs an event/indexer source. Use `VITE_DOTIFY_DEBUG_PANEL=true` on
   that smoke build to export the Product CDM host evidence JSON.
@@ -1023,10 +1322,10 @@ not a default-adapter or deployment change. See the
 [support recovery design](../design/product-host-support-recovery-2026-09-15.md)
 for pending references, read-only retries and the required physical-host smoke.
 
-The support validation build also enables `VITE_DOTIFY_ARTIST_DONATIONS=on`.
-Ordinary builds keep gifts off. A gift sends a chosen amount directly to the
-release's artist; it does not unlock access or follow the release's royalty
-splits. Native gifts use chain-reported precision and verified recipient
-mapping. Keep this flag gated until a real host approval and receipt have been
-checked. No live funds are used by the automated test fixtures. See
-[direct artist gifts](../design/artist-gifts-2026-09-16.md).
+Gifts and tips are native UI; `VITE_DOTIFY_ARTIST_DONATIONS` is retired.
+Gifts use the artist's profile allocation; work tips preserve collaborator
+splits after an optional host percentage is deducted from the whole room tip. Both require an
+upgraded contribution runtime and keep listening access unchanged. Product
+signing still requires the CDM writer profile. Live host validation and
+owner-approved upgrades are separate release gates. See
+[native contributions](../design/native-contributions.md).

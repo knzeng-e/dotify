@@ -1,14 +1,14 @@
 name: Claude Code Review
 
 on:
-  pull_request:
-    types: [opened, synchronize, ready_for_review, reopened]
-    # Optional: Only run on specific file changes
-    # paths:
-    #   - "src/**/*.ts"
-    #   - "src/**/*.tsx"
-    #   - "src/**/*.js"
-    #   - "src/**/*.jsx"
+  # Disabled for pull_request CI while Claude Code OAuth is not reliable.
+  # Keep the workflow available for manual runs after the repository secret is fixed.
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "Pull request number to review"
+        required: true
+        type: number
 
 jobs:
   claude-review:
@@ -37,7 +37,7 @@ jobs:
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: |
-            Review ${{ github.repository }}/pull/${{ github.event.pull_request.number }}.
+            Review ${{ github.repository }}/pull/${{ inputs.pr_number }}.
 
             Prioritize concrete bugs, security issues, behavioral regressions,
             and missing tests. Keep summaries brief, do not modify files, and

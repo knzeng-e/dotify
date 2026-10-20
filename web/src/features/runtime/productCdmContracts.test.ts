@@ -6,7 +6,7 @@ const DIRECTORY = cdmManifest.contracts['@dotify/artist-directory'].address as `
 const FACTORY = cdmManifest.contracts['@dotify/artist-runtime-factory'].address as `0x${string}`;
 const RUNTIME = '0x00000000000000000000000000000000000000aa' as const;
 
-type Handles = { artistCountSuccess?: boolean; tokenDecimals?: unknown };
+type Handles = { artistCountSuccess?: boolean; tokenDecimals?: unknown; free?: bigint; frozen?: bigint };
 
 function buildDeps(overrides: Handles = {}, spies: Record<string, ReturnType<typeof vi.fn>> = {}): ProductCdmContractsDeps {
   const artistCountQuery = vi.fn(async () => ({ success: overrides.artistCountSuccess ?? true, value: 3n, gasRequired: {} }));
@@ -38,6 +38,10 @@ function buildDeps(overrides: Handles = {}, spies: Record<string, ReturnType<typ
         createChainClient:
           spies.createChainClient ??
           vi.fn(async () => ({
+            assetHub: {
+              query: { System: { Account: { getValue: vi.fn(async () => ({ data: { free: overrides.free ?? 100n, frozen: overrides.frozen ?? 0n } })) } } },
+              constants: { Balances: { ExistentialDeposit: async () => 10n } }
+            },
             raw: {
               assetHub: {
                 getChainSpecData: vi.fn(async () => ({ properties: { tokenDecimals: overrides.tokenDecimals ?? 10 } }))
@@ -51,6 +55,15 @@ function buildDeps(overrides: Handles = {}, spies: Record<string, ReturnType<typ
 }
 
 describe('createProductCdmContracts', () => {
+  it.each([
+    [100n, 0n, 90n],
+    [100n, 40n, 60n],
+    [5n, 0n, 0n],
+    [100n, 200n, 0n]
+  ])('reads conservative spendable funds (%s free, %s frozen)', async (free, frozen, expected) => {
+    const contracts = await createProductCdmContracts({ environment: 'devnet' }, buildDeps({ free, frozen }));
+    await expect(contracts.readAvailableBalance('paying-account')).resolves.toBe(expected);
+  });
   it('resolves the manifest contracts and native precision from the connected chain', async () => {
     const { resolver, nativeTokenDecimals } = await createProductCdmContracts({ environment: 'devnet' }, buildDeps());
 

@@ -25,6 +25,35 @@
   },
   "items": [
     {
+      "id": "mobile-form-continuity",
+      "doc": "docs/backlog/mobile-form-continuity.md",
+      "issue": 306,
+      "kind": "record",
+      "priority": "P1",
+      "track": "Room reliability",
+      "phase": "Record",
+      "note": "Delivered by #307 and published in Product 0.1.56 (#308). Owner confirmed mobile keyboard behavior 2026-10-20; full native matrix remains W13 acceptance."
+    },
+    {
+      "id": "claude-verification-tooling",
+      "doc": "docs/backlog/claude-verification-tooling.md",
+      "issue": 265,
+      "kind": "record",
+      "priority": "P2",
+      "track": "Production spine",
+      "phase": "Record",
+      "note": "Delivered by PR #264, merged into dev at e86406d0cb0282b8e67be3a5f7897b87fe13e032 on 2026-10-11. Targeted hook checks, real Web/API typechecks, and all executed PR CI checks passed."
+    },
+    {
+      "id": "room-life",
+      "doc": "docs/backlog/room-life-and-artist-visits.md",
+      "issue": 257,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Room reliability",
+      "phase": "Next"
+    },
+    {
       "id": "01",
       "doc": "docs/backlog/01-backend-key-service-skeleton.md",
       "issue": 2,
@@ -147,10 +176,11 @@
       "id": "21",
       "doc": "docs/backlog/21-room-collaborative-queue.md",
       "issue": 210,
-      "kind": "work",
+      "kind": "record",
       "priority": "P2",
       "track": "Room reliability",
-      "phase": "Now"
+      "phase": "Record",
+      "note": "Delivered by merged PR #211; GitHub issue #210 completed 2026-09-22. Keep playback lineup evidence as a record, not active implementation."
     },
     {
       "id": "24",
@@ -230,7 +260,7 @@
       "priority": "P1",
       "track": "Product SDK",
       "phase": "Product feasibility",
-      "note": "W11 Product journey and W16 CASH feasibility are delivered slices. Keep the epic open for candidate-bound Product host evidence and capability compatibility, not to rebuild those slices."
+      "note": "Owns exact SDK/Host compatibility assessment, coordinated SDK 0.36 migration and shared versioned network profile. Stablecoin/Coinage follow-up is Later by owner decision 2026-10-14; W16 remains dated delivered evidence. Nearby browser/manual-area prototyping is independent."
     },
     {
       "id": "catalog-read-model",
@@ -251,6 +281,15 @@
       "track": "Production spine",
       "phase": "Next",
       "note": "Responsive variants are delivered by #198. Keep active for live upload, mobile transfer and paint, gateway timeout, cache-edge, and legacy-backfill evidence."
+    },
+    {
+      "id": "release-room-followup",
+      "doc": "docs/backlog/release-room-followup.md",
+      "issue": 269,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Now"
     },
     {
       "id": "dav2-startup",
@@ -400,7 +439,7 @@
       "priority": "P2",
       "track": "Design record",
       "phase": "Record",
-      "note": "Delivered by PR #155 as a privacy contract and inert protocol scaffold. W19 remains blocked on an accepted W13 pilot."
+      "note": "Delivered by PR #155 as privacy contract/inert v1 scaffold. Owner prioritized W19 on 2026-10-14; radius amendment needs review before collection. W13 remains a public release gate, not an implementation prerequisite."
     },
     {
       "id": "W21",
@@ -470,7 +509,127 @@
       "priority": "P1",
       "track": "Product SDK",
       "phase": "Next",
-      "note": "Post-pilot Celerity/Statement Store realtime sprint. Preserve wallet-free room links, prove each event class in dual operation, and reduce Socket.IO authority only where equivalent guarantees are measured."
+      "note": "Owner activated the first port/envelope/observation slice on 2026-09-30 before remaining W13 pilot gates; see implementation/evidence/W27.md. Preserve wallet-free links; default activation and any reduction of Socket.IO authority still require measured live equivalence."
+    },
+    {
+      "id": "W28",
+      "doc": "docs/backlog/implementation/W28-mobile-premium-experience.md",
+      "issue": 223,
+      "kind": "record",
+      "priority": "P1",
+      "track": "Design record",
+      "phase": "Record",
+      "note": "W28 scope delivered through merged PR #224 and audit completion #225; issue #223 completed 2026-09-29. Physical/pilot evidence remains under W13, not a replay of this scope."
+    },
+    {
+      "id": "W29",
+      "doc": "docs/backlog/implementation/W29-ux-clarity-pass.md",
+      "issue": 250,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Design record",
+      "phase": "Next",
+      "note": "Owner-requested clarity slice from the 2026-10-08 audit, implemented by PR #249: one word per gesture, room-first home, named payment recipients, named and retried protected playback failures, room exit in the header, sign-in chained to a purposeful connect. Reverses the W21/W28 choice to keep prices off catalog cards. Evidence: docs/backlog/implementation/evidence/W29.md. Project 5 owns workflow status."
+    },
+    {
+      "id": "W30",
+      "doc": "docs/backlog/implementation/W30-pilot-hardening.md",
+      "issue": 285,
+      "kind": "work",
+      "priority": "P0",
+      "track": "Production spine",
+      "phase": "Now",
+      "note": "#296 is merged; 0.1.52 records deployment and proxy identity, single signaling worker and TURN checks. Remaining #285 scope: API non-root execution with safe volume ownership and migration/rollback evidence. See evidence/backlog-reconciliation-2026-10-20.md; do not repeat delivered hardening."
+    },
+    {
+      "id": "W31",
+      "doc": "docs/backlog/implementation/W31-discovery-follow-ups.md",
+      "issue": 286,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Room reliability",
+      "phase": "Now",
+      "note": "#297 is merged and deployed from 0.1.52; discovery controls, recovery and lazy ArtistShell are delivered. Remaining implementation verification: dedicated Worldwide-report E2E missing from W31 evidence. Native reliability remains separate device/pilot acceptance."
+    },
+    {
+      "id": "W32",
+      "doc": "docs/backlog/implementation/W32-streaming-encoding.md",
+      "issue": 287,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Next",
+      "note": "Refs #88. AAC fMP4 renditions with segment-level encryption under the existing release key scope, loudness gain, preserved master, DAV2 compatibility."
+    },
+    {
+      "id": "W33",
+      "doc": "docs/backlog/implementation/W33-media-edge-cache.md",
+      "issue": 288,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Next",
+      "note": "Refs #88 backend read-through decision. Immutable edge cache for encrypted content-addressed media; IPFS remains the source of truth."
+    },
+    {
+      "id": "W34",
+      "doc": "docs/backlog/implementation/W34-fast-access-path.md",
+      "issue": 289,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Next",
+      "note": "Batched access reads, short fail-closed verdict cache, queue key preparation for signed-in listeners, in-memory client keys."
+    },
+    {
+      "id": "W35",
+      "doc": "docs/backlog/implementation/W35-continuous-player.md",
+      "issue": 290,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Next",
+      "note": "Gapless, adaptive bitrate, next-track preparation, Media Session, local resume, background playback evidence, playback metrics."
+    },
+    {
+      "id": "W36",
+      "doc": "docs/backlog/implementation/W36-shared-state-api.md",
+      "issue": 291,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Next",
+      "note": "Shared nonces, revocations, quotas and catalog; dedicated session secret; two API instances."
+    },
+    {
+      "id": "W37",
+      "doc": "docs/backlog/implementation/W37-scalable-catalog-indexer.md",
+      "issue": 292,
+      "kind": "work",
+      "priority": "P2",
+      "track": "Production spine",
+      "phase": "Next",
+      "note": "Bounded concurrency, chunked getLogs, memoized revision, write-on-change snapshots, lookup indexes."
+    },
+    {
+      "id": "W38",
+      "doc": "docs/backlog/implementation/W38-contract-bounds.md",
+      "issue": 293,
+      "kind": "work",
+      "priority": "P2",
+      "track": "Production spine",
+      "phase": "Later",
+      "note": "Split recipient cap, string bounds, paged track view, artist-approved diamondCut plan."
+    },
+    {
+      "id": "W39",
+      "doc": "docs/backlog/implementation/W39-horizontal-rooms.md",
+      "issue": 294,
+      "kind": "research",
+      "priority": "P2",
+      "track": "Room reliability",
+      "phase": "Later",
+      "note": "Research with prototype: horizontal Socket.IO, deploys without closing rooms, SFU beyond 24 guests, second region from pilot data."
     },
     {
       "id": "backlog-reconciliation",
@@ -481,6 +640,46 @@
       "track": "Production spine",
       "phase": "Record",
       "note": "Reconciliation record carried by PR #205: delivered implementation records, active pilot gates, issue state, Project 5 metadata, and dev protection were synchronized on 2026-09-20."
+    },
+    {
+      "id": "nearby-priority-roadmap",
+      "doc": "docs/backlog/polkadot-alignment-and-nearby-priority.md",
+      "issue": 273,
+      "kind": "record",
+      "priority": "P1",
+      "track": "Design record",
+      "phase": "Record",
+      "note": "Owner-requested 2026-10-14 backlog reprioritization delivered by PR #277. This record activates #274/W19 as the next product implementation; it does not claim Nearby is implemented."
+    },
+    {
+      "id": "W19",
+      "doc": "docs/backlog/implementation/W19-nearby-rooms.md",
+      "issue": 274,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Room reliability",
+      "phase": "Now",
+      "note": "Next product expansion: separate host/listener opt-ins and approximate km radii. W09/W10/W18 plus radius review for implementation; W13 and privacy/device/room evidence for public enablement."
+    },
+    {
+      "id": "artist-runtime-features",
+      "doc": "docs/backlog/artist-runtime-features.md",
+      "issue": 275,
+      "kind": "epic",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Next",
+      "note": "After first Nearby slice: artist-owned module choices/updates, admin inventory and separate admission design."
+    },
+    {
+      "id": "artist-key-portability",
+      "doc": "docs/backlog/artist-key-portability.md",
+      "issue": 276,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Next",
+      "note": "After first Nearby slice: per-artist export and second-operator synthetic recovery. W07 stays a delivered record; real key migration separately approved."
     }
   ]
 }

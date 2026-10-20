@@ -4,7 +4,7 @@ async function hostRoom(page: Page) {
   await page.goto('/?e2eRoom=public');
   await page.getByRole('button', { name: 'Open a room', exact: true }).click();
   await page.getByRole('button', { name: 'Select E2E Public Room Track' }).click();
-  await page.getByLabel('Your name in the room').fill('Room host');
+  await page.getByLabel('Your name or nickname').fill('Room host');
   await page.getByRole('button', { name: 'Open the room', exact: true }).click();
   await expect(page.getByTestId('room-code')).toHaveText(/[A-Z0-9]{4,}/);
   return (await page.getByTestId('room-code').innerText()).trim();
@@ -45,15 +45,26 @@ for (const [width, height] of [
   [1024, 768]
 ]) {
   test(`room conversation fits ${width}×${height} without losing playback or drafts`, async ({ page }, testInfo) => {
+    const duplicateKeys: string[] = [];
+    page.on('console', message => {
+      if (message.text().includes('Encountered two children with the same key')) duplicateKeys.push(message.text());
+    });
     await page.setViewportSize({ width, height });
     await hostRoom(page);
     await expectConversationFits(page);
     const draft = page.getByRole('textbox', { name: 'Message the room' });
     await draft.fill('Keep this thought');
-    await page.getByRole('tab', { name: /Requests/ }).click();
-    await page.getByRole('textbox', { name: 'Request a track' }).fill('Something soulful');
+    await page.getByRole('tab', { name: /Queue/ }).click();
+    await expect(page.locator('.room-track-results')).toHaveCount(0);
+    await page.getByRole('button', { name: 'Browse catalog', exact: true }).click();
+    await expect(page.locator('.room-track-results')).toBeVisible();
+    await page.getByRole('button', { name: 'Browse catalog', exact: true }).click();
+    await expect(page.locator('.room-track-results')).toHaveCount(0);
+    await expect(page.getByRole('textbox', { name: 'Request a track' })).toHaveCount(0);
+    await page.getByRole('textbox', { name: 'Find a track to add next' }).fill('Something soulful');
     await page.getByRole('tab', { name: /People/ }).click();
     await expect(page.getByRole('button', { name: 'Close room', exact: true })).toBeVisible();
+    await expect(page.locator('.host-contributions')).toBeVisible();
     await page.getByRole('tab', { name: 'Chat', exact: true }).click();
     await expect(draft).toHaveValue('Keep this thought');
     await expectConversationFits(page);
@@ -61,18 +72,21 @@ for (const [width, height] of [
     await expect(page.getByRole('log')).toContainText('Keep this thought');
     await expect(draft).toHaveValue('');
     await page.screenshot({ path: testInfo.outputPath('room-conversation.png') });
-    await page.getByRole('tab', { name: /Requests/ }).click();
-    await expect(page.getByRole('textbox', { name: 'Request a track' })).toHaveValue('Something soulful');
-    await page.getByRole('button', { name: 'Send request' }).click();
-    await expect(page.getByLabel('Track requests', { exact: true })).toContainText('Something soulful');
-    await expect(page.getByRole('textbox', { name: 'Request a track' })).toHaveValue('');
+    await page.getByRole('tab', { name: /Queue/ }).click();
+    await expect(page.getByRole('textbox', { name: 'Find a track to add next' })).toHaveValue('Something soulful');
+    await expect(page.getByRole('button', { name: 'Send request' })).toHaveCount(0);
+    await page.getByRole('textbox', { name: 'Find a track to add next' }).fill('E2E Protected');
+    await page.getByRole('button', { name: /^Add to queue E2E Protected Room Track by/ }).click();
+    await expect(page.locator('.host-lineup ol')).toContainText('E2E Protected Room Track');
+    await expect(page.getByRole('textbox', { name: 'Find a track to add next' })).toHaveValue('');
     await page.getByRole('tab', { name: 'Chat', exact: true }).click();
     await page.getByRole('tab', { name: 'Chat', exact: true }).press('ArrowRight');
-    await expect(page.getByRole('tab', { name: /Requests/ })).toBeFocused();
+    await expect(page.getByRole('tab', { name: /Queue/ })).toBeFocused();
+    expect(duplicateKeys, 'Room panels must keep distinct component identities').toEqual([]);
   });
 }
 
-test('mobile guest chats with a host while the same remote audio stays mounted', async ({ browser }) => {
+test('chat tab counts unread arrivals while viewing suggestions and preserves the live audio', async ({ browser }) => {
   const hostContext = await browser.newContext();
   const guestContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
   try {
@@ -80,8 +94,8 @@ test('mobile guest chats with a host while the same remote audio stays mounted',
     const roomId = await hostRoom(host);
     const guest = await guestContext.newPage();
     await guest.goto(`/#/rooms/${roomId}`);
-    await guest.getByRole('textbox', { name: 'Your name in the room' }).fill('Mina');
-    await guest.getByRole('button', { name: 'Enter and listen' }).click();
+    await guest.getByRole('textbox', { name: 'Your name or nickname' }).fill('Mina');
+    await guest.getByRole('button', { name: 'Join and listen' }).click();
     await expect(guest.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20000 });
     await guest.evaluate(() => {
       (window as unknown as { roomAudio: Element }).roomAudio = document.querySelectorAll('audio.native-player-source')[1];
@@ -89,11 +103,21 @@ test('mobile guest chats with a host while the same remote audio stays mounted',
     await guest.getByRole('textbox', { name: 'Message the room' }).fill('Here with you');
     await guest.getByRole('button', { name: 'Send message' }).click();
     await expect(host.getByRole('log')).toContainText('Here with you');
+    await host.getByRole('tab', { name: /Queue/ }).click();
+    for (const text of ['Another thought', 'One more']) {
+      await guest.getByRole('textbox', { name: 'Message the room' }).fill(text);
+      await guest.getByRole('button', { name: 'Send message' }).click();
+      await expect(guest.getByRole('log')).toContainText(text);
+    }
+    await expect(host.locator('#room-tab-chat').getByLabel('2 unread messages')).toHaveText('2');
+    await host.locator('#room-tab-chat').click();
+    await expect(host.getByRole('log')).toContainText('One more');
+    await expect(host.locator('#room-tab-chat .room-request-count')).toHaveCount(0);
     const ownMessage = guest.locator(".room-chat-row[data-self='true']").filter({ hasText: 'Here with you' });
     await expect(ownMessage).toBeVisible();
-    const ownMessageBounds = await ownMessage.locator('.room-chat-body').boundingBox();
-    const chatBounds = await guest.getByRole('log').boundingBox();
-    expect(ownMessageBounds!.x + ownMessageBounds!.width / 2).toBeGreaterThan(chatBounds!.x + chatBounds!.width / 2);
+    await expect(ownMessage.locator('.room-chat-you')).toHaveText('You');
+    await expect(ownMessage.locator('.room-chat-role')).toHaveCount(0);
+    expect(await ownMessage.evaluate(element => getComputedStyle(element).flexDirection)).toBe('row');
     await guest.getByRole('tab', { name: /People/ }).click();
     await expect(guest.locator('.listener-list')).toContainText('Mina');
     await guest.getByRole('tab', { name: 'Chat', exact: true }).click();
@@ -104,6 +128,8 @@ test('mobile guest chats with a host while the same remote audio stays mounted',
     await guest.getByRole('textbox', { name: 'Message the room' }).fill('A thought during reconnect');
     await guestContext.setOffline(true);
     await expect(guest.getByRole('button', { name: 'Send message' })).toBeDisabled({ timeout: 15000 });
+    await expect(guest.locator('.room-header-meta')).not.toContainText(/\d+ here/);
+    await expect(guest.getByRole('tab', { name: 'People', exact: true })).toBeVisible();
     await expect(guest.getByRole('textbox', { name: 'Message the room' })).toHaveValue('A thought during reconnect');
     await guestContext.setOffline(false);
   } finally {
@@ -112,17 +138,64 @@ test('mobile guest chats with a host while the same remote audio stays mounted',
   }
 });
 
-test('up next opens a protected selection through the existing access gate', async ({ page }) => {
-  await hostRoom(page);
-  await page.getByRole('tab', { name: /People/ }).click();
-  await page.locator('.host-lineup summary').click();
-  await page.getByLabel('Add from the catalog').selectOption({ label: 'E2E Protected Room Track — Dotify Room Host' });
-  await page.locator('.host-lineup').getByRole('button', { name: 'Add', exact: true }).click();
-  await expect(page.locator('.host-lineup')).toContainText('Next');
-  await page.getByRole('button', { name: 'Play next' }).click();
-  await expect(page.getByTestId('locked-player-state')).toBeVisible();
-  await expect(page.locator('.host-lineup summary')).toContainText('Nothing queued');
-  await expect(page.getByTestId('room-code')).toHaveText(/[A-Z0-9]{4,}/);
+for (const [width, height] of [
+  [390, 844],
+  [1440, 1000]
+]) {
+  test(`protected room status stays clear of reactions at ${width}px`, async ({ page }, testInfo) => {
+    await page.setViewportSize({ width, height });
+    await hostRoom(page);
+    await page.getByRole('tab', { name: 'Queue', exact: true }).click();
+    await page.getByRole('textbox', { name: 'Find a track to add next' }).fill('E2E Protected');
+    await page.getByRole('button', { name: 'Add to queue E2E Protected Room Track by Dotify Room Host' }).click();
+    await expect(page.locator('.host-lineup')).toContainText('Next');
+    await page.getByRole('button', { name: 'Play next' }).click();
+    await expect(page.getByTestId('access-warning')).toBeVisible();
+    await page.getByRole('button', { name: 'Not now' }).click();
+    const status = page.getByTestId('locked-player-state');
+    const reactions = page.locator('.room-reaction-dock');
+    await expect(status).toBeVisible();
+    await expect(reactions.getByRole('button', { name: 'React heart' })).toBeVisible();
+    const statusBounds = (await status.boundingBox())!;
+    const reactionBounds = (await reactions.boundingBox())!;
+    expect(statusBounds.y).toBeGreaterThanOrEqual(reactionBounds.y + reactionBounds.height - 1);
+    expect(statusBounds.y + statusBounds.height).toBeLessThanOrEqual(height);
+    await expect(page.locator('.host-lineup summary')).toContainText('Nothing queued');
+    await expect(page.getByTestId('room-code')).toHaveText(/[A-Z0-9]{4,}/);
+    await page.screenshot({ path: testInfo.outputPath(`protected-room-${width}.png`) });
+  });
+}
+
+test('a catalog suggestion can be curated into Up next without starting or paying for it', async ({ browser }) => {
+  const hostContext = await browser.newContext();
+  const guestContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  try {
+    const host = await hostContext.newPage();
+    const roomId = await hostRoom(host);
+    const guest = await guestContext.newPage();
+    await guest.goto(`/#/rooms/${roomId}`);
+    await guest.getByLabel('Your name or nickname').fill('Mina');
+    await guest.getByRole('button', { name: 'Join and listen' }).click();
+    await guest.getByRole('tab', { name: /Queue/ }).click();
+    const search = guest.getByRole('textbox', { name: 'Request a track' });
+    await search.fill('A track outside the catalog');
+    await expect(guest.getByText('No matching track in the available catalog. Try another title or artist.')).toBeVisible();
+    await expect(guest.getByRole('button', { name: 'Send request' })).toBeDisabled();
+    await search.fill('Protected');
+    await guest.getByRole('button', { name: 'Suggest E2E Protected Room Track by Dotify Room Host' }).click();
+    await guest.getByRole('button', { name: 'Send request' }).click();
+    await host.getByRole('tab', { name: /Queue/ }).click();
+    const suggestions = host.getByLabel('Track requests', { exact: true });
+    await expect(suggestions).toContainText('Mina');
+    await suggestions.getByRole('button', { name: 'Add E2E Protected Room Track to Up next' }).click();
+    await expect(host.locator('.host-lineup ol')).toContainText('E2E Protected Room Track');
+    await expect(suggestions).toContainText('Added to Up next');
+    await expect(host.locator('.track-copy h2')).toHaveText('E2E Public Room Track');
+    await expect(host.getByTestId('access-warning')).toHaveCount(0);
+  } finally {
+    await guestContext.close();
+    await hostContext.close();
+  }
 });
 
 test('a host sees one room code and an invite-first state while alone', async ({ page }) => {
@@ -136,10 +209,11 @@ test('a host sees one room code and an invite-first state while alone', async ({
 
   await expect(page.getByTestId('room-code')).toHaveCount(1);
   await page.getByRole('tab', { name: /People/ }).click();
-  const invite = page.getByLabel('Invite people to this room');
-  await expect(invite).toContainText('Bring someone into this track');
-  await expect(invite.getByRole('button', { name: 'Copy invite' })).toBeVisible();
-  await expect(invite.getByRole('button', { name: 'Show QR' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Copy invite' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Share room' }).click();
+  const invite = page.getByRole('dialog', { name: 'Listen together' });
+  await expect(invite.getByRole('button', { name: 'Copy link' })).toBeVisible();
+  await expect(invite.getByRole('button', { name: 'Enlarge QR' })).toBeVisible();
   await invite.getByRole('button', { name: 'Share', exact: true }).click();
   await expect.poll(() => page.evaluate(() => (Reflect.get(window, '__sharedRoomInvite') as ShareData | undefined)?.url)).toContain(`#/rooms/${roomId}`);
 });
@@ -147,7 +221,7 @@ test('a host sees one room code and an invite-first state while alone', async ({
 test('a room requires a chosen host name instead of presenting a role as identity', async ({ page }) => {
   await page.goto('/?e2eRoom=public');
   await page.getByRole('button', { name: 'Open a room', exact: true }).click();
-  const name = page.getByLabel('Your name in the room');
+  const name = page.getByLabel('Your name or nickname');
   const open = page.getByRole('button', { name: 'Open the room', exact: true });
 
   await expect(name).toHaveValue('');
@@ -188,8 +262,11 @@ test('desktop keeps playback, people and chat visible and returns from artist su
   await expect(page.getByRole('log')).toContainText('A place to listen together');
   await expect(page.getByLabel('People and room controls')).toBeVisible();
   await expectConversationFits(page);
+  const stage = (await page.locator('.player-stage').boundingBox())!;
+  const reactions = (await page.locator('.room-reaction-dock').boundingBox())!;
+  expect(reactions.width).toBeGreaterThanOrEqual(stage.width - 40);
   await page.screenshot({ path: testInfo.outputPath('room-conversation.png') });
-  await page.getByRole('button', { name: 'Artist & support', exact: true }).click();
+  await page.locator('.player-artist-link').click();
   await expect(page.locator('.player-dock')).toBeVisible();
   await page.getByRole('button', { name: 'Room live', exact: true }).click();
   await expect(page.getByRole('textbox', { name: 'Message the room' })).toBeVisible();
@@ -200,7 +277,8 @@ test('room controls fit a small desktop and the QR remains discoverable', async 
   await hostRoom(page);
   await expect(page.getByRole('textbox', { name: 'Message the room' })).toBeVisible();
   await page.getByRole('tab', { name: /People/ }).click();
-  await page.getByRole('button', { name: 'Show QR' }).click();
+  await page.getByRole('button', { name: 'Share room' }).click();
+  await page.getByRole('button', { name: 'Enlarge QR' }).click();
   await expect(page.getByRole('dialog')).toContainText('Scan to join');
   await page.getByRole('button', { name: 'Close projected QR' }).click();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -210,8 +288,11 @@ for (const scenario of ['zoomed-chat', 'zoomed-chat-tab', 'resized-requests']) {
   test(`composer remains above the keyboard with ${scenario}`, async ({ page }, testInfo) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await hostRoom(page);
-    if (scenario === 'resized-requests') await page.getByRole('tab', { name: /Requests/ }).click();
-    const input = page.getByRole('textbox', { name: scenario.startsWith('zoomed-chat') ? 'Message the room' : 'Request a track', includeHidden: true });
+    if (scenario === 'resized-requests') await page.getByRole('tab', { name: /Queue/ }).click();
+    const input = page.getByRole('textbox', {
+      name: scenario.startsWith('zoomed-chat') ? 'Message the room' : 'Find a track to add next',
+      includeHidden: true
+    });
     await input.fill('My words remain visible');
     await expect(page.locator('.bottom-nav')).toBeVisible();
     await page.evaluate(kind => {
@@ -232,7 +313,7 @@ for (const scenario of ['zoomed-chat', 'zoomed-chat-tab', 'resized-requests']) {
     await expect(page.locator('.player-stage').getByRole('slider')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Repeat this track', exact: true })).toBeVisible();
     await page.screenshot({ path: testInfo.outputPath(`${scenario}.png`) });
-    if (scenario === 'zoomed-chat-tab') await page.getByRole('tab', { name: /Requests/ }).click();
+    if (scenario === 'zoomed-chat-tab') await page.getByRole('tab', { name: /Queue/ }).click();
     else await page.getByRole('button', { name: 'Finish typing' }).click();
     // WebKit may keep the keyboard geometry after focus has already left.
     await expect(input).not.toBeFocused();
@@ -268,7 +349,7 @@ test('switching panels while typing keeps the tapped tab in place until release'
   });
   await expect(page.locator('.app-shell')).toHaveAttribute('data-composing', 'true');
   await expect(page.locator('.bottom-nav')).toBeHidden();
-  const requests = page.getByRole('tab', { name: /Requests/ });
+  const requests = page.getByRole('tab', { name: /Queue/ });
   const bounds = await requests.boundingBox();
   expect(bounds).not.toBeNull();
   await page.mouse.move(bounds!.x + bounds!.width / 2, bounds!.y + bounds!.height / 2);
@@ -278,7 +359,7 @@ test('switching panels while typing keeps the tapped tab in place until release'
   const duringPress = await requests.boundingBox();
   await page.mouse.up();
   expect(duringPress!.y).toBeCloseTo(bounds!.y, 0);
-  await expect(page.getByRole('textbox', { name: 'Request a track' })).toBeVisible();
+  await expect(page.getByRole('textbox', { name: 'Find a track to add next' })).toBeVisible();
 });
 
 test('focus waits for keyboard geometry without moving the player or tabs', async ({ page }) => {
@@ -384,10 +465,11 @@ test('keyboard transition retains an opaque canvas, player geometry and drafts a
   const shell = page.locator('.app-shell');
   const stage = page.locator('.player-stage');
   const before = await stage.boundingBox();
+  const transportBefore = (await page.locator('.player-transport').boundingBox())!;
   await page.evaluate(() => Reflect.set(window, '__transitionAudio', document.querySelector('audio')));
-  for (const tab of ['Chat', 'Requests']) {
+  for (const tab of ['Chat', 'Queue']) {
     await page.getByRole('tab', { name: new RegExp(`^${tab}`) }).click();
-    const input = page.getByRole('textbox', { name: tab === 'Chat' ? 'Message the room' : 'Request a track' });
+    const input = page.getByRole('textbox', { name: tab === 'Chat' ? 'Message the room' : 'Find a track to add next' });
     await input.fill(`Draft in ${tab}`);
     for (const height of [0, 500, 0, 310, Number.NaN, 310]) {
       const previous = await shell.boundingBox();
@@ -400,7 +482,14 @@ test('keyboard transition retains an opaque canvas, player geometry and drafts a
         expect((await shell.boundingBox())!.height).toBe(previous!.height);
       } else {
         await expect(shell).toHaveAttribute('data-composing', 'true');
-        expect((await stage.boundingBox())!.height).toBeCloseTo(before!.height, 0);
+        // Only the secondary reaction strip collapses for the keyboard. The
+        // artwork and primary transport retain their dimensions and position.
+        await expect(page.locator('.room-reaction-dock')).toBeHidden();
+        const keyboardStage = (await stage.boundingBox())!;
+        expect(keyboardStage.height).toBeLessThan(before!.height);
+        const transportAfter = (await page.locator('.player-transport').boundingBox())!;
+        expect(transportAfter.y - keyboardStage.y).toBeCloseTo(transportBefore.y - before!.y, 0);
+        expect(transportAfter.height).toBeCloseTo(transportBefore.height, 0);
         const inputBounds = (await input.boundingBox())!;
         expect(inputBounds.y + inputBounds.height).toBeLessThanOrEqual(height);
       }
@@ -451,3 +540,134 @@ for (const initialHeight of [0, Number.NaN]) {
     await expect(input).toHaveValue('The first valid frame can arrive after focus');
   });
 }
+
+test('live reactions reach both participants, stay available in Queue, and do not replay on return', async ({ browser }, testInfo) => {
+  const hostContext = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+  const guestContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  try {
+    const host = await hostContext.newPage();
+    const code = await hostRoom(host);
+    const guest = await guestContext.newPage();
+    guest.setDefaultTimeout(5000);
+    await guest.goto(`/#/rooms/${code}`);
+    await guest.getByLabel('Your name or nickname').fill('Mina');
+    await guest.getByRole('button', { name: 'Join and listen' }).click();
+    await expect(guest.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20000 });
+    await host.getByRole('textbox', { name: 'Message the room' }).fill('That bassline. Stay for the next track.');
+    await host.getByRole('button', { name: 'Send message' }).click();
+    await expect(guest.locator('.room-chat-role')).toHaveText('Host');
+    await guest.getByRole('textbox', { name: 'Message the room' }).fill('Right here with you.');
+    await guest.getByRole('button', { name: 'Send message' }).click();
+    await expect(host.getByRole('log')).toContainText('Right here with you.');
+    await guest.getByRole('tab', { name: 'Queue', exact: true }).click();
+    await guest.getByRole('button', { name: 'React heart', exact: true }).click();
+    await expect(host.locator('.room-reaction-activity')).toContainText('Mina');
+    await expect(guest.locator('.room-reaction-activity')).toContainText('You');
+    await expect(host.locator('.room-reaction-trail > span')).toHaveCount(1);
+    await host.screenshot({ path: testInfo.outputPath('desktop-live-chat.png') });
+    await guest.getByRole('tab', { name: 'Chat', exact: true }).click();
+    await guest.screenshot({ path: testInfo.outputPath('mobile-live-chat.png') });
+    await expect(guest.locator('.room-reaction-trail > span')).toHaveCount(0);
+    await guest.getByRole('button', { name: 'More reactions' }).click();
+    const palette = guest.getByRole('group', { name: 'All reactions', exact: true });
+    await expect(palette.getByRole('button', { name: 'React heart', exact: true })).toBeFocused();
+    await palette.getByRole('checkbox', { name: 'Animate reactions' }).uncheck();
+    await palette.getByRole('button', { name: 'React sparkle' }).click();
+    await expect(guest.getByRole('button', { name: 'More reactions' })).toBeFocused();
+    await expect(guest.locator('.room-reaction-activity')).toContainText('reacted sparkle');
+    await expect(guest.locator('.room-reaction-trail')).toBeHidden();
+    await guest.getByRole('button', { name: 'More reactions' }).click();
+    await palette.press('Escape');
+    await expect(guest.getByRole('button', { name: 'More reactions' })).toBeFocused();
+    await guest.locator('.bottom-nav').getByRole('button', { name: 'Music', exact: true }).click();
+    await guest.getByRole('button', { name: /^Return to room/ }).click();
+    await expect(guest.locator('.room-reaction-trail > span')).toHaveCount(0);
+    await guestContext.setOffline(true);
+    await expect(guest.getByRole('button', { name: 'React heart', exact: true })).toBeDisabled({ timeout: 15000 });
+  } finally {
+    await guestContext.close().catch(() => {});
+    await hostContext.close().catch(() => {});
+  }
+});
+
+test('live chat lets readers pause history and catch up after visiting another tab', async ({ browser }) => {
+  const hostContext = await browser.newContext();
+  const guestContext = await browser.newContext({ viewport: { width: 320, height: 568 } });
+  try {
+    const host = await hostContext.newPage();
+    const code = await hostRoom(host);
+    const guest = await guestContext.newPage();
+    await guest.goto(`/#/rooms/${code}`);
+    await guest.getByLabel('Your name or nickname').fill('Mina');
+    await guest.getByRole('button', { name: 'Join and listen' }).click();
+    await expect(guest.getByRole('log')).toBeVisible();
+    for (let index = 0; index < 7; index++) {
+      await host
+        .getByRole('textbox', { name: 'Message the room' })
+        .fill(`Track ${index}: there is so much to hear in this arrangement. Listen to the percussion.`);
+      await host.getByRole('button', { name: 'Send message' }).click();
+      await expect(guest.getByRole('log')).toContainText(`Track ${index}:`);
+      await host.waitForTimeout(1050); // Respect the real server's 5 messages / 5s limit.
+    }
+    const log = guest.getByRole('log');
+    await log.evaluate(element => {
+      element.scrollTop = 0;
+      element.dispatchEvent(new Event('scroll'));
+    });
+    await host.getByRole('textbox', { name: 'Message the room' }).fill('A new thought while you read');
+    await host.getByRole('button', { name: 'Send message' }).click();
+    await expect(guest.getByRole('button', { name: /\d+ new messages?/ })).toBeVisible();
+    expect(await log.evaluate(element => element.scrollTop)).toBeLessThan(2);
+    await guest.getByRole('tab', { name: 'Queue', exact: true }).click();
+    await expect(guest.locator('#room-tab-chat')).toContainText('Chat');
+    await expect(guest.locator('#room-tab-chat .room-request-count')).toBeVisible();
+    await guest.locator('#room-tab-chat').click();
+    await guest.getByRole('button', { name: /\d+ new messages?/ }).click();
+    await expect(guest.locator('#room-tab-chat .room-request-count')).toHaveCount(0);
+    expect(await log.evaluate(element => element.scrollHeight - element.scrollTop - element.clientHeight)).toBeLessThan(2);
+  } finally {
+    await guestContext.close();
+    await hostContext.close();
+  }
+});
+
+test('chat preserves IME composition and rejected drafts without automatic resend', async ({ page }) => {
+  await hostRoom(page);
+  const input = page.getByRole('textbox', { name: 'Message the room' });
+  await input.fill('Composing a thought');
+  await input.dispatchEvent('keydown', { key: 'Enter', code: 'Enter', isComposing: true, bubbles: true, cancelable: true });
+  await expect(page.getByRole('log')).not.toContainText('Composing a thought');
+  await expect(input).toHaveValue('Composing a thought');
+  for (let index = 0; index < 5; index++) {
+    await input.fill(`Accepted ${index}`);
+    await page.getByRole('button', { name: 'Send message' }).click();
+    await expect(input).toHaveValue('');
+  }
+  await input.fill('Keep this draft');
+  await page.getByRole('button', { name: 'Send message' }).click();
+  await expect(page.locator('.room-chat-connection')).toBeVisible();
+  await expect(input).toHaveValue('Keep this draft');
+  await page.waitForTimeout(5200);
+  await expect(page.getByRole('log')).not.toContainText('Keep this draft');
+  await expect(input).toHaveValue('Keep this draft');
+});
+
+test('reaction feedback remains readable without motion and picker fits a 320px screen', async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 320, height: 568 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await hostRoom(page);
+  await page.getByRole('button', { name: 'React fire', exact: true }).click();
+  await expect(page.locator('.room-reaction-activity')).toContainText('You');
+  await expect(page.locator('.room-reaction-trail')).toBeHidden();
+  await page.getByRole('button', { name: 'More reactions' }).click();
+  const picker = page.getByRole('group', { name: 'All reactions', exact: true });
+  const bounds = (await picker.boundingBox())!;
+  expect(bounds.x).toBeGreaterThanOrEqual(0);
+  expect(bounds.x + bounds.width).toBeLessThanOrEqual(320);
+  for (const button of await picker.getByRole('button').all()) {
+    const rect = (await button.boundingBox())!;
+    expect(rect.width).toBeGreaterThanOrEqual(44);
+    expect(rect.height).toBeGreaterThanOrEqual(44);
+  }
+  await page.screenshot({ path: testInfo.outputPath('mobile-reaction-picker.png') });
+});

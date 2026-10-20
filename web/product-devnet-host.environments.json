@@ -1,0 +1,13 @@
+{
+  "environments": [
+    {
+      "id": "devnet",
+      "contracts": {
+        "DOTNS_REGISTRY": "0xb052E5EfC5ADEff1f21d48DEfb5169Cb394A1a73",
+        "DOTNS_RESOLVER": "0x7e75491ecfb04900EB05ee63CABA2B33900aABB5",
+        "DOTNS_CONTENT_RESOLVER": "0x7e75491ecfb04900EB05ee63CABA2B33900aABB5"
+      }
+    }
+  ],
+  "chains": []
+}

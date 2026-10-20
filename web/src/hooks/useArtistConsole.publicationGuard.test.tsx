@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import { useArtistConsole, type UseArtistConsoleDeps } from './useArtistConsole';
+import { createEmptyReleaseMetadata } from '../features/catalog/releaseMetadata';
 
 describe('useArtistConsole publication guard', () => {
   it('stops profile and release publication before wallet or upload work when public deployment safety is unresolved', async () => {
@@ -21,6 +22,8 @@ describe('useArtistConsole publication guard', () => {
       title: 'Guarded release',
       artistName: 'Guarded artist',
       description: '',
+      releaseMetadata: createEmptyReleaseMetadata(),
+      durationSeconds: null,
       accessMode: 'free',
       priceDot: '0',
       personhoodLevel: 'DIM1',

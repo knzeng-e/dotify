@@ -6,12 +6,14 @@ on:
     paths:
       - "contracts/evm/**"
       - "web/src/generated/**"
+      - "services/api/src/generated/**"
       - ".github/workflows/ci-evm.yml"
   pull_request:
     branches: [main, master]
     paths:
       - "contracts/evm/**"
       - "web/src/generated/**"
+      - "services/api/src/generated/**"
       - ".github/workflows/ci-evm.yml"
 
 concurrency:
@@ -42,4 +44,4 @@ jobs:
         run: npm run generate:abis
       - name: Fail on ABI drift
         working-directory: .
-        run: git diff --exit-code -- web/src/generated
+        run: git diff --exit-code -- web/src/generated services/api/src/generated

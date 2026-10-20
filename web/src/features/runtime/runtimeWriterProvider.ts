@@ -6,11 +6,13 @@
 // available only in builds that explicitly opt in to the Product contract graph.
 
 import { SupportNotSubmittedError } from '../payments/supportPayment';
+import { assertNativeAccessPayment } from '../payments/paymentModel';
 import type { getWalletClient } from '../../shared/config/contracts';
 import { createProductCdmRuntimeWriter, productCdmPaymentWasNotSubmitted } from './productCdmRuntimeAdapter';
 import { resolveRuntimeAdapterConfig, type RuntimeAdapterConfig } from './runtimeAdapterConfig';
 import type { RuntimeAccessPolicyUpdate, RuntimeTrackRegistration, RuntimeWritePort } from './runtimePorts';
 import { createViemRuntimeWriter } from './viemRuntimeAdapter';
+import { readNativeContributionReceiptApi } from './nativeContributionReceiptApi';
 
 type ViemWalletClient = Awaited<ReturnType<typeof getWalletClient>>;
 
@@ -28,6 +30,7 @@ export type RuntimeWriterDeps = {
   getViemWalletClient: () => Promise<ViemWalletClient>;
   config?: RuntimeAdapterConfig;
   productAccount?: ProductRuntimeSignerAccount;
+  nativeReceiptApiUrl?: string;
 };
 
 // Build-time constant. A viem build must not import the Product contract graph,
@@ -141,12 +144,17 @@ async function createProductCdmWriter(config: RuntimeAdapterConfig, productAccou
   const { createProductCdmContracts } = await import('./productCdmContracts');
   const signerManager = await createProductSignerManager(productAccount);
   try {
-    const { resolver, nativeTokenDecimals, verifyDeployment } = await createProductCdmContracts({
+    const { resolver, nativeTokenDecimals, readAvailableBalance, verifyDeployment } = await createProductCdmContracts({
       environment: config.productEnvironment,
       signerManager
     });
     await verifyDeployment();
-    return createProductCdmRuntimeWriter({ contracts: resolver, nativeTokenDecimals });
+    const address = signerManager.getState().selectedAccount?.address;
+    return createProductCdmRuntimeWriter({
+      contracts: resolver,
+      nativeTokenDecimals,
+      ...(address && readAvailableBalance ? { readAvailableBalance: () => readAvailableBalance(address) } : {})
+    });
   } catch (error) {
     signerManager.destroy();
     throw error;
@@ -175,10 +183,41 @@ export function createRuntimeWriter(deps: RuntimeWriterDeps): RuntimeWritePort {
   }
 
   return {
+    contributionConfirmationMode: config.kind === 'product-cdm' ? 'finalized-event' : 'evm-receipt',
+    readFinalizedContributionLogs: async (hash, block) => {
+      if (!PRODUCT_CDM_ENABLED || config.kind !== 'product-cdm') throw new Error('Native contribution receipts require the Product CDM profile.');
+      return readNativeContributionReceiptApi({ apiUrl: deps.nativeReceiptApiUrl ?? import.meta.env.VITE_DOTIFY_API_URL, hash, block });
+    },
+    contributionCall: async (runtime, method, args, value, onFinalized, observer) => {
+      let port: RuntimeWritePort;
+      try {
+        port = await portForWrite();
+      } catch (error) {
+        throw new SupportNotSubmittedError(error);
+      }
+      if (!port.contributionCall) throw new SupportNotSubmittedError(new Error('This wallet cannot submit contributions.'));
+      try {
+        return await port.contributionCall(runtime, method, args, value, onFinalized, observer);
+      } catch (error) {
+        if (config.kind === 'product-cdm' && productCdmPaymentWasNotSubmitted(error)) throw new SupportNotSubmittedError(error);
+        throw error;
+      }
+    },
+    inspectPayment: async intent => {
+      assertNativeAccessPayment(intent);
+      const port = await portForWrite();
+      return port.inspectPayment ? port.inspectPayment(intent) : {};
+    },
     createRuntime: factoryAddress => portForWrite().then(port => port.createRuntime(factoryAddress)),
     installRuntimeStep: factoryAddress => portForWrite().then(port => port.installRuntimeStep(factoryAddress)),
     registerTrack: (runtimeAddress, registration: RuntimeTrackRegistration) => portForWrite().then(port => port.registerTrack(runtimeAddress, registration)),
-    payForAccess: async intent => {
+    updateMetadata: (runtimeAddress, contentHash, title, description, metadataRef, expectedMetadataRef) =>
+      portForWrite().then(port => {
+        if (!port.updateMetadata) throw new Error('This artist runtime needs the metadata editing upgrade.');
+        return port.updateMetadata(runtimeAddress, contentHash, title, description, metadataRef, expectedMetadataRef);
+      }),
+    payForAccess: async (intent, onStatus) => {
+      assertNativeAccessPayment(intent);
       let port: RuntimeWritePort;
       try {
         port = await portForWrite();
@@ -186,7 +225,7 @@ export function createRuntimeWriter(deps: RuntimeWriterDeps): RuntimeWritePort {
         throw new SupportNotSubmittedError(error);
       }
       try {
-        return await port.payForAccess(intent);
+        return await (onStatus ? port.payForAccess(intent, onStatus) : port.payForAccess(intent));
       } catch (error) {
         // Product contract sizing uses a dry-run before signing/submission. A
         // documented pre-submit failure is safe to clear from the local payment

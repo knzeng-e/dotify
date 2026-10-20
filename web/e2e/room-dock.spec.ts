@@ -1,11 +1,13 @@
 import { expect, test, type Page } from '@playwright/test';
 
 async function navigate(page: Page, name: 'Music' | 'Rooms', width: number) {
+  const back = page.getByRole('button', { name: 'Back to Music', exact: true });
+  if (await back.isVisible()) await back.click();
   const nav = width <= 768 ? page.locator('.bottom-nav') : page.locator('.topbar');
   await nav.getByRole('button', { name, exact: true }).click();
 }
 
-for (const width of [320, 390, 1440]) {
+for (const width of [320, 390, 430, 1440]) {
   test(`room dock follows the host instead of the last solo selection at ${width}px`, async ({ browser }, testInfo) => {
     const hostContext = await browser.newContext({ viewport: { width: 1440, height: 900 } });
     const guestContext = await browser.newContext({ viewport: { width, height: 844 } });
@@ -16,7 +18,7 @@ for (const width of [320, 390, 1440]) {
       await host.goto(fixture);
       await host.getByRole('button', { name: 'Open a room', exact: true }).click();
       await host.getByRole('button', { name: 'Select E2E Public Room Track', exact: true }).click();
-      await host.getByLabel('Your name in the room').fill('Live host');
+      await host.getByLabel('Your name or nickname').fill('Live host');
       await host.getByRole('button', { name: 'Open the room', exact: true }).click();
       const code = host.getByTestId('room-code');
       await expect(code).toHaveText(/[A-Z0-9]{4,}/);
@@ -31,10 +33,11 @@ for (const width of [320, 390, 1440]) {
       await expect(dock.locator('.player-dock-title')).toHaveText('Second room track');
       await expect(dock.locator('.player-dock-room')).toHaveCount(0);
       await navigate(guest, 'Rooms', width);
+      await guest.getByRole('button', { name: 'Join by link', exact: true }).click();
       await guest.getByLabel('Room code or link').fill(roomId);
       await guest.getByRole('button', { name: 'Join', exact: true }).click();
-      await guest.getByLabel('Your name in the room').fill('Live guest');
-      await guest.getByRole('button', { name: 'Enter and listen', exact: true }).click();
+      await guest.getByLabel('Your name or nickname').fill('Live guest');
+      await guest.getByRole('button', { name: 'Join room', exact: true }).click();
       await expect(guest.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20_000 });
       const roomCover = await guest.locator('.cover img').getAttribute('src');
       await guest.evaluate(() => Reflect.set(window, '__dockRemoteStream', document.querySelectorAll<HTMLAudioElement>('audio')[1].srcObject));
@@ -43,6 +46,9 @@ for (const width of [320, 390, 1440]) {
       await expect(dock.locator('.player-dock-art img')).toHaveAttribute('src', roomCover!);
       const context = dock.getByRole('button', { name: 'Return to room · Room live · 2 people including you', exact: true });
       await expect(context).toBeVisible();
+      await expect(dock.locator('.player-dock-artist')).toHaveText('With Live host');
+      const returnTarget = (await context.boundingBox())!;
+      expect(returnTarget.height).toBeGreaterThanOrEqual(44);
       for (const name of ['Next track', 'Previous track', 'Shuffle', 'Repeat this track']) {
         await expect(dock.getByRole('button', { name, exact: true })).toHaveCount(0);
       }
@@ -68,7 +74,7 @@ for (const width of [320, 390, 1440]) {
       await expect(guest.locator('#room-panel-chat .room-chat-panel')).toContainText('2 here');
       await navigate(host, 'Music', 1440);
       await expect(host.locator('.player-dock-room')).toContainText('Hosting live');
-      await expect(host.locator('.player-dock-presence')).toHaveText('2');
+      await expect(host.locator('.player-dock-count')).toHaveText('2 here');
       await expect(host.locator('.player-dock').getByRole('button', { name: 'Next track', exact: true })).toBeEnabled();
       await host.getByRole('button', { name: /^Play E2E Public Room Track by/ }).click();
       await expect(guest.locator('.track-copy h2')).toHaveText('E2E Public Room Track');
@@ -76,7 +82,7 @@ for (const width of [320, 390, 1440]) {
       await guest.getByRole('button', { name: 'Leave', exact: true }).click();
       await expect(guest.locator('.track-copy h2')).toHaveText('Second room track');
       await navigate(host, 'Music', 1440);
-      await expect(host.locator('.player-dock-presence')).toHaveText('1');
+      await expect(host.locator('.player-dock-count')).toHaveText('1 here');
       await navigate(guest, 'Music', width);
       await expect(guest.locator('.player-dock-room')).toHaveCount(0);
       await expect(dock.locator('.player-dock-title')).toHaveText('Second room track');

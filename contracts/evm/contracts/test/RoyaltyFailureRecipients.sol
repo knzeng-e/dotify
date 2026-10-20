@@ -3,6 +3,7 @@ pragma solidity ^0.8.28;
 
 interface IRoyaltyClaimRuntime {
   function musicRoyClaim(address recipient) external returns (uint256 amount, bool settled);
+  function musicGiftClaim(bytes32 id) external;
 }
 
 contract RejectingRoyaltyRecipient {
@@ -21,6 +22,10 @@ contract GasConsumingRoyaltyRecipient {
 
   function setBurnGas(bool nextBurnGas) external {
     burnGas = nextBurnGas;
+  }
+
+  function claimContribution(address runtime, bytes32 id) external {
+    IRoyaltyClaimRuntime(runtime).musicGiftClaim(id);
   }
 
   receive() external payable {

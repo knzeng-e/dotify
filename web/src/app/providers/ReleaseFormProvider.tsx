@@ -13,15 +13,20 @@
 
 import { createContext, useContext, useMemo, useRef, useState, type Dispatch, type MutableRefObject, type ReactNode, type SetStateAction } from 'react';
 import { DEFAULT_TRACK_TITLE } from '../../features/uploads/uploadModel';
-import type { AccessMode, ArtistTab, AssetAction, PersonhoodLevel, ReleaseRoyaltySplitDraft, ReleaseStep } from '../../shared/types';
+import { createEmptyReleaseMetadata } from '../../features/catalog/releaseMetadata';
+import type { AccessMode, ArtistTab, AssetAction, PersonhoodLevel, ReleaseEditorialMetadata, ReleaseRoyaltySplitDraft, ReleaseStep } from '../../shared/types';
 
-const DEFAULT_DESCRIPTION = 'Describe the story, rights context, and intended audience for this track.';
+const DEFAULT_DESCRIPTION = '';
 
 type ReleaseFormValue = {
   title: string;
   setTitle: Dispatch<SetStateAction<string>>;
   description: string;
   setDescription: Dispatch<SetStateAction<string>>;
+  releaseMetadata: ReleaseEditorialMetadata;
+  setReleaseMetadata: Dispatch<SetStateAction<ReleaseEditorialMetadata>>;
+  durationSeconds: number | null;
+  setDurationSeconds: Dispatch<SetStateAction<number | null>>;
   artistName: string;
   setArtistName: Dispatch<SetStateAction<string>>;
   priceDot: string;
@@ -52,6 +57,8 @@ const ReleaseFormContext = createContext<ReleaseFormValue | null>(null);
 export function ReleaseFormProvider({ children }: { children: ReactNode }) {
   const [title, setTitle] = useState(DEFAULT_TRACK_TITLE);
   const [description, setDescription] = useState(DEFAULT_DESCRIPTION);
+  const [releaseMetadata, setReleaseMetadata] = useState<ReleaseEditorialMetadata>(createEmptyReleaseMetadata);
+  const [durationSeconds, setDurationSeconds] = useState<number | null>(null);
   const [artistName, setArtistName] = useState('');
   const [priceDot, setPriceDot] = useState('0.5');
   const [royaltyBps, setRoyaltyBps] = useState(7000);
@@ -71,6 +78,10 @@ export function ReleaseFormProvider({ children }: { children: ReactNode }) {
       setTitle,
       description,
       setDescription,
+      releaseMetadata,
+      setReleaseMetadata,
+      durationSeconds,
+      setDurationSeconds,
       artistName,
       setArtistName,
       priceDot,
@@ -98,6 +109,8 @@ export function ReleaseFormProvider({ children }: { children: ReactNode }) {
     [
       title,
       description,
+      releaseMetadata,
+      durationSeconds,
       artistName,
       priceDot,
       royaltyBps,

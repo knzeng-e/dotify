@@ -1,5 +1,118 @@
 /* Active rooms have one bounded conversation area. Audio is still owned by
    PersistentAudio; switching views only hides panels and preserves drafts. */
+.room-social-context {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 0.25rem;
+}
+.room-social-context .room-live-chip {
+  justify-self: start;
+}
+.room-social-context .room-header-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.room-social-context .room-header-meta {
+  justify-self: start;
+  min-height: 1.75rem;
+  border-radius: var(--radius-full);
+  background: transparent;
+  padding: 0 0.4rem 0 0;
+  text-align: left;
+}
+.room-social-context .room-header-meta:hover {
+  color: var(--ink);
+}
+.room-back,
+.room-exit-trigger,
+.room-share-trigger {
+  flex-shrink: 0;
+}
+/* Leaving is one tap from anywhere in the room; the label joins the icon when there is width for it. */
+.room-exit-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+.room-exit-label,
+.room-back-wide,
+.room-back-label {
+  display: none;
+}
+.room-back {
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+@media (min-width: 769px) {
+  .room-back {
+    display: inline-flex;
+    width: auto;
+    align-items: center;
+    gap: 0.45rem;
+    padding-inline: 0.9rem;
+  }
+  .room-back-compact {
+    display: none;
+  }
+  .room-back-wide,
+  .room-back-label {
+    display: inline;
+  }
+  .room-exit-trigger {
+    width: auto;
+    padding-inline: 0.9rem;
+  }
+  .room-exit-label {
+    display: inline;
+  }
+}
+.room-panel-switch button[id='room-tab-people'] {
+  display: inline-flex;
+  flex: 0 0 auto;
+  min-width: 4.25rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+.room-people-count {
+  font-variant-numeric: tabular-nums;
+}
+/* The host's one outward gesture: the invite stays labeled and lit at the top of the room. */
+.room-share-trigger[data-invite] {
+  display: inline-flex;
+  width: auto;
+  align-items: center;
+  gap: 0.45rem;
+  border-color: var(--line-strong);
+  padding-inline: 0.9rem;
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+.room-share-trigger[data-invite][data-alone] {
+  border-color: var(--action);
+  background: var(--action);
+  color: var(--on-action);
+}
+.room-share-link {
+  display: block;
+  overflow-wrap: anywhere;
+  margin-block: 1rem;
+}
+.room-request-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5em;
+  margin-left: 0.35em;
+  border-radius: 50%;
+  background: var(--action);
+  color: var(--canvas);
+  font-size: 0.8em;
+}
 .room-panel-switch {
   display: flex;
   gap: 0.25rem;
@@ -8,6 +121,9 @@
   background: var(--surface);
 }
 .room-panel-switch button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex: 1;
   min-height: var(--touch-target);
   border-radius: var(--radius-sm);
@@ -49,7 +165,33 @@
   min-height: 0;
   height: 100%;
 }
+.room-queue-pane:not([hidden]) {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.room-queue-pane > .host-lineup {
+  flex: 0 1 auto;
+  max-height: 50%;
+  min-height: var(--touch-target);
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  padding: 0 0.65rem;
+}
+.room-queue-pane > .host-lineup[data-host='true'] {
+  max-height: 75%;
+}
+.player-room-mode .room-queue-pane > .room-requests-panel {
+  flex: 1;
+  height: auto;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+}
 .player-room-mode .room-chat-panel {
+  border-color: transparent;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -66,25 +208,12 @@
   padding: 1rem 0;
   max-width: 34ch;
 }
-.player-room-mode .room-chat-reactions {
-  flex-shrink: 0;
-  justify-content: space-between;
-}
-.player-room-mode .room-react-btn {
-  width: var(--touch-target);
-  min-height: var(--touch-target);
-  border: 0;
-  background: transparent;
-}
 .player-room-mode .room-chat-form {
   flex-shrink: 0;
 }
 .player-room-mode .room-chat-send {
   background: var(--action);
   color: var(--on-action);
-}
-.player-room-mode .room-chat-body {
-  max-width: 88%;
 }
 .player-room-mode .room-chat-text {
   color: var(--ink);
@@ -107,14 +236,21 @@
 .room-invite-card {
   display: grid;
   gap: 0.8rem;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-  background: var(--surface-soft);
+  border: 1px solid transparent;
+  border-radius: 0;
+  background: transparent;
   padding: 0.9rem;
 }
 .room-invite-card[data-alone='true'] {
-  border-color: color-mix(in srgb, var(--action) 45%, var(--line));
-  background: linear-gradient(135deg, var(--action-soft), var(--surface-soft) 70%);
+  border-color: transparent;
+  background: transparent;
+}
+.player-room-mode .session-panel,
+.player-room-mode .room-requests-panel {
+  border-color: transparent;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 .room-invite-copy {
   display: grid;
@@ -133,6 +269,26 @@
 .room-invite-actions button {
   justify-content: center;
   padding-inline: 0.7rem;
+}
+.player-room-mode .room-invite-actions .secondary-action {
+  border-color: color-mix(in srgb, var(--ink) 34%, transparent);
+  background: color-mix(in srgb, var(--canvas) 82%, var(--surface));
+  color: var(--ink);
+}
+.player-room-mode .room-invite-actions .primary-action {
+  border-color: var(--action);
+  background: var(--action);
+  color: var(--on-action);
+}
+.player-room-mode .room-invite-actions .secondary-action:hover:not(:disabled) {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--canvas);
+}
+.player-room-mode .room-invite-actions .primary-action:hover:not(:disabled) {
+  border-color: var(--action-hover);
+  background: var(--action-hover);
+  color: var(--on-action);
 }
 
 @media (min-width: 769px) and (min-height: 800px) {
@@ -184,7 +340,14 @@
     grid-column: 1;
     grid-row: 5;
     overflow-y: auto;
-    padding: 1rem;
+    padding: 0.6rem 1rem 0.85rem;
+  }
+  .player-room-mode .room-invite-card {
+    gap: 0.55rem;
+    padding: 0.45rem 0;
+  }
+  .player-room-mode .room-invite-copy {
+    gap: 0.15rem;
   }
   .player-room-mode .room-conversation-pane {
     grid-column: 2;
@@ -214,6 +377,7 @@
   }
   .app-shell[data-room-focus='true'] {
     background-color: var(--canvas);
+    background-image: var(--listening-background);
     position: fixed;
     top: var(--room-viewport-top, 0px);
     left: 0;
@@ -224,7 +388,7 @@
     flex-direction: column;
   }
   .app-shell[data-room-focus='true'] .topbar {
-    flex-shrink: 0;
+    display: none;
   }
   .app-shell[data-room-focus='true'] .app-content {
     flex: 1;
@@ -232,7 +396,9 @@
   }
   .app-shell[data-room-focus='true'] .content {
     height: 100%;
-    padding: 0.25rem var(--content-pad) 0.5rem;
+    padding: max(0.25rem, env(safe-area-inset-top)) var(--content-pad) 0.5rem;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
   }
   .app-shell[data-room-focus='true'] .bottom-nav {
     position: static;
@@ -251,7 +417,7 @@
   }
   .player-room-mode .room-header {
     flex-shrink: 0;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     min-height: 2.75rem;
     padding: 0;
     gap: 0.5rem;
@@ -273,6 +439,8 @@
     background: transparent;
     padding: 0;
     min-height: 0;
+    max-width: 100%;
+    flex-wrap: wrap;
   }
   .player-room-mode .room-code-pill > span {
     display: none;
@@ -384,7 +552,9 @@
   .player-room-mode .player-lower-grid {
     order: 3;
     flex: 1;
-    min-height: 0;
+    /* When enlarged text fills the viewport, let the room scroll rather than
+       collapsing the conversation and composer beneath fixed navigation. */
+    min-height: 11rem;
     display: block;
     margin: 0;
   }
@@ -414,9 +584,11 @@
   .player-room-mode .room-chat-panel .panel-title {
     display: none;
   }
-  .player-room-mode .room-chat-reactions {
-    padding-top: 0.35rem;
-    margin-top: 0.35rem;
+  .player-room-mode .room-requests-panel .panel-title {
+    display: flex;
+    flex-wrap: wrap;
+    margin: 0;
+    padding-block: 0.25rem;
   }
   .player-room-mode .room-chat-form {
     margin-top: 0.35rem;
@@ -494,6 +666,135 @@
 .host-lineup select {
   min-width: 0;
 }
+
+.room-request-search-form {
+  display: grid;
+  gap: 0.65rem;
+  flex-shrink: 0;
+}
+.player-room-mode .room-requests-panel .room-chat-list {
+  display: block;
+  flex: 0 0 auto;
+  height: auto;
+  max-height: 180px;
+}
+.room-requests-panel .panel-title {
+  flex-shrink: 0;
+}
+.room-track-search {
+  min-width: 0;
+}
+.room-track-search-field {
+  position: relative;
+}
+.room-track-browse {
+  position: absolute;
+  right: 0.35rem;
+  top: 50%;
+  transform: translateY(-50%);
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--muted);
+}
+.room-track-browse:hover,
+.room-track-browse:focus-visible {
+  color: var(--action);
+  background: color-mix(in srgb, var(--action) 10%, transparent);
+}
+.room-track-search-field > svg {
+  position: absolute;
+  left: 0.85rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
+  pointer-events: none;
+}
+.room-track-search-field .field {
+  padding-right: 3rem;
+  width: 100%;
+  padding-left: 2.6rem;
+}
+.room-track-results {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  max-height: 180px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-radius: var(--radius-sm);
+}
+.host-lineup .room-track-results li {
+  display: block;
+  padding: 0;
+  border: 0;
+}
+.room-track-results button {
+  width: 100%;
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.5rem;
+  text-align: left;
+  background: transparent;
+  color: var(--ink);
+  border-bottom: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+.room-track-results button:hover,
+.room-track-results button:focus-visible {
+  background: var(--surface-soft);
+  outline: 2px solid var(--action);
+  outline-offset: -2px;
+}
+.room-track-results button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.room-track-results img {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+}
+.room-track-results button > span {
+  min-width: 0;
+  flex: 1;
+  display: grid;
+  gap: 0.15rem;
+}
+.room-track-results strong,
+.room-track-results small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.room-track-results strong {
+  font-size: var(--text-sm);
+}
+.room-track-results small,
+.room-track-search-hint {
+  color: var(--muted);
+  font-size: var(--text-xs);
+}
+.room-track-search-hint {
+  display: block;
+  margin-block: 0.5rem;
+  line-height: 1.5;
+}
+.room-req-add {
+  min-width: var(--touch-target);
+  min-height: var(--touch-target);
+  background: transparent;
+  color: var(--action);
+}
 .host-lineup ol {
   padding: 0;
   list-style: none;
@@ -523,7 +824,7 @@
   display: block;
   color: var(--muted);
 }
-.host-lineup li button {
+.host-lineup ol > li > button {
   flex: 0 0 var(--touch-target);
   width: var(--touch-target);
   height: var(--touch-target);
@@ -636,17 +937,32 @@
     right: auto;
     width: var(--room-viewport-width, 100%);
   }
-  .player-room-mode .room-chat-form .field {
+  .player-room-mode .room-chat-form .field,
+  .player-room-mode .host-lineup .field,
+  .player-room-mode .room-request-search-form .field {
     height: var(--touch-target);
     padding-block: 0.5rem;
     font-size: var(--text-base);
   }
   .app-shell[data-room-focus='true'][data-composing='true'] .topbar,
   .app-shell[data-room-focus='true'][data-composing='true'] .bottom-nav,
-  .app-shell[data-composing='true'] .room-chat-reactions,
+  .app-shell[data-composing='true'] .room-queue-pane > .host-lineup:not([data-host='true']),
+  .app-shell[data-composing='true'] .host-lineup[data-host='true'] > :not(.room-track-search),
+  .app-shell[data-composing='true'] .room-requests-panel[data-host='true'],
+  .app-shell[data-composing='true'] .room-requests-panel .room-chat-list,
+  .app-shell[data-composing='true'] .room-requests-panel .panel-title,
   .app-shell[data-composing='true'] .room-code-pill,
+  .app-shell[data-composing='true'] .room-back,
+  .app-shell[data-composing='true'] .room-exit-trigger,
+  .app-shell[data-composing='true'] .room-share-trigger,
+  .app-shell[data-composing='true'] .room-social-context .room-header-meta,
   .app-shell[data-composing='true'] .player-room-mode .access-badges {
     display: none;
+  }
+  .app-shell[data-composing='true'] .room-queue-pane > .host-lineup[data-host='true'] {
+    flex: 1;
+    max-height: none;
+    border: 0;
   }
   .app-shell[data-composing='true'] .room-composer-done {
     display: inline-flex;
@@ -670,5 +986,385 @@
   }
   .app-shell[data-composing='true'] .player-room-mode .room-chat-list {
     overscroll-behavior-y: contain;
+  }
+  .app-shell[data-composing='true'] .player-lower-grid {
+    min-height: 0;
+  }
+}
+.room-chat-panel {
+  position: relative;
+}
+.room-chat-status {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 8px;
+}
+.room-chat-status .room-chat-typing {
+  flex: 1;
+  min-width: 0;
+}
+.room-chat-status .room-chat-activity-toggle {
+  align-self: flex-end;
+  flex: 0 0 auto;
+  min-height: 32px;
+  gap: 6px;
+  padding: 4px 8px;
+  color: var(--ink-soft);
+  font-size: var(--text-xs);
+}
+@media (max-width: 360px) {
+  .player-room-mode .room-conversation-pane .room-chat-panel {
+    padding-block: 0;
+  }
+}
+.room-chat-activity-state {
+  color: var(--muted);
+}
+.room-chat-activity-toggle[aria-pressed='true'] .room-chat-activity-state {
+  color: var(--action);
+}
+.room-chat-activity {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+  color: var(--text-muted, #91a4b9);
+  font-size: 0.78rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.room-chat-activity[data-artist],
+.room-chat-row[data-artist] {
+  border-left: 2px solid #5ddcca;
+  background: rgb(93 220 202 / 5%);
+  border-radius: 5px;
+}
+.room-chat-activity[data-contribution] {
+  color: #5ddcca;
+}
+.room-chat-artist {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0 7px;
+  color: #5ddcca;
+  font-size: 0.68rem;
+}
+.room-chat-row .room-chat-text {
+  display: block;
+}
+.room-chat-message-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+.room-chat-message-actions[hidden] {
+  display: none;
+}
+.room-chat-message-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: var(--text-xs);
+  cursor: pointer;
+}
+.room-chat-interactive {
+  position: relative;
+  padding-right: 44px;
+  min-height: 44px;
+  touch-action: pan-y pinch-zoom;
+  transition: transform 140ms ease-out;
+}
+.room-chat-interactive[data-swiping] {
+  transition: none;
+}
+.room-chat-action-trigger {
+  position: absolute;
+  right: 0;
+  top: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+.room-chat-action-trigger:hover,
+.room-chat-action-trigger[aria-expanded='true'],
+.room-chat-message-actions button:hover {
+  color: var(--action);
+  background: var(--surface);
+}
+.room-chat-swipe-cue {
+  position: absolute;
+  top: 12px;
+  left: -28px;
+  color: var(--muted);
+}
+.room-chat-swipe-cue[data-ready='true'] {
+  color: var(--action);
+}
+@media (hover: hover) and (pointer: fine) {
+  .room-chat-action-trigger {
+    opacity: 0;
+  }
+  .room-chat-interactive:hover .room-chat-action-trigger,
+  .room-chat-interactive:focus-within .room-chat-action-trigger,
+  .room-chat-interactive[data-actions-open] .room-chat-action-trigger {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .room-chat-interactive {
+    transition: none;
+  }
+}
+.room-chat-quote {
+  margin: 5px 0;
+  padding: 4px 8px;
+  border-left: 2px solid #52687e;
+  font-size: 0.75rem;
+  color: #91a4b9;
+  overflow-wrap: anywhere;
+}
+.room-chat-pinned {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgb(93 220 202 / 8%);
+  flex: 0 0 auto;
+  max-height: 95px;
+  overflow: auto;
+  font-size: 0.8rem;
+}
+.room-chat-pinned p {
+  flex: 1;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.room-chat-pinned > svg {
+  flex: 0 0 auto;
+  color: #5ddcca;
+}
+.room-chat-typing {
+  min-height: 22px;
+  flex: 0 0 auto;
+  font-size: 0.72rem;
+  color: #91a4b9;
+  padding: 3px 8px;
+}
+.room-chat-typing > span {
+  color: #5ddcca;
+  letter-spacing: 2px;
+}
+.room-chat-reply-draft {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  padding: 4px 8px;
+}
+.room-chat-mention-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-height: 90px;
+  overflow: auto;
+}
+.room-chat-mention-picker button {
+  background: #13263a;
+  border: 1px solid #315369;
+  border-radius: 7px;
+  padding: 8px;
+  color: #baf4e9;
+  font: inherit;
+  font-size: 0.78rem;
+}
+.room-chat-unread-divider {
+  text-align: center;
+  color: #5ddcca;
+  font-size: 0.72rem;
+  border-top: 1px solid #315369;
+  margin: 8px 0;
+  padding-top: 6px;
+}
+.room-mention-count {
+  font-size: 0.68rem;
+  color: #ff8fba;
+  margin-left: 4px;
+}
+.app-shell[data-composing='true'] .room-chat-typing,
+.app-shell[data-composing='true'] .room-chat-pinned,
+.app-shell[data-composing='true'] .room-chat-activity-toggle {
+  display: none;
+}
+.app-shell[data-composing='true'] .room-chat-mention-picker {
+  max-height: 42px;
+  flex: 0 0 auto;
+}
+.artist-live-panel {
+  min-width: 0;
+  margin: 24px 0;
+  padding: clamp(18px, 3vw, 30px);
+  border: 1px solid #244d59;
+  border-radius: 18px;
+  background: linear-gradient(130deg, rgb(93 220 202 / 7%), transparent 70%);
+}
+.artist-live-panel .studio-next-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.artist-live-status {
+  font-size: 0.75rem;
+  color: #91a4b9;
+}
+.artist-live-status[data-online='true'] {
+  color: #5ddcca;
+}
+.artist-live-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(25px, 6vw, 80px);
+  margin: 20px 0 12px;
+}
+.artist-live-metrics p {
+  flex: 1 1 8rem;
+  min-width: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.artist-live-metrics strong {
+  font-size: 2.5rem;
+  line-height: 1;
+  font-weight: 600;
+}
+.artist-live-metrics strong[data-unavailable='true'] {
+  font-size: 1rem;
+  line-height: 1.4;
+  color: #a6b9ca;
+}
+.artist-live-metrics span {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: #a6b9ca;
+  overflow-wrap: anywhere;
+}
+.artist-live-explanation {
+  font-size: 0.8rem;
+  color: #91a4b9;
+  line-height: 1.6;
+  max-width: 66ch;
+}
+.artist-live-empty {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 18px 0 0;
+  color: #91a4b9;
+  font-size: 0.9rem;
+}
+.artist-live-empty svg {
+  flex: 0 0 auto;
+  color: #5ddcca;
+}
+.artist-live-rooms {
+  margin-top: 20px;
+}
+.artist-live-room {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 0;
+  border-top: 1px solid #253b50;
+}
+.artist-live-cover {
+  width: 54px;
+  height: 54px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.artist-live-room > div {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.artist-live-room strong {
+  overflow-wrap: anywhere;
+}
+.artist-live-room span,
+.artist-live-room small {
+  color: #91a4b9;
+  font-size: 0.8rem;
+}
+.artist-visit-name {
+  display: grid;
+  gap: 8px;
+  margin: 18px 0;
+}
+.artist-visit-consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 18px 0;
+  padding: 16px;
+  border: 1px solid #315369;
+  border-radius: 12px;
+}
+.artist-visit-consent input {
+  accent-color: #5ddcca;
+  margin-top: 4px;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+}
+.artist-visit-consent strong {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.artist-visit-consent small {
+  display: block;
+  margin-top: 8px;
+  line-height: 1.5;
+  color: #a6b9ca;
+}
+@media (max-width: 480px) {
+  .artist-live-room {
+    flex-wrap: wrap;
+  }
+  .artist-live-room > button {
+    margin-left: 68px;
+  }
+  .artist-live-panel .studio-section-head {
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .room-chat-pinned {
+    max-height: 64px;
   }
 }

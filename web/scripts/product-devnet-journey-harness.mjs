@@ -13,6 +13,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { normalizeIpfsCid } from './lib/ipfs-cid.mjs';
+import { PRODUCT_DEPLOY_PROFILE } from './product-deploy-environment-check.mjs';
 
 export const PRODUCT_JOURNEY_SCHEMA_VERSION = 1;
 export const EXPECTED_PRODUCT_DEVNET = {
@@ -27,7 +28,9 @@ export const EXPECTED_PRODUCT_DEVNET = {
   productSdkHost: '0.19.1',
   productSdkDescriptors: '0.11.0',
   productSdkStatementStore: '0.6.9',
-  productDeployCli: '0.16.2'
+  productSdkTx: '0.4.7',
+  truapi: '0.13.1',
+  productDeployCli: PRODUCT_DEPLOY_PROFILE.cliVersion
 };
 
 const REQUIRED_PRODUCT_ORIGINS = [
@@ -182,6 +185,29 @@ function checkPackage(gates, lockfile, packageName, expectedVersion) {
   }
 }
 
+function commandPosition(script, fragment) {
+  const index = script.indexOf(fragment);
+  return index === -1 ? null : index;
+}
+
+function hasDeployEnvironmentPreflightBeforePublication(deployScript, deployEnvironmentCheck) {
+  const preflightIndex = commandPosition(deployScript, 'npm run verify:product-deploy-environment');
+  if (preflightIndex === null) return false;
+
+  const expectedCliPackage = `${PRODUCT_DEPLOY_PROFILE.packageName}@${EXPECTED_PRODUCT_DEVNET.productDeployCli}`;
+  if (!deployEnvironmentCheck.includes(expectedCliPackage)) return false;
+
+  const firstSensitiveStep = [
+    commandPosition(deployScript, 'npm run build:product-devnet:frozen'),
+    commandPosition(deployScript, expectedCliPackage),
+    commandPosition(deployScript, ' pad')
+  ]
+    .filter(index => index !== null)
+    .sort((left, right) => left - right)[0];
+
+  return firstSensitiveStep !== undefined && preflightIndex < firstSensitiveStep;
+}
+
 function checkOrigins(gates, source, label, origins) {
   const missing = REQUIRED_PRODUCT_ORIGINS.filter(origin => !origins.includes(origin));
   if (missing.length === 0) {
@@ -205,13 +231,54 @@ export function evaluateStaticProductDevnetSnapshot(snapshot) {
   checkPackage(gates, snapshot.webPackageLock, '@parity/product-sdk-host', EXPECTED_PRODUCT_DEVNET.productSdkHost);
   checkPackage(gates, snapshot.webPackageLock, '@parity/product-sdk-descriptors', EXPECTED_PRODUCT_DEVNET.productSdkDescriptors);
   checkPackage(gates, snapshot.webPackageLock, '@parity/product-sdk-statement-store', EXPECTED_PRODUCT_DEVNET.productSdkStatementStore);
+  checkPackage(gates, snapshot.webPackageLock, '@parity/product-sdk-tx', EXPECTED_PRODUCT_DEVNET.productSdkTx);
+
+  const truapiOverride = snapshot.webPackageJson?.overrides?.['@parity/truapi'];
+  const truapiVersion = packageLockVersion(snapshot.webPackageLock, '@parity/truapi');
+  if (truapiOverride === EXPECTED_PRODUCT_DEVNET.truapi && truapiVersion === EXPECTED_PRODUCT_DEVNET.truapi) {
+    pass(
+      gates,
+      'host-wire-compatibility',
+      'Product Host wire compatibility',
+      `TruAPI is locked to the codec-1 release ${EXPECTED_PRODUCT_DEVNET.truapi}.`,
+      'web/package.json and web/package-lock.json'
+    );
+  } else {
+    fail(
+      gates,
+      'host-wire-compatibility',
+      'Product Host wire compatibility',
+      `Expected TruAPI override and lockfile resolution ${EXPECTED_PRODUCT_DEVNET.truapi}; found ${truapiOverride ?? 'no override'} and ${truapiVersion ?? 'no resolution'}.`,
+      'web/package.json and web/package-lock.json'
+    );
+  }
 
   const deployScript = snapshot.webPackageJson?.scripts?.['deploy:product-devnet'] ?? '';
+  const deployEnvironmentCheck = snapshot.webPackageJson?.scripts?.['verify:product-deploy-environment'] ?? '';
   const frozenBuildScript = snapshot.webPackageJson?.scripts?.['build:product-devnet:frozen'] ?? '';
-  if (deployScript.includes(`@polkadot-community-foundation/polkadot-app-deploy@${EXPECTED_PRODUCT_DEVNET.productDeployCli}`)) {
-    pass(gates, 'deploy-cli', 'Product deploy CLI', `Pinned to ${EXPECTED_PRODUCT_DEVNET.productDeployCli}.`, 'web/package.json');
+  const expectedDeployCliPackage = `${PRODUCT_DEPLOY_PROFILE.packageName}@${EXPECTED_PRODUCT_DEVNET.productDeployCli}`;
+  if (deployScript.includes(expectedDeployCliPackage)) {
+    pass(gates, 'deploy-cli', 'Product deploy CLI', `Pinned to ${expectedDeployCliPackage}.`, 'web/package.json');
   } else {
-    fail(gates, 'deploy-cli', 'Product deploy CLI', `Expected deploy script to pin ${EXPECTED_PRODUCT_DEVNET.productDeployCli}.`, 'web/package.json');
+    fail(gates, 'deploy-cli', 'Product deploy CLI', `Expected deploy script to pin ${expectedDeployCliPackage}.`, 'web/package.json');
+  }
+
+  if (hasDeployEnvironmentPreflightBeforePublication(deployScript, deployEnvironmentCheck)) {
+    pass(
+      gates,
+      'deploy-environment-preflight',
+      'Product deploy environment',
+      'The pinned CLI profile is checked against the Product host DotNS registry and content resolver before build.',
+      'web/package.json'
+    );
+  } else {
+    fail(
+      gates,
+      'deploy-environment-preflight',
+      'Product deploy environment',
+      'Run the pinned Product deploy environment preflight before building or publishing.',
+      'web/package.json'
+    );
   }
 
   if (/--mnemonic(?:=|\s)/.test(deployScript)) {
@@ -328,12 +395,12 @@ export function evaluateStaticProductDevnetSnapshot(snapshot) {
   }
 
   const runtimeAdapter = String(env.VITE_DOTIFY_RUNTIME_ADAPTER ?? '').trim() || 'viem';
-  if (runtimeAdapter === 'viem') {
+  if (runtimeAdapter === 'product-cdm' && env.VITE_DOTIFY_PRODUCT_CHAIN === 'devnet') {
     pass(
       gates,
       'tracked-runtime-adapter',
       'Tracked runtime adapter',
-      'Default Product profile remains viem until live Product CDM write evidence passes.',
+      'Product profile preserves native Host payments through product-cdm on DevNet; physical-host acceptance remains separate.',
       'web/.env.product-devnet'
     );
   } else {
@@ -341,7 +408,7 @@ export function evaluateStaticProductDevnetSnapshot(snapshot) {
       gates,
       'tracked-runtime-adapter',
       'Tracked runtime adapter',
-      `Expected viem/unset for tracked profile, found ${runtimeAdapter}.`,
+      `Expected product-cdm/devnet for tracked Product profile, found ${runtimeAdapter}/${env.VITE_DOTIFY_PRODUCT_CHAIN ?? 'unset'}.`,
       'web/.env.product-devnet'
     );
   }
@@ -439,7 +506,9 @@ function latestPaymentEvent(events) {
   return events.filter(event => event?.kind === 'payment').at(-1) ?? null;
 }
 
-function latestAllowedKeyEvent(events, payment, context) {
+function latestAllowedKeyEvent(events, access, context) {
+  const latestKey = events.filter(event => event?.kind === 'key').at(-1);
+  if (!access || latestKey?.phase === 'key-denied' || latestKey?.phase === 'key-error') return null;
   return (
     events.find(
       event =>
@@ -451,7 +520,12 @@ function latestAllowedKeyEvent(events, payment, context) {
         event.playbackMode === 'full' &&
         sameValue(event.address, context?.listenerAddress) &&
         sameValue(event.productPublicKey, context?.productPublicKey) &&
-        (!payment || (sameValue(event.contentHash, payment.contentHash) && sameValue(event.runtime, payment.runtimeAddress)))
+        Number.isFinite(event.timestamp) &&
+        Number.isFinite(access.timestamp) &&
+        event.timestamp >= access.timestamp &&
+        sameValue(event.contentHash, access.contentHash) &&
+        sameValue(event.runtime, access.runtimeAddress) &&
+        sameValue(event.address, access.listenerAddress)
     ) ?? null
   );
 }
@@ -462,10 +536,10 @@ function hasExplicitHostApproval(events) {
 
 function allSmokeIdentitiesMatch(events, context) {
   if (!context?.listenerAddress || !context?.productPublicKey) return false;
-  const identityEvents = events.filter(event => event?.kind === 'payment' || event?.kind === 'key');
+  const identityEvents = events.filter(event => event?.kind === 'payment' || event?.kind === 'access-readback' || event?.kind === 'key');
   if (identityEvents.length === 0) return false;
   return identityEvents.every(event => {
-    if (event.kind === 'payment') return sameValue(event.listenerAddress, context.listenerAddress);
+    if (event.kind === 'payment' || event.kind === 'access-readback') return sameValue(event.listenerAddress, context.listenerAddress);
     return sameValue(event.address, context.listenerAddress) && sameValue(event.productPublicKey, context.productPublicKey);
   });
 }
@@ -492,7 +566,9 @@ export function evaluateProductCdmSmokeEvidence(evidence, options = {}) {
   const candidate = evidence.candidate ?? {};
   const events = smokeEvents(evidence);
   const payment = latestPaymentEvent(events);
-  const allowedKey = latestAllowedKeyEvent(events, payment, context);
+  const accessReadback = events.filter(event => event?.kind === 'access-readback').at(-1);
+  const access = events.filter(event => event?.kind === 'payment' || event?.kind === 'access-readback').at(-1);
+  const allowedKey = latestAllowedKeyEvent(events, access, context);
 
   if (evidence.schemaVersion !== 2) {
     fail(gates, 'smoke-schema', 'Smoke evidence schema', `Expected schemaVersion 2, found ${evidence.schemaVersion ?? 'missing'}.`, 'Product host JSON');
@@ -598,13 +674,25 @@ export function evaluateProductCdmSmokeEvidence(evidence, options = {}) {
   if (hasExplicitHostApproval(events)) {
     pass(gates, 'smoke:host-approval', 'Host approval', 'Operator recorded an explicit Product host approval prompt.', 'Product host JSON');
   } else {
-    fail(gates, 'smoke:host-approval', 'Host approval', 'Expected an operator-observation event with host-approval-explicit=true.', 'Product host JSON');
+    (accessReadback && !payment ? blocked : fail)(
+      gates,
+      'smoke:host-approval',
+      'Host approval',
+      'No explicit transaction approval captured. A read-only access check does not exercise signing.',
+      'Product host JSON'
+    );
   }
 
   if (payment && isPositivePlanck(payment.amountPlanck)) {
     pass(gates, 'smoke:native-value', 'Native value', `amountPlanck=${payment.amountPlanck}.`, 'Product host JSON');
   } else {
-    fail(gates, 'smoke:native-value', 'Native value', 'Expected a payment event with a non-zero native amountPlanck.', 'Product host JSON');
+    (accessReadback && !payment ? blocked : fail)(
+      gates,
+      'smoke:native-value',
+      'Native value',
+      'Expected a payment event with a non-zero native amountPlanck.',
+      'Product host JSON'
+    );
   }
 
   if (
@@ -621,11 +709,37 @@ export function evaluateProductCdmSmokeEvidence(evidence, options = {}) {
   ) {
     pass(gates, 'smoke:payment-readback', 'Payment read-back', `Access read-back passed after ${payment.attempts} attempts.`, 'Product host JSON');
   } else {
-    fail(
+    (accessReadback && !payment ? blocked : fail)(
       gates,
       'smoke:payment-readback',
       'Payment read-back',
       'Expected a same-identity payment event with valid tx/runtime/content hashes, ok=true, hasPaid=true, canAccess=true, and attempts>0.',
+      'Product host JSON'
+    );
+  }
+
+  if (
+    access &&
+    access.hasPaid === true &&
+    access.canAccess === true &&
+    isHexAddress(access.runtimeAddress) &&
+    isHexHash(access.contentHash) &&
+    sameValue(access.listenerAddress, context.listenerAddress) &&
+    (access.kind === 'access-readback' ? access.chainId === EXPECTED_PRODUCT_DEVNET.chainId : access.ok === true)
+  ) {
+    pass(
+      gates,
+      'smoke:access-readback',
+      'Existing paid access',
+      'The runtime confirms paid access. This alone proves neither a new transfer nor host approval.',
+      'Product host JSON'
+    );
+  } else {
+    fail(
+      gates,
+      'smoke:access-readback',
+      'Existing paid access',
+      'Expected paid and playable access for the connected account, network, runtime and track.',
       'Product host JSON'
     );
   }
@@ -821,7 +935,7 @@ function roomEvidenceSurface(roomEvidence, roomGates) {
   return roomEvidence?.hostSurface ?? null;
 }
 
-export function buildSurfaceMatrix({ commit, appVersion, productSmokeGates, roomEvidence, roomGates }) {
+export function buildSurfaceMatrix({ commit, appVersion, productSmokeEvidence, productSmokeGates, roomEvidence, roomGates }) {
   const version = appVersion ? `[${appVersion.join(', ')}]` : 'unknown';
   const productPaymentComplete = gatesPassed(productSmokeGates, [
     'smoke-schema',
@@ -834,10 +948,14 @@ export function buildSurfaceMatrix({ commit, appVersion, productSmokeGates, room
     'smoke:host-approval',
     'smoke:native-value',
     'smoke:payment-readback',
+    'smoke:access-readback',
     'smoke:backend-key',
     'smoke:same-identity'
   ]);
   const roomSurface = roomEvidenceSurface(roomEvidence, roomGates);
+  const paymentSurface = productPaymentComplete ? productSmokeEvidence?.hostSurface : null;
+  const productDesktopPaymentComplete = paymentSurface === 'product-desktop';
+  const productWebPaymentComplete = paymentSurface === 'product-web-gateway';
   const productDesktopRoomComplete = roomSurface === 'product-desktop';
   const productWebRoomComplete = roomSurface === 'product-web-gateway';
 
@@ -860,20 +978,21 @@ export function buildSurfaceMatrix({ commit, appVersion, productSmokeGates, room
       surface: 'Product Desktop',
       buildSha: commit,
       appVersion: version,
-      status: productPaymentComplete && productDesktopRoomComplete ? 'pass' : 'blocked',
+      status: productDesktopPaymentComplete && productDesktopRoomComplete ? 'pass' : 'blocked',
       evidence:
-        productPaymentComplete && productDesktopRoomComplete
+        productDesktopPaymentComplete && productDesktopRoomComplete
           ? 'Product CDM payment/key smoke and Product Desktop room guest evidence supplied.'
-          : productPaymentComplete
-            ? 'Needs room evidence explicitly captured on Product Desktop.'
-            : 'Needs live Product Desktop payment/key and room evidence.'
+          : 'Needs payment/key and room evidence explicitly attributed to Product Desktop.'
     },
     {
       surface: 'Product Web gateway',
       buildSha: commit,
       appVersion: version,
-      status: productWebRoomComplete ? 'pass' : 'not-run',
-      evidence: productWebRoomComplete ? 'Canonical Product Web gateway room evidence supplied.' : 'Needs Product Web gateway room/open playback smoke.'
+      status: productWebPaymentComplete && productWebRoomComplete ? 'pass' : productWebPaymentComplete || productWebRoomComplete ? 'blocked' : 'not-run',
+      evidence:
+        productWebPaymentComplete && productWebRoomComplete
+          ? 'Product Web gateway payment/key and canonical room evidence supplied.'
+          : 'Needs payment/key and room evidence explicitly attributed to Product Web gateway.'
     },
     {
       surface: 'Product iOS',
@@ -917,6 +1036,7 @@ export function buildProductDevnetJourneyReport(input) {
   const surfaceMatrix = buildSurfaceMatrix({
     commit: input.commit ?? 'unknown',
     appVersion,
+    productSmokeEvidence: input.productSmokeEvidence,
     productSmokeGates,
     roomEvidence: input.roomEvidence,
     roomGates
@@ -957,13 +1077,15 @@ export function renderProductDevnetJourneyMarkdown(report) {
     '',
     '## Surface Matrix',
     '',
+    'The summary above covers journey gates, not per-surface certification. A Product surface passes here only when both payment/key and room evidence explicitly name that same `hostSurface`.',
+    '',
     '| Surface | Build SHA | App version | Status | Evidence |',
     '| --- | --- | --- | --- | --- |',
     ...report.surfaceMatrix.map(row => `| ${row.surface} | \`${row.buildSha}\` | ${row.appVersion} | ${row.status} | ${escapePipes(row.evidence)} |`),
     '',
     '## Live Evidence Inputs',
     '',
-    '- Product CDM payment/key smoke: pass `--smoke-json <downloaded-product-cdm-host-smoke.json>` after running the explicit `product-cdm` build from the same commit inside a funded Product host.',
+    '- Product CDM payment/key smoke: pass `--smoke-json <downloaded-product-cdm-host-smoke.json>` after running the explicit `product-cdm` build from the same commit inside a funded Product host. Current exports omit `hostSurface`, so payment gates can pass but the per-surface matrix cannot attribute that payment.',
     '- Product room smoke: pass `--room-json <room-evidence.json>` exported by the debug readiness panel with the same `candidate.gitSha`, `candidate.productAppVersion`, and `candidate.deployedCid`; the harness also requires current host room/stream/peer telemetry plus explicit walletless, audible, and in-sync guest observations.',
     '- Missing live inputs are reported as blocked/not-run, never as passed.'
   ].join('\n');

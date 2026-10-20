@@ -45,6 +45,25 @@ async function readArtistPublishState(page: Page) {
 // the clear fires exactly once on the first page load and then leaves in-test state
 // (e.g. a published track inspected after navigating to '/') intact.
 test.beforeEach(async ({ page }) => {
+  // The artist wallet and contribution reader use the Paseo fixture. Resolve
+  // the shell's network identity from that same fixture, not a live RPC whose
+  // latency could leave expectedChainId null while the form is already ready.
+  await page.route('https://eth-rpc-testnet.polkadot.io/**', async route => {
+    const headers = {
+      'access-control-allow-origin': '*',
+      'access-control-allow-methods': 'POST, OPTIONS',
+      'access-control-allow-headers': 'content-type'
+    };
+    if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 204, headers });
+    const input = route.request().postDataJSON();
+    if (input?.method !== 'eth_chainId') return route.fallback();
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      headers,
+      body: JSON.stringify({ jsonrpc: '2.0', id: input.id, result: `0x${(420420417).toString(16)}` })
+    });
+  });
   await page.addInitScript(() => {
     if (window.sessionStorage.getItem('dotify:e2e:artist-publish:reset')) return;
     window.__DOTIFY_E2E_ARTIST_PUBLISH__ = undefined;
@@ -64,12 +83,13 @@ async function createArtistProfile(page: Page, scenario = 'happy') {
   await page.getByTestId('create-artist-profile').click();
   await expect(page.getByRole('dialog')).toContainText('Artist registered');
   await page.getByRole('button', { name: 'Close', exact: true }).click();
-  await expect(page.getByRole('tab', { name: /New Release/i })).toBeVisible();
+  await expect(page.getByRole('tab', { name: 'Releases', exact: true })).toBeVisible();
 }
 
 async function completeReleaseDraft(page: Page, options: { royaltySharePercent?: string } = {}) {
   const royaltySharePercent = options.royaltySharePercent ?? E2E_ARTIST_SHARE_PERCENT;
-  await page.getByRole('tab', { name: /New Release/i }).click();
+  await page.getByRole('tab', { name: 'Releases', exact: true }).click();
+  await page.getByRole('button', { name: 'New release', exact: true }).click();
   await page.getByTestId('artist-audio-input').setInputFiles(audioFixture);
   await expect(page.getByText('Audio ready', { exact: true })).toBeVisible();
   await page.getByTestId('artist-cover-input').setInputFiles(coverFixture);
@@ -78,6 +98,17 @@ async function completeReleaseDraft(page: Page, options: { royaltySharePercent?:
   await page.getByRole('button', { name: 'Continue' }).click();
   await page.getByTestId('release-title-input').fill('E2E Published Signal');
   await page.getByTestId('release-description-input').fill('A deterministic artist publish e2e release.');
+  // Keyboard activation avoids racing the page's smooth scroll when this
+  // disclosure sits at the viewport edge, and checks its native accessibility.
+  await page.locator('.release-editorial-details > summary').press('Enter');
+  await expect(page.locator('.release-editorial-details')).toHaveAttribute('open', '');
+  await page.getByTestId('release-kind-input').selectOption('album-track');
+  await page.getByTestId('release-project-input').fill('E2E Night Lines');
+  await page.getByTestId('release-date-input').fill('2026');
+  await page.getByTestId('release-genres-input').fill('Soul, Electronic');
+  await page.getByRole('button', { name: 'Add credit', exact: true }).click();
+  await page.getByLabel('Contributor 1', { exact: true }).fill('E2E Artist');
+  await page.getByLabel('Contributor 1 role', { exact: true }).selectOption('producer');
 
   await page.getByRole('button', { name: 'Continue' }).click();
   await page.getByTestId('release-access-select').selectOption('classic');
@@ -91,6 +122,10 @@ async function completeReleaseDraft(page: Page, options: { royaltySharePercent?:
   await expect(page.getByTestId('release-preflight-panel')).toContainText('Listening access');
   await expect(page.getByTestId('release-preflight-panel')).toContainText('Published when');
   await expect(page.getByTestId('release-preflight-panel')).toContainText(`0.75 ${E2E_NATIVE_PAYMENT_SYMBOL}`);
+  await expect(page.getByTestId('release-editorial-review')).toContainText('Album track');
+  await expect(page.getByTestId('release-editorial-review')).toContainText('E2E Night Lines');
+  await expect(page.getByTestId('release-editorial-review')).toContainText('Soul · Electronic');
+  await expect(page.getByTestId('release-editorial-review')).toContainText('1 credited contributor');
   if (Number(royaltySharePercent) > 0) {
     await expect(page.getByTestId('release-value-flow')).toContainText('You receive');
     await expect(page.getByTestId('release-value-flow')).toContainText('100%');
@@ -102,7 +137,26 @@ async function completeReleaseDraft(page: Page, options: { royaltySharePercent?:
   }
 }
 
-test('artist can create a runtime, publish a release, and see it in the listener catalog', async ({ page }) => {
+test('artist saves a scheduled gift destination and reloads it from Rights', async ({ page }) => {
+  await createArtistProfile(page);
+  await page.getByRole('tab', { name: 'Rights & support', exact: true }).click();
+  const policy = page.locator('.contribution-policy');
+  await policy.getByLabel('Purpose', { exact: true }).fill('Community music school');
+  await policy.getByLabel('Starts (local time)', { exact: true }).fill('2026-10-01T08:00');
+  await policy.getByLabel('Ends (optional)', { exact: true }).fill('2027-10-01T08:00');
+  await policy.getByRole('button', { name: 'Add recipient', exact: true }).click();
+  await policy.getByLabel('Receiving account', { exact: true }).fill('0x0000000000000000000000000000000000001234');
+  await policy.getByLabel('Share (%)', { exact: true }).fill('75');
+  await policy.getByRole('button', { name: 'Save contribution settings', exact: true }).click();
+  await expect(policy.getByRole('status')).toContainText('settings saved');
+  await page.getByRole('tab', { name: 'Overview', exact: true }).click();
+  await page.getByRole('tab', { name: 'Rights & support', exact: true }).click();
+  await expect(policy.getByLabel('Purpose', { exact: true })).toHaveValue('Community music school');
+  await expect(policy.getByLabel('Share (%)', { exact: true })).toHaveValue('75');
+  await expect(policy).toContainText('25% of your remaining portion stays with you');
+});
+
+test('artist can create a runtime, publish a release, and see it in the listener catalog', async ({ page }, info) => {
   await createArtistProfile(page);
   await completeReleaseDraft(page);
 
@@ -120,21 +174,76 @@ test('artist can create a runtime, publish a release, and see it in the listener
   expect(publishState?.uploadRequests).toEqual({ audio: 1, cover: 1, metadata: 1 });
   expect(publishState?.devAccountFallbackUsed).toBe(false);
 
+  await page.getByRole('button', { name: 'Close', exact: true }).click();
+  await page.getByRole('tab', { name: 'Releases', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Save access', exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Manage rights', exact: true }).click();
+  await expect(page.getByRole('tab', { name: 'Rights & support', exact: true })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByRole('button', { name: 'Save access', exact: true })).toBeDisabled();
+  await page.getByRole('combobox', { name: 'Access mode', exact: true }).selectOption('free');
+  await expect(page.getByRole('button', { name: 'Save access', exact: true })).toBeEnabled();
+  expect((await readArtistPublishState(page))?.registerTrackTransactions).toBe(1);
+  await page.screenshot({ path: info.outputPath('studio-rights.png'), animations: 'disabled', fullPage: true });
+
   await page.goto('/');
   const publishedCard = page.getByTestId('track-card').filter({ hasText: 'E2E Published Signal' });
   await expect(publishedCard).toContainText('E2E Artist');
-  await expect(publishedCard).not.toContainText(`0.75 ${E2E_NATIVE_PAYMENT_SYMBOL}`);
+  await expect(publishedCard).toContainText(`0.75 ${E2E_NATIVE_PAYMENT_SYMBOL}`);
   await expect(publishedCard.getByTestId('track-card-open')).toHaveAccessibleName(new RegExp(`0.75 ${E2E_NATIVE_PAYMENT_SYMBOL}`));
   await publishedCard.getByRole('button', { name: 'E2E Artist', exact: true }).click();
+  await page.route('**/ipfs/e2e-artist-metadata-cid', route =>
+    route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        schema: 'dotify.track.v2',
+        createdAt: '2026-10-11T10:00:00.000Z',
+        assets: { audioCID: 'e2e-artist-audio-cid', coverCID: 'e2e-artist-cover-cid', encrypted: true },
+        track: {
+          contentHash: `0x${'11'.repeat(32)}`,
+          title: 'E2E Published Signal',
+          artistName: 'E2E Artist',
+          description: 'A deterministic artist publish e2e release.',
+          durationSeconds: 42,
+          accessMode: 'classic',
+          priceDot: '0.75',
+          requiredPersonhood: 'None',
+          zone: 'Studio'
+        },
+        editorial: {
+          releaseKind: 'album-track',
+          projectTitle: 'E2E Night Lines',
+          version: '',
+          releaseDate: '2026',
+          genres: ['Soul', 'Electronic'],
+          languages: [],
+          credits: [{ name: 'E2E Artist', role: 'producer' }],
+          label: '',
+          productionLocation: '',
+          explicitContent: false,
+          isrc: '',
+          copyrightNotice: '',
+          masterNotice: ''
+        },
+        royalties: [],
+        settlement: { target: 'evm', royaltyBps: 7250, pricePlanck: '750000000000' }
+      })
+    })
+  );
   const release = page.locator('.artist-release-card').filter({ hasText: 'E2E Published Signal' });
   await release.getByText('About this release', { exact: true }).click();
   await expect(release).not.toContainText(`0.75 ${E2E_NATIVE_PAYMENT_SYMBOL}`);
-  await expect(release).toContainText('A deterministic artist publish e2e release.');
+  const releaseDialog = page.getByRole('dialog', { name: 'About this release' });
+  await expect(releaseDialog).toContainText('A deterministic artist publish e2e release.');
+  await expect(releaseDialog).toContainText('E2E Night Lines');
+  await expect(releaseDialog).toContainText('Soul · Electronic');
+  await expect(releaseDialog).toContainText('Producer');
+  await page.screenshot({ path: info.outputPath('release-details.png'), animations: 'disabled', fullPage: true });
+  await page.getByRole('button', { name: 'Close release details' }).click();
   await expect(release.getByRole('button', { name: /Open E2E Published Signal by E2E Artist/ })).toHaveAccessibleName(
     new RegExp(`0.75 ${E2E_NATIVE_PAYMENT_SYMBOL}`)
   );
   await release.getByRole('button', { name: /Open E2E Published Signal by E2E Artist/ }).click();
-  await page.getByRole('button', { name: 'Support and open', exact: true }).click();
+  await page.getByRole('button', { name: 'Unlock listening', exact: true }).click();
   await expect(page.getByTestId('access-warning')).toContainText(`0.75 ${E2E_NATIVE_PAYMENT_SYMBOL}`);
 });
 
@@ -142,7 +251,7 @@ test('artist onboarding handles a missing wallet without enabling profile creati
   await openArtistScenario(page, 'missing-wallet');
 
   await expect(page.getByTestId('artist-name-input')).toHaveValue('');
-  await expect(page.getByText('Connect your account to create an artist space.')).toBeVisible();
+  await expect(page.getByText('Connect your account to create your artist profile.')).toBeVisible();
   await expect(page.getByRole('button', { name: /Use my account/i })).toBeVisible();
   await expect(page.getByTestId('create-artist-profile')).toBeDisabled();
   await expect(page.getByText('Connect your account to continue.')).toBeVisible();
@@ -236,17 +345,44 @@ test('artist publish remains recoverable while catalog read-back is delayed', as
   await page.getByTestId('publish-release-button').click();
 
   const dialog = page.getByRole('dialog');
-  await expect(dialog).toContainText('Approved, still waiting for the catalog');
-  await expect(dialog).toContainText('publication approval was confirmed');
-  await expect(dialog).toContainText('will not call the release published');
+  await expect(dialog).toContainText('Making your release visible');
+  await expect(dialog).toContainText('no further approval is needed');
   await expect(dialog).toContainText('Visible in Dotify');
 
   const state = await readArtistPublishState(page);
   expect(state?.uploadRequests).toEqual({ audio: 1, cover: 1, metadata: 1 });
   expect(state?.registerTrackTransactions).toBe(1);
 
-  await page.goto('/');
-  await expect(page.getByTestId('track-card').filter({ hasText: 'E2E Published Signal' })).toHaveCount(0);
+  await expect(dialog).toContainText('Release published', { timeout: 15000 });
+  expect((await readArtistPublishState(page))?.registerTrackTransactions).toBe(1);
+  await dialog.getByRole('button', { name: 'Close', exact: true }).click();
+  await page.evaluate(() => {
+    (window as unknown as { navigationMarker: string }).navigationMarker = 'same-document';
+  });
+  await page.getByRole('link', { name: 'Listener app', exact: true }).click();
+  await expect(page.getByTestId('track-card').filter({ hasText: 'E2E Published Signal' })).toHaveCount(1);
+  expect(await page.evaluate(() => (window as unknown as { navigationMarker?: string }).navigationMarker)).toBe('same-document');
+  await page.goBack();
+  await page.getByRole('link', { name: 'Dotify home', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Open a room', exact: true })).toBeVisible();
+  expect(await page.evaluate(() => (window as unknown as { navigationMarker?: string }).navigationMarker)).toBe('same-document');
+});
+
+test('approved publication keeps read-only recovery after the artist disconnects', async ({ page }) => {
+  await page.clock.install();
+  await createArtistProfile(page, 'catalog-delay');
+  await completeReleaseDraft(page);
+  await page.getByTestId('publish-release-button').click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toContainText('Making your release visible');
+  await dialog.getByRole('button', { name: 'Close', exact: true }).click();
+  await page.getByRole('button', { name: 'Disconnect wallet', exact: true }).click();
+  // Run the delayed catalog insertion and the next read-only poll explicitly;
+  // this test checks disconnect recovery, not the browser's timer scheduling.
+  await page.clock.runFor(6000);
+  await page.getByRole('button', { name: 'View payment status: Release published', exact: true }).click({ timeout: 15000 });
+  await expect(page.getByRole('dialog')).toContainText('Release published', { timeout: 15000 });
+  expect((await readArtistPublishState(page))?.registerTrackTransactions).toBe(1);
 });
 
 test('artist publish does not accept a same-hash track from another runtime as visible', async ({ page }) => {
@@ -255,8 +391,8 @@ test('artist publish does not accept a same-hash track from another runtime as v
   await page.getByTestId('publish-release-button').click();
 
   const dialog = page.getByRole('dialog');
-  await expect(dialog).toContainText('Approved, still waiting for the catalog');
-  await expect(dialog).toContainText('The catalog read-back did not include this release yet.');
+  await expect(dialog).toContainText('Making your release visible');
+  await expect(dialog).not.toContainText('Release published');
 
   const state = await readArtistPublishState(page);
   expect(state?.registerTrackTransactions).toBe(1);
@@ -265,12 +401,61 @@ test('artist publish does not accept a same-hash track from another runtime as v
   expect(state?.tracks.some(track => track.id.toLowerCase().startsWith(`${E2E_ARTIST_RUNTIME}:`))).toBe(false);
 });
 
-test('new artist mobile overview presents one clear next step and scrollable tabs', async ({ page }) => {
+test('new artist mobile overview presents one next step and four keyboard-accessible tasks', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await createArtistProfile(page);
 
-  await expect(page.locator('.studio-next-label')).toHaveText('Your next step');
+  await expect(page.locator('.studio-next-step .studio-next-label')).toHaveText('Your next step');
   await expect(page.getByRole('button', { name: 'Start your first release' })).toHaveCount(1);
-  await expect(page.getByText('Swipe for more →')).toBeVisible();
+  const tasks = page.getByRole('tablist', { name: 'Artist workspace' });
+  await expect(tasks.getByRole('tab')).toHaveText(['Overview', 'Releases', 'Earnings', 'Rights & support']);
+  await tasks.getByRole('tab', { name: 'Overview', exact: true }).press('End');
+  await expect(tasks.getByRole('tab', { name: 'Rights & support', exact: true })).toBeFocused();
+  await expect(page.getByText('Technical records', { exact: true })).toBeVisible();
+  await expect(page.locator('.studio-technical').filter({ has: page.getByText('Technical records', { exact: true }) })).not.toHaveAttribute('open', '');
+  await tasks.getByRole('tab', { name: 'Rights & support', exact: true }).press('Home');
+  await expect(tasks.getByRole('tab', { name: 'Overview', exact: true })).toBeFocused();
   await expect(page.locator('.studio-metric')).toHaveCount(0);
 });
+
+for (const width of [320, 390, 430, 1440]) {
+  test(`artist task navigation remains reachable at ${width}px and enlarged text`, async ({ page }, info) => {
+    await page.setViewportSize({ width, height: 844 });
+    await createArtistProfile(page);
+    const tasks = page.getByRole('tablist', { name: 'Artist workspace' });
+    for (const name of ['Overview', 'Releases', 'Earnings', 'Rights & support']) {
+      const tab = tasks.getByRole('tab', { name, exact: true });
+      await tab.click();
+      await expect(tab).toHaveAttribute('aria-selected', 'true');
+      expect((await tab.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+      if (name === 'Overview' || name === 'Earnings') {
+        const summary = page.getByText(name === 'Overview' ? 'Access and support choices' : 'How unsettled support is recovered', { exact: true });
+        const disclosure = summary.locator('..');
+        await expect(disclosure).not.toHaveAttribute('open', '');
+        await summary.click();
+        await expect(disclosure).toHaveAttribute('open', '');
+        await summary.click();
+      }
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+      await page.screenshot({ path: info.outputPath(`${width}-studio-${name}.png`), animations: 'disabled', fullPage: true });
+    }
+    await page.addStyleTag({ content: 'html { font-size: 200% !important; }' });
+    for (const name of ['Overview', 'Releases', 'Earnings', 'Rights & support']) {
+      const tab = tasks.getByRole('tab', { name, exact: true });
+      await tab.click();
+      await expect(tab).toHaveAttribute('aria-selected', 'true');
+      await page.screenshot({ path: info.outputPath(`${width}-studio-200-${name}.png`), animations: 'disabled', fullPage: true });
+      const overflow = await page.evaluate(() => ({
+        width: document.documentElement.scrollWidth,
+        elements: Array.from(document.querySelectorAll('body *'))
+          .flatMap(element => {
+            const r = element.getBoundingClientRect();
+            return r.width && r.right > innerWidth + 1 ? [{ tag: element.tagName, class: element.className, right: r.right }] : [];
+          })
+          .slice(-12)
+      }));
+      expect(overflow.width, JSON.stringify(overflow.elements)).toBeLessThanOrEqual(width);
+    }
+    await page.screenshot({ path: info.outputPath(`${width}-studio-200.png`), animations: 'disabled', fullPage: true });
+  });
+}

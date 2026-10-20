@@ -96,6 +96,15 @@ jobs:
       - name: First-sound evidence tests
         run: npm run test:first-sound-readiness
 
+      - name: Celerity offline feasibility tests
+        run: npm run test:celerity-feasibility
+
+      - name: Celerity paired capture tests
+        run: npm run test:celerity-capture
+
+      - name: Product deployment guard tests (offline)
+        run: npm run test:product-deploy-environment
+
       - name: Build
         run: npm run build
 
@@ -228,6 +237,16 @@ jobs:
           VITE_DOTIFY_ARTIST_DONATIONS: 'on'
         run: npx vite build --config vite.product.config.ts --mode product-devnet
 
+      - name: Build opt-in Celerity observation profile
+        env:
+          VITE_DOTIFY_ROOM_REALTIME: dual
+        run: npx vite build --config vite.product.config.ts --mode product-devnet
+
+      - name: Build Nearby operational rollback profile
+        env:
+          VITE_DOTIFY_NEARBY: 'off'
+        run: npx vite build --config vite.product.config.ts --mode product-devnet
+
       - name: Fail on generated Product catalog drift
         working-directory: .
         run: |
@@ -263,6 +282,20 @@ jobs:
 
       - name: Run deterministic core flows
         run: npm run test:e2e
+
+      - name: Verify default Web and Product Nearby discovery
+        run: npm run test:nearby
+
+      - name: Verify Nearby operational rollback
+        run: npm run test:e2e -- --config playwright.nearby-off.config.ts
+
+      - name: Verify encrypted audio continuity
+        run: npm run test:audio-continuity -- --project chromium
+
       - name: Verify Product host identity
         working-directory: web
         run: npx playwright test --config playwright.product-identity.config.ts --project=chromium --workers=2
+
+      - name: Verify incomplete sign-out recovery
+        working-directory: web
+        run: npx playwright test --config playwright.session-logout.config.ts --project=chromium --workers=2

@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import type { Socket } from 'socket.io-client';
+import { useEffect, useRef, useState } from 'react';
+import type { RoomRealtimePort, RoomRequests, RoomTrackEmitter } from '../features/rooms/roomRealtimePort';
+import type { RoomTyping, RoomActivity } from '../shared/types';
 import {
   createRoomJoinE2eCaptureStream,
   isRoomJoinE2e,
@@ -23,14 +24,14 @@ import {
   type RoomQualityPhase,
   type RoomQualityRole
 } from '../features/rooms/roomQualityTelemetry';
-import { createSignalClient, describeSignalConnectError, publishPlayerState } from '../features/rooms/signalClient';
+import { createRoomRealtime, describeSignalConnectError, publishPlayerState } from '../features/rooms/signalClient';
+import { useRoomRealtimeObservation } from './useRoomRealtimeObservation';
 import { diagnoseSignalFailure } from '../features/rooms/signalDiagnostics';
 import { ensureProductHostRoomPermissions, isProductHostWebRtcUnavailable, openProductHostExternalUrl } from '../features/productHost/productHost';
-import { useRoomBeacon } from './useRoomBeacon';
-import { useRoomBeaconDiscovery } from './useRoomBeaconDiscovery';
-import { mergeDiscoveredRooms } from '../features/rooms/roomBeaconDiscovery';
 import { isChosenDisplayName, sanitizeDisplayName, storeDisplayName } from '../features/identity/walletIdentity';
 import { nextCaptureAttempt, shouldReuseCapture, type CaptureAttempt } from '../features/rooms/streamCapture';
+import { RoomCreationController } from '../features/rooms/roomCreation';
+import { registerHostAudioOutput, syncHostAudioOutput } from '../features/player/hostAudioOutput';
 import { CHAT_CLIENT_LIMIT, CHAT_TEXT_MAX_LENGTH, REQUEST_QUEUE_CLIENT_LIMIT, REQUEST_TEXT_MAX_LENGTH, ROOM_LINEUP_CLIENT_LIMIT } from '../shared/social';
 import { normalizeRoomCode, normalizeRooms, peerStatusLabel, getPeerStatus } from '../shared/utils/format';
 import { getTurnIceServers, hasTurnIceServer } from '../services/turn';
@@ -43,7 +44,6 @@ import type {
   OpenRoom,
   PeerStatus,
   PlayerState,
-  ResumeRoomResponse,
   RoomPresenceListener,
   RoomChatMessage,
   RoomPlaybackMode,
@@ -53,8 +53,7 @@ import type {
   SessionAction,
   SoloListeningByTrackHash,
   SocketStatus,
-  TrackInfo,
-  TurnCapabilityResponse
+  TrackInfo
 } from '../shared/types';
 import type { FormEvent } from 'react';
 
@@ -76,6 +75,7 @@ type WebAudioElementCapture = {
   context: AudioContext;
   source: MediaElementAudioSourceNode;
   destination: MediaStreamAudioDestinationNode;
+  playbackGain: GainNode;
   monitorGain: GainNode;
   stream: MediaStream;
   onVolumeChange: () => void;
@@ -88,7 +88,10 @@ type PlaceholderAudioStream = {
 };
 
 type CreateSessionOptions = {
+  profile?: { name: string; introduction: string };
   audioSourceHint?: string | null;
+  onCreated?: (roomId: string) => void;
+  creationSignal?: AbortSignal;
 };
 
 type WebRtcDiagnosticDetails = {
@@ -99,7 +102,9 @@ type WebRtcDiagnosticDetails = {
 const webAudioElementCaptures = new WeakMap<HTMLMediaElement, WebAudioElementCapture>();
 
 function syncWebAudioMonitorGain(audio: HTMLMediaElement, capture: WebAudioElementCapture) {
-  const gain = audio.muted ? 0 : audio.volume;
+  const playing = !audio.paused && !audio.ended && !audio.seeking && audio.readyState >= 3;
+  capture.playbackGain.gain.value = playing ? 1 : 0;
+  const gain = !playing || audio.muted ? 0 : audio.volume;
   capture.monitorGain.gain.value = Number.isFinite(gain) ? gain : 1;
   if (isRoomJoinE2e) recordRoomJoinE2eWebAudioMonitorGain(capture.monitorGain.gain.value);
 }
@@ -109,7 +114,7 @@ function retireWebAudioElementCapture(audio: HTMLMediaElement) {
   if (!capture) return false;
   webAudioElementCaptures.delete(audio);
   audio.removeEventListener('volumechange', capture.onVolumeChange);
-  for (const node of [capture.source, capture.monitorGain, capture.destination]) {
+  for (const node of [capture.source, capture.playbackGain, capture.monitorGain, capture.destination]) {
     try {
       node.disconnect();
     } catch {
@@ -203,8 +208,9 @@ export function useSession(deps: UseSessionDeps) {
   const [remoteStreamVersion, setRemoteStreamVersion] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [signalRooms, setSignalRooms] = useState<OpenRoom[]>([]);
-  const beaconRooms = useRoomBeaconDiscovery();
-  const openRooms = useMemo(() => mergeDiscoveredRooms(signalRooms, beaconRooms), [signalRooms, beaconRooms]);
+  // Global Statement Store announcements cannot enforce a Nearby radius or
+  // immediate opt-out. Discovery now belongs to the consented Nearby session.
+  const openRooms = signalRooms;
   const [soloListeningByTrackHash, setSoloListeningByTrackHash] = useState<SoloListeningByTrackHash>({});
   const [socketStatus, setSocketStatus] = useState<SocketStatus>('offline');
   const [joinCode, setJoinCode] = useState(() => getInitialRoomCode());
@@ -219,6 +225,10 @@ export function useSession(deps: UseSessionDeps) {
   // the reaction feed keeps a short sliding window that the player view
   // turns into rising petals.
   const [chatMessages, setChatMessages] = useState<RoomChatMessage[]>([]);
+  const [roomActivity, setRoomActivity] = useState<RoomActivity[]>([]);
+  const [roomTyping, setRoomTyping] = useState<RoomTyping[]>([]);
+  const [pinnedMessage, setPinnedMessage] = useState<RoomChatMessage | null>(null);
+  const listenerResumeTokenRef = useRef('');
   const [reactionFeed, setReactionFeed] = useState<RoomReactionEvent[]>([]);
   // Collaborative request queue: server-authoritative full-list broadcast,
   // so the client only ever mirrors what the room actually holds.
@@ -230,7 +240,8 @@ export function useSession(deps: UseSessionDeps) {
   const hostResumeTokenRef = useRef('');
   const modeRef = useRef<Mode>(mode);
   const listenersRef = useRef<ListenerRecord[]>([]);
-  const socketRef = useRef<Socket | null>(null);
+  const socketRef = useRef<RoomRealtimePort | null>(null);
+  const roomCreationRef = useRef(new RoomCreationController());
   const soloTrackHashRef = useRef<string | null>(null);
   const listenerPeerRef = useRef<RTCPeerConnection | null>(null);
   const hostPeersRef = useRef<Map<string, RTCPeerConnection>>(new Map());
@@ -278,7 +289,7 @@ export function useSession(deps: UseSessionDeps) {
   }
 
   function socketTransportName() {
-    return (socketRef.current?.io.engine.transport as { name?: string } | undefined)?.name;
+    return socketRef.current?.transportName;
   }
 
   function publishRoomQuality(phase: RoomQualityPhase, role: RoomQualityRole, details: Partial<Omit<RoomQualityMetric, 'phase' | 'role' | 'timestamp'>> = {}) {
@@ -342,12 +353,8 @@ export function useSession(deps: UseSessionDeps) {
     const socket = socketRef.current;
     if (!dotifyApiUrl || !socket?.connected || !roomIdRef.current) return null;
     return new Promise(resolve => {
-      socket.timeout(SIGNAL_ACK_TIMEOUT_MS).emit('room:turn-capability', {}, (error: Error | null, response: TurnCapabilityResponse | undefined) => {
-        if (error || !response?.ok) {
-          resolve(null);
-          return;
-        }
-        resolve(response.capability);
+      socket.request('room:turn-capability', {}, { timeoutMs: SIGNAL_ACK_TIMEOUT_MS }, (error, response) => {
+        resolve(!error && response?.ok ? response.capability : null);
       });
     });
   }
@@ -512,6 +519,7 @@ export function useSession(deps: UseSessionDeps) {
   }
 
   function clearRoomState(status: string, errorMessage: string | null, options: { closePeers?: boolean } = {}) {
+    if (roomCreationRef.current.cancel()) socketRef.current?.emit('room:leave');
     if (options.closePeers !== false) {
       closeAllPeers();
     }
@@ -528,6 +536,10 @@ export function useSession(deps: UseSessionDeps) {
     setListenerCount(0);
     setRoomPlaybackMode('full');
     setChatMessages([]);
+    setRoomActivity([]);
+    setRoomTyping([]);
+    setPinnedMessage(null);
+    listenerResumeTokenRef.current = '';
     setReactionFeed([]);
     setRequestQueue([]);
     setRoomLineup([]);
@@ -555,7 +567,7 @@ export function useSession(deps: UseSessionDeps) {
   function getSocket() {
     if (socketRef.current) return socketRef.current;
 
-    const socket = createSignalClient(signalUrl);
+    const socket = createRoomRealtime(signalUrl);
     let diagnosisStarted = false;
 
     socket.on('connect', () => {
@@ -602,6 +614,7 @@ export function useSession(deps: UseSessionDeps) {
       });
     });
     socket.on('disconnect', () => {
+      setRoomTyping([]);
       setSocketStatus('offline');
       if (modeRef.current === 'host' && roomIdRef.current) {
         setSessionStatus('Reconnecting room');
@@ -742,6 +755,14 @@ export function useSession(deps: UseSessionDeps) {
       if (!message || typeof message.text !== 'string' || typeof message.id !== 'string') return;
       setChatMessages(previous => [...previous, message].slice(-CHAT_CLIENT_LIMIT));
     });
+    socket.on('room:activity', event => {
+      if (!event || typeof event.id !== 'string' || typeof event.text !== 'string') return;
+      setRoomActivity(previous => [...previous.filter(item => item.id !== event.id), event].slice(-50));
+    });
+    socket.on('room:typing', entries =>
+      setRoomTyping(Array.isArray(entries) ? entries.slice(0, 25).map(entry => ({ ...entry, expiresAt: Date.now() + 4500 })) : [])
+    );
+    socket.on('room:pin', message => setPinnedMessage(message));
     socket.on('room:reaction', (reaction: RoomReactionEvent) => {
       if (!reaction || typeof reaction.emoji !== 'string' || typeof reaction.id !== 'string') return;
       setReactionFeed(previous => [...previous.slice(-19), reaction]);
@@ -798,14 +819,21 @@ export function useSession(deps: UseSessionDeps) {
     return roomPermissionRef.current;
   }
 
-  async function connectRoomSocket() {
-    if (!(await ensureRoomTransportReady())) return null;
+  async function connectRoomSocket(signal?: AbortSignal) {
+    if (signal?.aborted || !(await ensureRoomTransportReady()) || signal?.aborted) return null;
     return connectSocket();
   }
 
-  async function emitAckWhenConnected<Response>(event: string, payload: unknown, onAck: (response: Response) => void, onFailure: () => void) {
-    const socket = await connectRoomSocket();
-    if (!socket) return;
+  async function emitAckWhenConnected<K extends keyof RoomRequests>(
+    event: K,
+    payload: RoomRequests[K]['input'],
+    onAck: (response: RoomRequests[K]['output']) => void,
+    onFailure: () => void,
+    signal?: AbortSignal,
+    onSend?: () => void
+  ) {
+    const socket = await connectRoomSocket(signal);
+    if (!socket || signal?.aborted) return;
     const activeSocket = socket;
     let settled = false;
     let timeoutId = 0;
@@ -814,28 +842,34 @@ export function useSession(deps: UseSessionDeps) {
       activeSocket.off('connect', send);
       activeSocket.off('connect_error', fail);
       if (timeoutId) window.clearTimeout(timeoutId);
+      signal?.removeEventListener('abort', cancel);
+    }
+
+    function cancel() {
+      settled = true;
+      cleanup();
     }
 
     function fail() {
       if (settled) return;
       settled = true;
       cleanup();
-      onFailure();
+      if (!signal?.aborted) onFailure();
     }
 
     function send() {
-      if (settled) return;
+      if (settled || signal?.aborted) return;
       settled = true;
       cleanup();
-      activeSocket.timeout(SIGNAL_ACK_TIMEOUT_MS).emit(event, payload, (error: Error | null, response: Response | undefined) => {
-        if (error || response === undefined) {
-          onFailure();
-          return;
-        }
-        onAck(response);
+      onSend?.();
+      activeSocket.request(event, payload, { timeoutMs: SIGNAL_ACK_TIMEOUT_MS }, (error, response) => {
+        if (signal?.aborted) return;
+        if (error || response === undefined) onFailure();
+        else onAck(response);
       });
     }
 
+    signal?.addEventListener('abort', cancel, { once: true });
     timeoutId = window.setTimeout(fail, SIGNAL_ACK_TIMEOUT_MS);
     if (activeSocket.connected) {
       send();
@@ -874,9 +908,9 @@ export function useSession(deps: UseSessionDeps) {
     // E2E: stream a synthetic near-silent track instead of capturing the local
     // element, so the host always has a transmittable audio track in CI.
     if (isRoomJoinE2e && shouldUseRoomJoinE2eSyntheticCapture()) return createRoomJoinE2eCaptureStream();
-    // One Web Audio destination survives changes to the element's source.
-    // Native capture can retire its sender track between metadata and playing,
-    // leaving an established receiver silent on Next. Prefer the stable graph.
+    // One Web Audio destination survives pause/seek on this element. Next
+    // creates a new generation and replaces the sender's track. Native capture
+    // can retire tracks between metadata and playing; prefer the stable graph.
     const contextCtor = window.AudioContext ?? (window as AudioContextWindow).webkitAudioContext;
     if (!contextCtor) {
       const capturable = audio as CapturableMediaElement;
@@ -895,16 +929,20 @@ export function useSession(deps: UseSessionDeps) {
     const context = new contextCtor();
     const source = context.createMediaElementSource(audio);
     const destination = context.createMediaStreamDestination();
+    const playbackGain = context.createGain();
     const monitorGain = context.createGain();
-    source.connect(destination);
+    playbackGain.gain.value = 0;
+    source.connect(playbackGain);
+    playbackGain.connect(destination);
     // Once a media element is routed through Web Audio, monitor it locally too.
     // The WebRTC leg is connected before this gain, so host mute only affects
     // the host's local output and never silences room listeners.
-    source.connect(monitorGain).connect(context.destination);
+    playbackGain.connect(monitorGain).connect(context.destination);
     const fallbackCapture: WebAudioElementCapture = {
       context,
       source,
       destination,
+      playbackGain,
       monitorGain,
       stream: destination.stream,
       onVolumeChange: () => undefined
@@ -913,6 +951,15 @@ export function useSession(deps: UseSessionDeps) {
     syncWebAudioMonitorGain(audio, fallbackCapture);
     audio.addEventListener('volumechange', fallbackCapture.onVolumeChange);
     webAudioElementCaptures.set(audio, fallbackCapture);
+    registerHostAudioOutput(audio, {
+      context,
+      sync: () => syncWebAudioMonitorGain(audio, fallbackCapture),
+      silence: () => {
+        playbackGain.gain.value = 0;
+        monitorGain.gain.value = 0;
+      },
+      release: () => retireWebAudioElementCapture(audio)
+    });
     void context.resume().catch(() => undefined);
     if (isRoomJoinE2e) recordRoomJoinE2eWebAudioCapture();
     // Do NOT throw when there is no audio track yet: capture can legitimately
@@ -1081,9 +1128,9 @@ export function useSession(deps: UseSessionDeps) {
       if (previousPlaceholderStream && previousPlaceholderStream !== stream) {
         closePlaceholderAudioStream();
       }
-      // A recapture on the same element can share browser-owned tracks, so it
-      // stays alive. A retired element generation is independent and is closed
-      // only after every listener sender has moved to the replacement stream.
+      // A recapture on the same element can share browser-owned tracks. Old
+      // generations may already be retired by PersistentAudio; this cleanup
+      // also covers captures that outlive a mode transition.
     } catch (streamError) {
       setError(streamError instanceof Error ? streamError.message : 'Audio capture unavailable in this browser');
       setSessionStatus('Capture unavailable');
@@ -1143,6 +1190,7 @@ export function useSession(deps: UseSessionDeps) {
   function emitPlayerState(force = false) {
     const audio = localAudioRef.current;
     if (!audio || modeRef.current !== 'host') return;
+    syncHostAudioOutput(audio);
     const playing = !audio.paused && !audio.ended && !audio.seeking && audio.readyState >= 3;
     // Disable captured output during pause/seek/stall without ending tracks.
     localStreamRef.current?.getAudioTracks().forEach(track => {
@@ -1512,6 +1560,24 @@ export function useSession(deps: UseSessionDeps) {
     }
   }
 
+  function cancelRoomCreation() {
+    if (roomCreationRef.current.cancel()) {
+      // Sent create → leave → replacement create use the same ordered socket.
+      // Never send a leave from a stale ACK: it could close the newer room.
+      socketRef.current?.emit('room:leave');
+      clearRoomState('Ready', null);
+    } else {
+      setSessionAction(previous => (previous === 'creating' ? 'idle' : previous));
+    }
+  }
+
+  function beginRoomCreation() {
+    cancelRoomCreation();
+    const signal = roomCreationRef.current.begin();
+    setSessionAction('creating');
+    return signal;
+  }
+
   function createSession(
     currentTrackInfo: TrackInfo | null,
     playbackMode: RoomPlaybackMode = 'full',
@@ -1519,13 +1585,17 @@ export function useSession(deps: UseSessionDeps) {
     options: CreateSessionOptions = {}
   ) {
     event?.preventDefault();
+    const creationSignal = options.creationSignal ?? beginRoomCreation();
+    if (!roomCreationRef.current.isCurrent(creationSignal)) return;
     const chosenDisplayName = sanitizeDisplayName(displayName);
     if (!roomHostDisplayName(chosenDisplayName)) {
+      roomCreationRef.current.cancel();
       setSessionAction('idle');
       setError('Choose the name people will see in the room.');
       return;
     }
     if (productHostWebRtcUnavailable) {
+      roomCreationRef.current.cancel();
       setSessionAction('idle');
       changeMode('host');
       navigateToView('player');
@@ -1552,10 +1622,11 @@ export function useSession(deps: UseSessionDeps) {
       listenerCount: 0
     });
 
-    emitAckWhenConnected<CreateRoomResponse>(
+    emitAckWhenConnected(
       'room:create',
-      { displayName: chosenDisplayName, track: currentTrackInfo, playbackMode },
+      { displayName: chosenDisplayName, track: currentTrackInfo, playbackMode, ...(options.profile ? { profile: options.profile } : {}) },
       (response: CreateRoomResponse) => {
+        if (!roomCreationRef.current.finish(creationSignal)) return;
         setSessionAction('idle');
         if (!response.ok) {
           setError(response.error);
@@ -1571,6 +1642,7 @@ export function useSession(deps: UseSessionDeps) {
           listenerCount: 0
         });
         setRoomId(response.roomId);
+        options.onCreated?.(response.roomId);
         emitPlayerState(true);
         setHostName(response.hostName);
         setListeners([]);
@@ -1578,6 +1650,9 @@ export function useSession(deps: UseSessionDeps) {
         setListenerCount(0);
         setRoomPlaybackMode(playbackMode);
         setChatMessages([]);
+        setRoomActivity([]);
+        setRoomTyping([]);
+        setPinnedMessage(null);
         setReactionFeed([]);
         setRequestQueue([]);
         setRoomLineup([]);
@@ -1587,17 +1662,21 @@ export function useSession(deps: UseSessionDeps) {
         requestOpenRooms();
       },
       () => {
+        if (!roomCreationRef.current.isCurrent(creationSignal)) return;
         clearRoomState('Error', 'Room service unavailable.', { closePeers: false });
-      }
+      },
+      creationSignal,
+      () => roomCreationRef.current.markSent(creationSignal)
     );
   }
 
-  function joinRoom(roomCode: string, options: { displayName?: string } = {}) {
+  function joinRoom(roomCode: string, options: { displayName?: string; announceArtist?: boolean; artistToken?: string } = {}) {
     const normalizedRoomId = normalizeRoomCode(roomCode);
     if (!normalizedRoomId) {
       setError('Room code required');
       return;
     }
+    cancelRoomCreation();
     // Discovery can show our own room. Returning is navigation, not a join:
     // joining again would discard host authority and close its live peers.
     if (normalizedRoomId === roomIdRef.current) {
@@ -1623,9 +1702,9 @@ export function useSession(deps: UseSessionDeps) {
       roomId: normalizedRoomId
     });
 
-    emitAckWhenConnected<JoinRoomResponse>(
+    emitAckWhenConnected(
       'room:join',
-      { roomId: normalizedRoomId, displayName: joinDisplayName },
+      { roomId: normalizedRoomId, displayName: joinDisplayName, announceArtist: options.announceArtist, artistToken: options.artistToken },
       (response: JoinRoomResponse) => {
         setSessionAction('idle');
         if (!response.ok) {
@@ -1653,6 +1732,12 @@ export function useSession(deps: UseSessionDeps) {
         }
         setRoomPlaybackMode(response.playbackMode === 'preview' ? 'preview' : 'full');
         setChatMessages(response.chatHistory ?? []);
+        setRoomActivity(response.activity ?? []);
+        setRoomTyping([]);
+        setPinnedMessage(response.pinnedMessage ?? null);
+        listenerResumeTokenRef.current = response.listenerResumeToken ?? '';
+        if (options.announceArtist && !response.artistAnnounced)
+          setError('You joined as an ordinary participant. This room service could not announce your artist visit.');
         setRequestQueue(response.requests ?? []);
         setRoomLineup(response.lineup ?? []);
         setSessionStatus(response.track ? 'Waiting stream' : 'Connected');
@@ -1684,35 +1769,49 @@ export function useSession(deps: UseSessionDeps) {
       detail: 'socket-reconnect'
     });
 
-    socket.emit('room:join', { roomId: targetRoomId, displayName }, (response: JoinRoomResponse) => {
-      if (!response.ok) {
-        clearRoomState('Room closed', response.error);
-        return;
-      }
+    socket.request(
+      'room:join',
+      { roomId: targetRoomId, displayName, listenerResumeToken: listenerResumeTokenRef.current },
+      { timeoutMs: SIGNAL_ACK_TIMEOUT_MS },
+      (error, response) => {
+        if (error || !response) {
+          setSessionStatus('Reconnecting');
+          setError('The room connection is still recovering.');
+          return;
+        }
+        if (!response.ok) {
+          clearRoomState('Room closed', response.error);
+          return;
+        }
 
-      roomIdRef.current = response.roomId;
-      hostIdRef.current = response.hostId;
-      publishRoomQuality('room-rejoined', 'listener', {
-        roomId: response.roomId,
-        elapsedMs: elapsedSince(listenerJoinStartedAtRef.current),
-        listenerCount: response.listenerCount
-      });
-      setHostName(response.hostName);
-      setTrackInfo(response.track);
-      setPlayerState(response.playerState);
-      if (response.listeners) {
-        applyListenerRoster(response.listeners);
-      } else {
-        setListenerCount(response.listenerCount);
+        roomIdRef.current = response.roomId;
+        hostIdRef.current = response.hostId;
+        publishRoomQuality('room-rejoined', 'listener', {
+          roomId: response.roomId,
+          elapsedMs: elapsedSince(listenerJoinStartedAtRef.current),
+          listenerCount: response.listenerCount
+        });
+        setHostName(response.hostName);
+        setTrackInfo(response.track);
+        setPlayerState(response.playerState);
+        if (response.listeners) {
+          applyListenerRoster(response.listeners);
+        } else {
+          setListenerCount(response.listenerCount);
+        }
+        setRoomPlaybackMode(response.playbackMode === 'preview' ? 'preview' : 'full');
+        setChatMessages(response.chatHistory ?? []);
+        setRoomActivity(response.activity ?? []);
+        setRoomTyping([]);
+        setPinnedMessage(response.pinnedMessage ?? null);
+        listenerResumeTokenRef.current = response.listenerResumeToken ?? '';
+        setRequestQueue(response.requests ?? []);
+        setRoomLineup(response.lineup ?? []);
+        setSessionStatus(response.track ? 'Waiting stream' : 'Connected');
+        listenerConnectionStartedAtRef.current = monotonicNow();
+        startListenerConnectionTimeout();
       }
-      setRoomPlaybackMode(response.playbackMode === 'preview' ? 'preview' : 'full');
-      setChatMessages(response.chatHistory ?? []);
-      setRequestQueue(response.requests ?? []);
-      setRoomLineup(response.lineup ?? []);
-      setSessionStatus(response.track ? 'Waiting stream' : 'Connected');
-      listenerConnectionStartedAtRef.current = monotonicNow();
-      startListenerConnectionTimeout();
-    });
+    );
   }
 
   // A mobile host can briefly lose its signaling transport while the webview
@@ -1724,33 +1823,34 @@ export function useSession(deps: UseSessionDeps) {
     const hostResumeToken = hostResumeTokenRef.current;
     if (!socket?.connected || !targetRoomId || !hostResumeToken) return;
 
-    socket
-      .timeout(SIGNAL_ACK_TIMEOUT_MS)
-      .emit('room:resume', { roomId: targetRoomId, hostResumeToken }, (ackError: Error | null, response: ResumeRoomResponse | undefined) => {
-        if (ackError || !response) {
-          setSessionStatus('Reconnecting room');
-          setError('The room connection is still recovering.');
-          return;
-        }
-        if (!response.ok) {
-          clearRoomState('Room closed', response.error);
-          return;
-        }
+    socket.request('room:resume', { roomId: targetRoomId, hostResumeToken }, { timeoutMs: SIGNAL_ACK_TIMEOUT_MS }, (error, response) => {
+      if (error || !response) {
+        setSessionStatus('Reconnecting room');
+        setError('The room connection is still recovering.');
+        return;
+      }
+      if (!response.ok) {
+        clearRoomState('Room closed', response.error);
+        return;
+      }
 
-        roomIdRef.current = response.roomId;
-        setRoomId(response.roomId);
-        emitPlayerState(true);
-        setHostName(response.hostName);
-        applyListenerRoster(response.listeners);
-        setRoomLineup(response.lineup ?? []);
-        setSessionStatus(localStreamRef.current ? 'Live' : 'Room open');
-        setError(null);
-        publishRoomQuality('host-online', 'host', {
-          roomId: response.roomId,
-          listenerCount: response.listenerCount
-        });
-        requestOpenRooms();
+      roomIdRef.current = response.roomId;
+      setRoomId(response.roomId);
+      emitPlayerState(true);
+      setHostName(response.hostName);
+      applyListenerRoster(response.listeners);
+      setChatMessages(response.chatHistory ?? []);
+      setRoomActivity(response.activity ?? []);
+      setPinnedMessage(response.pinnedMessage ?? null);
+      setRoomLineup(response.lineup ?? []);
+      setSessionStatus(localStreamRef.current ? 'Live' : 'Room open');
+      setError(null);
+      publishRoomQuality('host-online', 'host', {
+        roomId: response.roomId,
+        listenerCount: response.listenerCount
       });
+      requestOpenRooms();
+    });
   }
 
   function joinSession(event: FormEvent<HTMLFormElement>) {
@@ -1770,16 +1870,14 @@ export function useSession(deps: UseSessionDeps) {
     if (!roomIdRef.current) return;
 
     const socket = connectSocket();
-    socket
-      .timeout(SIGNAL_ACK_TIMEOUT_MS)
-      .emit('room:rename', { displayName: clean }, (error: Error | null, response: { ok: boolean; displayName?: string; error?: string } | undefined) => {
-        if (error || !response?.ok) {
-          setError(response?.error ?? 'Unable to update room name.');
-          return;
-        }
-        setDisplayName(response.displayName ?? clean);
-        setError(null);
-      });
+    socket.request('room:rename', { displayName: clean }, { timeoutMs: SIGNAL_ACK_TIMEOUT_MS }, (error, response) => {
+      if (error || !response?.ok) {
+        setError(response?.error ?? 'Unable to update room name.');
+        return;
+      }
+      setDisplayName(response.displayName ?? clean);
+      setError(null);
+    });
   }
 
   function requestRoomAudio() {
@@ -1794,6 +1892,7 @@ export function useSession(deps: UseSessionDeps) {
   }
 
   function leaveSession() {
+    roomCreationRef.current.cancel();
     socketRef.current?.emit('room:leave');
     clearRoomState('Ready', null);
     requestOpenRooms();
@@ -1810,13 +1909,11 @@ export function useSession(deps: UseSessionDeps) {
     return () => clearInterval(timer);
   }, [mode, roomId]);
 
-  // Announce the room on the Statement Store so it can be discovered without
-  // Dotify's signaling server. Additive only: the share link remains the way in,
-  // and this is inert unless the build opted in and a Product host is present.
-  useRoomBeacon({
-    isHosting: mode === 'host' && Boolean(roomId),
-    roomCode: roomId,
-    hostName: displayName,
+  useRoomRealtimeObservation({
+    roomId,
+    port: socketRef.current,
+    isHosting: mode === 'host' && Boolean(hostResumeTokenRef.current),
+    online: socketStatus === 'online' && sessionAction === 'idle',
     listenerCount
   });
 
@@ -1852,9 +1949,9 @@ export function useSession(deps: UseSessionDeps) {
     }
   }
 
-  function socketEmit(event: string, data: unknown) {
-    socketRef.current?.emit(event, data);
-  }
+  const socketEmit: RoomTrackEmitter = (event, ...args) => {
+    socketRef.current?.emit(event, ...args);
+  };
 
   function setSoloListeningTrack(trackHash: string | null) {
     const normalized = typeof trackHash === 'string' && /^0x[0-9a-fA-F]{64}$/.test(trackHash) ? trackHash.toLowerCase() : null;
@@ -1872,16 +1969,23 @@ export function useSession(deps: UseSessionDeps) {
   // Social layer sends. The server validates, rate-limits, and echoes back to
   // the whole room (sender included), so local state only updates on receipt:
   // one render path, no optimistic divergence.
-  function sendRoomText(event: 'room:chat' | 'room:request', text: string, maxLength: number): Promise<{ ok: boolean; message?: string }> {
+  function sendRoomText(
+    event: 'room:chat' | 'room:request',
+    text: string,
+    maxLength: number,
+    details: { replyTo?: string; mentions?: string[] } = {}
+  ): Promise<{ ok: boolean; message?: string }> {
     const socket = socketRef.current;
     if (!roomIdRef.current || !socket?.connected) return Promise.resolve({ ok: false, message: 'Reconnecting. Your draft stays here.' });
     const trimmed = text.trim().slice(0, maxLength);
     if (!trimmed) return Promise.resolve({ ok: false, message: 'Write something first.' });
+    // Connected sends must survive polling backpressure; volatile sends drop
+    // when an HTTP write is in flight. Refuse disconnected sends at the port.
+    // Never render optimistically or automatically retry uncertain delivery.
+    // Older signaling servers can echo without acknowledging: retain the
+    // draft on timeout and ask the sender to check before resending.
     return new Promise(resolve => {
-      // Never buffer text for an automatic reconnect or render optimistically.
-      // Older signaling servers can echo without acknowledging: retain the
-      // draft on timeout and ask the sender to check before resending.
-      socket.timeout(5000).volatile.emit(event, { text: trimmed }, (error: Error | null, result?: { ok?: boolean; message?: string }) => {
+      socket.request(event, { text: trimmed, ...details }, { timeoutMs: 5000, connectedOnly: true }, (error, result) => {
         resolve(
           error || !result
             ? { ok: false, message: 'Couldn’t confirm delivery. Check the room before resending.' }
@@ -1891,13 +1995,13 @@ export function useSession(deps: UseSessionDeps) {
     });
   }
 
-  function sendChatMessage(text: string) {
-    return sendRoomText('room:chat', text, CHAT_TEXT_MAX_LENGTH);
+  function sendChatMessage(text: string, details?: { replyTo?: string; mentions?: string[] }) {
+    return sendRoomText('room:chat', text, CHAT_TEXT_MAX_LENGTH, details);
   }
 
   function sendRoomReaction(emoji: string) {
     if (!roomIdRef.current || !socketRef.current?.connected) return;
-    socketRef.current.volatile.emit('room:reaction', { emoji });
+    socketRef.current.emitVolatile('room:reaction', { emoji });
   }
 
   function sendRoomRequest(text: string) {
@@ -1922,6 +2026,7 @@ export function useSession(deps: UseSessionDeps) {
   }
 
   function destroySession() {
+    roomCreationRef.current.cancel();
     socketRef.current?.emit('room:leave');
     socketRef.current?.disconnect();
     closeAllPeers();
@@ -1954,6 +2059,13 @@ export function useSession(deps: UseSessionDeps) {
     roomPlaybackMode,
     productHostWebRtcUnavailable,
     chatMessages,
+    roomActivity,
+    roomTyping,
+    pinnedMessage,
+    clearArtistPresence: () => {
+      listenerResumeTokenRef.current = '';
+      socketRef.current?.emit('room:artist-clear');
+    },
     reactionFeed,
     requestQueue,
     roomLineup,
@@ -1972,6 +2084,8 @@ export function useSession(deps: UseSessionDeps) {
     connectSocket,
     getSocket,
     requestOpenRooms,
+    beginRoomCreation,
+    cancelRoomCreation,
     createSession,
     joinRoom,
     joinSession,

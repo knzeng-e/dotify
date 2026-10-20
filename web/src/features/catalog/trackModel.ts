@@ -21,6 +21,7 @@ export function catalogTrackToTrackInfo(track: CatalogTrack): TrackInfo {
     title: track.title,
     artist: track.artist,
     hash: track.hash,
+    runtimeAddress: runtimeAddressFromTrackId(track) ?? undefined,
     bulletinRef: track.bulletinRef,
     duration: track.duration ?? 0,
     updatedAt: Date.now(),

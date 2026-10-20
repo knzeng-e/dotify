@@ -9,6 +9,8 @@ type ClassicSupportStatus = 'pending' | 'confirmed' | 'included-unverified' | 'f
 export type ClassicReceiptRow = {
   label: string;
   value: string;
+  /** Shortened payout account, shown only under the technical disclosure. */
+  account?: string;
 };
 
 export type ClassicAccessReceipt = {
@@ -23,17 +25,23 @@ function royaltyPercentLabel(bps: number): string {
 }
 
 export function buildClassicAccessReceipt(track: CatalogTrack, nativePaymentAsset: RuntimeAssetShape): ClassicAccessReceipt {
-  const configuredSplitBps = track.royaltySplits.reduce((total, split) => total + split.bps, 0);
-  const artistRemainderBps = Math.max(0, 10_000 - configuredSplitBps);
-  const recipients = track.royaltySplits.map((split, index) => ({
+  const artistAccount = track.artistAddress?.toLowerCase();
+  // A split paid to the artist's own account is the artist's share: show one
+  // named row instead of a generic label next to a "remainder".
+  const collaboratorSplits = track.royaltySplits.filter(split => !artistAccount || split.recipient.toLowerCase() !== artistAccount);
+  const collaboratorBps = collaboratorSplits.reduce((total, split) => total + split.bps, 0);
+  const artistBps = Math.max(0, 10_000 - collaboratorBps);
+  const recipients: ClassicReceiptRow[] = collaboratorSplits.map((split, index) => ({
     label: split.label || `Collaborator ${index + 1}`,
-    value: `${royaltyPercentLabel(split.bps)} to ${shortenAddress(split.recipient)}`
+    value: royaltyPercentLabel(split.bps),
+    account: shortenAddress(split.recipient)
   }));
 
-  if (artistRemainderBps > 0) {
-    recipients.push({
-      label: 'Original artist remainder',
-      value: `${royaltyPercentLabel(artistRemainderBps)}${track.artistAddress ? ` to ${shortenAddress(track.artistAddress)}` : ''}`
+  if (artistBps > 0) {
+    recipients.unshift({
+      label: track.artist || 'Artist',
+      value: royaltyPercentLabel(artistBps),
+      account: track.artistAddress ? shortenAddress(track.artistAddress) : undefined
     });
   }
 
@@ -50,11 +58,11 @@ export function buildClassicAccessReceipt(track: CatalogTrack, nativePaymentAsse
       },
       {
         label: 'Availability',
-        value: 'The support record has no fixed expiry, but the artist may later withdraw the release'
+        value: 'The access record has no fixed expiry, but the artist may later withdraw the release'
       }
     ],
     recipients,
-    settlementNote: 'Your support follows this split when confirmation completes.'
+    settlementNote: 'Your payment follows this split when confirmation completes.'
   };
 }
 
@@ -64,7 +72,8 @@ export function buildClassicSupportFacts(
   status: ClassicSupportStatus = 'pending'
 ): TransactionFeedbackFact[] {
   const receipt = buildClassicAccessReceipt(track, nativePaymentAsset);
-  const recipients = receipt.recipients.map(row => `${row.label}: ${row.value}`).join('; ') || 'Artist’s published recipient list';
+  const recipients =
+    receipt.recipients.map(row => `${row.label}: ${row.value}${row.account ? ` to ${row.account}` : ''}`).join('; ') || 'Artist’s published recipient list';
   const accessValue =
     status === 'confirmed'
       ? 'Listening access is verified for this account while the release remains available.'
@@ -73,13 +82,13 @@ export function buildClassicSupportFacts(
         : 'Full listening opens only after the access check passes.';
   const settlementValue =
     status === 'confirmed'
-      ? 'Support was accepted; each share is settled now or available for its recipient to claim.'
+      ? 'Payment was accepted; each share is settled now or available for its recipient to claim.'
       : status === 'included-unverified'
         ? 'Payment may be recorded, but Dotify has not confirmed playable access.'
         : status === 'canceled'
-          ? 'No support transaction was completed from this attempt.'
+          ? 'No access payment was completed from this attempt.'
           : status === 'failed'
-            ? 'No completed support is recorded by Dotify from this attempt.'
+            ? 'No completed access payment is recorded by Dotify from this attempt.'
             : 'Pending until the transaction is included and verified.';
 
   return [
@@ -99,7 +108,7 @@ export function buildAccessGate(input: { track: CatalogTrack; connected: boolean
     return {
       track,
       title: 'Release unavailable',
-      message: `"${track.title}" is currently unavailable. Previous support does not guarantee that a release remains online forever.`,
+      message: `"${track.title}" is currently unavailable. A previous access payment does not guarantee that a release remains online forever.`,
       hint: 'No payment will be sent. If the artist brings it back, Dotify can check your access again.',
       actionType: 'none'
     };
@@ -109,8 +118,8 @@ export function buildAccessGate(input: { track: CatalogTrack; connected: boolean
     if (track.accessMode === 'classic') {
       return {
         track,
-        title: 'Support and open this track',
-        message: `"${track.title}" opens after ${supportAmount} of support. Review who receives it, then choose how to confirm.`,
+        title: 'Unlock listening',
+        message: `Unlocking "${track.title}" costs ${supportAmount}. See who receives it, then connect the account you want to pay with.`,
         hint: 'Nothing is sent until you confirm.',
         actionType: 'signin'
       };
@@ -136,8 +145,8 @@ export function buildAccessGate(input: { track: CatalogTrack; connected: boolean
 
   return {
     track,
-    title: 'Support and open this track',
-    message: `"${track.title}" opens after ${supportAmount} of support. Dotify checks your listening access again after confirmation.`,
+    title: 'Unlock listening',
+    message: `Unlocking "${track.title}" costs ${supportAmount}. Full playback opens after payment and access verification.`,
     hint: 'Nothing is sent until you confirm.',
     actionType: 'payment'
   };

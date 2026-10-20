@@ -6,6 +6,8 @@
 
 import type { View } from '../shared/types';
 
+export const SHEET_HISTORY_KEY = 'dotifySheet';
+
 /** Type guard for the four main app views. */
 export function isDotifyView(value: unknown): value is View {
   return value === 'listen' || value === 'player' || value === 'rooms' || value === 'you';
@@ -23,7 +25,9 @@ export function isArtistPortalPath(pathname: string): boolean {
 
 /** Normalize `history.state` to a plain object we can safely spread. */
 export function historyStateObject(state: unknown): Record<string, unknown> {
-  return state && typeof state === 'object' ? (state as Record<string, unknown>) : {};
+  const next = state && typeof state === 'object' ? { ...state } : {};
+  Reflect.deleteProperty(next, SHEET_HISTORY_KEY);
+  return next;
 }
 
 /** Resolve the active view from a popstate `history.state`, falling back cleanly. */

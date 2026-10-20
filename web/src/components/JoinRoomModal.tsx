@@ -1,4 +1,4 @@
-import { Disc3, Headphones, Radio, Users, X } from 'lucide-react';
+import { ArrowRight, Disc3, Headphones, Radio, Users, X } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { Dialog } from './Dialog';
 import { CoverImage } from './CoverImage';
@@ -38,13 +38,12 @@ export function JoinRoomModal({
   const isServiceUnavailable = thresholdState === 'service-unavailable';
   const isRoomUnavailable = thresholdState === 'room-unavailable';
   const isFull = room?.isFull === true;
-  const isThreshold = Boolean(room) || isResolving || isServiceUnavailable || isRoomUnavailable;
+  const isThreshold = Boolean(room) || thresholdState === 'ready' || isResolving || isServiceUnavailable || isRoomUnavailable;
   const hasChosenName = isChosenDisplayName(displayName);
   const hasPrefilledCode = Boolean(joinCode.trim());
   const roomTrack = room?.track;
   const hostDisplayName = roomHostDisplayName(room?.hostName);
   const peopleHere = room ? roomPresenceCount(room.listenerCount, true) : 0;
-  const displayedRoomCode = room?.roomId ?? joinCode.trim().toUpperCase();
   const allowAutomaticFocus = typeof window !== 'undefined' && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 
   function handleSubmit(event: FormEvent) {
@@ -75,18 +74,22 @@ export function JoinRoomModal({
           ? "We can't reach this room yet"
           : isRoomUnavailable
             ? 'This room is unavailable'
-            : 'Join a room';
+            : thresholdState === 'ready'
+              ? 'Join this listening room'
+              : 'Join a room';
   const description = room
     ? isFull
       ? `${peopleHere} ${peopleHere === 1 ? 'person is' : 'people are'} here, which is the current listener cap.`
-      : `${peopleHere} ${peopleHere === 1 ? 'person is' : 'people are'} here. Choose a name to enter.`
+      : 'Enter your name or nickname to join the chat and listen.'
     : isResolving
       ? 'Loading host, track, and presence.'
       : isServiceUnavailable
         ? 'The room may still be live. Reconnect before trying again.'
         : isRoomUnavailable
           ? 'This room may have ended or expired.'
-          : 'Paste a room code or link.';
+          : thresholdState === 'ready'
+            ? 'Enter your name or nickname to join and listen.'
+            : 'Paste a room code or link.';
 
   return (
     <Dialog className='join-room-modal' labelledBy='join-room-title' describedBy='join-room-description' onClose={onClose}>
@@ -129,14 +132,14 @@ export function JoinRoomModal({
         {!isServiceUnavailable && !isRoomUnavailable && (
           <>
             <label className='create-room-label' htmlFor='join-room-name'>
-              Your name in the room
+              Your name or nickname
             </label>
             <input
               id='join-room-name'
               className='field'
-              value={displayName}
+              value={hasChosenName ? displayName : ''}
               onChange={event => onSetDisplayName(event.target.value)}
-              placeholder='How should people see you?'
+              placeholder='e.g. Alex'
               maxLength={32}
               autoComplete='nickname'
               autoFocus={hasPrefilledCode && allowAutomaticFocus}
@@ -144,12 +147,7 @@ export function JoinRoomModal({
           </>
         )}
 
-        {isThreshold ? (
-          <div className='room-threshold-code' aria-label={`Room code ${displayedRoomCode}`}>
-            <span>Room code</span>
-            <code>{displayedRoomCode}</code>
-          </div>
-        ) : (
+        {!isThreshold && (
           <>
             <label className='create-room-label' htmlFor='join-room-code'>
               Room code
@@ -178,17 +176,17 @@ export function JoinRoomModal({
               type='submit'
               disabled={isJoining || isResolving || isRoomUnavailable || isFull || !joinCode.trim() || !hasChosenName}
             >
-              {isJoining || isResolving ? <Disc3 size={16} className='spin' /> : <Headphones size={16} />}
+              {isJoining || isResolving ? <Disc3 size={16} className='spin' /> : <ArrowRight size={16} />}
               {isJoining
-                ? 'Entering...'
+                ? 'Joining...'
                 : isResolving
                   ? 'Finding room...'
                   : isRoomUnavailable
                     ? 'Room unavailable'
                     : isFull
                       ? 'Room full'
-                      : room
-                        ? 'Enter and listen'
+                      : isThreshold
+                        ? 'Join and listen'
                         : 'Join room'}
             </button>
           )}

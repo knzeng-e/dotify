@@ -23,31 +23,38 @@ for (const width of [390, 1440]) {
       await page.evaluate(() => Reflect.set(window, '__artworkAudio', document.querySelector('audio')));
       await page.getByRole('button', { name: 'Pause', exact: true }).click();
       await expect(audio).toHaveJSProperty('paused', true);
-      await page.getByRole('button', { name: 'Music', exact: true }).click();
+      await page.getByRole('button', { name: width <= 768 ? 'Back to Music' : 'Music', exact: true }).click();
       await expect(action).toBeFocused();
       await action.click();
       await expect(audio).toHaveJSProperty('paused', false);
       expect(await page.evaluate(() => Reflect.get(window, '__artworkAudio') === document.querySelector('audio'))).toBe(true);
-      await page.getByRole('button', { name: 'Music', exact: true }).click();
+      await page.getByRole('button', { name: width <= 768 ? 'Back to Music' : 'Music', exact: true }).click();
       // A locked release becomes the selected player state without interrupting
-      // discovery. Its support terms remain available through an explicit CTA.
+      // discovery. Its access terms remain available through an explicit CTA.
       const locked = page.getByRole('button', { name: /^View listening options for E2E Protected Room Track by Dotify Room Host,/ });
       await locked.click();
       await expect(page.getByTestId('access-warning')).toHaveCount(0);
-      await expect(page.getByRole('button', { name: 'Support and open', exact: true })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Unlock listening', exact: true })).toBeVisible();
     });
 
-    test('shows Play only on the active cover and keeps cards focused on the music', async ({ page }, testInfo) => {
+    test('cover affordances distinguish playback from opening access options', async ({ page }, testInfo) => {
       await page.goto('/?e2eRoom=public&e2eCatalog=wide');
       const actions = page.getByTestId('track-artwork-action');
       const row = page.getByRole('region', { name: 'Music catalog', exact: true });
       await expect(actions.first()).toBeVisible();
-      await expect(row.locator('.lucide-arrow-right')).toHaveCount(0);
+      await expect(row.locator('.catalogue-card-open .lucide-arrow-right')).toHaveCount(0);
       await expect(row.locator('.catalogue-access-line')).toHaveCount(0);
       await expect(row.locator('.catalogue-access-cue')).toHaveCount(0);
-      await expect(row.getByText('0.5 PAS', { exact: true })).toHaveCount(0);
+      // Each card states its access in one short visible cue.
+      await expect(row.locator('.catalogue-card-access').filter({ hasText: '0.5 PAS' }).first()).toBeVisible();
       await expect(row.getByText('Verified humans', { exact: true })).toHaveCount(0);
-      await expect(actions.locator('.lucide-play')).toHaveCount(await actions.count());
+      const playable = row.getByRole('button', { name: /^Play / });
+      const inspectable = row.getByRole('button', { name: /^View listening options for / });
+      expect(await playable.count()).toBeGreaterThan(0);
+      expect(await inspectable.count()).toBeGreaterThan(0);
+      await expect(playable.locator('.lucide-play')).toHaveCount(await playable.count());
+      await expect(inspectable.locator('.lucide-arrow-right')).toHaveCount(await inspectable.count());
+      await expect(inspectable.locator('.lucide-play')).toHaveCount(0);
       await expect
         .poll(() => actions.locator('.track-artwork-action').evaluateAll(elements => elements.every(el => getComputedStyle(el).opacity === '0')))
         .toBe(true);
@@ -70,10 +77,10 @@ for (const width of [390, 1440]) {
       // explicit player CTA rather than opening over the catalog.
       await page.getByLabel('Find a track or artist').fill('E2E Protected Room Track');
       const protectedCard = page.getByTestId('track-card').filter({ hasText: 'E2E Protected Room Track' });
-      await expect(protectedCard).not.toContainText('0.5 PAS');
+      await expect(protectedCard).toContainText('0.5 PAS');
       await protectedCard.getByTestId('track-artwork-action').click();
       await expect(page.getByTestId('access-warning')).toHaveCount(0);
-      await expect(page.getByRole('button', { name: 'Support and open', exact: true })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Unlock listening', exact: true })).toBeVisible();
     });
 
     test('artist and personal screens lead with useful content', async ({ page }, testInfo) => {
@@ -90,11 +97,11 @@ for (const width of [390, 1440]) {
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
       await page.screenshot({ path: testInfo.outputPath(`artist-${width}.png`), fullPage: false });
       await page.getByRole('button', { name: 'You', exact: true }).click();
-      await expect(page.getByRole('button', { name: 'Connect a wallet', exact: true })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Connect your account', exact: true })).toBeVisible();
       await expect(page.getByRole('region', { name: 'Your collection' })).toBeVisible();
       await expect(page.locator('.account-summary,.account-detail-grid,.wallet-pass-panel')).toHaveCount(0);
       await page.screenshot({ path: testInfo.outputPath(`you-${width}.png`), fullPage: false });
-      await page.getByRole('button', { name: 'Connect a wallet', exact: true }).click();
+      await page.getByRole('button', { name: 'Connect your account', exact: true }).click();
       await expect(page.getByRole('dialog')).toBeVisible();
     });
   });
@@ -105,28 +112,31 @@ test('room presence stays quiet when online and remains honest offline', async (
   await page.goto('/?e2eRoom=public');
   await page.getByRole('button', { name: 'Open a room', exact: true }).click();
   await page.getByRole('button', { name: 'Select E2E Public Room Track', exact: true }).click();
-  await page.getByLabel('Your name in the room').fill('Quiet room host');
+  await page.getByLabel('Your name or nickname').fill('Quiet room host');
   await page.getByRole('button', { name: 'Open the room', exact: true }).click();
   await expect(page.getByTestId('room-code')).toHaveText(/[A-Z0-9]{4,}/);
   const code = (await page.getByTestId('room-code').innerText()).trim();
   await page.getByRole('button', { name: 'Rooms', exact: true }).click();
-  await page.locator('.room-live-card').filter({ hasText: code }).click();
-  const panel = page.getByTestId('room-detail-panel');
-  await expect(panel.locator('.live-dot')).toHaveCSS('background-color', 'rgb(63, 224, 171)');
-  await expect(panel.locator('.room-detail-state')).toHaveCount(0);
+  await expect(page.locator('.room-live-card,[data-testid="sky-of-rooms"]')).toHaveCount(0);
+  await expect(page.getByRole('region', { name: 'Room galaxy', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Inspect E2E Public Room Track/ })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Return to your room', exact: true }).click();
+  await expect(page.getByTestId('room-code')).toHaveText(code);
+  const presence = page.locator('.room-live-chip');
+  await expect(presence).toHaveText('Hosting');
+  await expect(presence.locator('.live-dot')).toHaveCSS('background-color', 'rgb(63, 224, 171)');
   await expect(page.getByText('Room signal online', { exact: true })).toHaveCount(0);
-  await expect(page.locator('.room-doctrine')).toHaveCount(0);
-  const announcement = page.locator('#sky-of-rooms .sr-only, [data-testid="sky-of-rooms"] .sr-only');
-  await expect(announcement).toHaveCount(1);
-  expect((await announcement.boundingBox())!.width).toBeLessThanOrEqual(1);
-  await page.locator('.rooms-live-section').scrollIntoViewIfNeeded();
+  await expect(page.locator('.room-doctrine,.room-chat-connection')).toHaveCount(0);
   await page.screenshot({ path: testInfo.outputPath('rooms-online.png'), fullPage: false });
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  expect(await panel.locator('.live-dot').evaluate(element => getComputedStyle(element, '::after').animationName)).toBe('none');
+  expect(await presence.locator('.live-dot').evaluate(element => getComputedStyle(element, '::after').animationName)).toBe('none');
+  await page.getByRole('textbox', { name: 'Message the room', exact: true }).fill('A draft to keep');
   await page.context().setOffline(true);
-  await expect(page.locator('.room-list-status')).toBeVisible({ timeout: 15_000 });
-  await expect(panel.locator('.live-dot')).toHaveAttribute('data-online', 'false');
-  await expect(panel.getByRole('status')).toBeVisible();
+  await expect(presence).toHaveText('Reconnecting', { timeout: 15_000 });
+  await expect(presence.locator('.live-dot')).toHaveAttribute('data-online', 'false');
+  await expect(page.locator('.room-chat-connection')).toHaveText('Reconnecting. Your draft stays here.');
+  await expect(page.getByRole('textbox', { name: 'Message the room', exact: true })).toHaveValue('A draft to keep');
+  await expect(page.getByRole('button', { name: 'Send message', exact: true })).toBeDisabled();
 });
 
 test('clear interface supports doubled text on a narrow screen', async ({ page }, testInfo) => {
@@ -161,7 +171,7 @@ test('clear interface restores individual playback after leaving a room', async 
   await page.goto('/?e2eRoom=public');
   await page.getByRole('button', { name: 'Open a room', exact: true }).click();
   await page.getByRole('button', { name: 'Select E2E Public Room Track', exact: true }).click();
-  await page.getByLabel('Your name in the room').fill('Interface host');
+  await page.getByLabel('Your name or nickname').fill('Interface host');
   await page.getByRole('button', { name: 'Open the room', exact: true }).click();
   await expect(page.getByTestId('room-code')).toHaveText(/[A-Z0-9]{4,}/);
   const code = (await page.getByTestId('room-code').innerText()).trim();
@@ -169,11 +179,11 @@ test('clear interface restores individual playback after leaving a room', async 
   try {
     const guest = await guestContext.newPage();
     await guest.goto(`/?e2eRoom=public&e2eAutoplay=on#/rooms/${code}`);
-    await expect(guest.locator('#join-room-title')).toContainText('welcomes you');
-    await guest.getByLabel('Your name in the room').fill('Returning listener');
-    await guest.getByRole('button', { name: 'Enter and listen', exact: true }).click();
+    await expect(guest.locator('#join-room-title')).toContainText('Join this listening room');
+    await guest.getByLabel('Your name or nickname').fill('Returning listener');
+    await guest.getByRole('button', { name: 'Join and listen', exact: true }).click();
     await expect(guest.getByTestId('room-code')).toHaveText(code);
-    await guest.getByRole('button', { name: 'Music', exact: true }).click();
+    await guest.getByRole('button', { name: 'Keep listening and browse', exact: true }).click();
     const cover = guest.getByTestId('track-artwork-action').filter({ has: guest.locator('img') });
     await expect(guest.getByRole('button', { name: /^Play E2E Public Room Track by Dotify Room Host,/ })).toHaveCount(0);
     await expect(cover.first()).toBeVisible();
@@ -200,7 +210,7 @@ test('clear interface lets guests inspect releases without changing their listen
   await page.goto('/?e2eRoom=public');
   await page.getByRole('button', { name: 'Open a room', exact: true }).click();
   await page.getByRole('button', { name: 'Select E2E Public Room Track', exact: true }).click();
-  await page.getByLabel('Your name in the room').fill('Interface host');
+  await page.getByLabel('Your name or nickname').fill('Interface host');
   await page.getByRole('button', { name: 'Open the room', exact: true }).click();
   await expect(page.getByTestId('room-code')).toHaveText(/[A-Z0-9]{4,}/);
   const code = (await page.getByTestId('room-code').innerText()).trim();
@@ -208,15 +218,17 @@ test('clear interface lets guests inspect releases without changing their listen
   try {
     const guest = await guestContext.newPage();
     await guest.goto(`/?e2eRoom=public#/rooms/${code}`);
-    await expect(guest.locator('#join-room-title')).toContainText('welcomes you');
-    await guest.getByLabel('Your name in the room').fill('Curious listener');
-    await guest.getByRole('button', { name: 'Enter and listen', exact: true }).click();
+    await expect(guest.locator('#join-room-title')).toContainText('Join this listening room');
+    await guest.getByLabel('Your name or nickname').fill('Curious listener');
+    await guest.getByRole('button', { name: 'Join and listen', exact: true }).click();
     await expect(guest.getByTestId('room-code')).toHaveText(code);
-    await guest.getByRole('button', { name: 'Music', exact: true }).click();
+    await guest.getByRole('button', { name: 'Keep listening and browse', exact: true }).click();
     const originalSource = await guest.locator('audio.native-player-source').first().getAttribute('src');
     const selectedTitle = await guest.locator('.catalogue-card[data-selected="true"] .catalogue-card-open').innerText();
     const keyRequests = await guest.evaluate(() => window.__DOTIFY_E2E_ROOM_JOIN__?.keyRequests);
     const protectedAction = guest.getByRole('button', { name: /^View listening options for E2E Protected Room Track by Dotify Room Host,/ });
+    await expect(protectedAction.locator('.lucide-arrow-right')).toHaveCount(1);
+    await expect(guest.getByTestId('track-artwork-action').locator('.lucide-play')).toHaveCount(0);
     // Keyboard focus returns to the trigger; Safari pointer clicks do not focus buttons.
     await protectedAction.focus();
     await protectedAction.press('Enter');
@@ -245,7 +257,7 @@ test('clear interface lets guests inspect releases without changing their listen
     await expect(dialog).toHaveCount(0);
     await expect(guest.getByTestId('room-code')).toHaveCount(0);
     await expect(guest.getByTestId('access-warning')).toHaveCount(0);
-    await expect(guest.getByRole('button', { name: 'Support and open', exact: true })).toBeVisible();
+    await expect(guest.getByRole('button', { name: 'Unlock listening', exact: true })).toBeVisible();
     await expect(guest.locator('audio.native-player-source').first()).toHaveJSProperty('paused', true);
     await expect(page.getByTestId('room-code')).toHaveText(code);
   } finally {

@@ -1,0 +1,46 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Dotify: W28 mobile premium implementation prompt",
+      "type": "shell",
+      "command": "git status --short --branch && printf '\\nOpen this prompt in VS Code Chat or Codex, then run it from the repo root:\\n\\n' && sed -n '1,220p' .github/prompts/dotify-mobile-premium-experience.prompt.md",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "Dotify: web dev with signaling",
+      "type": "shell",
+      "command": "npm --prefix web run dev:listen",
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "Dotify: web build",
+      "type": "shell",
+      "command": "npm --prefix web run build",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Dotify: web lint",
+      "type": "shell",
+      "command": "npm --prefix web run lint",
+      "problemMatcher": []
+    },
+    {
+      "label": "Dotify: backlog offline check",
+      "type": "shell",
+      "command": "node scripts/backlog-sync.mjs --check --offline",
+      "problemMatcher": []
+    }
+  ]
+}

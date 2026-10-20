@@ -37,6 +37,7 @@ type AvatarStackProps = {
   names: string[];
   max?: number;
   size?: number;
+  total?: number;
 };
 
 // Room discovery exposes a real host name and a listener count, not a listener
@@ -47,9 +48,9 @@ export function roomPresenceNames(hostName: string, listenerCount: number, _seed
   return [roomHostDisplayName(hostName) ?? '', ...listeners];
 }
 
-export function AvatarStack({ names, max = 4, size = 28 }: AvatarStackProps) {
+export function AvatarStack({ names, max = 4, size = 28, total = names.length }: AvatarStackProps) {
   const shown = names.slice(0, max);
-  const extra = names.length - shown.length;
+  const extra = Math.max(0, total - shown.length);
   return (
     <span className='ava-stack' aria-hidden='true'>
       {shown.map((name, index) => (

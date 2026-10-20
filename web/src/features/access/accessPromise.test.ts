@@ -62,7 +62,7 @@ describe('access promise copy', () => {
 
     expect(gate.actionType).toBe('payment');
     expect(gate.message).toContain('0.5 PAS');
-    expect(gate.message).toContain('checks your listening access');
+    expect(gate.message).toContain('payment and access verification');
     expect(gate.hint).toBe('Nothing is sent until you confirm.');
     expect(`${gate.message} ${gate.hint}`).not.toMatch(/runtime|registry|chain|EVM/i);
   });
@@ -79,13 +79,19 @@ describe('access promise copy', () => {
       },
       {
         label: 'Availability',
-        value: 'The support record has no fixed expiry, but the artist may later withdraw the release'
+        value: 'The access record has no fixed expiry, but the artist may later withdraw the release'
       }
     ]);
     expect(receipt.recipients).toEqual([
-      { label: 'Producer', value: '25% to 0x111111...111111' },
-      { label: 'Original artist remainder', value: '75% to 0x222222...222222' }
+      { label: 'Nova', value: '75%', account: '0x222222...222222' },
+      { label: 'Producer', value: '25%', account: '0x111111...111111' }
     ]);
+  });
+
+  it('folds a split paid to the artist account into one named artist row', () => {
+    const release = track({ royaltySplits: [{ label: 'Primary recipient', recipient: '0x2222222222222222222222222222222222222222', bps: 7_000 }] });
+
+    expect(buildClassicAccessReceipt(release, nativePaymentAsset).recipients).toEqual([{ label: 'Nova', value: '100%', account: '0x222222...222222' }]);
   });
 
   it('shows the authoritative payment amount even when a display price is stale', () => {
@@ -117,11 +123,11 @@ describe('access promise copy', () => {
     );
     expect(buildClassicSupportFacts(track(), nativePaymentAsset, 'failed')).toContainEqual({
       label: 'Settlement',
-      value: 'No completed support is recorded by Dotify from this attempt.'
+      value: 'No completed access payment is recorded by Dotify from this attempt.'
     });
     expect(buildClassicSupportFacts(track(), nativePaymentAsset, 'canceled')).toContainEqual({
       label: 'Settlement',
-      value: 'No support transaction was completed from this attempt.'
+      value: 'No access payment was completed from this attempt.'
     });
   });
 

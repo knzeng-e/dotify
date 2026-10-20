@@ -25,6 +25,12 @@ P0 once approved (it redefines the production spine's access rules).
 
 ## Phases
 
+October 9 session hardening: the current frontend no longer falls back to a
+per-track signed request when session auth is unavailable. Established sessions
+survive transport outages; renewal requires a typed expiration/revocation/API
+restart response and is bounded to one attempt. Failed login exchanges require
+explicit recovery rather than new wallet prompts on each playback retry.
+
 | Phase | Scope                                                                                                                                                              |
 | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | P1    | Access model v2 (contracts + UI); delete the preview machinery                                                                                                     |
@@ -189,6 +195,28 @@ W08 first-sound slice:
   browser/device matrix, collect cold/warm samples, and make the backend
   read-through gateway decision from those measurements.
 
+Continuity and session follow-up (2026-10-08, #88 / #90):
+
+- Recoverable DAV2 failures retain the current position and the latest pause/play
+  intent when switching to a complete decrypted Blob. MediaSource URLs are
+  selection-owned and never cached as reusable files. Selection cancellation
+  retires their URLs and prevents a late recovery from replacing the next track.
+- HTTP 408/429/5xx range failures use the existing bounded same-gateway retry.
+  AES authentication failures remain terminal. A full-file response that stops
+  delivering bytes fails after 15 seconds without progress; healthy downloads
+  can exceed that total duration.
+- Host playback exposes buffering/reconnection separately from actual playing.
+  This does not change the guest wire protocol or add keys to the guest path.
+- Listening sessions survive blocked persistent storage in memory, retain
+  expiry/revocation, and are scoped by API/account/chain/signing identity. A
+  transient 503 no longer causes a sticky per-track-signature mode. See the
+  [implementation evidence](implementation/evidence/W08-audio-continuity-2026-10-08.md)
+  for tests, migration boundaries, and remaining physical-device gates.
+- The room-host contribution binding reads that same exact chain and signing
+  identity scope. A token cached first for another network or signing identity
+  cannot silently replace the valid session for the configured contribution
+  network.
+
 #87 responsive-cover slice (2026-09-18):
 
 - New backend cover uploads are decoded and normalized server-side into square
@@ -210,7 +238,7 @@ W08 first-sound slice:
 
 Product SDK adaptation note (updated 2026-09-12):
 
-- Product SDK 0.27.0 and deploy tooling 0.16.2 remain
+- Product SDK 0.27.0 and deploy tooling 0.16.7 remain
   prototype/reference/unaudited in Dotify's pinned baseline after the Product
   DevNet DotNS/CDM/descriptors refresh.
 - Root PAPI 3.0.0 is not adopted yet because the current Product SDK graph

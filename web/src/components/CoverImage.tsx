@@ -6,8 +6,9 @@ import {
   shouldArmCoverGatewayTimeout,
   shouldUseLocalCoverFallbackAfterGatewayTimeout
 } from '../features/catalog/coverArtwork';
-import { responsiveCoverSources } from '../features/catalog/responsiveCover';
+import { coverGatewaySources, responsiveCoverSources } from '../features/catalog/responsiveCover';
 import { getGatewayUrlsForAssetRef } from '../services/pinata';
+import { artworkCacheKey, loadPublicArtwork } from '../services/publicArtworkCache';
 
 type CoverImageProps = Omit<ImgHTMLAttributes<HTMLImageElement>, 'crossOrigin' | 'src'> & {
   src: string | undefined;
@@ -28,7 +29,7 @@ export function CoverImage({
   ...props
 }: CoverImageProps) {
   const imageRef = useRef<HTMLImageElement | null>(null);
-  const sources = useMemo(() => getGatewayUrlsForAssetRef(src ?? ''), [src]);
+  const sources = useMemo(() => coverGatewaySources(getGatewayUrlsForAssetRef(src ?? '')), [src]);
   const fallbackSource = useMemo(
     () => createCoverFallbackDataUri(fallbackLabel || alt || 'Dotify', src || fallbackLabel || alt || 'Dotify'),
     [alt, fallbackLabel, src]
@@ -38,6 +39,7 @@ export function CoverImage({
   const [didExhaustSources, setDidExhaustSources] = useState(false);
   const [showLocalFallback, setShowLocalFallback] = useState(false);
   const [lazyLoadRangeSource, setLazyLoadRangeSource] = useState<string | null>(null);
+  const [cachedSource, setCachedSource] = useState<{ ref: string; url: string } | null>(null);
 
   useEffect(() => {
     setSourceIndex(0);
@@ -74,27 +76,51 @@ export function CoverImage({
   const boundedSourceIndex = Math.min(sourceIndex, Math.max(lastSourceIndex, 0));
   const gatewaySource = sources[boundedSourceIndex];
   const presentation = resolveCoverPresentation(gatewaySource, fallbackSource, loadedSource, didExhaustSources, showLocalFallback);
-  const activeSource = presentation.source;
+  const activeSource = cachedSource && cachedSource.ref === src ? cachedSource.url : presentation.source;
   const responsive = useMemo(() => responsiveCoverSources(activeSource), [activeSource]);
   const isInLoadRange = loading !== 'lazy' || lazyLoadRangeSource === (src ?? null);
   const canStartGatewayTimeout = shouldArmCoverGatewayTimeout(loading, isInLoadRange);
 
   useEffect(() => {
-    if (!canStartGatewayTimeout || !shouldUseLocalCoverFallbackAfterGatewayTimeout(gatewaySource, loadedSource, didExhaustSources)) return;
+    if (!isInLoadRange || !src || !sources[0] || !artworkCacheKey(sources[0])) return;
+    let cancelled = false;
+    // Cache the width selected for this surface, rather than a 640px thumbnail.
+    const width = Math.min(640, Math.max(64, (imageRef.current?.getBoundingClientRect().width || 320) * Math.min(window.devicePixelRatio || 1, 2)));
+    const variant = [64, 160, 320, 640].find(candidate => candidate >= width) ?? 640;
+    // Cache each actual immutable path separately, including legacy flat pins.
+    const urls = sources
+      .filter(url => artworkCacheKey(url) === artworkCacheKey(gatewaySource ?? ''))
+      .map(url => url.replace(/640\.webp(?=([?#]|$))/, `${variant}.webp`));
+    void loadPublicArtwork(urls)
+      .then(url => {
+        if (!cancelled) setCachedSource({ ref: src, url });
+      })
+      .catch(() => {
+        // Image loading without CORS remains available through the native path.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [src, sources, isInLoadRange, gatewaySource]);
+
+  useEffect(() => {
+    if (cachedSource?.ref === src || !canStartGatewayTimeout || !shouldUseLocalCoverFallbackAfterGatewayTimeout(gatewaySource, loadedSource, didExhaustSources))
+      return;
 
     const timeoutId = window.setTimeout(() => {
       setShowLocalFallback(true);
+      // Keep downloading the image. The cache races alternatives separately;
+      // changing src here aborts healthy large covers every 1.2 seconds.
     }, COVER_GATEWAY_TIMEOUT_MS);
 
     return () => window.clearTimeout(timeoutId);
-  }, [canStartGatewayTimeout, didExhaustSources, gatewaySource, loadedSource]);
+  }, [canStartGatewayTimeout, didExhaustSources, gatewaySource, loadedSource, boundedSourceIndex, lastSourceIndex, cachedSource, src]);
 
   const showResponsivePlaceholder = Boolean(responsive && loadedSource !== activeSource && !didExhaustSources);
-  const fallbackBackground = presentation.showFallbackBackground
-    ? `url("${fallbackSource}")`
-    : showResponsivePlaceholder
-      ? `url("${responsive?.placeholder}"), url("${fallbackSource}")`
-      : null;
+  // The local artwork is immediate and works offline. Do not fetch a second
+  // remote placeholder while the actual cover is already loading: older pins
+  // may omit it, adding a 404 and competing with audio for a connection.
+  const fallbackBackground = presentation.showFallbackBackground || showResponsivePlaceholder ? `url("${fallbackSource}")` : null;
   const localFallbackStyle: CSSProperties | undefined = fallbackBackground
     ? {
         backgroundImage: fallbackBackground,
@@ -113,7 +139,7 @@ export function CoverImage({
       sizes={responsive ? (sizes ?? '320px') : sizes}
       alt={alt}
       className={['cover-image', className].filter(Boolean).join(' ')}
-      data-cover-loaded={presentation.isReady || showResponsivePlaceholder}
+      data-cover-loaded={loadedSource === activeSource || presentation.showFallbackBackground || showResponsivePlaceholder}
       data-cover-fallback={presentation.showFallbackBackground || undefined}
       loading={loading}
       decoding={decoding}
@@ -125,6 +151,13 @@ export function CoverImage({
       }}
       onError={event => {
         onError?.(event);
+        if (cachedSource && cachedSource.ref === src && activeSource === cachedSource.url) {
+          // Decoding failures or a Host policy rejecting blob URLs must not
+          // strand the image on its cached source; resume native loading.
+          setCachedSource(null);
+          setShowLocalFallback(true);
+          return;
+        }
         if (didExhaustSources || activeSource === fallbackSource || sources.length === 0) return;
         if (boundedSourceIndex >= lastSourceIndex) {
           setDidExhaustSources(true);

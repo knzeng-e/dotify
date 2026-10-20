@@ -52,6 +52,21 @@ describe('audioV2 gateway range fetching', () => {
     expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([PRIMARY, PRIMARY]);
   });
 
+  it.each([408, 429, 502, 503])('retries HTTP %s on the same segment before reloading any source', async status => {
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(new Response('temporary', { status })).mockResolvedValueOnce(rangeResponse(9, 3));
+    const result = await fetchAudioV2RangeThroughGateways(CID, 10, 18, { phase: 'chunk', fetchImpl: fetchMock, getGatewayUrlsForCid: () => [PRIMARY] });
+    expect(result.bytes).toEqual(new Uint8Array(9).fill(3));
+    expect(fetchMock.mock.calls.map(([, init]) => init?.headers)).toEqual([{ Range: 'bytes=10-18' }, { Range: 'bytes=10-18' }]);
+  });
+
+  it('stops retrying HTTP 503 at the attempt limit', async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockImplementation(async () => new Response('temporary', { status: 503 }));
+    await expect(
+      fetchAudioV2RangeThroughGateways(CID, 10, 18, { phase: 'chunk', fetchImpl: fetchMock, getGatewayUrlsForCid: () => [PRIMARY] })
+    ).rejects.toThrow('503');
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
   it('falls back to the next gateway and caches the winner per CID', async () => {
     const fetchMock = vi
       .fn<typeof fetch>()
@@ -296,4 +311,29 @@ describe('audioV2 gateway range fetching', () => {
     expect((await fetchAudioV2RangeThroughGateways(CID, 0, 8, options)).intentPrefetched).toBe(false);
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
+});
+
+it('does not abort a progressing segment at the headers deadline', async () => {
+  vi.useFakeTimers();
+  let signal: AbortSignal | null | undefined;
+  const fetchImpl = vi.fn(async (_url, init) => {
+    signal = init?.signal;
+    return new Response(
+      new ReadableStream({
+        start(c) {
+          c.enqueue(new Uint8Array([1]));
+          setTimeout(() => {
+            c.enqueue(new Uint8Array([2]));
+            c.close();
+          }, 13000);
+        }
+      }),
+      { status: 206 }
+    );
+  }) as typeof fetch;
+  const pending = fetchAudioV2RangeThroughGateways('progress', 0, 1, { fetchImpl, getGatewayUrlsForCid: () => [PRIMARY], hedge: false });
+  await vi.advanceTimersByTimeAsync(13001);
+  expect((await pending).bytes).toEqual(new Uint8Array([1, 2]));
+  expect(signal?.aborted).toBe(false);
+  vi.useRealTimers();
 });

@@ -98,6 +98,7 @@ export type ProductCdmContracts = {
   resolver: ProductCdmRuntimeContractResolver;
   /** Native Balance precision read from the connected Product chain spec. */
   nativeTokenDecimals: number;
+  readAvailableBalance: (address: string) => Promise<bigint>;
   /**
    * Confirm the connected chain actually holds Dotify's contracts. Call before
    * serving catalog reads: a wrong-chain connection otherwise looks like an
@@ -214,7 +215,18 @@ export async function createProductCdmContracts(
     }
   }
 
-  return { resolver, nativeTokenDecimals, verifyDeployment, destroy: () => client.destroy() };
+  async function readAvailableBalance(address: string): Promise<bigint> {
+    const api = client.assetHub as unknown as {
+      query: { System: { Account: { getValue: (address: string) => Promise<{ data: { free: bigint; frozen: bigint } }> } } };
+      constants: { Balances: { ExistentialDeposit: () => Promise<bigint> } };
+    };
+    const [account, deposit] = await Promise.all([api.query.System.Account.getValue(address), api.constants.Balances.ExistentialDeposit()]);
+    // Keep the account alive, and never advertise frozen funds as spendable.
+    const unavailable = account.data.frozen > deposit ? account.data.frozen : deposit;
+    return account.data.free > unavailable ? account.data.free - unavailable : 0n;
+  }
+
+  return { resolver, nativeTokenDecimals, readAvailableBalance, verifyDeployment, destroy: () => client.destroy() };
 }
 
 export function productCdmNativeTokenDecimals(properties: { tokenDecimals?: unknown }): number {

@@ -12,6 +12,9 @@ export function donationE2ePort(): DonationPort {
       return { hash: E2E_CLASSIC_TX_HASH, finalized: false };
     },
     async confirm() {
+      if (new URLSearchParams(location.search).get('e2eGift') === 'pending') {
+        await new Promise<void>(resolve => Reflect.set(state, 'complete', resolve));
+      }
       if (new URLSearchParams(location.search).get('e2eGift') === 'delayed' && !state.confirmed) throw new Error('Confirmation delayed');
       state.confirmed = true;
     },

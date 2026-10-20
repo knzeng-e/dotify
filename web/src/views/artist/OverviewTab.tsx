@@ -1,28 +1,30 @@
-import { Disc3, Heart, KeyRound, LockKeyhole, RefreshCw, Upload, UserRoundPlus } from 'lucide-react';
-import { CoverImage } from '../../components/CoverImage';
-import { Avatar } from '../../components/Presence';
-import { catalogAccessLabel, formatPaymentDate, formatWeiAsDot, shorten } from '../../shared/utils/format';
-import type { CatalogTrack, RoyaltyPayment } from '../../shared/types';
+import { useState } from 'react';
+import { ArrowRight, Disc3, RefreshCw, Upload, UserRoundPlus } from 'lucide-react';
+import type { CatalogTrack } from '../../shared/types';
+import type { ReleaseEarnings } from '../../features/artist-studio/earnings';
+import type { EarningsSummaryProps } from './EarningsSummary';
+import type { ContributionHistoryState } from '../../features/donations/useContributionHistory';
+import type { ArtistActivity } from '../../features/artist-studio/dashboard';
+import { ArtistEarningsSummary } from './ArtistEarningsSummary';
+import { DashboardActivity } from './DashboardActivity';
+import { ReleaseEarningsList } from './ReleaseEarningsList';
+import { ArtistLiveRooms } from './ArtistLiveRooms';
 
 type OverviewTabProps = {
   artistName: string;
-  activeEvmAddress: `0x${string}`;
   artistRuntimeAddress: `0x${string}` | null;
   artistRegistrationStatus: string;
   isRegisteringArtist: boolean;
   isRefreshingArtistRuntime: boolean;
   artistRegistrationAvailable: boolean;
-  artistTracks: CatalogTrack[];
-  nativePaymentSymbol: string;
-  connectedWallet: { label: string } | null;
-  royaltyPayments: RoyaltyPayment[];
-  totalRoyaltyWei: bigint;
-  uniqueRoyaltyListeners: number;
+  history: ContributionHistoryState;
+  activity: ArtistActivity[];
+  earnings: EarningsSummaryProps;
+  releases: ReleaseEarnings[];
   onUpdateArtistName: (name: string) => void;
   onRegisterArtist: () => void;
   onRefreshArtistRuntime: () => void;
-  onSetArtistTab: (tab: 'overview' | 'new' | 'releases' | 'royalties' | 'advanced') => void;
-  onShowWalletModal: () => void;
+  onSetArtistTab: (tab: 'overview' | 'new' | 'releases' | 'royalties' | 'advanced' | 'rights') => void;
   onOpenRelease: (track: CatalogTrack) => void;
 };
 
@@ -33,181 +35,123 @@ export function OverviewTab({
   isRegisteringArtist,
   isRefreshingArtistRuntime,
   artistRegistrationAvailable,
-  artistTracks,
-  nativePaymentSymbol,
-  connectedWallet,
-  royaltyPayments,
-  totalRoyaltyWei,
-  uniqueRoyaltyListeners,
+  history,
+  activity,
+  earnings,
+  releases,
   onUpdateArtistName,
   onRegisterArtist,
   onRefreshArtistRuntime,
   onSetArtistTab,
-  onShowWalletModal,
   onOpenRelease
 }: OverviewTabProps) {
-  const earnedDot = formatWeiAsDot(totalRoyaltyWei);
-  const isNewArtist = artistTracks.length === 0 && uniqueRoyaltyListeners === 0 && totalRoyaltyWei === 0n;
-  function supportSettlementLabel(payment: RoyaltyPayment): string {
-    switch (payment.settlement) {
-      case 'paid':
-        return 'settled';
-      case 'claimable':
-        return 'claimable';
-      case 'claimed':
-        return 'claimed';
-      case 'legacy':
-        return 'legacy access';
-    }
-  }
-
+  const [registrationConsented, setRegistrationConsented] = useState(false);
+  const needsArtistProfile = !artistRuntimeAddress;
+  const isNewArtist = !needsArtistProfile && releases.length === 0;
+  const hasEarningsActivity = activity.length > 0 || earnings.generatedWei > 0n || earnings.claimableWei > 0n;
+  const canRegisterProfile = artistRegistrationAvailable && artistName.trim().length > 0 && registrationConsented && !isRegisteringArtist;
   return (
-    <section className='content-grid artist-overview-grid'>
-      <div className='studio-overview-main'>
-        <div className='doc-panel studio-next-step' data-first-release={isNewArtist}>
+    <div className='studio-overview'>
+      {needsArtistProfile && (
+        <section className='studio-profile-setup' aria-labelledby='studio-profile-setup-title'>
+          <div>
+            <span className='studio-next-label'>Your own releases</span>
+            <h2 id='studio-profile-setup-title'>Create your artist space</h2>
+            <p>This account can receive collaborator support already. Create your own space when you are ready to publish music under this account.</p>
+          </div>
+          <div className='studio-profile-setup-form'>
+            <label>
+              <span>Artist name</span>
+              <input className='field' value={artistName} onChange={event => onUpdateArtistName(event.target.value)} placeholder='Your artist name' />
+            </label>
+            <label className='consent-row'>
+              <input
+                type='checkbox'
+                className='consent-checkbox'
+                checked={registrationConsented}
+                onChange={event => setRegistrationConsented(event.target.checked)}
+              />
+              <span>I understand and consent to shared listening on Dotify.</span>
+            </label>
+            <button className='primary-action compact-action' type='button' onClick={onRegisterArtist} disabled={!canRegisterProfile}>
+              {isRegisteringArtist ? <Disc3 size={16} className='spin' /> : <UserRoundPlus size={16} />}
+              {isRegisteringArtist ? 'Creating...' : 'Create artist profile'}
+            </button>
+            {!artistRegistrationAvailable && <p className='registration-guidance'>{artistRegistrationStatus}</p>}
+          </div>
+        </section>
+      )}
+      {isNewArtist && (
+        <section className='studio-next-step' data-first-release='true'>
           <div>
             <span className='studio-next-label'>Your next step</span>
-            <h2>{isNewArtist ? 'Publish your first release' : 'Share another release'}</h2>
-            <p>
-              {isNewArtist
-                ? 'Add your music, choose who can listen, and review where support goes before you approve anything.'
-                : 'Prepare the music and its listening terms, then review everything once before publishing.'}
-            </p>
+            <h2>Publish your first release</h2>
+            <p>Add your music, choose its listening terms, and review the recipients before publishing.</p>
           </div>
-          <button className='primary-action compact-action' type='button' onClick={() => onSetArtistTab('new')} disabled={!artistRegistrationAvailable}>
-            <Upload size={16} />
-            {artistRegistrationAvailable ? (isNewArtist ? 'Start your first release' : 'New release') : 'Publishing paused'}
+          <button className='primary-action' type='button' onClick={() => onSetArtistTab('new')} disabled={!artistRegistrationAvailable}>
+            <Upload size={18} />
+            Start your first release
           </button>
-        </div>
+        </section>
+      )}
+      {(!isNewArtist || hasEarningsActivity) && (
+        <ArtistEarningsSummary earnings={earnings} history={history} runtime={artistRuntimeAddress} onDetails={() => onSetArtistTab('royalties')} />
+      )}
 
-        {!isNewArtist && (
-          <div className='studio-metric-row'>
-            <div className='studio-metric doc-panel'>
-              <strong className='tnum'>{artistTracks.length}</strong>
-              <span>Releases</span>
+      <ArtistLiveRooms tracks={releases.map(row => row.track)} runtime={artistRuntimeAddress} />
+      <div className='studio-overview-columns'>
+        <section className='studio-works'>
+          <div className='studio-section-head'>
+            <div>
+              <h2>Music you own</h2>
             </div>
-            <div className='studio-metric doc-panel'>
-              <strong className='tnum'>{uniqueRoyaltyListeners}</strong>
-              <span>Supporters</span>
-            </div>
-            <div className='studio-metric doc-panel'>
-              <strong className='tnum'>
-                {earnedDot} <small>{nativePaymentSymbol}</small>
-              </strong>
-              <span>Received</span>
-            </div>
-          </div>
-        )}
-
-        <div className='doc-panel studio-releases-panel'>
-          <div className='studio-panel-head'>
-            <p className='studio-section-title'>Your releases</p>
-          </div>
-          {artistTracks.length > 0 ? (
-            artistTracks.map(track => (
-              <button className='studio-release-row' type='button' key={track.id} onClick={() => onOpenRelease(track)}>
-                <CoverImage src={track.imageRef} alt='' fallbackLabel={track.title} />
-                <span className='studio-release-meta'>
-                  <strong>{track.title}</strong>
-                  <small>{catalogAccessLabel(track, nativePaymentSymbol)}</small>
-                </span>
+            {releases.length > 0 && (
+              <button className='text-action' onClick={() => onSetArtistTab('releases')}>
+                View all <ArrowRight size={16} />
               </button>
-            ))
+            )}
+          </div>
+          {releases.length === 0 ? (
+            <p className='studio-empty'>Your published music will appear here.</p>
           ) : (
-            <div className='empty-state'>Your published music will appear here.</div>
+            <ReleaseEarningsList
+              rows={releases.slice(0, 5)}
+              known={earnings.updatedAt !== null && history.known}
+              symbol={earnings.symbol}
+              onOpen={onOpenRelease}
+            />
           )}
-        </div>
-
-        <div className='doc-panel studio-support-panel'>
-          <p className='studio-section-title'>Latest support</p>
-          {royaltyPayments.length > 0 ? (
-            royaltyPayments.slice(0, 4).map(payment => {
-              const settlementLabel = supportSettlementLabel(payment);
-
-              return (
-                <div className='studio-support-row' data-settlement={payment.settlement} key={payment.id}>
-                  <Avatar name={payment.listener} size={36} />
-                  <div className='studio-support-meta'>
-                    <strong>{shorten(payment.listener, 12)}</strong>
-                    <span>
-                      supported and opened {payment.trackTitle} - {settlementLabel}
-                    </span>
-                  </div>
-                  <div className='studio-support-amount'>
-                    <strong>
-                      {payment.settlement === 'paid' || payment.settlement === 'claimed' ? '+' : ''}
-                      {payment.amountDot} {nativePaymentSymbol}
-                    </strong>
-                    <small>{formatPaymentDate(payment.paidAtMs)}</small>
-                  </div>
-                </div>
-              );
-            })
-          ) : (
-            <div className='empty-state'>No paid support recorded yet.</div>
+          {releases.length > 0 && (
+            <div className='dashboard-catalog-foot'>
+              <span>
+                {releases.filter(row => row.track.active !== false).length} live · {releases.filter(row => row.track.active === false).length} paused
+              </span>
+              <button className='text-action' onClick={() => onSetArtistTab('rights')}>
+                Manage listening terms <ArrowRight size={15} />
+              </button>
+            </div>
           )}
-        </div>
+        </section>
+        <DashboardActivity
+          activity={activity}
+          symbol={earnings.symbol}
+          known={earnings.updatedAt !== null && history.known}
+          onDetails={() => onSetArtistTab('royalties')}
+        />
       </div>
 
-      <aside className='doc-panel sovereign-card'>
-        <h3>Your music, your choices</h3>
-        <p className='sovereign-lede'>The connected artist account is the only one that can approve changes to these releases.</p>
-        <div className='sov-item'>
-          <span className='sov-ic'>
-            <KeyRound size={16} />
-          </span>
-          <div>
-            <strong>You approve changes</strong>
-            <span>You choose when a release is active and how listeners can open it.</span>
-          </div>
-        </div>
-        <div className='sov-item'>
-          <span className='sov-ic'>
-            <LockKeyhole size={16} />
-          </span>
-          <div>
-            <strong>You choose listening access</strong>
-            <span>Free for everyone, free with human verification, or opened through direct support in {nativePaymentSymbol}.</span>
-          </div>
-        </div>
-        <div className='sov-item'>
-          <span className='sov-ic'>
-            <Heart size={16} />
-          </span>
-          <div>
-            <strong>You choose where support goes</strong>
-            <span>Your release names each recipient and share. Any network fee is shown before approval.</span>
-          </div>
-        </div>
-
-        <div className='sovereign-settings'>
-          <label>
-            <span>Artist name</span>
-            <input className='field' value={artistName} onChange={event => onUpdateArtistName(event.target.value)} />
-          </label>
-          <p className='rights-status'>{artistRegistrationStatus}</p>
-          {!connectedWallet ? (
-            <button className='primary-action wide' type='button' onClick={onShowWalletModal}>
-              <LockKeyhole size={16} />
-              Use my account
-            </button>
-          ) : !artistRuntimeAddress ? (
-            <button className='primary-action wide' type='button' onClick={onRegisterArtist} disabled={isRegisteringArtist || !artistRegistrationAvailable}>
-              {isRegisteringArtist ? <Disc3 size={16} className='spin' /> : <UserRoundPlus size={16} />}
-              Create artist profile
-            </button>
-          ) : null}
-          <button
-            className='secondary-action'
-            type='button'
-            onClick={onRefreshArtistRuntime}
-            disabled={isRefreshingArtistRuntime || (!artistRegistrationAvailable && !artistRuntimeAddress)}
-          >
-            {isRefreshingArtistRuntime ? <Disc3 size={16} className='spin' /> : <RefreshCw size={16} />}
-            {isRefreshingArtistRuntime ? 'Refreshing...' : 'Refresh status'}
-          </button>
-        </div>
-      </aside>
-    </section>
+      <details className='studio-technical studio-profile-settings'>
+        <summary>Access and support choices</summary>
+        <p>You approve release changes and choose where payments go. Each release keeps its registered recipients and listening terms.</p>
+        <label>
+          <span>Artist name</span>
+          <input className='field' value={artistName} onChange={event => onUpdateArtistName(event.target.value)} />
+        </label>
+        <p className='rights-status'>{artistRegistrationStatus}</p>
+        <button className='secondary-action' type='button' onClick={onRefreshArtistRuntime} disabled={isRefreshingArtistRuntime}>
+          {isRefreshingArtistRuntime ? <Disc3 size={16} className='spin' /> : <RefreshCw size={16} />}Refresh status
+        </button>
+      </details>
+    </div>
   );
 }

@@ -1,19 +1,18 @@
 // Wallet-signed content-key client (Sprint 0, Ticket 03).
 //
-// Flow: request a single-use nonce, sign a structured Dotify message with the
-// connected identity, exchange the signature for the per-track content key. The
-// backend independently re-checks the on-chain access policy; nothing the
-// frontend sends is trusted as an access decision.
-//
-// The canonical message format below MUST stay byte-identical with the
-// backend builder (services/api/src/services/signatures.ts). Any drift fails
-// closed: verification simply rejects.
+// Flow: sign one SIGN_IN challenge to establish an identity session, then send
+// its token for per-track content-key requests. The backend independently
+// re-checks the access policy on every key request. Session-service failures
+// never switch playback to per-track wallet signatures.
 
 import type { WalletClient } from 'viem';
+import { createSessionCache, type SessionScope } from './sessionCache';
+import { createSessionRevocations } from './sessionRevocations';
 
 import { publishProductHostKeySmokeMetric, type ProductHostKeySmokeMetric } from '../features/productHost/productCdmHostSmokeEvidence';
 
 const API_URL = (import.meta.env.VITE_DOTIFY_API_URL as string | undefined)?.replace(/\/$/, '');
+const keyServiceTimeout = () => AbortSignal.timeout(15_000);
 
 export type KeyRequestPurpose = 'individual' | 'room_host';
 export const PRODUCT_SR25519_SIGNATURE_SCHEME = 'product-sr25519-v1';
@@ -69,41 +68,9 @@ export type ProductKeyRequestSigner = {
 };
 
 export type KeyRequestSigner = Eip191KeyRequestSigner | ProductKeyRequestSigner;
-
-type SignedRequestPayload = {
-  action: 'REQUEST_CONTENT_KEY';
-  purpose: KeyRequestPurpose;
-  contentHash: string;
-  requester: string;
-  chainId: number;
-  nonce: string;
-  expiresAt: string;
-  release?: ContentKeyReleaseIdentity;
-};
-
-function buildSignedRequestMessage(payload: SignedRequestPayload): string {
-  const lines = [
-    'Dotify signed request',
-    'App: Dotify',
-    `Action: ${payload.action}`,
-    `Purpose: ${payload.purpose}`,
-    `Content Hash: ${payload.contentHash.toLowerCase()}`,
-    `Requester: ${payload.requester.toLowerCase()}`,
-    `Chain ID: ${payload.chainId}`,
-    `Nonce: ${payload.nonce}`,
-    `Expires At: ${payload.expiresAt}`
-  ];
-  if (payload.release) {
-    lines.push(
-      `Release ID: ${payload.release.releaseId.toLowerCase()}`,
-      `Runtime Address: ${payload.release.runtimeAddress.toLowerCase()}`,
-      `Artist Address: ${payload.release.artistAddress.toLowerCase()}`,
-      `Audio Ref: ${payload.release.audioRef}`,
-      `Key Version: ${payload.release.keyVersion}`
-    );
-  }
-  return lines.join('\n');
-}
+export type DotifySessionIdentity =
+  | Pick<Eip191KeyRequestSigner, 'address' | 'signatureScheme'>
+  | Pick<ProductKeyRequestSigner, 'address' | 'signatureScheme' | 'productPublicKey'>;
 
 async function parseError(res: Response, fallback: string): Promise<{ message: string; code: string }> {
   try {
@@ -117,6 +84,7 @@ async function parseError(res: Response, fallback: string): Promise<{ message: s
 async function requestNonce(address: string, chainId: number): Promise<{ nonce: string; expiresAt: string }> {
   const res = await fetch(`${API_URL}/api/auth/nonce`, {
     method: 'POST',
+    signal: keyServiceTimeout(),
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ address, chainId })
   });
@@ -152,43 +120,34 @@ export type ContentKeyReleaseIdentity = {
 // The backend re-checks the on-chain policy per track on every request.
 // ---------------------------------------------------------------------------
 
-type StoredSession = { token: string; expiresAt: string };
+const sessionRevocations = createSessionRevocations(API_URL ?? '');
+const sessionCache = createSessionCache(API_URL ?? '', token => sessionRevocations.has(token));
+let revocationRequest: Promise<void> | null = null;
+const pendingRevocationListeners = new Set<() => void>();
 
-// Refresh slightly early so a token never expires mid-request.
-const SESSION_REFRESH_MARGIN_MS = 60_000;
-let sessionCapability: 'unknown' | 'available' | 'unavailable' = 'unknown';
+/** Observe even failures from a sign-in response that arrives after disconnect. */
+export function onSessionRevocationPending(listener: () => void): () => void {
+  pendingRevocationListeners.add(listener);
+  return () => {
+    pendingRevocationListeners.delete(listener);
+  };
+}
+let sessionCapability: { available: boolean; expiresAt: number } | null = null;
 const sessionRequests = new Map<string, Promise<string | null>>();
-
-function sessionStorageKey(address: string): string {
-  return `dotify:session:${address.toLowerCase()}`;
+const sessionEpochs = new Map<string, number>();
+// An exchange failure after wallet approval must not turn playback retries
+// into repeated prompts. Explicit sign-in or disconnect clears this latch.
+const interruptedSignIns = new Map<string, { address: string; error: KeyServiceError }>();
+const RENEWABLE_SESSION_CODES = new Set(['SESSION_EXPIRED', 'SESSION_REVOKED', 'SESSION_RESTARTED']);
+function sessionUnavailable(): KeyServiceError {
+  return new KeyServiceError('Listening sessions are temporarily unavailable. Please try again shortly.', 'SESSION_UNAVAILABLE');
 }
-
-function readStoredSession(address: string, options: { requireFresh: boolean }): StoredSession | null {
-  try {
-    const raw = window.localStorage.getItem(sessionStorageKey(address));
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as StoredSession;
-    if (typeof parsed.token !== 'string' || typeof parsed.expiresAt !== 'string') return null;
-    const expiresAtMs = Date.parse(parsed.expiresAt);
-    if (!Number.isFinite(expiresAtMs)) return null;
-    if (options.requireFresh && expiresAtMs - SESSION_REFRESH_MARGIN_MS <= Date.now()) return null;
-    return parsed;
-  } catch {
-    return null;
-  }
-}
-
-function getStoredSession(address: string): StoredSession | null {
-  return readStoredSession(address, { requireFresh: true });
-}
-
-function storeSession(address: string, session: StoredSession): void {
-  try {
-    window.localStorage.setItem(sessionStorageKey(address), JSON.stringify(session));
-  } catch {
-    // Storage unavailable: the session still works for this page lifetime via
-    // the per-request fallback; nothing to do.
-  }
+function sessionScope(signer: DotifySessionIdentity, chainId: number): SessionScope {
+  return {
+    address: signer.address,
+    chainId,
+    identity: signer.signatureScheme === PRODUCT_SR25519_SIGNATURE_SCHEME ? `${signer.signatureScheme}:${signer.productPublicKey}` : 'eip191'
+  };
 }
 
 function toWalletSigner(walletClient: WalletClient): KeyRequestSigner | null {
@@ -264,34 +223,31 @@ function publishProductKeyResponseSmoke(input: {
 }
 
 export function clearStoredSession(address: string, expectedToken?: string): void {
-  try {
-    const key = sessionStorageKey(address);
-    if (expectedToken) {
-      const stored = readStoredSession(address, { requireFresh: false });
-      if (stored?.token !== expectedToken) return;
-    }
-    window.localStorage.removeItem(key);
-  } catch {
-    // ignore
-  }
+  sessionCache.clear(address, expectedToken);
+}
+
+/** Reuse only the session for this exact account, chain, and signing identity. */
+export function existingDotifySession(identity: DotifySessionIdentity, chainId: number): string | null {
+  return sessionCache.read(sessionScope(identity, chainId))?.token ?? null;
 }
 
 async function isDotifySessionAvailable(): Promise<boolean> {
   if (!API_URL) return false;
-  if (sessionCapability === 'available') return true;
-  if (sessionCapability === 'unavailable') return false;
+  if (sessionCapability && sessionCapability.expiresAt > Date.now()) return sessionCapability.available;
 
-  const res = await fetch(`${API_URL}/api/auth/session`, { method: 'GET' });
+  const res = await fetch(`${API_URL}/api/auth/session`, { method: 'GET', signal: keyServiceTimeout() });
   if (res.ok) {
-    sessionCapability = 'available';
+    sessionCapability = { available: true, expiresAt: Date.now() + 60_000 };
     return true;
   }
-  if (res.status === 404 || res.status === 503) {
-    sessionCapability = 'unavailable';
+  const { message, code } = await parseError(res, 'Listening is temporarily unavailable. Please try again shortly.');
+  if (res.status === 404 || (res.status === 503 && code === 'SESSION_NOT_CONFIGURED')) {
+    sessionCapability = { available: false, expiresAt: Date.now() + 30_000 };
     return false;
   }
-
-  const { message, code } = await parseError(res, `Session capability check failed (${res.status})`);
+  // A proxy/network 503 is not evidence that sessions are unsupported. Do not
+  // turn an outage into wallet prompts; the next explicit attempt rechecks.
+  sessionCapability = null;
   throw new KeyServiceError(message, code);
 }
 
@@ -314,18 +270,23 @@ function buildSignInMessage(payload: { requester: string; chainId: number; nonce
 /**
  * Ensure a live Dotify session for the connected wallet: reuse the stored
  * token when fresh, otherwise sign the one sign-in message and exchange it.
- * Returns null when the backend does not support sessions (older deployment
- * or unconfigured), so callers fall back to per-request signing.
+ * A configured backend must support sessions. Missing/unavailable session
+ * auth fails closed without a per-track signature.
  */
-async function openDotifySessionForSigner(signer: KeyRequestSigner, chainId: number): Promise<string | null> {
+async function openDotifySessionForSigner(signer: KeyRequestSigner, chainId: number, epoch: number): Promise<string | null> {
   if (!API_URL) return null;
 
-  const stored = getStoredSession(signer.address);
+  const isCurrent = () => (sessionEpochs.get(signer.address.toLowerCase()) ?? 0) === epoch;
+  const assertCurrent = () => {
+    if (!isCurrent()) throw new KeyServiceError('Listening session cancelled after disconnect.', 'SESSION_CANCELLED');
+  };
+  const scope = sessionScope(signer, chainId);
+  const stored = sessionCache.read(scope);
   if (stored) return stored.token;
   try {
     if (!(await isDotifySessionAvailable())) {
       keyRequestSmokeFields(signer, chainId, { phase: 'session-unavailable', path: 'session' });
-      return null;
+      throw sessionUnavailable();
     }
   } catch (error) {
     keyRequestSmokeFields(signer, chainId, {
@@ -338,12 +299,17 @@ async function openDotifySessionForSigner(signer: KeyRequestSigner, chainId: num
   }
 
   let smokePublished = false;
+  let approved = false;
   try {
     const { nonce, expiresAt } = await requestNonce(signer.address, chainId);
+    assertCurrent();
     const signature = await signer.signMessage(buildSignInMessage({ requester: signer.address, chainId, nonce, expiresAt }));
+    approved = true;
+    assertCurrent();
 
     const res = await fetch(`${API_URL}/api/auth/session`, {
       method: 'POST',
+      signal: keyServiceTimeout(),
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         address: signer.address,
@@ -355,15 +321,16 @@ async function openDotifySessionForSigner(signer: KeyRequestSigner, chainId: num
       })
     });
 
-    // 404 (older backend) or 503 (session auth unconfigured): fall back to the
-    // per-request signed path rather than failing playback.
-    if (res.status === 404 || res.status === 503) {
-      sessionCapability = 'unavailable';
+    // A missing session route fails closed. Never replace SIGN_IN with a
+    // second, per-track signature.
+    if (res.status === 404) {
+      sessionCapability = { available: false, expiresAt: Date.now() + 30_000 };
       smokePublished = true;
       keyRequestSmokeFields(signer, chainId, { phase: 'session-unavailable', path: 'session', status: res.status });
-      return null;
+      throw sessionUnavailable();
     }
     if (!res.ok) {
+      sessionCapability = null;
       const { message, code } = await parseError(res, `Sign-in failed (${res.status})`);
       smokePublished = true;
       keyRequestSmokeFields(signer, chainId, { phase: 'session-rejected', path: 'session', status: res.status, code, error: message });
@@ -371,10 +338,29 @@ async function openDotifySessionForSigner(signer: KeyRequestSigner, chainId: num
     }
 
     const body = (await res.json()) as { sessionToken: string; expiresAt: string };
-    storeSession(signer.address, { token: body.sessionToken, expiresAt: body.expiresAt });
+    if (!isCurrent()) {
+      sessionRevocations.add(signer.address, { token: body.sessionToken, expiresAt: body.expiresAt });
+      // Disconnect stays authoritative even if durable revocation must retry.
+      await retryPendingSessionRevocations().catch(() => {});
+      assertCurrent();
+    }
+    sessionCache.store(scope, { token: body.sessionToken, expiresAt: body.expiresAt });
+    interruptedSignIns.delete(sessionCache.keyFor(scope));
     keyRequestSmokeFields(signer, chainId, { phase: 'session-created', path: 'session' });
     return body.sessionToken;
   } catch (error) {
+    let playbackError = error;
+    if (approved && isCurrent()) {
+      const interruption = new KeyServiceError(
+        'Your listening sign-in could not be completed. Reconnect your account to confirm a new session.',
+        'SESSION_SIGN_IN_INTERRUPTED'
+      );
+      playbackError = interruption;
+      interruptedSignIns.set(sessionCache.keyFor(scope), {
+        address: signer.address.toLowerCase(),
+        error: interruption
+      });
+    }
     if (!smokePublished) {
       keyRequestSmokeFields(signer, chainId, {
         phase: 'session-error',
@@ -383,17 +369,30 @@ async function openDotifySessionForSigner(signer: KeyRequestSigner, chainId: num
         error: errorText(error)
       });
     }
-    throw error;
+    throw playbackError;
   }
 }
 
 /** Reuse one in-flight SIGN_IN request across simultaneous artist uploads. */
 export async function ensureDotifySessionForSigner(signer: KeyRequestSigner, chainId: number): Promise<string | null> {
-  const key = `${signer.address.toLowerCase()}:${chainId}`;
+  interruptedSignIns.delete(sessionCache.keyFor(sessionScope(signer, chainId)));
+  return getOrCreateDotifySession(signer, chainId);
+}
+
+async function getOrCreateDotifySession(signer: KeyRequestSigner, chainId: number): Promise<string | null> {
+  const interrupted = interruptedSignIns.get(sessionCache.keyFor(sessionScope(signer, chainId)));
+  if (interrupted) throw interrupted.error;
+  const epoch = sessionEpochs.get(signer.address.toLowerCase()) ?? 0;
+  const key = `${sessionCache.keyFor(sessionScope(signer, chainId))}:${epoch}`;
   const pending = sessionRequests.get(key);
   if (pending) return pending;
 
-  const request = openDotifySessionForSigner(signer, chainId);
+  const request = openDotifySessionForSigner(signer, chainId, epoch).then(token => {
+    if ((sessionEpochs.get(signer.address.toLowerCase()) ?? 0) !== epoch) {
+      throw new KeyServiceError('Listening session cancelled after disconnect.', 'SESSION_CANCELLED');
+    }
+    return token;
+  });
   sessionRequests.set(key, request);
   try {
     return await request;
@@ -407,20 +406,68 @@ export async function ensureDotifySession(walletClient: WalletClient, chainId: n
   return signer ? ensureDotifySessionForSigner(signer, chainId) : null;
 }
 
-/** Sign out: revoke the session server-side and forget the stored token. */
+/** Stop local use immediately; retain inactive credentials until durable logout. */
 export async function signOutOfDotifySession(address: string): Promise<void> {
-  const stored = readStoredSession(address, { requireFresh: false });
-  clearStoredSession(address);
-  if (!API_URL || !stored) return;
-  try {
-    await fetch(`${API_URL}/api/auth/logout`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionToken: stored.token })
-    });
-  } catch {
-    // Best-effort: the local token is already gone and the server token expires.
+  const key = address.toLowerCase();
+  sessionEpochs.set(key, (sessionEpochs.get(key) ?? 0) + 1);
+  for (const [scope, interrupted] of interruptedSignIns) {
+    if (interrupted.address === key) interruptedSignIns.delete(scope);
   }
+  sessionCache.clear(address, undefined, session => sessionRevocations.add(address, session));
+  await retryPendingSessionRevocations();
+}
+
+/** Also used after reload, foreground return and network recovery. Never signs. */
+export async function retryPendingSessionRevocations(): Promise<void> {
+  if (!API_URL) return;
+  if (!revocationRequest) {
+    const request = flushPendingSessionRevocations()
+      .catch(error => {
+        for (const listener of pendingRevocationListeners) listener();
+        throw error;
+      })
+      .finally(() => {
+        if (revocationRequest === request) revocationRequest = null;
+      });
+    revocationRequest = request;
+  }
+  // The shared worker releases its slot before settling. A successful empty
+  // worker can have gained entries in the same tick; every caller must cover
+  // those too. Failures reject above and never resubmit in this loop.
+  await revocationRequest;
+  if (sessionRevocations.entries().length) await retryPendingSessionRevocations();
+}
+
+async function flushPendingSessionRevocations(): Promise<void> {
+  const attempted = new Set<string>();
+  for (;;) {
+    const pending = sessionRevocations
+      .entries()
+      .filter(session => !attempted.has(session.token))
+      .slice(0, 4);
+    if (!pending.length) break;
+    await Promise.all(
+      pending.map(async session => {
+        attempted.add(session.token);
+        try {
+          const res = await fetch(`${API_URL}/api/auth/logout`, {
+            method: 'POST',
+            signal: keyServiceTimeout(),
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sessionToken: session.token })
+          });
+          if (res.ok) sessionRevocations.complete(session.token);
+        } catch {
+          // Retain the inactive token for the next explicit/lifecycle retry.
+        }
+      })
+    );
+  }
+  if (sessionRevocations.entries().length)
+    throw new KeyServiceError(
+      'Your account is disconnected here, but server sign-out is not confirmed. Keep Dotify open and retry when connected.',
+      'SESSION_LOGOUT_PENDING'
+    );
 }
 
 function releaseIdentityRequestFields(release: ContentKeyReleaseIdentity | undefined): Record<string, string> {
@@ -442,118 +489,42 @@ async function requestKeyWithSession(
 ): Promise<Response> {
   return fetch(`${API_URL}/api/tracks/${contentHash}/key-request`, {
     method: 'POST',
+    signal: keyServiceTimeout(),
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ sessionToken, purpose, ...releaseIdentityRequestFields(release) })
   });
 }
 
-/**
- * Request the content key for a track. Preferred path: the one-per-session
- * token (no signature per listen). A stale/revoked session retries once with
- * a fresh sign-in; backends without session support fall back to the
- * per-request signed message.
- */
+/** Session tokens only: per-track requests never sign an authorization. */
 export async function requestContentKey(request: ContentKeyRequest): Promise<ContentKeyResponse> {
-  if (!API_URL) {
-    throw new KeyServiceError('Backend key service is not configured (VITE_DOTIFY_API_URL).', 'KEY_SERVICE_NOT_CONFIGURED');
-  }
-
+  if (!API_URL) throw new KeyServiceError('Backend key service is not configured.', 'KEY_SERVICE_NOT_CONFIGURED');
   const signer = resolveRequestSigner(request);
-  if (!signer) {
-    throw new KeyServiceError('Connect a wallet before requesting protected playback.', 'WALLET_REQUIRED');
-  }
-
-  let sessionToken = await ensureDotifySessionForSigner(signer, request.chainId);
-  if (sessionToken) {
-    try {
-      let res = await requestKeyWithSession(request.contentHash, request.purpose, sessionToken, request.release);
-      if (res.status === 401) {
-        // Expired or revoked server-side: one fresh sign-in, then retry once.
-        clearStoredSession(signer.address, sessionToken);
-        sessionToken = await ensureDotifySessionForSigner(signer, request.chainId);
-        if (sessionToken) {
-          res = await requestKeyWithSession(request.contentHash, request.purpose, sessionToken, request.release);
-        }
-      }
-      if (sessionToken) {
-        if (!res.ok) {
-          const { message, code } = await parseError(res, `Key request failed (${res.status})`);
-          keyRequestSmokeFields(signer, request.chainId, {
-            phase: 'key-error',
-            path: 'session',
-            contentHash: request.contentHash,
-            purpose: request.purpose,
-            status: res.status,
-            code,
-            error: message
-          });
-          throw new KeyServiceError(message, code);
-        }
-        const body = (await res.json()) as ContentKeyResponse;
-        publishProductKeyResponseSmoke({
-          signer,
-          chainId: request.chainId,
-          contentHash: request.contentHash,
-          purpose: request.purpose,
-          path: 'session',
-          response: body
-        });
-        return body;
-      }
-    } catch (error) {
-      if (!(error instanceof KeyServiceError)) {
-        keyRequestSmokeFields(signer, request.chainId, {
-          phase: 'key-error',
-          path: 'session',
-          contentHash: request.contentHash,
-          purpose: request.purpose,
-          code: 'SESSION_KEY_REQUEST_ERROR',
-          error: errorText(error)
-        });
-      }
-      throw error;
-    }
-  }
-
-  // Legacy per-request signed path (backend without session support).
-  let smokePublished = false;
+  if (!signer) throw new KeyServiceError('Connect an account before requesting protected playback.', 'WALLET_REQUIRED');
+  let token = await getOrCreateDotifySession(signer, request.chainId);
+  if (!token) throw sessionUnavailable();
   try {
-    const { nonce, expiresAt } = await requestNonce(signer.address, request.chainId);
-
-    const payload: SignedRequestPayload = {
-      action: 'REQUEST_CONTENT_KEY',
-      purpose: request.purpose,
-      contentHash: request.contentHash,
-      requester: signer.address,
-      chainId: request.chainId,
-      nonce,
-      expiresAt,
-      release: request.release
-    };
-
-    const signature = await signer.signMessage(buildSignedRequestMessage(payload));
-
-    const res = await fetch(`${API_URL}/api/tracks/${request.contentHash}/key-request`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        requester: signer.address,
-        signature,
-        nonce,
-        chainId: request.chainId,
-        expiresAt,
-        purpose: request.purpose,
-        ...releaseIdentityRequestFields(request.release),
-        ...productSignatureFields(signer)
-      })
-    });
-
+    let res = await requestKeyWithSession(request.contentHash, request.purpose, token, request.release);
+    if (res.status === 401) {
+      const failure = await parseError(res.clone(), 'Listening is temporarily unavailable.');
+      // Service/proxy failures are not proof that the cached identity expired.
+      if (RENEWABLE_SESSION_CODES.has(failure.code)) {
+        clearStoredSession(signer.address, token);
+        token = await getOrCreateDotifySession(signer, request.chainId);
+        if (!token) throw sessionUnavailable();
+        res = await requestKeyWithSession(request.contentHash, request.purpose, token, request.release);
+      }
+    }
     if (!res.ok) {
-      const { message, code } = await parseError(res, `Key request failed (${res.status})`);
-      smokePublished = true;
+      const { message, code } = await parseError(res, 'Protected listening is temporarily unavailable. Please try again.');
+      if (res.status === 401 && RENEWABLE_SESSION_CODES.has(code)) {
+        clearStoredSession(signer.address, token);
+        const failure = new KeyServiceError('Your listening session could not be renewed. Reconnect your account to try again.', 'SESSION_SIGN_IN_INTERRUPTED');
+        interruptedSignIns.set(sessionCache.keyFor(sessionScope(signer, request.chainId)), { address: signer.address.toLowerCase(), error: failure });
+        throw failure;
+      }
       keyRequestSmokeFields(signer, request.chainId, {
         phase: 'key-error',
-        path: 'per-request',
+        path: 'session',
         contentHash: request.contentHash,
         purpose: request.purpose,
         status: res.status,
@@ -562,29 +533,26 @@ export async function requestContentKey(request: ContentKeyRequest): Promise<Con
       });
       throw new KeyServiceError(message, code);
     }
-
     const body = (await res.json()) as ContentKeyResponse;
-    smokePublished = true;
     publishProductKeyResponseSmoke({
       signer,
       chainId: request.chainId,
       contentHash: request.contentHash,
       purpose: request.purpose,
-      path: 'per-request',
+      path: 'session',
       response: body
     });
     return body;
   } catch (error) {
-    if (!smokePublished) {
+    if (!(error instanceof KeyServiceError))
       keyRequestSmokeFields(signer, request.chainId, {
         phase: 'key-error',
-        path: 'per-request',
+        path: 'session',
         contentHash: request.contentHash,
         purpose: request.purpose,
-        code: error instanceof KeyServiceError ? error.code : 'PER_REQUEST_KEY_SIGNING_ERROR',
+        code: 'SESSION_KEY_REQUEST_ERROR',
         error: errorText(error)
       });
-    }
     throw error;
   }
 }
@@ -602,6 +570,7 @@ export async function requestFreeContentKey(contentHash: `0x${string}`, release?
 
   const res = await fetch(`${API_URL}/api/tracks/${contentHash}/free-key`, {
     method: 'POST',
+    signal: keyServiceTimeout(),
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(releaseIdentityRequestFields(release))
   });

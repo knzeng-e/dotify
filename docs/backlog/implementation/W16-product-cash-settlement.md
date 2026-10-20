@@ -2,6 +2,14 @@
 
 Copy this entire file into an agent working in the Dotify repository, or use the launcher in README.md.
 
+## Scheduling update — 2026-10-14
+
+The feasibility result is delivered; retain its dated decision and evidence.
+The owner deferred new stablecoin/Coinage work behind Nearby. Do not replay this
+prompt or enable CASH from newer documentation alone. #85 carries a Later
+follow-up, explicitly reactivated with new supported settlement evidence.
+See [current priorities](../polkadot-alignment-and-nearby-priority.md).
+
 ## Agent assignment
 
 Implement **W16** only. Read `AGENTS.md`, `docs/backlog/implementation/common.md`, and the files below before changing code. Follow the common execution contract, including the evidence/handoff record. Do useful authorized work through a reviewable PR; do not stop at a plan. If this is a research sequence, its decision record and runnable feasibility checks are the deliverable.

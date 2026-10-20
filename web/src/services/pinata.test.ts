@@ -23,6 +23,7 @@ async function loadPinataService(env: Record<string, string> = {}) {
 }
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.restoreAllMocks();
   sessionMocks.clearStoredSession.mockReset();
   sessionMocks.ensureDotifySession.mockReset();
@@ -37,19 +38,31 @@ describe('getGatewayUrlsForAssetRef', () => {
       'https://gateway.pinata.cloud/ipfs/QmCoverCid',
       'https://ipfs.io/ipfs/QmCoverCid',
       'https://dweb.link/ipfs/QmCoverCid',
-      'https://devnet-ipfs.api.polkadotcommunity.foundation/ipfs/QmCoverCid',
-      'https://bulletin-kubo.tservices.es:9443/ipfs/QmCoverCid'
+      'https://devnet-ipfs.api.polkadotcommunity.foundation/ipfs/QmCoverCid'
     ]);
   });
 
   it('keeps an existing gateway URL first and appends other gateway fallbacks', async () => {
     const { getGatewayUrlsForAssetRef } = await loadPinataService();
-    expect(getGatewayUrlsForAssetRef('https://bulletin-kubo.tservices.es:9443/ipfs/QmCoverCid')).toEqual([
-      'https://bulletin-kubo.tservices.es:9443/ipfs/QmCoverCid',
+    expect(getGatewayUrlsForAssetRef('https://custom.example/ipfs/QmCoverCid')).toEqual([
+      'https://custom.example/ipfs/QmCoverCid',
       'https://gateway.pinata.cloud/ipfs/QmCoverCid',
       'https://ipfs.io/ipfs/QmCoverCid',
       'https://dweb.link/ipfs/QmCoverCid',
       'https://devnet-ipfs.api.polkadotcommunity.foundation/ipfs/QmCoverCid'
+    ]);
+  });
+
+  it('recovers IPFS paths from retired gateway URLs without requesting their dead hosts', async () => {
+    const { getGatewayUrlsForAssetRef } = await loadPinataService({
+      VITE_PINATA_GATEWAY: 'https://paseo-ipfs.polkadot.io',
+      VITE_IPFS_READ_GATEWAYS: 'https://bulletin-kubo.tservices.es:9443,https://ipfs.io'
+    });
+    expect(getGatewayUrlsForAssetRef('https://bulletin-kubo.tservices.es:9443/ipfs/QmCoverCid/cover/640.webp')).toEqual([
+      'https://gateway.pinata.cloud/ipfs/QmCoverCid/cover/640.webp',
+      'https://ipfs.io/ipfs/QmCoverCid/cover/640.webp',
+      'https://dweb.link/ipfs/QmCoverCid/cover/640.webp',
+      'https://devnet-ipfs.api.polkadotcommunity.foundation/ipfs/QmCoverCid/cover/640.webp'
     ]);
   });
 
@@ -68,13 +81,19 @@ describe('getGatewayUrlsForAssetRef', () => {
       'https://ipfs.io/ipfs/QmCoverCid',
       'https://gateway.pinata.cloud/ipfs/QmCoverCid',
       'https://dweb.link/ipfs/QmCoverCid',
-      'https://devnet-ipfs.api.polkadotcommunity.foundation/ipfs/QmCoverCid',
-      'https://bulletin-kubo.tservices.es:9443/ipfs/QmCoverCid'
+      'https://devnet-ipfs.api.polkadotcommunity.foundation/ipfs/QmCoverCid'
     ]);
   });
 });
 
 describe('getAudioGatewayUrls', () => {
+  it('uses the API ciphertext relay first and keeps independent direct readers as fallback', async () => {
+    const { getAudioGatewayUrls, getAudioFallbackGatewayUrls } = await loadPinataService({ VITE_DOTIFY_API_URL: 'https://api.example/api' });
+    expect(getAudioGatewayUrls('QmAudioCid')).toEqual(['https://api.example/api/media/QmAudioCid', 'https://gateway.pinata.cloud/ipfs/QmAudioCid']);
+    expect(getAudioFallbackGatewayUrls('QmAudioCid')[0]).toBe('https://api.example/api/media/QmAudioCid');
+    expect(getAudioFallbackGatewayUrls('QmAudioCid')).toContain('https://ipfs.io/ipfs/QmAudioCid');
+    expect(getAudioGatewayUrls('cid/../../other')).not.toContain('https://api.example/api/media/cid/../../other');
+  });
   it('uses the Pinata gateway for browser audio byte reads by default', async () => {
     const { getAudioGatewayUrls } = await loadPinataService();
 
@@ -99,8 +118,7 @@ describe('getAudioGatewayUrls', () => {
       'https://gateway.pinata.cloud/ipfs/QmAudioCid',
       'https://ipfs.io/ipfs/QmAudioCid',
       'https://dweb.link/ipfs/QmAudioCid',
-      'https://devnet-ipfs.api.polkadotcommunity.foundation/ipfs/QmAudioCid',
-      'https://bulletin-kubo.tservices.es:9443/ipfs/QmAudioCid'
+      'https://devnet-ipfs.api.polkadotcommunity.foundation/ipfs/QmAudioCid'
     ]);
   });
 });
@@ -110,13 +128,10 @@ describe('fetchAssetRef', () => {
     const { fetchAssetRef } = await loadPinataService();
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockRejectedValueOnce(new TypeError('Failed to fetch')).mockResolvedValueOnce(new Response('ok'));
 
-    const response = await fetchAssetRef('https://bulletin-kubo.tservices.es:9443/ipfs/QmAudioCid');
+    const response = await fetchAssetRef('https://custom.example/ipfs/QmAudioCid');
 
     expect(await response.text()).toBe('ok');
-    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
-      'https://bulletin-kubo.tservices.es:9443/ipfs/QmAudioCid',
-      'https://gateway.pinata.cloud/ipfs/QmAudioCid'
-    ]);
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual(['https://custom.example/ipfs/QmAudioCid', 'https://gateway.pinata.cloud/ipfs/QmAudioCid']);
   });
 
   it('stops IPFS fallback reads when the caller aborts', async () => {
@@ -144,6 +159,108 @@ describe('fetchAssetRef', () => {
 
     await expect(fetchAudioIpfsCid('QmAudioCid').then(response => response.text())).resolves.toBe('audio');
     expect(fetchMock.mock.calls.map(([url]) => url)).toEqual(['https://gateway.pinata.cloud/ipfs/QmAudioCid', 'https://ipfs.io/ipfs/QmAudioCid']);
+  });
+
+  it('keeps an independent reader available after primary audio headers arrive but its body stalls', async () => {
+    vi.useFakeTimers();
+    const { fetchAudioIpfsCid } = await loadPinataService();
+    const cancel = vi.fn();
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(new ReadableStream({ cancel })))
+      .mockResolvedValueOnce(new Response('complete audio'));
+    const pending = fetchAudioIpfsCid('QmAudioCid');
+    await vi.advanceTimersByTimeAsync(8_000);
+    await expect(pending.then(response => response.text())).resolves.toBe('complete audio');
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(cancel).toHaveBeenCalledOnce();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('tries another gateway when a complete audio download fails after headers', async () => {
+    const { fetchAudioIpfsCid } = await loadPinataService();
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(
+        new Response(
+          new ReadableStream({
+            start(controller) {
+              controller.error(new Error('Connection closed during body'));
+            }
+          })
+        )
+      )
+      .mockResolvedValueOnce(new Response('complete audio'));
+    await expect(fetchAudioIpfsCid('QmAudioCid').then(response => response.text())).resolves.toBe('complete audio');
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('cancels a complete-body recovery without launching new readers after track selection changes', async () => {
+    const { fetchAudioIpfsCid } = await loadPinataService();
+    const controller = new AbortController();
+    const cancel = vi.fn();
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(new ReadableStream({ cancel })));
+    const pending = fetchAudioIpfsCid('QmAudioCid', { signal: controller.signal });
+    await Promise.resolve();
+    controller.abort();
+    await expect(pending).rejects.toMatchObject({ name: 'AbortError' });
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(cancel).toHaveBeenCalledOnce();
+  });
+});
+
+describe('fetchTrackManifest', () => {
+  it('accepts the strict v2 editorial manifest used by release details', async () => {
+    const { fetchTrackManifest } = await loadPinataService();
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          schema: 'dotify.track.v2',
+          createdAt: '2026-10-11T10:00:00.000Z',
+          assets: { audioCID: 'audio', coverCID: 'cover', encrypted: true },
+          track: {
+            contentHash: `0x${'11'.repeat(32)}`,
+            title: 'Signal',
+            artistName: 'Artist',
+            description: 'Story',
+            durationSeconds: 237.4,
+            accessMode: 'free',
+            priceDot: '0',
+            requiredPersonhood: 'None',
+            zone: 'Studio'
+          },
+          editorial: {
+            releaseKind: 'single',
+            projectTitle: 'Night lines',
+            version: '',
+            releaseDate: '2026',
+            genres: ['Soul'],
+            languages: ['French'],
+            credits: [{ name: 'Artist', role: 'performer' }],
+            label: '',
+            productionLocation: 'Paris',
+            explicitContent: false,
+            isrc: '',
+            copyrightNotice: '',
+            masterNotice: ''
+          },
+          royalties: [],
+          settlement: { target: 'evm', royaltyBps: 10000, pricePlanck: '0' }
+        }),
+        { status: 200 }
+      )
+    );
+
+    await expect(fetchTrackManifest('ipfs://manifest')).resolves.toMatchObject({
+      schema: 'dotify.track.v2',
+      editorial: { projectTitle: 'Night lines', credits: [{ name: 'Artist', role: 'performer' }] }
+    });
+  });
+
+  it('refuses obsolete or malformed editorial metadata', async () => {
+    const { fetchTrackManifest } = await loadPinataService();
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ schema: 'dotify.track.v1' }), { status: 200 }));
+    await expect(fetchTrackManifest('ipfs://legacy')).rejects.toThrow('current Dotify metadata format');
   });
 });
 

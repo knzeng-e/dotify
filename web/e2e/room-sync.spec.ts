@@ -4,7 +4,7 @@ async function hostRoom(page: Page, captureMode = 'synthetic') {
   await page.goto(`/?e2eRoom=public&e2eSync=on&e2eCapture=${captureMode}`);
   await page.getByRole('button', { name: 'Open a room', exact: true }).click();
   await page.getByRole('button', { name: 'Select E2E Public Room Track' }).click();
-  await page.getByLabel('Your name in the room').fill('Sync host');
+  await page.getByLabel('Your name or nickname').fill('Sync host');
   await page.getByRole('button', { name: 'Open the room', exact: true }).click();
   await expect(page.getByTestId('room-code')).toHaveText(/[A-Z0-9]{4,}/);
   await expect
@@ -19,8 +19,8 @@ async function hostRoom(page: Page, captureMode = 'synthetic') {
 }
 async function join(page: Page, id: string) {
   await page.goto(`/#/rooms/${id}`);
-  await page.getByLabel('Your name in the room').fill('Sync guest');
-  await page.getByRole('button', { name: 'Enter and listen' }).click();
+  await page.getByLabel('Your name or nickname').fill('Sync guest');
+  await page.getByRole('button', { name: 'Join and listen' }).click();
   await expect(page.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20_000 });
 }
 async function seek(page: Page, percent: number) {
@@ -73,7 +73,7 @@ test('host seek is reflected by late guests and pause holds the host position an
     const paused = await progress(host);
     await guest.waitForTimeout(1400);
     expect(await progress(guest)).toBeCloseTo(paused, 0);
-    await expect(guest.locator('.player-stage .transport-play')).toHaveAttribute('aria-label', 'Play');
+    await expect(guest.locator('.player-stage .transport-play')).toHaveAttribute('aria-label', 'Resume room audio');
     await expect(guest.locator('audio').nth(1)).toHaveJSProperty('paused', false);
     await guest.screenshot({ path: testInfo.outputPath('guest-paused-mobile.png'), fullPage: true });
     await host.screenshot({ path: testInfo.outputPath('host-paused-desktop.png'), fullPage: true });
@@ -140,7 +140,7 @@ test('real Web Audio stays silent through repeated host pauses and local pause s
         () => Reflect.get(window, '__roomSyncStream') === document.querySelectorAll<HTMLAudioElement>('audio.native-player-source')[1].srcObject
       )
     ).toBe(true);
-    await guest.getByRole('button', { name: 'Music', exact: true }).click();
+    await guest.getByRole('button', { name: 'Keep listening and browse', exact: true }).click();
     await expect(guest.locator('.player-dock input[type=range]')).toBeDisabled();
     const dockProgress = Number(await guest.locator('.player-dock input[type=range]').inputValue());
     expect(Math.abs(dockProgress - (await progress(host)))).toBeLessThan(1.5);

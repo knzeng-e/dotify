@@ -1,4 +1,5 @@
 import { zeroAddress, type Address, type Hash } from 'viem';
+import { assertNativeAccessPayment } from '../payments/paymentModel';
 import {
   MAX_ROYALTY_SPLITS,
   MAX_RUNTIME_TRACKS,
@@ -11,6 +12,7 @@ import {
   type RuntimeTrackSnapshot,
   type RuntimeWritePort
 } from './runtimePorts';
+import type { NativeContributionBlock } from './runtimePorts';
 import type { OnchainTrackRecord } from '../../shared/types';
 
 export type ProductCdmQueryResult<T = unknown> =
@@ -29,6 +31,7 @@ export type ProductCdmTxResult = {
   txHash: string;
   ok: boolean;
   dispatchError?: unknown;
+  block?: { hash: string; number: number; index: number };
 };
 
 export type ProductCdmResult<T> =
@@ -78,6 +81,7 @@ export type ProductCdmRuntimeAdapterDeps = {
 export type ProductCdmRuntimeWriterDeps = ProductCdmRuntimeAdapterDeps & {
   /** Native Balance precision used by Revive.call.value on the connected chain. */
   nativeTokenDecimals: number;
+  readAvailableBalance?: () => Promise<bigint>;
 };
 
 const EVM_VALUE_DECIMALS = 18;
@@ -206,7 +210,8 @@ export function createProductCdmRuntimeReader(deps: ProductCdmRuntimeAdapterDeps
 
       for (let offset = 0n; offset < artistCount; offset += pageSize) {
         const limit = artistCount - offset > pageSize ? pageSize : artistCount - offset;
-        const [artists, runtimes] = await queryContract<[Address[], Address[]]>(directory, 'artistsPage', [offset, limit]);
+        const page = await queryContract<{ artists: Address[]; runtimes: Address[] } | [Address[], Address[]]>(directory, 'artistsPage', [offset, limit]);
+        const [artists, runtimes] = Array.isArray(page) ? page : [page.artists, page.runtimes];
 
         for (let index = 0; index < artists.length; index += 1) {
           const artist = artists[index];
@@ -227,15 +232,24 @@ export function createProductCdmRuntimeReader(deps: ProductCdmRuntimeAdapterDeps
       return Promise.all(
         Array.from({ length: trackTotal }, async (_, index): Promise<RuntimeTrackSnapshot> => {
           const hash = await queryContract<Hash>(runtime, 'musicRegTrackHashAtIndex', [BigInt(index)]);
-          const trackResult = await queryContract<OnchainTrackRecord | [OnchainTrackRecord, Address]>(runtime, 'musicRegGetTrack', [hash]);
-          const record = Array.isArray(trackResult) ? trackResult[0] : trackResult;
+          const trackResult = await queryContract<OnchainTrackRecord | { track: OnchainTrackRecord; tokenOwner: Address } | [OnchainTrackRecord, Address]>(
+            runtime,
+            'musicRegGetTrack',
+            [hash]
+          );
+          const record = Array.isArray(trackResult) ? trackResult[0] : 'track' in trackResult ? trackResult.track : trackResult;
           const splitCount = await queryContract<bigint | number | string>(runtime, 'musicRoySplitCount', [hash]).catch(() => 0n);
           const splitTotal = assertBoundedCount(toBigInt(splitCount), MAX_ROYALTY_SPLITS, `Track ${hash} royalty splits`);
           const royaltySplits = (
             await Promise.all(
               Array.from({ length: splitTotal }, async (_, splitIndex) => {
                 try {
-                  const [recipient, bps] = await queryContract<[Address, bigint | number | string]>(runtime, 'musicRoySplitAt', [hash, BigInt(splitIndex)]);
+                  const split = await queryContract<{ recipient: Address; bps: bigint | number | string } | [Address, bigint | number | string]>(
+                    runtime,
+                    'musicRoySplitAt',
+                    [hash, BigInt(splitIndex)]
+                  );
+                  const [recipient, bps] = Array.isArray(split) ? split : [split.recipient, split.bps];
                   return { recipient, bps: toNumber(bps) };
                 } catch {
                   return null;
@@ -284,6 +298,24 @@ export function createProductCdmRuntimeReader(deps: ProductCdmRuntimeAdapterDeps
 
 export function createProductCdmRuntimeWriter(deps: ProductCdmRuntimeWriterDeps): RuntimeWritePort {
   return {
+    contributionConfirmationMode: 'finalized-event',
+    contributionCall(runtime, method, args, value = 0n, onFinalized, onStatus) {
+      return txContract(
+        deps.contracts.getRuntimeContract(runtime),
+        method,
+        [...args, { value: evmValueToNativeUnits(value, deps.nativeTokenDecimals), waitFor: 'finalized', ...(onStatus ? { onStatus } : {}) }],
+        onFinalized
+      );
+    },
+    async inspectPayment(intent) {
+      assertNativeAccessPayment(intent);
+      if (!deps.readAvailableBalance) return {};
+      try {
+        return { availableBalance: (await deps.readAvailableBalance()) * 10n ** BigInt(18 - deps.nativeTokenDecimals) };
+      } catch (error) {
+        return { detail: `Balance unavailable: ${formatUnknown(error)}` };
+      }
+    },
     createRuntime(factoryAddress) {
       return txContract(deps.contracts.getFactoryContract(factoryAddress), 'createRuntime');
     },
@@ -317,11 +349,22 @@ export function createProductCdmRuntimeWriter(deps: ProductCdmRuntimeWriterDeps)
     // chain Balance. Convert only this extrinsic field: the pallet expands it
     // back to 18 EVM decimals before `musicRoyPayAccess` sees `msg.value`.
     // Contract ABI arguments such as `pricePlanck` remain unchanged.
-    payForAccess(intent) {
+    updateMetadata(runtimeAddress, contentHash, title, description, metadataRef, expectedMetadataRef) {
+      return txContract(deps.contracts.getRuntimeContract(runtimeAddress), 'musicRegUpdateMetadata', [
+        contentHash,
+        title,
+        description,
+        metadataRef,
+        expectedMetadataRef
+      ]);
+    },
+
+    payForAccess(intent, onStatus) {
+      assertNativeAccessPayment(intent);
       const nativeValue = evmValueToNativeUnits(intent.amountPlanck, deps.nativeTokenDecimals);
       return txContract(deps.contracts.getRuntimeContract(intent.runtimeAddress), 'musicRoyPayAccess', [
         intent.contentHash,
-        { value: nativeValue, waitFor: 'finalized' }
+        { value: nativeValue, waitFor: 'finalized', ...(onStatus ? { onStatus } : {}) }
       ]);
     },
 
@@ -389,7 +432,12 @@ async function queryContract<T>(contract: ProductCdmContractHandle, methodName: 
   return result.value as T;
 }
 
-async function txContract(contract: ProductCdmContractHandle, methodName: string, args: unknown[] = []): Promise<Hash> {
+async function txContract(
+  contract: ProductCdmContractHandle,
+  methodName: string,
+  args: unknown[] = [],
+  onFinalized?: (block: NativeContributionBlock) => void
+): Promise<Hash> {
   const method = getMethod(contract, methodName);
   if (!method.tx) {
     throw new ProductCdmRuntimeError(`Product CDM contract method "${methodName}" does not support transactions.`);
@@ -402,7 +450,24 @@ async function txContract(contract: ProductCdmContractHandle, methodName: string
   if (!result.value.ok) {
     throw new ProductCdmRuntimeError(`Product CDM transaction "${methodName}" was rejected by the runtime: ${formatUnknown(result.value.dispatchError)}`);
   }
-  return asHash(result.value.txHash, methodName);
+  const hash = asHash(result.value.txHash, methodName);
+  if (onFinalized) {
+    const block = result.value.block;
+    // Block metadata is optional in SDK results. Always return the valid hash
+    // so the contribution journal can retain it before receipt confirmation.
+    // Unusable metadata falls back to the existing manual block locator path.
+    if (
+      block &&
+      Number.isSafeInteger(block.number) &&
+      block.number >= 0 &&
+      Number.isSafeInteger(block.index) &&
+      block.index >= 0 &&
+      typeof block.hash === 'string' &&
+      /^0x[0-9a-fA-F]{64}$/.test(block.hash)
+    )
+      onFinalized({ number: block.number, index: block.index, hash: block.hash as Hash });
+  }
+  return hash;
 }
 
 function asHash(value: string, methodName: string): Hash {

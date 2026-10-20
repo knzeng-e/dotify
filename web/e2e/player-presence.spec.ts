@@ -3,7 +3,8 @@ import { expect, test, type Page } from '@playwright/test';
 async function expectControlsFit(page: Page) {
   const controls = page.getByRole('group', { name: 'Playback controls', exact: true });
   await expect(controls.getByRole('slider')).toBeVisible();
-  for (const name of ['Shuffle', 'Previous track', 'Next track', 'Repeat this track', 'Mute']) {
+  const expectedButtons = ['Shuffle', 'Previous track', 'Next track', 'Repeat this track', 'Mute'];
+  for (const name of expectedButtons) {
     const button = controls.getByRole('button', { name, exact: true });
     await expect(button).toBeVisible();
     const box = await button.boundingBox();
@@ -15,11 +16,16 @@ async function expectControlsFit(page: Page) {
     buttons
       .map(button => {
         const box = button.getBoundingClientRect();
-        return { left: box.left, right: box.right };
+        return { left: box.left, right: box.right, top: box.top, bottom: box.bottom };
       })
       .sort((a, b) => a.left - b.left)
   );
-  for (let index = 1; index < boxes.length; index++) expect(boxes[index].left).toBeGreaterThanOrEqual(boxes[index - 1].right - 1);
+  for (let index = 0; index < boxes.length; index++) {
+    for (const other of boxes.slice(index + 1)) {
+      const box = boxes[index];
+      expect(box.right <= other.left + 1 || other.right <= box.left + 1 || box.bottom <= other.top + 1 || other.bottom <= box.top + 1).toBe(true);
+    }
+  }
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 }
 
@@ -62,11 +68,20 @@ for (const [width, height] of [
     await stage.getByRole('button', { name: 'Shuffle', exact: true }).click();
     await expect(stage.getByRole('button', { name: 'Shuffle', exact: true })).toHaveAttribute('aria-pressed', 'true');
     await page.screenshot({ path: testInfo.outputPath('solo-player.png') });
-    await page.getByRole('button', { name: 'Open room', exact: true }).click();
-    await page.getByLabel('Your name in the room').fill('Player host');
+    await page.getByRole('button', { name: 'Open a room', exact: true }).click();
+    await page.getByLabel('Your name or nickname').fill('Player host');
     await page.getByRole('button', { name: 'Open the room', exact: true }).click();
     await expect(page.getByTestId('room-code')).toHaveText(/[A-Z0-9]{4,}/);
     await expectControlsFit(page);
+    await stage.getByRole('button', { name: 'Mute', exact: true }).click();
+    await expect(stage.getByRole('button', { name: 'Unmute', exact: true })).toHaveAttribute('aria-pressed', 'true');
+    await stage.getByRole('button', { name: 'Unmute', exact: true }).click();
+    await expect(stage.getByRole('button', { name: 'Mute', exact: true })).toHaveAttribute('aria-pressed', 'false');
+    await page.getByRole('button', { name: 'Share room', exact: true }).click();
+    await expect(page.getByTestId('shared-room-code')).toHaveText((await page.getByTestId('room-code').textContent()) || '');
+    await expect(page.getByRole('dialog', { name: 'Listen together' }).getByRole('button', { name: 'Copy link', exact: true })).toBeVisible();
+    await page.screenshot({ path: testInfo.outputPath('room-sharing.png') });
+    await page.getByRole('button', { name: 'Close room sharing' }).click();
     await expect(stage.getByRole('slider', { name: 'Seek', exact: true })).toBeEnabled();
     if (width >= 1100 && height >= 800) {
       const artworkColumn = await stage.locator('.player-cover-column').boundingBox();

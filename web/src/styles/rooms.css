@@ -358,8 +358,14 @@
   text-transform: uppercase;
 }
 
-.room-detail-copy h3,
 .room-detail-empty strong {
+  color: var(--ink-soft);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.room-detail-copy h3 {
   font-family: var(--font-editorial);
   font-size: var(--text-display-sm);
   font-weight: 600;

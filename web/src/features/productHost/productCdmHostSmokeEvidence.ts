@@ -50,6 +50,17 @@ export type ProductHostKeySmokeMetric = {
   timestamp: number;
 };
 
+// An entitlement read proves neither a new transfer nor host approval.
+export type ProductAccessReadbackMetric = {
+  runtimeAddress: `0x${string}`;
+  contentHash: `0x${string}`;
+  listenerAddress: `0x${string}`;
+  chainId: number;
+  hasPaid: boolean | null;
+  canAccess: boolean | null;
+  timestamp: number;
+};
+
 export type ProductCdmHostOperatorObservation = {
   kind: 'operator-observation';
   observation: 'host-approval-explicit';
@@ -59,6 +70,7 @@ export type ProductCdmHostOperatorObservation = {
 
 export type ProductCdmHostSmokeEvent =
   | ({ kind: 'payment' } & ProductCdmPaymentSmokeMetric)
+  | ({ kind: 'access-readback' } & ProductAccessReadbackMetric)
   | ({ kind: 'key' } & ProductHostKeySmokeMetric)
   | ProductCdmHostOperatorObservation;
 
@@ -265,6 +277,33 @@ function normalizeOperatorObservation(detail: unknown): ProductCdmHostOperatorOb
 
 function normalizeSmokeEvent(event: unknown): ProductCdmHostSmokeEvent | null {
   if (!isRecord(event)) return null;
+  if (event.kind === 'access-readback') {
+    if (
+      typeof event.runtimeAddress !== 'string' ||
+      !/^0x[\da-f]{40}$/i.test(event.runtimeAddress) ||
+      typeof event.listenerAddress !== 'string' ||
+      !/^0x[\da-f]{40}$/i.test(event.listenerAddress) ||
+      typeof event.contentHash !== 'string' ||
+      !/^0x[\da-f]{64}$/i.test(event.contentHash) ||
+      typeof event.chainId !== 'number' ||
+      !Number.isSafeInteger(event.chainId) ||
+      event.chainId <= 0 ||
+      typeof event.timestamp !== 'number' ||
+      !Number.isFinite(event.timestamp) ||
+      event.timestamp < 0
+    )
+      return null;
+    return {
+      kind: 'access-readback',
+      runtimeAddress: event.runtimeAddress as `0x${string}`,
+      contentHash: event.contentHash as `0x${string}`,
+      listenerAddress: event.listenerAddress as `0x${string}`,
+      chainId: event.chainId,
+      hasPaid: nullableBoolean(event.hasPaid),
+      canAccess: nullableBoolean(event.canAccess),
+      timestamp: event.timestamp
+    };
+  }
   if (event.kind === 'payment') {
     const metric = normalizeProductCdmPaymentSmokeDetail(event);
     return metric ? { kind: 'payment', ...metric } : null;
@@ -427,6 +466,11 @@ export function publishProductHostKeySmokeMetric(metric: ProductHostKeySmokeMetr
   }
 }
 
+export function publishProductAccessReadbackMetric(metric: ProductAccessReadbackMetric): void {
+  recordProductCdmHostSmokeEvent({ kind: 'access-readback', ...metric });
+  dispatchSmokeEvent(PRODUCT_CDM_HOST_SMOKE_EVIDENCE_EVENT, { kind: 'access-readback' });
+}
+
 export function recordProductCdmHostApprovalObservation(ok: boolean): ProductCdmHostOperatorObservation {
   const event: ProductCdmHostOperatorObservation = {
     kind: 'operator-observation',
@@ -487,7 +531,11 @@ function paymentReadbackCheck(payment: Extract<ProductCdmHostSmokeEvent, { kind:
   };
 }
 
-function keyReleaseCheck(events: ProductCdmHostSmokeEvent[], payment: Extract<ProductCdmHostSmokeEvent, { kind: 'payment' }> | null): ProductCdmHostSmokeCheck {
+function keyReleaseCheck(
+  events: ProductCdmHostSmokeEvent[],
+  access: ProductAccessReadbackMetric | ProductCdmPaymentSmokeMetric | null,
+  context: ProductCdmHostSmokeContext
+): ProductCdmHostSmokeCheck {
   const keys = events.filter((event): event is Extract<ProductCdmHostSmokeEvent, { kind: 'key' }> => event.kind === 'key');
   const latest = keys.length > 0 ? keys[keys.length - 1] : null;
   if (!latest) {
@@ -509,8 +557,16 @@ function keyReleaseCheck(events: ProductCdmHostSmokeEvent[], payment: Extract<Pr
   const matchingAllowedKey = keys.find(
     event =>
       event.phase === 'key-allowed' &&
-      (!payment || event.timestamp >= payment.timestamp) &&
-      (!payment || (sameAddress(event.address, payment.listenerAddress) && event.contentHash?.toLowerCase() === payment.contentHash.toLowerCase()))
+      event.access === 'allowed' &&
+      event.playbackMode === 'full' &&
+      event.chainId === context.expectedChainId &&
+      sameAddress(event.address, context.listenerAddress) &&
+      sameAddress(event.productPublicKey, context.productPublicKey) &&
+      access &&
+      event.timestamp >= access.timestamp &&
+      sameAddress(event.address, access.listenerAddress) &&
+      sameAddress(event.runtime, access.runtimeAddress) &&
+      sameAddress(event.contentHash, access.contentHash)
   );
   if (matchingAllowedKey) {
     return {
@@ -524,8 +580,8 @@ function keyReleaseCheck(events: ProductCdmHostSmokeEvent[], payment: Extract<Pr
     return {
       id: 'backend-key',
       label: 'Backend key release',
-      tone: payment ? 'warning' : 'ok',
-      detail: payment ? 'A Product sr25519 key request passed, but not yet for the same post-payment track identity.' : 'A Product sr25519 key request passed.'
+      tone: 'warning',
+      detail: 'A key request passed, but not after a matching account, network, runtime and track read-back.'
     };
   }
   return {
@@ -538,10 +594,14 @@ function keyReleaseCheck(events: ProductCdmHostSmokeEvent[], payment: Extract<Pr
 
 export function summarizeProductCdmHostSmokeChecks(context: ProductCdmHostSmokeContext, events: ProductCdmHostSmokeEvent[]): ProductCdmHostSmokeCheck[] {
   const payment = latestEvent(events, 'payment');
+  const access = [...events].reverse().find(event => event.kind === 'payment' || event.kind === 'access-readback') as
+    | ProductCdmPaymentSmokeMetric
+    | ProductAccessReadbackMetric
+    | undefined;
   const latestKey = latestKeyEvent(events);
   const latestObservation = latestOperatorObservation(events);
   const eventAddresses = events.flatMap(event => {
-    if (event.kind === 'payment') return [event.listenerAddress];
+    if (event.kind === 'payment' || event.kind === 'access-readback') return [event.listenerAddress];
     if (event.kind === 'key') return [event.address];
     return [];
   });
@@ -600,7 +660,22 @@ export function summarizeProductCdmHostSmokeChecks(context: ProductCdmHostSmokeC
       detail: payment ? `Smoke event recorded amountPlanck=${payment.amountPlanck} for musicRoyPayAccess.` : 'No Product CDM payment amount captured yet.'
     },
     paymentReadbackCheck(payment),
-    keyReleaseCheck(events, payment),
+    {
+      id: 'access-readback',
+      label: 'Existing paid access',
+      tone: !access
+        ? 'unknown'
+        : access.hasPaid === true &&
+            access.canAccess === true &&
+            sameAddress(access.listenerAddress, context.listenerAddress) &&
+            ('chainId' in access ? access.chainId === context.expectedChainId : access.ok)
+          ? 'ok'
+          : 'warning',
+      detail: access
+        ? `Runtime read-back: paid=${access.hasPaid}, access=${access.canAccess}. This alone does not prove a new payment or host approval.`
+        : 'No runtime access read-back captured.'
+    },
+    keyReleaseCheck(events, access ?? null, context),
     {
       id: 'same-identity',
       label: 'Same identity',

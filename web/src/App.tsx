@@ -1,14 +1,16 @@
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 
 import { deployments } from './shared/config/deployments';
-import { applyAura, auraForName, auraForTrack } from './shared/utils/aura';
+import { useTrackAura } from './features/player/useTrackAura';
 import { destroyBulletinClient } from './hooks/useBulletin';
 import { getStoredArtistName } from './hooks/useArtistConsole';
 import { runtimeIdentityKey } from './features/identity/walletIdentity';
 import { useNavigation, useCatalogContext, useSessionContext, useArtistStudio, useWalletContext, useReleaseForm } from './app/providers';
 
 import { ListenerShell } from './views/ListenerShell';
-import { ArtistShell } from './views/ArtistShell';
+// Listeners never download the artist studio views; the artist portal loads
+// them on entry.
+const ArtistShell = lazy(() => import('./views/ArtistShell').then(module => ({ default: module.ArtistShell })));
 
 // ── App ────────────────────────────────────────────────────────────────────────
 // App is the shell switch: the provider stack (app/providers) owns all state, and
@@ -42,16 +44,7 @@ export default function App() {
     return () => document.body.classList.remove('dotify-shared-score');
   }, []);
 
-  // Aura engine: paint the whole field with the active track (or artist) light.
-  // Falls back to the resting deep-blue aura when nothing is selected.
-  useEffect(() => {
-    if (publicArtistName) {
-      applyAura(auraForName(publicArtistName));
-      return;
-    }
-    const activeTrack = catalog.trackInfo ?? catalog.catalogTracks.find(track => track.id === catalog.selectedTrackId) ?? null;
-    applyAura(auraForTrack(activeTrack));
-  }, [publicArtistName, catalog.trackInfo, catalog.selectedTrackId, catalog.catalogTracks]);
+  useTrackAura(catalog.trackInfo ?? catalog.catalogTracks.find(track => track.id === catalog.selectedTrackId) ?? null, publicArtistName);
 
   // Seed the artist identity from storage on wallet change. This runs in both
   // shells: the listener account view shows the artist name/runtime too.
@@ -80,5 +73,17 @@ export default function App() {
     void artistConsole.refreshArtistRuntime();
   }, [activeEvmAddress, activeView, connectedArtistIdentity, directoryAddress, ethRpcUrl, isArtistPortal]);
 
-  return isArtistPortal ? <ArtistShell /> : <ListenerShell />;
+  return isArtistPortal ? (
+    <Suspense
+      fallback={
+        <p className='app-loading' role='status'>
+          Opening the artist studio…
+        </p>
+      }
+    >
+      <ArtistShell />
+    </Suspense>
+  ) : (
+    <ListenerShell />
+  );
 }

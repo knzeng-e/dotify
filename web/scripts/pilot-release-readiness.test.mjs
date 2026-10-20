@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { evaluatePilotEvidence, parseArgs, PILOT_RELEASE_SCHEMA_VERSION } from './pilot-release-readiness.mjs';
+import { evaluatePilotEvidence, evaluatePublishedReleaseBinding, parseArgs, PILOT_RELEASE_SCHEMA_VERSION } from './pilot-release-readiness.mjs';
 
 const CANDIDATE_SHA = '1234567890abcdef1234567890abcdef12345678';
 const DEPLOYED_CID = 'bafybeigdyrzt5sfp7udm7hu76uh7y26nf3ooqb5x4nqyd7bkhzbr6f5o4e';
@@ -10,6 +10,8 @@ const CAPTURED_AT = '2026-09-13T12:00:00.000Z';
 const REPORT_CONTEXT = {
   commit: CANDIDATE_SHA,
   productAppVersion: '[0, 1, 18]',
+  runtimeAdapterKind: 'product-cdm',
+  productChain: 'devnet',
   pilotReleaseCid: DEPLOYED_CID,
   requirePilotReleaseCid: true,
   generatedAt: '2026-09-13T12:05:00.000Z'
@@ -21,6 +23,8 @@ function validPilotEvidence(overrides = {}) {
     candidate: {
       gitSha: CANDIDATE_SHA,
       productAppVersion: '[0, 1, 18]',
+      runtimeAdapterKind: 'product-cdm',
+      productChain: 'devnet',
       deployedCid: DEPLOYED_CID,
       capturedAt: CAPTURED_AT
     },
@@ -52,6 +56,36 @@ function validPilotEvidence(overrides = {}) {
       decision: 'hold',
       prioritizedFixes: ['Improve first-sound time', 'Document Product host limits', 'Rehearse support retry']
     },
+    ...overrides
+  };
+}
+
+function validRollbackEvidence(overrides = {}) {
+  return {
+    schemaVersion: 1,
+    candidateSha: CANDIDATE_SHA,
+    releaseCid: DEPLOYED_CID,
+    rollbackSha: 'abcdefabcdefabcdefabcdefabcdefabcdefabcd',
+    rollbackCid: OTHER_DEPLOYED_CID,
+    profile: 'product-cdm',
+    dotns: {
+      rootRollbackTx: `0x${'a'.repeat(64)}`,
+      appRollbackTx: `0x${'b'.repeat(64)}`,
+      rootRestoreTx: `0x${'c'.repeat(64)}`,
+      appRestoreTx: `0x${'d'.repeat(64)}`,
+      oldReadback: true,
+      releaseReadback: true
+    },
+    checks: {
+      oldCatalogTracks: 12,
+      releaseCatalogTracks: 12,
+      oldKeyAccess: true,
+      releaseKeyAccess: true,
+      oldPlaybackObserved: true,
+      releasePlaybackObserved: true,
+      newPayments: 0
+    },
+    manifestTextUnchanged: true,
     ...overrides
   };
 }
@@ -92,6 +126,28 @@ test('aggregate pilot evidence passes only with sample, task, privacy, rollback,
   assert.equal(gates.find(gate => gate.id === 'go-no-go-record')?.status, 'pass');
 });
 
+test('standalone rollback evidence passes without inventing a participant pilot', () => {
+  const gates = evaluatePilotEvidence(null, { ...REPORT_CONTEXT, rollbackEvidence: validRollbackEvidence() });
+  assert.equal(gates.find(gate => gate.id === 'rollback-rehearsal')?.status, 'pass');
+  assert.equal(gates.find(gate => gate.id === 'pilot-sample')?.status, 'not-run');
+  assert.equal(gates.find(gate => gate.id === 'pilot-join-target')?.status, 'not-run');
+});
+
+test('standalone rollback evidence fails closed on candidate, transaction, access, and payment drift', () => {
+  const cases = [
+    validRollbackEvidence({ candidateSha: 'abcdefabcdefabcdefabcdefabcdefabcdefabcd' }),
+    validRollbackEvidence({ releaseCid: OTHER_DEPLOYED_CID }),
+    validRollbackEvidence({ dotns: { ...validRollbackEvidence().dotns, appRestoreTx: `0x${'a'.repeat(64)}` } }),
+    validRollbackEvidence({ checks: { ...validRollbackEvidence().checks, releaseKeyAccess: false } }),
+    validRollbackEvidence({ checks: { ...validRollbackEvidence().checks, newPayments: 1 } }),
+    validRollbackEvidence({ mnemonic: 'must-not-be-accepted' })
+  ];
+  for (const rollbackEvidence of cases) {
+    const gates = evaluatePilotEvidence(null, { ...REPORT_CONTEXT, rollbackEvidence });
+    assert.equal(gates.find(gate => gate.id === 'rollback-rehearsal')?.status, 'fail');
+  }
+});
+
 test('pilot evidence rejects sensitive field variants and raw identifiers', () => {
   for (const field of ['participantEmails', 'ipAddress', 'rawResponses', 'participantAddress']) {
     const gates = evaluatePilotEvidence(
@@ -118,6 +174,8 @@ test('pilot decision is rejected when candidate identity does not match the repo
       candidate: {
         gitSha: 'abcdefabcdefabcdefabcdefabcdefabcdefabcd',
         productAppVersion: '[0, 1, 17]',
+        runtimeAdapterKind: 'viem',
+        productChain: 'paseo',
         deployedCid: OTHER_DEPLOYED_CID,
         capturedAt: CAPTURED_AT
       }
@@ -127,6 +185,31 @@ test('pilot decision is rejected when candidate identity does not match the repo
 
   assert.equal(gates.find(gate => gate.id === 'pilot-candidate-identity')?.status, 'fail');
   assert.equal(gates.find(gate => gate.id === 'go-no-go-record')?.status, 'fail');
+});
+
+test('pilot evidence rejects an old viem profile even when SHA, version and CID match', () => {
+  for (const candidate of [
+    { ...validPilotEvidence().candidate, runtimeAdapterKind: 'viem' },
+    { ...validPilotEvidence().candidate, productChain: 'paseo' },
+    { ...validPilotEvidence().candidate, runtimeAdapterKind: undefined }
+  ]) {
+    const gates = evaluatePilotEvidence(validPilotEvidence({ candidate }), REPORT_CONTEXT);
+    assert.equal(gates.find(gate => gate.id === 'pilot-candidate-identity')?.status, 'fail');
+    assert.equal(gates.find(gate => gate.id === 'go-no-go-record')?.status, 'fail');
+  }
+});
+
+test('published CDM CID binds payment and room evidence to the same release', () => {
+  const env = { VITE_DOTIFY_RUNTIME_ADAPTER: 'product-cdm', VITE_DOTIFY_PRODUCT_CHAIN: 'devnet' };
+  const evidence = { candidate: { deployedCid: DEPLOYED_CID } };
+  const matched = evaluatePublishedReleaseBinding(env, DEPLOYED_CID, evidence, evidence);
+  assert.equal(matched.find(gate => gate.id === 'pilot-release-cid')?.status, 'pass');
+  const wrongRoom = evaluatePublishedReleaseBinding(env, DEPLOYED_CID, evidence, { candidate: { deployedCid: OTHER_DEPLOYED_CID } });
+  assert.equal(wrongRoom.find(gate => gate.id === 'pilot-release-cid')?.status, 'fail');
+  const missing = evaluatePublishedReleaseBinding(env, null, evidence, evidence);
+  assert.equal(missing.find(gate => gate.id === 'pilot-release-cid')?.status, 'blocked');
+  const wrongProfile = evaluatePublishedReleaseBinding({ ...env, VITE_DOTIFY_RUNTIME_ADAPTER: 'viem' }, DEPLOYED_CID, evidence, evidence);
+  assert.equal(wrongProfile.find(gate => gate.id === 'pilot-release-profile')?.status, 'fail');
 });
 
 test('pilot evidence rejects CID-shaped values that are not valid CIDs', () => {
@@ -164,6 +247,7 @@ test('pilot evidence requires a separately supplied release-profile CID', () => 
 });
 
 test('pilot release CID has its own CLI argument', () => {
-  const args = parseArgs(['--pilot-release-cid', `ipfs://${DEPLOYED_CID}`]);
+  const args = parseArgs(['--pilot-release-cid', `ipfs://${DEPLOYED_CID}`, '--rollback-json', '/tmp/rollback.json']);
   assert.equal(args.pilotReleaseCid, `ipfs://${DEPLOYED_CID}`);
+  assert.equal(args.rollbackJson, '/tmp/rollback.json');
 });

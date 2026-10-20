@@ -5,7 +5,8 @@
 A Dotify pull request is both a change proposal and a compact engineering
 lesson. It should let a reviewer understand the problem, reconstruct the
 reasoning, inspect the implementation in a deliberate order, and maintain the
-result without depending on undocumented author context.
+result without depending on undocumented author context. Its description is a
+decision guide, not a second changelog or a narration of the diff.
 
 A changelog answers "what changed?" A strong PR also answers:
 
@@ -23,7 +24,12 @@ repeat the diff line by line.
 
 ## The required story
 
-Every PR description must contain the following information.
+Every PR description must convey the following information, but not through a
+separate heading for every item. Use the four sections in the PR template:
+Outcome, Design and boundaries, Review focus, and Evidence and remaining gates.
+Scale the depth to the risk: a narrow presentation fix should be brief; a
+financial or security change must explain its trust and failure boundaries.
+Do not add filler such as "no alternatives" or "no risks" to satisfy a shape.
 
 ### Outcome
 
@@ -36,31 +42,21 @@ Explain the original behavior, its user or system impact, why the work matters
 now, and the constraints inherited from Dotify's product and security model.
 Link the backlog issue and its local scope document.
 
-### Architecture and concepts
+### Design and boundaries
 
 Describe the important boundaries, components, ownership, and data or control
-flow. Define concepts that may be unfamiliar, such as a read model,
-stale-while-revalidate, reorg checkpoint, capability token, or host-only key
-delivery. Use the smallest useful diagram when several components interact.
+flow. Define unfamiliar concepts in plain language. Explain the decisive design
+choice and meaningful alternative, if there was one. For changes involving
+trust, money, or operations, state what is authoritative, how failure and
+persistence work, and what operators must configure, monitor, or roll back.
+Never imply guarantees the implementation cannot provide. Link a design note
+or use a small diagram only when it clarifies a multi-component change.
 
-### Design decisions and tradeoffs
+### Review focus
 
-Explain why the chosen design fits the ticket. Name meaningful alternatives
-that were considered and why they were deferred or rejected. Record deliberate
-limitations instead of presenting them as accidental omissions.
-
-### Security, failure, and operations
-
-State what is trusted, what is authoritative, where behavior fails closed,
-which degraded modes remain available, what is persisted, and what operators
-must configure or monitor. Never imply guarantees the implementation cannot
-provide.
-
-### Code map and review guide
-
-Give reviewers an ordered path through the change. For each stage, explain what
-they should learn and which invariants or risks they should verify. Point to
-specific files, modules, endpoints, contracts, or migrations.
+Give reviewers an ordered path through the change. Name the one to three
+highest-value questions, each tied to a specific file, module, endpoint,
+contract, or migration and a concrete invariant or regression risk.
 
 The guide must include concrete review prompts. "Please review" is not enough.
 Examples:
@@ -71,16 +67,18 @@ Examples:
 - Are cache keys and ETags scoped to every response variant?
 - Does a retry duplicate a financial or irreversible action?
 
-### Validation and residual risk
+### Evidence and remaining gates
 
 Map tests and checks to the behaviors they prove. Separate automated evidence
-from manual or production evidence. List known limitations, follow-up work, and
-the condition that allows the linked issue to close.
+from manual or production evidence. List unverified behavior, deliberate
+limitations, follow-up work, and the condition that allows the linked issue to
+close. Do not list every routine command when one sentence conveys the proof.
 
 ## Metadata contract
 
 Every applicable metadata field is part of the engineering record, not
-administrative decoration.
+administrative decoration. Set and verify these in GitHub; do not paste a
+metadata checklist into the reviewer-facing description.
 
 - Add every PR to GitHub Project 5, `Dotify sprints`.
 - Link the backlog issue. Use `Closes #N`, `Fixes #N`, or `Resolves #N` when

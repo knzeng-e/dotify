@@ -1,189 +1,127 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Browser, type Page } from '@playwright/test';
 
 const PUBLIC_TITLE = 'E2E Public Room Track';
-
-declare global {
-  interface Window {
-    __DOTIFY_ROOM_GALAXY__?: {
-      snapshot: () => {
-        status: string;
-        roomCount: number;
-        visibleOverlayCount: number;
-        frameCount: number;
-        pixelRatio: number;
-        paused: boolean;
-      };
-    };
-  }
-}
-
-async function openPublicRoom(page: Page) {
-  await page.goto('/?e2eRoom=public');
-  await page.getByRole('button', { name: 'Open a room' }).click();
-  await page.getByRole('button', { name: `Select ${PUBLIC_TITLE}` }).click();
-  await page.getByLabel('Your name in the room').fill('Discovery host');
-  await page.getByRole('button', { name: 'Open the room' }).click();
-  const roomCode = page.getByTestId('room-code');
-  await expect(roomCode).toHaveText(/[A-Z0-9]{4,}/, { timeout: 15_000 });
-  return (await roomCode.textContent())?.trim() ?? '';
-}
-
-async function openRoomsTab(page: Page, roomId: string) {
-  await page.getByRole('button', { name: 'Rooms' }).click();
-  await expect(page.getByRole('heading', { name: 'Happening now' })).toBeVisible();
-  const roomCard = page.locator('.room-live-card').filter({ hasText: roomId }).first();
-  await expect(roomCard).toBeVisible();
-  return roomCard;
-}
-
-async function expectGalaxyReady(page: Page) {
-  await expect(page.getByTestId('room-galaxy-scene')).toBeVisible();
-  await expect
-    .poll(
-      async () =>
-        page.evaluate(() => {
-          const snapshot = window.__DOTIFY_ROOM_GALAXY__?.snapshot();
-          if (!snapshot) return 'missing';
-          return `${snapshot.status}:${snapshot.roomCount >= 1}:${snapshot.visibleOverlayCount >= 1}:${snapshot.frameCount > 0}`;
-        }),
-      { timeout: 15_000 }
-    )
-    .toBe('ready:true:true:true');
-}
-
-async function expectGalaxyCanvasPainted(page: Page) {
-  const paintedPixels = await page.getByTestId('room-galaxy-canvas').evaluate((canvas: HTMLCanvasElement) => {
-    const sample = document.createElement('canvas');
-    sample.width = 96;
-    sample.height = 64;
-    const context = sample.getContext('2d', { willReadFrequently: true });
-    if (!context) return 0;
-    context.drawImage(canvas, 0, 0, sample.width, sample.height);
-    const pixels = context.getImageData(0, 0, sample.width, sample.height).data;
-    let painted = 0;
-    for (let index = 0; index < pixels.length; index += 4) {
-      if (pixels[index + 3] > 0 && pixels[index] + pixels[index + 1] + pixels[index + 2] > 18) painted += 1;
+const fix = { latitude: 0.392, longitude: 9.454, accuracy: 100 };
+async function hostRoom(browser: Browser) {
+  const context = await browser.newContext({ permissions: ['geolocation'], geolocation: fix });
+  const host = await context.newPage();
+  await host.goto('/?e2eRoom=public');
+  await host.getByRole('button', { name: 'Open a room' }).click();
+  await host.getByRole('button', { name: `Select ${PUBLIC_TITLE}` }).click();
+  await host.getByLabel('Your name or nickname').fill('Discovery host');
+  await host.getByRole('radio', { name: 'Nearby', exact: true }).check();
+  await host.getByRole('button', { name: 'Open the room' }).click();
+  await expect(host.getByTestId('room-code')).toHaveText(/[A-Z2-9]{6}/, { timeout: 15_000 });
+  await host.getByRole('tab', { name: /People/ }).click();
+  await expect(host.getByRole('region', { name: 'Room visibility' })).toContainText('Visible nearby');
+  return {
+    roomId: (await host.getByTestId('room-code').textContent())!.trim(),
+    close: async () => {
+      try {
+        // Closing a tab is now a reconnectable disconnect. Explicitly end the
+        // fixture room so its grace-period invitation cannot enter the next test.
+        await host.getByRole('button', { name: 'Close room', exact: true }).click();
+        const confirm = host.getByRole('button', { name: 'Close for everyone', exact: true });
+        await expect.poll(async () => (await host.getByTestId('room-code').count()) === 0 || (await confirm.isVisible())).toBe(true);
+        if (await confirm.isVisible()) await confirm.click();
+        await expect(host.getByTestId('room-code')).toHaveCount(0);
+      } finally {
+        await context.close();
+      }
     }
-    return painted;
-  });
-
-  expect(paintedPixels).toBeGreaterThan(24);
+  };
+}
+async function openNearby(page: Page) {
+  await page.context().grantPermissions(['geolocation']);
+  await page.context().setGeolocation(fix);
+  await page.goto('/?e2eRoom=listener');
+  await page.getByRole('button', { name: 'Rooms', exact: true }).click();
+  const radar = page.getByRole('region', { name: 'Room galaxy' });
+  await expect(radar.getByRole('heading', { name: PUBLIC_TITLE })).toBeVisible({ timeout: 20_000 });
+  return radar;
 }
 
-async function disableWebGl(page: Page) {
+test('desktop galaxy opens automatically; range and pause settings keep keyboard focus', async ({ browser, page }, testInfo) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const room = await hostRoom(browser);
+  try {
+    const radar = await openNearby(page);
+    await expect(radar.getByTestId('room-galaxy')).toBeVisible();
+    await radar.getByRole('button', { name: 'Search settings' }).click();
+    const sheet = page.getByRole('dialog');
+    await sheet.getByRole('slider', { name: 'Search range' }).focus();
+    await page.keyboard.press('ArrowRight');
+    await expect(sheet.getByRole('slider')).toHaveAttribute('aria-valuetext', 'About 6 kilometres');
+    await page.keyboard.press('Escape');
+    await expect(radar.getByRole('button', { name: 'Search settings' })).toBeFocused();
+    await radar.screenshot({ path: testInfo.outputPath('automatic-galaxy-desktop.png') });
+    await radar.getByRole('button', { name: 'Search settings' }).click();
+    await sheet.getByRole('button', { name: 'Pause nearby search' }).click();
+    await sheet.getByRole('button', { name: 'Done', exact: true }).click();
+    await expect(radar.getByRole('heading', { name: PUBLIC_TITLE })).toHaveCount(0);
+    await expect(radar).toContainText('Nearby paused');
+  } finally {
+    await room.close();
+  }
+});
+
+test('galaxy and direct joining work without WebGL', async ({ browser, page }) => {
   await page.addInitScript(() => {
-    const nativeGetContext = HTMLCanvasElement.prototype.getContext;
-    HTMLCanvasElement.prototype.getContext = function getContextWithDisabledWebGl(type: string, ...args: unknown[]) {
-      if (type === 'webgl' || type === 'webgl2' || type === 'experimental-webgl') return null;
-      return nativeGetContext.call(this, type, ...args);
+    const native = HTMLCanvasElement.prototype.getContext;
+    HTMLCanvasElement.prototype.getContext = function (type: string, ...args: unknown[]) {
+      if (type.includes('webgl')) return null;
+      return native.call(this, type, ...args);
     } as typeof HTMLCanvasElement.prototype.getContext;
   });
-}
-
-test('room discovery exposes an inspection panel beside the desktop list', async ({ page }) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
-  const roomId = await openPublicRoom(page);
-  const roomCard = await openRoomsTab(page, roomId);
-
-  await expect(page.getByTestId('sky-of-rooms')).toBeVisible();
-  await page.getByRole('button', { name: '3D', exact: true }).click();
-  await expectGalaxyReady(page);
-  await expectGalaxyCanvasPainted(page);
-  await expect(page.getByRole('button', { name: `Join room ${roomId}` })).toBeVisible();
-  await page.getByTestId('room-galaxy-scene').focus();
-  await page.keyboard.press('ArrowRight');
-  await page.keyboard.press('+');
-  await page.keyboard.press('Home');
-  await expectGalaxyReady(page);
-  await page.getByTestId('room-galaxy-canvas').dispatchEvent('webglcontextlost');
-  await expect(page.getByTestId('sky-of-rooms')).toBeVisible();
-  await page.getByRole('button', { name: '2D', exact: true }).click();
-  await expect(page.getByTestId('sky-of-rooms')).toBeVisible();
-  await page.getByRole('button', { name: '3D', exact: true }).click();
-  await expectGalaxyReady(page);
-  await expectGalaxyCanvasPainted(page);
-
-  await roomCard.click();
-
-  const panel = page.getByTestId('room-detail-panel');
-  await expect(panel).toBeVisible();
-  await expect(panel).toContainText(PUBLIC_TITLE);
-  await expect(panel.getByRole('button', { name: 'Join room' })).toBeVisible();
-  await expect(page.getByTestId('room-detail-sheet')).toBeHidden();
-
-  const layout = await page.evaluate(() => {
-    const main = document.querySelector<HTMLElement>('.rooms-discovery-main')?.getBoundingClientRect();
-    const detail = document.querySelector<HTMLElement>('.room-detail-panel')?.getBoundingClientRect();
-    return {
-      documentWidth: document.documentElement.scrollWidth,
-      viewportWidth: window.innerWidth,
-      mainRight: main?.right ?? 0,
-      detailLeft: detail?.left ?? 0
-    };
-  });
-
-  expect(layout.documentWidth).toBeLessThanOrEqual(layout.viewportWidth);
-  expect(layout.detailLeft).toBeGreaterThan(layout.mainRight);
+  const room = await hostRoom(browser);
+  try {
+    const radar = await openNearby(page);
+    await expect(radar.getByTestId('room-galaxy')).toBeVisible();
+    await radar.getByRole('button', { name: 'Join', exact: true }).click();
+    await page.getByLabel('Your name or nickname').fill('No WebGL guest');
+    await page.getByRole('button', { name: 'Join room', exact: true }).click();
+    await expect(page.getByTestId('room-code')).toHaveText(room.roomId);
+    await expect(page.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20_000 });
+  } finally {
+    await room.close();
+  }
 });
 
-test('room discovery falls back to the 2D sky when WebGL is unavailable', async ({ page }) => {
-  await disableWebGl(page);
-  await page.setViewportSize({ width: 1440, height: 900 });
-  const roomId = await openPublicRoom(page);
-  const roomCard = await openRoomsTab(page, roomId);
-
-  await expect(page.getByTestId('sky-of-rooms')).toBeVisible();
-  await roomCard.click();
-  await expect(page.getByTestId('room-detail-panel')).toContainText(PUBLIC_TITLE);
-});
-
-test('room discovery keeps the card grid usable with reduced motion', async ({ page }) => {
+test('reduced motion keeps room actions usable and clears hidden results', async ({ browser, page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  await page.setViewportSize({ width: 1440, height: 900 });
-  const roomId = await openPublicRoom(page);
-  const roomCard = await openRoomsTab(page, roomId);
-
-  await expect(page.getByTestId('room-galaxy-scene')).toBeHidden();
-  await expect(page.getByTestId('sky-of-rooms')).toBeHidden();
-  await expect(roomCard).toBeVisible();
-  await roomCard.click();
-  await expect(page.getByTestId('room-detail-panel').getByRole('button', { name: 'Join room' })).toBeVisible();
+  const room = await hostRoom(browser);
+  try {
+    const radar = await openNearby(page);
+    expect(await radar.locator('.radar-sweep').evaluate(element => getComputedStyle(element).animationName)).toBe('none');
+    await radar.getByLabel(`Options for ${PUBLIC_TITLE}`, { exact: true }).focus();
+    await page.keyboard.press('Enter');
+    await radar.getByRole('button', { name: 'Hide', exact: true }).click();
+    await expect(radar.getByRole('heading', { name: PUBLIC_TITLE })).toHaveCount(0);
+    await expect(radar.getByRole('button', { name: /^Inspect / })).toHaveCount(0);
+  } finally {
+    await room.close();
+  }
 });
 
-test('room discovery uses a touch-safe inspection sheet above mobile playback controls', async ({ page }) => {
+test('mobile galaxy and inspection sheet stay touch-safe with no horizontal overflow', async ({ browser, page }, testInfo) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  const roomId = await openPublicRoom(page);
-  const roomCard = await openRoomsTab(page, roomId);
-
-  await expect(page.getByTestId('sky-of-rooms')).toBeHidden();
-  await roomCard.focus();
-  await page.keyboard.press('Enter');
-
-  const sheet = page.getByTestId('room-detail-sheet');
-  await expect(sheet).toBeVisible();
-  await expect(sheet).toContainText(PUBLIC_TITLE);
-  await expect(page.locator('.player-dock')).toBeVisible();
-  const closeButton = sheet.getByRole('button', { name: 'Close room details' });
-  await expect(closeButton).toBeFocused();
-
-  const layout = await page.evaluate(() => {
-    const join = document.querySelector<HTMLElement>('.room-detail-sheet .room-detail-join')?.getBoundingClientRect();
-    const sheet = document.querySelector<HTMLElement>('.room-detail-sheet')?.getBoundingClientRect();
-    const dock = document.querySelector<HTMLElement>('.player-dock')?.getBoundingClientRect();
-    return {
-      documentWidth: document.documentElement.scrollWidth,
-      viewportWidth: window.innerWidth,
-      joinHeight: join?.height ?? 0,
-      sheetBottom: sheet?.bottom ?? 0,
-      dockTop: dock?.top ?? window.innerHeight
-    };
-  });
-
-  expect(layout.documentWidth).toBeLessThanOrEqual(layout.viewportWidth);
-  expect(layout.joinHeight).toBeGreaterThanOrEqual(44);
-  expect(layout.sheetBottom).toBeLessThanOrEqual(layout.dockTop + 1);
-
-  await page.keyboard.press('Enter');
-  await expect(sheet).toBeHidden();
-  await expect(roomCard).toBeFocused();
+  const room = await hostRoom(browser);
+  try {
+    const radar = await openNearby(page);
+    const join = radar.getByRole('button', { name: 'Join', exact: true });
+    await join.scrollIntoViewIfNeeded();
+    const layout = await join.boundingBox();
+    expect(layout!.height).toBeGreaterThanOrEqual(44);
+    expect(layout!.width).toBeGreaterThanOrEqual(44);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await radar.getByRole('button', { name: /^Inspect / }).click();
+    await page.screenshot({ path: testInfo.outputPath('room-preview-mobile.png'), fullPage: true });
+    await page.getByRole('dialog', { name: PUBLIC_TITLE }).getByRole('button', { name: 'Join', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Join room', exact: true })).toBeDisabled();
+    await page.getByLabel('Your name or nickname').fill('Mobile guest');
+    await page.getByRole('button', { name: 'Join room', exact: true }).click();
+    await expect(page.getByTestId('room-code')).toHaveText(room.roomId);
+  } finally {
+    await room.close();
+  }
 });

@@ -1,4 +1,4 @@
-import { LockKeyhole } from 'lucide-react';
+import { KeyRound } from 'lucide-react';
 import { Dialog } from './Dialog';
 import type { AccessGate } from '../shared/types';
 import { buildClassicAccessReceipt } from '../features/access/accessPromise';
@@ -34,7 +34,7 @@ export function AccessGateOverlay({
     >
       <div className='access-gate-header'>
         <span>
-          <LockKeyhole size={17} />
+          <KeyRound size={17} aria-hidden='true' />
         </span>
         <strong id='access-gate-title'>{gate.title}</strong>
       </div>
@@ -45,20 +45,21 @@ export function AccessGateOverlay({
         <p className='access-gate-hint'>{gate.hint}</p>
       </div>
       {classicReceipt && (
-        <section className='access-gate-receipt' aria-label={`Support summary for ${gate.track.title}`}>
-          <div className='access-gate-price' aria-label={`Support amount ${classicReceipt.supportAmount}`}>
-            <span>Total support</span>
+        <section className='access-gate-receipt' aria-label={`Access payment for ${gate.track.title}`}>
+          <div className='access-gate-price' aria-label={`Access price ${classicReceipt.supportAmount}`}>
+            <span>Unlock this track</span>
             <strong>{classicReceipt.supportAmount}</strong>
           </div>
+          <p className='access-gate-split-title'>Where your payment goes</p>
           <dl>
             {classicReceipt.recipients.map(recipient => (
-              <div key={`${recipient.label}-${recipient.value}`}>
+              <div key={`${recipient.label}-${recipient.account ?? recipient.value}`}>
                 <dt>{recipient.label}</dt>
                 <dd>{recipient.value}</dd>
               </div>
             ))}
             <div>
-              <dt>Confirmation fee</dt>
+              <dt>Network fee</dt>
               <dd>Shown before you approve</dd>
             </div>
           </dl>
@@ -73,6 +74,20 @@ export function AccessGateOverlay({
               ))}
             </dl>
             <p>{classicReceipt.settlementNote}</p>
+            {classicReceipt.recipients.some(recipient => recipient.account) && (
+              <dl>
+                {classicReceipt.recipients
+                  .filter(recipient => recipient.account)
+                  .map(recipient => (
+                    <div key={`account-${recipient.label}-${recipient.account}`}>
+                      <dt>{recipient.label} account</dt>
+                      <dd>
+                        <code>{recipient.account}</code>
+                      </dd>
+                    </div>
+                  ))}
+              </dl>
+            )}
           </details>
         </section>
       )}
@@ -83,9 +98,10 @@ export function AccessGateOverlay({
             type='button'
             data-testid='classic-unlock-button'
             onClick={onPay}
-            aria-label={`Support the artist and open ${gate.track.title} for ${classicReceipt.supportAmount}`}
+            aria-label={`Pay ${classicReceipt.supportAmount} to unlock ${gate.track.title}`}
           >
-            Support and open - {classicReceipt.supportAmount}
+            <KeyRound size={16} aria-hidden='true' />
+            Pay {classicReceipt.supportAmount} to unlock
           </button>
         )}
         {gate.actionType === 'signin' && onSignIn && (

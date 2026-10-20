@@ -5,6 +5,7 @@
 // defaults; tests pass explicit strings.
 
 import { isChosenDisplayName, sanitizeDisplayName } from '../identity/walletIdentity';
+import type { ListenerRecord } from '../../shared/types';
 
 /**
  * Read the room code from a share link hash.
@@ -37,6 +38,16 @@ export function buildSessionLink(roomId: string, href: string = typeof window ==
 /** People present in a room: listeners plus the host, or 0 when not in a room. */
 export function roomPresenceCount(listenerCount: number, inRoom: boolean): number {
   return inRoom ? listenerCount + 1 : 0;
+}
+
+/** Use observed names only; an incomplete roster remains a count, not invented avatars. */
+export function roomPresencePreview(hostName: string, listeners: ListenerRecord[], listenerCount: number) {
+  const count = Number.isFinite(listenerCount) ? Math.max(0, Math.floor(listenerCount)) : 0;
+  const names = listeners
+    .filter(listener => listener.status !== 'disconnected')
+    .slice(0, count)
+    .map(listener => sanitizeDisplayName(listener.displayName));
+  return { names: [roomHostDisplayName(hostName) ?? '', ...names], total: count + 1 };
 }
 
 /** A room role or untouched seed must never be presented as a person's name. */

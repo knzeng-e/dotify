@@ -67,6 +67,11 @@ export type CatalogApiResponse = {
   meta: CatalogApiMetadata;
 };
 
+export function isAuthoritativeCatalogResponse(response: CatalogApiResponse): boolean {
+  const completePage = response.pagination.nextCursor === null && response.items.length >= response.pagination.total;
+  return completePage && (response.meta.state === 'fresh' || response.meta.state === 'empty');
+}
+
 type CachedCatalog = {
   version: typeof CACHE_VERSION;
   apiUrl: string;
@@ -107,6 +112,9 @@ export async function fetchCatalog(
     apiUrl?: string;
     storage?: Storage | null;
     timeoutMs?: number;
+    /** Post-write reconciliation must bypass browser/CDN freshness. */
+    fresh?: boolean;
+    allPages?: boolean;
   } = {}
 ): Promise<CatalogApiResponse> {
   const apiUrl = (options.apiUrl ?? DEFAULT_API_URL)?.replace(/\/$/, '');
@@ -122,14 +130,14 @@ export async function fetchCatalog(
     includeInactive: String(includeInactive)
   });
   const headers = new Headers();
-  if (cached?.etag) headers.set('If-None-Match', cached.etag);
+  if (cached?.etag && !options.fresh) headers.set('If-None-Match', cached.etag);
 
   const controller = timeoutMs > 0 ? new AbortController() : null;
   const timeoutId = controller ? globalThis.setTimeout(() => controller.abort(), timeoutMs) : undefined;
   let response: Response;
 
   try {
-    response = await fetch(`${apiUrl}/api/catalog?${query}`, { headers, signal: controller?.signal });
+    response = await fetch(`${apiUrl}/api/catalog?${query}`, { headers, signal: controller?.signal, ...(options.fresh ? { cache: 'no-store' as const } : {}) });
     if (response.status === 304 && cached) return cached.response;
 
     const body = await parseResponseBody(response);
@@ -140,7 +148,23 @@ export async function fetchCatalog(
       throw new CatalogApiError(`Catalog request failed (${response.status})`, 'CATALOG_REQUEST_FAILED');
     }
 
-    if (response.ok && body.meta.cacheAvailable) {
+    if (response.ok && options.allPages) {
+      let cursor = body.pagination.nextCursor;
+      const seen = new Set<string>();
+      while (cursor) {
+        if (seen.has(cursor) || seen.size >= 100) throw new CatalogApiError('Catalog pagination did not finish', 'INVALID_CATALOG_RESPONSE');
+        seen.add(cursor);
+        query.set('cursor', cursor);
+        const next = await fetch(`${apiUrl}/api/catalog?${query}`, { signal: controller?.signal, cache: 'no-store' });
+        const page = await parseResponseBody(next);
+        if (!next.ok || !isCatalogResponse(page)) throw new CatalogApiError('Catalog changed while refreshing; check again', 'CATALOG_REQUEST_FAILED');
+        body.items.push(...page.items);
+        body.pagination = page.pagination;
+        cursor = page.pagination.nextCursor;
+      }
+    }
+
+    if (response.ok && body.meta.cacheAvailable && !options.allPages) {
       writeCache(apiUrl, includeInactive, limit, response.headers.get('etag'), body, storage);
     }
     return body;

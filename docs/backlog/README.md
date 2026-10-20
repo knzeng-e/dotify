@@ -18,7 +18,30 @@ while `main` is the GitHub default branch, closing keywords do not close these
 issues automatically; the merge handoff must close the issue and set its
 Project item to Done explicitly.
 
+The PR writing workflow is tracked in [`pr-review-quality.md`](pr-review-quality.md)
+(#240); it changes review documentation only, not product behavior.
+
+The local Claude hook and verification workflow correction is tracked in
+[`claude-verification-tooling.md`](claude-verification-tooling.md) (#265),
+implemented by PR #264.
+
 ## Product north star
+
+The mobile keyboard correction and shared interaction polish in
+[#306](https://github.com/knzeng-e/dotify/issues/306) are implemented by #307
+and published in Product 0.1.56. The owner confirmed expected mobile keyboard
+behavior on 2026-10-20. [Mobile form continuity](mobile-form-continuity.md)
+retains the separate full physical-device acceptance boundary.
+
+Post-0.1.47 owner feedback is tracked by [#269](https://github.com/knzeng-e/dotify/issues/269),
+[publication, artwork and room follow-up](release-room-followup.md). It covers
+confirmation convergence, Product navigation, public-image caching, automatic
+host-tip association, verified native announcements and editorial corrections.
+
+Owner-requested room-life continuation: [#257](https://github.com/knzeng-e/dotify/issues/257),
+[scope and acceptance](room-life-and-artist-visits.md). It follows #256 and adds
+ephemeral conversation cues and verified artist visits; public-pilot reliability
+and physical Product-host validation remain release gates.
 
 Dotify is not a Spotify clone. Dotify is a decentralized cultural social hub where music becomes a live social connector, artists retain sovereignty over catalog/access/royalties, and listeners can discover music through shared real-time presence.
 
@@ -119,21 +142,56 @@ Source: `docs/design/ux-design-audit-2026-09-17.md`. Existing tickets were reuse
 | `implementation/W24-visual-system-contract.md`    | #179         | Delivered by #189                                    | One documented type, color and component system                                           |
 | `implementation/W26-french-localization.md`       | #181         | Later                                                | French interface after the pilot                                                          |
 
+## UX clarity pass (October 2026)
+
+Source: the 2026-10-08 audit of the running app, requested by the owner.
+
+| Backlog doc                             | GitHub issue | Delivery record | Goal                                                                                                                                             |
+| --------------------------------------- | ------------ | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `implementation/W29-ux-clarity-pass.md` | #250         | PR #249         | One word per gesture, room-first home, named payment recipients, protected playback that names its failure, room exit in the header, sign-in after a purposeful connect |
+
+W29 reverses one earlier record: catalog cards show a short access cue again
+(W21 / #195 and W28 kept access details on demand).
+
 ## Remaining execution map
 
-The current implementation backlog is deliberately small. Consult Project 5
-for Todo/In Progress/In Review; the table below defines why each issue remains
-open.
+The [2026-10-20 delivery reconciliation](implementation/evidence/backlog-reconciliation-2026-10-20.md)
+records W30/W31 implementation and deployment already delivered through #296,
+#297 and the 0.1.52 rollout. W30 still has an explicit API non-root/volume
+ownership remainder; W31 still needs its dedicated Worldwide-report E2E.
+W30 remains a pilot release gate. W32-W35 form the streaming track, W36-W37
+the scaling track, and W38-W39 remain Later. The owner selected W32 as the next
+implementation on 2026-10-20; this does not waive its release prerequisites.
+
+W19's initial Nearby implementation is merged through #283. Its physical-device
+acceptance and subsequent discovery follow-ups remain work to verify, rather
+than an instruction to implement Nearby again. The [dated playbook update](implementation/README.md#owner-priority-update-trusted-pilot-and-streaming-track-2026-10-16)
+supersedes the earlier W19-first scheduling. Consult Project 5 for
+Todo/In Progress/In Review; this map defines scope and remaining outcomes.
 
 | Priority | GitHub issue | Phase               | Remaining outcome                                                                                                                                              |
 | -------- | ------------ | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P0       | #285 / W30   | Now                 | Complete API non-root execution with safe existing-volume ownership, migration/restore evidence and rollback. Other hardening and the operational checks are deployed and recorded. |
+| P1       | #286 / W31   | Now (pilot polish)  | Add/verify the dedicated Worldwide-report E2E missing from the original evidence. Discovery controls and lazy studio are already delivered. |
 | P0       | #158 / W13   | Now                 | Bind Product payment/access, room, first-sound, rollback, release-profile, and consented pilot evidence to one accepted candidate.                             |
 | P0       | #88          | Next                | Measure DAV2 first sound on physical browsers/devices and real gateway conditions.                                                                             |
 | P1       | #87          | Next                | Validate responsive covers on live uploads/mobile and decide the cache-edge/legacy-backfill boundary.                                                          |
 | P1       | #89          | Next                | Exercise forced TURN, independent networks, mobile recovery, host capacity, and the mesh/SFU decision.                                                         |
 | P1       | #85          | Product feasibility | Maintain the Product capability/compatibility epic around evidence that the current Host actually exposes.                                                     |
 | P1       | #90          | Next                | Re-scope only the wallet-later gaps observed in pilot evidence; do not replay the delivered UX work.                                                           |
+| P1       | #274 / W19   | Device acceptance   | Verify merged Nearby behavior and subsequent discovery follow-ups on physical Product/mobile devices; retain host opt-in, both radii and wallet-free joining. |
+| P1       | #287 / W32   | Next (streaming)    | Encode streaming renditions with globally unique AES-GCM nonces per key, preserve the encrypted master and decide DAV2 compatibility. |
+| P1       | #288 / W33   | Next (streaming)    | Decide the #88 read-through boundary and serve immutable encrypted media through an edge cache without access authority. |
+| P1       | #289 / W34   | Next (streaming)    | Batch access reads and prepare queued keys with bounded fail-closed verdicts; keep client keys in memory. |
+| P1       | #290 / W35   | Next (streaming)    | Add gapless/adaptive playback, next-track preparation, system controls and measured continuity after W32/W34. |
+| P1       | #291 / W36   | Next (scaling)      | Share replay protection, revocations, quotas and catalog state before allowing two API instances. |
+| P2       | #292 / W37   | Next (scaling)      | Bound indexer work, resume large block gaps and maintain reusable catalog lookup indexes. |
+| P2       | #293 / W38   | Later               | Bound contract strings/splits and add paged views through artist-approved runtime upgrades after W37. |
+| P2       | #294 / W39   | Later               | Measure horizontal signaling and an SFU prototype while preserving anonymous entry and the no-guest-key boundary. |
+| P1       | #275         | Next                | Design artist-controlled runtime modules, safe owner-approved updates, admin inventory, and a separate artist-admission boundary.                               |
+| P1       | #276         | Next                | Prove per-artist key export and restore through a second compatible operator without exposing a global master secret.                                           |
 | P1       | #214 / W27   | Next Product sprint | Prove Celerity room events behind a typed dual-transport boundary, preserve anonymous link entry, and decide each Socket.IO responsibility from live evidence. |
+| P1       | #250 / W29   | Next                | Review the clarity slice in PR #249, then see the playback failure states and the chained sign-in with a real wallet and inside the Product host. Evidence: `implementation/evidence/W29.md`. |
 | P2       | #12          | Product feasibility | Prove a private personhood source and address binding before implementing Human free.                                                                          |
 | P3       | #13          | Later               | Design consented cultural propagation after the first pilot.                                                                                                   |
 | P2       | #181 / W26   | Later               | Add French after W13 and the visual contract are accepted.                                                                                                     |
@@ -154,10 +212,12 @@ decisions. Product-signed key/session verification now exists through
 explicit Product account connection. Live host evidence remains required before
 Product identity can be treated as broadly proven across devices.
 
-The Product SDK evidence snapshot used for this replanning now pins
-`@parity/product-sdk` 0.27.0 and
-`@polkadot-community-foundation/polkadot-app-deploy` 0.16.2 after the September
-2026 Product DevNet DotNS/CDM/descriptors refresh. The Product SDK set remains
+The Product SDK evidence snapshot used for this replanning pins
+`@parity/product-sdk` 0.27.0. Product deployment now uses
+`@parity/polkadot-app-deploy` 0.20.0 after the September 2026 Product DevNet
+DotNS/CDM/descriptors refresh. Dotify checks the deploy package's host-facing
+DotNS profile and API because the transient 0.16.2 DevNet preset was not
+observed by Product Desktop. The Product SDK set remains
 prototype / reference / unaudited code. Root `polkadot-api` 3.0.0 exists but is
 not yet adopted because the current Product SDK packages use PAPI 2.2.x and
 `@polkadot-apps` packages use PAPI 1.23.x, so a single PAPI 3 root breaks
@@ -202,13 +262,27 @@ For new implementation sessions, use the September 2026
 It translates the existing backlog and the latest product direction into
 bounded prompts, dependency gates, and a Product DevNet/web pilot. Product is
 a first-class acceptance target; responsive design can progress alongside the
-spine, a 3D prototype can start early, and nearby discovery comes later after
-privacy design. The historical order below remains context; the playbook is the
+spine and a 3D prototype remains optional. The 2026-10-14 owner decision makes
+Nearby the next product expansion after reviewing W18's radius amendment. The historical order below remains context; the playbook is the
 current sequencing guide. Project 5 continues to own workflow status.
 
 Sprint 0, Sprint 1, ticket 24 P1/P2/P3 first slice, ticket 25, W01-W12,
 W14, W16, W18, and W21-W25 have delivered implementation records. W13 remains
-the release gate. The remaining order is:
+the release gate. Current product scheduling is documented in
+[Product alignment and Nearby priorities](polkadot-alignment-and-nearby-priority.md):
+
+- **Now product expansion:** W19, find nearby rooms and make a room visible in a
+  chosen approximate radius in km. Flagged implementation can start after
+  W09/W10/W18 and radius/privacy review, before aggregate pilot acceptance.
+- **Supporting work:** #85 Product compatibility/network profiles and observed
+  playback/joining/publication/tip failures, with release evidence retained.
+- **Next:** artist-controlled [runtime features](artist-runtime-features.md) and
+  [key portability](artist-key-portability.md), after the first Nearby slice.
+- **Later:** stablecoin/Coinage feasibility. W16 remains a delivered record;
+  #85 carries any explicitly reactivated follow-up. JAM stays a watch item.
+
+Nearby does not depend on 3D, Celerity migration or new payments. The remaining
+release-evidence order is:
 
 1. Finish W13 against the published Product CDM validation CID: reuse an
    existing entitlement, capture Product payment/access read-back, host-to-
@@ -220,8 +294,9 @@ the release gate. The remaining order is:
    rollback/restore, publish the distinct pilot release identity, and open the
    `dev` to `main` promotion for review.
 4. Run the consented aggregate pilot and record `go`, `hold`, or `no-go` before
-   starting W15, W19, W20, or W27.
-5. If the pilot is accepted, execute W27 as a measured dual-transport sprint:
+   promoting W15/W19/W20/W27 to public readiness. Owner-activated flagged
+   implementation can proceed under each sequence's explicit scope.
+5. After the first Nearby slice, continue W27 as a measured dual-transport sprint:
    keep wallet-free joining intact, migrate only event classes whose delivery
    guarantees are proven, and retain Socket.IO wherever Celerity has not reached
    parity.

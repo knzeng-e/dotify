@@ -129,6 +129,44 @@ describe('fetchThroughGateways', () => {
     expect(winnerSignal?.aborted).toBe(true);
   });
 
+  it('bounds headers separately so a progressing prepared body can outlast the header deadline', async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(new Response('audio'));
+    const pending = fetchThroughGateways([FIRST], {
+      fetchImpl: fetchMock,
+      timeoutMs: 50,
+      prepareResponse: async (response, signal) => {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        expect(signal.aborted).toBe(false);
+        return response;
+      }
+    });
+    await vi.advanceTimersByTimeAsync(100);
+    expect(await (await pending).text()).toBe('audio');
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('limits concurrent body readers while preserving the next failover candidate', async () => {
+    vi.useFakeTimers();
+    const gates: Array<() => void> = [];
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(new Response('audio'));
+    const pending = fetchThroughGateways([FIRST, SECOND, THIRD], {
+      fetchImpl: fetchMock,
+      maxParallelAttempts: 2,
+      hedgeDelayMs: 100,
+      prepareResponse: async () => {
+        await new Promise<void>(resolve => gates.push(resolve));
+        return new Response('complete');
+      }
+    });
+    await vi.advanceTimersByTimeAsync(500);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    gates[1]();
+    expect(await (await pending).text()).toBe('complete');
+    gates[0]();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
   it('surfaces the last error when every gateway fails', async () => {
     const fetchMock = vi.fn<typeof fetch>().mockRejectedValueOnce(new Error('first down')).mockRejectedValueOnce(new Error('second down'));
 

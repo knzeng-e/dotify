@@ -1,0 +1,2 @@
+# Operator-only Remote Config client identifier, never bundled by Vite.
+.product-host-check.local.json

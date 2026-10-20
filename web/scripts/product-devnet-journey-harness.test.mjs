@@ -30,7 +30,11 @@ function lockfile() {
       'node_modules/@parity/product-sdk': { version: EXPECTED_PRODUCT_DEVNET.productSdk },
       'node_modules/@parity/product-sdk-host': { version: EXPECTED_PRODUCT_DEVNET.productSdkHost },
       'node_modules/@parity/product-sdk-descriptors': { version: EXPECTED_PRODUCT_DEVNET.productSdkDescriptors },
-      'node_modules/@parity/product-sdk-statement-store': { version: EXPECTED_PRODUCT_DEVNET.productSdkStatementStore }
+      'node_modules/@parity/product-sdk-statement-store': { version: EXPECTED_PRODUCT_DEVNET.productSdkStatementStore },
+      'node_modules/@parity/product-sdk-tx': { version: EXPECTED_PRODUCT_DEVNET.productSdkTx },
+      'node_modules/@parity/truapi': {
+        version: EXPECTED_PRODUCT_DEVNET.truapi
+      }
     }
   };
 }
@@ -41,6 +45,8 @@ function staticSnapshot(patch = {}) {
       VITE_DOTIFY_DEPLOYMENT: 'production',
       VITE_DOTIFY_HOST_MODE: 'required',
       VITE_DOTIFY_PRODUCT_ID: EXPECTED_PRODUCT_DEVNET.productId,
+      VITE_DOTIFY_RUNTIME_ADAPTER: 'product-cdm',
+      VITE_DOTIFY_PRODUCT_CHAIN: 'devnet',
       VITE_PUBLIC_APP_URL: EXPECTED_PRODUCT_DEVNET.publicAppUrl,
       VITE_SIGNAL_URL: 'https://dotify-signal.fly.dev',
       VITE_DOTIFY_API_URL: 'https://dotify-api.fly.dev',
@@ -51,10 +57,14 @@ function staticSnapshot(patch = {}) {
       VITE_CONTENT_SECRET: ''
     },
     webPackageJson: {
+      overrides: {
+        '@parity/truapi': EXPECTED_PRODUCT_DEVNET.truapi
+      },
       scripts: {
         'build:product-devnet': 'npm run generate:product-catalog-bootstrap && tsc -b && vite build',
         'build:product-devnet:frozen': 'tsc -b && vite build',
-        'deploy:product-devnet': `npm run build:product-devnet:frozen && npx --yes --package @polkadot-community-foundation/polkadot-app-deploy@${EXPECTED_PRODUCT_DEVNET.productDeployCli} pad`
+        'verify:product-deploy-environment': `npm exec --yes --package @parity/polkadot-app-deploy@${EXPECTED_PRODUCT_DEVNET.productDeployCli} -- node scripts/product-deploy-environment-check.mjs`,
+        'deploy:product-devnet': `npm run verify:product-deploy-environment && npm run build:product-devnet:frozen && npx --yes --package @parity/polkadot-app-deploy@${EXPECTED_PRODUCT_DEVNET.productDeployCli} pad`
       }
     },
     webPackageLock: lockfile(),
@@ -82,6 +92,7 @@ function staticSnapshot(patch = {}) {
 function completeSmokeEvidence() {
   return {
     schemaVersion: 2,
+    hostSurface: 'product-desktop',
     capturedAt: '2026-09-13T10:00:00.000Z',
     candidate: { gitSha: CANDIDATE_SHA, productAppVersion: APP_VERSION, deployedCid: DEPLOYED_CID },
     summary: { tone: 'ok', label: 'Evidence complete', problemCount: 0 },
@@ -175,6 +186,60 @@ function completeRoomEvidence(overrides = {}) {
   };
 }
 
+test('existing entitlement and matching key are useful evidence but cannot certify a new Product write', () => {
+  const evidence = completeSmokeEvidence();
+  evidence.events = [
+    {
+      kind: 'access-readback',
+      runtimeAddress: RUNTIME,
+      contentHash: CONTENT_HASH,
+      listenerAddress: ADDRESS,
+      chainId: EXPECTED_PRODUCT_DEVNET.chainId,
+      hasPaid: true,
+      canAccess: true,
+      timestamp: 1_000
+    },
+    evidence.events[2]
+  ];
+  const gates = evaluateProductCdmSmokeEvidence(evidence);
+  for (const id of ['smoke:access-readback', 'smoke:backend-key', 'smoke:same-identity']) {
+    assert.equal(gates.find(gate => gate.id === id)?.status, 'pass', id);
+  }
+  for (const id of ['smoke:host-approval', 'smoke:native-value', 'smoke:payment-readback']) {
+    assert.equal(gates.find(gate => gate.id === id)?.status, 'blocked', id);
+  }
+});
+
+test('a different network or unpaid access does not satisfy the entitlement gate', () => {
+  for (const patch of [{ chainId: 1 }, { hasPaid: false }, { canAccess: false }, { hasPaid: null }, { listenerAddress: RUNTIME }]) {
+    const evidence = completeSmokeEvidence();
+    evidence.events.unshift({
+      kind: 'access-readback',
+      runtimeAddress: RUNTIME,
+      contentHash: CONTENT_HASH,
+      listenerAddress: ADDRESS,
+      chainId: EXPECTED_PRODUCT_DEVNET.chainId,
+      hasPaid: true,
+      canAccess: true,
+      timestamp: 1_000,
+      ...patch
+    });
+    evidence.events = evidence.events.filter(event => event.kind !== 'payment');
+    assert.equal(evaluateProductCdmSmokeEvidence(evidence).find(gate => gate.id === 'smoke:access-readback')?.status, 'fail');
+  }
+});
+
+test('an old key or later denial cannot certify the selected entitlement', () => {
+  for (const patch of [{ timestamp: 500 }, { runtime: ADDRESS }, { contentHash: TX_HASH }, { chainId: 1 }]) {
+    const evidence = completeSmokeEvidence();
+    Object.assign(evidence.events[2], patch);
+    assert.equal(evaluateProductCdmSmokeEvidence(evidence).find(gate => gate.id === 'smoke:backend-key')?.status, 'fail');
+  }
+  const evidence = completeSmokeEvidence();
+  evidence.events.push({ ...evidence.events[2], phase: 'key-denied', timestamp: 3_000 });
+  assert.equal(evaluateProductCdmSmokeEvidence(evidence).find(gate => gate.id === 'smoke:backend-key')?.status, 'fail');
+});
+
 test('parseEnvFile ignores comments and preserves empty values', () => {
   assert.deepEqual(
     parseEnvFile(`
@@ -222,7 +287,7 @@ test('static gates reject a mnemonic expanded into Product deploy arguments', ()
         scripts: {
           'build:product-devnet': 'npm run generate:product-catalog-bootstrap && tsc -b && vite build',
           'build:product-devnet:frozen': 'tsc -b && vite build',
-          'deploy:product-devnet': `npm run build:product-devnet:frozen && npx --yes --package @polkadot-community-foundation/polkadot-app-deploy@${EXPECTED_PRODUCT_DEVNET.productDeployCli} pad --mnemonic "$MNEMONIC"`
+          'deploy:product-devnet': `npm run build:product-devnet:frozen && npx --yes --package @parity/polkadot-app-deploy@${EXPECTED_PRODUCT_DEVNET.productDeployCli} pad --mnemonic "$MNEMONIC"`
         }
       }
     }),
@@ -237,6 +302,44 @@ test('static gates reject a mnemonic expanded into Product deploy arguments', ()
   assert.match(boundary?.detail ?? '', /must not be expanded/);
 });
 
+test('static gates reject Product deploys that skip DotNS environment alignment', () => {
+  const snapshot = staticSnapshot();
+  snapshot.webPackageJson.scripts['deploy:product-devnet'] =
+    `npm run build:product-devnet:frozen && npx --yes --package ` + `@parity/polkadot-app-deploy@${EXPECTED_PRODUCT_DEVNET.productDeployCli} pad`;
+
+  const report = buildProductDevnetJourneyReport({
+    snapshot,
+    productSmokeEvidence: null,
+    roomEvidence: null,
+    commit: CANDIDATE_SHA,
+    generatedAt: '2026-09-13T10:00:00.000Z'
+  });
+
+  const preflight = report.staticGates.find(gate => gate.id === 'deploy-environment-preflight');
+  assert.equal(preflight?.status, 'fail');
+  assert.match(preflight?.detail ?? '', /preflight/);
+});
+
+test('static gates reject Product deploys that run DotNS environment alignment after publication', () => {
+  const snapshot = staticSnapshot();
+  snapshot.webPackageJson.scripts['deploy:product-devnet'] =
+    `npm run build:product-devnet:frozen && npx --yes --package ` +
+    `@parity/polkadot-app-deploy@${EXPECTED_PRODUCT_DEVNET.productDeployCli} pad && ` +
+    'npm run verify:product-deploy-environment';
+
+  const report = buildProductDevnetJourneyReport({
+    snapshot,
+    productSmokeEvidence: null,
+    roomEvidence: null,
+    commit: CANDIDATE_SHA,
+    generatedAt: '2026-09-13T10:00:00.000Z'
+  });
+
+  const preflight = report.staticGates.find(gate => gate.id === 'deploy-environment-preflight');
+  assert.equal(preflight?.status, 'fail');
+  assert.match(preflight?.detail ?? '', /preflight before building or publishing/);
+});
+
 test('static gates reject Product deploys that refresh the live catalog', () => {
   const report = buildProductDevnetJourneyReport({
     snapshot: staticSnapshot({
@@ -244,7 +347,7 @@ test('static gates reject Product deploys that refresh the live catalog', () => 
         scripts: {
           'build:product-devnet': 'npm run generate:product-catalog-bootstrap && tsc -b && vite build',
           'build:product-devnet:frozen': 'tsc -b && vite build',
-          'deploy:product-devnet': `npm run build:product-devnet && npx --yes --package @polkadot-community-foundation/polkadot-app-deploy@${EXPECTED_PRODUCT_DEVNET.productDeployCli} pad`
+          'deploy:product-devnet': `npm run build:product-devnet && npx --yes --package @parity/polkadot-app-deploy@${EXPECTED_PRODUCT_DEVNET.productDeployCli} pad`
         }
       }
     }),
@@ -349,6 +452,23 @@ test('static gates fail when the tracked Product profile points at the retired C
   assert.equal(report.staticGates.find(gate => gate.id === 'cdm-registry')?.status, 'fail');
 });
 
+test('static gates fail when the Product transport can resolve an unvalidated wire codec', () => {
+  const snapshot = staticSnapshot();
+  delete snapshot.webPackageJson.overrides['@parity/truapi'];
+  snapshot.webPackageLock.packages['node_modules/@parity/truapi'].version = '0.24.0';
+
+  const report = buildProductDevnetJourneyReport({
+    snapshot,
+    productSmokeEvidence: null,
+    roomEvidence: null,
+    commit: CANDIDATE_SHA,
+    generatedAt: '2026-10-09T10:00:00.000Z'
+  });
+
+  assert.equal(report.summary.status, 'fail');
+  assert.equal(report.staticGates.find(gate => gate.id === 'host-wire-compatibility')?.status, 'fail');
+});
+
 test('static gates fail when the configured HTTPS RPC is not the Product DevNet Asset Hub endpoint', () => {
   const report = buildProductDevnetJourneyReport({
     snapshot: staticSnapshot({
@@ -406,6 +526,48 @@ test('Product Desktop room evidence does not satisfy the separate Product Web ga
 
   assert.equal(report.surfaceMatrix.find(row => row.surface === 'Product Desktop')?.status, 'pass');
   assert.equal(report.surfaceMatrix.find(row => row.surface === 'Product Web gateway')?.status, 'not-run');
+});
+
+test('Product Web payment and Product Desktop room cannot jointly certify either surface', () => {
+  const report = buildProductDevnetJourneyReport({
+    snapshot: staticSnapshot(),
+    productSmokeEvidence: { ...completeSmokeEvidence(), hostSurface: 'product-web-gateway' },
+    roomEvidence: completeRoomEvidence(),
+    commit: CANDIDATE_SHA,
+    generatedAt: '2026-09-13T10:00:00.000Z'
+  });
+
+  assert.equal(report.summary.status, 'pass');
+  assert.equal(report.surfaceMatrix.find(row => row.surface === 'Product Desktop')?.status, 'blocked');
+  assert.equal(report.surfaceMatrix.find(row => row.surface === 'Product Web gateway')?.status, 'blocked');
+});
+
+test('missing payment surface attribution cannot certify a Product surface', () => {
+  const evidence = completeSmokeEvidence();
+  delete evidence.hostSurface;
+  const report = buildProductDevnetJourneyReport({
+    snapshot: staticSnapshot(),
+    productSmokeEvidence: evidence,
+    roomEvidence: completeRoomEvidence(),
+    commit: CANDIDATE_SHA,
+    generatedAt: '2026-09-13T10:00:00.000Z'
+  });
+
+  assert.equal(report.surfaceMatrix.find(row => row.surface === 'Product Desktop')?.status, 'blocked');
+  assert.equal(report.surfaceMatrix.find(row => row.surface === 'Product Web gateway')?.status, 'not-run');
+});
+
+test('matching Product Web payment and room evidence certifies only Product Web', () => {
+  const report = buildProductDevnetJourneyReport({
+    snapshot: staticSnapshot(),
+    productSmokeEvidence: { ...completeSmokeEvidence(), hostSurface: 'product-web-gateway' },
+    roomEvidence: completeRoomEvidence({ hostSurface: 'product-web-gateway', hostOrigin: EXPECTED_PRODUCT_DEVNET.publicAppUrl }),
+    commit: CANDIDATE_SHA,
+    generatedAt: '2026-09-13T10:00:00.000Z'
+  });
+
+  assert.equal(report.surfaceMatrix.find(row => row.surface === 'Product Desktop')?.status, 'blocked');
+  assert.equal(report.surfaceMatrix.find(row => row.surface === 'Product Web gateway')?.status, 'pass');
 });
 
 test('room evidence must name the Product host surface before it can pass', () => {

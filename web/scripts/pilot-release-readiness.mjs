@@ -17,6 +17,7 @@ import { normalizeIpfsCid } from './lib/ipfs-cid.mjs';
 import { buildProductDevnetJourneyReport, gitCommit, readProductDevnetSnapshot, summarizeGates } from './product-devnet-journey-harness.mjs';
 
 export const PILOT_RELEASE_SCHEMA_VERSION = 2;
+export const ROLLBACK_EVIDENCE_SCHEMA_VERSION = 1;
 
 const DEPENDENCIES = ['W01', 'W02', 'W03', 'W04', 'W05', 'W06', 'W07', 'W08', 'W09', 'W10', 'W11', 'W12'];
 
@@ -296,6 +297,50 @@ export function evaluateContractInventory(deployments) {
   return gates;
 }
 
+export function evaluatePublishedReleaseBinding(env, pilotReleaseCid, productSmokeEvidence, roomEvidence) {
+  const gates = [];
+  const adapter = env.VITE_DOTIFY_RUNTIME_ADAPTER;
+  const chain = env.VITE_DOTIFY_PRODUCT_CHAIN;
+  gates.push(
+    adapter === 'product-cdm' && chain === 'devnet'
+      ? pass('pilot-release-profile', 'Published Product profile', 'Tracked release uses product-cdm/devnet.', 'web/.env.product-devnet')
+      : fail(
+          'pilot-release-profile',
+          'Published Product profile',
+          `Expected product-cdm/devnet; found ${adapter ?? 'missing'}/${chain ?? 'missing'}.`,
+          'web/.env.product-devnet'
+        )
+  );
+
+  const releaseCid = normalizeIpfsCid(pilotReleaseCid);
+  if (!releaseCid) {
+    gates.push(blocked('pilot-release-cid', 'Published Product CID', 'Supply the current product-cdm executable CID with --pilot-release-cid.', 'operator'));
+    return gates;
+  }
+  const smokeCid = productSmokeEvidence ? normalizeIpfsCid(productSmokeEvidence.candidate?.deployedCid) : null;
+  const roomCid = roomEvidence ? normalizeIpfsCid(roomEvidence.candidate?.deployedCid) : null;
+  if ((productSmokeEvidence && smokeCid !== releaseCid) || (roomEvidence && roomCid !== releaseCid)) {
+    gates.push(
+      fail(
+        'pilot-release-cid',
+        'Published Product CID',
+        'Product payment/key and room evidence must match --pilot-release-cid for this published CDM release.',
+        'Product host/room JSON'
+      )
+    );
+  } else {
+    gates.push(
+      pass(
+        'pilot-release-cid',
+        'Published Product CID',
+        `Operator-supplied ${releaseCid}; all supplied Product evidence matches it. Verify DotNS read-back separately.`,
+        'operator'
+      )
+    );
+  }
+  return gates;
+}
+
 function containsSensitiveData(value, path = []) {
   if (value === null || value === undefined) return null;
 
@@ -334,6 +379,8 @@ function validatePilotCandidate(pilotEvidence, context = {}) {
   const expectedCommit = typeof context.commit === 'string' && context.commit !== 'unknown' ? context.commit : null;
   const expectedAppVersion = versionText(context.productAppVersion);
   const expectedPilotReleaseCid = normalizeIpfsCid(context.pilotReleaseCid);
+  const expectedAdapter = context.runtimeAdapterKind;
+  const expectedChain = context.productChain;
   const requirePilotReleaseCid = context.requirePilotReleaseCid === true;
   const generatedAtMs = parseDateMs(context.generatedAt) ?? Date.now();
   const problems = [];
@@ -341,7 +388,8 @@ function validatePilotCandidate(pilotEvidence, context = {}) {
   if (!isPlainObject(candidate)) {
     return {
       passed: false,
-      detail: 'Expected candidate.gitSha, candidate.productAppVersion, candidate.deployedCid, and candidate.capturedAt.'
+      detail:
+        'Expected candidate.gitSha, candidate.productAppVersion, candidate.runtimeAdapterKind, candidate.productChain, candidate.deployedCid, and candidate.capturedAt.'
     };
   }
 
@@ -358,9 +406,16 @@ function validatePilotCandidate(pilotEvidence, context = {}) {
     problems.push(`candidate.productAppVersion ${candidateVersion} does not match ${expectedAppVersion}`);
   }
 
+  if (candidate.runtimeAdapterKind !== 'product-cdm' || candidate.runtimeAdapterKind !== expectedAdapter) {
+    problems.push(`candidate.runtimeAdapterKind must match the published product-cdm profile (found ${candidate.runtimeAdapterKind ?? 'missing'})`);
+  }
+  if (candidate.productChain !== 'devnet' || candidate.productChain !== expectedChain) {
+    problems.push(`candidate.productChain must match the published devnet profile (found ${candidate.productChain ?? 'missing'})`);
+  }
+
   const candidateCid = normalizeIpfsCid(candidate.deployedCid);
   if (requirePilotReleaseCid && !expectedPilotReleaseCid) {
-    problems.push('a valid --pilot-release-cid from the default viem deployment is required');
+    problems.push('a valid --pilot-release-cid from the published product-cdm deployment is required');
   }
   if (!candidateCid) {
     problems.push('candidate.deployedCid must be a valid IPFS CID for the deployed candidate');
@@ -377,7 +432,10 @@ function validatePilotCandidate(pilotEvidence, context = {}) {
 
   return {
     passed: problems.length === 0,
-    detail: problems.length === 0 ? `Candidate ${candidate.gitSha} ${candidateVersion} deployed as ${candidate.deployedCid}.` : problems.join('; ')
+    detail:
+      problems.length === 0
+        ? `Candidate ${candidate.gitSha} ${candidateVersion} (${candidate.runtimeAdapterKind}/${candidate.productChain}) deployed as ${candidate.deployedCid}.`
+        : problems.join('; ')
   };
 }
 
@@ -452,6 +510,83 @@ function validateOutcomeMetrics(metrics) {
   };
 }
 
+function rollbackGate(pilotEvidence, context) {
+  const evidence = context.rollbackEvidence;
+  if (!evidence) {
+    return pilotEvidence?.rollback?.rehearsed === true && pilotEvidence.rollback.catalogKeyCompatibility === 'passed'
+      ? pass('rollback-rehearsal', 'Rollback rehearsal', 'Safe rollback rehearsal passed and catalog/key compatibility was confirmed.', 'pilot JSON')
+      : blocked(
+          'rollback-rehearsal',
+          'Rollback rehearsal',
+          'Expected a candidate-bound rollback JSON or rollback.rehearsed=true and catalogKeyCompatibility="passed" in pilot JSON.',
+          'rollback or pilot JSON'
+        );
+  }
+  if (!isPlainObject(evidence)) return fail('rollback-rehearsal', 'Rollback rehearsal', 'Rollback JSON must be an object.', 'rollback JSON');
+
+  const problems = [];
+  const allowedKeys = (value, keys, label) => {
+    if (!isPlainObject(value)) {
+      problems.push(`${label} must be an object`);
+      return false;
+    }
+    for (const key of Object.keys(value)) {
+      if (!keys.includes(key)) problems.push(`${label}.${key} is not an allowed field`);
+    }
+    return true;
+  };
+  allowedKeys(
+    evidence,
+    ['schemaVersion', 'candidateSha', 'releaseCid', 'rollbackSha', 'rollbackCid', 'profile', 'dotns', 'checks', 'manifestTextUnchanged'],
+    'rollback'
+  );
+  if (evidence.schemaVersion !== ROLLBACK_EVIDENCE_SCHEMA_VERSION) problems.push('schemaVersion must be 1');
+  if (!isFullGitSha(evidence.candidateSha) || evidence.candidateSha !== context.commit) problems.push('candidateSha must match the release candidate');
+  if (!isFullGitSha(evidence.rollbackSha) || evidence.rollbackSha === evidence.candidateSha) problems.push('rollbackSha must identify a distinct full commit');
+  const releaseCid = normalizeIpfsCid(evidence.releaseCid);
+  const rollbackCid = normalizeIpfsCid(evidence.rollbackCid);
+  if (!releaseCid || releaseCid !== normalizeIpfsCid(context.pilotReleaseCid)) problems.push('releaseCid must match --pilot-release-cid');
+  if (!rollbackCid || rollbackCid === releaseCid) problems.push('rollbackCid must be a distinct valid CID');
+  if (evidence.profile !== 'product-cdm' || evidence.profile !== context.runtimeAdapterKind)
+    problems.push('profile must match the published product-cdm build');
+
+  if (allowedKeys(evidence.dotns, ['rootRollbackTx', 'appRollbackTx', 'rootRestoreTx', 'appRestoreTx', 'oldReadback', 'releaseReadback'], 'dotns')) {
+    const txs = ['rootRollbackTx', 'appRollbackTx', 'rootRestoreTx', 'appRestoreTx'].map(key => evidence.dotns[key]);
+    if (txs.some(tx => typeof tx !== 'string' || !/^0x[0-9a-f]{64}$/i.test(tx)) || new Set(txs).size !== 4) {
+      problems.push('dotns must contain four distinct finalized transaction hashes');
+    }
+    if (evidence.dotns.oldReadback !== true || evidence.dotns.releaseReadback !== true) problems.push('both DotNS CID read-backs must pass');
+  }
+  if (
+    allowedKeys(
+      evidence.checks,
+      ['oldCatalogTracks', 'releaseCatalogTracks', 'oldKeyAccess', 'releaseKeyAccess', 'oldPlaybackObserved', 'releasePlaybackObserved', 'newPayments'],
+      'checks'
+    )
+  ) {
+    if (
+      !Number.isInteger(evidence.checks.oldCatalogTracks) ||
+      evidence.checks.oldCatalogTracks <= 0 ||
+      evidence.checks.releaseCatalogTracks !== evidence.checks.oldCatalogTracks
+    )
+      problems.push('old and restored catalogs must have the same positive track count');
+    for (const key of ['oldKeyAccess', 'releaseKeyAccess', 'oldPlaybackObserved', 'releasePlaybackObserved']) {
+      if (evidence.checks[key] !== true) problems.push(`checks.${key} must be true`);
+    }
+    if (evidence.checks.newPayments !== 0) problems.push('checks.newPayments must be zero');
+  }
+  if (typeof evidence.manifestTextUnchanged !== 'boolean') problems.push('manifestTextUnchanged must explicitly record whether manifest text was changed');
+
+  return problems.length === 0
+    ? pass(
+        'rollback-rehearsal',
+        'Rollback rehearsal',
+        `Candidate-bound contenthash rollback and exact release restore passed catalog/key/playback checks without new payment; manifest text ${evidence.manifestTextUnchanged ? 'was unchanged' : 'was updated'}.`,
+        'rollback JSON'
+      )
+    : fail('rollback-rehearsal', 'Rollback rehearsal', problems.join('; '), 'rollback JSON');
+}
+
 export function evaluatePilotEvidence(pilotEvidence, context = {}) {
   const gates = [];
 
@@ -482,9 +617,7 @@ export function evaluatePilotEvidence(pilotEvidence, context = {}) {
         'pilot JSON'
       )
     );
-    gates.push(
-      blocked('rollback-rehearsal', 'Rollback rehearsal', 'Rollback needs a safe-environment rehearsal against the candidate release package.', 'pilot JSON')
-    );
+    gates.push(rollbackGate(null, context));
     gates.push(notRun('pilot-candidate-identity', 'Pilot candidate identity', 'No pilot candidate identity was supplied.', 'pilot JSON'));
     gates.push(notRun('go-no-go-record', 'Go/no-go record', 'No pilot decision or three prioritized fixes supplied.', 'pilot JSON'));
     return gates;
@@ -615,12 +748,7 @@ export function evaluatePilotEvidence(pilotEvidence, context = {}) {
     );
   }
 
-  const rollback = pilotEvidence.rollback ?? {};
-  if (rollback.rehearsed === true && rollback.catalogKeyCompatibility === 'passed') {
-    gates.push(pass('rollback-rehearsal', 'Rollback rehearsal', 'Safe rollback rehearsal passed and catalog/key compatibility was confirmed.', 'pilot JSON'));
-  } else {
-    gates.push(blocked('rollback-rehearsal', 'Rollback rehearsal', 'Expected rollback.rehearsed=true and catalogKeyCompatibility="passed".', 'pilot JSON'));
-  }
+  gates.push(rollbackGate(pilotEvidence, context));
 
   const decision = pilotEvidence.goNoGo?.decision;
   const fixes = pilotEvidence.goNoGo?.prioritizedFixes;
@@ -682,10 +810,14 @@ export function buildPilotReleaseReport(input) {
   const releasePackageGates = evaluateReleasePackage(input.repoRoot);
   const contractGates = evaluateContractInventory(snapshot.deployments);
   const pilotReleaseCid = normalizeIpfsCid(input.pilotReleaseCid);
+  const releaseBindingGates = evaluatePublishedReleaseBinding(snapshot.env, input.pilotReleaseCid, input.productSmokeEvidence, input.roomEvidence);
   const pilotGates = evaluatePilotEvidence(input.pilotEvidence, {
     commit: input.commit,
     productAppVersion: inventory.appVersion,
+    runtimeAdapterKind: snapshot.env.VITE_DOTIFY_RUNTIME_ADAPTER,
+    productChain: snapshot.env.VITE_DOTIFY_PRODUCT_CHAIN,
     pilotReleaseCid: input.pilotReleaseCid,
+    rollbackEvidence: input.rollbackEvidence,
     requirePilotReleaseCid: true,
     generatedAt
   });
@@ -693,6 +825,7 @@ export function buildPilotReleaseReport(input) {
     ...dependencyGates,
     ...releasePackageGates,
     ...contractGates,
+    ...releaseBindingGates,
     ...productJourney.staticGates,
     ...productJourney.productSmokeGates,
     ...productJourney.roomGates,
@@ -706,12 +839,14 @@ export function buildPilotReleaseReport(input) {
     summary: summarizeGates(gates),
     inventory,
     pilotReleaseCandidate: {
-      runtimeAdapterKind: 'viem',
+      runtimeAdapterKind: snapshot.env.VITE_DOTIFY_RUNTIME_ADAPTER,
+      productChain: snapshot.env.VITE_DOTIFY_PRODUCT_CHAIN,
       deployedCid: pilotReleaseCid
     },
     dependencyGates,
     releasePackageGates,
     contractGates,
+    releaseBindingGates,
     productJourney,
     pilotGates
   };
@@ -734,6 +869,7 @@ export function renderPilotReleaseMarkdown(report) {
     `- Asset Hub RPC: ${report.inventory.assetHubRpcUrl}`,
     `- Product executable appVersion: \`${report.inventory.appVersion}\``,
     `- Pilot release profile: \`${report.pilotReleaseCandidate.runtimeAdapterKind}\``,
+    `- Pilot release chain: \`${report.pilotReleaseCandidate.productChain}\``,
     `- Pilot release CID: \`${report.pilotReleaseCandidate.deployedCid ?? 'not supplied'}\``,
     `- Factory: \`${report.inventory.factory}\``,
     `- ArtistDirectory: \`${report.inventory.directory}\``,
@@ -745,7 +881,7 @@ export function renderPilotReleaseMarkdown(report) {
     '',
     '## Release Package',
     '',
-    renderGateTable([...report.releasePackageGates, ...report.contractGates]),
+    renderGateTable([...report.releasePackageGates, ...report.contractGates, ...report.releaseBindingGates]),
     '',
     '## Product DevNet Static Gates',
     '',
@@ -773,9 +909,10 @@ export function renderPilotReleaseMarkdown(report) {
     '',
     '## Live Inputs',
     '',
-    '- Product CDM payment/key smoke: pass `--product-smoke-json <product-cdm-host-smoke.json>` after running the explicit Product CDM smoke build in a funded Product host.',
+    '- Product CDM payment/key smoke: pass `--product-smoke-json <product-cdm-host-smoke.json>` after testing the exact published Product CDM release in a funded Product host.',
     '- Product room smoke: pass `--room-json <room-evidence.json>` after a Product host shares a canonical room link and a browser guest hears audio without connecting an account.',
-    '- Pilot release deployment: pass `--pilot-release-cid <cid>` using the CID printed by the default viem deployment. Product CDM smoke and room CIDs are validation-build evidence and never satisfy this release binding.',
+    '- Pilot release deployment: pass `--pilot-release-cid <cid>` using the current published product-cdm/devnet executable CID. Product payment/key and room evidence must identify that same CID.',
+    '- Rollback rehearsal: pass `--rollback-json <rollback-evidence.json>` after the old/new DotNS read-backs and catalog/key checks. This does not imply a participant pilot.',
     '- Pilot aggregate: pass `--pilot-json <aggregate-pilot-evidence.json>` after owner-authorized participant sessions. Use pilot schema v2 with `candidate`, `participants`, `tasks`, `outcomeMetrics`, `joinAttempts`, `privacy`, `rollback`, and `goNoGo`; store aggregate counts and timings only.'
   ].join('\n');
 }
@@ -785,6 +922,7 @@ export function parseArgs(argv) {
     repoRoot: resolve(dirname(fileURLToPath(import.meta.url)), '../..'),
     productSmokeJson: null,
     roomJson: null,
+    rollbackJson: null,
     pilotJson: null,
     pilotReleaseCid: null,
     jsonOut: null,
@@ -807,6 +945,9 @@ export function parseArgs(argv) {
     } else if (value === '--pilot-json' && next) {
       args.pilotJson = resolve(next);
       index += 1;
+    } else if (value === '--rollback-json' && next) {
+      args.rollbackJson = resolve(next);
+      index += 1;
     } else if (value === '--pilot-release-cid' && next) {
       args.pilotReleaseCid = next;
       index += 1;
@@ -827,15 +968,18 @@ export function parseArgs(argv) {
 }
 
 function help() {
-  return `Usage: npm run smoke:pilot-release -- [--product-smoke-json <file>] [--room-json <file>] [--pilot-release-cid <cid>] [--pilot-json <file>] [--json-out <file>] [--md-out <file>]
+  return `Usage: npm run smoke:pilot-release -- [--product-smoke-json <file>] [--room-json <file>] [--pilot-release-cid <cid>] [--rollback-json <file>] [--pilot-json <file>] [--json-out <file>] [--md-out <file>]
 
 Reconciles W13 pilot-release readiness from checked-in evidence, Product DevNet
-configuration, optional live Product/room smoke exports, and optional aggregate
-pilot evidence. Pilot JSON must use schemaVersion ${PILOT_RELEASE_SCHEMA_VERSION} and bind
+configuration, optional live Product/room/rollback smoke exports, and optional aggregate
+pilot evidence. Rollback JSON is independent of the participant pilot and must
+use schemaVersion ${ROLLBACK_EVIDENCE_SCHEMA_VERSION} with candidate/release CID binding,
+four finalized DotNS transactions, read-backs, and old/new catalog/key checks.
+Pilot JSON must use schemaVersion ${PILOT_RELEASE_SCHEMA_VERSION} and bind
 the decision to the candidate git SHA, Product appVersion, deployed CID, capture
 time, aggregate metrics, and join-count invariants. When pilot JSON is supplied,
---pilot-release-cid must be the CID printed by the separately deployed default
-viem release profile; Product CDM smoke CIDs are never reused for this binding.
+--pilot-release-cid must be the current published product-cdm/devnet executable
+CID. Product payment/key and room evidence must bind to that same release CID.
 The command exits non-zero
 only when local release state is unsafe or inconsistent. Missing live/pilot
 evidence is reported as blocked or not-run.`;
@@ -856,6 +1000,7 @@ async function main(argv = process.argv.slice(2)) {
     repoRoot: args.repoRoot,
     productSmokeEvidence: readOptionalJson(args.productSmokeJson),
     roomEvidence: readOptionalJson(args.roomJson),
+    rollbackEvidence: readOptionalJson(args.rollbackJson),
     pilotEvidence: readOptionalJson(args.pilotJson),
     pilotReleaseCid: args.pilotReleaseCid,
     commit: gitCommit(args.repoRoot)

@@ -58,6 +58,8 @@ export function PlaybackProvider({ children }: { children: ReactNode }) {
     remoteAudioRef: session.remoteAudioRef,
     audioSource: catalog.audioSource,
     audioSourceGeneration: catalog.audioSourceGeneration,
+    audioContinuation: catalog.audioContinuation,
+    audioRecovery: catalog.audioRecovery,
     audioStartupAttemptId: catalog.audioStartupAttemptId,
     trackSelectionPending: catalog.trackSelectionPending,
     onHostMediaSettled: catalog.settleTrackSelectionMedia,
@@ -74,7 +76,14 @@ export function PlaybackProvider({ children }: { children: ReactNode }) {
   });
 
   const value = useMemo<PlaybackValue>(
-    () => ({ playback, openTrack: handleOpenTrack, prepareLocalStream: handlePrepareLocalStream }),
+    () => ({
+      playback,
+      openTrack: track => {
+        playback.requestAutoplay();
+        handleOpenTrack(track);
+      },
+      prepareLocalStream: handlePrepareLocalStream
+    }),
     // handleOpenTrack/handlePrepareLocalStream are
     // recreated each render (as they were in App); they read live catalog/session
     // state, so memoizing on `playback` alone keeps the value fresh without churn.

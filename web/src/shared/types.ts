@@ -6,7 +6,7 @@ export type SocketStatus = 'offline' | 'connecting' | 'online' | 'error';
 export type PeerStatus = 'waiting' | 'connecting' | 'connected' | 'disconnected';
 export type SessionAction = 'idle' | 'creating' | 'joining';
 export type AssetAction = 'idle' | 'audio' | 'cover';
-export type ArtistTab = 'overview' | 'new' | 'releases' | 'royalties' | 'advanced';
+export type ArtistTab = 'overview' | 'new' | 'releases' | 'royalties' | 'rights' | 'advanced';
 export type ReleaseStep = 'assets' | 'metadata' | 'access' | 'review';
 export type TransactionFeedbackTone = 'pending' | 'success' | 'error';
 export type TransactionFeedbackStepStatus = 'complete' | 'active' | 'submitted' | 'upcoming';
@@ -35,7 +35,34 @@ export type ReleaseRoyaltySplitDraft = {
   bps: number;
 };
 
+export type ReleaseKind = 'single' | 'album-track' | 'ep-track' | 'live' | 'remix' | 'other';
+
+export type ReleaseCreditRole = 'performer' | 'writer' | 'composer' | 'producer' | 'featured-artist' | 'engineer' | 'other';
+
+export type ReleaseCredit = {
+  name: string;
+  role: ReleaseCreditRole;
+};
+
+/** Artist-declared editorial context. Runtime access and payment policy remain authoritative elsewhere. */
+export type ReleaseEditorialMetadata = {
+  releaseKind: ReleaseKind;
+  projectTitle: string;
+  version: string;
+  releaseDate: string;
+  genres: string[];
+  languages: string[];
+  credits: ReleaseCredit[];
+  label: string;
+  productionLocation: string;
+  explicitContent: boolean;
+  isrc: string;
+  copyrightNotice: string;
+  masterNotice: string;
+};
+
 export type TrackInfo = {
+  runtimeAddress?: `0x${string}`;
   title: string;
   artist: string;
   duration: number;
@@ -134,6 +161,7 @@ export type RoyaltyRuntimeSummary = {
 export type RoomPlaybackMode = 'full' | 'preview';
 
 export type OpenRoom = {
+  hostConnected?: boolean;
   roomId: string;
   title?: string;
   hostName: string;
@@ -164,6 +192,9 @@ export type ResumeRoomResponse =
       hostName: string;
       listenerCount: number;
       listeners: RoomPresenceListener[];
+      chatHistory?: RoomChatMessage[];
+      activity?: RoomActivity[];
+      pinnedMessage?: RoomChatMessage | null;
       lineup?: RoomLineupItem[];
       expiresAt?: number;
     }
@@ -172,12 +203,24 @@ export type ResumeRoomResponse =
 // Social layer message shapes. Deliberately transport-agnostic: nothing in
 // here knows about sockets, so a Statement Store presence layer can adopt
 // the same shapes later (see docs/backlog/20-room-social-layer.md).
+export type RoomArtist = { name: string; title: string; runtime: string; hash: string };
+export type RoomActivity = {
+  id: string;
+  kind: 'joined' | 'left' | 'artist-joined' | 'artist-left' | 'track' | 'queue';
+  text: string;
+  ts: number;
+  artist?: RoomArtist;
+};
+export type RoomTyping = { id: string; name: string; expiresAt: number };
 export type RoomChatMessage = {
   id: string;
   text: string;
   senderId: string;
   senderName: string;
   ts: number;
+  artist?: RoomArtist;
+  replyTo?: { id: string; text: string; senderId: string; senderName: string };
+  mentions?: string[];
 };
 
 export type RoomReactionEvent = {
@@ -223,6 +266,10 @@ export type JoinRoomResponse =
       playerState: PlayerState | null;
       playbackMode?: RoomPlaybackMode;
       chatHistory?: RoomChatMessage[];
+      activity?: RoomActivity[];
+      pinnedMessage?: RoomChatMessage | null;
+      listenerResumeToken?: string;
+      artistAnnounced?: boolean;
       requests?: RoomRequest[];
       lineup?: RoomLineupItem[];
       listeners?: RoomPresenceListener[];
@@ -238,6 +285,8 @@ export type CapturableMediaElement = HTMLMediaElement & {
 };
 
 export type TransactionFeedback = {
+  /** Stable identity for dismissible payment tracking, not a settlement proof. */
+  operationId?: string;
   recoveryAction?: { label: string; run: () => void };
   tone: TransactionFeedbackTone;
   title: string;

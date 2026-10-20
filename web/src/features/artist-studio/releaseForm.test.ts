@@ -104,8 +104,8 @@ describe('release publication disclosure helpers', () => {
       uploadToBulletinEnabled: true
     });
 
-    expect(facts.map(fact => fact.label)).toEqual(['Listening access', 'Total support', 'Network fee', 'Published when']);
-    expect(facts).toContainEqual({ label: 'Total support', value: '0.75 PAS' });
+    expect(facts.map(fact => fact.label)).toEqual(['Listening access', 'Access price', 'Network fee', 'Published when']);
+    expect(facts).toContainEqual({ label: 'Access price', value: '0.75 PAS' });
     expect(facts).toEqual(expect.arrayContaining([expect.objectContaining({ label: 'Published when', value: expect.stringContaining('catalog') })]));
     expect(facts).not.toEqual(expect.arrayContaining([expect.objectContaining({ label: 'Artist space record' })]));
   });
@@ -124,7 +124,7 @@ describe('release publication disclosure helpers', () => {
     expect(facts).toContainEqual({ label: 'Producer address', value: '0x333333...333333', code: true });
   });
 
-  it('explains who receives support, including the artist remainder', () => {
+  it('explains who of revenue, including the artist remainder', () => {
     const rows = buildReleaseValueFlowRows({
       accessMode: 'classic',
       artistRecipient: '0x1111111111111111111111111111111111111111',
@@ -141,11 +141,11 @@ describe('release publication disclosure helpers', () => {
 
     expect(rows).toEqual([
       { label: 'You receive', value: '80%' },
-      { label: 'Producer', value: '20% receives support' }
+      { label: 'Producer', value: '20% of revenue' }
     ]);
   });
 
-  it('keeps free releases out of paid split language', () => {
+  it('shows the contribution split for free releases', () => {
     expect(
       buildReleaseValueFlowRows({
         accessMode: 'free',
@@ -153,7 +153,7 @@ describe('release publication disclosure helpers', () => {
         primaryBps: 7250,
         additionalSplits: []
       })
-    ).toEqual([{ label: 'Support', value: 'No listener payment is collected for this release.' }]);
+    ).toEqual([{ label: 'You receive', value: '100%' }]);
   });
 
   it('does not synthesize a 100% artist remainder for empty paid splits', () => {
@@ -173,7 +173,7 @@ describe('release publication disclosure helpers', () => {
   });
 
   it('preflights empty and over-limit paid royalty splits', () => {
-    expect(releaseRoyaltySplitPreflightError('free', 0, [])).toBeNull();
+    expect(releaseRoyaltySplitPreflightError('free', 0, [])).toBe('Add at least 0.01% to the artist or another rights holder before publishing.');
     expect(releaseRoyaltySplitPreflightError('classic', 0, [])).toBe('Add at least 0.01% to the artist or another rights holder before publishing.');
     expect(releaseRoyaltySplitPreflightError('human-free', 10_001, [])).toBe('Reduce the payment split to 100% or less before publishing.');
     expect(releaseRoyaltySplitPreflightError('classic', 7_250, [{ bps: 2_000 }])).toBeNull();

@@ -1,9 +1,10 @@
-import { ArrowLeft, ArrowRight, Library, Search, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, GalleryHorizontal, Info, LayoutGrid, Library, Search, X } from 'lucide-react';
 import { useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type MutableRefObject } from 'react';
 import { TrackArtworkButton } from './TrackArtworkButton';
 import { DotBirth } from './DotBirth';
+import { ReleaseDetailsDialog } from './ReleaseDetailsDialog';
 import { auraStyleForTrack } from '../shared/utils/aura';
-import { catalogAccessAriaLabel, normalizeDisplayText } from '../shared/utils/format';
+import { catalogAccessAriaLabel, catalogAccessShortLabel, normalizeDisplayText } from '../shared/utils/format';
 import type { CatalogTrack } from '../shared/types';
 
 // In-memory navigation state only. No listening/search history is persisted.
@@ -44,6 +45,7 @@ export function CatalogBrowser({
   onOpenArtist
 }: CatalogBrowserProps) {
   const [query, setQueryState] = useState(journey.current.query);
+  const [detailsTrack, setDetailsTrack] = useState<CatalogTrack | null>(null);
   const [showAll, setShowAll] = useState(journey.current.showAll);
   const previousLayout = useRef<string | null>(null);
   const setQuery = (value: string) => {
@@ -128,16 +130,18 @@ export function CatalogBrowser({
             className='catalog-view-toggle'
             type='button'
             aria-pressed={showAll}
+            aria-label={showAll ? 'Show as a row' : 'Show all tracks'}
+            title={showAll ? 'Show as a row' : 'Show all tracks'}
             onClick={() => {
               journey.current.showAll = !showAll;
               journey.current.target = null;
               setShowAll(!showAll);
             }}
           >
-            {showAll ? 'Show as a row' : 'Show all tracks'}
+            {showAll ? <GalleryHorizontal size={18} /> : <LayoutGrid size={18} />}
           </button>
           {!showAll && (
-            <div className='catalog-row-controls' aria-label='Browse tracks'>
+            <div className='catalog-row-controls' role='group' aria-label='Browse tracks'>
               <button type='button' aria-label='Previous tracks' disabled={edges.start} onClick={() => move(-1)}>
                 <ArrowLeft size={18} />
               </button>
@@ -200,6 +204,15 @@ export function CatalogBrowser({
                 />
                 <div className='catalogue-card-copy'>
                   <button
+                    className='catalogue-details-trigger'
+                    type='button'
+                    aria-label={`About ${title}`}
+                    title='About this release'
+                    onClick={() => setDetailsTrack(track)}
+                  >
+                    <Info size={18} />
+                  </button>
+                  <button
                     className='catalogue-card-open'
                     type='button'
                     data-testid='track-card-open'
@@ -223,6 +236,9 @@ export function CatalogBrowser({
                   >
                     {artist}
                   </button>
+                  <span className='catalogue-card-access' data-access={accessGranted ? 'open' : 'locked'} aria-hidden='true'>
+                    {catalogAccessShortLabel(track, hasCatalogAccess, nativePaymentSymbol)}
+                  </span>
                 </div>
               </article>
             );
@@ -241,6 +257,7 @@ export function CatalogBrowser({
           </div>
         )}
       </div>
+      {detailsTrack && <ReleaseDetailsDialog track={detailsTrack} nativePaymentSymbol={nativePaymentSymbol} onClose={() => setDetailsTrack(null)} />}
     </div>
   );
 }

@@ -1,13 +1,18 @@
 // Session tokens prove a signed-in identity, never track access. Every key or
 // upload authorization route performs its own authoritative policy check.
 //
-// Tokens are deliberately bound to a random process epoch. Dotify currently
-// deploys one API instance, so a restart safely invalidates every session from
-// the previous process. This gives logout durable meaning without pretending
-// that an in-memory revoked-JTI map is shared across replicas. Horizontal
-// scaling requires a shared session/revocation store first.
+// Tokens are bound to an epoch. Without SESSION_EPOCH it is random per
+// process, so a restart invalidates every session. With a stable SESSION_EPOCH
+// sessions survive a redeploy, and revoked session IDs are persisted on the
+// single API instance's volume so a signed-out token cannot come back after a
+// restart. An unreadable revocation file falls back to a random epoch (fail
+// closed). Rotating SESSION_EPOCH signs everyone out. Horizontal scaling still
+// requires a shared session/revocation store first (W36).
 
 import { createHmac, hkdfSync, randomUUID, timingSafeEqual } from 'node:crypto';
+import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { config } from '../config.js';
 import { checkDotifyChainId } from './chainDomain.js';
 import { getActiveContentKeyMasterSecret } from './keyVault.js';
 
@@ -36,11 +41,56 @@ export type SessionVerification =
       reason: string;
     };
 
+// Callers must not acknowledge logout until revocation reaches durable storage.
+export class SessionRevocationStorageError extends Error {
+  constructor() {
+    super('Sign-out could not be saved. Please try again.');
+    this.name = 'SessionRevocationStorageError';
+  }
+}
+
 export type SessionTokenServiceOptions = {
   epoch?: string;
   masterSecret?: () => string | undefined;
   randomId?: () => string;
+  // Used only with a stable epoch: a random epoch already ends old sessions.
+  revocationPath?: string;
+  onStorageError?: (message: string) => void;
 };
+
+type RevocationFile = { epoch: string; revoked: [string, number][] };
+
+// undefined: unreadable or malformed, the caller must not trust the epoch.
+function loadRevocations(path: string, epoch: string, now: number): Map<string, number> | undefined {
+  let serialized: string;
+  try {
+    serialized = readFileSync(path, 'utf8');
+  } catch (error) {
+    return (error as NodeJS.ErrnoException).code === 'ENOENT' ? new Map() : undefined;
+  }
+  try {
+    const parsed = JSON.parse(serialized) as RevocationFile;
+    if (typeof parsed?.epoch !== 'string' || !Array.isArray(parsed.revoked)) return undefined;
+    const revoked = new Map<string, number>();
+    if (parsed.epoch !== epoch) return revoked;
+    for (const entry of parsed.revoked) {
+      if (!Array.isArray(entry) || typeof entry[0] !== 'string' || typeof entry[1] !== 'number') return undefined;
+      if (entry[1] > now) revoked.set(entry[0], entry[1]);
+    }
+    return revoked;
+  } catch {
+    return undefined;
+  }
+}
+
+function saveRevocations(path: string, epoch: string, revoked: Map<string, number>): void {
+  const target = resolve(path);
+  const temporary = `${target}.${process.pid}.${randomUUID()}.tmp`;
+  mkdirSync(dirname(target), { recursive: true });
+  const file: RevocationFile = { epoch, revoked: [...revoked.entries()] };
+  writeFileSync(temporary, `${JSON.stringify(file)}\n`, { encoding: 'utf8', mode: 0o600 });
+  renameSync(temporary, target);
+}
 
 export type SessionTokenService = {
   isConfigured: () => boolean;
@@ -67,10 +117,35 @@ function sign(payloadB64: string, key: Buffer): string {
 }
 
 export function createSessionTokenService(options: SessionTokenServiceOptions = {}): SessionTokenService {
-  const epoch = options.epoch ?? randomUUID();
   const masterSecret = options.masterSecret ?? getActiveContentKeyMasterSecret;
   const randomId = options.randomId ?? randomUUID;
-  const revokedJtis = new Map<string, number>();
+  const reportStorageError = options.onStorageError ?? (message => console.error(`[dotify-api] ${message}`));
+  let epoch = options.epoch ?? randomUUID();
+  let revocationPath = options.epoch ? options.revocationPath : undefined;
+  let revokedJtis = new Map<string, number>();
+  if (revocationPath) {
+    const loaded = loadRevocations(revocationPath, epoch, Date.now());
+    if (loaded) {
+      revokedJtis = loaded;
+    } else {
+      reportStorageError('Session revocations are unreadable; using a fresh session epoch, so earlier sessions must sign in again.');
+      epoch = randomUUID();
+      revocationPath = undefined;
+    }
+  }
+
+  let revocationsDirty = false;
+
+  function persistRevocations(): void {
+    if (!revocationPath || !revocationsDirty) return;
+    try {
+      saveRevocations(revocationPath, epoch, revokedJtis);
+      revocationsDirty = false;
+    } catch {
+      reportStorageError('Session revocation could not be persisted; logout was not acknowledged. Repair storage and retry before restarting.');
+      throw new SessionRevocationStorageError();
+    }
+  }
 
   function tokenHmacKey(): Buffer | null {
     return deriveHmacKey(masterSecret());
@@ -152,16 +227,26 @@ export function createSessionTokenService(options: SessionTokenServiceOptions = 
     verify,
     revoke(token, now = Date.now()) {
       const verified = verify(token, now);
-      if (!verified.valid) return false;
+      if (!verified.valid) {
+        // A failed write already revoked this token in memory. Retrying must
+        // flush that pending revocation, never turn the first 503 into a false 200.
+        if (verified.code === 'SESSION_REVOKED') persistRevocations();
+        return false;
+      }
       pruneRevoked(now);
       const payload = JSON.parse(Buffer.from(token.split('.')[0], 'base64url').toString('utf8')) as SessionTokenPayload;
       revokedJtis.set(verified.jti, payload.exp);
+      revocationsDirty = true;
+      persistRevocations();
       return true;
     }
   };
 }
 
-const sessionTokenService = createSessionTokenService();
+const sessionTokenService = createSessionTokenService({
+  epoch: config.SESSION_EPOCH,
+  revocationPath: config.SESSION_REVOCATIONS_PATH
+});
 
 export function isSessionAuthConfigured(): boolean {
   return sessionTokenService.isConfigured();

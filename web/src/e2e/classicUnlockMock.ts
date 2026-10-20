@@ -106,6 +106,7 @@ export function classicSupportE2ePorts(reader: RuntimeReadPort, writer: RuntimeW
     reader: { ...reader, hasPaid: async () => getClassicUnlockE2eState().paid, canAccess: async () => getClassicUnlockE2eState().accessGranted },
     writer: {
       ...writer,
+      inspectPayment: async () => ({ availableBalance: 2_000_000_000_000_000_000n, estimatedFee: 10_000_000_000_000_000n }),
       payForAccess: async () => {
         const state = getClassicUnlockE2eState();
         state.paymentAttempts = (state.paymentAttempts ?? 0) + 1;
@@ -123,6 +124,9 @@ export function classicSupportE2ePorts(reader: RuntimeReadPort, writer: RuntimeW
         return E2E_CLASSIC_TX_HASH;
       },
       waitForTransaction: async () => {
+        if (new URLSearchParams(location.search).get('e2eClassic') === 'pending-dismiss') {
+          await new Promise<void>(resolve => window.addEventListener('dotify:e2e:confirm-payment', () => resolve(), { once: true }));
+        }
         if (new URLSearchParams(location.search).get('e2eClassic') === 'confirmation-delayed') throw new Error('Confirmation timed out');
         getClassicUnlockE2eState().accessGranted = !shouldDenyClassicUnlockAfterPaymentReadback();
       }

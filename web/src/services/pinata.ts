@@ -15,8 +15,13 @@
 import { getArtistPublishE2eCid, getArtistPublishE2eScenario, isArtistPublishE2e, recordArtistPublishUploadFailure } from '../e2e/artistPublishMock';
 import { contentKeyVersionForAudioRef, encryptedRefToCID, normalizeEncryptedAudioRef } from '../shared/utils/protectedAudio';
 import { fetchThroughGateways } from './gatewayRace';
+import { loadPublicArtwork } from './publicArtworkCache';
 import { clearStoredSession, ensureDotifySession, ensureDotifySessionForSigner, type KeyRequestSigner } from './keyService';
 import { getAddress, isAddress, type WalletClient } from 'viem';
+import { parseReleaseEditorialMetadata } from '../features/catalog/releaseMetadata';
+import type { ReleaseEditorialMetadata } from '../shared/types';
+import { readAudioBody } from '../features/catalog/readAudioBody';
+import { parseAudioV2Container } from '../shared/utils/audioV2';
 
 // Backend API base URL. When set, uploads are routed server-side.
 const API_URL = (import.meta.env.VITE_DOTIFY_API_URL as string | undefined)?.replace(/\/$/, '');
@@ -35,12 +40,8 @@ const READ_GATEWAYS = (import.meta.env.VITE_IPFS_READ_GATEWAYS as string | undef
   ?.split(',')
   .map(gateway => gateway.trim())
   .filter(Boolean);
-const FALLBACK_GATEWAYS = [
-  'https://ipfs.io',
-  'https://dweb.link',
-  'https://devnet-ipfs.api.polkadotcommunity.foundation',
-  'https://bulletin-kubo.tservices.es:9443'
-];
+const FALLBACK_GATEWAYS = ['https://ipfs.io', 'https://dweb.link', 'https://devnet-ipfs.api.polkadotcommunity.foundation'];
+const RETIRED_GATEWAY_HOSTS = new Set(['bulletin-kubo.tservices.es', 'paseo-ipfs.polkadot.io']);
 const AUDIO_READ_TIMEOUT_MS = 20_000;
 const AUDIO_READ_HEDGE_DELAY_MS = 8_000;
 
@@ -52,7 +53,7 @@ export type AccessMode = 'human-free' | 'classic' | 'free';
 export type PersonhoodLevel = 'DIM1' | 'DIM2';
 
 export interface DotifyTrackManifest {
-  schema: 'dotify.track.v1';
+  schema: 'dotify.track.v2';
   createdAt: string;
   assets: {
     audioCID: string;
@@ -67,11 +68,13 @@ export interface DotifyTrackManifest {
     title: string;
     artistName: string;
     description: string;
+    durationSeconds: number | null;
     accessMode: AccessMode;
     priceDot: string;
     requiredPersonhood: string;
     zone: string;
   };
+  editorial: ReleaseEditorialMetadata;
   royalties: Array<{ recipient: string; bps: number }>;
   settlement: {
     target: 'evm';
@@ -82,6 +85,18 @@ export interface DotifyTrackManifest {
     txHash: string;
     contractAddress: string;
   };
+}
+
+export async function fetchTrackManifest(metadataRef: string, options: GatewayReadOptions = {}): Promise<DotifyTrackManifest> {
+  const response = await fetchAssetRef(metadataRef, options);
+  if (!response.ok) throw new Error(`Release details could not be read (${response.status}).`);
+  const value = (await response.json()) as Partial<DotifyTrackManifest> | null;
+  if (!value || value.schema !== 'dotify.track.v2' || !value.track || !value.assets || !value.settlement || !Array.isArray(value.royalties)) {
+    throw new Error('This release does not use the current Dotify metadata format.');
+  }
+  const editorial = parseReleaseEditorialMetadata(value.editorial);
+  if (!editorial) throw new Error('The release details are incomplete or invalid.');
+  return { ...value, editorial } as DotifyTrackManifest;
 }
 
 // ---------------------------------------------------------------------------
@@ -102,8 +117,16 @@ export function getGatewayUrl(cid: string): string {
 }
 
 export function getGatewayUrls(cid: string): string[] {
-  const gateways = [GATEWAY, PINATA_PUBLIC_GATEWAY, ...(READ_GATEWAYS ?? []), ...FALLBACK_GATEWAYS];
+  const gateways = [GATEWAY, PINATA_PUBLIC_GATEWAY, ...(READ_GATEWAYS ?? []), ...FALLBACK_GATEWAYS].filter(gateway => !isRetiredGateway(gateway));
   return Array.from(new Set(gateways.map(gateway => `${gateway.replace(/\/$/, '')}/ipfs/${cid}`)));
+}
+
+function isRetiredGateway(url: string): boolean {
+  try {
+    return RETIRED_GATEWAY_HOSTS.has(new URL(url).hostname.toLowerCase());
+  } catch {
+    return false;
+  }
 }
 
 function isPinataGateway(gateway: string): boolean {
@@ -117,7 +140,11 @@ function isPinataGateway(gateway: string): boolean {
 
 export function getAudioGatewayUrls(cid: string): string[] {
   const gateways = [GATEWAY, PINATA_PUBLIC_GATEWAY, ...(READ_GATEWAYS ?? []).filter(isPinataGateway)].filter(isPinataGateway);
-  return Array.from(new Set(gateways.map(gateway => `${gateway.replace(/\/$/, '')}/ipfs/${cid}`)));
+  return Array.from(new Set([...mediaRelayUrls(cid), ...gateways.map(gateway => `${gateway.replace(/\/$/, '')}/ipfs/${cid}`)]));
+}
+
+function mediaRelayUrls(cid: string): string[] {
+  return API_URL && /^[A-Za-z0-9]+$/.test(cid) ? [`${API_URL.replace(/\/api$/, '')}/api/media/${cid}`] : [];
 }
 
 // DAV2 range reads stay on gateways known to serve encrypted byte ranges
@@ -125,7 +152,7 @@ export function getAudioGatewayUrls(cid: string): string[] {
 // fallback may use every configured IPFS reader so a Pinata outage does not
 // silence an otherwise available release.
 export function getAudioFallbackGatewayUrls(cid: string): string[] {
-  return getGatewayUrls(cid);
+  return [...mediaRelayUrls(cid), ...getGatewayUrls(cid)];
 }
 
 function extractIpfsPath(ref: string): string | null {
@@ -142,7 +169,7 @@ export function getGatewayUrlsForAssetRef(assetRef: string): string[] {
   if (!ipfsPath) return assetRef ? [assetRef] : [];
 
   const fallbackUrls = getGatewayUrls(ipfsPath);
-  if (!assetRef.startsWith('http://') && !assetRef.startsWith('https://')) return fallbackUrls;
+  if (isRetiredGateway(assetRef) || (!assetRef.startsWith('http://') && !assetRef.startsWith('https://'))) return fallbackUrls;
   return Array.from(new Set([assetRef, ...fallbackUrls]));
 }
 
@@ -163,12 +190,26 @@ export async function fetchIpfsCid(cid: string, options: GatewayReadOptions = {}
   return fetchThroughGateways(getGatewayUrls(cid), { signal: options.signal, label: `IPFS CID ${cid}` });
 }
 
-export async function fetchAudioIpfsCid(cid: string, options: GatewayReadOptions = {}): Promise<Response> {
+export async function fetchAudioIpfsCid(cid: string, options: GatewayReadOptions & { format?: 'dav2' } = {}): Promise<Response> {
   throwIfGatewayReadAborted(options.signal);
   return fetchThroughGateways(getAudioFallbackGatewayUrls(cid), {
     signal: options.signal,
     timeoutMs: AUDIO_READ_TIMEOUT_MS,
     hedgeDelayMs: AUDIO_READ_HEDGE_DELAY_MS,
+    maxParallelAttempts: 2,
+    prepareResponse: async (response, signal) => {
+      // Headers alone are not recovery: keep alternate readers available if
+      // the winning connection stalls, truncates, or returns a partial file.
+      if (response.status !== 200) {
+        void response.body?.cancel().catch(() => undefined);
+        throw new Error('Audio gateway did not return the complete file.');
+      }
+      const bytes = await readAudioBody(response, signal);
+      if (options.format === 'dav2') parseAudioV2Container(bytes);
+      // Authentication stays outside transport retry. A complete ciphertext
+      // that fails AES-GCM must fail closed, never switch sources or keys.
+      return new Response(bytes, { headers: { 'content-type': response.headers.get('content-type') ?? 'application/octet-stream' } });
+    },
     label: `audio IPFS CID ${cid}`
   });
 }
@@ -458,7 +499,14 @@ export async function uploadFileToPinata(file: File, name: string, keyvalues: Re
 
   // Cover images: route through backend when API is configured.
   if (API_URL && keyvalues.type === 'cover') {
-    return uploadCoverToBackend(file, identity);
+    const ref = await uploadCoverToBackend(file, identity);
+    // Warm canonical public variants while the artist reviews/signs the release.
+    // A local original must never be stored under a different immutable CID.
+    for (const width of [160, 320, 640]) {
+      const variant = ref.replace(/\/cover\/640\.webp$/, `/cover/${width}.webp`);
+      void loadPublicArtwork(getGatewayUrlsForAssetRef(variant.startsWith('ipfs://') ? variant : `ipfs://${variant}`)).catch(() => {});
+    }
+    return ref;
   }
 
   // Demo/local path — requires VITE_PINATA_JWT.
@@ -553,7 +601,7 @@ export async function fetchCatalogFromPinata(): Promise<DotifyTrackManifest[]> {
     sorted.map(async pin => {
       const r = await fetchIpfsCid(pin.ipfs_pin_hash);
       const manifest = (await r.json()) as DotifyTrackManifest;
-      if (manifest.schema !== 'dotify.track.v1') throw new Error('Unknown schema');
+      if (manifest.schema !== 'dotify.track.v2') throw new Error('Unknown schema');
       return manifest;
     })
   );

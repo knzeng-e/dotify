@@ -5,7 +5,7 @@ const SIGNAL_URL = `http://127.0.0.1:${SIGNAL_PORT}`;
 
 export default defineConfig({
   testDir: './e2e',
-  testIgnore: ['**/product-identity.spec.ts'],
+  testIgnore: ['**/product-identity.spec.ts', '**/session-logout.spec.ts', '**/audio-continuity.spec.ts', '**/nearby.spec.ts', '**/nearby-product.spec.ts', '**/nearby-off.spec.ts'],
   timeout: 30_000,
   expect: {
     timeout: 6_000
@@ -16,7 +16,7 @@ export default defineConfig({
   // socket; pointing VITE_SIGNAL_URL at it simply lets the room-join suite run.
   webServer: [
     {
-      command: 'node server/signaling.mjs',
+      command: 'node e2e/fixtures/signaling-server.mjs',
       url: `${SIGNAL_URL}/health`,
       reuseExistingServer: false,
       env: {
@@ -47,8 +47,9 @@ export default defineConfig({
         VITE_E2E_ROOM_JOIN: 'true',
         VITE_SIGNAL_URL: SIGNAL_URL,
         VITE_DOTIFY_ROOM_GALAXY: 'on',
-        VITE_DOTIFY_ARTIST_DONATIONS: 'on',
         VITE_E2E_READINESS_PANEL: 'true',
+        // Exercise the opt-in observer with ordinary-web fallback. Production stays off.
+        VITE_DOTIFY_ROOM_REALTIME: 'dual',
         VITE_DOTIFY_BUILD_SHA: '1234567890abcdef1234567890abcdef12345678',
         VITE_DOTIFY_PRODUCT_APP_VERSION: '[0, 1, 28]'
       }

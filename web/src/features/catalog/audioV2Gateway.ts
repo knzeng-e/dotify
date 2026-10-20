@@ -1,3 +1,4 @@
+import { readAudioBody } from './readAudioBody';
 import { getAudioGatewayUrls } from '../../services/pinata';
 
 export type AudioV2GatewayPhase = 'header' | 'first-chunk' | 'chunk';
@@ -77,9 +78,20 @@ function formatError(error: unknown): string {
 }
 
 function isRetryableRangeError(error: unknown): boolean {
+  if (error instanceof AudioV2RangeHttpError) return error.status === 408 || error.status === 429 || error.status >= 500;
   if (!(error instanceof Error)) return false;
   if (error.name === 'AbortError') return true;
   return /failed to fetch|load failed|network|returned 5\d\d/i.test(error.message);
+}
+
+class AudioV2RangeHttpError extends Error {
+  constructor(
+    gatewayUrl: string,
+    readonly status: number
+  ) {
+    super(`Gateway ${gatewayUrl} did not serve a range (${status})`);
+    this.name = 'AudioV2RangeHttpError';
+  }
 }
 
 function createAbortError(): Error {
@@ -196,20 +208,25 @@ function makeRangeAttempt(
     signal?.addEventListener('abort', abortFromParent, { once: true });
   }
 
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
   const promise = (async (): Promise<AttemptOutcome> => {
     let lastError: unknown;
     for (let attempt = 0; attempt < AUDIO_V2_RANGE_ATTEMPTS_PER_GATEWAY; attempt += 1) {
       try {
+        timeoutId = setTimeout(() => controller.abort(), timeoutMs);
         const response = await fetchImpl(gatewayUrl, {
           headers: { Range: rangeHeader },
           signal: controller.signal
         });
+        clearTimeout(timeoutId);
         if (response.status !== 206) {
-          throw new Error(`Gateway ${gatewayUrl} did not serve a range (${response.status})`);
+          void response.body?.cancel().catch(() => undefined);
+          throw new AudioV2RangeHttpError(gatewayUrl, response.status);
         }
-        const bytes = new Uint8Array(await response.arrayBuffer());
+        // A slow but progressing segment is not a stalled connection. Bound
+        // headers and body inactivity separately, with an exact range cap.
+        const bytes = await readAudioBody(response, controller.signal, 15_000, end - start + 1);
         validateRangeBytes(response, bytes, gatewayUrl, start, end, phase);
         return {
           ok: true as const,
@@ -220,6 +237,7 @@ function makeRangeAttempt(
           fromCache: gatewayUrl === cachedGateway
         };
       } catch (error) {
+        clearTimeout(timeoutId);
         lastError = error;
         if (controller.signal.aborted || attempt === AUDIO_V2_RANGE_ATTEMPTS_PER_GATEWAY - 1 || !isRetryableRangeError(error)) {
           return {

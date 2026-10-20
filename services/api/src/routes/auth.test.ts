@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
 import { afterEach, describe, it } from 'node:test';
-import Fastify, { type FastifyInstance } from 'fastify';
+import { mkdtempSync, mkdirSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { createSessionTokenService } from '../services/sessionTokens.js';
+import Fastify, { type FastifyInstance, type LightMyRequestResponse } from 'fastify';
 import { createAuthRoutes, type AuthRouteDeps } from './auth.js';
 import { PRODUCT_SR25519_SIGNATURE_SCHEME, type SignInRequest } from '../services/signatures.js';
 
@@ -52,6 +56,17 @@ describe('GET /api/auth/session', () => {
 
     assert.equal(response.statusCode, 503);
     assert.equal(response.json().code, 'SESSION_NOT_CONFIGURED');
+  });
+});
+
+describe('GET /api/auth/identity', () => {
+  it('returns only the identity proven by a live bearer session', async () => {
+    const server = await buildApp({verifySessionToken:token=> token === 'valid' ? {valid:true,address:ADDRESS,chainId:420420417,jti:'id'} : {valid:false,reason:'Invalid session',code:'SESSION_INVALID'}});
+    const rejected=await server.inject({method:'GET',url:'/api/auth/identity'});
+    assert.equal(rejected.statusCode,401);
+    const accepted=await server.inject({method:'GET',url:'/api/auth/identity',headers:{authorization:'Bearer valid'}});
+    assert.deepEqual(accepted.json(),{address:ADDRESS,chainId:420420417});
+    assert.equal(accepted.headers['cache-control'],'no-store');
   });
 });
 
@@ -188,9 +203,51 @@ describe('POST /api/auth/session', () => {
 describe('POST /api/auth/logout', () => {
   it('is idempotent: ok whether or not the token was live', async () => {
     const server = await buildApp({ revokeSessionToken: () => false });
-    const response = await server.inject({ method: 'POST', url: '/api/auth/logout', payload: { sessionToken: 'a'.repeat(32) } });
+    const response: LightMyRequestResponse = await server.inject({ method: 'POST', url: '/api/auth/logout', payload: { sessionToken: 'a'.repeat(32) } });
 
     assert.equal(response.statusCode, 200);
     assert.equal(response.json().ok, true);
+  });
+});
+
+
+describe('durable logout', () => {
+  it('returns 503 on failed persistence, keeps denying retries until repaired, then survives restart', async () => {
+    const directory = mkdtempSync(join(tmpdir(), 'dotify-logout-'));
+    try {
+      const storage = join(directory, 'storage');
+      const backup = join(directory, 'backup');
+      mkdirSync(storage);
+      const revocationPath = join(storage, 'revocations.json');
+      const options = { epoch: 'stable-test-epoch', masterSecret: () => 'ab'.repeat(32), revocationPath, onStorageError: () => {} };
+      writeFileSync(revocationPath, JSON.stringify({ epoch: options.epoch, revoked: [] }));
+      const sessions = createSessionTokenService(options);
+      const issued = sessions.issue(ADDRESS, 420420417);
+      assert.ok(issued.ok);
+      if (!issued.ok) return;
+      const server = await buildApp({ revokeSessionToken: token => sessions.revoke(token) });
+      // Deterministic write failure even as root; preserve the readable old
+      // snapshot so the repaired service can retry against the same store.
+      renameSync(storage, backup);
+      writeFileSync(storage, 'not a directory');
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        const response: LightMyRequestResponse = await server.inject({ method: 'POST', url: '/api/auth/logout', payload: { sessionToken: issued.token } });
+        assert.equal(response.statusCode, 503);
+        assert.equal(response.json().code, 'SESSION_REVOCATION_UNAVAILABLE');
+        assert.equal(response.headers['cache-control'], 'no-store');
+        assert.ok(!response.body.includes(issued.token));
+        assert.ok(!response.body.includes(directory));
+      }
+      const denied = sessions.verify(issued.token);
+      assert.equal(!denied.valid && denied.code, 'SESSION_REVOKED');
+      rmSync(storage);
+      renameSync(backup, storage);
+      const retried = await server.inject({ method: 'POST', url: '/api/auth/logout', payload: { sessionToken: issued.token } });
+      assert.equal(retried.statusCode, 200);
+      const afterRestart = createSessionTokenService(options).verify(issued.token);
+      assert.equal(!afterRestart.valid && afterRestart.code, 'SESSION_REVOKED');
+    } finally {
+      rmSync(directory, { recursive: true, force: true });
+    }
   });
 });

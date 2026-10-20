@@ -23,21 +23,32 @@ if content and re.search(r"[‘’“”]", content):
 if not path.endswith((".ts", ".tsx")):
     sys.exit(0)
 
-sep = os.sep
-if f"{sep}web{sep}" in path or path.endswith(f"{sep}web"):
+rel = os.path.relpath(os.path.abspath(path), ROOT).replace(os.sep, "/")
+# Both tsconfigs include only src/, so only src/ edits are actually covered.
+# web/ has no typecheck script; its build runs `tsc -b` (noEmit in tsconfig).
+if rel.startswith("web/src/"):
     ws_dir, ws_name = os.path.join(ROOT, "web"), "web"
-elif f"{sep}services{sep}api{sep}" in path:
+    cmd = ["npx", "--no-install", "tsc", "-b"]
+elif rel.startswith("services/api/src/"):
     ws_dir, ws_name = os.path.join(ROOT, "services", "api"), "services/api"
+    cmd = ["npm", "run", "typecheck", "--silent"]
+elif rel.startswith(("web/", "services/api/")):
+    print(f"\n{rel} is outside the workspace tsconfig include - not type-checked")
+    sys.exit(0)
 else:
     sys.exit(0)
 
-result = subprocess.run(
-    ["npm", "run", "typecheck", "--silent"],
-    cwd=ws_dir,
-    capture_output=True,
-    text=True,
-    timeout=60,
-)
+try:
+    result = subprocess.run(
+        cmd,
+        cwd=ws_dir,
+        capture_output=True,
+        text=True,
+        timeout=120,
+    )
+except subprocess.TimeoutExpired:
+    print(f"\n{ws_name}/ typecheck timed out after 120s - run it manually")
+    sys.exit(0)
 
 if result.returncode != 0:
     out = (result.stdout + result.stderr).strip()[-800:]

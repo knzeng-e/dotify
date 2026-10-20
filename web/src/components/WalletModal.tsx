@@ -1,4 +1,5 @@
-import { Box, ExternalLink, KeyRound, LockKeyhole, LogOut, Music2, Power, RefreshCw, Users, Wallet, X } from 'lucide-react';
+import { Box, ExternalLink, KeyRound, LockKeyhole, Music2, Power, RefreshCw, Users, Wallet, X } from 'lucide-react';
+import { useEffect, useRef } from 'react';
 import { Dialog } from './Dialog';
 import type { WalletState } from '../hooks/useWallet';
 import type { CatalogTrack } from '../shared/types';
@@ -7,6 +8,7 @@ import { shortenAddress } from '../shared/utils/format';
 import { useWalletContext } from '../app/providers/WalletProvider';
 import { useUiFeedback } from '../app/providers/UiFeedbackProvider';
 import type { WalletModalReason } from '../app/providers/UiFeedbackProvider';
+import { ensureDotifySession, ensureDotifySessionForSigner, isKeyServiceConfigured } from '../services/keyService';
 import { LEGACY_PASSKEY_LOCAL_DATA_MESSAGE } from '../features/wallet/passkeyPolicy';
 
 type WalletSupportedArtist = Pick<CatalogTrack, 'artist' | 'artistAddress'> & { trackCount: number };
@@ -15,7 +17,7 @@ type WalletPaidTrack = Pick<CatalogTrack, 'id' | 'title' | 'artist' | 'artistAdd
 export function walletModalCopy(reason: WalletModalReason) {
   if (reason === 'support') {
     return {
-      eyebrow: 'Support this artist',
+      eyebrow: 'Your paying account',
       title: 'Choose how to confirm',
       description: 'Connect the account you want to use. You will review the amount and who receives it before anything is sent.'
     };
@@ -24,15 +26,27 @@ export function walletModalCopy(reason: WalletModalReason) {
     return {
       eyebrow: 'Artist tools',
       title: 'Connect to continue',
-      description: 'Connect the account that will control your artist space and approve publishing.'
+      description: 'Connect the account that will control your artist studio and approve publishing.'
     };
   }
   return {
-    eyebrow: 'Account',
-    title: 'Connect account',
-    description: 'Connect when you want to support an artist, open protected music, or publish.'
+    eyebrow: '',
+    title: 'Connect',
+    description: 'Listening in a room never needs an account. Connect when you want to unlock a track, support an artist, or publish.'
   };
 }
+
+/**
+ * When the listener connects for a stated purpose that needs a Dotify session
+ * (protected listening, support, publishing), the one sign-in signature follows
+ * the connection instead of interrupting the first play. A plain connection
+ * waits until something actually needs it.
+ */
+export function signsInAfterConnect(reason: WalletModalReason): boolean {
+  return reason === 'support' || reason === 'artist';
+}
+
+export const WALLET_SIGN_IN_HINT = 'You will then sign once so Dotify recognizes this account for about a day. Signing pays nothing.';
 
 export function WalletStatusPill({ state, onClick, onDisconnect }: { state: WalletState; onClick: () => void; onDisconnect: () => void }) {
   if (state.status === 'connected') {
@@ -43,14 +57,13 @@ export function WalletStatusPill({ state, onClick, onDisconnect }: { state: Wall
           <span>{state.wallet.label}</span>
         </button>
         <button className='wallet-pill-disconnect' type='button' onClick={onDisconnect} aria-label='Disconnect wallet' title='Disconnect'>
-          <LogOut size={18} aria-hidden='true' />
+          <Power size={18} aria-hidden='true' />
         </button>
       </div>
     );
   }
   return (
     <button type='button' className='status-pill wallet-pill' data-tone='muted' onClick={onClick}>
-      <Wallet size={18} aria-hidden='true' />
       <span>{state.status === 'connecting' ? 'Connecting…' : 'Connect'}</span>
     </button>
   );
@@ -86,16 +99,51 @@ export function WalletModal({
     productHostMode,
     productHostStatus,
     switchNetwork,
+    getActiveWalletClient,
     forgetLegacyPasskeyData,
     disconnect: onDisconnect
   } = useWalletContext();
-  const { showWalletModal, setShowWalletModal, walletModalReason } = useUiFeedback();
+  const { showWalletModal, setShowWalletModal, walletModalReason, pushNotice } = useUiFeedback();
+  // Set when a connect option is pressed for a purpose that needs a session.
+  const signInAfterConnectRef = useRef(false);
+  const connectedWallet = state.status === 'connected' ? state.wallet : null;
+
+  useEffect(() => {
+    if (!connectedWallet || !signInAfterConnectRef.current) return;
+    const chainId = expectedChainId ?? connectedWallet.chainId;
+    if (!isKeyServiceConfigured() || !chainId) return;
+    signInAfterConnectRef.current = false;
+    void (async () => {
+      try {
+        const signer = connectedWallet.keyRequestSigner;
+        if (signer) await ensureDotifySessionForSigner(signer, chainId);
+        else await ensureDotifySession(await getActiveWalletClient(), chainId);
+      } catch {
+        // Declined or unreachable: the account stays connected and the
+        // signature is simply asked again when something needs it.
+        pushNotice({
+          tone: 'info',
+          title: 'You are connected',
+          message: 'Dotify will ask for the signature again when you play protected music or publish.'
+        });
+      }
+    })();
+  }, [connectedWallet, expectedChainId, getActiveWalletClient, pushNotice]);
 
   if (!showWalletModal) return null;
 
-  const onClose = () => setShowWalletModal(false);
-  const onExtension = () => void connectExtension();
-  const onProductHost = () => void connectProductHost();
+  const onClose = () => {
+    if (state.status !== 'connecting') signInAfterConnectRef.current = false;
+    setShowWalletModal(false);
+  };
+  const onExtension = () => {
+    signInAfterConnectRef.current = signsInAfterConnect(walletModalReason);
+    void connectExtension();
+  };
+  const onProductHost = () => {
+    signInAfterConnectRef.current = signsInAfterConnect(walletModalReason);
+    void connectProductHost();
+  };
   const onSwitchNetwork = () => void switchNetwork();
   const connectCopy = walletModalCopy(walletModalReason);
 
@@ -114,7 +162,6 @@ export function WalletModal({
           </button>
         </div>
         <div className='modal-copy'>
-          <p className='modal-eyebrow'>Account</p>
           <h2 id='wallet-modal-title'>Connected</h2>
         </div>
 
@@ -168,11 +215,11 @@ export function WalletModal({
         <div className='wallet-stats'>
           <div>
             <strong className='tnum'>{unlockedCount}</strong>
-            <span>payment record{unlockedCount === 1 ? '' : 's'}</span>
+            <span>access payment{unlockedCount === 1 ? '' : 's'}</span>
           </div>
           <div>
             <strong className='tnum'>{supportingCount}</strong>
-            <span>artist{supportingCount === 1 ? '' : 's'} backed</span>
+            <span>artist{supportingCount === 1 ? '' : 's'} in your collection</span>
           </div>
         </div>
 
@@ -186,7 +233,7 @@ export function WalletModal({
           <section className='wallet-activity-section'>
             <h3>
               <Users size={15} />
-              Artists backed
+              Artists in your collection
             </h3>
             {supportedArtists.length > 0 ? (
               <div className='wallet-activity-list'>
@@ -214,14 +261,14 @@ export function WalletModal({
                 {supportedArtists.length > 5 && <p className='wallet-empty'>+{supportedArtists.length - 5} more - view all in account details</p>}
               </div>
             ) : (
-              <p className='wallet-empty'>No backed artists found for this wallet yet.</p>
+              <p className='wallet-empty'>No artists found through listening access payments yet.</p>
             )}
           </section>
 
           <section className='wallet-activity-section'>
             <h3>
               <Music2 size={15} />
-              Supported tracks
+              Access payments
             </h3>
             {paidTracks.length > 0 ? (
               <div className='wallet-activity-list'>
@@ -295,10 +342,11 @@ export function WalletModal({
         </button>
       </div>
       <div className='modal-copy'>
-        <p className='modal-eyebrow'>{connectCopy.eyebrow}</p>
+        {connectCopy.eyebrow && <p className='modal-eyebrow'>{connectCopy.eyebrow}</p>}
         <h2 id='wallet-modal-title'>{connectCopy.title}</h2>
         <p id='wallet-modal-desc'>{connectCopy.description}</p>
       </div>
+      {signsInAfterConnect(walletModalReason) && isKeyServiceConfigured() && <p className='wallet-sign-in-hint'>{WALLET_SIGN_IN_HINT}</p>}
 
       {state.status === 'error' && <p className='error-box'>{state.message}</p>}
       {state.status === 'connecting' && (

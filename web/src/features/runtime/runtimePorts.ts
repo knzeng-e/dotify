@@ -1,5 +1,5 @@
 import type { Address, Hash } from 'viem';
-import type { ExecutableTrackAccessPaymentIntent } from '../payments/paymentModel';
+import type { ExecutableTrackAccessPaymentIntent, PaymentAccountState } from '../payments/paymentModel';
 import type { OnchainTrackRecord, RoyaltySplit } from '../../shared/types';
 
 export type RuntimeDirectoryEntry = {
@@ -89,11 +89,41 @@ export interface RuntimeReadPort {
   getRoyaltyClaimable(runtimeAddress: Address, recipientAddress: Address): Promise<bigint>;
 }
 
+export type PaymentLifecycle = 'signing' | 'broadcasting' | 'in-block' | 'finalized' | 'error';
+export type PaymentObserver = (status: PaymentLifecycle, txHash?: Hash) => void;
+export type ContributionConfirmationMode = 'evm-receipt' | 'finalized-event';
+export type NativeContributionBlock = { number: number; hash?: Hash; index?: number };
+export type NativeContributionLog = { address: Address; data: Hash; topics: Hash[]; transactionHash: Hash; logIndex: number };
+
 export interface RuntimeWritePort {
+  /**
+   * Product CDM returns a native extrinsic hash after finalization. It must be
+   * confirmed from native Revive events in the finalized block. The EVM log
+   * index does not expose native calls. Viem uses the EVM receipt path.
+   */
+  contributionConfirmationMode: ContributionConfirmationMode;
+  contributionCall?(
+    runtime: Address,
+    method: 'musicGiftContribute' | 'musicGiftSetPolicy' | 'musicGiftClaim',
+    args: readonly unknown[],
+    value?: bigint,
+    onFinalized?: (block: NativeContributionBlock) => void,
+    onStatus?: PaymentObserver
+  ): Promise<Hash>;
+  readFinalizedContributionLogs?(hash: Hash, block: NativeContributionBlock): Promise<NativeContributionLog[]>;
   createRuntime(factoryAddress: Address): Promise<Hash>;
   installRuntimeStep(factoryAddress: Address): Promise<Hash>;
   registerTrack(runtimeAddress: Address, registration: RuntimeTrackRegistration): Promise<Hash>;
-  payForAccess(intent: ExecutableTrackAccessPaymentIntent): Promise<Hash>;
+  updateMetadata?(
+    runtimeAddress: Address,
+    contentHash: Hash,
+    title: string,
+    description: string,
+    metadataRef: string,
+    expectedMetadataRef: string
+  ): Promise<Hash>;
+  inspectPayment?(intent: ExecutableTrackAccessPaymentIntent): Promise<PaymentAccountState>;
+  payForAccess(intent: ExecutableTrackAccessPaymentIntent, onStatus?: PaymentObserver): Promise<Hash>;
   claimRoyalty(runtimeAddress: Address, recipientAddress: Address): Promise<Hash>;
   setAccessMode(runtimeAddress: Address, update: RuntimeAccessPolicyUpdate): Promise<Hash>;
   setReleaseActive(runtimeAddress: Address, contentHash: Hash, active: boolean): Promise<Hash>;

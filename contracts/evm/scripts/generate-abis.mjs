@@ -23,6 +23,7 @@ const CONTRACTS = [
   { exportName: 'artistDirectoryAbi', file: 'artistDirectory', artifact: 'ArtistDirectory.sol/ArtistDirectory.json' },
   { exportName: 'artistRuntimeFactoryAbi', file: 'artistRuntimeFactory', artifact: 'ArtistRuntimeFactory.sol/ArtistRuntimeFactory.json' },
   { exportName: 'musicRegistryAbi', file: 'musicRegistry', artifact: 'pallets/MusicRegistryPallet.sol/MusicRegistryPallet.json' },
+  { exportName: 'musicMetadataAbi', file: 'musicMetadata', artifact: 'pallets/MusicMetadataPallet.sol/MusicMetadataPallet.json' },
   { exportName: 'musicRoyaltiesAbi', file: 'musicRoyalties', artifact: 'pallets/MusicRoyaltiesPallet.sol/MusicRoyaltiesPallet.json' },
   { exportName: 'musicAccessAbi', file: 'musicAccess', artifact: 'pallets/MusicAccessPallet.sol/MusicAccessPallet.json' },
   { exportName: 'musicNFTAbi', file: 'musicNFT', artifact: 'pallets/MusicNFTPallet.sol/MusicNFTPallet.json' }
@@ -45,6 +46,14 @@ for (const { exportName, file, artifact } of CONTRACTS) {
   }
   const body = `${HEADER}\n// Source: contracts/evm/artifacts/contracts/${artifact}\n\nexport const ${exportName} = ${JSON.stringify(parsed.abi, null, 2)} as const;\n`;
   writeFileSync(resolve(outDir, `${file}.ts`), body);
+  if (file === 'musicRoyalties') {
+    const serverDir = resolve(scriptDir, '../../../services/api/src/generated');
+    mkdirSync(serverDir, { recursive: true });
+    const events = parsed.abi.filter(item =>
+      (item.type === 'event' && item.name.startsWith('Contribution')) || item.name === 'musicGiftPending'
+    );
+    writeFileSync(resolve(serverDir, 'contributions.ts'), `${HEADER}\n\nexport const contributionsAbi = ${JSON.stringify(events, null, 2)} as const;\n`);
+  }
 }
 
 const barrel = `${HEADER}\n\n${CONTRACTS.map(({ file }) => `export * from './${file}';`).join('\n')}\n`;

@@ -9,6 +9,7 @@ import type { TransactionFeedback } from '../shared/types';
 export function TransactionModal() {
   const { transactionFeedback: feedback, setTransactionFeedback } = useUiFeedback();
   const [copyStatus, setCopyStatus] = useState<{ tone: 'success' | 'error'; message: string } | null>(null);
+  const [dismissedOperation, setDismissedOperation] = useState<string | null>(null);
 
   useEffect(() => {
     setCopyStatus(null);
@@ -20,12 +21,13 @@ export function TransactionModal() {
   const roadmapStyle = {
     '--roadmap-progress-ratio': roadmapProgress / 100
   } as CSSProperties;
-  const dismissible = feedback.tone !== 'pending';
+  const dismissible = feedback.tone !== 'pending' || Boolean(feedback.operationId);
   const stepsContainTxHash = feedback.steps?.some(step => Boolean(step.txHash)) ?? false;
   const technicalProofs = feedback.technicalFacts?.length ? collectTechnicalProofs(feedback) : [];
   const proofKind = feedback.proofKind ?? 'evm-transaction';
   const onClose = () => {
-    if (feedback.tone !== 'pending') setTransactionFeedback(null);
+    if (feedback.operationId && feedback.tone === 'pending') setDismissedOperation(feedback.operationId);
+    else if (feedback.tone !== 'pending') setTransactionFeedback(null);
   };
   const Icon = feedback.tone === 'pending' ? Disc3 : feedback.tone === 'success' ? CircleCheckBig : CircleAlert;
 
@@ -38,9 +40,19 @@ export function TransactionModal() {
     }
   }
 
+  if (feedback.operationId && dismissedOperation === feedback.operationId) {
+    return (
+      <button className='payment-status-resume' type='button' onClick={() => setDismissedOperation(null)}>
+        <Icon size={16} />
+        <span>View payment status: {feedback.title}</span>
+      </button>
+    );
+  }
+
   return (
     <Dialog
       labelledBy='transaction-modal-title'
+      className={feedback.operationId ? 'payment-feedback' : undefined}
       dataAttributes={{ testid: 'unlock-transaction-status' }}
       dismissible={dismissible}
       tone={feedback.tone}
@@ -60,6 +72,9 @@ export function TransactionModal() {
         <p className='modal-eyebrow'>{feedback.tone === 'pending' ? 'In progress' : feedback.tone === 'success' ? 'Confirmed' : 'Attention'}</p>
         <h2 id='transaction-modal-title'>{feedback.title}</h2>
         <p>{feedback.message}</p>
+        {feedback.tone === 'pending' && feedback.operationId && (
+          <p>Closing this window does not cancel the payment. You can return to check access without paying again.</p>
+        )}
       </div>
       {feedback.facts && feedback.facts.length > 0 && (
         <dl className='transaction-facts' aria-label='Transaction facts'>
@@ -193,7 +208,7 @@ export function TransactionModal() {
       )}
       {dismissible && (
         <div className='modal-actions'>
-          {feedback.recoveryAction && (
+          {feedback.recoveryAction && feedback.tone !== 'pending' && (
             <button className='modal-action' type='button' onClick={feedback.recoveryAction.run}>
               {feedback.recoveryAction.label}
             </button>

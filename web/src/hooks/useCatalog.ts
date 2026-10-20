@@ -1,6 +1,11 @@
 import { resolveDonationArtist } from '../features/donations/donationModel';
+import type { RoomTrackEmitter } from '../features/rooms/roomRealtimePort';
+import { retireHostAudio } from '../features/player/hostAudioOutput';
+import { captureAudioContinuation, type AudioContinuation } from '../features/player/audioContinuation';
 import { formatEther } from 'viem';
 import { createSupportPaymentFlow } from '../features/payments/supportPayment';
+import { browserPaymentLock, persistentPaymentJournal } from '../features/payments/paymentJournal';
+import type { PaymentAccountState } from '../features/payments/paymentModel';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { fetchAssetRef, fetchAudioIpfsCid, getGatewayUrl, type ProtectedAudioUpload } from '../services/pinata';
 import { getPublicClient, resolveEvmChain } from '../shared/config/contracts';
@@ -42,19 +47,35 @@ import {
 } from '../features/payments/paymentModel';
 import { type RuntimeAccessPaymentVerificationResult } from '../features/payments/paymentReadback';
 import { decodeAccessMode, decodePersonhood } from '../features/runtime/accessEncoding';
-import { resolveRuntimeAdapterConfig } from '../features/runtime/runtimeAdapterConfig';
+import { PRODUCT_DEVNET_EVM_CHAIN_ID, resolveRuntimeAdapterConfig } from '../features/runtime/runtimeAdapterConfig';
 import { createRuntimeReader } from '../features/runtime/runtimeReaderProvider';
 import { createRuntimeWriter } from '../features/runtime/runtimeWriterProvider';
 import type { RuntimeReadPort, RuntimeTrackSnapshot } from '../features/runtime/runtimePorts';
 import { resolveProductHostConfig } from '../features/productHost/productHost';
 import { publishProductCdmPaymentSmokeMetric, type ProductCdmPaymentSmokeMetric } from '../features/productHost/productCdmHostSmokeEvidence';
+import { captureProductAccessReadback } from '../features/productHost/productAccessReadback';
 import {
   audioV2StartupPhaseLabel,
   publishHostAudioStartupMetric,
   type AudioV2StartupMetric,
   type HostAudioTerminalReason
 } from '../features/catalog/audioStartupTelemetry';
-import { fetchCatalog, isCatalogApiConfigured, readBundledCatalog, readCachedCatalog, type CatalogApiRelease } from '../services/catalog';
+import {
+  PROTECTED_PLAYBACK_RETRY_DELAYS_MS,
+  ProtectedPlaybackError,
+  classifyProtectedPlaybackFailure,
+  isTransientProtectedPlaybackFailure,
+  type ProtectedPlaybackFailure,
+  type ProtectedPlaybackFailureKind
+} from '../features/catalog/protectedPlaybackFailure';
+import {
+  fetchCatalog,
+  isAuthoritativeCatalogResponse,
+  isCatalogApiConfigured,
+  readBundledCatalog,
+  readCachedCatalog,
+  type CatalogApiRelease
+} from '../services/catalog';
 import { createCoverFallbackDataUri } from '../features/catalog/coverArtwork';
 import {
   E2E_CLASSIC_AUDIO_URL,
@@ -241,6 +262,7 @@ function normalizeCatalogTrackDisplay(track: CatalogTrack): CatalogTrack {
 
 function createTrackInfoFromCatalog(track: CatalogTrack): TrackInfo {
   return createTrackInfo(track.title, track.artist, track.hash, track.bulletinRef, track.duration ?? 0, {
+    runtimeAddress: runtimeAddressFromTrackId(track) ?? undefined,
     imageRef: track.imageRef,
     audioRef: track.audioRef,
     metadataRef: track.metadataRef,
@@ -338,7 +360,13 @@ export function useCatalog(deps: UseCatalogDeps) {
     setDescription
   } = deps;
 
-  const [supportFlow] = useState(() => createSupportPaymentFlow(() => window.sessionStorage));
+  const [supportFlow] = useState(() => {
+    const journal = persistentPaymentJournal(
+      () => window.localStorage,
+      () => window.sessionStorage
+    );
+    return createSupportPaymentFlow(() => journal, browserPaymentLock);
+  });
   const supportBusyRef = useRef(false);
   const supportAccount = `${connectedWallet?.method ?? ''}:${listenerEvmAddress?.toLowerCase() ?? ''}`;
   const supportAccountRef = useRef(supportAccount);
@@ -379,6 +407,7 @@ export function useCatalog(deps: UseCatalogDeps) {
         ? 'Showing saved catalog data while new releases are checked'
         : 'Loading registry catalog'
   );
+  const [catalogIsAuthoritative, setCatalogIsAuthoritative] = useState(false);
   const [selectedTrackId, setSelectedTrackId] = useState('');
   const [catalogAccessByTrackId, setCatalogAccessByTrackId] = useState<Record<string, boolean>>({});
   const [catalogPaidAccessByTrackId, setCatalogPaidAccessByTrackId] = useState<Record<string, boolean>>({});
@@ -387,12 +416,15 @@ export function useCatalog(deps: UseCatalogDeps) {
   );
   const [audioSource, setAudioSource] = useState<string | null>(null);
   const [audioSourceGeneration, setAudioSourceGeneration] = useState(0);
+  const [audioContinuation, setAudioContinuation] = useState<AudioContinuation | null>(null);
+  const [audioRecovery, setAudioRecovery] = useState<'recovering' | 'failed' | null>(null);
   const [audioStartupAttemptId, setAudioStartupAttemptId] = useState<string | null>(null);
   const [trackSelectionPending, setTrackSelectionPending] = useState(false);
   const [trackInfo, setTrackInfo] = useState<TrackInfo | null>(null);
   const [playerState, setPlayerState] = useState<PlayerState | null>(null);
   const [accessGate, setAccessGate] = useState<AccessGate | null>(null);
   const [audioStartupStatus, setAudioStartupStatus] = useState<string | null>(null);
+  const [playbackFailure, setPlaybackFailure] = useState<ProtectedPlaybackFailure | null>(null);
   const [fileHash, setFileHashState] = useState<`0x${string}` | ''>('');
   const [audioCID, setAudioCID] = useState('');
   const [coverCID, setCoverCID] = useState('');
@@ -400,6 +432,8 @@ export function useCatalog(deps: UseCatalogDeps) {
 
   const objectUrlsRef = useRef<Set<string>>(new Set());
   const resolvedAudioSourcesRef = useRef<Map<string, string>>(new Map());
+  // MediaSource URLs belong to one selection; only complete Blobs are reusable.
+  const mseObjectUrlsRef = useRef<Set<string>>(new Set());
   const audioSourceRef = useRef<string | null>(null);
   const pendingTrackMediaSourceRef = useRef<string | null>(null);
   const audioV2FallbacksRef = useRef<Set<string>>(new Set());
@@ -456,7 +490,13 @@ export function useCatalog(deps: UseCatalogDeps) {
     setFileHashState(hash);
   }
 
-  function setResolvedAudioSource(source: string | null) {
+  function setResolvedAudioSource(source: string | null, continuePlayback = false) {
+    setAudioContinuation(source && continuePlayback ? captureAudioContinuation(localAudioRef.current, source) : null);
+    // Capture can materialize a URL before its first canplay; readiness must
+    // then follow the replacement rather than wait forever for the old URL.
+    if (audioSourceRef.current && pendingTrackMediaSourceRef.current === audioSourceRef.current) {
+      pendingTrackMediaSourceRef.current = source;
+    }
     audioSourceRef.current = source;
     setAudioSource(source);
     // A resolved source owns one media-element lifetime. Increment even when
@@ -466,6 +506,7 @@ export function useCatalog(deps: UseCatalogDeps) {
   }
 
   function retireAudioV2MseObjectUrl(audioRef: string, objectUrl: string) {
+    mseObjectUrlsRef.current.delete(objectUrl);
     if (resolvedAudioSourcesRef.current.get(audioRef) === objectUrl) {
       resolvedAudioSourcesRef.current.delete(audioRef);
     }
@@ -497,6 +538,8 @@ export function useCatalog(deps: UseCatalogDeps) {
     // event before the next playback intent so evidence correlation does not
     // strand an interrupted attempt in "Timing active".
     retireActiveTrackSelection(true);
+    setAudioRecovery(null);
+    setAudioContinuation(null);
     setTrackSelectionPending(true);
     const id = (nextTrackSelectionIdRef.current += 1);
     const selection: ActiveTrackSelection = {
@@ -647,16 +690,55 @@ export function useCatalog(deps: UseCatalogDeps) {
   function buildSupportFacts(
     track: CatalogTrack,
     asset: typeof nativeRuntimePaymentAsset,
+    status: Parameters<typeof buildClassicSupportFacts>[2],
+    accountState?: PaymentAccountState
+  ): TransactionFeedbackFact[] {
+    const amount = classicTrackPaymentAmountPlanck(track);
+    return [
+      { label: 'Track', value: track.title },
+      { label: 'Artist', value: track.artist },
+      ...buildSupportAccountFacts().filter(fact => fact.label === 'Paying as' || fact.label === 'Paying wallet'),
+      ...buildClassicSupportFacts(track, asset, status).filter(fact => fact.label === 'Amount'),
+      ...(status === 'pending'
+        ? [
+            {
+              label: 'Known total',
+              value: `${formatEther(amount + (accountState?.estimatedFee ?? 0n))} ${asset.symbol}${accountState?.estimatedFee === undefined ? ' + network fee' : ' (estimated)'}`
+            },
+            {
+              label: 'Network fee',
+              value:
+                accountState?.estimatedFee === undefined
+                  ? 'Not available yet. Review the fee before signing.'
+                  : `${formatEther(accountState.estimatedFee)} ${asset.symbol} (estimated)`
+            },
+            {
+              label: 'Available balance',
+              value: accountState?.availableBalance === undefined ? 'Unavailable' : `${formatEther(accountState.availableBalance)} ${asset.symbol}`
+            }
+          ]
+        : []),
+      ...buildClassicSupportFacts(track, asset, status).filter(fact => fact.label === 'Access')
+    ];
+  }
+
+  function buildSupportTechnicalFacts(
+    track: CatalogTrack,
+    asset: typeof nativeRuntimePaymentAsset,
     status: Parameters<typeof buildClassicSupportFacts>[2]
   ): TransactionFeedbackFact[] {
-    return [...buildSupportAccountFacts(), ...buildClassicSupportFacts(track, asset, status)];
+    return [
+      ...buildSupportAccountFacts().filter(fact => fact.label !== 'Paying as' && fact.label !== 'Paying wallet'),
+      ...buildClassicSupportFacts(track, asset, status).filter(fact => fact.label === 'Recipients' || fact.label === 'Settlement'),
+      { label: 'Runtime', value: runtimeAddressFromTrackId(track) ?? 'Unavailable', code: true }
+    ];
   }
 
   /**
    * Obtain the per-track content key from the backend key service.
-   * Returns null when the service is not configured, no wallet is connected,
-   * or the backend denies access; callers then fall back to the demo-mode
-   * bundle-derived key (which only decrypts demo-published tracks).
+   * Returns null only for the local/demo path without a configured service.
+   * Configured-service failures travel with their invocation as thrown errors;
+   * concurrent requests never share mutable failure state.
    */
   async function resolveServerContentKey(contentHash: `0x${string}`, release?: ContentKeyReleaseIdentity): Promise<Uint8Array | null> {
     if (isClassicUnlockE2e && contentHash.toLowerCase() === E2E_CLASSIC_HASH.toLowerCase()) {
@@ -676,27 +758,26 @@ export function useCatalog(deps: UseCatalogDeps) {
     const cacheKey = contentKeyCacheKey(contentHash, release);
     const cached = contentKeysRef.current.get(cacheKey);
     if (cached) return cached;
-    if (!isKeyServiceConfigured() || !connectedWallet || (!connectedWallet.createEvmClient && !connectedWallet.keyRequestSigner)) return null;
-
-    try {
-      const walletClient = connectedWallet.keyRequestSigner ? null : await getActiveWalletClient();
-      const chainId = walletClient?.chain?.id ?? (await getPublicClient(ethRpcUrl).getChainId());
-      const response = await requestContentKey({
-        contentHash,
-        purpose: keyRequestPurposeRef.current,
-        ...(connectedWallet.keyRequestSigner ? { signer: connectedWallet.keyRequestSigner } : { walletClient: walletClient! }),
-        chainId,
-        release
-      });
-      if (response.access !== 'allowed') return null;
-      const keyBytes = hexToBytes(response.contentKey);
-      contentKeysRef.current.set(cacheKey, keyBytes);
-      return keyBytes;
-    } catch {
-      // Fail closed: no key. Playback falls back to demo derivation or the
-      // access gate; it never invents access.
-      return null;
+    if (!isKeyServiceConfigured()) return null;
+    if (!connectedWallet || (!connectedWallet.createEvmClient && !connectedWallet.keyRequestSigner)) {
+      throw new ProtectedPlaybackError('account-required', 'No connected account can request protected playback.');
     }
+
+    const walletClient = connectedWallet.keyRequestSigner ? null : await getActiveWalletClient();
+    const chainId = walletClient?.chain?.id ?? (await getPublicClient(ethRpcUrl).getChainId());
+    const response = await requestContentKey({
+      contentHash,
+      purpose: keyRequestPurposeRef.current,
+      ...(connectedWallet.keyRequestSigner ? { signer: connectedWallet.keyRequestSigner } : { walletClient: walletClient! }),
+      chainId,
+      release
+    });
+    if (response.access !== 'allowed') {
+      throw new ProtectedPlaybackError('access-not-confirmed', response.message);
+    }
+    const keyBytes = hexToBytes(response.contentKey);
+    contentKeysRef.current.set(cacheKey, keyBytes);
+    return keyBytes;
   }
 
   /**
@@ -710,15 +791,13 @@ export function useCatalog(deps: UseCatalogDeps) {
     if (cached) return cached;
     if (!isKeyServiceConfigured()) return null;
 
-    try {
-      const response = await requestFreeContentKey(contentHash, release);
-      if (response.access !== 'allowed') return null;
-      const keyBytes = hexToBytes(response.contentKey);
-      contentKeysRef.current.set(cacheKey, keyBytes);
-      return keyBytes;
-    } catch {
-      return null;
+    const response = await requestFreeContentKey(contentHash, release);
+    if (response.access !== 'allowed') {
+      throw new ProtectedPlaybackError('access-not-confirmed', response.message);
     }
+    const keyBytes = hexToBytes(response.contentKey);
+    contentKeysRef.current.set(cacheKey, keyBytes);
+    return keyBytes;
   }
 
   async function fetchAudioV2Range(
@@ -919,9 +998,11 @@ export function useCatalog(deps: UseCatalogDeps) {
 
   async function fetchAndDecryptAudioV2Blob(cid: string, key: Uint8Array, signal?: AbortSignal): Promise<string> {
     throwIfAborted(signal);
-    const response = await fetchAudioIpfsCid(cid, { signal });
+    const response = await fetchAudioIpfsCid(cid, { signal, format: 'dav2' });
     if (!response.ok) throw new Error(`Unable to fetch DAV2 audio (${response.status})`);
     throwIfAborted(signal);
+    // The gateway race returns a complete, validated in-memory body. Do not
+    // run another chunk accumulator over it before decryption.
     const container = new Uint8Array(await response.arrayBuffer());
     throwIfAborted(signal);
     const parsed = parseAudioV2Container(container);
@@ -952,10 +1033,11 @@ export function useCatalog(deps: UseCatalogDeps) {
       retireAudioV2MseObjectUrl(audioRef, failedObjectUrl);
       return;
     }
-    if (audioV2FallbacksRef.current.has(audioRef)) return;
+    if (audioV2FallbacksRef.current.has(failedObjectUrl)) return;
     if (audioSourceRef.current !== failedObjectUrl) return;
 
-    audioV2FallbacksRef.current.add(audioRef);
+    audioV2FallbacksRef.current.add(failedObjectUrl);
+    setAudioRecovery('recovering');
     try {
       console.warn('DAV2 streaming failed, falling back to full decrypt', error);
       publishAudioV2StartupMetric(context, {
@@ -963,6 +1045,10 @@ export function useCatalog(deps: UseCatalogDeps) {
         detail: errorMessage(error)
       });
       const fallbackUrl = await fetchAndDecryptAudioV2Blob(cid, key, context.signal);
+      if (!isAudioV2ContextActive(context) || audioSourceRef.current !== failedObjectUrl) {
+        URL.revokeObjectURL(fallbackUrl);
+        return;
+      }
       objectUrlsRef.current.add(fallbackUrl);
       resolvedAudioSourcesRef.current.set(audioRef, fallbackUrl);
 
@@ -970,7 +1056,9 @@ export function useCatalog(deps: UseCatalogDeps) {
         if (pendingTrackMediaSourceRef.current === failedObjectUrl) {
           pendingTrackMediaSourceRef.current = fallbackUrl;
         }
-        setResolvedAudioSource(fallbackUrl);
+        // Read the clock only at the swap: buffered audio may have kept playing,
+        // or the listener may have paused/seeked while the download completed.
+        setResolvedAudioSource(fallbackUrl, true);
       }
 
       retireAudioV2MseObjectUrl(audioRef, failedObjectUrl);
@@ -978,9 +1066,35 @@ export function useCatalog(deps: UseCatalogDeps) {
       if (!isAbortError(fallbackError)) {
         console.warn('DAV2 full decrypt fallback failed', fallbackError);
       }
+      if (isAudioV2ContextActive(context) && audioSourceRef.current === failedObjectUrl) {
+        publishAudioV2StartupMetric(context, { phase: 'error', detail: errorMessage(fallbackError) });
+        const selection = activeTrackSelectionRef.current;
+        if (selection?.pending && !selection.terminalReported) {
+          selection.terminalReported = true;
+          publishHostAudioStartupMetric({
+            phase: 'error',
+            attemptId: selection.attemptId,
+            source: selection.source,
+            elapsedMs: Number((nowMs() - selection.startedAt).toFixed(1)),
+            timestamp: Date.now(),
+            terminalReason: 'media-error'
+          });
+        }
+        if (localAudioRef.current) retireHostAudio(localAudioRef.current);
+        settleTrackSelectionMedia(failedObjectUrl, true, activeTrackSelectionRef.current?.attemptId);
+        setResolvedAudioSource(null);
+        setAudioRecovery('failed');
+        setTransactionFeedback({
+          tone: 'error',
+          title: 'Audio interrupted',
+          message: 'The audio download could not finish. Check your connection, then select this track to try again.',
+          technicalFacts: [{ label: 'Recovery', value: errorMessage(fallbackError) }]
+        });
+      }
       retireAudioV2MseObjectUrl(audioRef, failedObjectUrl);
     } finally {
-      audioV2FallbacksRef.current.delete(audioRef);
+      audioV2FallbacksRef.current.delete(failedObjectUrl);
+      if (isAudioV2ContextActive(context)) setAudioRecovery(previous => (previous === 'failed' ? previous : null));
     }
   }
 
@@ -989,6 +1103,9 @@ export function useCatalog(deps: UseCatalogDeps) {
 
     const mediaSource = new MediaSource();
     const objectUrl = URL.createObjectURL(mediaSource);
+    mseObjectUrlsRef.current.add(objectUrl);
+    objectUrlsRef.current.add(objectUrl);
+    context.signal.addEventListener('abort', () => retireAudioV2MseObjectUrl(context.audioRef, objectUrl), { once: true });
 
     void waitForMediaSourceOpen(mediaSource, context.signal)
       .then(() => {
@@ -1013,7 +1130,9 @@ export function useCatalog(deps: UseCatalogDeps) {
             });
           }
         });
-        if (mediaSource.readyState === 'open') {
+        // Transport recovery may still use the buffered media. A decode error
+        // here would poison the element and reset its intent before the swap.
+        if (error instanceof AudioV2ChunkAuthenticationError && mediaSource.readyState === 'open') {
           try {
             mediaSource.endOfStream('decode');
           } catch {
@@ -1028,6 +1147,12 @@ export function useCatalog(deps: UseCatalogDeps) {
   async function fetchAndDecryptAudioV2(context: AudioV2StartupContext, key: Uint8Array): Promise<string> {
     try {
       const parsed = await fetchAudioV2Header(context);
+      if (!canStreamAudioV2WithMse(parsed.header)) {
+        // Complete-file playback is the normal compatibility path for this
+        // container/browser, not a streaming error requiring user intervention.
+        publishAudioV2StartupMetric(context, { phase: 'fallback', detail: 'Complete-file playback for this media type.' });
+        return fetchAndDecryptAudioV2Blob(context.cid, key, context.signal);
+      }
       return createAudioV2MseSource(context, parsed, key);
     } catch (streamError) {
       if (isAbortError(streamError) || !isAudioV2ContextActive(context)) {
@@ -1085,7 +1210,18 @@ export function useCatalog(deps: UseCatalogDeps) {
           setAudioStartupStatus(audioV2StartupPhaseLabel(metric));
         }
       };
-      const serverKey = accessMode === 'free' ? await resolveFreeContentKey(contentHash, release) : await resolveServerContentKey(contentHash, release);
+      let serverKey: Uint8Array | null;
+      try {
+        serverKey = accessMode === 'free' ? await resolveFreeContentKey(contentHash, release) : await resolveServerContentKey(contentHash, release);
+      } catch (error) {
+        throwIfAborted(context.signal);
+        publishAudioV2StartupMetric(context, {
+          phase: 'error',
+          errorKind: 'key-unavailable',
+          detail: `DAV2 content key unavailable (${classifyProtectedPlaybackFailure(error)}).`
+        });
+        throw error;
+      }
       throwIfAborted(context.signal);
       if (!serverKey) {
         publishAudioV2StartupMetric(context, {
@@ -1097,8 +1233,9 @@ export function useCatalog(deps: UseCatalogDeps) {
       }
       publishAudioV2StartupMetric(context, { phase: 'key-authorized' });
       const objectUrl = await fetchAndDecryptAudioV2(context, serverKey);
+      throwIfAborted(context.signal);
       objectUrlsRef.current.add(objectUrl);
-      resolvedAudioSourcesRef.current.set(cacheKey, objectUrl);
+      if (!mseObjectUrlsRef.current.has(objectUrl)) resolvedAudioSourcesRef.current.set(cacheKey, objectUrl);
       return objectUrl;
     }
 
@@ -1126,7 +1263,7 @@ export function useCatalog(deps: UseCatalogDeps) {
 
   async function selectTrack(
     track: CatalogTrack,
-    socketEmit?: (event: string, data: unknown) => void,
+    socketEmit?: RoomTrackEmitter,
     setLocalStreamReady?: (ready: boolean) => void,
     closeHostPeers?: () => void,
     showAccessGateOnDenied = false
@@ -1165,11 +1302,11 @@ export function useCatalog(deps: UseCatalogDeps) {
       // Stop the outgoing track immediately. Resolving the new source (access
       // check + decrypt/fetch) is async, so without this the old audio keeps
       // playing for the whole gap while the cover and title already show the new
-      // track. The new source autoplays once it loads.
+      // track. The playback controller owns whether the new source starts.
       const outgoingAudio = localAudioRef.current;
-      if (outgoingAudio && !outgoingAudio.paused) {
-        outgoingAudio.pause();
-      }
+      // Invalidate the old DOM source synchronously too: a capture fetch may
+      // still resolve while the next selection is checking access.
+      if (outgoingAudio) retireHostAudio(outgoingAudio);
 
       selectedTrackIdRef.current = track.id;
       setSelectedTrackId(track.id);
@@ -1185,7 +1322,8 @@ export function useCatalog(deps: UseCatalogDeps) {
       setTrackInfo(createTrackInfoFromCatalog(track));
       setPlayerState(null);
       setAccessGate(null);
-      setAudioStartupStatus(track.encrypted ? 'Checking access' : null);
+      setPlaybackFailure(null);
+      setAudioStartupStatus(track.encrypted ? 'Checking your access…' : null);
       // A socketEmit callback means this selection streams into a room: the
       // signer is the host, and only the host needs to satisfy the policy.
       keyRequestPurposeRef.current = socketEmit ? 'room_host' : 'individual';
@@ -1199,6 +1337,28 @@ export function useCatalog(deps: UseCatalogDeps) {
       if (isPolicyManagedTrack(track)) {
         hasAccess = await checkTrackAccess(track, listenerEvmAddress);
         if (!isTrackSelectionCurrent(selection)) return { playbackMode: 'full', audioSource: audioSourceRef.current };
+        const smokeRuntime = runtimeAddressFromTrackId(track);
+        if (
+          runtimeAdapterConfig.kind === 'product-cdm' &&
+          connectedWallet?.method === 'product-host' &&
+          track.accessMode === 'classic' &&
+          listenerEvmAddress &&
+          smokeRuntime
+        ) {
+          const accountAtRead = supportAccountRef.current;
+          await captureProductAccessReadback({
+            reader: runtimeReader,
+            buildSha: import.meta.env.VITE_DOTIFY_BUILD_SHA,
+            productAppVersion: import.meta.env.VITE_DOTIFY_PRODUCT_APP_VERSION,
+            chainId: PRODUCT_DEVNET_EVM_CHAIN_ID,
+            runtimeAddress: smokeRuntime,
+            contentHash: track.hash,
+            listenerAddress: listenerEvmAddress,
+            isCurrent: () => isTrackSelectionCurrent(selection) && supportAccountRef.current === accountAtRead
+          });
+          if (!isTrackSelectionCurrent(selection) || supportAccountRef.current !== accountAtRead)
+            return { playbackMode: 'full', audioSource: audioSourceRef.current };
+        }
         setCatalogAccessByTrackId(previous => ({ ...previous, [track.id]: hasAccess }));
         if (!hasAccess) {
           // A room host has just chosen this release from the lineup, so the
@@ -1210,27 +1370,44 @@ export function useCatalog(deps: UseCatalogDeps) {
       }
 
       if (hasAccess && track.localUrl) {
-        audioUrl = track.encrypted
-          ? await fetchAndDecryptAudio(
-              track.audioRef,
-              track.localUrl,
-              track.hash,
-              track.accessMode,
-              releaseIdentityFromTrack(track),
-              selection.controller.signal,
-              () => isTrackSelectionCurrent(selection)
-            ).catch(() => null)
-          : track.localUrl;
+        let failureKind: ProtectedPlaybackFailureKind | null = null;
+        if (track.encrypted) {
+          const localUrl = track.localUrl;
+          // Transient failures (service out of reach, access not propagated
+          // yet, slow gateway) retry quietly. Failed key requests repeat
+          // authorization; transport retries reuse an already authorized key.
+          for (let attempt = 0; ; attempt += 1) {
+            try {
+              audioUrl = await fetchAndDecryptAudio(
+                track.audioRef,
+                localUrl,
+                track.hash,
+                track.accessMode,
+                releaseIdentityFromTrack(track),
+                selection.controller.signal,
+                () => isTrackSelectionCurrent(selection)
+              );
+              failureKind = null;
+              break;
+            } catch (error) {
+              if (isAbortError(error) || !isTrackSelectionCurrent(selection)) break;
+              failureKind = classifyProtectedPlaybackFailure(error);
+              const retryDelay = PROTECTED_PLAYBACK_RETRY_DELAYS_MS[attempt];
+              if (retryDelay === undefined || !isTransientProtectedPlaybackFailure(failureKind)) break;
+              setAudioStartupStatus('Still preparing');
+              await new Promise(resolve => window.setTimeout(resolve, retryDelay));
+              if (!isTrackSelectionCurrent(selection)) break;
+            }
+          }
+        } else {
+          audioUrl = track.localUrl;
+        }
         if (!isTrackSelectionCurrent(selection)) return { playbackMode: 'full', audioSource: audioSourceRef.current };
 
         if (!audioUrl && track.encrypted) {
-          // Access is granted but the key or decryption failed. Say so plainly
-          // instead of leaving a silent dead player.
-          setTransactionFeedback({
-            tone: 'error',
-            title: 'Protected playback unavailable',
-            message: 'Your access checks out, but the content key could not be obtained or used. The key service may be unreachable; try again shortly.'
-          });
+          // Access is granted but the key, the audio, or decryption failed. The
+          // player names the cause and offers a retry in place.
+          setPlaybackFailure({ trackId: track.id, kind: failureKind ?? 'unknown' });
           setAudioStartupStatus(null);
         }
       }
@@ -1271,7 +1448,7 @@ export function useCatalog(deps: UseCatalogDeps) {
 
   async function openTrack(
     track: CatalogTrack,
-    socketEmit?: (event: string, data: unknown) => void,
+    socketEmit?: RoomTrackEmitter,
     setLocalStreamReady?: (ready: boolean) => void,
     closeHostPeers?: () => void,
     showAccessGateOnDenied = false
@@ -1288,16 +1465,16 @@ export function useCatalog(deps: UseCatalogDeps) {
   function explainRuntimeWriteWalletRequirement(): string | null {
     if (!connectedWallet) return null;
     if (runtimeAdapterConfig.kind === 'product-cdm') {
-      return connectedWallet.method === 'product-host' ? null : 'Connect with "Use Polkadot app" to confirm support in this app.';
+      return connectedWallet.method === 'product-host' ? null : 'Connect with "Use Polkadot app" to confirm payment in this app.';
     }
     return connectedWallet.createEvmClient
       ? null
-      : 'This version cannot approve support in Polkadot App. Open Dotify in a browser and connect a compatible wallet.';
+      : 'This version cannot approve payment in Polkadot App. Open Dotify in a browser and connect a compatible wallet.';
   }
 
   async function payForTrackAccess(
     track: CatalogTrack,
-    socketEmit?: (event: string, data: unknown) => void,
+    socketEmit?: RoomTrackEmitter,
     setLocalStreamReady?: (ready: boolean) => void,
     closeHostPeers?: () => void,
     readOnly = false
@@ -1313,11 +1490,13 @@ export function useCatalog(deps: UseCatalogDeps) {
 
   async function performTrackSupport(
     track: CatalogTrack,
-    socketEmit?: (event: string, data: unknown) => void,
+    socketEmit?: RoomTrackEmitter,
     setLocalStreamReady?: (ready: boolean) => void,
     closeHostPeers?: () => void,
     readOnly = false
   ) {
+    const operationId = typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
+    const showPaymentFeedback = (feedback: TransactionFeedback) => setTransactionFeedback({ ...feedback, operationId });
     const unlockStartedTrackId = track.id;
     const unlockStartedView = activeViewRef.current;
     const supportProofKind = runtimeAdapterConfig.kind === 'product-cdm' ? 'substrate-extrinsic' : 'evm-transaction';
@@ -1337,10 +1516,10 @@ export function useCatalog(deps: UseCatalogDeps) {
     const walletRequirement = readOnly ? null : explainRuntimeWriteWalletRequirement();
     if (walletRequirement || !listenerEvmAddress) {
       setAccessGate(null);
-      setTransactionFeedback({
+      showPaymentFeedback({
         tone: 'error',
-        title: 'Payment signer unavailable',
-        message: walletRequirement || 'Reconnect your account before supporting this track.',
+        title: 'Payment could not start',
+        message: walletRequirement || 'Reconnect your account before paying for listening access.',
         facts: buildSupportFacts(track, nativeRuntimePaymentAsset, 'failed')
       });
       return;
@@ -1349,7 +1528,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     const runtimeAddress = runtimeAddressFromTrackId(track);
     if (!runtimeAddress) {
       setAccessGate(null);
-      setTransactionFeedback({
+      showPaymentFeedback({
         tone: 'error',
         title: 'Payment setup failed',
         message: 'This track is missing its artist runtime address. Refresh the catalog and try again.'
@@ -1371,7 +1550,7 @@ export function useCatalog(deps: UseCatalogDeps) {
         resolveChain: () => resolveEvmChain(ethRpcUrl)
       });
     } catch (intentError) {
-      setTransactionFeedback({
+      showPaymentFeedback({
         tone: 'error',
         title: 'Payment setup failed',
         message: intentError instanceof Error ? intentError.message : 'Unable to prepare this payment.'
@@ -1395,32 +1574,38 @@ export function useCatalog(deps: UseCatalogDeps) {
       verificationOptions: isClassicUnlockE2e ? { attempts: 1, delayMs: 0 } : undefined,
       currentAccount,
       readOnly,
-      onProgress(stage, txHash) {
+      onProgress(stage, txHash, accountState) {
         if (!currentAccount()) return;
         const titles = {
           checking: 'Checking your listening access',
           approval: connectedWallet.method === 'product-host' ? 'Confirm in Polkadot App' : 'Confirm in your wallet',
-          confirming: 'Confirming your support',
+          confirming: 'Confirming your access payment',
+          processing: 'Payment processing',
+          finalized: 'Payment finalized; checking access',
           verifying: 'Opening your listening access'
         };
-        setTransactionFeedback({
+        showPaymentFeedback({
           tone: 'pending',
           title: titles[stage],
           message:
             stage === 'approval'
               ? `Review ${formatEther(paymentIntent.amountPlanck)} ${paymentIntent.asset.symbol} for “${track.title}” in the confirmation request.`
-              : 'Keep this page open. Dotify checks your access before opening the full track.',
+              : 'Dotify checks your listening access separately from payment confirmation.',
           txHash,
           proofKind: supportProofKind,
-          facts: stage === 'approval' ? buildSupportFacts(track, paymentIntent.asset, 'pending') : undefined
+          facts: buildSupportFacts(track, paymentIntent.asset, 'pending', accountState),
+          technicalFacts: [
+            ...buildSupportTechnicalFacts(track, paymentIntent.asset, 'pending'),
+            ...(accountState?.detail ? [{ label: 'Account check', value: accountState.detail }] : [])
+          ]
         });
       }
     });
     if (!currentAccount()) {
-      setTransactionFeedback({
+      showPaymentFeedback({
         tone: 'error',
         title: 'Account changed',
-        message: 'Your payment reference is kept in this tab. Reconnect the original account and check access before paying again.',
+        message: 'Your payment reference is saved in this browser. Reconnect the original account and check access before paying again.',
         txHash: result.txHash,
         proofKind: supportProofKind
       });
@@ -1446,12 +1631,13 @@ export function useCatalog(deps: UseCatalogDeps) {
     if (result.status === 'verified' || result.status === 'existing-access') {
       if (isClassicUnlockE2e && track.id === E2E_CLASSIC_TRACK.id) e2eClassicAccessGrantedRef.current = true;
       setCatalogAccessByTrackId(previous => ({ ...previous, [track.id]: true }));
-      setTransactionFeedback(
+      showPaymentFeedback(
         result.status === 'verified'
           ? {
               ...buildClassicAccessVerifiedFeedback(receiptTrack, result.txHash, receiptAsset),
               proofKind: supportProofKind,
-              facts: buildSupportFacts(receiptTrack, receiptAsset, 'confirmed')
+              facts: buildSupportFacts(receiptTrack, receiptAsset, 'confirmed'),
+              technicalFacts: buildSupportTechnicalFacts(receiptTrack, receiptAsset, 'confirmed')
             }
           : { tone: 'success', title: 'Listening access available', message: 'This account can already listen. No payment was sent.' }
       );
@@ -1460,9 +1646,9 @@ export function useCatalog(deps: UseCatalogDeps) {
         try {
           await selectTrack(track, socketEmit, setLocalStreamReady, closeHostPeers);
         } catch {
-          setTransactionFeedback({
+          showPaymentFeedback({
             tone: 'error',
-            title: 'Support recorded, audio unavailable',
+            title: 'Payment recorded, audio unavailable',
             message: 'Your access is verified. Reopen the track to try loading the audio again; no new payment is needed.',
             txHash: result.txHash,
             proofKind: supportProofKind
@@ -1472,18 +1658,18 @@ export function useCatalog(deps: UseCatalogDeps) {
       return;
     }
     const recoverable = result.status === 'unverified' || result.status === 'uncertain';
-    setTransactionFeedback({
+    showPaymentFeedback({
       tone: 'error',
       title:
         result.status === 'canceled'
-          ? 'Support canceled'
+          ? 'Access payment canceled'
           : result.failureKind === 'funding-required'
             ? `Add ${receiptAsset.symbol} to continue`
             : result.status === 'unverified'
               ? 'Listening access not verified'
               : result.status === 'uncertain'
                 ? 'Payment status needs checking'
-                : 'Support could not start',
+                : 'Access payment could not start',
       message:
         result.status === 'uncertain'
           ? 'Confirmation was interrupted. Your payment may still complete. Check access here and your account activity in Polkadot App or your wallet before paying again.'
@@ -1491,6 +1677,10 @@ export function useCatalog(deps: UseCatalogDeps) {
       txHash: result.txHash,
       proofKind: supportProofKind,
       facts: buildSupportFacts(receiptTrack, receiptAsset, recoverable ? 'included-unverified' : result.status === 'canceled' ? 'canceled' : 'failed'),
+      technicalFacts: [
+        ...buildSupportTechnicalFacts(receiptTrack, receiptAsset, recoverable ? 'included-unverified' : result.status === 'canceled' ? 'canceled' : 'failed'),
+        ...(result.errorDetail ? [{ label: 'Payment error', value: result.errorDetail }] : [])
+      ],
       recoveryAction: recoverable
         ? {
             label: 'Check access again',
@@ -1499,7 +1689,7 @@ export function useCatalog(deps: UseCatalogDeps) {
                 setTransactionFeedback({
                   tone: 'error',
                   title: 'Account changed',
-                  message: 'Reconnect the account used for this support before checking its access.'
+                  message: 'Reconnect the account used for this payment before checking its access.'
                 });
                 return;
               }
@@ -1552,7 +1742,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     return tracks;
   }
 
-  function commitCatalog(allTracks: CatalogTrack[], preferredTrackHash: `0x${string}` | undefined, status: string): CatalogTrack[] {
+  function commitCatalog(allTracks: CatalogTrack[], preferredTrackHash: `0x${string}` | undefined, status: string, authoritative = false): CatalogTrack[] {
     const normalizedTracks = allTracks.map(normalizeCatalogTrackDisplay);
     const nextCatalog = normalizedTracks.filter(track => track.active !== false);
     setAllCatalogTracks(normalizedTracks);
@@ -1563,10 +1753,12 @@ export function useCatalog(deps: UseCatalogDeps) {
       return nextCatalog.some(track => track.id === previous) ? previous : (nextCatalog[0]?.id ?? '');
     });
     setCatalogStatus(status);
+    setCatalogIsAuthoritative(authoritative);
     return nextCatalog;
   }
 
-  async function refreshCatalogFromRegistry(preferredTrackHash?: `0x${string}`) {
+  async function refreshCatalogFromRegistry(preferredTrackHash?: `0x${string}`, options: { fresh?: boolean } = {}) {
+    setCatalogIsAuthoritative(false);
     if (isClassicUnlockE2e || isArtistPublishE2e || isRoomJoinE2e) {
       const nextCatalog = getDeterministicE2eCatalogTracks().map(normalizeCatalogTrackDisplay);
       setAllCatalogTracks(nextCatalog);
@@ -1592,16 +1784,23 @@ export function useCatalog(deps: UseCatalogDeps) {
       setCatalogStatus(
         nextCatalog.length > 0 ? `Loaded ${nextCatalog.length} deterministic e2e track${nextCatalog.length === 1 ? '' : 's'}` : 'No e2e tracks registered yet'
       );
+      setCatalogIsAuthoritative(true);
       return nextCatalog;
     }
 
     if (usesCatalogApi) {
       if (allCatalogTracks.length === 0) setCatalogStatus('Loading registry catalog');
       try {
-        const response = await fetchCatalog({ includeInactive: true, limit: 100 });
+        const response = await fetchCatalog({ includeInactive: true, limit: 100, fresh: options.fresh, allPages: options.fresh });
         const apiTracks = response.items.map(catalogApiReleaseToTrack);
-        const allTracks = response.meta.cacheAvailable || allCatalogTracks.length === 0 ? apiTracks : allCatalogTracks;
-        return commitCatalog(allTracks, preferredTrackHash, catalogApiStatus(response.meta, allTracks.filter(track => track.active !== false).length));
+        const usesApiResponse = response.meta.cacheAvailable || allCatalogTracks.length === 0;
+        const allTracks = usesApiResponse ? apiTracks : allCatalogTracks;
+        return commitCatalog(
+          allTracks,
+          preferredTrackHash,
+          catalogApiStatus(response.meta, allTracks.filter(track => track.active !== false).length),
+          usesApiResponse && isAuthoritativeCatalogResponse(response)
+        );
       } catch (catalogError) {
         console.warn('Failed to load catalog API', catalogError);
         setCatalogStatus(allCatalogTracks.length > 0 ? 'Showing saved catalog while the catalog API reconnects' : catalogLoadFailureStatus(catalogError));
@@ -1626,6 +1825,7 @@ export function useCatalog(deps: UseCatalogDeps) {
         setAllCatalogTracks([]);
         setSelectedTrackId('');
         setCatalogStatus('Registry directory unavailable');
+        setCatalogIsAuthoritative(false);
         return [];
       }
 
@@ -1636,6 +1836,7 @@ export function useCatalog(deps: UseCatalogDeps) {
         setAllCatalogTracks([]);
         setSelectedTrackId('');
         setCatalogStatus('No tracks registered on this directory yet');
+        setCatalogIsAuthoritative(true);
         return [];
       }
 
@@ -1643,22 +1844,21 @@ export function useCatalog(deps: UseCatalogDeps) {
       const runtimeCatalogs = await Promise.all(
         entries.map(async entry => {
           try {
-            return await fetchRuntimeCatalog(runtimeReader, entry.artist, entry.runtime);
+            return { tracks: await fetchRuntimeCatalog(runtimeReader, entry.artist, entry.runtime), complete: true };
           } catch (runtimeError) {
             console.warn(`Failed to load runtime catalog for ${entry.runtime}`, runtimeError);
-            return [];
+            return { tracks: [], complete: false };
           }
         })
       );
       const allTracks = runtimeCatalogs
-        .flat()
+        .flatMap(result => result.tracks)
         .sort((left, right) => {
           if (left.registeredAtBlock !== right.registeredAtBlock) {
             return right.registeredAtBlock - left.registeredAtBlock;
           }
           return left.title.localeCompare(right.title);
-        })
-        .map(({ registeredAtBlock: _registeredAtBlock, ...track }): CatalogTrack => track);
+        });
       const nextCatalog = allTracks.filter(track => track.active !== false);
 
       return commitCatalog(
@@ -1666,7 +1866,8 @@ export function useCatalog(deps: UseCatalogDeps) {
         preferredTrackHash,
         nextCatalog.length > 0
           ? `Loaded ${nextCatalog.length} registered track${nextCatalog.length > 1 ? 's' : ''}`
-          : 'No tracks registered on this directory yet'
+          : 'No tracks registered on this directory yet',
+        BigInt(entries.length) === artistCount && runtimeCatalogs.every(result => result.complete)
       );
     } catch (catalogError) {
       console.warn('Failed to load registry catalog', catalogError);
@@ -1674,6 +1875,7 @@ export function useCatalog(deps: UseCatalogDeps) {
       setAllCatalogTracks([]);
       setSelectedTrackId('');
       setCatalogStatus(catalogLoadFailureStatus(catalogError));
+      setCatalogIsAuthoritative(false);
       return [];
     }
   }
@@ -1683,6 +1885,8 @@ export function useCatalog(deps: UseCatalogDeps) {
     for (const url of objectUrlsRef.current.values()) {
       URL.revokeObjectURL(url);
     }
+    objectUrlsRef.current.clear();
+    mseObjectUrlsRef.current.clear();
     resolvedAudioSourcesRef.current.clear();
   }
 
@@ -1695,6 +1899,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     catalogTracks,
     allCatalogTracks,
     catalogStatus,
+    catalogIsAuthoritative,
     selectedTrackId,
     setSelectedTrackId,
     catalogAccessByTrackId,
@@ -1705,11 +1910,14 @@ export function useCatalog(deps: UseCatalogDeps) {
     usesCatalogApi,
     audioSource,
     audioSourceGeneration,
+    audioContinuation,
+    audioRecovery,
     audioStartupAttemptId,
     trackSelectionPending,
     settleTrackSelectionMedia,
-    setAudioSource: setResolvedAudioSource,
+    setAudioSource: (source: string | null) => setResolvedAudioSource(source, true),
     audioStartupStatus,
+    playbackFailure,
     trackInfo,
     setTrackInfo,
     coverSource,

@@ -1,7 +1,7 @@
 import { ArtistDonationButton } from '../components/ArtistDonationButton';
-import { artistDonationsEnabled } from '../features/donations/donationModel';
-import { ArrowLeft, ArrowRight, Play, Radio } from 'lucide-react';
-import { useMemo, type CSSProperties } from 'react';
+import { ReleaseDetailsDialog } from '../components/ReleaseDetailsDialog';
+import { ArrowLeft, ArrowRight, Info, Play, Radio } from 'lucide-react';
+import { useMemo, useState, type CSSProperties } from 'react';
 import { CoverImage } from '../components/CoverImage';
 import { TrackArtworkButton } from '../components/TrackArtworkButton';
 import { catalogAccessAriaLabel, normalizeDisplayText } from '../shared/utils/format';
@@ -57,6 +57,7 @@ export function ArtistProfileView({
   onOpenArtistRoom,
   onJoinRoom
 }: ArtistProfileViewProps) {
+  const [detailsTrack, setDetailsTrack] = useState<CatalogTrack | null>(null);
   const displayArtistName = normalizeDisplayText(artistName);
   const artistTracks = useMemo(() => catalogTracks.filter(track => track.artist === artistName), [artistName, catalogTracks]);
   const liveRooms = useMemo(() => openRooms.filter(room => room.track?.artist === artistName), [artistName, openRooms]);
@@ -85,7 +86,7 @@ export function ArtistProfileView({
             <span>
               {artistTracks.length} release{artistTracks.length === 1 ? '' : 's'}
             </span>
-            {activeListeners > 0 && <span>{activeListeners} listening now</span>}
+            {activeListeners > 0 && <span>{activeListeners} connected in visible rooms</span>}
           </div>
           {leadTrack && (
             <div className='artist-profile-actions'>
@@ -103,7 +104,7 @@ export function ArtistProfileView({
               <button className='secondary-action' type='button' onClick={() => onOpenArtistRoom(leadTrack)}>
                 <Radio size={18} /> Open a room
               </button>
-              {artistDonationsEnabled && <ArtistDonationButton track={leadTrack} />}
+              <ArtistDonationButton track={leadTrack} />
             </div>
           )}
         </div>
@@ -136,12 +137,9 @@ export function ArtistProfileView({
                       >
                         {title}
                       </button>
-                      {track.description && (
-                        <details className='release-description'>
-                          <summary>About this release</summary>
-                          <p>{track.description}</p>
-                        </details>
-                      )}
+                      <button className='text-action' type='button' onClick={() => setDetailsTrack(track)}>
+                        <Info size={16} /> About this release
+                      </button>
                     </div>
                   </article>
                 );
@@ -154,7 +152,7 @@ export function ArtistProfileView({
 
         {liveRooms.length > 0 && (
           <section className='artist-profile-section artist-live-section' aria-labelledby='artist-live-title'>
-            <h2 id='artist-live-title'>Listening now</h2>
+            <h2 id='artist-live-title'>Rooms visible to you</h2>
             <div className='artist-live-list'>
               {liveRooms.map(room => {
                 const hostDisplayName = roomHostDisplayName(room.hostName);
@@ -179,6 +177,7 @@ export function ArtistProfileView({
           </section>
         )}
       </div>
+      {detailsTrack && <ReleaseDetailsDialog track={detailsTrack} nativePaymentSymbol={nativePaymentSymbol} onClose={() => setDetailsTrack(null)} />}
     </section>
   );
 }

@@ -293,6 +293,27 @@ describe('validateProductionEnvironment', () => {
     ).toEqual({ mode: 'production', errors: [], warnings: [] });
   });
 
+  it('rejects unsupported realtime modes and observation without a Product host', () => {
+    expect(validateProductionEnvironment({ ...validProductionEnv, VITE_DOTIFY_ROOM_REALTIME: 'on' }).errors).toContain(
+      'VITE_DOTIFY_ROOM_REALTIME must be off, observe, or dual.'
+    );
+    expect(validateProductionEnvironment({ ...validProductionEnv, VITE_DOTIFY_ROOM_REALTIME: 'dual' }).errors).toContain(
+      'VITE_DOTIFY_ROOM_REALTIME requires a Product host mode (auto or required).'
+    );
+  });
+
+  it.each(['observe', 'dual'])('accepts opt-in %s without changing default authority', mode => {
+    expect(
+      validateProductionEnvironment({
+        ...validProductionEnv,
+        VITE_DOTIFY_ROOM_REALTIME: mode,
+        VITE_DOTIFY_HOST_MODE: 'required',
+        VITE_DOTIFY_PRODUCT_ID: 'dotify-test01.dot',
+        VITE_PUBLIC_APP_URL: 'https://dotify-test01.dev-dot.li'
+      }).errors
+    ).toEqual([]);
+  });
+
   it('accepts an explicit production environment that keeps secrets server-side', () => {
     expect(validateProductionEnvironment(validProductionEnv)).toEqual({
       mode: 'production',

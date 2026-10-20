@@ -10,13 +10,17 @@
 
 /* The aura drives the whole field: the page background follows whatever is
    playing, drifting slowly over the deep navy canvas. */
-body {
-  background-color: var(--canvas);
-  background-image:
+:root {
+  --listening-background:
     radial-gradient(46rem 36rem at 14% 2%, color-mix(in oklab, var(--aura-a) calc(20% * var(--aura-strength)), transparent), transparent 66%),
     radial-gradient(42rem 34rem at 90% 12%, color-mix(in oklab, var(--aura-b) calc(13% * var(--aura-strength)), transparent), transparent 70%),
     radial-gradient(48rem 38rem at 76% 98%, color-mix(in oklab, var(--aura-accent) calc(10% * var(--aura-strength)), transparent), transparent 74%),
     linear-gradient(180deg, #071120 0%, var(--canvas) 40%, var(--canvas-deep) 100%);
+}
+
+body {
+  background-color: var(--canvas);
+  background-image: var(--listening-background);
   transition: background-image 900ms ease;
 }
 
@@ -24,6 +28,11 @@ body {
   position: relative;
   z-index: var(--layer-control);
   isolation: isolate;
+}
+
+/* Keep the aura above the opaque keyboard-safe canvas, below all controls. */
+.app-shell > .aura-bg {
+  z-index: var(--layer-underlay);
 }
 
 /* Drifting aura halos behind everything. */

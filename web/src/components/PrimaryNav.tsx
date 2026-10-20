@@ -9,7 +9,7 @@ export type PrimaryNavItem = { view: View; label: string; icon: LucideIcon; onSe
 
 export function DesktopNav({ items, activeView }: { items: readonly PrimaryNavItem[]; activeView: View }) {
   return (
-    <div className='desktop-nav' aria-label='Main sections'>
+    <div className='desktop-nav' role='group' aria-label='Main sections'>
       {items.map(item => (
         <button
           key={item.view}

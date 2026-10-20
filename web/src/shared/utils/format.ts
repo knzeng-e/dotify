@@ -112,13 +112,21 @@ export function accessModeLabel(track: CatalogTrack) {
 
 export function accessModeLabelFromState(mode: AccessMode) {
   if (mode === 'free') return 'Free for everyone';
-  return mode === 'human-free' ? 'Free for verified humans' : 'Direct support';
+  return mode === 'human-free' ? 'Free for verified humans' : 'Paid listening access';
 }
 
 export function catalogAccessLabel(track: CatalogTrack, nativePaymentSymbol = 'native token') {
   if (track.active === false) return 'Inactive release';
   if (track.accessMode === 'free') return 'Free for everyone';
   return track.accessMode === 'classic' ? `${track.priceDot} ${nativePaymentSymbol}` : 'Free for verified humans';
+}
+
+/** Short, visible access cue for a catalog card. */
+export function catalogAccessShortLabel(track: CatalogTrack, hasAccess: boolean, nativePaymentSymbol = 'native token') {
+  if (track.active === false) return 'Unavailable';
+  if (track.accessMode === 'free') return 'Free';
+  if (track.accessMode === 'human-free') return 'Free for verified humans';
+  return hasAccess ? 'Unlocked' : `${track.priceDot} ${nativePaymentSymbol}`;
 }
 
 export function normalizeDisplayText(value: string) {

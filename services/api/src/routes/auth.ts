@@ -19,6 +19,8 @@ import {
   isSessionAuthConfigured as defaultIsSessionAuthConfigured,
   issueSessionToken as defaultIssueSessionToken,
   revokeSessionToken as defaultRevokeSessionToken,
+  verifySessionToken,
+  SessionRevocationStorageError,
   type IssuedSession
 } from '../services/sessionTokens.js';
 
@@ -54,6 +56,7 @@ const logoutRequestSchema = z.object({
 });
 
 export type AuthRouteDeps = {
+  verifySessionToken?: typeof verifySessionToken;
   verifySignInRequest: (request: SignInRequest) => Promise<SignatureVerification>;
   isSessionAuthConfigured: () => boolean;
   issueSessionToken: (address: `0x${string}`, chainId: number) => IssuedSession;
@@ -79,6 +82,13 @@ function validationError(reply: FastifyReply, error: string, issues: z.ZodIssue[
 
 export function createAuthRoutes(deps: AuthRouteDeps = defaultDeps) {
   return async function authRoutes(app: FastifyInstance): Promise<void> {
+    app.get('/identity', async (request, reply) => {
+      reply.header('Cache-Control', 'no-store');
+      const token = request.headers.authorization?.replace(/^Bearer /, '') ?? '';
+      const result = (deps.verifySessionToken ?? verifySessionToken)(token);
+      if (!result.valid) return reply.status(401).send({ error: result.reason });
+      return { address: result.address, chainId: result.chainId };
+    });
     app.post('/nonce', async (request: FastifyRequest, reply: FastifyReply) => {
       const parsed = nonceRequestSchema.safeParse(request.body);
       if (!parsed.success) {
@@ -163,7 +173,17 @@ export function createAuthRoutes(deps: AuthRouteDeps = defaultDeps) {
       if (!parsed.success) {
         return validationError(reply, 'Invalid logout request', parsed.error.issues);
       }
-      deps.revokeSessionToken(parsed.data.sessionToken);
+      reply.header('Cache-Control', 'no-store');
+      try {
+        deps.revokeSessionToken(parsed.data.sessionToken);
+      } catch (error) {
+        if (!(error instanceof SessionRevocationStorageError)) throw error;
+        return reply.status(503).send({
+          error: error.message,
+          code: 'SESSION_REVOCATION_UNAVAILABLE',
+          requestId: String(request.id)
+        });
+      }
       return reply.status(200).send({ ok: true });
     });
   };

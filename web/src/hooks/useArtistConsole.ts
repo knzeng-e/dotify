@@ -1,6 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { getAddress, isAddress } from 'viem';
-import { getWalletClient, resolveEvmChain } from '../shared/config/contracts';
+import { getPublicClient, getWalletClient, resolveEvmChain } from '../shared/config/contracts';
+import { createViemRuntimeReader } from '../features/runtime/viemRuntimeAdapter';
+import type { EarningsHistoryState } from '../features/artist-studio/earnings';
 import { checkBulletinAuthorization, encodeBulletinJson, uploadToBulletin } from './useBulletin';
 import {
   protectedAudioUploadToCID,
@@ -32,6 +34,7 @@ import { createRuntimeWriter } from '../features/runtime/runtimeWriterProvider';
 import { resolveRuntimeAdapterConfig } from '../features/runtime/runtimeAdapterConfig';
 import { resolveProductHostConfig } from '../features/productHost/productHost';
 import { resolveConfiguredArtistPublicationSafety } from '../shared/config/deploymentSafety';
+import { normalizeReleaseMetadata } from '../features/catalog/releaseMetadata';
 import { describeArtistRegistrationError, formatWeiAsDot, shorten, dotToPlanck } from '../shared/utils/format';
 import {
   createArtistPublishE2eTrack,
@@ -54,12 +57,15 @@ import type {
   CatalogTrack,
   PersonhoodLevel,
   ReleaseRoyaltySplitDraft,
+  ReleaseEditorialMetadata,
   RoyaltyPayment,
   RoyaltyRuntimeSummary,
   TransactionFeedback
 } from '../shared/types';
 import type { ConnectedWallet } from './useWallet';
 import type { PolkadotSigner } from 'polkadot-api';
+import { runSerializedRefresh, type RefreshGate } from './useVisibleRefresh';
+import { usePublicationConfirmation } from '../features/artist-studio/usePublicationConfirmation';
 
 const runtimeAdapterConfig = resolveRuntimeAdapterConfig(import.meta.env);
 const productHostConfig = resolveProductHostConfig(import.meta.env);
@@ -132,8 +138,9 @@ function normalizeRoyaltyBps(value: number, label: string): number {
 }
 
 function resolveRoyaltySplits(primaryRecipient: `0x${string}`, primaryBps: number, additionalSplits: ReleaseRoyaltySplitDraft[]) {
-  const recipients: `0x${string}`[] = [primaryRecipient];
-  const shares: number[] = [normalizeRoyaltyBps(primaryBps, 'Artist')];
+  const artistBps = normalizeRoyaltyBps(primaryBps, 'Artist');
+  const recipients: `0x${string}`[] = artistBps > 0 ? [primaryRecipient] : [];
+  const shares: number[] = artistBps > 0 ? [artistBps] : [];
 
   for (const split of additionalSplits) {
     const label = split.label.trim() || 'Rights holder';
@@ -164,15 +171,12 @@ function resolveRoyaltySplits(primaryRecipient: `0x${string}`, primaryBps: numbe
   return { recipients, shares, totalBps };
 }
 
-function resolveReleaseRoyaltySplits(
+export function resolveReleaseRoyaltySplits(
   primaryRecipient: `0x${string}`,
-  accessMode: AccessMode,
+  _accessMode: AccessMode,
   primaryBps: number,
   additionalSplits: ReleaseRoyaltySplitDraft[]
 ) {
-  if (accessMode === 'free') {
-    return { recipients: [primaryRecipient], shares: [10_000], totalBps: 10_000 };
-  }
   return resolveRoyaltySplits(primaryRecipient, primaryBps, additionalSplits);
 }
 
@@ -200,10 +204,6 @@ function preparedAudioRuntimeMismatchMessage(uploadRuntime: `0x${string}`, publi
   return `The prepared audio upload was encrypted for ${shorten(uploadRuntime, 10)}, but this release is being published to ${shorten(publicationRuntime, 10)}. Dotify will not register audio under a different runtime than the one that derived its content key. Select the audio file again and retry.`;
 }
 
-function isReleaseVisibleInRuntime(track: CatalogTrack, runtimeAddress: `0x${string}`, contentHash: `0x${string}`): boolean {
-  return track.hash.toLowerCase() === contentHash.toLowerCase() && runtimeAddressFromTrackId(track)?.toLowerCase() === runtimeAddress.toLowerCase();
-}
-
 export { getStoredArtistName, storeArtistName };
 
 export type UseArtistConsoleDeps = {
@@ -217,6 +217,8 @@ export type UseArtistConsoleDeps = {
   title: string;
   artistName: string;
   description: string;
+  releaseMetadata: ReleaseEditorialMetadata;
+  durationSeconds: number | null;
   accessMode: AccessMode;
   priceDot: string;
   personhoodLevel: PersonhoodLevel;
@@ -230,8 +232,9 @@ export type UseArtistConsoleDeps = {
   activeSubstrateAddress: string | null;
   activeSubstrateSigner: PolkadotSigner | null;
   artistTracks: CatalogTrack[];
+  transactionFeedback?: TransactionFeedback | null;
   setTransactionFeedback: (feedback: TransactionFeedback | null) => void;
-  refreshCatalogFromRegistry: (hash?: `0x${string}`) => Promise<CatalogTrack[]>;
+  refreshCatalogFromRegistry: (hash?: `0x${string}`, options?: { fresh?: boolean }) => Promise<CatalogTrack[]>;
   setAudioCID: (cid: string) => void;
   setCoverCID: (cid: string) => void;
   uploadToBulletinEnabled: boolean;
@@ -251,6 +254,8 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
     title,
     artistName,
     description,
+    releaseMetadata,
+    durationSeconds,
     accessMode,
     priceDot,
     personhoodLevel,
@@ -261,6 +266,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
     activeSubstrateAddress,
     activeSubstrateSigner,
     artistTracks,
+    transactionFeedback,
     setTransactionFeedback,
     refreshCatalogFromRegistry,
     setAudioCID,
@@ -277,6 +283,9 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
   const [isRefreshingArtistRuntime, setIsRefreshingArtistRuntime] = useState(false);
   const [rightsStatus, setRightsStatus] = useState('No audio file selected');
   const [royaltyPayments, setRoyaltyPayments] = useState<RoyaltyPayment[]>([]);
+  const [allRoyaltyPayments, setAllRoyaltyPayments] = useState<RoyaltyPayment[]>([]);
+  const [royaltyHistoryState, setRoyaltyHistoryState] = useState<EarningsHistoryState>('idle');
+  const [royaltyUpdatedAt, setRoyaltyUpdatedAt] = useState<number | null>(null);
   const [claimableRoyaltyWei, setClaimableRoyaltyWei] = useState(0n);
   const [royaltyRuntimeSummaries, setRoyaltyRuntimeSummaries] = useState<RoyaltyRuntimeSummary[]>([]);
   const [royaltyStatus, setRoyaltyStatus] = useState('No artist profile selected');
@@ -286,6 +295,41 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
   const [bulletinManifestRef, setBulletinManifestRef] = useState('');
   const [isRegistering, setIsRegistering] = useState(false);
   const [releaseActionId, setReleaseActionId] = useState<string | null>(null);
+  const publication = usePublicationConfirmation({
+    tracks: artistTracks,
+    refresh: refreshCatalogFromRegistry,
+    setFeedback: setTransactionFeedback,
+    setStatus: setRightsStatus,
+    activeFeedback: transactionFeedback
+  });
+
+  // Earnings use public EVM events, including in Product builds. This reader
+  // cannot sign, grant access, or replace the configured contract writer.
+  const royaltyHistoryReader = useMemo(() => createViemRuntimeReader({ ethRpcUrl }), [ethRpcUrl]);
+  const royaltyScope = JSON.stringify([
+    activeEvmAddress.toLowerCase(),
+    currentChainId,
+    ethRpcUrl,
+    artistRuntimeAddress,
+    Boolean(connectedWallet),
+    listKnownRoyaltyRuntimeCandidates(artistTracks, activeEvmAddress, artistRuntimeAddress).map(candidate => candidate.runtimeAddress.toLowerCase())
+  ]);
+  const royaltyAttemptRef = useRef<object | null>(null);
+  const royaltyRefreshGateRef = useRef<RefreshGate>({ current: null });
+  useLayoutEffect(() => {
+    royaltyAttemptRef.current = null;
+    royaltyRefreshGateRef.current.current = null;
+    setRoyaltyPayments([]);
+    setAllRoyaltyPayments([]);
+    setClaimableRoyaltyWei(0n);
+    setRoyaltyRuntimeSummaries([]);
+    setRoyaltyHistoryState('idle');
+    setRoyaltyUpdatedAt(null);
+    setIsRefreshingRoyalties(false);
+    return () => {
+      royaltyAttemptRef.current = null;
+    };
+  }, [royaltyScope]);
 
   const artistPublicationSafety = resolveConfiguredArtistPublicationSafety({
     explicitE2e: import.meta.env.DEV && isArtistPublishE2eScenarioRequested(),
@@ -622,108 +666,128 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
     return readRoyaltyRuntimeBalances(candidates, runtimeAddress => runtimeReader.getRoyaltyClaimable(runtimeAddress, activeEvmAddress));
   }
 
-  async function refreshArtistRoyalties(showBusy = false) {
-    if (showBusy) {
-      setIsRefreshingRoyalties(true);
-    }
+  async function refreshArtistRoyalties(showBusy = false, rerunAfterActive = false) {
+    if (!connectedWallet) return;
+    await runSerializedRefresh(
+      royaltyRefreshGateRef.current,
+      async () => {
+        const attempt = {};
+        royaltyAttemptRef.current = attempt;
+        const isCurrent = () => royaltyAttemptRef.current === attempt;
+        setIsRefreshingRoyalties(true);
+        if (!royaltyUpdatedAt) setRoyaltyHistoryState('loading');
+        if (showBusy || !royaltyUpdatedAt) setRoyaltyStatus('Checking release earnings...');
 
-    setRoyaltyStatus('Reading royalty runtime payments');
-
-    try {
-      const candidates = getKnownRoyaltyRuntimeCandidates();
-      if (candidates.length === 0) {
-        setRoyaltyPayments([]);
-        setClaimableRoyaltyWei(0n);
-        setRoyaltyRuntimeSummaries([]);
-        setRoyaltyStatus('No artist or split royalty runtime found for this wallet');
-        return;
-      }
-
-      const trackByHash = new Map(artistTracks.map(track => [track.hash.toLowerCase(), track]));
-      const trackByRuntimeHash = new Map(
-        artistTracks.flatMap(track => {
-          const runtimeAddress = runtimeAddressFromTrackId(track);
-          return runtimeAddress ? [[`${runtimeAddress.toLowerCase()}:${track.hash.toLowerCase()}`, track] as const] : [];
-        })
-      );
-      const [summaries, runtimeResults] = await Promise.all([
-        readRoyaltyRuntimeSummaries(),
-        Promise.all(
-          candidates.map(async candidate => {
-            try {
-              return {
-                candidate,
-                logs: await runtimeReader.listRoyaltyPaymentLogs(candidate.runtimeAddress, activeEvmAddress),
-                error: null
-              };
-            } catch (error) {
-              return { candidate, logs: [], error };
-            }
-          })
-        )
-      ]);
-      const claimableWei = summaries.reduce((total, summary) => total + (summary.claimableWei ?? 0n), 0n);
-      setClaimableRoyaltyWei(claimableWei);
-      setRoyaltyRuntimeSummaries(summaries);
-      const logs = runtimeResults.flatMap(result => result.logs);
-      const payments = logs
-        .map(log => {
-          const track =
-            trackByRuntimeHash.get(`${log.runtimeAddress.toLowerCase()}:${log.trackHash.toLowerCase()}`) ?? trackByHash.get(log.trackHash.toLowerCase());
-
-          return {
-            id: `${log.runtimeAddress}-${log.transactionHash}-${log.logIndex}`,
-            runtimeAddress: log.runtimeAddress,
-            trackHash: log.trackHash,
-            trackTitle: track?.title ?? shorten(log.trackHash, 14),
-            listener: log.listener,
-            recipient: log.recipient,
-            amountWei: log.amountWei,
-            amountDot: formatWeiAsDot(log.amountWei),
-            settlement: log.settlement,
-            ...(log.pendingTotalWei !== undefined ? { pendingTotalWei: log.pendingTotalWei } : {}),
-            ...(log.claimedAtMs !== undefined ? { claimedAtMs: log.claimedAtMs } : {}),
-            ...(log.claimTransactionHash !== undefined ? { claimTransactionHash: log.claimTransactionHash } : {}),
-            paidAtMs: log.paidAtMs,
-            transactionHash: log.transactionHash,
-            blockNumber: log.blockNumber,
-            logIndex: log.logIndex
-          } satisfies RoyaltyPayment;
-        })
-        .sort((left, right) => {
-          if (left.blockNumber !== right.blockNumber) {
-            return left.blockNumber > right.blockNumber ? -1 : 1;
+        try {
+          const candidates = getKnownRoyaltyRuntimeCandidates();
+          if (candidates.length === 0) {
+            setRoyaltyPayments([]);
+            setAllRoyaltyPayments([]);
+            setClaimableRoyaltyWei(0n);
+            setRoyaltyRuntimeSummaries([]);
+            setRoyaltyHistoryState('ready');
+            setRoyaltyUpdatedAt(Date.now());
+            setRoyaltyStatus('No release earnings recorded for this account.');
+            return;
           }
-          return right.logIndex - left.logIndex;
-        });
 
-      setRoyaltyPayments(payments);
-      const failedHistoryRuntimeCount = runtimeResults.filter(result => result.error).length;
-      const unavailableBalanceCount = summaries.filter(summary => summary.claimableWei === null).length;
-      if (unavailableBalanceCount > 0) {
-        setRoyaltyStatus(
-          `${unavailableBalanceCount} royalty balance${unavailableBalanceCount === 1 ? ' is' : 's are'} unavailable. Refresh to check again${failedHistoryRuntimeCount > 0 ? '; detailed payment history is also incomplete' : ''}.`
-        );
-      } else if (failedHistoryRuntimeCount > 0) {
-        setRoyaltyStatus(
-          runtimeAdapterConfig.kind === 'product-cdm'
-            ? 'Claimable balances are up to date. Detailed Product payment history still needs native event indexing.'
-            : `Royalty balances loaded; ${failedHistoryRuntimeCount} runtime ledger${failedHistoryRuntimeCount === 1 ? '' : 's'} need event indexing`
-        );
-      } else {
-        setRoyaltyStatus(payments.length > 0 || claimableWei > 0n ? 'Royalty settlement indexed from known runtimes' : 'No access payments received yet');
-      }
-    } catch (royaltyError) {
-      const message = royaltyError instanceof Error ? royaltyError.message : 'Unable to load royalty payments';
-      setRoyaltyPayments([]);
-      setClaimableRoyaltyWei(0n);
-      setRoyaltyRuntimeSummaries([]);
-      setRoyaltyStatus(message);
-    } finally {
-      if (showBusy) {
-        setIsRefreshingRoyalties(false);
-      }
-    }
+          const historyChainId = await getPublicClient(ethRpcUrl).getChainId();
+          if (!currentChainId || historyChainId !== currentChainId) throw new Error('The earnings source could not be matched to your network.');
+
+          const trackByRuntimeHash = new Map(
+            artistTracks.flatMap(track => {
+              const runtimeAddress = runtimeAddressFromTrackId(track);
+              return runtimeAddress ? [[`${runtimeAddress.toLowerCase()}:${track.hash.toLowerCase()}`, track] as const] : [];
+            })
+          );
+          const [summaries, runtimeResults] = await Promise.all([
+            readRoyaltyRuntimeBalances(candidates, address => royaltyHistoryReader.getRoyaltyClaimable(address, activeEvmAddress)),
+            Promise.all(
+              candidates.map(async candidate => {
+                try {
+                  return {
+                    candidate,
+                    logs: await royaltyHistoryReader.listRoyaltyPaymentLogs(candidate.runtimeAddress),
+                    error: null
+                  };
+                } catch (error) {
+                  return { candidate, logs: [], error };
+                }
+              })
+            )
+          ]);
+          if (!isCurrent()) return;
+          const claimableWei = summaries.reduce((total, summary) => total + (summary.claimableWei ?? 0n), 0n);
+          setClaimableRoyaltyWei(claimableWei);
+          setRoyaltyRuntimeSummaries(summaries);
+          const logs = runtimeResults.flatMap(result => result.logs);
+          const payments = logs
+            .map(log => {
+              const track = trackByRuntimeHash.get(`${log.runtimeAddress.toLowerCase()}:${log.trackHash.toLowerCase()}`);
+
+              return {
+                id: `${log.runtimeAddress}-${log.transactionHash}-${log.logIndex}`,
+                runtimeAddress: log.runtimeAddress,
+                trackHash: log.trackHash,
+                trackTitle: track?.title ?? shorten(log.trackHash, 14),
+                listener: log.listener,
+                recipient: log.recipient,
+                amountWei: log.amountWei,
+                amountDot: formatWeiAsDot(log.amountWei),
+                settlement: log.settlement,
+                ...(log.pendingTotalWei !== undefined ? { pendingTotalWei: log.pendingTotalWei } : {}),
+                ...(log.claimedAtMs !== undefined ? { claimedAtMs: log.claimedAtMs } : {}),
+                ...(log.claimTransactionHash !== undefined ? { claimTransactionHash: log.claimTransactionHash } : {}),
+                paidAtMs: log.paidAtMs,
+                transactionHash: log.transactionHash,
+                blockNumber: log.blockNumber,
+                logIndex: log.logIndex
+              } satisfies RoyaltyPayment;
+            })
+            .sort((left, right) => {
+              if (left.blockNumber !== right.blockNumber) {
+                return left.blockNumber > right.blockNumber ? -1 : 1;
+              }
+              return right.logIndex - left.logIndex;
+            });
+
+          const failedHistoryRuntimeCount = runtimeResults.filter(result => result.error).length;
+          if (failedHistoryRuntimeCount === 0) {
+            setAllRoyaltyPayments(payments);
+            setRoyaltyPayments(payments.filter(payment => payment.recipient.toLowerCase() === activeEvmAddress.toLowerCase()));
+            setRoyaltyHistoryState('ready');
+            setRoyaltyUpdatedAt(Date.now());
+          } else {
+            setRoyaltyHistoryState(royaltyUpdatedAt ? 'stale' : 'unavailable');
+          }
+          const unavailableBalanceCount = summaries.filter(summary => summary.claimableWei === null).length;
+          if (unavailableBalanceCount > 0) {
+            setRoyaltyStatus(
+              `${unavailableBalanceCount} royalty balance${unavailableBalanceCount === 1 ? ' is' : 's are'} unavailable. Refresh to check again${failedHistoryRuntimeCount > 0 ? '; detailed payment history is also incomplete' : ''}.`
+            );
+          } else if (failedHistoryRuntimeCount > 0) {
+            setRoyaltyStatus(
+              royaltyUpdatedAt ? 'Earnings could not be refreshed. Showing the last complete reading.' : 'Payment history is unavailable. Refresh to try again.'
+            );
+          } else {
+            setRoyaltyStatus(
+              payments.length > 0 || claimableWei > 0n ? 'Release payments checked against on-chain records.' : 'No access payments recorded yet.'
+            );
+          }
+        } catch (royaltyError) {
+          if (!isCurrent()) return;
+          const message = royaltyError instanceof Error ? royaltyError.message : 'Unable to load royalty payments';
+          setRoyaltyHistoryState(royaltyUpdatedAt ? 'stale' : 'unavailable');
+          setRoyaltyStatus(`Earnings could not be refreshed. ${message}`);
+        } finally {
+          if (isCurrent()) {
+            royaltyAttemptRef.current = null;
+            setIsRefreshingRoyalties(false);
+          }
+        }
+      },
+      rerunAfterActive
+    );
   }
 
   function createRightsManifest(
@@ -736,7 +800,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
   ): DotifyTrackManifest {
     const keyVersion = protectedAudioUploadToKeyVersion(resolvedAudioRef);
     return {
-      schema: 'dotify.track.v1',
+      schema: 'dotify.track.v2',
       createdAt: new Date().toISOString(),
       assets: {
         audioCID: resolvedAudioCID,
@@ -749,11 +813,13 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
         title: title.trim() || 'Untitled',
         artistName: artistName.trim() || 'Unknown artist',
         description: description.trim(),
+        durationSeconds,
         accessMode,
         priceDot: priceDotForAccessMode(accessMode, priceDot),
         requiredPersonhood: manifestRequiredPersonhood(accessMode, personhoodLevel),
         zone: 'Studio'
       },
+      editorial: normalizeReleaseMetadata(releaseMetadata),
       royalties: royaltyRecipients.map((recipient, index) => ({
         recipient,
         bps: royaltyShares[index] ?? 0
@@ -767,6 +833,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
   }
 
   async function registerRights() {
+    if (publication.pending) return;
     if (artistPublicationQuarantined) {
       setRightsStatus('Artist publishing temporarily paused');
       setTransactionFeedback({ tone: 'error', title: 'Artist publishing paused', message: artistPublicationSafety.reason });
@@ -953,6 +1020,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
         });
         if (e2eScenario === 'catalog-delay') {
           recordArtistPublishTrackRegistration();
+          window.setTimeout(() => publishArtistPublishE2eTrack(track, false), 1200);
         } else if (e2eScenario === 'catalog-hash-collision') {
           publishArtistPublishE2eTrack(
             createArtistPublishE2eTrack({
@@ -985,32 +1053,17 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
           steps: buildReleasePublicationRoadmap('catalog', E2E_ARTIST_RELEASE_TX_HASH),
           txHash: E2E_ARTIST_RELEASE_TX_HASH
         });
-        const refreshedTracks = await refreshCatalogFromRegistry(fileHash);
-        const visible = refreshedTracks.some(refreshedTrack => isReleaseVisibleInRuntime(refreshedTrack, targetRuntimeAddress, fileHash));
-        if (!visible) {
-          setRightsStatus('Approval confirmed; catalog refresh pending');
-          setTransactionFeedback({
-            tone: 'error',
-            title: 'Approved, still waiting for the catalog',
-            message: buildReleaseRegistrationFailureMessage({
-              error: 'The catalog read-back did not include this release yet.',
-              submittedTxHash: E2E_ARTIST_RELEASE_TX_HASH,
-              registrationConfirmed: true
-            }),
+        publication.confirm({
+          runtime: targetRuntimeAddress,
+          hash: fileHash,
+          feedback: {
+            tone: 'pending',
+            title: 'Making your release visible',
+            message: '',
             technicalFacts: releasePublicationTechnicalFacts(targetRuntimeAddress),
             steps: buildReleasePublicationRoadmap('catalog', E2E_ARTIST_RELEASE_TX_HASH),
             txHash: E2E_ARTIST_RELEASE_TX_HASH
-          });
-          return;
-        }
-        setRightsStatus('Release published');
-        setTransactionFeedback({
-          tone: 'success',
-          title: 'Release published',
-          message: 'Dotify can see this release in the catalog. The listening and support choices you reviewed are now active.',
-          technicalFacts: releasePublicationTechnicalFacts(targetRuntimeAddress),
-          steps: buildReleasePublicationRoadmap('complete', E2E_ARTIST_RELEASE_TX_HASH),
-          txHash: E2E_ARTIST_RELEASE_TX_HASH
+          }
         });
         return;
       }
@@ -1163,32 +1216,18 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
         technicalFacts: releasePublicationTechnicalFacts(targetRuntimeAddress),
         steps: buildReleasePublicationRoadmap(publicationStage, txHash)
       });
-      const refreshedTracks = await refreshCatalogFromRegistry(fileHash);
-      const visible = refreshedTracks.some(refreshedTrack => isReleaseVisibleInRuntime(refreshedTrack, targetRuntimeAddress, fileHash));
-      if (!visible) {
-        setRightsStatus('Approval confirmed; catalog refresh pending');
-        setTransactionFeedback({
-          tone: 'error',
-          title: 'Approved, still waiting for the catalog',
-          message: buildReleaseRegistrationFailureMessage({
-            error: 'The catalog read-back did not include this release yet.',
-            submittedTxHash: txHash,
-            registrationConfirmed: true
-          }),
+      publication.confirm({
+        runtime: targetRuntimeAddress,
+        hash: fileHash,
+        feedback: {
+          tone: 'pending',
+          title: 'Making your release visible',
+          message: '',
           txHash,
+          proofKind: runtimeWriter.contributionConfirmationMode === 'finalized-event' ? 'substrate-extrinsic' : 'evm-transaction',
           technicalFacts: releasePublicationTechnicalFacts(targetRuntimeAddress),
-          steps: buildReleasePublicationRoadmap(publicationStage, txHash)
-        });
-        return;
-      }
-      setRightsStatus('Release published');
-      setTransactionFeedback({
-        tone: 'success',
-        title: 'Release published',
-        message: 'Dotify can see this release in the catalog. The listening and support choices you reviewed are now active.',
-        txHash,
-        technicalFacts: releasePublicationTechnicalFacts(targetRuntimeAddress),
-        steps: buildReleasePublicationRoadmap('complete', txHash)
+          steps: buildReleasePublicationRoadmap('catalog', txHash)
+        }
       });
     } catch (registrationError) {
       const message = registrationError instanceof Error ? registrationError.message : 'Registration failed';
@@ -1391,7 +1430,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
         }
       }
 
-      await refreshArtistRoyalties();
+      await refreshArtistRoyalties(false, true);
 
       if (unreadableRuntimes.length > 0) {
         setTransactionFeedback({
@@ -1461,6 +1500,10 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
     rightsStatus,
     setRightsStatus,
     royaltyPayments,
+    allRoyaltyPayments,
+    royaltyHistoryState,
+    royaltyScope,
+    royaltyUpdatedAt,
     claimableRoyaltyWei,
     royaltyRuntimeSummaries,
     hasKnownRoyaltyRuntime,
@@ -1471,7 +1514,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
     setExpandedRoyaltyPaymentId,
     bulletinManifestRef,
     setBulletinManifestRef,
-    isRegistering,
+    isRegistering: isRegistering || publication.pending,
     releaseActionId,
     artistRegistrationAvailable,
     artistRegistrationConfigured,

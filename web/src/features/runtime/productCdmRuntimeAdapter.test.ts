@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { resolveDonationArtist } from '../donations/donationModel';
 import { DOTIFY_FALLBACK_NATIVE_RUNTIME_ASSET, createNativeRuntimeAccessPaymentIntent } from '../payments/paymentModel';
 import {
   ProductCdmRuntimeError,
@@ -10,7 +11,7 @@ import {
   productCdmPaymentWasNotSubmitted,
   type ProductCdmContractHandle
 } from './productCdmRuntimeAdapter';
-import type { OnchainTrackRecord } from '../../shared/types';
+import type { CatalogTrack, OnchainTrackRecord } from '../../shared/types';
 
 const directory = '0x1000000000000000000000000000000000000000' as const;
 const factory = '0x2000000000000000000000000000000000000000' as const;
@@ -132,6 +133,18 @@ describe('createProductCdmRuntimeReader', () => {
     expect(artistsPage.query).toHaveBeenCalledTimes(2);
   });
 
+  it('reads named Product directory responses', async () => {
+    const reader = createProductCdmRuntimeReader({
+      contracts: {
+        getDirectoryContract: () => ({ artistsPage: queryMethod({ artists: [artist], runtimes: [runtime] }) }),
+        getFactoryContract: () => ({}),
+        getRuntimeContract: () => ({})
+      }
+    });
+
+    await expect(reader.listArtistRuntimes(directory, 1n)).resolves.toEqual([{ artist, runtime }]);
+  });
+
   it('returns runtime track snapshots with royalty splits and skips unreadable splits', async () => {
     const record = baseTrackRecord();
     const musicRoySplitAt = {
@@ -164,6 +177,30 @@ describe('createProductCdmRuntimeReader', () => {
         royaltySplits: [{ recipient: splitRecipient, bps: 2500 }]
       }
     ]);
+  });
+
+  it('verifies a gift recipient from named Product runtime responses', async () => {
+    const record = baseTrackRecord();
+    const reader = createProductCdmRuntimeReader({
+      contracts: {
+        getDirectoryContract: () => ({}),
+        getFactoryContract: () => ({}),
+        getRuntimeContract: () => ({
+          musicRegTrackCount: queryMethod(1n),
+          musicRegTrackHashAtIndex: queryMethod(hash),
+          musicRegGetTrack: queryMethod({ track: record, tokenOwner: artist }),
+          musicRoySplitCount: queryMethod(1n),
+          musicRoySplitAt: queryMethod({ recipient: splitRecipient, bps: 2500 })
+        })
+      }
+    });
+
+    await expect(reader.listRuntimeTracks(runtime)).resolves.toEqual([{ hash, record, royaltySplits: [{ recipient: splitRecipient, bps: 2500 }] }]);
+    await expect(resolveDonationArtist({ id: `${runtime}:${hash}`, hash } as CatalogTrack, reader)).resolves.toEqual({
+      name: record.artistName,
+      recipient: artist,
+      releaseTitle: record.title
+    });
   });
 
   it('normalizes zero-address runtime lookups and rejects failed queries', async () => {
@@ -212,12 +249,60 @@ describe('createProductCdmRuntimeReader', () => {
 });
 
 describe('createProductCdmRuntimeWriter', () => {
+  it('reports SDK lifecycle separately from access and converts the spendable balance to contract units', async () => {
+    const onStatus = vi.fn();
+    const musicRoyPayAccess = {
+      tx: vi.fn(async (...args: unknown[]) => {
+        const options = args[1] as { onStatus: (status: string) => void };
+        for (const status of ['signing', 'broadcasting', 'in-block', 'finalized']) options.onStatus(status);
+        return { ok: true as const, value: { ok: true, txHash } };
+      })
+    };
+    const writer = createProductCdmRuntimeWriter({
+      nativeTokenDecimals: 10,
+      readAvailableBalance: async () => 12_000_000_000n,
+      contracts: { getDirectoryContract: () => ({}), getFactoryContract: () => ({}), getRuntimeContract: () => ({ musicRoyPayAccess }) }
+    });
+    const intent = createNativeRuntimeAccessPaymentIntent({
+      runtimeAddress: runtime,
+      contentHash: hash,
+      amountPlanck: 1_000_000_000_000_000_000n,
+      asset: DOTIFY_FALLBACK_NATIVE_RUNTIME_ASSET
+    });
+    await expect(writer.inspectPayment!(intent)).resolves.toEqual({ availableBalance: 1_200_000_000_000_000_000n });
+    await expect(writer.payForAccess(intent, onStatus)).resolves.toBe(txHash);
+    expect(onStatus.mock.calls.map(call => call[0])).toEqual(['signing', 'broadcasting', 'in-block', 'finalized']);
+    expect(() => writer.payForAccess({ ...intent, rail: 'product-cash' } as never)).toThrow(/CASH settlement is not executable/);
+    expect(musicRoyPayAccess.tx).toHaveBeenCalledTimes(1);
+  });
+
+  it('retains the finalized native contribution block for receipt recovery', async () => {
+    const block = { hash: txHash, number: 123, index: 2 };
+    const musicGiftContribute = {
+      tx: vi.fn(async (...args: unknown[]) => {
+        const options = args[1] as { onStatus: (status: string) => void };
+        for (const status of ['signing', 'broadcasting', 'in-block', 'finalized']) options.onStatus(status);
+        return { ok: true as const, value: { ok: true, txHash, block } };
+      })
+    };
+    const writer = createProductCdmRuntimeWriter({
+      nativeTokenDecimals: 10,
+      contracts: { getDirectoryContract: () => ({}), getFactoryContract: () => ({}), getRuntimeContract: () => ({ musicGiftContribute }) }
+    });
+    const onFinalized = vi.fn();
+    const onStatus = vi.fn();
+    await expect(writer.contributionCall!(runtime, 'musicGiftContribute', [hash], 1_000_000_000_000_000_000n, onFinalized, onStatus)).resolves.toBe(txHash);
+    expect(onFinalized).toHaveBeenCalledExactlyOnceWith({ hash: txHash, number: 123, index: 2 });
+    expect(onStatus.mock.calls).toEqual([['signing'], ['broadcasting'], ['in-block'], ['finalized']]);
+    expect(musicGiftContribute.tx).toHaveBeenCalledWith(hash, { value: 10_000_000_000n, waitFor: 'finalized', onStatus });
+  });
   it('routes runtime writes through Product CDM contract tx methods', async () => {
     const createRuntime = txMethod();
     const installRuntimeStep = txMethod();
     const musicRegRegister = txMethod();
     const musicRoyPayAccess = txMethod();
     const musicRoyClaim = txMethod();
+    const musicGiftContribute = txMethod();
     const musicRegSetAccessMode = txMethod();
     const musicRegDeactivate = txMethod();
     const writer = createProductCdmRuntimeWriter({
@@ -229,6 +314,7 @@ describe('createProductCdmRuntimeWriter', () => {
           musicRegRegister,
           musicRoyPayAccess,
           musicRoyClaim,
+          musicGiftContribute,
           musicRegSetAccessMode,
           musicRegDeactivate
         })
@@ -265,6 +351,7 @@ describe('createProductCdmRuntimeWriter', () => {
       )
     ).resolves.toBe(txHash);
     await expect(writer.claimRoyalty(runtime, splitRecipient)).resolves.toBe(txHash);
+    await expect(writer.contributionCall!(runtime, 'musicGiftContribute', [hash], 4_200_000_000_000_000_000n)).resolves.toBe(txHash);
     await expect(
       writer.setAccessMode(runtime, {
         contentHash: hash,
@@ -278,6 +365,8 @@ describe('createProductCdmRuntimeWriter', () => {
 
     expect(musicRoyPayAccess.tx).toHaveBeenCalledWith(hash, { value: 30_000_000_000n, waitFor: 'finalized' });
     expect(musicRoyClaim.tx).toHaveBeenCalledWith(splitRecipient);
+    expect(musicGiftContribute.tx).toHaveBeenCalledWith(hash, { value: 42_000_000_000n, waitFor: 'finalized' });
+    expect(writer.contributionConfirmationMode).toBe('finalized-event');
     expect(musicRegSetAccessMode.tx).toHaveBeenCalledWith(hash, 2, 0n, 1);
     expect(musicRegDeactivate.tx).toHaveBeenCalledWith(hash);
   });

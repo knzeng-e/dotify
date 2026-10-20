@@ -11,20 +11,19 @@ import {
   previousReleaseStep
 } from '../../features/artist-studio/releaseForm';
 import { isTrackManagedByArtist } from '../../features/catalog/trackModel';
-import {
-  useReleaseForm,
-  useWalletContext,
-  useUiFeedback,
-  useCatalogContext,
-  useSessionContext,
-  useArtistStudio,
-  usePlaybackContext
-} from '../../app/providers';
+import { useReleaseForm, useWalletContext, useCatalogContext, useSessionContext, useArtistStudio, usePlaybackContext } from '../../app/providers';
 import { OverviewTab } from './OverviewTab';
 import { NewReleaseTab } from './NewReleaseTab';
 import { ReleasesTab } from './ReleasesTab';
-import { RoyaltiesTab } from './RoyaltiesTab';
+import { ArtistEarnings } from './ArtistEarnings';
 import { AdvancedTab } from './AdvancedTab';
+import { Plus } from 'lucide-react';
+import { ContributionPolicyEditor } from './ContributionPolicyEditor';
+import { CoverImage } from '../../components/CoverImage';
+import { summarizeReleaseEarnings } from '../../features/artist-studio/earnings';
+import { useContributionHistory } from '../../features/donations/useContributionHistory';
+import { addReleaseTips, artistActivity } from '../../features/artist-studio/dashboard';
+import type { EarningsSummaryProps } from './EarningsSummary';
 
 function nextRoyaltySplitId() {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -33,12 +32,33 @@ function nextRoyaltySplitId() {
   return `split-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
-const artistTabs: Array<{ id: ArtistTab; label: string; description: string }> = [
-  { id: 'overview', label: 'Home', description: 'Your next step' },
-  { id: 'new', label: 'New release', description: 'Prepare and publish' },
-  { id: 'releases', label: 'Music', description: 'Published releases' },
-  { id: 'royalties', label: 'Support', description: 'Payments and balances' },
-  { id: 'advanced', label: 'Advanced', description: 'Technical records' }
+function measureAudioDuration(source: string): Promise<number | null> {
+  return new Promise(resolve => {
+    const audio = new Audio();
+    let settled = false;
+    const timeout = window.setTimeout(() => finish(null), 5_000);
+    function finish(value: number | null) {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timeout);
+      audio.onloadedmetadata = null;
+      audio.onerror = null;
+      audio.removeAttribute('src');
+      audio.load();
+      resolve(value);
+    }
+    audio.preload = 'metadata';
+    audio.onloadedmetadata = () => finish(Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration : null);
+    audio.onerror = () => finish(null);
+    audio.src = source;
+  });
+}
+
+const artistTabs: Array<{ id: ArtistTab; label: string }> = [
+  { id: 'overview', label: 'Overview' },
+  { id: 'releases', label: 'Releases' },
+  { id: 'royalties', label: 'Earnings' },
+  { id: 'rights', label: 'Rights & support' }
 ];
 
 // The console reads the release draft, wallet, catalog, artist studio, and
@@ -50,6 +70,9 @@ export function ArtistConsole() {
     setTitle,
     description,
     setDescription,
+    releaseMetadata,
+    setReleaseMetadata,
+    setDurationSeconds,
     artistName,
     setArtistName,
     priceDot,
@@ -74,10 +97,9 @@ export function ArtistConsole() {
   } = useReleaseForm();
   const { connectedWallet, activeEvmAddress, activeSubstrateAddress, expectedChainId, getActiveWalletClient, bulletinAccountIndex, setBulletinAccountIndex } =
     useWalletContext();
-  const { openWalletModal } = useUiFeedback();
   const catalog = useCatalogContext();
   const session = useSessionContext();
-  const { artistConsole, totalRoyaltyWei, uniqueRoyaltyListeners, paidRoyaltyTracks } = useArtistStudio();
+  const { artistConsole, totalRoyaltyWei } = useArtistStudio();
   const { openTrack } = usePlaybackContext();
 
   const factoryAddress = deployments.factory;
@@ -85,9 +107,9 @@ export function ArtistConsole() {
 
   // Bind the names the render body + subtabs read.
   const onSetArtistTab = setArtistTab;
+  const currentSection = artistTab === 'new' ? 'releases' : artistTab === 'advanced' ? 'rights' : artistTab;
   const artistRuntimeAddress = artistConsole.artistRuntimeAddress;
   const artistRegistrationStatus = artistConsole.artistRegistrationStatus;
-  const isRegisteringArtist = artistConsole.isRegisteringArtist;
   const isRefreshingArtistRuntime = artistConsole.isRefreshingArtistRuntime;
   const rightsStatus = artistConsole.rightsStatus;
   const isRegistering = artistConsole.isRegistering;
@@ -105,6 +127,23 @@ export function ArtistConsole() {
   const nativePaymentSymbol = catalog.nativeRuntimePaymentAsset.symbol;
 
   const artistTracks = catalog.allCatalogTracks.filter(track => isTrackManagedByArtist(track, activeEvmAddress, artistName));
+  const history = useContributionHistory(artistRuntimeAddress);
+  const listeningReleaseEarnings = summarizeReleaseEarnings(artistTracks, artistConsole.allRoyaltyPayments, activeEvmAddress);
+  const earningsSummary: EarningsSummaryProps = {
+    generatedWei: listeningReleaseEarnings.reduce((total, row) => total + row.generatedWei, 0n),
+    receivedWei: totalRoyaltyWei,
+    claimableWei: artistConsole.claimableRoyaltyWei,
+    claimableKnown: artistConsole.royaltyRuntimeSummaries.length > 0 && artistConsole.royaltyRuntimeSummaries.every(row => row.claimableWei !== null),
+    historyState: artistConsole.royaltyHistoryState,
+    updatedAt: artistConsole.royaltyUpdatedAt,
+    refreshing: isRefreshingRoyalties,
+    symbol: nativePaymentSymbol,
+    onRefresh: () => {
+      void artistConsole.refreshArtistRoyalties(true);
+    }
+  };
+  const releaseEarnings = addReleaseTips(listeningReleaseEarnings, history.rows, activeEvmAddress);
+  const activity = artistActivity(royaltyPayments, history.rows, catalog.allCatalogTracks, activeEvmAddress, artistRuntimeAddress);
   const artistRegistrationAvailable = artistConsole.artistRegistrationAvailable;
   const artistPublicationQuarantined = artistConsole.artistPublicationQuarantined;
   const hasArtistRuntime = Boolean(artistConsole.artistRuntimeAddress);
@@ -138,18 +177,13 @@ export function ArtistConsole() {
   const onSetUploadToBulletinEnabled = setUploadToBulletinEnabled;
   const onSetBulletinAccountIndex = setBulletinAccountIndex;
   const onUpdateArtistName = (name: string) => artistConsole.updateArtistName(name, setArtistName);
-  const onRegisterArtist = artistConsole.registerArtist;
   const onRefreshArtistRuntime = () => {
     void artistConsole.refreshArtistRuntime(true);
   };
-  const onShowWalletModal = () => openWalletModal('artist');
   const onRegisterRights = artistConsole.registerRights;
   const onUpdateReleaseAccessMode = artistConsole.updateReleaseAccessMode;
   const onSetReleaseActive = artistConsole.setReleaseActive;
   const onSetExpandedRoyaltyPaymentId = artistConsole.setExpandedRoyaltyPaymentId;
-  const onRefreshRoyalties = () => {
-    void artistConsole.refreshArtistRoyalties(true);
-  };
 
   async function getUploadIdentity(): Promise<BackendUploadIdentity | undefined> {
     if (!isBackendConfigured()) return undefined;
@@ -174,6 +208,7 @@ export function ArtistConsole() {
       const nextTitle = nextTitleFromUpload(title, file.name);
       const nextUrl = URL.createObjectURL(file);
       catalog.objectUrlsRef.current.add(nextUrl);
+      setDurationSeconds(await measureAudioDuration(nextUrl));
 
       catalog.setAudioSource(nextUrl);
       catalog.setFileHash(result.hash);
@@ -294,7 +329,9 @@ export function ArtistConsole() {
   return (
     <section className='artist-console'>
       <header className='studio-head'>
-        <span className='studio-avatar' aria-hidden='true' />
+        <div className='studio-portrait' aria-hidden='true'>
+          <CoverImage src={artistTracks[0]?.imageRef ?? ''} alt='' fallbackLabel={artistName || 'Artist'} />
+        </div>
         <div className='studio-id'>
           <p className='studio-kicker'>Artist space</p>
           <h1>{artistName.trim() || 'Your music'}</h1>
@@ -305,6 +342,12 @@ export function ArtistConsole() {
             <span>{connectedWallet?.label ?? 'Artist account'}</span>
           </div>
         </div>
+        {artistRuntimeAddress && (artistTracks.length > 0 || artistTab !== 'overview') && artistTab !== 'new' && (
+          <button className='primary-action studio-publish' type='button' onClick={() => onSetArtistTab('new')} disabled={artistStudioLocked}>
+            <Plus size={18} />
+            New release
+          </button>
+        )}
       </header>
 
       {artistPublicationQuarantined && (
@@ -321,141 +364,166 @@ export function ArtistConsole() {
               key={tab.id}
               type='button'
               role='tab'
-              aria-selected={artistTab === tab.id}
-              data-active={artistTab === tab.id}
+              id={`artist-tab-${tab.id}`}
+              aria-controls='artist-task-panel'
+              aria-selected={currentSection === tab.id}
+              tabIndex={currentSection === tab.id ? 0 : -1}
+              data-active={currentSection === tab.id}
               onClick={() => onSetArtistTab(tab.id)}
+              onKeyDown={event => {
+                const index = artistTabs.findIndex(item => item.id === tab.id);
+                const next =
+                  event.key === 'ArrowRight'
+                    ? (index + 1) % artistTabs.length
+                    : event.key === 'ArrowLeft'
+                      ? (index + artistTabs.length - 1) % artistTabs.length
+                      : event.key === 'Home'
+                        ? 0
+                        : event.key === 'End'
+                          ? artistTabs.length - 1
+                          : -1;
+                if (next < 0) return;
+                event.preventDefault();
+                onSetArtistTab(artistTabs[next].id);
+                document.getElementById(`artist-tab-${artistTabs[next].id}`)?.focus();
+              }}
             >
               <strong>{tab.label}</strong>
-              <span>{tab.description}</span>
             </button>
           ))}
         </div>
-        <span className='console-tabs-hint' aria-hidden='true'>
-          Swipe for more →
-        </span>
       </div>
+      <div id='artist-task-panel' role='tabpanel' aria-labelledby={`artist-tab-${currentSection}`}>
+        {artistTab === 'overview' && (
+          <OverviewTab
+            artistName={artistName}
+            artistRuntimeAddress={artistRuntimeAddress}
+            artistRegistrationStatus={artistRegistrationStatus}
+            isRegisteringArtist={artistConsole.isRegisteringArtist}
+            isRefreshingArtistRuntime={isRefreshingArtistRuntime}
+            artistRegistrationAvailable={artistRegistrationAvailable}
+            history={history}
+            activity={activity}
+            earnings={earningsSummary}
+            releases={releaseEarnings}
+            onUpdateArtistName={onUpdateArtistName}
+            onRegisterArtist={artistConsole.registerArtist}
+            onRefreshArtistRuntime={onRefreshArtistRuntime}
+            onSetArtistTab={onSetArtistTab}
+            onOpenRelease={openReleaseDetails}
+          />
+        )}
 
-      {artistTab === 'overview' && (
-        <OverviewTab
-          artistName={artistName}
-          activeEvmAddress={activeEvmAddress}
-          artistRuntimeAddress={artistRuntimeAddress}
-          artistRegistrationStatus={artistRegistrationStatus}
-          isRegisteringArtist={isRegisteringArtist}
-          isRefreshingArtistRuntime={isRefreshingArtistRuntime}
-          artistRegistrationAvailable={artistRegistrationAvailable}
-          artistTracks={artistTracks}
-          nativePaymentSymbol={nativePaymentSymbol}
-          connectedWallet={connectedWallet}
-          royaltyPayments={royaltyPayments}
-          totalRoyaltyWei={totalRoyaltyWei}
-          uniqueRoyaltyListeners={uniqueRoyaltyListeners}
-          onUpdateArtistName={onUpdateArtistName}
-          onRegisterArtist={onRegisterArtist}
-          onRefreshArtistRuntime={onRefreshArtistRuntime}
-          onSetArtistTab={onSetArtistTab}
-          onShowWalletModal={onShowWalletModal}
-          onOpenRelease={openReleaseDetails}
-        />
-      )}
+        {artistTab === 'new' && (
+          <NewReleaseTab
+            releaseStep={releaseStep}
+            artistStudioLocked={artistStudioLocked}
+            publicationQuarantined={artistPublicationQuarantined}
+            assetAction={assetAction}
+            audioSource={audioSource}
+            fileHash={fileHash}
+            coverSource={coverSource}
+            coverCID={coverCID}
+            title={title}
+            description={description}
+            releaseMetadata={releaseMetadata}
+            accessMode={accessMode}
+            personhoodLevel={personhoodLevel}
+            priceDot={priceDot}
+            nativePaymentSymbol={nativePaymentSymbol}
+            royaltyBps={royaltyBps}
+            additionalRoyaltySplits={additionalRoyaltySplits}
+            uploadToBulletinEnabled={uploadToBulletinEnabled}
+            rightsStatus={rightsStatus}
+            isRegistering={isRegistering}
+            canReviewRelease={canReviewRelease}
+            artistName={artistName}
+            connectedWallet={connectedWallet}
+            activeEvmAddress={activeEvmAddress}
+            artistRuntimeAddress={artistRuntimeAddress}
+            activeSubstrateAddress={activeSubstrateAddress}
+            bulletinAccountIndex={bulletinAccountIndex}
+            onSetReleaseStep={onSetReleaseStep}
+            onGoToPreviousStep={onGoToPreviousStep}
+            onGoToNextStep={onGoToNextStep}
+            onHandleAudioFile={onHandleAudioFile}
+            onHandleCoverFile={onHandleCoverFile}
+            onSetTitle={onSetTitle}
+            onSetDescription={onSetDescription}
+            onSetReleaseMetadata={setReleaseMetadata}
+            onSetAccessMode={onSetAccessMode}
+            onSetPersonhoodLevel={onSetPersonhoodLevel}
+            onSetPriceDot={onSetPriceDot}
+            onSetRoyaltyBps={onSetRoyaltyBps}
+            onAddRoyaltySplit={onAddRoyaltySplit}
+            onUpdateRoyaltySplit={onUpdateRoyaltySplit}
+            onRemoveRoyaltySplit={onRemoveRoyaltySplit}
+            onSetUploadToBulletinEnabled={onSetUploadToBulletinEnabled}
+            onSetBulletinAccountIndex={onSetBulletinAccountIndex}
+            onRegisterRights={onRegisterRights}
+          />
+        )}
 
-      {artistTab === 'new' && (
-        <NewReleaseTab
-          releaseStep={releaseStep}
-          artistStudioLocked={artistStudioLocked}
-          publicationQuarantined={artistPublicationQuarantined}
-          assetAction={assetAction}
-          audioSource={audioSource}
-          fileHash={fileHash}
-          coverSource={coverSource}
-          coverCID={coverCID}
-          title={title}
-          description={description}
-          accessMode={accessMode}
-          personhoodLevel={personhoodLevel}
-          priceDot={priceDot}
-          nativePaymentSymbol={nativePaymentSymbol}
-          royaltyBps={royaltyBps}
-          additionalRoyaltySplits={additionalRoyaltySplits}
-          uploadToBulletinEnabled={uploadToBulletinEnabled}
-          rightsStatus={rightsStatus}
-          isRegistering={isRegistering}
-          canReviewRelease={canReviewRelease}
-          artistName={artistName}
-          connectedWallet={connectedWallet}
-          activeEvmAddress={activeEvmAddress}
-          artistRuntimeAddress={artistRuntimeAddress}
-          activeSubstrateAddress={activeSubstrateAddress}
-          bulletinAccountIndex={bulletinAccountIndex}
-          onSetReleaseStep={onSetReleaseStep}
-          onGoToPreviousStep={onGoToPreviousStep}
-          onGoToNextStep={onGoToNextStep}
-          onHandleAudioFile={onHandleAudioFile}
-          onHandleCoverFile={onHandleCoverFile}
-          onSetTitle={onSetTitle}
-          onSetDescription={onSetDescription}
-          onSetAccessMode={onSetAccessMode}
-          onSetPersonhoodLevel={onSetPersonhoodLevel}
-          onSetPriceDot={onSetPriceDot}
-          onSetRoyaltyBps={onSetRoyaltyBps}
-          onAddRoyaltySplit={onAddRoyaltySplit}
-          onUpdateRoyaltySplit={onUpdateRoyaltySplit}
-          onRemoveRoyaltySplit={onRemoveRoyaltySplit}
-          onSetUploadToBulletinEnabled={onSetUploadToBulletinEnabled}
-          onSetBulletinAccountIndex={onSetBulletinAccountIndex}
-          onRegisterRights={onRegisterRights}
-        />
-      )}
+        {(artistTab === 'releases' || artistTab === 'rights') && (
+          <ReleasesTab
+            mode={artistTab === 'rights' ? 'rights' : 'releases'}
+            onManageRights={() => onSetArtistTab('rights')}
+            artistTracks={artistTracks}
+            selectedReleaseId={selectedReleaseId}
+            onSelectRelease={setSelectedReleaseId}
+            onOpenTrack={onOpenTrack}
+            onUpdateReleaseAccessMode={onUpdateReleaseAccessMode}
+            onSetReleaseActive={onSetReleaseActive}
+            releaseActionId={artistConsole.releaseActionId}
+            arrivedReleaseId={arrivedReleaseId}
+            nativePaymentSymbol={nativePaymentSymbol}
+            earnings={releaseEarnings}
+            earningsKnown={artistConsole.royaltyUpdatedAt !== null && history.known}
+            earningsStale={artistConsole.royaltyHistoryState === 'stale'}
+          />
+        )}
 
-      {artistTab === 'releases' && (
-        <ReleasesTab
-          artistTracks={artistTracks}
-          selectedReleaseId={selectedReleaseId}
-          onSelectRelease={setSelectedReleaseId}
-          onOpenTrack={onOpenTrack}
-          onUpdateReleaseAccessMode={onUpdateReleaseAccessMode}
-          onSetReleaseActive={onSetReleaseActive}
-          releaseActionId={artistConsole.releaseActionId}
-          arrivedReleaseId={arrivedReleaseId}
-          nativePaymentSymbol={nativePaymentSymbol}
-        />
-      )}
+        {artistTab === 'rights' && artistRuntimeAddress && (
+          <ContributionPolicyEditor key={artistRuntimeAddress} runtime={artistRuntimeAddress} tracks={artistTracks} />
+        )}
+        {artistTab === 'royalties' && (
+          <ArtistEarnings
+            history={history}
+            royaltyPayments={royaltyPayments}
+            royaltyStatus={royaltyStatus}
+            claimableRoyaltyWei={artistConsole.claimableRoyaltyWei}
+            royaltyRuntimeSummaries={artistConsole.royaltyRuntimeSummaries}
+            isClaimingRoyalties={artistConsole.isClaimingRoyalties}
+            artistRuntimeAddress={artistRuntimeAddress}
+            expandedRoyaltyPaymentId={expandedRoyaltyPaymentId}
+            earnings={earningsSummary}
+            releases={listeningReleaseEarnings}
+            onOpenRelease={openReleaseDetails}
+            nativePaymentSymbol={nativePaymentSymbol}
+            onSetExpandedRoyaltyPaymentId={onSetExpandedRoyaltyPaymentId}
+            onClaimRoyalties={artistConsole.claimRoyalties}
+          />
+        )}
 
-      {artistTab === 'royalties' && (
-        <RoyaltiesTab
-          royaltyPayments={royaltyPayments}
-          royaltyStatus={royaltyStatus}
-          isRefreshingRoyalties={isRefreshingRoyalties}
-          claimableRoyaltyWei={artistConsole.claimableRoyaltyWei}
-          royaltyRuntimeSummaries={artistConsole.royaltyRuntimeSummaries}
-          isClaimingRoyalties={artistConsole.isClaimingRoyalties}
-          artistRuntimeAddress={artistRuntimeAddress}
-          expandedRoyaltyPaymentId={expandedRoyaltyPaymentId}
-          totalRoyaltyWei={totalRoyaltyWei}
-          uniqueRoyaltyListeners={uniqueRoyaltyListeners}
-          paidRoyaltyTracks={paidRoyaltyTracks}
-          nativePaymentSymbol={nativePaymentSymbol}
-          onSetExpandedRoyaltyPaymentId={onSetExpandedRoyaltyPaymentId}
-          onRefreshRoyalties={onRefreshRoyalties}
-          onClaimRoyalties={artistConsole.claimRoyalties}
-        />
-      )}
-
-      {artistTab === 'advanced' && (
-        <AdvancedTab
-          factoryAddress={factoryAddress}
-          directoryAddress={directoryAddress}
-          activeEvmAddress={activeEvmAddress}
-          artistRuntimeAddress={artistRuntimeAddress}
-          fileHash={fileHash}
-          audioCID={audioCID}
-          coverCID={coverCID}
-          bulletinManifestRef={bulletinManifestRef}
-          trackInfo={trackInfo}
-          uploadToBulletinEnabled={uploadToBulletinEnabled}
-          activeSubstrateAddress={activeSubstrateAddress}
-        />
-      )}
+        {(artistTab === 'advanced' || artistTab === 'rights') && (
+          <details className='studio-technical' open={artistTab === 'advanced' || undefined}>
+            <summary>Technical records</summary>
+            <AdvancedTab
+              factoryAddress={factoryAddress}
+              directoryAddress={directoryAddress}
+              activeEvmAddress={activeEvmAddress}
+              artistRuntimeAddress={artistRuntimeAddress}
+              fileHash={fileHash}
+              audioCID={audioCID}
+              coverCID={coverCID}
+              bulletinManifestRef={bulletinManifestRef}
+              trackInfo={trackInfo}
+              uploadToBulletinEnabled={uploadToBulletinEnabled}
+              activeSubstrateAddress={activeSubstrateAddress}
+            />
+          </details>
+        )}
+      </div>
     </section>
   );
 }
