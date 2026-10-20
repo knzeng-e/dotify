@@ -1,6 +1,8 @@
 # TypeScript Types Reference
 
-All shared web types are defined in `web/src/shared/types.ts`. Import them directly:
+The current shared web types are defined in `web/src/shared/types.ts`; that
+source is authoritative. This page explains selected concepts rather than
+reproducing every evolving field. Import types directly:
 
 ```typescript
 import type { AccessMode, CatalogTrack, RoyaltyPayment } from '../shared/types';
@@ -38,32 +40,34 @@ The Polkadot Proof of Personhood level required to access a Human free track.
 ### `View`
 
 ```typescript
-type View = 'listen' | 'player' | 'rooms';
+type View = 'listen' | 'player' | 'rooms' | 'you';
 ```
 
 The active top-level listener-app view. The artist portal is a separate `/artists`
 surface and is not part of this in-app view union.
 
-| Value    | Screen                                              |
-| -------- | --------------------------------------------------- |
-| `listen` | Catalog grid — discover and browse tracks           |
-| `player` | Integrated player — play a track and manage a room  |
-| `rooms`  | Live rooms list — discover and join active sessions |
+| Value    | Screen                                             |
+| -------- | -------------------------------------------------- |
+| `listen` | Catalog grid — discover and browse tracks          |
+| `player` | Integrated player — play a track and manage a room |
+| `rooms`  | Scoped room discovery and invitation entry         |
+| `you`    | Account, session and personal controls             |
 
 ---
 
 ### `AccessMode`
 
 ```typescript
-type AccessMode = 'human-free' | 'classic';
+type AccessMode = 'human-free' | 'classic' | 'free';
 ```
 
 The access policy for a registered track.
 
-| Value        | Meaning                                  |
-| ------------ | ---------------------------------------- |
-| `human-free` | Unlocked by Polkadot Proof of Personhood |
-| `classic`    | Unlocked by runtime-native payment       |
+| Value        | Meaning                                        |
+| ------------ | ---------------------------------------------- |
+| `human-free` | Unlocked by Polkadot Proof of Personhood       |
+| `classic`    | Unlocked by runtime-native payment             |
+| `free`       | Public listening after API access verification |
 
 ---
 
@@ -375,12 +379,12 @@ type AccessGate = {
 Displayed as the `AccessGateOverlay` when a listener lacks access and no
 protected audio should play. `actionType` controls which CTA is shown:
 
-| `actionType` | Shown when                         | CTA                                             |
-| ------------ | ---------------------------------- | ----------------------------------------------- |
-| `none`       | Release inactive or unavailable    | No primary CTA                                  |
-| `signin`     | No wallet connected                | "Continue"                                      |
-| `payment`    | Wallet connected, active Classic track | "Support and open - X native token"         |
-| `personhood` | Wallet connected, insufficient PoP | No payment CTA — user must obtain PoP off-chain |
+| `actionType` | Shown when                             | CTA                                             |
+| ------------ | -------------------------------------- | ----------------------------------------------- |
+| `none`       | Release inactive or unavailable        | No primary CTA                                  |
+| `signin`     | No wallet connected                    | "Continue"                                      |
+| `payment`    | Wallet connected, active Classic track | "Support and open - X native token"             |
+| `personhood` | Wallet connected, insufficient PoP     | No payment CTA — user must obtain PoP off-chain |
 
 ---
 

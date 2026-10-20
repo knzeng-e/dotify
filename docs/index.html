@@ -1264,6 +1264,48 @@
           box-shadow: none;
         }
       }
+      code {
+        overflow-wrap: anywhere;
+      }
+
+      .product-gallery-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 30rem), 1fr));
+        gap: 1.5rem;
+        margin-top: 2rem;
+      }
+      .product-gallery figure {
+        margin: 0;
+        min-width: 0;
+      }
+      .product-gallery img {
+        width: 100%;
+        height: auto;
+        border: 1px solid var(--line-strong);
+        border-radius: var(--radius-card);
+        background: var(--canvas);
+      }
+      .product-gallery figcaption {
+        margin-top: 0.8rem;
+        color: var(--slate);
+        font-size: 0.95rem;
+      }
+      .product-gallery figcaption strong {
+        color: var(--ink);
+      }
+      .product-gallery-more {
+        margin-top: 1.8rem;
+      }
+      .product-gallery-more summary {
+        cursor: pointer;
+        color: var(--cyan);
+        padding: 0.75rem 0;
+      }
+      .gallery-source {
+        margin-top: 1.5rem;
+        color: var(--slate);
+        font-size: 0.9rem;
+      }
     </style>
   </head>
   <body>
@@ -1292,13 +1334,14 @@
         </a>
 
         <nav class="site-nav" aria-label="Primary navigation">
+          <a href="#screenshots">In the app</a>
           <a href="#listening">Shared listening</a>
           <a href="#artists">Artist sovereignty</a>
           <a href="#trust">Invisible trust</a>
         </nav>
 
-        <a class="button button-primary header-action" href="design/dotify-shared-score.md">
-          <span class="header-action-label"><span class="header-action-prefix">Product </span>Blueprint</span>
+        <a class="button button-primary header-action" href="https://muzinga.netlify.app">
+          <span class="header-action-label">Open Dotify</span>
           <span class="arrow" aria-hidden="true">&#8599;</span>
         </a>
       </div>
@@ -1313,7 +1356,7 @@
             Dotify turns a simple link into a shared listening moment, while artist-owned runtimes keep access, rights, and value under the artist's control.
           </p>
           <div class="hero-actions" aria-label="Project resources">
-            <a class="button button-dark" href="design/dotify-shared-score.md">
+            <a class="button button-dark" href="#screenshots">
               Explore the experience
               <span class="arrow" aria-hidden="true">&#8594;</span>
             </a>
@@ -1326,43 +1369,74 @@
         </div>
       </section>
 
-      <figure class="score-figure shell" aria-labelledby="score-title">
-        <div class="score-board">
-          <div class="score-head">
-            <div>
-              <p class="score-label">Shared Score / 01</p>
-              <h2 id="score-title">One track. Four parts. One human moment.</h2>
-            </div>
-            <p class="score-disclosure">Relationship model — not live room data</p>
-          </div>
-
-          <ol class="score-lanes">
-            <li>
-              <span class="score-index">01</span>
-              <h3>The artist defines</h3>
-              <p>The track, its access policy, and its value flows begin in an artist-owned SmartRuntime.</p>
-            </li>
-            <li>
-              <span class="score-index">02</span>
-              <h3>The host opens</h3>
-              <p>A listener creates a temporary room around a track and becomes responsible for protected access.</p>
-            </li>
-            <li>
-              <span class="score-index">03</span>
-              <h3>The link travels</h3>
-              <p>The invitation carries the room context without turning entry into a wallet ritual.</p>
-            </li>
-            <li>
-              <span class="score-index">04</span>
-              <h3>People arrive</h3>
-              <p>Guests share the host's ephemeral audio stream and discover the artist through presence.</p>
-            </li>
-          </ol>
+      <section class="section shell product-gallery" id="screenshots" aria-labelledby="screenshots-title">
+        <p class="section-kicker">Inside Dotify</p>
+        <h2 class="section-title" id="screenshots-title">Find the music. Meet the people.</h2>
+        <p class="section-lead">
+          The current Web interface, captured with local demonstration data. Rooms, people and counts below are illustrative, not live activity.
+        </p>
+        <div class="product-gallery-grid">
+          <figure>
+            <a href="images/release-preview/music-desktop.jpg" aria-label="View the full Music screenshot">
+              <img
+                src="images/release-preview/music-desktop.jpg"
+                alt="Dotify Music catalog with three demonstration releases"
+                width="1440"
+                height="1000"
+                loading="lazy"
+                decoding="async"
+              />
+            </a>
+            <figcaption><strong>Start with the music.</strong> Open a track, then invite someone into the moment.</figcaption>
+          </figure>
+          <figure>
+            <a href="images/release-preview/rooms-desktop.jpg" aria-label="View the full room galaxy screenshot">
+              <img
+                src="images/release-preview/rooms-desktop.jpg"
+                alt="Dotify room galaxy with an opted-in Worldwide listening room"
+                width="1440"
+                height="1400"
+                loading="lazy"
+                decoding="async"
+              />
+            </a>
+            <figcaption><strong>Find your people.</strong> Nearby and Worldwide discovery respect the host's visibility choice.</figcaption>
+          </figure>
         </div>
-        <figcaption>
-          This diagram explains Dotify's product relationship. It does not represent an active room, participant count, or current network state.
-        </figcaption>
-      </figure>
+        <details class="product-gallery-more">
+          <summary>See the room and artist studio</summary>
+          <div class="product-gallery-grid">
+            <figure>
+              <picture>
+                <source media="(max-width: 600px)" srcset="images/release-preview/room-mobile.jpg" width="390" height="844">
+                <img
+                  src="images/release-preview/room-desktop.jpg"
+                  alt="Shared player and room conversation"
+                  width="1440"
+                  height="1000"
+                  loading="lazy"
+                  decoding="async"
+                />
+              </picture>
+              <figcaption>The room brings playback and conversation together. The narrow view is browser emulation.</figcaption>
+            </figure>
+            <figure>
+              <img
+                src="images/release-preview/artist-desktop.jpg"
+                alt="Artist studio with release and live activity controls"
+                width="1440"
+                height="1000"
+                loading="lazy"
+                decoding="async"
+              />
+              <figcaption>A separate space for artists to manage their music.</figcaption>
+            </figure>
+          </div>
+        </details>
+        <p class="gallery-source">
+          <a href="images/release-preview/README.md">Capture source and reproduction</a> · <a href="how-to/listen-together.md">Hosting and joining guide</a>
+        </p>
+      </section>
 
       <section class="section section-rule" id="listening" aria-labelledby="listening-title">
         <div class="shell">
@@ -1732,6 +1806,12 @@
           </div>
 
           <ul class="resource-list">
+            <li>
+              <a class="resource-link" href="README.md">
+                <span><strong>Documentation map</strong><span>Find a guide for listening, development or release operation.</span></span>
+                <span class="arrow" aria-hidden="true">&#8594;</span>
+              </a>
+            </li>
             <li>
               <a class="resource-link" href="design/dotify-shared-score.md">
                 <span>

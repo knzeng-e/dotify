@@ -8,7 +8,9 @@
 
 When an artist registers a track, they choose who is allowed to hear the full
 recording. This choice is not a setting on a platform - it is a rule written to
-a smart contract. Dotify cannot override it, and neither can anyone else.
+the artist runtime. The API checks the current contract rule rather than
+trusting a client label. Runtime ownership and upgrade authority remain separate
+from track ownership; these are explained below.
 
 Access model v2 is binary: either the listener is authorized and Dotify requests
 the content key, or Dotify shows the right gate and plays no protected audio.
@@ -50,9 +52,12 @@ artist sets which personhood level they require: `DIM1` or `DIM2`.
 - `DIM1` - basic proof of unique humanity
 - `DIM2` - higher-confidence proof (stricter verification)
 
-The registrar is responsible for recording which wallet addresses hold which
-personhood level on-chain. Once a wallet is recognized as human at the required
-level, it can access the track without paying.
+The current access pallet reads the Individuality precompile in Dotify’s
+application context. The former manual registrar setter is retired and reverts.
+The source implements the gate, but usable end-to-end verification still depends
+on a supported chain/Host and the personhood proof it exposes. When that read is
+unavailable or unverified, access fails closed; a local fixture is not a live
+humanity proof.
 
 **When to choose Human free:**
 
@@ -70,8 +75,10 @@ level, it can access the track without paying.
 In Classic mode, a listener pays a fixed amount of the configured chain's
 native token to unlock full playback. On the current Product DevNet/Paseo Asset
 Hub runtime rail, that token is PAS; a DOT-backed Polkadot Hub EVM chain would
-display DOT instead. The payment goes directly and immediately to the artist's
-wallet - no intermediary, no payout schedule, no platform cut.
+display DOT instead. The runtime settles the configured recipient shares in
+the payment transaction. A recipient that cannot accept the transfer keeps a
+claimable share; success does not prove every recipient was paid immediately.
+See [royalty settlement](royalty-settlement.md).
 
 Once a listener has paid for a track, their wallet is recorded on-chain as a
 Classic paid-access account. That record has no fixed expiry in the current
@@ -124,12 +131,13 @@ accessMode == Free
 OR
 accessMode == Classic AND paidAccess[contentHash][listenerAddress] == true
 OR
-accessMode == HumanFree AND personhoodLevelOf[listenerAddress] >= requiredPersonhood
+accessMode == HumanFree AND verified Individuality level meets requiredPersonhood
 ```
 
 Walletless guests probe with the zero address. That address is only granted when
-the current mode is Free. The frontend checks access at track selection time and
-caches the result in `catalogAccessByTrackId`.
+the current mode is Free. Frontend access state helps present the right action;
+it is not authority to deliver a key. The API verifies current access before
+releasing protected material.
 
 ### Ownership and control words
 
@@ -176,13 +184,12 @@ closed and shows the transaction hash as evidence to inspect.
 
 ### Personhood flow (Human free mode)
 
-Personhood is recorded off-chain by a registrar and stored on-chain in
-`personhoodLevelOf[listenerAddress]`. Only the designated registrar address can
-call `musicAccSetPersonhoodLevel(listener, level)`.
-
-In the current MVP, the registrar is set to the artist's own address at
-registration time. Delegation to an independent registrar is a planned
-improvement.
+The current MusicAccessPallet reads personhood from the Individuality precompile,
+not an artist-maintained address list. `musicAccSetPersonhoodLevel` is deprecated
+and reverts. A Human free release needs the configured DIM1/DIM2 requirement to
+be satisfied in the application's context; unavailable capability does not fall
+back to manually declared personhood. Native Host and real-proof acceptance
+remain explicit release gates.
 
 ### Denied playback and key delivery
 

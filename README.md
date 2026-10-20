@@ -1,573 +1,142 @@
 <p align="center">
-  <img src="brand/dotify-banner-light.svg" alt="Dotify - Let the Music connect the dots." width="720">
+  <img src="brand/dotify-banner-dark.svg" alt="Dotify: Let the music connect the dots." width="720">
 </p>
 
 # Dotify
 
-**Let the Music connect the dots.**
+**Music brings us closer.**
 
-Buses, trains, waiting rooms, streets: our common spaces have become places
-where solitudes sit side by side, each person inside their own bubble. Humanity
-has never been so connected, and rarely so alone. Yet inside almost every
-bubble the same thing is happening - people are listening to music.
+Dotify turns a shared link into a listening room. Discover music through the
+people playing it, join the conversation, and support its creators. Artists
+publish through their own smart runtime, keeping control over their catalog,
+access policies, rights and value flows.
 
-Dotify builds bridges out of that shared gesture. It is a shared common
-listening space that turns common spaces into **spaces of commons**, where
-music is treated as a cultural commons and shared presence is the experience.
+[Try the Web app](https://muzinga.netlify.app) ·
+[Explore the project](https://knzeng-e.github.io/dotify/) ·
+[Read the docs](docs/README.md) ·
+[Develop locally](docs/how-to/develop-locally.md)
 
-The same protocol gives artists sovereignty over their work. Each artist gets a
-personal smart space, a contract based runtime that returns full control over
-distribution, authorship, access and value flows, with support split
-automatically between rights holders. Fewer intermediaries between an artist
-and their public, and a higher valuation of their work.
+Dotify is in **testnet construction and validation** on Polkadot. Web and Product
+DevNet are delivery targets; a deployed build is not an accepted public pilot.
+Current device, reliability and payment checks live in the
+[pilot release plan](docs/operations/pilot-release-plan.md).
 
-The current interface direction is documented in
-[Dotify Shared Score](docs/design/dotify-shared-score.md), amended by the
-Living Light addendum: the Shared Score structure and honesty rules stay, and
-the presentation is an immersive dark listening room where the active track's
-aura lights the whole field (`web/src/styles/aura.css`).
+## Listen together
 
-## What it does
+1. Open a track in **Music**, then choose **Open a room**.
+2. Give people a name to recognize you by, and optionally name the room.
+3. Share its invitation link. Guests enter a nickname and join without a wallet.
 
-- **Music**: an actionable horizontal catalog first, followed by real open rooms, policy-aware listening,
-  and one-step room hosting without a permanent player navigation tab.
-- **Rooms**: link/code-only by default, with an explicit visibility switch and
-  an approximate-distance slider for Nearby in Web and Product. The cover-based
-  galaxy shows opted-in Nearby rooms inside both participants' areas and Worldwide
-  invitations, exact connected presence and your own room. Host visibility choices
-  survive temporary interruptions; actual publication still requires permission
-  and a working location provider. Room guests should be able to join and
-  listen without wallet friction.
-- **Artist portal**: a dedicated `/artists` onboarding and studio surface where
-  artists connect a wallet, create their runtime, upload releases, configure
-  access, add additional rights holders for royalty splits, and manage royalty
-  records outside the listener-first app shell. Verified artists see aggregate
-  live room activity, including private rooms without their identities, and can
-  join public rooms carrying their music regardless of distance.
+Rooms start **Link only**. Hosts can choose **Nearby** or **Everyone** for
+Worldwide discovery. The room galaxy combines opted-in nearby rooms with
+Worldwide rooms, while private invitations remain available independently of
+location. Nearby uses approximate areas, not a public map of people's positions.
 
-## Screenshots
+[Hosting, joining and visibility](docs/how-to/listen-together.md)
 
-**Catalog** - releases published by the artists themselves, each carrying the
-access mode its artist chose at upload. Any track can be opened as a room.
+## A look inside
 
-![Dotify catalog](docs/images/dotify-catalog.png)
+These captures show the current Web interface with local demonstration data.
+Room names, people and counts are illustrative, not live activity or evidence
+of native Product support. [Capture source and reproduction](docs/images/release-preview/README.md).
 
-**Listening rooms** — the earlier galaxy screenshot below remains a visual reference
-for cover planets and orbiting presence. Current discovery uses consented Nearby
-and Worldwide results; opening a room alone no longer
-adds it to a public galaxy. Discovery starts from someone sharing a listening
-moment, with direct links available independently of location.
+**Discover music**
 
-![Dotify listening rooms](docs/images/dotify-rooms-galaxy.png)
+![Music catalog with artist releases and listening options](docs/images/release-preview/music-desktop.jpg)
 
-**Inside a room** - one shared player, a room chat and emoji reactions that live
-only as long as the room, and track requests the host decides on. Mobile keeps the player and composer in view while Chat, Requests and People switch in place.
+**Find a listening room**
 
-![Inside a Dotify room](docs/images/dotify-room.png)
+![Room galaxy with album covers and Nearby and Worldwide discovery](docs/images/release-preview/rooms-desktop.jpg)
 
-## Path chosen
+**Share the moment**
 
-**Backend**: EVM smart-runtime system on Paseo Asset Hub. `ArtistRuntimeFactory`
-creates one personal `SmartRuntime` per artist, and `ArtistDirectory` indexes
-artist addresses to their runtimes.
+![A listening room with shared playback and conversation](docs/images/release-preview/room-desktop.jpg)
 
-**Frontend**: Static React + Vite web app deployed to Netlify and, through the
-Product profile, Bulletin/DotNS at `dotify-test01.dot`.
+<details>
+<summary>Mobile listening and the artist studio</summary>
 
-**WebRTC**: real-time music streaming.
+<p>
+  <img src="docs/images/release-preview/room-mobile.jpg" alt="Mobile room with player, chat and bottom navigation" width="320" loading="lazy">
+</p>
 
-**Socket.IO**: signaling for room discovery and SDP/ICE exchange. A future
-iteration can move signaling to statement-store style infrastructure.
+![Artist studio with release management controls](docs/images/release-preview/artist-desktop.jpg)
 
-**Product SDK direction**: Dotify now has an adaptive Product DevNet build for
-`dotify-test01.dot`. It keeps standalone link-first rooms and Free listening intact,
-adds explicit app-scoped Product identity, and publishes through
-Bulletin/DotNS. The runtime hooks now sit behind typed ports with the current
-viem implementation and an experimental Product CDM/PAPI adapter boundary.
-The backend key-delivery protocol now has an explicit Product sr25519
-signature scheme that binds the Product account public key to the derived H160
-requester before access checks. The Product frontend can now submit that
-Product proof after explicit host-account connection; contract writes now share
-the same runtime writer port, but the Product path still needs host-signed
-transaction evidence before becoming the default. See
-[`docs/explanation/product-devnet-architecture.md`](docs/explanation/product-devnet-architecture.md)
-and the
-[`Product roadmap`](docs/backlog/polkadot-product-readiness-and-killer-dapp-roadmap.md).
+</details>
 
-## Deployed
+## For artists
 
-**EVM factory** — `0x835a626a9a6965b197d079ae56b1ec94033c2699` (Paseo Asset Hub, chainId 420420417)
+The separate [artist space](https://muzinga.netlify.app/artists) brings together
+onboarding, release publication, editorial metadata, access rules, royalty
+splits and contribution settings. Verified artists can see aggregate activity
+for their music and visit public rooms carrying it. Private-room identifiers
+are not exposed through those aggregates.
 
-**EVM directory** — `0x4e883827d61e573094c7b777bae323070ea9f954`
+| Access mode | Individual listening                                                                                                                              |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Free        | No wallet required; the API verifies that the release is public.                                                                                  |
+| Classic     | The runtime checks paid access. Payments use its configured native asset, currently PAS on the test network.                                      |
+| Human free  | Access depends on a verified personhood requirement. End-to-end availability depends on the chain and Host; it is not a universal sign-in option. |
 
-> **Testnet security status (2026-09-06):** artist publication is open on the
-> configured factory/directory above. Read-only audit at finalized block
-> `13103348` verified the factory/directory pairing, found no finalized or
-> pending runtimes, and confirmed that the configured registry facet hash matches
-> the source-level owner-only `musicRegRegister` implementation
-> (`0x8ade82431086a7c3fa03c39dd602e7abee4e4b588b9246adeb36537cafff6b57`).
-> The previous Paseo deployment remains documented in the
-> [registry remediation runbook](docs/operations/registry-facet-remediation.md)
-> as legacy evidence and must not be reused for new publication.
+Room access is different: the **host** must have permission to play the track;
+guests receive a WebRTC audio stream, never its source file or content key.
+[Access policy](docs/explanation/access-control-model.md) ·
+[Content protection and its limits](docs/explanation/content-protection.md)
 
-**Bulletin CID** — `bafkr4ibynaanfrddyjgpmut2qrcu6vdttocbp4feyw6vkgxkkhqndjksny`
+## Develop locally
 
-**Gateway URL** — <https://ipfs.io/ipfs/bafkr4ibynaanfrddyjgpmut2qrcu6vdttocbp4feyw6vkgxkkhqndjksny>
+Use **Node 22 and npm 10+**. On a fresh checkout, from the repository root:
 
-**DotNS name** — `dotify-test01.dev-dot.li`
-
-## How to run end-to-end (locally)
-
-**Prerequisites**: Node 22, npm 10+.
-
-```bash
-cd web
-npm install
-npm run dev:listen
+```sh
+npm ci --prefix web
+cp web/.env.example web/.env.local
+npm run dev:listen --prefix web
 ```
 
-Open the listener app in a browser at `http://localhost:5273`. The artist
-onboarding and studio flow is available at `http://localhost:5273/artists`.
-
-Default ports:
-
-| Service       | URL                                      |
-| ------------- | ---------------------------------------- |
-| Frontend      | <http://localhost:5273>                  |
-| Artist portal | <http://localhost:5273/artists>          |
-| Signaling     | <http://localhost:8788>                  |
-| Backend API   | <http://localhost:8790>                  |
-| Bulletin RPC  | `wss://bulletin-paseo.tservices.es:8443` |
-| Asset Hub RPC | <https://eth-rpc-testnet.polkadot.io/>   |
-
-The app talks to Paseo Bulletin and Asset Hub directly from the browser. A local
-Ethereum node or local Substrate node is not required to run the demo.
-If the public Asset Hub RPC is unavailable, set `VITE_ETH_RPC_URL` in
-`web/.env.local` to a compatible Paseo Asset Hub EVM RPC endpoint.
-
-### Running the backend API
-
-The backend service handles server-side IPFS pinning, audio encryption,
-wallet-signed content-key delivery, the persisted catalog read model, and
-health checks.
-
-```bash
-cd services/api
-npm install
-cp .env.example .env
-# Edit .env: set PINATA_JWT and CONTENT_KEY_MASTER_SECRET
-# Optional rotation: set CONTENT_KEY_MASTER_SECRETS and CONTENT_KEY_ACTIVE_VERSION
-npm run dev
-```
-
-**Environment variables** (see `services/api/.env.example`):
-
-| Variable                        | Required         | Purpose                                                       |
-| ------------------------------- | ---------------- | ------------------------------------------------------------- |
-| `API_ORIGIN`                    | Compatibility    | Singular frontend CORS origin fallback                        |
-| `API_ORIGINS`                   | Production       | Comma-separated exact frontend CORS origins                   |
-| `PASEO_ASSET_HUB_RPC`           | Key requests     | Paseo Asset Hub EVM RPC used for access checks                |
-| `DOTIFY_DIRECTORY_ADDRESS`      | Key requests     | ArtistDirectory address used to resolve artist runtimes       |
-| `DOTIFY_CHAIN_ID`               | Key requests     | Chain ID expected in wallet-signed key requests               |
-| `CATALOG_SNAPSHOT_PATH`         | Catalog API      | Durable JSON snapshot path (default `.data/catalog.json`)     |
-| `CATALOG_POLL_INTERVAL_MS`      | Catalog API      | Confirmed event polling interval                              |
-| `CATALOG_RECONCILE_INTERVAL_MS` | Catalog API      | Full deterministic on-chain reconciliation interval           |
-| `CATALOG_STALE_AFTER_MS`        | Catalog API      | Age at which cached data reports `stale-cache`                |
-| `CATALOG_CONFIRMATIONS`         | Catalog API      | Blocks held back before indexing event changes                |
-| `PINATA_JWT`                    | For uploads      | Server-side Pinata token (never expose in frontend)           |
-| `CONTENT_KEY_MASTER_SECRET`     | For audio upload | 32-byte hex compatibility secret for v1/v2 key derivation     |
-| `CONTENT_KEY_MASTER_SECRETS`    | Rotation         | Optional JSON map of retained `dotify-content-key-vN` secrets |
-| `CONTENT_KEY_ACTIVE_VERSION`    | Rotation         | Optional active version for new encrypted audio uploads       |
-
-Set `VITE_DOTIFY_API_URL=http://localhost:8790` in `web/.env.local` to route
-audio, cover, and metadata uploads through the backend. In this mode the
-backend encrypts audio server-side and listeners obtain per-track keys through
-wallet-signed key requests; the production content key never ships in the
-frontend bundle. The same setting makes initial catalog browsing use one
-cacheable `GET /api/catalog` request instead of enumerating every runtime and
-royalty split from the browser. Direct chain reads remain in transaction
-preflight and access checks performed after track intent.
-
-For public production builds, set `VITE_DOTIFY_DEPLOYMENT=production` alongside
-`VITE_DOTIFY_API_URL`, `VITE_SIGNAL_URL`, and the public IPFS gateway variables.
-The web build then fails fast if required production URLs are missing, use
-loopback/insecure origins, or if `VITE_PINATA_JWT` / `VITE_CONTENT_SECRET` are
-present in the browser environment.
-
-Run `cd web && npm run smoke:production-env` to verify the production build
-guard still fails closed for missing URLs and browser-exposed demo secrets while
-accepting a safe public production env contract.
-
-Hosted Netlify/Fly dashboard settings, secrets, catalog persistence, and the
-update checklist for future env/config changes are tracked in
-[`docs/operations/deployment-configuration.md`](docs/operations/deployment-configuration.md).
-
-Operators can also set `VITE_DOTIFY_DEBUG_PANEL=true` during smoke checks to
-show the read-only Production readiness panel under `You`. It checks backend
-readiness, signaling health, chain RPC, configured contracts, wallet-chain
-mismatch, catalog status, and IPFS gateway reads. Product candidate builds also
-offer candidate-bound payment/key and room evidence exports; the room export
-derives host transport facts from live telemetry and keeps guest audibility and
-sync as explicit operator observations. The same panel captures sanitized,
-candidate-bound first-sound samples across desktop, mobile, and Product
-surfaces; combine the downloaded files with `npm run smoke:first-sound` rather
-than inferring physical-device performance from Chromium automation.
-
-**Demo/local mode** (no backend): set `VITE_PINATA_JWT` in `web/.env.local` with
-a restricted upload-only Pinata token. Do not use an unrestricted token in demos.
-
-**Inspecting API health**:
-
-| Endpoint                            | Purpose                                                                      |
-| ----------------------------------- | ---------------------------------------------------------------------------- |
-| `GET /health`                       | Liveness: process status, uptime, package version. Never touches the chain.  |
-| `GET /version`                      | Package version plus the deploy commit SHA when known                        |
-| `GET /health/ready`                 | Readiness diagnostics; answers `503` when key delivery cannot work           |
-| `GET /api/catalog`                  | Paginated release read model with ETag, cache policy, and block-lag metadata |
-| `GET /api/catalog/artists/:address` | Artist detail plus indexed releases                                          |
-| `GET /api/catalog/releases/:hash`   | Release detail with access and royalty summary                               |
-
-The commit SHA comes from the `GIT_COMMIT_SHA` env variable, falling back to
-`git rev-parse HEAD` in dev checkouts.
-
-`/health/ready` checks, without ever echoing secret values: master-secret and
-Pinata configuration (booleans only), RPC reachability and chain-ID match,
-artist-directory readability, and factory code presence.
-
-Every response carries an `x-request-id` header (echoed from a well-formed
-incoming `x-request-id`, otherwise generated) that matches the structured log
-line for that request, and error responses share one typed envelope:
-`{ error, code, requestId }`. Authorization headers, session tokens, and
-signatures are redacted from request logs; secrets never appear in health
-output.
-
-The catalog indexer persists an atomic JSON snapshot, advances it from
-confirmed `ArtistRegistered` and SmartRuntime track events, and periodically
-reconciles full on-chain state. A checkpoint hash mismatch triggers a
-deterministic reindex. Run `npm run catalog:reindex` in `services/api` for an
-operator-forced rebuild. The JSON store is a single-process baseline; mount
-`CATALOG_SNAPSHOT_PATH` on durable storage and do not run multiple writers
-against the same file.
-
-### Running the signaling server (hosted rooms)
-
-The signaling server coordinates room discovery and WebRTC SDP/ICE exchange.
-It never carries audio: media flows host to listeners over WebRTC only.
-
-```bash
-cd web
-npm run signal          # local dev (started automatically by npm run dev:listen)
-npm run test:signal     # integration tests: create/join/cap/expiry/heartbeat
-npm run test:e2e        # Playwright: deterministic Classic unlock and artist publish flows
-npm run test:nearby     # Web and Product discovery, each with an isolated signaling server
-```
-
-`npm run test:e2e` starts Vite in deterministic e2e mode. It seeds one Classic
-track, connects deterministic test wallets, verifies the locked gate before
-Classic payment, and covers artist runtime creation plus release publication
-with mocked upload and transaction failure states.
-
-`npm run test:nearby` runs the Web and Product discovery suites sequentially,
-restarting the real signaling server between them. Their independent scenarios
-share localhost in tests; isolation prevents the combined searches from consuming
-one network’s six-searches-per-minute budget. Production limits remain unchanged.
-
-For a public deployment, run `node server/signaling.mjs` on any Node 22 host
-and point the frontend at it with `VITE_SIGNAL_URL`.
-
-The repository includes `web/fly.signal.toml` and `web/Dockerfile.signal` for a
-Fly.io signaling deployment. Keep `min_machines_running = 1` for this service:
-rooms can be active while no HTTP traffic is flowing, and stopping the machine
-would drop active WebSocket rooms without a clean `room:closed` broadcast.
-
-**Environment variables**:
-
-| Variable                 | Default   | Purpose                                                        |
-| ------------------------ | --------- | -------------------------------------------------------------- |
-| `SIGNAL_PORT`            | `8788`    | Listen port                                                    |
-| `SIGNAL_HOST`            | `0.0.0.0` | Bind address                                                   |
-| `SIGNAL_ORIGINS`         | `*`       | Comma-separated allowed origins (set explicitly in production) |
-| `SIGNAL_ROOM_TTL_MS`     | 6 h       | Hard room lifetime before expiry                               |
-| `SIGNAL_HOST_TIMEOUT_MS` | 120 s     | Close rooms whose host stops heartbeating                      |
-| `SIGNAL_MAX_LISTENERS`   | 24        | Per-room listener cap                                          |
-
-`GET /health` reports uptime, room, in-room listener, and solo-listener counts, and a non-secret
-configuration echo (allowed origins, room TTL, host heartbeat timeout,
-per-room listener cap). `GET /status` returns an empty `rooms` array and
-anonymous aggregate solo presence keyed by track hash. It cannot establish
-whether a room exists, is full or has expired. Use `/health` for aggregate
-counts, join/resume acknowledgements for room state and admission failures,
-and `room:closed` events for closure. Nearby lists only explicitly visible rooms
-within both selected approximate areas.
-
-Signaling does not relay audio. For reliable audio across mobile, carrier,
-VPN, or symmetric-NAT boundaries, configure a TURN relay. The production path is
-API-issued short-lived credentials from `GET /api/turn/grant` using
-server-side `TURN_URLS` and `TURN_REST_SECRET`. Signaling first proves that the
-requesting socket is a current room host or listener through the separate
-`SIGNAL_TURN_CAPABILITY_SECRET` / `TURN_CAPABILITY_SECRET` boundary;
-browser-visible `VITE_TURN_*` values are only a DevNet/static fallback.
-
-**Host-based room access.** Rooms never become a wallet checkpoint:
-
-- A host creates a room and shares a join link (`#/rooms/<roomId>`) or code.
-- Guests join with the link alone: no wallet, no signature, no payment.
-- Only the host must satisfy a protected track's access policy. An authorized
-  host streams the full track; an unauthorized host streams no protected audio
-  and sees the correct unlock/personhood CTA.
-- Guests receive only the ephemeral WebRTC stream, never content keys or
-  encrypted source files. They can of course hear and record what is streamed;
-  Dotify does not claim otherwise.
-
-**To rebuild and redeploy the frontend to Bulletin Chain:**
-
-```bash
-cd web
-npm run build:bulletin   # produces dist-bulletin/index.html (~1 MB single file)
-npm run deploy:bulletin  # uploads to Bulletin via Alice dev account
-```
-
-Alice must hold upload authorization on Paseo Bulletin. Update `deployments.json`
-with the new CID printed by the deploy script, then register the CID with DotNS.
-
-## Track model
-
-Each uploaded track gets:
-
-- a blake2b-256 content hash of the audio file;
-- local blob URLs for draft playback before registration;
-- encrypted Pinata IPFS refs for audio plus IPFS refs for cover and metadata
-  JSON;
-- an optional advanced JSON rights manifest archived to Bulletin Chain;
-- an EVM NFT minted by the artist `SmartRuntime` with the content hash, metadata
-  reference, royalty splits, and access mode. The NFT owner has active-track
-  playback access, but the original artist field, runtime ownership, and
-  royalty beneficiaries remain separate facts.
-
-Draft track data is in-session only until registration. Registered tracks store
-IPFS refs on-chain and can be loaded through the configured gateway. IPFS reads
-use a primary gateway plus fallback gateways to avoid custom gateway
-authorization failures.
-
-## Access modes
-
-- **Free**: playable by everyone, wallet or not. The backend still verifies the
-  current runtime policy before releasing the content key.
-- **Human free**: free listening for addresses that satisfy the configured
-  Humanity / Individuality requirement. The current access pallet reads the
-  Individuality precompile in Dotify's application context when the host chain
-  exposes it; otherwise Human free fails closed.
-- **Classic**: paid access in the configured runtime-native token. On the
-  current Product DevNet/Paseo Asset Hub rail, that token is PAS. The runtime
-  records the price and settles configured recipient shares on
-  `musicRoyPayAccess`. Recipients that reject or exhaust the bounded native
-  transfer do not block the listener's purchase; their share remains claimable
-  in the artist runtime.
-
-A Classic payment creates an on-chain paid-access record with no fixed expiry in
-the current runtime. It is not a guarantee of perpetual media availability:
-inactive releases stay closed, and playback always follows the current runtime
-access check.
-
-### Individual playback access
-
-For individual full-track playback, Dotify checks access before loading the
-registered track. Free tracks can play without a wallet: the frontend asks the
-backend for a free key, and the backend re-verifies the runtime policy before
-releasing it. Gated tracks use a signed session or signed key request; the
-backend verifies the requester, resolves the artist runtime, and calls
-`musicAccCanAccess` before releasing a per-track key. If access is denied, the
-UI shows the action needed to unlock the track and plays no protected audio.
-Standalone clients sign with the default `eip191` scheme. Product-host clients
-can use `product-sr25519-v1` by signing the same canonical Dotify message bytes
-with the app-scoped Product account and sending `productPublicKey`; the backend
-derives the H160 requester from that public key before any nonce is consumed.
-
-For registered artist tracks, users without a connected wallet can play Free
-tracks. For gated tracks, they see a sign-in/unlock gate. Dev-account fallback
-must not grant full listener playback.
-
-### Room playback access
-
-Room playback uses **host-based access**.
-
-- If the host has access to a protected track, Dotify may deliver a temporary
-  content key to the host only, and the host streams the full track through
-  WebRTC.
-- Room listeners do not need to connect a wallet, sign, pay, or prove access
-  merely to listen inside a room.
-- Room listeners never receive the encrypted source file or content key; they
-  receive only the ephemeral WebRTC media stream.
-- If the host lacks access to a protected track, Dotify keeps the room alive
-  but streams no protected audio until the host unlocks, verifies, or selects a
-  playable track.
-
-This protects source-file distribution without turning the room into a wallet
-checkpoint.
-
-### Security boundary
-
-Current client-side protection is demo-grade. Production protection requires
-server-side upload/key delivery and wallet-signed content-key requests.
-
-Dotify protects distribution access to encrypted source files and keys. It does
-not claim absolute DRM and does not prevent recording of an authorized WebRTC
-stream.
-
-See also:
-
-- `docs/product/ux-signature-flows.md`
-- `docs/product/room-access-policy.md`
-- `docs/security/content-key-delivery-threat-model.md`
-
-## What works
-
-- WebRTC host-to-listener audio stream (tested with two local browser tabs and
-  across LAN).
-- Socket.IO signaling with open-room discovery and manual room codes.
-- Artist portal: wallet-gated artist onboarding, audio upload, cover image
-  upload, Pinata IPFS pinning, canonical IPFS metadata, blake2b hash, optional
-  Bulletin Chain archival upload, artist runtime creation, and on-chain release
-  registration.
-- Backend upload/key service for server-side audio encryption and wallet-signed
-  content-key requests, with demo/local browser encryption still available.
-- Access model v2: Free tracks play without a wallet, gated tracks show a gate
-  with no preview fallback, and new production uploads use release-bound
-  `dotify:enc:v2:key-vN:ipfs://<CID>` chunked encrypted audio. The default
-  active version remains `dotify-content-key-v2`; future rotations retain old
-  version secrets while using a new active version for new uploads.
-- Seed catalog browsable on the Music view.
-- SmartRuntime music pallets: registration, NFT ownership, access checks, paid
-  access, listen recording, royalty split storage, and transfer gating by
-  personhood level.
-
-## What doesn't work / known limitations
-
-- **Draft audio is session-only**: blob URLs are revoked on unmount before the
-  release is registered. Registered releases rely on Pinata IPFS refs.
-- **Client-side protection is best-effort**: local/demo encrypted audio improves
-  development flows, but `VITE_CONTENT_SECRET` is still only a local/demo
-  boundary. Production uploads and protected playback should use
-  `VITE_DOTIFY_API_URL` with backend-held content-key secrets.
-  Production frontend builds should set `VITE_DOTIFY_DEPLOYMENT=production` so
-  browser-bundled demo secrets fail the build.
-- **Key rotation is not revocation**: grants are short-lived, but derived audio
-  keys are deterministic. If a client already learned a key, changing the active
-  version cannot make that key unknown again.
-- **Wallet scope**: Dotify treats the connected EVM account as the primary
-  artist and listener identity. Artist registration and release publication
-  require a connected wallet; dev EVM accounts are not used as public fallback
-  signers. Bulletin archival still needs a Substrate signer when enabled.
-- **Proof of Personhood is mocked**: `setPersonhoodLevel` is a dev-only admin
-  call. Live Individuality chain reads are on the roadmap.
-- **Browser-side Pinata JWT is demo/local only**: `VITE_PINATA_JWT` is used for
-  direct browser uploads only when `VITE_DOTIFY_API_URL` is unset. Production
-  uploads use the backend API; see `services/api/.env.example` for server-side
-  `PINATA_JWT`, `CONTENT_KEY_MASTER_SECRET`, and optional key-version rotation
-  variables.
-- **Single-host rooms**: no multi-host or handoff logic. If the host closes the
-  tab, the room ends.
-- **Room stream capture limits**: room guests do not receive keys/source files,
-  but WebRTC audio heard by guests can still be recorded outside Dotify.
-
-## Architecture
-
-```text
-Browser (React + Vite)
-  ├── WebRTC audio stream (captureStream → RTCPeerConnection per listener)
-  ├── Socket.IO       →  Node signaling server  (SDP/ICE only)
-  ├── Dotify API      →  backend service  (health, uploads, nonce, key delivery)
-  ├── Pinata HTTP API →  encrypted audio, cover, and metadata pinning (demo/local)
-  ├── IPFS gateways   →  primary + fallback reads for manifests and audio bytes
-  ├── polkadot-api (PAPI)  →  Paseo Bulletin Chain  (optional manifest upload)
-  └── viem            →  Paseo Asset Hub EVM  (ArtistDirectory, ArtistRuntimeFactory, SmartRuntime)
-```
-
-The frontend is built as a single self-contained HTML file using
-`vite-plugin-singlefile` so it works when served from a flat IPFS CID.
-
-## Rights contracts
-
-`contracts/evm/contracts/ArtistRuntimeFactory.sol` deploys one
-`SmartRuntime` per artist. The runtime is assembled from music pallets that
-handle:
-
-- one active track record per content hash (prevents duplicate registration);
-- NFT mint with `ownerOf`, `balanceOf`, and transfer events;
-- cover, audio, metadata, and Bulletin manifest references stored on-chain;
-- Human free or Classic access mode with PoP gating;
-- native-token access payment, bounded royalty settlement, and claimable failed
-  recipient shares on `musicRoyPayAccess`.
-
-## Structure
-
-| Path                 | Role                                                            |
-| -------------------- | --------------------------------------------------------------- |
-| `web/`               | React app, signaling server, Bulletin deploy scripts            |
-| `web/.papi/`         | PAPI descriptors for Bulletin Chain                             |
-| `services/api/`      | Backend API: catalog index, health, uploads, auth, key delivery |
-| `contracts/evm/`     | Hardhat + Solidity smart-runtime contracts                      |
-| `docs/product/`      | Product policy and UX flow documentation                        |
-| `docs/security/`     | Security boundaries and threat models                           |
-| `deployments.json`   | EVM factory, directory, initializer, pallet addresses           |
-| `brand/`             | Logo, lockups, app icons and favicons                           |
-| `docs/images/`       | Product screenshots used in this README                         |
-| `docs/presentation/` | Project presentation deck (PDF)                                 |
-
-## Roadmap
-
-Production spine first:
-
-1. **Finish standalone production operation** - complete DAV2 real-browser and
-   gateway validation, frontend health checks, deployment smoke checks, and the
-   backend read-through decision for reliable first sound. Use
-   `npm run smoke:pilot-release` from `web/` to keep W01-W12 evidence, Product
-   smoke inputs, rollback rehearsal, and aggregate pilot metrics separated from
-   a shipped-pilot claim.
-2. **Validate Product DevNet portability** - prove the host/account and
-   Bulletin/DotNS baseline, then wire real CDM-installed runtime packages,
-   Product-signed key/session requests, resource allocation, and Statement
-   Store spikes without weakening standalone rooms.
-3. **Integrate real Humanity / Individuality** - promote Human free access only
-   after the privacy-preserving source, proof shape, address-binding story, and
-   fallback UX are proven.
-4. **Deepen resilient shared listening** - improve room resilience, provenance,
-   consented social memory, and artist surfaces after the production gate is
-   stable.
-
-Deferred cultural expansion:
-
-- **Subscription as commitment** - explore staking-based support only after
-  trust, usability, and payment-rail boundaries are proven.
-- **Ambassador program** - let listeners act as cultural ambassadors for the
-  artists they love after provenance, consent, and anti-abuse foundations exist.
-- **Decentralised music awards** - make recognition community-decided and
-  auditable once the core listening and rights spine is stable.
-
-## Improvement Backlog
-
-1. Harden wallet support: injected EVM providers, Product host account
-   boundaries, network mismatch handling, and clear transaction preflight
-   states.
-2. Harden and operate the backend upload/key service for public traffic:
-   production CORS, secret rotation, monitoring, and rate limits.
-3. Complete the browser/device validation matrix for DAV2 Range + MSE playback
-   and decide whether a backend read-through gateway is needed.
-4. Keep demo-mode browser-exposed Pinata/content secrets out of public
-   deployments.
-5. Validate the Product host/account and Bulletin/DotNS deployment baseline,
-   then wire frontend Product-signed key/session requests, resource allocation,
-   and PolkaVM/CDM contract portability.
-6. Add a production artist dashboard on `/artists`: release drafts, edit
-   metadata, royalty analytics, and profile verification state.
-7. Deploy and monitor a public signaling server for DotNS / Bulletin builds.
-8. Integrate live Humanity / Individuality data instead of manual registrar
-   writes, after the research ticket proves a privacy-preserving source and
-   address-binding story.
-9. Measure the catalog API budgets under public seed traffic and move its
-   single-writer JSON snapshot to shared storage before horizontal API scaling.
-10. Keep generated frontend ABI bindings checked from Hardhat artifacts.
-11. Add deployment smoke tests for DotNS/Bulletin CIDs, IPFS gateway fallback,
-    API/signaling health, and contract address availability.
-12. Improve room resilience with host handoff, reconnect recovery, and explicit
-    room expiry.
+This starts the Web app at <http://localhost:5273> and room signaling at
+<http://localhost:8788>. The example frontend configuration also points to a
+local API; follow the [local setup guide](docs/how-to/develop-locally.md) for
+catalog browsing, protected playback and artist uploads. A local blockchain is
+not required to use the configured testnet.
+
+For deterministic flows without real wallets, keys or uploads, use the existing
+[browser fixtures](web/README.md#verification).
+
+## How it fits together
+
+| Component                                                              | Responsibility                                                                               |
+| ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| [Web app](web/README.md)                                               | React, TypeScript and Vite; Music, Rooms, You and the separate artist studio.                |
+| [API](docs/explanation/architecture-overview.md#backend-api)           | Catalog indexing, uploads, encrypted audio, signed sessions and access-checked key delivery. |
+| [Signaling](docs/explanation/listening-rooms.md)                       | Room membership, ephemeral conversation, scoped discovery and WebRTC negotiation.            |
+| [Artist runtimes](contracts/README.md)                                 | Artist-owned contracts for catalog, access and value flows on Paseo Asset Hub.               |
+| [Product integration](docs/explanation/product-devnet-architecture.md) | Host account/runtime adapters and Bulletin/DotNS app distribution.                           |
+
+Pinata credentials and master key material stay on the API. Audio travels over
+WebRTC directly or through TURN when needed; signaling does not carry it.
+Protection controls source distribution and key delivery, not recording after
+someone is authorized to hear music.
+
+[Architecture](docs/explanation/architecture-overview.md) ·
+[Security model](docs/security/content-key-delivery-threat-model.md) ·
+[Deployment configuration](docs/operations/deployment-configuration.md)
+
+## Contribute and follow progress
+
+Start with the [documentation map](docs/README.md) and
+[implementation plan](docs/backlog/implementation/README.md). GitHub
+[Project 5](https://github.com/users/knzeng-e/projects/5) tracks live work;
+[dated evidence](docs/backlog/implementation/evidence/) records what was tested.
+Reliability and verified artist/listener journeys come before feature expansion.
+
+Create focused branches from tested `dev`, preserve the room guest's walletless
+entry, and follow the [contribution rules](AGENTS.md) and
+[PR writing guide](docs/explanation/pull-requests-as-knowledge-sharing.md).
+See [Web verification](web/README.md#verification) for commands.
+
+Deployment addresses and rollout identities belong in
+[deployments.json](deployments.json) and the
+[operations runbooks](docs/operations/deployment-configuration.md), rather than a
+second list here. The Product publication process is
+[documented separately](docs/operations/product-devnet-deployment.md).
+
+[GPL-3.0 license](LICENSE) · [Project presentation](docs/presentation/dotify-showcase-2026.pdf)
