@@ -123,6 +123,146 @@ afterEach(() => {
 });
 
 describe('keyService sessions', () => {
+  it.each([200, 503])('covers same-tick queued tokens for coalesced callers without looping HTTP %s', async status => {
+    const scopeKey = `dotify:session:v2:${encodeURIComponent('https://api.test')}:${ADDRESS}:420420417:eip191`;
+    installLocalStorage([[scopeKey, JSON.stringify({ token: 'same-tick-logout', expiresAt: new Date(Date.now() + 3_600_000).toISOString() })]]);
+    const fetchMock = vi.fn(async () => jsonResponse({ ok: status === 200 }, status));
+    vi.stubGlobal('fetch', fetchMock);
+    const service = await loadKeyService();
+    const emptyFlush = service.retryPendingSessionRevocations();
+    const signOut = service.signOutOfDotifySession(ADDRESS);
+    const coalesced = service.retryPendingSessionRevocations();
+    const results = await Promise.allSettled([emptyFlush, signOut, coalesced]);
+    for (const result of results) {
+      expect(result.status).toBe(status === 200 ? 'fulfilled' : 'rejected');
+      if (result.status === 'rejected') expect(result.reason).toMatchObject({ code: 'SESSION_LOGOUT_PENDING' });
+    }
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://api.test/api/auth/logout',
+      expect.objectContaining({ body: JSON.stringify({ sessionToken: 'same-tick-logout' }) })
+    );
+  });
+
+  it.each(['503', 'network'])('retains inactive logout credentials across reload after %s and removes them only after acknowledgement', async failure => {
+    const scopeKey = `dotify:session:v2:${encodeURIComponent('https://api.test')}:${ADDRESS}:420420417:eip191`;
+    const { store } = installLocalStorage([[scopeKey, JSON.stringify({ token: 'pending-logout', expiresAt: new Date(Date.now() + 3_600_000).toISOString() })]]);
+    const fetchMock = vi.fn(async () => {
+      if (failure === 'network') throw new TypeError('offline');
+      return jsonResponse({ code: 'SESSION_REVOCATION_UNAVAILABLE' }, 503);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    let service = await loadKeyService();
+    await expect(service.signOutOfDotifySession(ADDRESS)).rejects.toMatchObject({ code: 'SESSION_LOGOUT_PENDING' });
+    expect(service.existingDotifySession({ address: ADDRESS }, 420420417)).toBeNull();
+    expect(store.has(scopeKey)).toBe(false);
+    expect([...store.keys()].some(key => key.startsWith('dotify:logout:v1:'))).toBe(true);
+
+    service = await loadKeyService();
+    expect(service.existingDotifySession({ address: ADDRESS }, 420420417)).toBeNull();
+    fetchMock.mockImplementation(async () => jsonResponse({ ok: true }));
+    await service.retryPendingSessionRevocations();
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      'https://api.test/api/auth/logout',
+      expect.objectContaining({ body: JSON.stringify({ sessionToken: 'pending-logout' }) })
+    );
+    expect(store.size).toBe(0);
+  });
+
+  it('keeps failed sign-out inactive across reload even if removing the old active cache entry fails', async () => {
+    const scopeKey = `dotify:session:v2:${encodeURIComponent('https://api.test')}:${ADDRESS}:420420417:eip191`;
+    const { localStorage } = installLocalStorage([
+      [scopeKey, JSON.stringify({ token: 'still-on-disk', expiresAt: new Date(Date.now() + 3_600_000).toISOString() })]
+    ]);
+    localStorage.removeItem.mockImplementation(() => {
+      throw new Error('remove blocked');
+    });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => jsonResponse({}, 503))
+    );
+    let service = await loadKeyService();
+    await expect(service.signOutOfDotifySession(ADDRESS)).rejects.toMatchObject({ code: 'SESSION_LOGOUT_PENDING' });
+    service = await loadKeyService();
+    expect(service.existingDotifySession({ address: ADDRESS }, 420420417)).toBeNull();
+  });
+
+  it('retains the inactive marker after acknowledgement if only the old active cache slot cannot be removed', async () => {
+    const scopeKey = `dotify:session:v2:${encodeURIComponent('https://api.test')}:${ADDRESS}:420420417:eip191`;
+    const { localStorage, store } = installLocalStorage([
+      [scopeKey, JSON.stringify({ token: 'blocked-slot', expiresAt: new Date(Date.now() + 3_600_000).toISOString() })]
+    ]);
+    localStorage.removeItem.mockImplementation(key => {
+      if (key === scopeKey) throw new Error('active slot blocked');
+      store.delete(key);
+    });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => jsonResponse({ ok: true }))
+    );
+    let service = await loadKeyService();
+    await service.signOutOfDotifySession(ADDRESS);
+    service = await loadKeyService();
+    expect(service.existingDotifySession({ address: ADDRESS }, 420420417)).toBeNull();
+  });
+
+  it('retains a memory-only retry when Host storage cannot be written and leaves the new account session intact', async () => {
+    const { localStorage } = installLocalStorage();
+    localStorage.setItem.mockImplementation(() => {
+      throw new Error('storage unavailable');
+    });
+    let logoutSucceeds = false;
+    let sessions = 0;
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      if (url.endsWith('/session') && init?.method === 'GET') return jsonResponse({ available: true });
+      if (url.endsWith('/nonce')) return jsonResponse({ nonce: 'a'.repeat(48), expiresAt: new Date(Date.now() + 60_000).toISOString() });
+      if (url.endsWith('/session')) return jsonResponse({ sessionToken: `account-${++sessions}`, expiresAt: new Date(Date.now() + 3_600_000).toISOString() });
+      return jsonResponse({ ok: logoutSucceeds }, logoutSucceeds ? 200 : 503);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const service = await loadKeyService();
+    await service.ensureDotifySessionForSigner(productSigner(), 420420417);
+    await expect(service.signOutOfDotifySession(ADDRESS)).rejects.toMatchObject({ code: 'SESSION_LOGOUT_PENDING' });
+    expect(service.existingDotifySession(productSigner(), 420420417)).toBeNull();
+    const nextSigner = { ...productSigner(), address: ARTIST };
+    await service.ensureDotifySessionForSigner(nextSigner, 420420417);
+    logoutSucceeds = true;
+    await Promise.all([service.retryPendingSessionRevocations(), service.retryPendingSessionRevocations()]);
+    expect(service.existingDotifySession(nextSigner, 420420417)).toBe('account-2');
+    expect(fetchMock.mock.calls.filter(([url]) => url.endsWith('/logout'))).toHaveLength(2);
+  });
+
+  it('preserves retry credentials for a late sign-in result after disconnect', async () => {
+    installLocalStorage();
+    let finish: (value: Response) => void = () => {};
+    const response = new Promise<Response>(resolve => {
+      finish = resolve;
+    });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string, init?: RequestInit) => {
+        if (url.endsWith('/session') && init?.method === 'GET') return jsonResponse({ available: true });
+        if (url.endsWith('/nonce')) return jsonResponse({ nonce: 'a'.repeat(48), expiresAt: new Date(Date.now() + 60_000).toISOString() });
+        if (url.endsWith('/session')) return response;
+        return jsonResponse({}, 503);
+      })
+    );
+    const service = await loadKeyService();
+    const notify = vi.fn();
+    const unsubscribe = service.onSessionRevocationPending(notify);
+    const pending = service.ensureDotifySessionForSigner(productSigner(), 420420417);
+    const rejected = expect(pending).rejects.toMatchObject({ code: 'SESSION_CANCELLED' });
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledWith('https://api.test/api/auth/session', expect.objectContaining({ method: 'POST' })));
+    await service.signOutOfDotifySession(ADDRESS);
+    finish(jsonResponse({ sessionToken: 'late-pending', expiresAt: new Date(Date.now() + 3_600_000).toISOString() }));
+    await rejected;
+    expect(notify).toHaveBeenCalledTimes(1);
+    unsubscribe();
+    expect(service.existingDotifySession(productSigner(), 420420417)).toBeNull();
+    const reloaded = await loadKeyService();
+    await expect(reloaded.retryPendingSessionRevocations()).rejects.toMatchObject({ code: 'SESSION_LOGOUT_PENDING' });
+  });
+
   it('bounds the capability probe and does not sign when that probe times out', async () => {
     installLocalStorage();
     const signMessage = vi.fn(async () => PRODUCT_SIGNATURE);
