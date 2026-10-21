@@ -151,6 +151,42 @@ describe('durable streaming publications', () => {
       assert.deepEqual(before, prepared[0]);
       await restored.stop();
     }));
+  it('fails a stalled storage request at its deadline and retries the same ciphertext', async t =>
+    fixture(async (directory, deps) => {
+      const deadline = new AbortController();
+      t.mock.method(AbortSignal, 'timeout', () => deadline.signal);
+      let encodes = 0,
+        pins = 0;
+      let manifest: Buffer | undefined;
+      const jobs = new StreamingJobs({
+        ...deps,
+        transcode: async () => {
+          encodes++;
+          return encoded;
+        },
+        pin: async (files, _name, signal) => {
+          const bytes = Buffer.from(files.find(file => file.path === 'manifest.json')!.bytes);
+          if (++pins === 1) {
+            manifest = bytes;
+            queueMicrotask(() => deadline.abort(new Error('synthetic storage deadline')));
+            return new Promise<string>((_resolve, reject) => signal.addEventListener('abort', () => reject(signal.reason), { once: true }));
+          }
+          assert.deepEqual(bytes, manifest);
+          return cid;
+        }
+      });
+      await jobs.start(false);
+      const job = await jobs.enqueue(input);
+      await jobs.runNext();
+      assert.equal(jobs.get(job.id, owner, scope.chainId)?.state, 'failed');
+      t.mock.restoreAll();
+      await jobs.retry(job.id, owner, scope.chainId);
+      await jobs.runNext();
+      assert.equal(jobs.get(job.id, owner, scope.chainId)?.state, 'ready');
+      assert.equal(encodes, 1);
+      assert.equal(pins, 2);
+      await jobs.stop();
+    }));
   it('rechecks authority, bounds admission and refuses lost nonce custody without recreating it', async () =>
     fixture(async (directory, deps) => {
       const jobs = new StreamingJobs({

@@ -427,7 +427,9 @@ export class StreamingJobs {
         files.push({ path: object.path, bytes });
       }
       files.push({ path: 'manifest.json', bytes: Buffer.from(JSON.stringify(manifest)) });
-      const cid = await this.deps.pin(files, `stream-${job.id}`, signal);
+      const publishSignal = AbortSignal.any([signal, AbortSignal.timeout(5 * 60_000)]);
+      const cid = await this.deps.pin(files, `stream-${job.id}`, publishSignal);
+      publishSignal.throwIfAborted();
       if (!/^(Qm[1-9A-HJ-NP-Za-km-z]{44}|b[a-z2-7]{20,110})$/.test(cid)) throw new Error('Invalid storage directory');
       const version = job.scope.keyVersion.replace('dotify-content-', '');
       await this.exclusive(async () => {

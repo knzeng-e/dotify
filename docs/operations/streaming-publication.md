@@ -62,7 +62,8 @@ archive outside the playback reader.
 Queue: four retained unfinished jobs (including failed), at most 200 MiB of
 original masters and 64 status records. Inputs remain limited to 50 MiB and
 15 minutes; output/objects/counts are bounded. Three attempts per job prevent
-unbounded automatic retries. Retry failures from the studio, or explicitly
+unbounded automatic retries. A storage request is cancelled after five minutes;
+retry reuses its authenticated ciphertext. Retry failures from the studio, or explicitly
 **Discard failed preparation** to release their capacity. Active jobs cannot be
 discarded. Failed/ready status records expire after seven days; the background
 queue and admission paths prune them. Ready local files are removed after durable

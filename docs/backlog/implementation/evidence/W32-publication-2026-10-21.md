@@ -63,7 +63,7 @@ these checks are synthetic.
 
 | Check | Observed result |
 | --- | --- |
-| API full suite | 213 passed after integrating the #316 prerequisite (203 before integration), 0 failed/skipped, including queue admission/restart/tombstone recovery, retry ciphertext reuse, scoped upload replay and private status/discard, v3 canonical access and bounded relay checks |
+| API full suite | 214 passed after integrating the #316 prerequisite (203 before integration), 0 failed/skipped, including queue admission/restart/tombstone recovery, retry ciphertext reuse, scoped upload replay and private status/discard, v3 canonical access and bounded relay checks, and deadline cancellation/retry of stalled storage |
 | API typecheck/build | Passed |
 | Codec/nonce suite | 6 passed, including real FFmpeg decoding, invalid/cancelled parser cleanup, key/nonce uniqueness and tamper/order/scope refusal |
 | Web unit suite | 1013 passed across 127 files, including explicit-only discard |
