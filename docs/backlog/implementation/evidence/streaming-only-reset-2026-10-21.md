@@ -32,10 +32,12 @@ is based on tested dev `151428b` plus the fresh-directory prerequisite #319
   non-root API controller and separately resource-limited FFmpeg encoder.
 
 Local Chromium and WebKit authenticated MSE tests pass for all three bitrates.
-The local macOS WebKit Blob-playback case does not advance its media clock;
-Firefox cannot launch because its macOS sandbox/graphics process fails. Keep
-both tests enabled in the hosted Linux three-engine matrix; do not count these
-local limitations as physical Safari/Product evidence.
+The local macOS WebKit Blob-playback case initially timed out while other
+media suites were running; its isolated rerun passes with the real media clock.
+This does not establish the cause of that first timing failure. Firefox cannot
+launch because its macOS sandbox/graphics process fails. Keep all cases enabled
+in the hosted Linux three-engine matrix; none of this is physical Safari/Product
+evidence.
 
 ## Remaining acceptance
 
