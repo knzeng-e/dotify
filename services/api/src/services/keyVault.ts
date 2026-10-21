@@ -36,7 +36,7 @@ const MIN_MASTER_SECRET_BYTES = 32;
 const HEX_HASH_PATTERN = /^0x[0-9a-fA-F]{64}$/;
 const HEX_ADDRESS_PATTERN = /^0x[0-9a-fA-F]{40}$/;
 const CONTENT_KEY_VERSION_PATTERN = /^dotify-content-key-v([1-9][0-9]*)$/;
-const RELEASE_BOUND_AUDIO_REF_PATTERN = /^dotify:enc:v2:key-v([1-9][0-9]*):ipfs:\/\//;
+const RELEASE_BOUND_AUDIO_REF_PATTERN = /^dotify:enc:v[23]:key-v([1-9][0-9]*):ipfs:\/\//;
 
 export type ContentKeyVersion = `dotify-content-key-v${number}`;
 

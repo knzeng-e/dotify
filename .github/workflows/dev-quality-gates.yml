@@ -181,6 +181,36 @@ jobs:
           include-hidden-files: true
           retention-days: 3
 
+  api-storage-rehearsal:
+    name: W30 / Non-root storage rehearsal
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Rehearse isolated volume migration and rollback
+        run: npm --prefix services/api run storage:rehearse
+
+  streaming-worker-rehearsal:
+    name: W32 / Isolated encoding publication
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify isolated encoder, custody and publication
+        run: npm --prefix services/api run streaming:rehearse
+
   evm-contracts:
     name: W01 / EVM contracts and ABI drift
     runs-on: ubuntu-latest

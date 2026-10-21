@@ -533,7 +533,7 @@ export function usePlayback(deps: UsePlaybackDeps) {
       // on engines that still dispatch it at the media boundary.
       if (repeatEnabled) {
         audio.currentTime = 0;
-        void audio.play().catch(() => setStatus('autoplay-blocked'));
+        void Promise.all([resumeHostAudioOutput(audio), audio.play()]).catch(() => setStatus('autoplay-blocked'));
         return;
       }
       const next = getNextTrack();
@@ -604,8 +604,7 @@ export function usePlayback(deps: UsePlaybackDeps) {
       }
       autoplayIntentRef.current = false;
       const playbackStartup = startup;
-      void audio
-        .play()
+      void Promise.all([resumeHostAudioOutput(audio), audio.play()])
         .then(() => {
           if (hostStartupRef.current === playbackStartup && !userPausedRef.current) setStatus('playing');
         })

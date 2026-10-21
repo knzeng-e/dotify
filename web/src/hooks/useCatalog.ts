@@ -1,3 +1,5 @@
+import { createStreamingPlayback } from '../features/catalog/streamingPlayback';
+import { registerAudioGain, forgetAudioGain } from '../features/player/audioNormalization';
 import { resolveDonationArtist } from '../features/donations/donationModel';
 import type { RoomTrackEmitter } from '../features/rooms/roomRealtimePort';
 import { retireHostAudio } from '../features/player/hostAudioOutput';
@@ -19,7 +21,14 @@ import {
   type ContentKeyReleaseIdentity,
   type KeyRequestPurpose
 } from '../services/keyService';
-import { contentKeyVersionForAudioRef, decryptTrackAudio, encryptedRefToCID, isEncryptedAudioRef, isEncryptedAudioV2Ref } from '../shared/utils/protectedAudio';
+import {
+  contentKeyVersionForAudioRef,
+  decryptTrackAudio,
+  encryptedRefToCID,
+  isEncryptedAudioRef,
+  isEncryptedAudioV2Ref,
+  isEncryptedAudioV3Ref
+} from '../shared/utils/protectedAudio';
 import {
   AudioV2HeaderIncompleteError,
   audioV2ChunkBodyOffset,
@@ -1199,6 +1208,53 @@ export function useCatalog(deps: UseCatalogDeps) {
       return cached;
     }
 
+    if (isEncryptedAudioV3Ref(audioRef)) {
+      if (!release) throw new Error('The release identity is required for streaming playback.');
+      const controllerSignal = signal ?? new AbortController().signal;
+      const key = accessMode === 'free' ? await resolveFreeContentKey(contentHash, release) : await resolveServerContentKey(contentHash, release);
+      controllerSignal.throwIfAborted();
+      if (!key) throw new Error('The audio access check could not be completed.');
+      setAudioStartupStatus('Preparing audio');
+      const prepared = await createStreamingPlayback({
+        cid: encryptedRefToCID(audioRef),
+        key,
+        scope: {
+          chainId: (await resolveEvmChain(ethRpcUrl)).id,
+          runtimeAddress: release.runtimeAddress.toLowerCase(),
+          contentHash: contentHash.toLowerCase(),
+          keyVersion: release.keyVersion
+        },
+        signal: controllerSignal,
+        audio: () => localAudioRef.current,
+        onError: () => {
+          if (isCurrent()) {
+            setAudioRecovery('failed');
+            setAudioStartupStatus('Audio connection interrupted');
+          }
+        }
+      });
+      if (controllerSignal.aborted || !isCurrent()) {
+        URL.revokeObjectURL(prepared.url);
+        controllerSignal.throwIfAborted();
+        throw new Error('Track selection changed');
+      }
+      registerAudioGain(prepared.url, prepared.gainDb);
+      objectUrlsRef.current.add(prepared.url);
+      if (prepared.progressive) mseObjectUrlsRef.current.add(prepared.url);
+      else resolvedAudioSourcesRef.current.set(cacheKey, prepared.url);
+      controllerSignal.addEventListener(
+        'abort',
+        () => {
+          if (prepared.progressive) {
+            forgetAudioGain(prepared.url);
+            retireAudioV2MseObjectUrl(audioRef, prepared.url);
+          }
+        },
+        { once: true }
+      );
+      return prepared.url;
+    }
+
     if (isEncryptedAudioV2Ref(audioRef)) {
       const context: AudioV2StartupContext = {
         audioRef,
@@ -1883,6 +1939,7 @@ export function useCatalog(deps: UseCatalogDeps) {
   function clearObjectUrls() {
     abortActiveTrackSelection();
     for (const url of objectUrlsRef.current.values()) {
+      forgetAudioGain(url);
       URL.revokeObjectURL(url);
     }
     objectUrlsRef.current.clear();

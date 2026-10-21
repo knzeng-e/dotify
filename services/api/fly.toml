@@ -37,6 +37,12 @@ primary_region = "ams"
   DOTIFY_FACTORY_ADDRESS = "0x708d35eee7c1416f6d332344068be9d714aec24c"
   DOTIFY_DIRECTORY_ADDRESS = "0x8e611ef60169f8ed93019de4a3034a504ae2ad29"
   DOTIFY_CHAIN_ID = "420420417"
+  # New publications use the isolated private encoder after explicit custody
+  # provisioning. STREAMING_WORKER_TOKEN is a dedicated Fly secret, never the
+  # content-key master or a frontend variable.
+  STREAMING_WORKER_URL = "http://dotify-encoder.internal:8791"
+  STREAMING_STATE_PATH = "/data/contributions/streaming"
+  UPLOAD_GLOBAL_CONCURRENCY = "2"
   # TURN_CAPABILITY_SECRET is a Fly secret shared with the signaling app as
   # SIGNAL_TURN_CAPABILITY_SECRET. Never track its value here.
 
@@ -59,7 +65,7 @@ primary_region = "ams"
 [[vm]]
   cpu_kind = "shared"
   cpus = 1
-  memory = "512mb"
+  memory = "1024mb"
 
 # One API writer owns the shared verified-contribution ledger.
 [[mounts]]

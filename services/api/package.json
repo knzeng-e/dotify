@@ -12,9 +12,12 @@
     "start": "node dist/index.js",
     "catalog:reindex": "tsx src/scripts/reindexCatalog.ts",
     "key-custody:rehearse": "tsx src/scripts/keyCustodyRecoveryRehearsal.ts",
+    "storage:rehearse": "node scripts/rehearse-nonroot-storage.mjs",
     "typecheck": "tsc --noEmit",
     "test:streaming": "node --import tsx --test src/services/streamingFormat.test.ts src/services/streamingEncoder.test.ts",
-    "test": "node --import tsx --test src/services/audioV2.test.ts src/services/coverVariants.test.ts src/services/pinata.test.ts src/services/replayProtection.test.ts src/services/signatures.test.ts src/services/sessionTokens.test.ts src/services/uploadAuthorizations.test.ts src/services/keyVault.test.ts src/services/chainAccess.test.ts src/services/catalog/readModel.test.ts src/services/catalog/chain.test.ts src/routes/keys.test.ts src/routes/uploads.test.ts src/routes/auth.test.ts src/routes/turn.test.ts src/routes/health.test.ts src/routes/catalog.test.ts src/routes/media.test.ts src/routes/nativeReceipts.test.ts src/services/nativeContributionProof.test.ts src/services/nativeReceipts.test.ts src/services/nativeContributionLedger.test.ts src/app.test.ts src/cors.test.ts"
+    "test": "node --import tsx --test src/services/storagePreflight.test.ts src/services/streamingJobs.test.ts src/services/audioV2.test.ts src/services/coverVariants.test.ts src/services/pinata.test.ts src/services/replayProtection.test.ts src/services/signatures.test.ts src/services/sessionTokens.test.ts src/services/uploadAuthorizations.test.ts src/services/keyVault.test.ts src/services/chainAccess.test.ts src/services/catalog/readModel.test.ts src/services/catalog/chain.test.ts src/routes/keys.test.ts src/routes/uploads.test.ts src/routes/auth.test.ts src/routes/turn.test.ts src/routes/health.test.ts src/routes/catalog.test.ts src/routes/media.test.ts src/routes/nativeReceipts.test.ts src/services/nativeContributionProof.test.ts src/services/nativeReceipts.test.ts src/services/nativeContributionLedger.test.ts src/app.test.ts src/cors.test.ts",
+    "streaming:initialize": "node dist/scripts/initializeStreamingJobs.js",
+    "streaming:rehearse": "node scripts/rehearse-streaming-publication.mjs"
   },
   "dependencies": {
     "@fastify/cors": "^11.2.0",

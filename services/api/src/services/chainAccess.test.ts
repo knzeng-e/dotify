@@ -1,11 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { createChainAccessService, type ReleaseKeyIdentity } from './chainAccess.js';
-import {
-  LEGACY_CONTENT_KEY_VERSION,
-  RELEASE_BOUND_CONTENT_KEY_VERSION,
-  makeReleaseBoundEncryptedAudioV2Ref
-} from './keyVault.js';
+import { LEGACY_CONTENT_KEY_VERSION, RELEASE_BOUND_CONTENT_KEY_VERSION, makeReleaseBoundEncryptedAudioV2Ref } from './keyVault.js';
 import type { CatalogMetadata, CatalogRelease, CatalogSnapshot } from './catalog/index.js';
 
 const CHAIN_ID = 420420417;
@@ -107,9 +103,7 @@ function identity(candidate: CatalogRelease): ReleaseKeyIdentity {
     runtimeAddress: candidate.runtimeAddress,
     artistAddress: candidate.artistAddress,
     audioRef: candidate.audioRef,
-    keyVersion: candidate.audioRef.startsWith('dotify:enc:v2:key-v2:')
-      ? RELEASE_BOUND_CONTENT_KEY_VERSION
-      : LEGACY_CONTENT_KEY_VERSION
+    keyVersion: candidate.audioRef.startsWith('dotify:enc:v2:key-v2:') ? RELEASE_BOUND_CONTENT_KEY_VERSION : LEGACY_CONTENT_KEY_VERSION
   };
 }
 
@@ -217,8 +211,14 @@ describe('canonical release access', () => {
     assert.equal(result.runtime, RUNTIME_A);
     assert.equal(result.keyScope.keyVersion, RELEASE_BOUND_CONTENT_KEY_VERSION);
     assert.equal(result.keyScope.runtimeAddress, RUNTIME_A);
-    assert.equal(client.calls.some(call => call.address === RUNTIME_B), false);
-    assert.equal(client.calls.some(call => call.functionName === 'artistCount'), false);
+    assert.equal(
+      client.calls.some(call => call.address === RUNTIME_B),
+      false
+    );
+    assert.equal(
+      client.calls.some(call => call.functionName === 'artistCount'),
+      false
+    );
   });
 
   it('rejects hash-only access when two releases share a content hash', async () => {
@@ -304,7 +304,10 @@ describe('canonical release access', () => {
 
     assert.equal(result.allowed, false);
     if (!result.allowed) assert.equal(result.code, 'RELEASE_IDENTITY_MISMATCH');
-    assert.equal(client.calls.some(call => call.functionName === 'musicAccCanAccess'), false);
+    assert.equal(
+      client.calls.some(call => call.functionName === 'musicAccCanAccess'),
+      false
+    );
   });
 
   it('rejects a release when the target runtime audioRef drifts from the catalog', async () => {
@@ -325,7 +328,10 @@ describe('canonical release access', () => {
 
     assert.equal(result.allowed, false);
     if (!result.allowed) assert.equal(result.code, 'RELEASE_IDENTITY_MISMATCH');
-    assert.equal(client.calls.some(call => call.functionName === 'musicAccCanAccess'), false);
+    assert.equal(
+      client.calls.some(call => call.functionName === 'musicAccCanAccess'),
+      false
+    );
   });
 
   it('checks Free access with the zero address and never with a guest wallet', async () => {
@@ -338,6 +344,28 @@ describe('canonical release access', () => {
     assert.equal(result.allowed, true);
     assert.equal(
       client.calls.some(call => call.functionName === 'musicAccCanAccess' && String(call.args[1]).toLowerCase() === ZERO_ADDRESS),
+      true
+    );
+  });
+});
+
+describe('v3 publication access stays canonical', () => {
+  it('keeps Classic listener/host denials and Free zero-address authority on the existing key scope', async () => {
+    const candidate = release({ audioRef: 'dotify:enc:v3:key-v2:ipfs://stream-directory' });
+    const { access, client } = service([candidate]);
+    const canonical = { ...identity(candidate), keyVersion: RELEASE_BOUND_CONTENT_KEY_VERSION };
+    const allowed = await access.checkTrackAccess({ contentHash: HASH, requester: REQUESTER, purpose: 'individual', release: canonical });
+    assert.equal(allowed.allowed, true);
+    client.access.set(`${RUNTIME_A}:${HASH}:${REQUESTER}`.toLowerCase(), false);
+    const denied = await access.checkTrackAccess({ contentHash: HASH, requester: REQUESTER, purpose: 'individual', release: canonical });
+    assert.equal(denied.allowed, false);
+    if (!denied.allowed) assert.equal('contentKey' in denied, false);
+    const free = release({ audioRef: candidate.audioRef, accessMode: 'free', priceWei: '0', priceDot: '0' });
+    const publicService = service([free]);
+    publicService.client.access.set(`${RUNTIME_A}:${HASH}:${ZERO_ADDRESS}`.toLowerCase(), true);
+    assert.equal(
+      (await publicService.access.checkPublicAccess({ contentHash: HASH, release: { ...identity(free), keyVersion: RELEASE_BOUND_CONTENT_KEY_VERSION } }))
+        .allowed,
       true
     );
   });

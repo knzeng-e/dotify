@@ -54,6 +54,7 @@ describe('key vault derivation scopes', () => {
     assert.equal(contentKeyVersionForAudioRef('dotify:enc:v2:ipfs://legacy-dav2'), LEGACY_CONTENT_KEY_VERSION);
     assert.equal(contentKeyVersionForAudioRef(makeReleaseBoundEncryptedAudioV2Ref('release-cid')), RELEASE_BOUND_CONTENT_KEY_VERSION);
     assert.equal(contentKeyVersionForAudioRef(makeReleaseBoundEncryptedAudioV2Ref('rotated-cid', 'dotify-content-key-v3')), 'dotify-content-key-v3');
+    assert.equal(contentKeyVersionForAudioRef('dotify:enc:v3:key-v2:ipfs://stream-directory'), RELEASE_BOUND_CONTENT_KEY_VERSION);
     assert.equal(contentKeyVersionForAudioRef('ipfs://clear'), null);
   });
 

@@ -38,6 +38,37 @@ when promoted to main. This is documentation hosting, not an app deployment or
 new API/CORS origin. Restore this exact source if Pages configuration drifts;
 do not enable both optional workflows as a workaround.
 
+## API non-root preparation, 2026-10-21
+
+The default API image now runs as UID/GID 1000 and checks storage access before
+loading persisted session/catalog services. This is prepared code, not a live
+cutover: the last recorded API 28 deployment still runs the older root image.
+Do not deploy the new runner against the existing root-owned volume without
+following the [offline ownership and rollback procedure](api-nonroot-storage.md).
+An explicit maintenance image changes only reviewed file ownership/modes;
+startup never performs a privileged recursive repair. No new environment
+variables, secrets, origins, mounts, scaling or key rotation are introduced.
+See the [isolated rehearsal evidence](../backlog/implementation/evidence/W30-api-nonroot-2026-10-21.md).
+
+## W32 new-publication preparation, 2026-10-21
+
+New code connects signed/scoped artist uploads to a durable encrypted queue,
+a separately isolated private encoder, 202 progress/retry and v3 player/room
+playback. This is **not deployed**. Existing DAV2 releases remain readable;
+existing-catalog re-encoding is deferred under the owner's new-publications-first
+choice. See [activation, resources and rollback](streaming-publication.md).
+
+The activation plan adds a dedicated worker token/URL and permanent streaming
+custody subtree to the existing API volume. It requires one private 512 MiB
+encoder, a 1 GiB single-writer API and at most two concurrent uploads, based on
+local 15-minute resource evidence. No frontend secrets, new CORS origins,
+content-key rotation, paid listener gate or room-guest key path is introduced.
+W30 non-root/ownership must precede provisioning; initialization is explicit,
+never a missing-ledger repair. New Fly resources/configuration are prepared,
+not applied by this PR. Do not run an old three-file maintenance tool recursively
+across the new nonce subtree. Ordinary Web and native Product acceptance and real
+Pinata load remain release gates.
+
 ## W32 format foundation, 2026-10-20
 
 The inactive W32 format/codec slice does not change upload routes, running
@@ -2288,7 +2319,9 @@ Behavior changes: content-key responses carry `Cache-Control: no-store`; the
 signaling service no longer broadcasts `rooms:updated` and coalesces solo
 presence; room creation is limited per network and capped; both images start
 Node directly and close cleanly on SIGTERM. The signaling image runs as the
-`node` user. The API image stays root because the Fly volume is root-owned.
+`node` user. At that deployment the API image stayed root because the Fly
+volume was root-owned. The 2026-10-21 preparation above supplies the remaining
+non-root cutover; live validation is still required.
 
 With a stable session epoch, logout returns HTTP 503 with
 `SESSION_REVOCATION_UNAVAILABLE` if its revocation cannot be written. The token

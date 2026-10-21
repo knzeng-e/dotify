@@ -1,3 +1,4 @@
+import { StreamingJobError, type StreamingJobs } from '../services/streamingJobs.js';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { blake2b } from '@noble/hashes/blake2';
 import { z } from 'zod';
@@ -223,8 +224,58 @@ function multipartLimitError(error: unknown): boolean {
   return message.toLowerCase().includes('file size limit') || message.includes('FST_MULTIPART');
 }
 
-export function createUploadRoutes(deps: UploadRouteDeps = defaultDeps) {
+export function createUploadRoutes(deps: UploadRouteDeps = defaultDeps, jobs?: StreamingJobs) {
   return async function uploadRoutes(app: FastifyInstance): Promise<void> {
+    const sessionForJob = (request: FastifyRequest, reply: FastifyReply) => {
+      reply.header('Cache-Control', 'no-store');
+      const token = bearerToken(request);
+      const session = token ? deps.verifySessionToken(token) : null;
+      if (!session?.valid) {
+        reply.status(401).send({ error: 'Sign in to continue preparing your music.', code: 'SESSION_REQUIRED' });
+        return null;
+      }
+      if (!jobs) {
+        reply.status(503).send({ error: 'Audio preparation is not configured.', code: 'STREAMING_NOT_CONFIGURED' });
+        return null;
+      }
+      return session;
+    };
+    app.get<{ Params: { id: string } }>('/audio/jobs/:id', async (request, reply) => {
+      const session = sessionForJob(request, reply);
+      if (!session) return;
+      try {
+        const job = jobs!.get(request.params.id, session.address, session.chainId);
+        if (!job) return reply.status(404).send({ error: 'Audio preparation was not found for this account.', code: 'STREAMING_JOB_NOT_FOUND' });
+        return reply.send(job);
+      } catch (error) {
+        if (error instanceof StreamingJobError)
+          return reply.status(error.status).send({ error: 'Audio preparation is temporarily unavailable.', code: error.code });
+        throw error;
+      }
+    });
+    app.post<{ Params: { id: string } }>('/audio/jobs/:id/discard', async (request, reply) => {
+      const session = sessionForJob(request, reply);
+      if (!session) return;
+      try {
+        await jobs!.discard(request.params.id, session.address, session.chainId);
+        return reply.status(204).send();
+      } catch (error) {
+        if (error instanceof StreamingJobError)
+          return reply.status(error.status).send({ error: 'Only a failed preparation can be removed by its artist.', code: error.code });
+        throw error;
+      }
+    });
+    app.post<{ Params: { id: string } }>('/audio/jobs/:id/retry', async (request, reply) => {
+      const session = sessionForJob(request, reply);
+      if (!session) return;
+      try {
+        return reply.send(await jobs!.retry(request.params.id, session.address, session.chainId));
+      } catch (error) {
+        if (error instanceof StreamingJobError)
+          return reply.status(error.status).send({ error: 'Audio preparation could not be restarted.', code: error.code });
+        throw error;
+      }
+    });
     app.post('/authorize', async (request: FastifyRequest, reply: FastifyReply) => {
       const token = bearerToken(request);
       if (!token) return reply.status(401).send({ error: 'Sign in before requesting upload capacity.', code: 'SESSION_REQUIRED' });
@@ -323,6 +374,27 @@ export function createUploadRoutes(deps: UploadRouteDeps = defaultDeps) {
             error: `Server-side encryption is not configured for content-key version ${keyVersion}. Retain that version secret or configure a new active version.`,
             code: 'CONTENT_KEY_NOT_CONFIGURED'
           });
+        }
+
+        if (jobs) {
+          try {
+            abort.signal.throwIfAborted();
+            const job = await jobs.enqueue({
+              owner: lease.payload.address,
+              scope: { chainId: lease.payload.chainId, runtimeAddress: lease.payload.runtimeAddress.toLowerCase(), contentHash: normalizedHash, keyVersion },
+              master: fileBuffer
+            });
+            completed = lease.complete(fileBuffer.length);
+            if (!completed) return reply.status(500).send({ error: 'Upload quota accounting failed.', code: 'UPLOAD_ACCOUNTING_FAILED' });
+            return reply.header('Cache-Control', 'no-store').status(202).send(job);
+          } catch (error) {
+            if (error instanceof StreamingJobError)
+              return reply.status(error.status).send({ error: 'Audio preparation is busy or unavailable. Please try again.', code: error.code });
+            throw error;
+          } finally {
+            contentKey.fill(0);
+            fileBuffer.fill(0);
+          }
         }
 
         let encrypted: Buffer;
