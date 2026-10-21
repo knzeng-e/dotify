@@ -25,6 +25,12 @@ The local Claude hook and verification workflow correction is tracked in
 [`claude-verification-tooling.md`](claude-verification-tooling.md) (#265),
 implemented by PR #264.
 
+The owner-requested clean testnet preparation is tracked by
+[#317](https://github.com/knzeng-e/dotify/issues/317),
+[scope and coordinated cutover](fresh-testnet-streaming-cutover.md). Fresh core
+contracts and CDM version 2 are recorded; the application cutover and live/native
+streaming acceptance remain separate from contract deployment.
+
 ## Product north star
 
 The mobile keyboard correction and shared interaction polish in

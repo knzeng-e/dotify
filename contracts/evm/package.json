@@ -23,7 +23,9 @@
     "runtime:migration-plan": "npx hardhat runtime:migration-plan",
     "fmt": "prettier --plugin=prettier-plugin-solidity --write 'contracts/**/*.sol' 'scripts/**/*.ts' 'tasks/**/*.ts' 'test/**/*.ts' hardhat.config.ts",
     "fmt:check": "prettier --plugin=prettier-plugin-solidity --check 'contracts/**/*.sol' 'scripts/**/*.ts' 'tasks/**/*.ts' 'test/**/*.ts' hardhat.config.ts",
-    "cdm:publish:testnet": "npx hardhat cdm:publish --network polkadotTestnet"
+    "cdm:publish:testnet": "npx hardhat cdm:publish --network polkadotTestnet",
+    "fresh:plan:testnet": "npx hardhat run scripts/freshDeploymentPlan.ts --network polkadotTestnet",
+    "fresh:readback:testnet": "npx hardhat run scripts/freshDeploymentReadback.ts --network polkadotTestnet"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-network-helpers": "^1.0.0",

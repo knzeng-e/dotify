@@ -1,12 +1,12 @@
 {
   "dependencies": {
-    "@dotify/artist-directory": 1,
-    "@dotify/artist-runtime-factory": 1
+    "@dotify/artist-directory": 2,
+    "@dotify/artist-runtime-factory": 2
   },
   "contracts": {
     "@dotify/artist-directory": {
-      "version": 1,
-      "address": "0x4e883827d61e573094c7b777bae323070ea9f954",
+      "version": 2,
+      "address": "0x8e611ef60169f8ed93019de4a3034a504ae2ad29",
       "abi": [
         {
           "inputs": [],
@@ -185,8 +185,8 @@
       ]
     },
     "@dotify/artist-runtime-factory": {
-      "version": 1,
-      "address": "0x835a626a9a6965b197d079ae56b1ec94033c2699",
+      "version": 2,
+      "address": "0x708d35eee7c1416f6d332344068be9d714aec24c",
       "abi": [
         {
           "inputs": [
