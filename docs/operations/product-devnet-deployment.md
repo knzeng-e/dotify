@@ -23,6 +23,23 @@ or timed-out request; Dotify cannot undo the Host's permission decision.
 Operational rollback uses `VITE_DOTIFY_NEARBY=off` and/or `SIGNAL_NEARBY=off`;
 there is no Product-specific feature gate. Old snapshots expire within 90 seconds.
 
+## Product 0.1.58 published streaming reset
+
+Published from clean packaging `113aa9c568966f3ec271f0ee0af3526f1bcaea68`,
+based on tested dev `142fc63`. Executable `[0,1,58]` retains product-cdm/devnet
+and existing permissions at root/app CID
+`bafybeiguwd2uaz7qv3l66rxpviw5aajmu6xka74vzqgd2regl2vnbh7x7y`.
+API 29/signaling 37/encoder 1 and Web use the fresh directory with an empty
+catalog. The local signer is removed. Finalized DotNS, all 124 public CAR
+block hashes, exact index/entry and private three-rendition encoding pass.
+
+See the [rollout record](../backlog/implementation/evidence/product-0.1.58-rollout-2026-10-22.md)
+for migration, identities and remaining real-publication/physical-device gates.
+Pre-reset Product 0.1.57 is historical, not a compatible standalone rollback;
+recovery must preserve the latest nonce/key/revocation custody.
+
+The following release sections are historical evidence.
+
 ## Product 0.1.57 published release follow-up
 
 Published from clean green packaging commit

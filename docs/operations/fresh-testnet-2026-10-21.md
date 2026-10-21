@@ -2,7 +2,9 @@
 
 Issue #317. Authorized by the owner in the implementation session to start the
 next streaming test from zero. Core contracts and CDM publication are live;
-**the application/service cutover is not deployed**.
+the application/service cutover subsequently deployed on 2026-10-22.
+See the [0.1.58 rollout](../backlog/implementation/evidence/product-0.1.58-rollout-2026-10-22.md)
+for actual service/client identities and remaining acceptance gates.
 
 ## Public identity and evidence
 
