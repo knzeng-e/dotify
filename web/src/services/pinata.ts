@@ -1,3 +1,4 @@
+import { readPreparationId, waitForAudioPreparation, type AudioPreparationPhase } from '../features/uploads/streamingPreparation';
 // ---------------------------------------------------------------------------
 // Pinata / IPFS service — demo/local mode and production backend mode.
 //
@@ -233,6 +234,7 @@ export type BackendUploadErrorBody = {
 
 export type BackendUploadIdentity = {
   chainId: number;
+  onAudioPreparation?: (phase: AudioPreparationPhase) => void;
   walletClient?: WalletClient;
   signer?: KeyRequestSigner;
 };
@@ -312,6 +314,70 @@ async function requestUploadAuthorization(identity: BackendUploadIdentity | unde
  */
 export async function uploadAudioToBackend(rawFile: File, contentHash: string, identity?: BackendUploadIdentity): Promise<ProtectedAudioUpload> {
   if (!API_URL) throw new Error('Backend API is not configured (VITE_DOTIFY_API_URL).');
+  const principal = identity?.signer?.address ?? identity?.walletClient?.account?.address;
+  const storageKey = `dotify.audio-preparation.v1:${API_URL}:${identity?.chainId}:${principal?.toLowerCase()}:${contentHash.toLowerCase()}`;
+  const requestJob = async (id: string, retry: boolean | 'discard' = false): Promise<unknown> => {
+    if (!identity) throw new Error('Connect your artist account to resume audio preparation.');
+    const session = () =>
+      identity.signer
+        ? ensureDotifySessionForSigner(identity.signer, identity.chainId)
+        : identity.walletClient
+          ? ensureDotifySession(identity.walletClient, identity.chainId)
+          : Promise.resolve(null);
+    let token = await session();
+    if (!token) throw new Error('Sign in to resume preparing your music.');
+    const send = (value: string) =>
+      fetch(`${API_URL}/api/uploads/audio/jobs/${id}${retry === 'discard' ? '/discard' : retry ? '/retry' : ''}`, {
+        method: retry ? 'POST' : 'GET',
+        headers: { Authorization: `Bearer ${value}` },
+        signal: AbortSignal.timeout(15_000)
+      });
+    let response = await send(token);
+    if (response.status === 401 && principal) {
+      clearStoredSession(principal, token);
+      token = await session();
+      if (token) response = await send(token);
+    }
+    if (!response.ok)
+      throw Object.assign(new Error(await parseBackendError(response, 'Audio preparation could not be checked. Please try again.')), {
+        status: response.status
+      });
+    return response.status === 204 ? null : response.json();
+  };
+  const discard = async (id: string) => {
+    await requestJob(id, 'discard');
+    try {
+      localStorage.removeItem(storageKey);
+    } catch {
+      /* No secret is stored. */
+    }
+  };
+  const saved = readPreparationId(storageKey);
+  if (saved) {
+    try {
+      const ready = await waitForAudioPreparation({
+        job: await requestJob(saved),
+        storageKey,
+        request: requestJob,
+        onProgress: identity?.onAudioPreparation,
+        discard,
+        retryFailed: true
+      });
+      if (!isAddress(ready.runtimeAddress) || ready.contentHash.toLowerCase() !== contentHash.toLowerCase())
+        throw new Error('Prepared audio does not match this release.');
+      return { ...ready, runtimeAddress: getAddress(ready.runtimeAddress), contentHash: ready.contentHash.toLowerCase() as `0x${string}` };
+    } catch (error) {
+      // A stale local hint after expiry/reset is safe to discard. A transport
+      // failure is not proof that a durable job disappeared.
+      if ((error as { status?: number }).status === 404) {
+        try {
+          localStorage.removeItem(storageKey);
+        } catch {
+          /* Storage can be unavailable. */
+        }
+      } else throw error;
+    }
+  }
   const authorization = await requestUploadAuthorization(identity, 'audio', rawFile.size);
 
   const form = new FormData();
@@ -329,7 +395,12 @@ export async function uploadAudioToBackend(rawFile: File, contentHash: string, i
     throw new Error(msg);
   }
 
-  const data = (await res.json()) as { ref?: unknown; runtimeAddress?: unknown; contentHash?: unknown; keyVersion?: unknown };
+  const responseBody: unknown = await res.json();
+  const prepared =
+    res.status === 202
+      ? await waitForAudioPreparation({ job: responseBody, storageKey, request: requestJob, onProgress: identity?.onAudioPreparation, discard })
+      : responseBody;
+  const data = prepared as { ref?: unknown; runtimeAddress?: unknown; contentHash?: unknown; keyVersion?: unknown };
   if (typeof data.ref !== 'string' || !data.ref.trim()) {
     throw new Error('The backend returned an invalid audio upload response.');
   }

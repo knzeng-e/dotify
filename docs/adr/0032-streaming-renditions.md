@@ -127,3 +127,13 @@ unsupported decoder.
 
 W33 edge caching, W34 key preparation and W35 adaptive/gapless behavior stay
 outside W32. A partially landed slice is not a completed #287.
+
+
+## First activation amendment, 2026-10-21
+
+The owner chose new publications first; DAV2 catalog re-encoding is deferred.
+The [publication procedure](../operations/streaming-publication.md) now specifies
+the implemented isolated parser, encrypted admission/recovery, permanent nonce
+custody, ciphertext reuse on pin retry, authenticated reader/gain and rollback.
+The format/key/nonce contract above is unchanged. New worker configuration and
+physical Product acceptance remain separate deployment gates.

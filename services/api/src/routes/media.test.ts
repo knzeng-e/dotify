@@ -378,3 +378,28 @@ it('only serves current active encrypted catalog assets and never accepts a call
     await app.close();
   }
 });
+
+it('relays only fixed playback objects of current v3 releases, never archive or arbitrary paths', async () => {
+  let active = true;
+  let calls = 0;
+  const reader = createEncryptedMediaReader(async () => {
+    calls++;
+    return new Response(new Uint8Array([1, 2, 3]));
+  });
+  const app = Fastify();
+  const catalog = { getSnapshot: () => ({ releases: [{ active, encrypted: true, audioRef: `dotify:enc:v3:key-v2:ipfs://${cid}` }] }) as CatalogSnapshot };
+  await app.register(createMediaRoutes({ catalog, reader }));
+  try {
+    assert.equal((await app.inject(`/api/media/${cid}/stream/manifest.json`)).statusCode, 200);
+    assert.equal((await app.inject(`/api/media/${cid}/stream/160/init.bin`)).statusCode, 200);
+    for (const suffix of ['archive/master.bin', '160/segment-256.bin', '160/secret.bin', 'manifest.json?source=http://localhost', '../receipts.json'])
+      assert.equal((await app.inject(`/api/media/${cid}/stream/${suffix}`)).statusCode, 404);
+    assert.equal((await app.inject(`/api/media/${cid}`)).statusCode, 404);
+    const before = calls;
+    active = false;
+    assert.equal((await app.inject(`/api/media/${cid}/stream/manifest.json`)).statusCode, 404);
+    assert.equal(calls, before);
+  } finally {
+    await app.close();
+  }
+});

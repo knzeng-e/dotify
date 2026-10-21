@@ -189,3 +189,131 @@ test('warm-key first sound improves over a whole original under the same bounded
   });
   expect(timings.streaming).toBeLessThan(timings.baseline * 0.8);
 });
+
+test('publication player reads authenticated segments and shares normalized audio without archive access', async ({ page }) => {
+  const requests: string[] = [];
+  await page.route('**/publication-player', route =>
+    route.fulfill({ contentType: 'text/html', body: '<!doctype html><button id="play">Play</button><audio id="audio"></audio>' })
+  );
+  await page.route('**/api/media/**/stream/**', async route => {
+    const object = new URL(route.request().url()).pathname.split('/stream/')[1];
+    requests.push(object);
+    const value = object === 'manifest.json' ? fixture.manifest : fixture.files[object];
+    if (!value) return route.fulfill({ status: 404, headers: { 'access-control-allow-origin': '*' }, body: '' });
+    if (object.includes('segment-001') || object.includes('segment-002')) await new Promise(resolve => setTimeout(resolve, 300));
+    await route.fulfill({ headers: { 'content-type': 'application/octet-stream', 'access-control-allow-origin': '*' }, body: Buffer.from(value, 'base64') });
+  });
+  await page.goto('/publication-player');
+  await page.evaluate(async fixture => {
+    const playerPath = '/src/features/catalog/streamingPlayback.ts',
+      gainPath = '/src/features/player/audioNormalization.ts',
+      outputPath = '/src/features/player/hostAudioOutput.ts';
+    const player = (await import(playerPath)) as typeof import('../src/features/catalog/streamingPlayback');
+    const gain = (await import(gainPath)) as typeof import('../src/features/player/audioNormalization');
+    const output = (await import(outputPath)) as typeof import('../src/features/player/hostAudioOutput');
+    const audio = document.querySelector('audio')!;
+    const signal = new AbortController().signal;
+    const prepared = await player.createStreamingPlayback({
+      cid: 'Qm' + 'a'.repeat(44),
+      key: Uint8Array.from(fixture.keyHex.replace(/^0x/, '').match(/../g)!, part => parseInt(part, 16)),
+      scope: fixture.scope,
+      signal,
+      audio: () => audio,
+      onError: error => {
+        throw error;
+      }
+    });
+    audio.src = prepared.url;
+    audio.disableRemotePlayback = true;
+    gain.registerAudioGain(prepared.url, prepared.gainDb);
+    gain.attachAudioNormalization(audio);
+    document.querySelector('button')!.onclick = () => {
+      void Promise.all([output.resumeHostAudioOutput(audio), audio.play()]);
+    };
+    (window as typeof window & { publicationPlayer?: unknown }).publicationPlayer = { gainDb: prepared.gainDb, progressive: prepared.progressive };
+  }, fixture);
+  await page.click('#play');
+  await expect.poll(() => page.evaluate(() => document.querySelector('audio')!.currentTime)).toBeGreaterThan(0.2);
+  const result = await page.evaluate(async () => {
+    const modulePath = '/src/features/player/audioNormalization.ts';
+    const gain = (await import(modulePath)) as typeof import('../src/features/player/audioNormalization');
+    const audio = document.querySelector('audio')!;
+    const capture = gain.normalizedAudioCapture(audio);
+    const data = (window as typeof window & { publicationPlayer: { gainDb: number; progressive: boolean } }).publicationPlayer;
+    audio.muted = true;
+    capture?.sync();
+    return { ...data, capturedTracks: capture?.stream.getAudioTracks().filter(track => track.readyState === 'live').length, duration: audio.duration };
+  });
+  expect(result.progressive).toBe(true);
+  expect(result.capturedTracks).toBe(1);
+  expect(result.duration).toBeGreaterThan(8);
+  expect(requests).toContain('manifest.json');
+  expect(requests).toContain('160/init.bin');
+  expect(requests).toContain('160/segment-000.bin');
+  expect(requests.some(path => path.startsWith('archive/') || path.startsWith('96/') || path.startsWith('320/'))).toBe(false);
+});
+
+test('publication player refuses a bad key before reading any media or archive', async ({ page }) => {
+  await page.route('**/publication-denial', route => route.fulfill({ contentType: 'text/html', body: '<!doctype html><audio></audio>' }));
+  await page.goto('/publication-denial');
+  const result = await page.evaluate(async fixture => {
+    const modulePath = '/src/features/catalog/streamingPlayback.ts';
+    const player = (await import(modulePath)) as typeof import('../src/features/catalog/streamingPlayback');
+    const paths: string[] = [];
+    let denied = false;
+    try {
+      await player.createStreamingPlayback({
+        cid: 'Qm' + 'a'.repeat(44),
+        key: new Uint8Array(32),
+        scope: fixture.scope,
+        signal: new AbortController().signal,
+        audio: () => document.querySelector('audio'),
+        onError: () => {},
+        fetchObject: async (_cid, path) => {
+          paths.push(path);
+          return Uint8Array.from(atob(fixture.manifest), char => char.charCodeAt(0));
+        }
+      });
+    } catch {
+      denied = true;
+    }
+    return { denied, paths };
+  }, fixture);
+  expect(result).toEqual({ denied: true, paths: ['manifest.json'] });
+});
+
+test('publication compatibility playback uses authenticated AAC when standard MSE is absent', async ({ page }) => {
+  await page.route('**/publication-compatibility', route =>
+    route.fulfill({ contentType: 'text/html', body: '<!doctype html><button>Play</button><audio></audio>' })
+  );
+  await page.goto('/publication-compatibility');
+  const result = await page.evaluate(async fixture => {
+    Object.defineProperty(window, 'MediaSource', { value: undefined, configurable: true });
+    const modulePath = '/src/features/catalog/streamingPlayback.ts';
+    const player = (await import(modulePath)) as typeof import('../src/features/catalog/streamingPlayback');
+    const paths: string[] = [];
+    const audio = document.querySelector('audio')!;
+    const prepared = await player.createStreamingPlayback({
+      cid: 'Qm' + 'a'.repeat(44),
+      key: Uint8Array.from(fixture.keyHex.replace(/^0x/, '').match(/../g)!, part => parseInt(part, 16)),
+      scope: fixture.scope,
+      signal: new AbortController().signal,
+      audio: () => audio,
+      onError: () => {},
+      fetchObject: async (_cid, path) => {
+        paths.push(path);
+        const encoded = path === 'manifest.json' ? fixture.manifest : fixture.files[path];
+        return Uint8Array.from(atob(encoded), char => char.charCodeAt(0));
+      }
+    });
+    audio.src = prepared.url;
+    document.querySelector('button')!.onclick = () => {
+      void audio.play();
+    };
+    return { progressive: prepared.progressive, paths };
+  }, fixture);
+  expect(result.progressive).toBe(false);
+  expect(result.paths.some(path => path.startsWith('archive/'))).toBe(false);
+  await page.click('button');
+  await expect.poll(() => page.evaluate(() => document.querySelector('audio')!.currentTime)).toBeGreaterThan(0.2);
+});

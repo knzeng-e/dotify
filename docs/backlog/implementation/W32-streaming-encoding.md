@@ -11,15 +11,17 @@ Implement **W32** only. Read `AGENTS.md`, `docs/backlog/implementation/common.md
 - Release stage: Next (streaming experience track). Applied during the trusted pilot when ready.
 - Product purpose: every protected or free release starts within a second on every supported browser, without downloading the whole file first.
 
-## Owner priority, 2026-10-21
+## Owner-selected first activation, 2026-10-21
 
-First activation targets **new artist publications**: durable encode jobs with
-progress/retry, encrypted manifest/segment publication, existing access checks,
-and real player/room playback including measured gain. Existing releases keep
-DAV2; catalog re-encoding is deferred. Do not make an existing-catalog migration
-a prerequisite for this first activation or rewrite legacy ciphertext. The
-format/codec foundation merged in #312 is inactive until those connections and
-Web/Product acceptance exist. See the [W30 prerequisite evidence](evidence/W30-api-nonroot-2026-10-21.md).
+New publications first; existing releases keep DAV2 and their migration is
+deferred. This continuation connects durable bounded jobs, isolated encoding,
+studio progress/retry/discard, immutable encrypted publication and actual player/
+room playback with loudness gain. W30 non-root is prepared in #316 and remains
+a live prerequisite. The coordinated clean testnet cutover is #317. See the
+[activation procedure](../../operations/streaming-publication.md) and
+[dated evidence](evidence/W32-publication-2026-10-21.md). No live worker/API/Web/
+Product deployment is implied by implemented code. See the
+[W30 prerequisite evidence](evidence/W30-api-nonroot-2026-10-21.md).
 
 ## Problem at audit
 

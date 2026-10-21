@@ -45,7 +45,7 @@ export function parseMediaRange(value: string | undefined): MediaRange | null {
 
 export function encryptedMediaCid(ref: string): string | null {
   // A bare, bounded CID only: never paths, queries, credentials or caller URLs.
-  return /^dotify:enc:(?:v2:(?:key-v[1-9][0-9]*:)?)?ipfs:\/\/((?:Qm[1-9A-HJ-NP-Za-km-z]{44}|b[a-z2-7]{20,110}))$/.exec(ref)?.[1] ?? null;
+  return /^dotify:enc:(?:v[23]:(?:key-v[1-9][0-9]*:)?)?ipfs:\/\/((?:Qm[1-9A-HJ-NP-Za-km-z]{44}|b[a-z2-7]{20,110}))$/.exec(ref)?.[1] ?? null;
 }
 
 export function createEncryptedMediaReader(fetchImpl: typeof fetch = fetch) {
@@ -64,7 +64,7 @@ export function createEncryptedMediaReader(fetchImpl: typeof fetch = fetch) {
       cache.delete(oldest);
     }
   };
-  async function download(cid: string, range: MediaRange | null, dav2: boolean, signal: AbortSignal): Promise<EncryptedMedia> {
+  async function download(cid: string, range: MediaRange | null, dav2: boolean, signal: AbortSignal, maxBytes: number): Promise<EncryptedMedia> {
     for (const gateway of GATEWAYS) {
       signal.throwIfAborted();
       const controller = new AbortController();
@@ -94,7 +94,7 @@ export function createEncryptedMediaReader(fetchImpl: typeof fetch = fetch) {
           continue;
         }
         const contentRange = /^bytes (\d+)-(\d+)\/(\d+)$/.exec(response.headers.get('content-range') ?? '');
-        const lengthLimit = range ? range.end - range.start + 1 : MAX_BYTES;
+        const lengthLimit = range ? range.end - range.start + 1 : maxBytes;
         const declared = Number(response.headers.get('content-length'));
         if (declared > lengthLimit || (range && (!contentRange || Number(contentRange[1]) !== range.start || Number(contentRange[2]) > range.end))) {
           void response.body?.cancel().catch(() => undefined);
@@ -120,7 +120,7 @@ export function createEncryptedMediaReader(fetchImpl: typeof fetch = fetch) {
         const total = range ? Number(contentRange![3]) : size;
         const expected = range ? Number(contentRange![2]) - range.start + 1 : size;
         if (!response.headers.has('content-encoding') && declared > 0 && size !== declared) continue;
-        if (!size || size !== expected || !Number.isSafeInteger(total) || total < (range?.start ?? 0) + size || total > MAX_BYTES) continue;
+        if (!size || size !== expected || !Number.isSafeInteger(total) || total < (range?.start ?? 0) + size || total > maxBytes) continue;
         const bytes = Buffer.concat(chunks, size);
         if (!range && dav2) {
           // Catalog registration does not make an upstream JSON table trusted.
@@ -175,8 +175,9 @@ export function createEncryptedMediaReader(fetchImpl: typeof fetch = fetch) {
     });
   }
   return {
-    async read(cid: string, range: MediaRange | null, dav2 = false, signal?: AbortSignal): Promise<EncryptedMedia> {
+    async read(cid: string, range: MediaRange | null, dav2 = false, signal?: AbortSignal, maxBytes = MAX_BYTES): Promise<EncryptedMedia> {
       signal?.throwIfAborted();
+      if (!Number.isSafeInteger(maxBytes) || maxBytes < 1 || maxBytes > MAX_BYTES) throw new MediaError(416, 'MEDIA_RANGE_INVALID');
       const prefix = `${cid}:${dav2 ? 'dav2' : 'enc'}:`;
       const key = `${prefix}${range ? `${range.start}-${range.end}` : 'full'}`;
       const hit = cache.get(key);
@@ -194,7 +195,7 @@ export function createEncryptedMediaReader(fetchImpl: typeof fetch = fetch) {
       // Reserve worst-case body space before starting a cold read. One complete
       // object can coexist with a range, but never another complete object on
       // the 512 MiB API instance (assembly/validation also need working space).
-      const reservation = range ? range.end - range.start + 1 : MAX_BYTES;
+      const reservation = range ? range.end - range.start + 1 : maxBytes;
       if (active >= 2 || reservedBytes + reservation > MAX_BYTES + MAX_RANGE_BYTES) throw new MediaError(503, 'MEDIA_BUSY');
       active++;
       reservedBytes += reservation;
@@ -202,7 +203,7 @@ export function createEncryptedMediaReader(fetchImpl: typeof fetch = fetch) {
       const controller = new AbortController();
       // Defer starting transport until the first subscriber is attached.
       const promise = Promise.resolve()
-        .then(() => download(cid, range, dav2, controller.signal))
+        .then(() => download(cid, range, dav2, controller.signal, maxBytes))
         .then(value => {
           if (!controller.signal.aborted && generation === atStart) store(key, value);
           return value;
