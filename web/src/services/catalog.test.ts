@@ -1,5 +1,6 @@
+import { deployments } from '../shared/config/deployments';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { fetchCatalog, isAuthoritativeCatalogResponse, readBundledCatalog, type CatalogApiResponse } from './catalog';
+import { fetchCatalog, isAuthoritativeCatalogResponse, readBundledCatalog, readCachedCatalog, type CatalogApiResponse } from './catalog';
 import { PRODUCT_DEVNET_BOOTSTRAP_CATALOG, PRODUCT_DEVNET_BOOTSTRAP_PRODUCT_ID } from './productDevnetCatalogBootstrap';
 
 function response(): CatalogApiResponse {
@@ -149,5 +150,34 @@ describe('readBundledCatalog', () => {
     expect(bundled?.meta.cacheAvailable).toBe(true);
     expect(readBundledCatalog({ apiUrl: 'https://api.dotify.example', productId: 'other.dot' })).toBeNull();
     expect(readBundledCatalog({ apiUrl: '', productId: PRODUCT_DEVNET_BOOTSTRAP_PRODUCT_ID })).toBeNull();
+  });
+});
+
+describe('catalog reset cache isolation', () => {
+  it('ignores the former directory cache and writes the new directory into the cache identity', async () => {
+    const values = new Map<string, string>();
+    const storage: Storage = {
+      get length() {
+        return values.size;
+      },
+      clear: () => values.clear(),
+      key: (index: number) => [...values.keys()][index] ?? null,
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => {
+        values.set(key, value);
+      },
+      removeItem: (key: string) => {
+        values.delete(key);
+      }
+    };
+    const apiUrl = 'https://api.reset.example';
+    values.set(`dotify:catalog:v1:${apiUrl}:all:100`, JSON.stringify({ version: 1, apiUrl, storedAt: Date.now(), response: response() }));
+    expect(readCachedCatalog({ apiUrl, storage })).toBeNull();
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify(response()))));
+    await fetchCatalog({ apiUrl, storage, includeInactive: true });
+    const keys = [...values.keys()].filter(key => key.startsWith('dotify:catalog:v2:'));
+    expect(keys).toHaveLength(1);
+    expect(keys[0]).toContain(deployments.directory.toLowerCase());
+    expect(readCachedCatalog({ apiUrl, storage })?.items).toEqual([]);
   });
 });

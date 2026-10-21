@@ -1,5 +1,21 @@
 # Deployment Configuration Runbook
 
+## Clean testnet contract preparation, 2026-10-21
+
+The owner-requested fresh core deployment is live on the existing testnet,
+chain 420420417: factory `0x708d35eee7c1416f6d332344068be9d714aec24c`,
+directory `0x8e611ef60169f8ed93019de4a3034a504ae2ad29`. Both CDM package names
+are finalized at version 2. All ten core contracts are source-verified, and the
+fresh owner-guard audit finds zero finalized/pending runtimes. No previous core
+contract, artist state, claim or IPFS data was deleted.
+
+API, signaling, Web and Product are **not cut over** by these transactions. Their
+staged configuration, empty frozen bootstrap, directory-scoped browser cache and
+recorded CDM versions must deploy together after W30/W32 review and provisioning.
+See [identities, evidence, rollout and rollback](fresh-testnet-2026-10-21.md).
+Existing session/custody/receipt state and keys must survive that rollout. Do not
+refresh the new bootstrap from the still-old live API while preparing clients.
+
 ## Release publication and documentation hosting, 2026-10-20
 
 GitHub 1.4.0 tags final main `9788ec0`; Product `[0,1,57]` was separately signed
@@ -1207,17 +1223,22 @@ https://fly.io/dashboard
 
 Open app `dotify-api`.
 
-Non-secret runtime values are tracked in `services/api/fly.toml`:
+The table lists the **tracked post-cutover values** in `services/api/fly.toml`,
+not a readback of the currently deployed Fly environment. At the last recorded
+rollout, API 28 still used the previous factory/directory pair. The
+[cutover and rollback record](fresh-testnet-2026-10-21.md) distinguishes that live
+baseline from the fresh contracts already deployed on-chain. Verify the API's
+actual deployed identity during rollout before publishing matching clients.
 
-| Key                        | Current value                                                                                                                                                                                                                |
+| Key                        | Tracked post-cutover value                                                                                                                                                                                                                |
 | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `API_PORT`                 | `8790`                                                                                                                                                                                                                       |
 | `NODE_ENV`                 | `production`                                                                                                                                                                                                                 |
 | `API_ORIGINS`              | `https://muzinga.netlify.app,https://dotify-test01.dev-dot.li,https://dotify-test01.app.dev-dot.li,https://dotify-test01.app.dot.li,https://dotify-test01.dot,polkadot://dotify-test01.dot,polkadot://app.dotify-test01.dot` |
 | `PASEO_ASSET_HUB_NATIVE_RPC` | `https://asset-hub-paseo-rpc.n.dwellir.com` (HTTPS historical native receipts; no signing) |
 | `PASEO_ASSET_HUB_RPC`      | `https://eth-rpc-testnet.polkadot.io/`                                                                                                                                                                                       |
-| `DOTIFY_FACTORY_ADDRESS`   | `0x835a626a9a6965b197d079ae56b1ec94033c2699`                                                                                                                                                                                 |
-| `DOTIFY_DIRECTORY_ADDRESS` | `0x4e883827d61e573094c7b777bae323070ea9f954`                                                                                                                                                                                 |
+| `DOTIFY_FACTORY_ADDRESS`   | `0x708d35eee7c1416f6d332344068be9d714aec24c`                                                                                                                                                                                 |
+| `DOTIFY_DIRECTORY_ADDRESS` | `0x8e611ef60169f8ed93019de4a3034a504ae2ad29`                                                                                                                                                                                 |
 | `DOTIFY_CHAIN_ID`          | `420420417`                                                                                                                                                                                                                  |
 
 <a id="shared-native-contribution-ledger-product-0140"></a>
@@ -1660,9 +1681,14 @@ the ready state from the retained live capture without waiting for another
 
 Open app `dotify-signal`.
 
-Non-secret runtime values are tracked in `web/fly.signal.toml`:
+The table lists the **tracked post-cutover values** in `web/fly.signal.toml`,
+not a readback of the live service. The last recorded signaling release 36 still
+used the previous directory. Deploy this configuration only with the matching
+API directory and Web/Product clients, following the
+[coordinated cutover record](fresh-testnet-2026-10-21.md). A source table does not
+prove that Fly has already applied these values.
 
-| Key                           | Current value                                                                                                                                                                                                                |
+| Key                           | Tracked post-cutover value                                                                                                                                                                                                                |
 | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `SIGNAL_PORT`                 | `8788`                                                                                                                                                                                                                       |
 | `SIGNAL_HOST`                 | `0.0.0.0`                                                                                                                                                                                                                    |
@@ -1672,7 +1698,7 @@ Non-secret runtime values are tracked in `web/fly.signal.toml`:
 | `SIGNAL_TURN_CAPABILITY_TTL_MS` | `120000`                                                                                                                                                                                                                   |
 | `SIGNAL_CONTRIBUTION_RPC_URL` | `https://eth-rpc-testnet.polkadot.io/`                                                                                                                                                                                       |
 | `SIGNAL_CONTRIBUTION_CHAIN_ID` | `420420417`                                                                                                                                                                                                                 |
-| `SIGNAL_CONTRIBUTION_DIRECTORY` | `0x4e883827d61e573094c7b777bae323070ea9f954`                                                                                                                                                                               |
+| `SIGNAL_CONTRIBUTION_DIRECTORY` | `0x8e611ef60169f8ed93019de4a3034a504ae2ad29`                                                                                                                                                                               |
 | `SIGNAL_CONTRIBUTION_API_URL` | `https://dotify-api.fly.dev/api`                                                                                                                                                                                             |
 | `SIGNAL_ALLOW_MISSING_ORIGIN` | `true`                                                                                                                                                                                                                       |
 | `SIGNAL_ORIGINS`              | `https://muzinga.netlify.app,https://dotify-test01.dev-dot.li,https://dotify-test01.app.dev-dot.li,https://dotify-test01.app.dot.li,https://dotify-test01.dot,polkadot://dotify-test01.dot,polkadot://app.dotify-test01.dot` |

@@ -34,8 +34,8 @@ primary_region = "ams"
   SESSION_REVOCATIONS_PATH = "/data/contributions/session-revocations.json"
   # Fly forwards every request from its proxy; key rate limits on Fly-Client-IP.
   API_TRUST_PROXY = "fly"
-  DOTIFY_FACTORY_ADDRESS = "0x835a626a9a6965b197d079ae56b1ec94033c2699"
-  DOTIFY_DIRECTORY_ADDRESS = "0x4e883827d61e573094c7b777bae323070ea9f954"
+  DOTIFY_FACTORY_ADDRESS = "0x708d35eee7c1416f6d332344068be9d714aec24c"
+  DOTIFY_DIRECTORY_ADDRESS = "0x8e611ef60169f8ed93019de4a3034a504ae2ad29"
   DOTIFY_CHAIN_ID = "420420417"
   # New publications use the isolated private encoder after explicit custody
   # provisioning. STREAMING_WORKER_TOKEN is a dedicated Fly secret, never the

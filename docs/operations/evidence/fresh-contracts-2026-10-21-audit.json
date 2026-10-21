@@ -1,0 +1,23 @@
+{
+  "blockHash": "0x49339bad43574d98f48c8e87023dc21d7b13e6cf5c8baca5e4721cc9d36e9bfc",
+  "blockNumber": "14709581",
+  "chainId": 420420417,
+  "configuredCodeHash": "0x59020fa678566611842e12b116e7e83352e89337ba6c5ae51c437c48316cd8d9",
+  "configuredFacet": "0x726EeE6e4aA000b9B8185164EE56B1FE90650B31",
+  "configuredFacetMatchesSource": true,
+  "correctedSourceCodeHash": "0x59020fa678566611842e12b116e7e83352e89337ba6c5ae51c437c48316cd8d9",
+  "directory": "0x8e611EF60169F8ed93019DE4a3034A504aE2aD29",
+  "directoryFactory": "0x708D35EEe7c1416F6d332344068BE9D714AeC24C",
+  "directoryFactoryMatches": true,
+  "factory": "0x708D35EEe7c1416F6d332344068BE9D714AeC24C",
+  "factoryDirectory": "0x8e611EF60169F8ed93019DE4a3034A504aE2aD29",
+  "factoryDirectoryMatches": true,
+  "finalizedRuntimeCount": 0,
+  "pendingDiscovery": {
+    "deploymentBlock": "14709484",
+    "status": "complete"
+  },
+  "pendingRuntimes": [],
+  "runtimes": [],
+  "schema": "dotify.registry-audit.v1"
+}

@@ -25,6 +25,16 @@
   },
   "items": [
     {
+      "id": "fresh-testnet-streaming-cutover",
+      "doc": "docs/backlog/fresh-testnet-streaming-cutover.md",
+      "issue": 317,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Now",
+      "note": "Owner requested clean testnet reset alongside W32 new-publication streaming. Fresh core contracts and CDM version 2 are live; coordinated API/Web/Product cutover and artist re-onboarding remain gated on W30/W32."
+    },
+    {
       "id": "mobile-form-continuity",
       "doc": "docs/backlog/mobile-form-continuity.md",
       "issue": 306,
