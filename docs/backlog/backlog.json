@@ -559,7 +559,7 @@
       "priority": "P1",
       "track": "Production spine",
       "phase": "Next",
-      "note": "Refs #88. AAC fMP4 renditions with segment-level encryption under the existing release key scope, loudness gain, preserved master, DAV2 compatibility."
+      "note": "Refs #88. Owner selected W32 implementation 2026-10-20. Independent format/codec slice adds three AAC fMP4 renditions, durable nonce reservations, authenticated loudness/archive and browser interoperability tests. Production uploads/player jobs/migration remain unchanged and incomplete; retain W30 prerequisite and all activation gates. Evidence: implementation/evidence/W32.md."
     },
     {
       "id": "W33",

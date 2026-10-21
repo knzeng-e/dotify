@@ -132,7 +132,10 @@ export function encryptAudioV2Container(
     throw new Error('Invalid DAV2 first chunk size');
   }
   const chunkCount = plaintext.length <= firstChunkSize ? 1 : 1 + Math.ceil((plaintext.length - firstChunkSize) / chunkSize);
-  if (chunkCount > 0xffffffff) throw new Error('DAV2 chunk count is out of range');
+  // Reserve the high counter half for authenticated streaming renditions.
+  // Production upload budgets are far below this boundary; do not allow a
+  // future custom chunk size to cross into the v3 nonce namespace.
+  if (chunkCount > 0x80000000) throw new Error('DAV2 chunk count is out of range');
   const noncePrefix = randomBytes(8);
 
   const header: AudioV2Header = {
