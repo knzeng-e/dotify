@@ -1,5 +1,7 @@
 # W32: authenticated AAC renditions and nonce allocation
 
+**Compatibility policy superseded:** [ADR 0033](0033-streaming-only-internal-reset.md) records the owner-requested internal reset. DAV1/DAV2 readers/writers and catalog migration are removed; the v3 wire, release-bound HKDF and permanent nonce contract below remain valid. Earlier compatibility statements are historical.
+
 Date: 2026-10-20. Status: implementation decision, pending review and rollout.
 Base: tested dev `e0d8c2c`. Refs #287, #88. This decision is recorded before
 adding encoding/encryption code. Existing release bytes and access policy stay
@@ -127,7 +129,6 @@ unsupported decoder.
 
 W33 edge caching, W34 key preparation and W35 adaptive/gapless behavior stay
 outside W32. A partially landed slice is not a completed #287.
-
 
 ## First activation amendment, 2026-10-21
 

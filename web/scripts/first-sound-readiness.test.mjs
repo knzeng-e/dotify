@@ -20,14 +20,11 @@ function sample(id, overrides = {}) {
     measurement: 'human-confirmed',
     firstSoundMs: 800,
     capturedAt: '2026-09-19T12:00:00.000Z',
-    dav2: {
+    streaming: {
       observed: true,
-      fallback: false,
-      hedged: false,
+      compatibilityReader: false,
       gatewayRecovered: false,
-      intentPrefetched: false,
-      decryptor: 'worker',
-      firstRangeBytes: 262_160,
+      firstObjectBytes: 262_160,
       keyAuthorizationMs: 240,
       authenticationFailed: false
     },
@@ -55,7 +52,7 @@ function evidence(
 ) {
   const surface = samples[0]?.surface ?? 'standalone-chrome';
   return {
-    schemaVersion: 5,
+    schemaVersion: 6,
     candidate,
     profile: profile(surface, profileOverrides),
     capturedAt: '2026-09-19T12:05:00.000Z',
@@ -84,7 +81,7 @@ describe('first-sound readiness evidence', () => {
     );
     assert.equal(report.matrix.find(row => row.surface === 'standalone-chrome')?.status, 'pass');
     assert.equal(report.matrix.find(row => row.surface === 'ios-safari')?.status, 'not-run');
-    assert.equal(report.gates.find(row => row.id === 'fallback-rate')?.status, 'not-run');
+    assert.deepEqual(report.readers, { samples: 4, compatibility: 0 });
     assert.match(renderFirstSoundReadinessMarkdown(report), /standalone-chrome/);
   });
 
@@ -158,14 +155,14 @@ describe('first-sound readiness evidence', () => {
         expectedOutcome: 'first-audio',
         outcome: 'first-audio',
         firstSoundMs: 1_100,
-        dav2: { ...sample('base').dav2, gatewayRecovered: true }
+        streaming: { ...sample('base').streaming, gatewayRecovered: true }
       }),
       sample('slow-key', {
         scenario: 'slow-key-service',
         expectedOutcome: 'first-audio',
         outcome: 'first-audio',
         firstSoundMs: 2_800,
-        dav2: { ...sample('base').dav2, keyAuthorizationMs: 1_400 }
+        streaming: { ...sample('base').streaming, keyAuthorizationMs: 1_400 }
       }),
       sample('navigation', {
         scenario: 'interrupted-navigation',
@@ -176,12 +173,12 @@ describe('first-sound readiness evidence', () => {
         hostTerminalReason: 'selection-interrupted'
       }),
       sample('corrupted', {
-        scenario: 'corrupted-dav2',
+        scenario: 'corrupted-streaming',
         expectedOutcome: 'error',
         outcome: 'error',
         measurement: 'automatic-error',
         firstSoundMs: null,
-        dav2: { ...sample('base').dav2, authenticationFailed: true }
+        streaming: { ...sample('base').streaming, authenticationFailed: true }
       })
     ];
     const report = buildFirstSoundReadinessReport(
@@ -229,11 +226,11 @@ describe('first-sound readiness evidence', () => {
         firstSoundMs: null,
         hostTerminalReason: 'selection-failed'
       }),
-      sample('corrupted', { scenario: 'corrupted-dav2', expectedOutcome: 'error', outcome: 'error', measurement: 'automatic-error', firstSoundMs: null })
+      sample('corrupted', { scenario: 'corrupted-streaming', expectedOutcome: 'error', outcome: 'error', measurement: 'automatic-error', firstSoundMs: null })
     ];
     const report = buildFirstSoundReadinessReport([{ path: 'mislabeled.json', data: evidence(mislabeled) }], { expectedCommit: SHA });
 
-    for (const scenario of ['denied-protected', 'broken-gateway', 'slow-key-service', 'interrupted-navigation', 'corrupted-dav2']) {
+    for (const scenario of ['denied-protected', 'broken-gateway', 'slow-key-service', 'interrupted-navigation', 'corrupted-streaming']) {
       assert.equal(report.gates.find(row => row.id === `scenario:${scenario}`)?.status, 'fail');
     }
   });
@@ -339,13 +336,13 @@ describe('first-sound readiness evidence', () => {
     assert.match(renderFirstSoundReadinessMarkdown(report), /mobile/);
   });
 
-  it('requires enough DAV2 attempts before asserting the <1% fallback target', () => {
-    const samples = Array.from({ length: 100 }, (_, index) => sample(`dav2-${index}`));
-    const passing = buildFirstSoundReadinessReport([{ path: 'hundred.json', data: evidence(samples) }], { expectedCommit: SHA });
-    assert.equal(passing.gates.find(row => row.id === 'fallback-rate')?.status, 'pass');
-
-    samples[0] = sample('dav2-0', { dav2: { ...sample('template').dav2, fallback: true } });
-    const failing = buildFirstSoundReadinessReport([{ path: 'hundred.json', data: evidence(samples) }], { expectedCommit: SHA });
-    assert.equal(failing.gates.find(row => row.id === 'fallback-rate')?.status, 'fail');
+  it('reports the current AAC compatibility reader without treating it as a legacy fallback failure', () => {
+    const samples = [sample('mse'), sample('blob', { streaming: { ...sample('base').streaming, compatibilityReader: true } })];
+    const report = buildFirstSoundReadinessReport([{ path: 'readers.json', data: evidence(samples) }], { expectedCommit: SHA });
+    assert.deepEqual(report.readers, { samples: 2, compatibility: 1 });
+    assert.equal(
+      report.gates.some(row => row.id === 'fallback-rate'),
+      false
+    );
   });
 });

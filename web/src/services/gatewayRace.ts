@@ -7,10 +7,6 @@
 // Every URL here addresses the same immutable CID, so racing them is free of
 // consistency concerns: whichever answers first is the same object.
 //
-// This is the whole-object sibling of `audioV2Gateway`, which does the same
-// for byte ranges. It lives under services/ with no project imports so
-// `pinata` can use it without depending on a feature module.
-
 export type GatewayRaceOptions = {
   /** Time budget for one gateway to return response headers. */
   timeoutMs?: number;

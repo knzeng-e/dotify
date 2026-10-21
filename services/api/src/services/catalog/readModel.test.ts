@@ -24,7 +24,7 @@ function release(overrides: Partial<CatalogRelease> = {}): CatalogRelease {
     description: 'A registered release.',
     imageRef: 'ipfs://cover',
     coverVariants: ['ipfs://cover'],
-    audioRef: 'dotify:enc:v2:ipfs://audio',
+    audioRef: 'dotify:enc:v3:key-v2:ipfs://Qm8ThP7gtvJxE6sZqcZ6wT3bHeqcTpzyHQZTfarocQeEUJ',
     metadataRef: 'paseo-bulletin:manifest',
     bulletinRef: 'paseo-bulletin:manifest',
     artistContractRef: 'ipfs://contract',

@@ -5,7 +5,6 @@ import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { describe, it } from 'node:test';
-import { encryptAudioV2Container, parseAudioV2Container } from './audioV2.js';
 import { initializeStreamingNonceLedger, StreamingNonceLedger, streamingNonce, streamingKeyFingerprint } from './streamingNonces.js';
 import {
   decryptStreamingObject,
@@ -66,7 +65,7 @@ async function encrypted(ledger: StreamingNonceLedger) {
 }
 
 describe('streaming nonce custody and authenticated format', () => {
-  it('instruments every AES invocation across legacy, all renditions, retries and crash/resume', async () =>
+  it('instruments every AES invocation across all renditions, retries and crash/resume', async () =>
     fixture(async directory => {
       const invocations = new Set<string>();
       const original = crypto.createCipheriv;
@@ -78,24 +77,15 @@ describe('streaming nonce custody and authenticated format', () => {
       }) as typeof crypto.createCipheriv;
       syncBuiltinESMExports();
       try {
-        const legacy = encryptAudioV2Container(Buffer.from('old master fixture'), KEY, {
-          contentHash: SCOPE.contentHash,
-          mediaMime: 'audio/mpeg',
-          chunkSize: 8
-        });
-        const prefix = Buffer.from(parseAudioV2Container(legacy).header.noncePrefix, 'hex');
+        const prefix = randomBytes(8);
         let calls = 0;
-        // First generation intentionally shares the legacy prefix: low/high halves
-        // remain disjoint. Later reservations force that occupied prefix again.
+        // Force a generation collision; it must be reserved only once.
         const ledger = new StreamingNonceLedger(directory, () => (calls++ < 2 ? prefix : randomBytes(8)));
         const first = await encrypted(ledger);
         verifyStreamingManifest(first.manifest, KEY, SCOPE);
         const count = invocations.size;
         // Reusing completed ciphertext and verifying it must never encrypt again.
-        assert.equal(
-          decryptStreamingObject(first.objects[0].bytes, KEY, first.manifest, first.objects[0].descriptor).toString(),
-          'archival master'
-        );
+        assert.equal(decryptStreamingObject(first.objects[0].bytes, KEY, first.manifest, first.objects[0].descriptor).toString(), 'archival master');
         assert.equal(invocations.size, count);
         const failed = await ledger.reserve(KEY);
         new StreamingEncryptor(KEY, failed, SCOPE).object(Buffer.from('failed job'), {
@@ -108,7 +98,7 @@ describe('streaming nonce custody and authenticated format', () => {
         const retried = await encrypted(restarted);
         assert.notEqual(retried.manifest.generation, first.manifest.generation);
         assert.notEqual(retried.manifest.generation, failed.generation);
-        assert.equal(invocations.size, 3 + 8 + 1 + 8);
+        assert.equal(invocations.size, 8 + 1 + 8);
         // Fault-inject exhausted in-memory state; overflow must not reach AES.
         (failed as unknown as { counter: number }).counter = 0x80000000;
         const beforeOverflow = invocations.size;

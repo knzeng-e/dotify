@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
 type AudioStartupSnapshot = {
-  dav2: Array<{ phase: string; elapsedMs: number }>;
+  streaming: Array<{ phase: string; elapsedMs: number }>;
   host: Array<{ phase: string; attemptId: string; elapsedMs: number; terminalReason?: string }>;
   latestMediaPlayingMs: number | null;
 };
@@ -19,29 +19,6 @@ async function readStartupSnapshot(page: Page) {
   return page.evaluate(() => window.__DOTIFY_AUDIO_STARTUP__?.snapshot());
 }
 
-function dav2IntentFixture(): Uint8Array {
-  const header = new TextEncoder().encode(
-    JSON.stringify({
-      schema: 'dotify.audio.v2',
-      version: 1,
-      algorithm: 'AES-256-GCM',
-      mediaMime: 'audio/mpeg',
-      chunkSize: 4,
-      chunkCount: 1,
-      plaintextLength: 4,
-      contentHash: `0x${'11'.repeat(32)}`,
-      noncePrefix: '22'.repeat(8),
-      chunks: [{ index: 0, plainLength: 4, encryptedLength: 20 }]
-    })
-  );
-  const container = new Uint8Array(8 + header.length + 20);
-  container.set(new TextEncoder().encode('DAV2'));
-  new DataView(container.buffer).setUint32(4, header.length, false);
-  container.set(header, 8);
-  container.fill(5, 8 + header.length);
-  return container;
-}
-
 test('audio startup telemetry is retained for QA in the browser', async ({ page }) => {
   await page.goto('/?e2eRoom=public');
 
@@ -54,18 +31,16 @@ test('audio startup telemetry is retained for QA in the browser', async ({ page 
   await page.evaluate(() => {
     window.__DOTIFY_AUDIO_STARTUP__?.clear();
     window.dispatchEvent(
-      new CustomEvent('dotify:dav2-startup', {
+      new CustomEvent('dotify:streaming-startup', {
         detail: {
-          phase: 'first-range-ready',
-          audioRef: 'dotify:enc:v2:ipfs://bafy-audio',
+          phase: 'first-object-ready',
+          audioRef: 'dotify:enc:v3:key-v2:ipfs://QmJ7fA5bNjqk4JzEfAoEv9TNLx4Wc7m5pMQYUY91dGfGmL',
           cid: 'bafy-audio',
           elapsedMs: 317.4,
           timestamp: Date.now(),
           gatewayUrl: 'https://gateway.example/ipfs/bafy-audio',
-          rangeStart: 512,
-          rangeEnd: 1024,
-          chunkIndex: 0,
-          hedged: true,
+          objectBytes: 513,
+          segmentIndex: 0,
           fromCache: false
         }
       })
@@ -84,10 +59,10 @@ test('audio startup telemetry is retained for QA in the browser', async ({ page 
     );
   });
 
-  const dav2Snapshot = await readStartupSnapshot(page);
-  expect(dav2Snapshot?.dav2).toEqual([expect.objectContaining({ phase: 'first-range-ready', elapsedMs: 317.4 })]);
-  expect(dav2Snapshot?.host).toEqual(expect.arrayContaining([expect.objectContaining({ phase: 'media-playing', elapsedMs: 821.6 })]));
-  expect(dav2Snapshot?.latestMediaPlayingMs).toBe(821.6);
+  const streamingSnapshot = await readStartupSnapshot(page);
+  expect(streamingSnapshot?.streaming).toEqual([expect.objectContaining({ phase: 'first-object-ready', elapsedMs: 317.4 })]);
+  expect(streamingSnapshot?.host).toEqual(expect.arrayContaining([expect.objectContaining({ phase: 'media-playing', elapsedMs: 821.6 })]));
+  expect(streamingSnapshot?.latestMediaPlayingMs).toBe(821.6);
 });
 
 test('resuming an already loaded track records a fresh warm startup attempt', async ({ page }) => {
@@ -400,17 +375,15 @@ test('the readiness panel captures a candidate-bound first-sound sample without 
       })
     );
     window.dispatchEvent(
-      new CustomEvent('dotify:dav2-startup', {
+      new CustomEvent('dotify:streaming-startup', {
         detail: {
-          phase: 'first-range-ready',
-          audioRef: 'dotify:enc:v2:ipfs://private-audio-ref',
+          phase: 'first-object-ready',
+          audioRef: 'dotify:enc:v3:key-v2:ipfs://QmD6sw5ZNci1GorvBeQV3W8B6fD8GbCLyVVzEe27hV4dvc',
           cid: 'private-cid',
           elapsedMs: 300,
           timestamp: timestamp + 300,
           gatewayUrl: 'https://private-gateway.example/ipfs/private-cid',
-          rangeStart: 100,
-          rangeEnd: 399,
-          intentPrefetched: true
+          objectBytes: 300
         }
       })
     );
@@ -436,7 +409,7 @@ test('the readiness panel captures a candidate-bound first-sound sample without 
   await panel.getByRole('button', { name: 'I hear the music / capture error' }).click();
   await expect(panel.getByText('1 sanitized sample')).toBeVisible();
 
-  const stored = await page.evaluate(() => localStorage.getItem('dotify:first-sound-evidence:v5'));
+  const stored = await page.evaluate(() => localStorage.getItem('dotify:first-sound-evidence:v6'));
   const firstSoundMs = JSON.parse(stored ?? '{}').samples?.[0]?.firstSoundMs;
   expect(firstSoundMs).toBeGreaterThanOrEqual(0);
   expect(firstSoundMs).toBeLessThan(2_000);
@@ -451,84 +424,19 @@ test('the readiness panel captures a candidate-bound first-sound sample without 
   expect(stored).not.toContain('private-source');
 });
 
-test('DAV2 chunk decryption runs in a real browser worker', async ({ page }) => {
-  await page.goto('/?e2eRoom=public');
-
-  const result = await page.evaluate(async () => {
-    const moduleUrl = '/src/features/catalog/audioV2Decryptor.ts';
-    const { createAudioV2ChunkDecryptor } = await import(moduleUrl);
-    const keyBytes = new Uint8Array(32).fill(0x7a);
-    const clearBytes = new TextEncoder().encode('real browser worker audio');
-    const header = {
-      schema: 'dotify.audio.v2' as const,
-      version: 1 as const,
-      algorithm: 'AES-256-GCM' as const,
-      chunkSize: clearBytes.length,
-      chunkCount: 1,
-      plaintextLength: clearBytes.length,
-      mediaMime: 'audio/mpeg',
-      contentHash: `0x${'ab'.repeat(32)}`,
-      noncePrefix: '0102030405060708',
-      chunks: [{ index: 0, plainLength: clearBytes.length, encryptedLength: clearBytes.length + 16 }]
-    };
-    const nonce = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8, 0, 0, 0, 0]);
-    const aad = new TextEncoder().encode(
-      [
-        header.schema,
-        String(header.version),
-        header.contentHash,
-        String(header.chunkSize),
-        String(header.chunkCount),
-        String(header.plaintextLength),
-        header.mediaMime,
-        '0',
-        String(clearBytes.length)
-      ].join('|')
-    );
-    const cryptoKey = await crypto.subtle.importKey('raw', keyBytes, 'AES-GCM', false, ['encrypt']);
-    const encrypted = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv: nonce, additionalData: aad }, cryptoKey, clearBytes));
-    const decryptor = await createAudioV2ChunkDecryptor({ header, key: keyBytes });
-    try {
-      const decrypted = await decryptor.decrypt(0, encrypted);
-      return { execution: decryptor.execution, text: new TextDecoder().decode(decrypted) };
-    } finally {
-      decryptor.close();
-    }
+test('track intent warms encrypted streaming bytes without requesting a content key', async ({ page }) => {
+  const objects: string[] = [];
+  await page.route('**/ipfs/QmBptPVvSfjAZdLedjaQUqTfpaJ39rX8uUZkfVZwf4yec8/**', route => {
+    objects.push(new URL(route.request().url()).pathname.split('/').at(-1)!);
+    expect(route.request().headers().range).toBeUndefined();
+    return route.fulfill({ headers: { 'Access-Control-Allow-Origin': '*' }, body: 'encrypted-public-fixture' });
   });
-
-  expect(result).toEqual({ execution: 'worker', text: 'real browser worker audio' });
-});
-
-test('track intent warms encrypted DAV2 bytes without requesting a content key', async ({ page }) => {
-  const container = dav2IntentFixture();
-  const ranges: string[] = [];
-  await page.route('**/ipfs/bafy-e2e-intent-audio', async route => {
-    const range = route.request().headers().range;
-    ranges.push(range ?? '');
-    const match = /^bytes=(\d+)-(\d+)$/.exec(range ?? '');
-    if (!match) return route.fulfill({ status: 400, body: 'range required' });
-    const start = Number(match[1]);
-    const requestedEnd = Number(match[2]);
-    const end = Math.min(requestedEnd, container.length - 1);
-    return route.fulfill({
-      status: 206,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Accept-Ranges': 'bytes',
-        'Content-Type': 'application/octet-stream',
-        'Content-Range': `bytes ${start}-${end}/${container.length}`
-      },
-      body: Buffer.from(container.slice(start, end + 1))
-    });
-  });
-
-  await page.goto('/?e2eRoom=protected-authorized&e2eDav2Intent=on');
+  await page.goto('/?e2eRoom=protected-authorized&e2eStreamingIntent=on');
   const protectedCover = page.getByTestId('track-card').filter({ hasText: 'E2E Protected Room Track' }).getByTestId('track-artwork-action');
   await protectedCover.hover();
 
-  await expect.poll(() => ranges.length).toBe(2);
-  expect(ranges[0]).toBe('bytes=0-65535');
-  expect(ranges[1]).toMatch(/^bytes=\d+-\d+$/);
+  await expect.poll(() => objects.length).toBe(2);
+  expect(objects).toEqual(['manifest.json', 'init.bin']);
   expect(await page.evaluate(() => window.__DOTIFY_E2E_ROOM_JOIN__?.keyRequests ?? 0)).toBe(0);
 });
 
@@ -541,44 +449,30 @@ for (const saveData of [false, true]) {
         Object.defineProperty(navigator, 'connection', { configurable: true, value: connection });
       });
     }
-    const container = dav2IntentFixture();
-    const ranges: string[] = [];
-    await page.route('**/ipfs/bafy-e2e-intent-audio', async route => {
-      const range = route.request().headers().range ?? '';
-      ranges.push(range);
-      const match = /^bytes=(\d+)-(\d+)$/.exec(range);
-      if (!match) return route.fulfill({ status: 400, body: 'range required' });
-      const start = Number(match[1]);
-      const end = Math.min(Number(match[2]), container.length - 1);
-      await route.fulfill({
-        status: 206,
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Content-Type': 'application/octet-stream',
-          'Content-Range': `bytes ${start}-${end}/${container.length}`
-        },
-        body: Buffer.from(container.slice(start, end + 1))
-      });
+    const objects: string[] = [];
+    await page.route('**/ipfs/QmBptPVvSfjAZdLedjaQUqTfpaJ39rX8uUZkfVZwf4yec8/**', route => {
+      objects.push(new URL(route.request().url()).pathname.split('/').at(-1)!);
+      return route.fulfill({ headers: { 'Access-Control-Allow-Origin': '*' }, body: 'encrypted-public-fixture' });
     });
-    await page.goto('/?e2eRoom=protected-unauthorized&e2eDav2Intent=on&e2eSync=on');
+    await page.goto('/?e2eRoom=protected-unauthorized&e2eStreamingIntent=on&e2eSync=on');
     await page.getByRole('button', { name: /^Play E2E Public Room Track by Dotify Room Host,/ }).click();
     await page.mouse.move(0, 0);
     const audio = page.locator('audio.native-player-source').first();
     await expect(page.getByRole('button', { name: 'Play', exact: true })).toBeEnabled();
     await page.waitForTimeout(800);
-    expect(ranges).toHaveLength(0);
+    expect(objects).toHaveLength(0);
     await page.getByRole('button', { name: 'Play', exact: true }).click();
     await expect(audio).toHaveJSProperty('paused', false);
     if (saveData) {
       await page.waitForTimeout(1000);
-      expect(ranges).toHaveLength(0);
+      expect(objects).toHaveLength(0);
     } else {
-      await expect.poll(() => ranges.length).toBe(2);
-      expect(ranges[0]).toBe('bytes=0-65535');
-      // Hover/focus uses the same cached two ranges, not a second download.
+      await expect.poll(() => objects.length).toBe(2);
+      expect(objects).toEqual(['manifest.json', 'init.bin']);
+      // Hover/focus reuses the cached ciphertext, without asking for a key.
       await page.getByRole('button', { name: 'Previous track', exact: true }).hover();
       await page.waitForTimeout(200);
-      expect(ranges).toHaveLength(2);
+      expect(objects).toHaveLength(2);
       // Previous restarts the current track after three seconds. Exercise the
       // actual previous-track branch here, after verifying its bytes are warm.
       await audio.evaluate(element => {

@@ -1,6 +1,6 @@
-export const DEFAULT_AUDIO_V2_READ_AHEAD_CHUNKS = 1;
+export const DEFAULT_STREAMING_READ_AHEAD_CHUNKS = 1;
 
-const MAX_AUDIO_V2_READ_AHEAD_CHUNKS = 4;
+const MAX_STREAMING_READ_AHEAD_CHUNKS = 4;
 
 type IndexedChunk = {
   index: number;
@@ -8,7 +8,7 @@ type IndexedChunk = {
 
 type PreparedOutcome<TPrepared> = { ok: true; value: TPrepared } | { ok: false; error: unknown };
 
-export type AudioV2ReadAheadPipelineOptions<TChunk extends IndexedChunk, TPrepared> = {
+export type StreamingReadAheadPipelineOptions<TChunk extends IndexedChunk, TPrepared> = {
   chunks: readonly TChunk[];
   prepareChunk: (chunk: TChunk, signal: AbortSignal) => Promise<TPrepared>;
   appendChunk: (chunk: TChunk, prepared: TPrepared, signal: AbortSignal) => Promise<void>;
@@ -17,8 +17,8 @@ export type AudioV2ReadAheadPipelineOptions<TChunk extends IndexedChunk, TPrepar
 };
 
 function createAbortError(): Error {
-  if (typeof DOMException !== 'undefined') return new DOMException('DAV2 pipeline cancelled', 'AbortError');
-  const error = new Error('DAV2 pipeline cancelled');
+  if (typeof DOMException !== 'undefined') return new DOMException('Streaming pipeline cancelled', 'AbortError');
+  const error = new Error('Streaming pipeline cancelled');
   error.name = 'AbortError';
   return error;
 }
@@ -28,11 +28,11 @@ function throwIfAborted(signal: AbortSignal): void {
 }
 
 function validatePipeline<TChunk extends IndexedChunk>(chunks: readonly TChunk[], readAheadChunks: number): void {
-  if (!Number.isSafeInteger(readAheadChunks) || readAheadChunks < 0 || readAheadChunks > MAX_AUDIO_V2_READ_AHEAD_CHUNKS) {
-    throw new Error(`DAV2 read-ahead must be between 0 and ${MAX_AUDIO_V2_READ_AHEAD_CHUNKS} chunks`);
+  if (!Number.isSafeInteger(readAheadChunks) || readAheadChunks < 0 || readAheadChunks > MAX_STREAMING_READ_AHEAD_CHUNKS) {
+    throw new Error(`Streaming read-ahead must be between 0 and ${MAX_STREAMING_READ_AHEAD_CHUNKS} chunks`);
   }
   for (let position = 0; position < chunks.length; position += 1) {
-    if (chunks[position].index !== position) throw new Error('DAV2 pipeline requires monotonic chunk indexes');
+    if (chunks[position].index !== position) throw new Error('Streaming pipeline requires monotonic chunk indexes');
   }
 }
 
@@ -40,8 +40,10 @@ function validatePipeline<TChunk extends IndexedChunk>(chunks: readonly TChunk[]
  * Prepares a small window of future chunks while appending the current chunk.
  * Preparation may finish out of order, but SourceBuffer appends remain ordered.
  */
-export async function pumpAudioV2ReadAhead<TChunk extends IndexedChunk, TPrepared>(options: AudioV2ReadAheadPipelineOptions<TChunk, TPrepared>): Promise<void> {
-  const readAheadChunks = options.readAheadChunks ?? DEFAULT_AUDIO_V2_READ_AHEAD_CHUNKS;
+export async function pumpStreamingReadAhead<TChunk extends IndexedChunk, TPrepared>(
+  options: StreamingReadAheadPipelineOptions<TChunk, TPrepared>
+): Promise<void> {
+  const readAheadChunks = options.readAheadChunks ?? DEFAULT_STREAMING_READ_AHEAD_CHUNKS;
   validatePipeline(options.chunks, readAheadChunks);
 
   const controller = new AbortController();
@@ -76,7 +78,7 @@ export async function pumpAudioV2ReadAhead<TChunk extends IndexedChunk, TPrepare
       prepareThrough(index + readAheadChunks);
       const outcome = await preparedByIndex.get(index);
       preparedByIndex.delete(index);
-      if (!outcome) throw new Error(`DAV2 chunk ${index} was not prepared`);
+      if (!outcome) throw new Error(`Streaming chunk ${index} was not prepared`);
       if (!outcome.ok) throw outcome.error;
 
       throwIfAborted(controller.signal);

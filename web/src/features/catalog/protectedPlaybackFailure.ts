@@ -54,7 +54,7 @@ export function classifyProtectedPlaybackFailure(error: unknown): ProtectedPlayb
     // fetch() rejects with TypeError when the network or CORS blocks it, and
     // AbortSignal.timeout() rejects with TimeoutError.
     if (error.name === 'TypeError' || error.name === 'TimeoutError') return 'service-unreachable';
-    if (/unable to fetch (dav2 )?audio|gateway/i.test(error.message)) return 'audio-unavailable';
+    if (/unable to fetch audio|audio connection could not recover|gateway/i.test(error.message)) return 'audio-unavailable';
   }
   return 'unknown';
 }

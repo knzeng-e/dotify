@@ -12,7 +12,7 @@ function mismatchMessage(uploadRuntime: `0x${string}`, publicationRuntime: `0x${
 
 describe('resolvePreparedAudioUploadForRuntime', () => {
   it('uses a prepared upload when its backend runtime matches publication', async () => {
-    const prepared = { ref: 'dotify:enc:v2:key-v2:ipfs://QmAudio', runtimeAddress: CURRENT_RUNTIME };
+    const prepared = { ref: 'dotify:enc:v3:key-v2:ipfs://Qm9xbPnX2h2VnxfRwzFjHa13DQXGJM66ikuLncRHkKydcZ', runtimeAddress: CURRENT_RUNTIME };
     const ref: PreparedUploadRef<ProtectedAudioUpload> = { current: Promise.resolve(prepared) };
     const retry = vi.fn(async () => ({ ref: 'retry', runtimeAddress: CURRENT_RUNTIME }));
 
@@ -30,9 +30,9 @@ describe('resolvePreparedAudioUploadForRuntime', () => {
 
   it('clears and retries an eager upload prepared for a different runtime', async () => {
     const ref: PreparedUploadRef<ProtectedAudioUpload> = {
-      current: Promise.resolve({ ref: 'dotify:enc:v2:key-v2:ipfs://old', runtimeAddress: OLD_RUNTIME })
+      current: Promise.resolve({ ref: 'dotify:enc:v3:key-v2:ipfs://QmEhse2CWPXSWgNCa3r161cSwhxYMBH85ckQG7HfFrufJs', runtimeAddress: OLD_RUNTIME })
     };
-    const retry = vi.fn(async () => ({ ref: 'dotify:enc:v2:key-v2:ipfs://current', runtimeAddress: CURRENT_RUNTIME }));
+    const retry = vi.fn(async () => ({ ref: 'dotify:enc:v3:key-v2:ipfs://QmBD8WrmFN4kmm43P7u4xPCd318AnL2bDdnjCzQ9szcLcp', runtimeAddress: CURRENT_RUNTIME }));
     const onBeforeRetry = vi.fn();
 
     await expect(
@@ -44,14 +44,14 @@ describe('resolvePreparedAudioUploadForRuntime', () => {
         onBeforeRetry,
         mismatchMessage
       })
-    ).resolves.toEqual({ ref: 'dotify:enc:v2:key-v2:ipfs://current', runtimeAddress: CURRENT_RUNTIME });
+    ).resolves.toEqual({ ref: 'dotify:enc:v3:key-v2:ipfs://QmBD8WrmFN4kmm43P7u4xPCd318AnL2bDdnjCzQ9szcLcp', runtimeAddress: CURRENT_RUNTIME });
     expect(onBeforeRetry).toHaveBeenCalledWith(OLD_RUNTIME, CURRENT_RUNTIME);
     expect(retry).toHaveBeenCalledTimes(1);
   });
 
   it('rejects a different-runtime upload when the raw audio is unavailable for retry', async () => {
     const ref: PreparedUploadRef<ProtectedAudioUpload> = {
-      current: Promise.resolve({ ref: 'dotify:enc:v2:key-v2:ipfs://old', runtimeAddress: OLD_RUNTIME })
+      current: Promise.resolve({ ref: 'dotify:enc:v3:key-v2:ipfs://QmEhse2CWPXSWgNCa3r161cSwhxYMBH85ckQG7HfFrufJs', runtimeAddress: OLD_RUNTIME })
     };
 
     await expect(
@@ -68,13 +68,13 @@ describe('resolvePreparedAudioUploadForRuntime', () => {
 
   it('rejects when the retry still returns audio for another runtime', async () => {
     const ref: PreparedUploadRef<ProtectedAudioUpload> = {
-      current: Promise.resolve({ ref: 'dotify:enc:v2:key-v2:ipfs://old', runtimeAddress: OLD_RUNTIME })
+      current: Promise.resolve({ ref: 'dotify:enc:v3:key-v2:ipfs://QmEhse2CWPXSWgNCa3r161cSwhxYMBH85ckQG7HfFrufJs', runtimeAddress: OLD_RUNTIME })
     };
 
     await expect(
       resolvePreparedAudioUploadForRuntime({
         ref,
-        upload: async () => ({ ref: 'dotify:enc:v2:key-v2:ipfs://wrong', runtimeAddress: OLD_RUNTIME }),
+        upload: async () => ({ ref: 'dotify:enc:v3:key-v2:ipfs://QmAA9CP7romQWW9nPtPyrnwMFf1aUHkXWUPzqYeaqJ4cTE', runtimeAddress: OLD_RUNTIME }),
         publicationRuntimeAddress: CURRENT_RUNTIME,
         canRetry: true,
         mismatchMessage

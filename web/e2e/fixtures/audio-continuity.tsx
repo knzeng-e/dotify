@@ -6,16 +6,17 @@ import { PersistentAudio } from '../../src/components/PersistentAudio';
 import type { CatalogTrack } from '../../src/shared/types';
 
 const noop = () => {};
-const useRelay = new URLSearchParams(location.search).has('mediaRelay');
-const tracks: CatalogTrack[] = ['a', 'b'].map((id, index) => ({
-  id,
-  source: 'seed',
+const scope = Reflect.get(window, '__STREAMING_SCOPE__') as { runtimeAddress: string; contentHash: `0x${string}` };
+const tracks: CatalogTrack[] = ['a', 'b'].map(id => ({
+  id: `${scope.runtimeAddress}:${scope.contentHash}:${id}`,
+  source: 'artist',
+  artistAddress: `0x${'33'.repeat(20)}`,
   title: `Tone ${id}`,
   artist: 'Synthetic fixture',
-  audioRef: `dotify:enc:v2:ipfs://${useRelay ? `Qm${id.repeat(44)}` : `continuity-${id}`}`,
-  localUrl: `https://gateway.pinata.cloud/ipfs/continuity-${id}`,
+  audioRef: `dotify:enc:v3:key-v2:ipfs://Qm${id.repeat(44)}`,
+  localUrl: `https://gateway.pinata.cloud/ipfs/Qm${id.repeat(44)}`,
   imageRef: '',
-  hash: `0x${String(index + 1).repeat(64)}`,
+  hash: scope.contentHash,
   priceDot: '0',
   accessMode: 'free',
   encrypted: true,
@@ -26,7 +27,7 @@ const tracks: CatalogTrack[] = ['a', 'b'].map((id, index) => ({
   royaltySplits: [],
   personhoodLevel: 'DIM1',
   zone: 'test',
-  durationLabel: '20s'
+  durationLabel: '8s'
 }));
 
 function Harness() {
@@ -84,7 +85,7 @@ function Harness() {
             void catalog.selectTrack(track);
           }}
         >
-          Select {track.id}
+          Select {track.title.slice(-1)}
         </button>
       ))}
       <button onClick={() => void playback.togglePlay()}>Toggle playback</button>

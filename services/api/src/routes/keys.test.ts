@@ -4,7 +4,7 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import { createKeyRoutes, type KeyRouteDeps } from './keys.js';
 import { PRODUCT_SR25519_SIGNATURE_SCHEME, type KeySignatureRequest } from '../services/signatures.js';
 import type { CanonicalRelease } from '../services/chainAccess.js';
-import { LEGACY_CONTENT_KEY_VERSION, type ContentKeyDerivationScope } from '../services/keyVault.js';
+import { RELEASE_BOUND_CONTENT_KEY_VERSION, type ContentKeyDerivationScope } from '../services/keyVault.js';
 
 const CONTENT_HASH = `0x${'ab'.repeat(32)}`;
 const REQUESTER = '0x1111111111111111111111111111111111111111';
@@ -12,10 +12,10 @@ const RUNTIME = '0x2222222222222222222222222222222222222222' as const;
 const ARTIST = '0x4444444444444444444444444444444444444444' as const;
 const KEY = `0x${'cd'.repeat(32)}` as const;
 const RELEASE_ID = `${RUNTIME}:${CONTENT_HASH}`;
-const AUDIO_REF = 'dotify:enc:v2:ipfs://legacy-cid';
+const AUDIO_REF = 'dotify:enc:v3:key-v2:ipfs://QmJDpB1CnV64v3wDSPCzu5UxfXJSabDGG4S6grpvcyoXGy';
 const KEY_SCOPE: ContentKeyDerivationScope = {
   contentHash: CONTENT_HASH,
-  keyVersion: LEGACY_CONTENT_KEY_VERSION,
+  keyVersion: RELEASE_BOUND_CONTENT_KEY_VERSION,
   chainId: 420420417,
   runtimeAddress: RUNTIME
 };
@@ -57,7 +57,7 @@ function releaseIdentity(): CanonicalRelease {
     runtimeAddress: RUNTIME,
     artistAddress: ARTIST,
     audioRef: AUDIO_REF,
-    keyVersion: LEGACY_CONTENT_KEY_VERSION,
+    keyVersion: RELEASE_BOUND_CONTENT_KEY_VERSION,
     sourceBlock: 10
   };
 }
@@ -68,7 +68,7 @@ function releaseRequestFields() {
     runtimeAddress: RUNTIME,
     artistAddress: ARTIST,
     audioRef: AUDIO_REF,
-    keyVersion: LEGACY_CONTENT_KEY_VERSION
+    keyVersion: RELEASE_BOUND_CONTENT_KEY_VERSION
   };
 }
 

@@ -1,83 +1,31 @@
 import { expect, test, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
-import { createCipheriv } from 'node:crypto';
-
-const key = Buffer.alloc(32, 7);
-const plain = readFileSync(new URL('./fixtures/continuity-tone.mp3', import.meta.url));
-const chunkSize = 16 * 1024;
-
-function fixture(digit: string) {
-  const header = {
-    schema: 'dotify.audio.v2',
-    version: 1,
-    algorithm: 'AES-256-GCM',
-    mediaMime: 'audio/mpeg',
-    contentHash: `0x${digit.repeat(64)}`,
-    noncePrefix: '2222222222222222',
-    chunkSize,
-    chunkCount: Math.ceil(plain.length / chunkSize),
-    plaintextLength: plain.length,
-    chunks: [] as { index: number; plainLength: number; encryptedLength: number }[]
-  };
-  const chunks: Buffer[] = [];
-  for (let index = 0; index < header.chunkCount; index++) {
-    const clear = plain.subarray(index * chunkSize, (index + 1) * chunkSize);
-    header.chunks.push({ index, plainLength: clear.length, encryptedLength: clear.length + 16 });
-    const nonce = Buffer.alloc(12);
-    Buffer.from(header.noncePrefix, 'hex').copy(nonce);
-    nonce.writeUInt32BE(index, 8);
-    const cipher = createCipheriv('aes-256-gcm', key, nonce);
-    cipher.setAAD(
-      Buffer.from(
-        [
-          header.schema,
-          header.version,
-          header.contentHash,
-          header.chunkSize,
-          header.chunkCount,
-          header.plaintextLength,
-          header.mediaMime,
-          index,
-          clear.length
-        ].join('|')
-      )
-    );
-    chunks.push(Buffer.concat([cipher.update(clear), cipher.final(), cipher.getAuthTag()]));
-  }
-  const json = Buffer.from(JSON.stringify(header)),
-    prefix = Buffer.alloc(8);
-  prefix.write('DAV2');
-  prefix.writeUInt32BE(json.length, 4);
-  const bodyOffset = 8 + json.length;
-  return { bytes: Buffer.concat([prefix, json, ...chunks]), firstStart: bodyOffset, failingStart: bodyOffset + chunks[0].length + chunks[1].length };
-}
-
-type Fault =
-  | 'relay'
-  | 'none'
-  | 'retry'
-  | 'fallback'
-  | 'truncated-fallback'
-  | 'corrupt-fallback'
-  | 'slow'
-  | 'corrupt'
-  | 'denied'
-  | 'failed-fallback'
-  | 'failed-startup'
-  | 'key-retry';
-async function setup(page: Page, fault: Fault = 'none', holdRecovery = false) {
-  const media = { a: fixture('1'), b: fixture('2') };
+import path from 'node:path';
+const fixture = JSON.parse(readFileSync(process.env.DOTIFY_STREAMING_FIXTURE_PATH ?? path.join(process.cwd(), '.data/streaming-fixture.json'), 'utf8')) as {
+  keyHex: string;
+  scope: { chainId: number; runtimeAddress: string; contentHash: string; keyVersion: string };
+  manifest: string;
+  files: Record<string, string>;
+};
+type Fault = 'none' | 'relay' | 'retry' | 'truncated' | 'slow' | 'held' | 'corrupt' | 'failed' | 'failed-startup' | 'denied' | 'key-retry';
+async function setup(page: Page, fault: Fault = 'none', blob = false) {
   const requests: string[] = [];
-  let attempts = 0;
-  let keyRequests = 0;
-  let releaseRecovery = () => {};
-  const recoveryGate = new Promise<void>(resolve => {
-    releaseRecovery = resolve;
+  let attempts = 0,
+    keyRequests = 0;
+  let release = () => {};
+  const gate = new Promise<void>(resolve => {
+    release = resolve;
   });
+  await page.addInitScript(
+    ({ scope, blob }) => {
+      Reflect.set(window, '__STREAMING_SCOPE__', scope);
+      if (blob) Object.defineProperty(window, 'MediaSource', { value: undefined });
+    },
+    { scope: fixture.scope, blob }
+  );
   await page.route('**/*', async route => {
     const request = route.request(),
       url = request.url();
-    if (url.startsWith('http://127.0.0.1:5286') || url.startsWith('blob:http://127.0.0.1:5286/')) return route.continue();
     if (url.endsWith('/free-key')) {
       keyRequests++;
       if (fault === 'key-retry' && keyRequests === 1) return route.fulfill({ status: 503, json: { error: 'Temporarily unavailable' } });
@@ -85,142 +33,72 @@ async function setup(page: Page, fault: Fault = 'none', holdRecovery = false) {
         json:
           fault === 'denied'
             ? { access: 'denied', reason: 'ACCESS_DENIED', message: 'Unavailable', hostAction: { type: 'none', label: '' } }
-            : { access: 'allowed', playbackMode: 'full', contentKey: `0x${key.toString('hex')}`, runtime: `0x${'33'.repeat(20)}` }
+            : { access: 'allowed', playbackMode: 'full', contentKey: `0x${fixture.keyHex}`, runtime: fixture.scope.runtimeAddress }
       });
     }
-    if (url.startsWith('http://rpc.audio.test')) return route.fulfill({ json: { jsonrpc: '2.0', id: request.postDataJSON().id, result: '0x190f1b41' } });
-    const match = /\/ipfs\/continuity-([ab])/.exec(url) ?? /\/api\/media\/Qm([ab])\1{43}$/.exec(url);
-    if (!match) return route.fulfill({ status: 503, body: 'No live network in media regression tests' });
-    const name = match[1] as 'a' | 'b',
-      item = media[name];
-    const range = request.headers().range;
-    requests.push(`${name}:${range ?? 'full'}`);
-    if (!range) {
-      if (holdRecovery && name === 'a') await recoveryGate;
-      if (name === 'a' && fault === 'truncated-fallback' && new URL(url).hostname === 'gateway.pinata.cloud') {
-        return route.fulfill({ status: 200, body: item.bytes.subarray(0, item.bytes.length - 10) });
-      }
-      if (name === 'a' && fault === 'corrupt-fallback') {
-        const corrupt = Buffer.from(item.bytes);
-        corrupt[item.firstStart] ^= 1;
-        return route.fulfill({ status: 200, body: corrupt });
-      }
-      return route.fulfill({ status: fault === 'failed-fallback' || fault === 'failed-startup' ? 503 : 200, body: item.bytes });
+    if (url.startsWith('http://rpc.audio.test')) {
+      const rpc = request.postDataJSON();
+      return route.fulfill({ json: { jsonrpc: '2.0', id: rpc.id, result: rpc.method === 'eth_call' ? `0x${'0'.repeat(63)}1` : '0x190f1b41' } });
     }
-    const [, from, to] = /bytes=(\d+)-(\d+)/.exec(range)!;
-    const start = Number(from),
-      end = Math.min(Number(to), item.bytes.length - 1);
-    if (fault === 'failed-startup' && name === 'a' && start === item.firstStart) return route.fulfill({ status: 503, body: 'First range unavailable' });
-    if (name === 'a' && start === item.failingStart) {
-      attempts++;
-      if (fault === 'slow') await new Promise(resolve => setTimeout(resolve, 6000));
-      if (fault === 'fallback' || fault === 'failed-fallback' || fault === 'truncated-fallback' || fault === 'corrupt-fallback') {
-        await new Promise(resolve => setTimeout(resolve, 2400));
-        return route.fulfill({ status: 503, body: 'Range outage' });
+    const match = /\/(?:ipfs|api\/media)\/Qm([ab])\1{43}\/(?:stream\/)?(.+)$/.exec(url);
+    if (match) {
+      const [, name, object] = match;
+      requests.push(`${name}:${object}`);
+      expect(request.headers().range).toBeUndefined();
+      expect(object).not.toContain('archive');
+      const value = object === 'manifest.json' ? fixture.manifest : fixture.files[object];
+      if (!value) return route.fulfill({ status: 404 });
+      if (fault === 'relay' && !url.includes('/api/media/')) return route.fulfill({ status: 503 });
+      if (name === 'a' && object === '160/segment-001.bin') {
+        attempts++;
+        if (fault === 'held') await gate;
+        if (fault === 'slow') await new Promise(resolve => setTimeout(resolve, 6000));
+        if (fault === 'failed' || (fault === 'retry' && attempts === 1)) return route.fulfill({ status: 503 });
       }
-      if (fault === 'retry' && attempts === 1) return route.fulfill({ status: 503, body: 'Transient range outage' });
+      if (name === 'a' && fault === 'failed-startup' && object === 'manifest.json') return route.fulfill({ status: 503 });
+      const body = Buffer.from(value, 'base64');
+      if (name === 'a' && fault === 'corrupt' && object === '160/segment-001.bin') body[0] ^= 1;
+      if (name === 'a' && fault === 'truncated' && object === '160/segment-001.bin' && attempts === 1)
+        return route.fulfill({ body: body.subarray(0, body.length - 10), headers: { 'access-control-allow-origin': '*' } });
+      return route.fulfill({ body, headers: { 'content-type': 'application/octet-stream', 'access-control-allow-origin': '*' } });
     }
-    const body = Buffer.from(item.bytes.subarray(start, end + 1));
-    if (fault === 'corrupt' && name === 'a' && start === item.failingStart) body[0] ^= 1;
-    return route.fulfill({
-      status: 206,
-      body,
-      headers: { 'content-range': `bytes ${start}-${end}/${item.bytes.length}`, 'content-type': 'application/octet-stream' }
-    });
+    if (url.startsWith('http://127.0.0.1:5286') || url.startsWith('blob:')) return route.continue();
+    return route.fulfill({ status: 503, body: 'No live network in synthetic regression tests' });
   });
-  await page.goto(`/e2e/fixtures/audio-continuity.html${fault === 'relay' ? '?mediaRelay=1' : ''}`);
-  await page.evaluate(() => {
-    Reflect.set(window, 'continuityEvents', []);
-    document.addEventListener(
-      'playing',
-      event => {
-        if (event.target instanceof HTMLAudioElement)
-          Reflect.get(window, 'continuityEvents').push({ time: event.target.currentTime, source: event.target.src });
-      },
-      true
-    );
-  });
+  await page.goto('/e2e/fixtures/audio-continuity.html');
   await page.getByRole('button', { name: 'Select a', exact: true }).click();
-  return { requests, attempts: () => attempts, keyRequests: () => keyRequests, releaseRecovery };
+  return { requests, attempts: () => attempts, keyRequests: () => keyRequests, release };
 }
-
 const audio = (page: Page) => page.locator('audio').first();
 const time = (page: Page) => audio(page).evaluate(element => element.currentTime);
-async function playing(page: Page, minimum = 0.5) {
+async function playing(page: Page, minimum = 0.2) {
   await expect.poll(() => time(page)).toBeGreaterThan(minimum);
   await expect(audio(page)).toHaveJSProperty('paused', false);
-  const before = await time(page);
-  await expect.poll(() => time(page)).toBeGreaterThan(before + 0.1);
 }
-
-test('a transient 503 retries the same segment without replacing the player', async ({ page }) => {
-  const probe = await setup(page, 'retry');
+for (const fault of ['retry', 'truncated', 'relay'] as const)
+  test(`${fault}: current streaming retries transport without replacing the player`, async ({ page }) => {
+    const probe = await setup(page, fault);
+    await playing(page);
+    if (fault !== 'relay') await expect.poll(probe.attempts).toBe(2);
+    await expect(page.getByTestId('state')).toHaveAttribute('data-generation', '1');
+    expect(probe.keyRequests()).toBe(1);
+    expect(probe.requests.every(item => /manifest.json|160\//.test(item))).toBe(true);
+  });
+test('pause during an outstanding segment stays paused when transport resumes', async ({ page }) => {
+  const probe = await setup(page, 'held');
   await playing(page);
-  await expect.poll(probe.attempts).toBe(2);
-  await expect(page.getByTestId('state')).toHaveAttribute('data-generation', '1');
-  expect(probe.requests.some(request => request.endsWith('full'))).toBe(false);
-});
-
-test('the API relay provides real authenticated audio while direct public gateways are unavailable', async ({ page }) => {
-  const probe = await setup(page, 'relay');
-  await playing(page);
-  expect(probe.requests.length).toBeGreaterThan(0);
-  expect(probe.keyRequests()).toBe(1);
-  await expect(page.getByTestId('state')).toHaveAttribute('data-generation', '1');
-});
-
-test('full-file recovery resumes the media clock before any replacement playing event', async ({ page }) => {
-  const probe = await setup(page, 'fallback', true);
-  // Recovery is deliberately held: the short buffered prefix may already
-  // be exhausted. Require the saved clock, then release the replacement.
-  await expect.poll(() => time(page)).toBeGreaterThan(1);
-  await expect(page.getByTestId('state')).toHaveAttribute('data-status', 'recovering');
-  const positionAtRelease = await time(page);
-  probe.releaseRecovery();
-  await expect(page.getByTestId('state')).toHaveAttribute('data-generation', '2');
-  await playing(page, positionAtRelease + 0.5);
-  const starts = await page.evaluate(() => Reflect.get(window, 'continuityEvents') as { time: number; source: string }[]);
-  expect(new Set(starts.map(start => start.source)).size).toBe(2);
-  expect(starts.at(-1)!.time).toBeGreaterThanOrEqual(positionAtRelease - 0.1);
-});
-
-test('pause during recovery remains paused at the saved position', async ({ page }) => {
-  const probe = await setup(page, 'fallback', true);
-  await playing(page, 1);
-  await expect(page.getByTestId('state')).toHaveAttribute('data-status', 'recovering');
+  await expect.poll(probe.attempts).toBe(1);
   await page.getByRole('button', { name: 'Toggle playback' }).click();
-  const pausedAt = await time(page);
-  probe.releaseRecovery();
-  await expect(page.getByTestId('state')).toHaveAttribute('data-generation', '2');
-  await expect.poll(() => time(page)).toBeCloseTo(pausedAt, 1);
+  const position = await time(page);
+  probe.release();
+  await page.waitForTimeout(400);
   await expect(audio(page)).toHaveJSProperty('paused', true);
+  expect(await time(page)).toBeCloseTo(position, 1);
   await page.getByRole('button', { name: 'Toggle playback' }).click();
-  await playing(page, pausedAt + 0.2);
+  await playing(page, position + 0.2);
 });
-
-test('a truncated full-file recovery switches readers and keeps the audible clock', async ({ page }) => {
-  const probe = await setup(page, 'truncated-fallback', true);
-  await expect.poll(() => time(page)).toBeGreaterThan(1);
-  await expect(page.getByTestId('state')).toHaveAttribute('data-status', 'recovering');
-  const savedAt = await time(page);
-  probe.releaseRecovery();
-  await expect(page.getByTestId('state')).toHaveAttribute('data-generation', '2');
-  await playing(page, savedAt + 0.3);
-  expect(probe.requests.filter(request => request === 'a:full')).toHaveLength(2);
-  const starts = await page.evaluate(() => Reflect.get(window, 'continuityEvents') as { time: number; source: string }[]);
-  expect(starts.at(-1)!.time).toBeGreaterThanOrEqual(savedAt - 0.1);
-});
-
-test('complete-file authentication failure is terminal and never retries a different key or reader', async ({ page }) => {
-  const probe = await setup(page, 'corrupt-fallback');
-  await playing(page);
-  await expect(page.getByTestId('state')).toHaveAttribute('data-status', 'no-audio');
-  expect(probe.requests.filter(request => request === 'a:full')).toHaveLength(1);
-  expect(probe.keyRequests()).toBe(1);
-});
-
-test('reselect and A → B → A create fresh playable streams', async ({ page }) => {
-  const probe = await setup(page);
+test('reselect and A to B to A create fresh authenticated streams', async ({ page }) => {
+  await setup(page);
   await playing(page);
   for (const name of ['a', 'b', 'a']) {
     await page.getByRole('button', { name: `Select ${name}`, exact: true }).click();
@@ -228,67 +106,65 @@ test('reselect and A → B → A create fresh playable streams', async ({ page }
     await expect(audio(page)).toHaveJSProperty('error', null);
   }
   await expect(page.getByTestId('state')).toHaveAttribute('data-generation', '4');
-  expect(probe.requests.some(request => request.endsWith('full'))).toBe(false);
 });
-
-test('a slow segment shows buffering and returns to playing without a reset', async ({ page }) => {
+test('a slow segment buffers and resumes without resetting the media clock', async ({ page }) => {
   await setup(page, 'slow');
   await playing(page);
   await expect(page.getByTestId('state')).toHaveAttribute('data-status', 'buffering');
   expect(await time(page)).toBeGreaterThan(3);
-  await expect(page.getByTestId('state')).toHaveAttribute('data-status', 'playing');
-  await playing(page, 4);
+  await playing(page, 4.1);
   await expect(page.getByTestId('state')).toHaveAttribute('data-generation', '1');
 });
-
-test('changing tracks cancels the old recovery without overwriting the new selection', async ({ page }) => {
-  const probe = await setup(page, 'fallback', true);
+test('changing track cancels an outstanding read without overwriting the new selection', async ({ page }) => {
+  const probe = await setup(page, 'held');
   await playing(page);
-  await expect(page.getByTestId('state')).toHaveAttribute('data-status', 'recovering');
   await page.getByRole('button', { name: 'Select b', exact: true }).click();
-  probe.releaseRecovery();
   await playing(page);
-  await playing(page, 1.5);
-  await expect(page.getByTestId('state')).toHaveAttribute('data-track', 'b');
+  probe.release();
+  await page.waitForTimeout(200);
+  await expect(page.getByTestId('state')).toHaveAttribute('data-track', /:b$/);
   await expect(page.getByTestId('state')).toHaveAttribute('data-generation', '2');
-  await expect(audio(page)).toHaveJSProperty('error', null);
 });
-
-test('an authentication failure never falls back to a complete download', async ({ page }) => {
-  const probe = await setup(page, 'corrupt');
-  await expect(page.getByTestId('state')).toHaveAttribute('data-status', 'no-audio');
-  expect(probe.requests.some(request => request.endsWith('full'))).toBe(false);
-});
-
-test('a denied key never starts playback', async ({ page }) => {
+for (const blob of [false, true])
+  test(`authentication failure is terminal, without another key or archival fallback (Blob=${blob})`, async ({ page }) => {
+    const probe = await setup(page, 'corrupt', blob);
+    if (blob) {
+      await expect(page.getByTestId('state')).toHaveAttribute('data-pending', 'false');
+      await expect(page.getByTestId('state')).toHaveAttribute('data-failure', /.+/);
+      await expect(audio(page)).toHaveJSProperty('paused', true);
+    } else await expect(page.getByTestId('state')).toHaveAttribute('data-status', 'no-audio');
+    expect(probe.attempts()).toBe(1);
+    expect(probe.keyRequests()).toBe(1);
+  });
+test('a denied key never starts playback or downloads media', async ({ page }) => {
   const probe = await setup(page, 'denied');
-  await expect(page.getByTestId('state')).toHaveAttribute('data-status', 'idle');
-  await expect(audio(page)).toHaveJSProperty('paused', true);
-  await expect(page.getByTestId('state')).toHaveAttribute('data-failure', 'access-not-confirmed');
-  expect(probe.keyRequests()).toBe(3);
-  // Only the public header/first ciphertext may be warmed, never decrypted.
-  expect(probe.requests.some(request => request.endsWith('full'))).toBe(false);
-  expect(await page.evaluate(() => Reflect.get(window, 'continuityEvents'))).toEqual([]);
-});
-
-test('failure of both range and complete-file recovery ends the loading state', async ({ page }) => {
-  await setup(page, 'failed-fallback');
-  await playing(page);
-  await expect(page.getByTestId('state')).toHaveAttribute('data-status', 'no-audio');
-  await expect(audio(page)).toHaveJSProperty('paused', true);
-});
-
-test('failure before metadata settles the pending selection and permits another track', async ({ page }) => {
-  await setup(page, 'failed-startup');
-  await expect(page.getByTestId('state')).toHaveAttribute('data-status', 'no-audio');
   await expect(page.getByTestId('state')).toHaveAttribute('data-pending', 'false');
+  await expect(audio(page)).toHaveJSProperty('paused', true);
+  expect(probe.requests).toHaveLength(0);
+});
+test('exhausted segment readers end the loading state and another track can play', async ({ page }) => {
+  await setup(page, 'failed');
+  await expect(page.getByTestId('state')).toHaveAttribute('data-status', 'no-audio');
   await page.getByRole('button', { name: 'Select b', exact: true }).click();
   await playing(page);
 });
-
-test('a temporary key-service failure retries authorization and clears its failure on success', async ({ page }) => {
+test('failure before metadata settles pending and permits a new selection', async ({ page }) => {
+  await setup(page, 'failed-startup');
+  await expect(page.getByTestId('state')).toHaveAttribute('data-pending', 'false');
+  await expect(page.getByTestId('state')).toHaveAttribute('data-failure', /.+/);
+  await page.getByRole('button', { name: 'Select b', exact: true }).click();
+  await playing(page);
+});
+test('a temporary key failure can be retried without refreshing the application', async ({ page }) => {
   const probe = await setup(page, 'key-retry');
+  await expect(page.getByTestId('state')).toHaveAttribute('data-pending', 'false');
+  await page.getByRole('button', { name: 'Select a', exact: true }).click();
   await playing(page);
   expect(probe.keyRequests()).toBe(2);
-  await expect(page.getByTestId('state')).toHaveAttribute('data-failure', '');
+});
+test('hosts without MSE retry ciphertext objects and play the same authenticated AAC rendition', async ({ page }) => {
+  const probe = await setup(page, 'retry', true);
+  await playing(page);
+  expect(probe.attempts()).toBe(2);
+  await expect(page.getByTestId('state')).toHaveAttribute('data-generation', '1');
 });

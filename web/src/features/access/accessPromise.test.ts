@@ -18,7 +18,7 @@ function track(overrides: Partial<CatalogTrack> = {}): CatalogTrack {
     title: 'Signal',
     artist: 'Nova',
     artistAddress: '0x2222222222222222222222222222222222222222',
-    audioRef: 'dotify:enc:ipfs://cid',
+    audioRef: 'dotify:enc:v3:key-v2:ipfs://Qm6fTRfQ5hQMxHhx3ykN4c8DTrdZwX31fFamqMcmXVW3tq',
     imageRef: 'ipfs://cover',
     priceDot: '0.5',
     pricePlanck: 500_000_000_000_000_000n,

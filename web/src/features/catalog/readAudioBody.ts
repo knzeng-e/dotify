@@ -1,7 +1,6 @@
 const AUDIO_BODY_IDLE_TIMEOUT_MS = 15_000;
-// Uploads accept 50 MiB of clear audio. Leave room for the DAV2 header/tags,
-// while rejecting a gateway that sends an unrelated or unbounded response.
-const AUDIO_BODY_MAX_BYTES = 64 * 1024 * 1024;
+// Current media objects are bounded independently of the uploaded master.
+const AUDIO_BODY_MAX_BYTES = 1024 * 1024 + 16;
 
 /** Header arrival is not download completion. Bound lack of body progress too. */
 export async function readAudioBody(
@@ -44,7 +43,7 @@ export async function readAudioBody(
     if (size === 0) throw new Error('Audio download returned no content.');
     // Do not compare decoded bytes to Content-Length: cross-origin readers
     // may expose the compressed length without exposing Content-Encoding.
-    // Fetch reports a broken transfer; DAV2 additionally validates its own
+    // Fetch reports a broken transfer; the streaming reader additionally validates its own
     // complete chunk table before a recovery download can win.
   } catch (error) {
     void reader.cancel().catch(() => undefined);

@@ -22,7 +22,7 @@ import { listenerPlaybackStatusForHostState, type AudioStatus } from '../feature
 import { restoreAudioContinuation, type AudioContinuation } from '../features/player/audioContinuation';
 import { planTrackNeighbors } from '../features/player/trackNavigation';
 import { playbackPrefetchAllowed, usePlaybackPrefetch } from '../features/player/usePlaybackPrefetch';
-import { prefetchAudioV2TrackIntent } from '../features/catalog/audioV2IntentPrefetch';
+import { prefetchStreamingAudio } from '../features/catalog/streamingPrefetch';
 import { lineupItemFromTrack, playableLineupTracks, previousTrackDecision, recordPlaybackHistory, ROOM_LINEUP_LIMIT } from '../features/player/playbackQueue';
 
 export type PlaybackControls = ReturnType<typeof usePlayback>;
@@ -130,7 +130,7 @@ export function usePlayback(deps: UsePlaybackDeps) {
         : listenerPlaybackStatusForHostState(status, remoteReady, playerState?.playing ?? false, remotePausedByUser);
 
   // An explicit Play arms autoplay; a paused Next/Previous keeps that intent
-  // paused even if the source is replaced by capture or DAV2 recovery later.
+  // paused even if the source is replaced by capture or streaming recovery later.
   const autoplayIntentRef = useRef(false);
   const userPausedRef = useRef(false);
   const hostStartupRef = useRef<HostAudioStartup | null>(null);
@@ -476,7 +476,7 @@ export function usePlayback(deps: UsePlaybackDeps) {
         direction === 'next'
           ? getNextTrack()
           : (catalogTracks.find(item => item.id === previousId && item.active !== false) ?? getCatalogSkipTrack('previous'));
-      if (track) void prefetchAudioV2TrackIntent(track.audioRef).catch(() => undefined);
+      if (track) void prefetchStreamingAudio(track.audioRef).catch(() => undefined);
     },
     [canSkip, catalogTracks, getCatalogSkipTrack, getNextTrack, selectedTrackId]
   );

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { DEFAULT_AUDIO_V2_READ_AHEAD_CHUNKS, pumpAudioV2ReadAhead } from './audioV2Pipeline';
+import { DEFAULT_STREAMING_READ_AHEAD_CHUNKS, pumpStreamingReadAhead } from './streamingPipeline';
 
 type Deferred<T> = {
   promise: Promise<T>;
@@ -26,7 +26,7 @@ async function flushPromises(): Promise<void> {
   await Promise.resolve();
 }
 
-describe('DAV2 read-ahead pipeline', () => {
+describe('Streaming read-ahead pipeline', () => {
   it('prepares the current chunk plus one future chunk and appends in order', async () => {
     const preparations = chunks(4).map(() => deferred<string>());
     const firstAppend = deferred<void>();
@@ -35,7 +35,7 @@ describe('DAV2 read-ahead pipeline', () => {
     const prepareOrder: number[] = [];
     const appendOrder: number[] = [];
 
-    const pipeline = pumpAudioV2ReadAhead({
+    const pipeline = pumpStreamingReadAhead({
       chunks: chunks(4),
       prepareChunk: async chunk => {
         prepareOrder.push(chunk.index);
@@ -70,7 +70,7 @@ describe('DAV2 read-ahead pipeline', () => {
     preparations[3].resolve('clear-3');
     await pipeline;
     expect(appendOrder).toEqual([0, 1, 2, 3]);
-    expect(DEFAULT_AUDIO_V2_READ_AHEAD_CHUNKS).toBe(1);
+    expect(DEFAULT_STREAMING_READ_AHEAD_CHUNKS).toBe(1);
   });
 
   it('aborts pending preparation and stops appending when the parent is cancelled', async () => {
@@ -78,7 +78,7 @@ describe('DAV2 read-ahead pipeline', () => {
     const started: number[] = [];
     const appendChunk = vi.fn();
 
-    const pipeline = pumpAudioV2ReadAhead({
+    const pipeline = pumpStreamingReadAhead({
       chunks: chunks(4),
       signal: controller.signal,
       prepareChunk: async (chunk, signal) => {
@@ -104,7 +104,7 @@ describe('DAV2 read-ahead pipeline', () => {
     const observedSignals: AbortSignal[] = [];
     const appendChunk = vi.fn();
 
-    const pipeline = pumpAudioV2ReadAhead({
+    const pipeline = pumpStreamingReadAhead({
       chunks: chunks(3),
       prepareChunk: async (chunk, signal) => {
         observedSignals.push(signal);
@@ -124,7 +124,7 @@ describe('DAV2 read-ahead pipeline', () => {
     const prepareChunk = vi.fn();
 
     await expect(
-      pumpAudioV2ReadAhead({
+      pumpStreamingReadAhead({
         chunks: [{ index: 0 }, { index: 2 }],
         prepareChunk,
         appendChunk: vi.fn()

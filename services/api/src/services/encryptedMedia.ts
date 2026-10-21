@@ -1,13 +1,7 @@
-// Bounded read-through for registered ciphertext only. Keys and clear audio
-// never enter this service; the client still authenticates every DAV2 chunk.
-import { parseAudioV2Container } from './audioV2.js';
-const MAX_BYTES = 64 * 1024 * 1024;
-const MAX_RANGE_BYTES = 2 * 1024 * 1024;
-const MAX_DAV2_HEADER_BYTES = 64 * 1024;
-const MAX_CACHE_BYTES = 64 * 1024 * 1024;
-const MAX_ENTRIES = 128;
+// Bounded ciphertext delivery for fixed objects of registered streaming releases.
+const MAX_CACHE_BYTES = 16 * 1024 * 1024;
+const MAX_ENTRIES = 64;
 const GATEWAYS = ['https://gateway.pinata.cloud', 'https://ipfs.io', 'https://dweb.link'];
-
 function safeGatewayRedirect(url: URL): boolean {
   return (
     url.protocol === 'https:' &&
@@ -21,8 +15,7 @@ function safeGatewayRedirect(url: URL): boolean {
   );
 }
 
-export type MediaRange = { start: number; end: number };
-export type EncryptedMedia = { bytes: Buffer; total: number; start: number; partial: boolean };
+export type EncryptedMedia = { bytes: Buffer };
 type PendingRead = { controller: AbortController; promise: Promise<EncryptedMedia>; consumers: number; settled: boolean };
 export class MediaError extends Error {
   constructor(
@@ -32,30 +25,28 @@ export class MediaError extends Error {
     super(code === 'MEDIA_BUSY' ? 'Audio delivery is busy. Please try again.' : 'Audio could not be downloaded. Please try again.');
   }
 }
-
-export function parseMediaRange(value: string | undefined): MediaRange | null {
-  if (!value) return null;
-  const match = /^bytes=(\d+)-(\d+)$/.exec(value);
-  const start = Number(match?.[1]);
-  const end = Number(match?.[2]);
-  if (!match || !Number.isSafeInteger(start) || !Number.isSafeInteger(end) || start < 0 || end < start || end >= MAX_BYTES || end - start + 1 > MAX_RANGE_BYTES)
-    throw new MediaError(416, 'MEDIA_RANGE_INVALID');
-  return { start, end };
-}
-
 export function encryptedMediaCid(ref: string): string | null {
-  // A bare, bounded CID only: never paths, queries, credentials or caller URLs.
-  return /^dotify:enc:(?:v[23]:(?:key-v[1-9][0-9]*:)?)?ipfs:\/\/((?:Qm[1-9A-HJ-NP-Za-km-z]{44}|b[a-z2-7]{20,110}))$/.exec(ref)?.[1] ?? null;
+  return /^dotify:enc:v3:key-v(?:[2-9]|[1-9][0-9]+):ipfs:\/\/((?:Qm[1-9A-HJ-NP-Za-km-z]{44}|b[a-z2-7]{20,110}))$/.exec(ref)?.[1] ?? null;
 }
-
+function objectBudget(object: string): number {
+  if (
+    !/^(?:Qm[1-9A-HJ-NP-Za-km-z]{44}|b[a-z2-7]{20,110})\/(?:manifest\.json|(?:96|160|320)\/(?:init|segment-(?:[01][0-9]{2}|2[0-4][0-9]|25[0-5]))\.bin)$/.test(
+      object
+    )
+  )
+    throw new MediaError(404, 'MEDIA_NOT_FOUND');
+  return object.endsWith('/manifest.json') ? 256 * 1024 : 1024 * 1024 + 16;
+}
 export function createEncryptedMediaReader(fetchImpl: typeof fetch = fetch) {
   const cache = new Map<string, EncryptedMedia>();
   const pending = new Map<string, PendingRead>();
-  let cacheBytes = 0;
-  let active = 0;
-  let reservedBytes = 0;
-  let generation = 0;
+  let cacheBytes = 0,
+    active = 0,
+    generation = 0;
   const store = (key: string, value: EncryptedMedia) => {
+    const previous = cache.get(key);
+    if (previous) cacheBytes -= previous.bytes.length;
+    cache.delete(key);
     cache.set(key, value);
     cacheBytes += value.bytes.length;
     while (cacheBytes > MAX_CACHE_BYTES || cache.size > MAX_ENTRIES) {
@@ -64,21 +55,17 @@ export function createEncryptedMediaReader(fetchImpl: typeof fetch = fetch) {
       cache.delete(oldest);
     }
   };
-  async function download(cid: string, range: MediaRange | null, dav2: boolean, signal: AbortSignal, maxBytes: number): Promise<EncryptedMedia> {
+  async function download(object: string, signal: AbortSignal): Promise<EncryptedMedia> {
+    const maxBytes = objectBudget(object);
     for (const gateway of GATEWAYS) {
       signal.throwIfAborted();
       const controller = new AbortController();
-      // Hard total bound, including a slow/dripping body. No unbounded queues.
       const deadline = setTimeout(() => controller.abort(), 12_000);
       try {
-        let url = `${gateway}/ipfs/${cid}`;
+        let url = `${gateway}/ipfs/${object}`;
         let response: Response | undefined;
         for (let redirects = 0; redirects <= 2; redirects++) {
-          response = await fetchImpl(url, {
-            headers: range ? { Range: `bytes=${range.start}-${range.end}` } : {},
-            signal: AbortSignal.any([controller.signal, signal]),
-            redirect: 'manual'
-          });
+          response = await fetchImpl(url, { signal: AbortSignal.any([controller.signal, signal]), redirect: 'manual' });
           signal.throwIfAborted();
           if (![301, 302, 303, 307, 308].includes(response.status)) break;
           const location = response.headers.get('location');
@@ -89,15 +76,9 @@ export function createEncryptedMediaReader(fetchImpl: typeof fetch = fetch) {
           url = target.href;
         }
         if (!response) continue;
-        if (response.status !== (range ? 206 : 200)) {
-          void response.body?.cancel().catch(() => undefined);
-          continue;
-        }
-        const contentRange = /^bytes (\d+)-(\d+)\/(\d+)$/.exec(response.headers.get('content-range') ?? '');
-        const lengthLimit = range ? range.end - range.start + 1 : maxBytes;
         const declared = Number(response.headers.get('content-length'));
-        if (declared > lengthLimit || (range && (!contentRange || Number(contentRange[1]) !== range.start || Number(contentRange[2]) > range.end))) {
-          void response.body?.cancel().catch(() => undefined);
+        if (response.status !== 200 || declared > maxBytes) {
+          await response.body?.cancel();
           continue;
         }
         const reader = response.body?.getReader();
@@ -110,30 +91,17 @@ export function createEncryptedMediaReader(fetchImpl: typeof fetch = fetch) {
             signal.throwIfAborted();
             if (part.done) break;
             size += part.value.byteLength;
-            if (size > lengthLimit) throw new Error('oversized');
+            if (size > maxBytes) throw new Error('oversized');
             chunks.push(Buffer.from(part.value));
           }
         } finally {
           void reader.cancel().catch(() => undefined);
           reader.releaseLock();
         }
-        const total = range ? Number(contentRange![3]) : size;
-        const expected = range ? Number(contentRange![2]) - range.start + 1 : size;
-        if (!response.headers.has('content-encoding') && declared > 0 && size !== declared) continue;
-        if (!size || size !== expected || !Number.isSafeInteger(total) || total < (range?.start ?? 0) + size || total > maxBytes) continue;
-        const bytes = Buffer.concat(chunks, size);
-        if (!range && dav2) {
-          // Catalog registration does not make an upstream JSON table trusted.
-          // Bound parsing work separately from the much larger audio body.
-          if (bytes.length >= 8 && bytes.readUInt32BE(4) > MAX_DAV2_HEADER_BYTES) throw new Error('oversized DAV2 header');
-          parseAudioV2Container(bytes);
-        }
-        return { bytes, total, start: range?.start ?? 0, partial: Boolean(range) };
+        if (!size || (!response.headers.has('content-encoding') && declared > 0 && size !== declared)) continue;
+        return { bytes: Buffer.concat(chunks, size) };
       } catch {
-        // Client cancellation is terminal for this shared read; unlike an
-        // upstream timeout it must not consume the next gateway's budget.
         signal.throwIfAborted();
-        // A transport failure can switch readers. Authentication never happens here.
       } finally {
         clearTimeout(deadline);
         controller.abort();
@@ -175,48 +143,35 @@ export function createEncryptedMediaReader(fetchImpl: typeof fetch = fetch) {
     });
   }
   return {
-    async read(cid: string, range: MediaRange | null, dav2 = false, signal?: AbortSignal, maxBytes = MAX_BYTES): Promise<EncryptedMedia> {
+    async read(object: string, signal?: AbortSignal): Promise<EncryptedMedia> {
       signal?.throwIfAborted();
-      if (!Number.isSafeInteger(maxBytes) || maxBytes < 1 || maxBytes > MAX_BYTES) throw new MediaError(416, 'MEDIA_RANGE_INVALID');
-      const prefix = `${cid}:${dav2 ? 'dav2' : 'enc'}:`;
-      const key = `${prefix}${range ? `${range.start}-${range.end}` : 'full'}`;
-      const hit = cache.get(key);
+      objectBudget(object);
+      const hit = cache.get(object);
       if (hit) {
-        cache.delete(key);
-        cache.set(key, hit);
+        cache.delete(object);
+        cache.set(object, hit);
         return hit;
       }
-      const full = cache.get(`${prefix}full`);
-      if (range && full && range.start < full.total) {
-        return { bytes: full.bytes.subarray(range.start, Math.min(range.end + 1, full.total)), total: full.total, start: range.start, partial: true };
-      }
-      const shared = pending.get(key);
-      if (shared) return subscribe(key, shared, signal);
-      // Reserve worst-case body space before starting a cold read. One complete
-      // object can coexist with a range, but never another complete object on
-      // the 512 MiB API instance (assembly/validation also need working space).
-      const reservation = range ? range.end - range.start + 1 : maxBytes;
-      if (active >= 2 || reservedBytes + reservation > MAX_BYTES + MAX_RANGE_BYTES) throw new MediaError(503, 'MEDIA_BUSY');
+      const shared = pending.get(object);
+      if (shared) return subscribe(object, shared, signal);
+      if (active >= 2) throw new MediaError(503, 'MEDIA_BUSY');
       active++;
-      reservedBytes += reservation;
       const atStart = generation;
       const controller = new AbortController();
-      // Defer starting transport until the first subscriber is attached.
       const promise = Promise.resolve()
-        .then(() => download(cid, range, dav2, controller.signal, maxBytes))
+        .then(() => download(object, controller.signal))
         .then(value => {
-          if (!controller.signal.aborted && generation === atStart) store(key, value);
+          if (!controller.signal.aborted && generation === atStart) store(object, value);
           return value;
         })
         .finally(() => {
           operation.settled = true;
           active--;
-          reservedBytes -= reservation;
-          if (pending.get(key) === operation) pending.delete(key);
+          if (pending.get(object) === operation) pending.delete(object);
         });
       const operation: PendingRead = { controller, promise, consumers: 0, settled: false };
-      pending.set(key, operation);
-      return subscribe(key, operation, signal);
+      pending.set(object, operation);
+      return subscribe(object, operation, signal);
     },
     clear() {
       generation++;

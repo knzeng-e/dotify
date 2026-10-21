@@ -14,13 +14,7 @@
 import { createPublicClient, fallback, http, type Address, type PublicClient } from 'viem';
 import { config } from '../config.js';
 import { catalogReadModel as defaultCatalogReadModel, type CatalogMetadata, type CatalogRelease, type CatalogSnapshot } from './catalog/index.js';
-import {
-  LEGACY_CONTENT_KEY_VERSION,
-  contentKeyVersionForAudioRef,
-  isSupportedContentKeyVersion,
-  type ContentKeyDerivationScope,
-  type ContentKeyVersion
-} from './keyVault.js';
+import { contentKeyVersionForAudioRef, isSupportedContentKeyVersion, type ContentKeyDerivationScope, type ContentKeyVersion } from './keyVault.js';
 
 const artistDirectoryAbi = [
   {
@@ -205,7 +199,12 @@ function fail(code: AccessDenialCode, reason: string): TrackAccessResult {
   return { allowed: false, code, reason };
 }
 
-function snapshotIsAuthoritative(snapshot: CatalogSnapshot | null, meta: CatalogMetadata, chainId: number, directoryAddress: Address): snapshot is CatalogSnapshot {
+function snapshotIsAuthoritative(
+  snapshot: CatalogSnapshot | null,
+  meta: CatalogMetadata,
+  chainId: number,
+  directoryAddress: Address
+): snapshot is CatalogSnapshot {
   return snapshot !== null && meta.state === 'fresh' && snapshot.chainId === chainId && sameAddress(snapshot.directoryAddress, directoryAddress);
 }
 
@@ -281,21 +280,11 @@ function resolveCatalogRelease(input: {
     const mismatch = compareProvidedIdentity(input.provided, candidate, version, input.contentHash);
     if (mismatch) return mismatch;
 
-    if (version === LEGACY_CONTENT_KEY_VERSION && sameHash.length > 1) {
-      return fail('AMBIGUOUS_RUNTIME', 'Legacy contentHash-based keys cannot be delivered when multiple releases share the same hash.');
-    }
     if (!candidate.active) return fail('RELEASE_INACTIVE', 'This release is inactive and cannot receive new key grants.');
     return { allowed: true, release: canonicalFromCatalogRelease(candidate, version) };
   }
 
-  if (sameHash.length === 0) return fail('TRACK_NOT_FOUND', 'Release is not present in the confirmed catalog.');
-  if (sameHash.length > 1) return fail('AMBIGUOUS_RUNTIME', 'Release hash is claimed by multiple runtimes; refusing to pick one.');
-
-  const candidate = sameHash[0];
-  const version = resolveKeyVersion(candidate.audioRef);
-  if (typeof version !== 'string') return version;
-  if (!candidate.active) return fail('RELEASE_INACTIVE', 'This release is inactive and cannot receive new key grants.');
-  return { allowed: true, release: canonicalFromCatalogRelease(candidate, version) };
+  return fail('RELEASE_IDENTITY_MISMATCH', 'The full streaming release identity is required.');
 }
 
 async function validateReleaseOnChain(
@@ -418,8 +407,8 @@ export function createChainAccessService(options: ChainAccessServiceOptions = {}
 
         if (!canAccess) {
           return request.purpose === 'room_host'
-            ? fail('HOST_ACCESS_REQUIRED', 'The room host does not satisfy this track\'s access policy.')
-            : fail('LISTENER_ACCESS_REQUIRED', 'This listener does not satisfy this track\'s access policy.');
+            ? fail('HOST_ACCESS_REQUIRED', "The room host does not satisfy this track's access policy.")
+            : fail('LISTENER_ACCESS_REQUIRED', "This listener does not satisfy this track's access policy.");
         }
 
         return {

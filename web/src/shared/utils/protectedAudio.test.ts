@@ -1,38 +1,30 @@
-import { describe, expect, it } from 'vitest';
-import {
-  LEGACY_CONTENT_KEY_VERSION,
-  RELEASE_BOUND_CONTENT_KEY_VERSION,
-  contentKeyVersionForAudioRef,
-  encryptedRefToCID,
-  isEncryptedAudioRef,
-  isEncryptedAudioV2Ref,
-  makeReleaseBoundEncryptedAudioV2Ref
-} from './protectedAudio';
-
-describe('protected audio refs', () => {
-  it('recognizes release-bound DAV2 encrypted refs', () => {
-    const ref = makeReleaseBoundEncryptedAudioV2Ref('release-cid');
-
-    expect(ref).toBe('dotify:enc:v2:key-v2:ipfs://release-cid');
-    expect(isEncryptedAudioRef(ref)).toBe(true);
-    expect(isEncryptedAudioV2Ref(ref)).toBe(true);
-    expect(encryptedRefToCID(ref)).toBe('release-cid');
-    expect(contentKeyVersionForAudioRef(ref)).toBe(RELEASE_BOUND_CONTENT_KEY_VERSION);
+import { describe, it, expect } from 'vitest';
+import { isEncryptedAudioRef, isEncryptedAudioV3Ref, normalizeEncryptedAudioRef, encryptedRefToCID, contentKeyVersionForAudioRef } from './protectedAudio';
+const cid = `Qm${'a'.repeat(44)}`;
+describe('streaming audio references', () => {
+  it('accepts only explicit scoped streaming references and retains key rotation', () => {
+    for (const version of [2, 3, 12]) {
+      const ref = `dotify:enc:v3:key-v${version}:ipfs://${cid}`;
+      expect(isEncryptedAudioRef(ref)).toBe(true);
+      expect(isEncryptedAudioV3Ref(ref)).toBe(true);
+      expect(normalizeEncryptedAudioRef(ref)).toBe(ref);
+      expect(encryptedRefToCID(ref)).toBe(cid);
+      expect(contentKeyVersionForAudioRef(ref)).toBe(`dotify-content-key-v${version}`);
+    }
   });
-
-  it('recognizes future release-bound key versions without a client code change', () => {
-    const ref = makeReleaseBoundEncryptedAudioV2Ref('release-cid-v3', 'dotify-content-key-v3');
-
-    expect(ref).toBe('dotify:enc:v2:key-v3:ipfs://release-cid-v3');
-    expect(isEncryptedAudioRef(ref)).toBe(true);
-    expect(isEncryptedAudioV2Ref(ref)).toBe(true);
-    expect(encryptedRefToCID(ref)).toBe('release-cid-v3');
-    expect(contentKeyVersionForAudioRef(ref)).toBe('dotify-content-key-v3');
-  });
-
-  it('keeps legacy v1 and legacy DAV2 refs on contentHash-derived keys', () => {
-    expect(contentKeyVersionForAudioRef('dotify:enc:ipfs://legacy-cid')).toBe(LEGACY_CONTENT_KEY_VERSION);
-    expect(contentKeyVersionForAudioRef('dotify:enc:v2:ipfs://legacy-dav2-cid')).toBe(LEGACY_CONTENT_KEY_VERSION);
-    expect(contentKeyVersionForAudioRef('ipfs://clear-cid')).toBe(null);
+  it('rejects old formats, bare CIDs, archive paths and malformed scope', () => {
+    for (const ref of [
+      cid,
+      `ipfs://${cid}`,
+      `dotify:enc:ipfs://${cid}`,
+      `dotify:enc:v2:key-v2:ipfs://${cid}`,
+      `dotify:enc:v3:key-v1:ipfs://${cid}`,
+      `dotify:enc:v3:key-v2:ipfs://${cid}/archive/master.bin`
+    ]) {
+      expect(isEncryptedAudioRef(ref)).toBe(false);
+      expect(contentKeyVersionForAudioRef(ref)).toBeNull();
+      expect(() => encryptedRefToCID(ref)).toThrow();
+      expect(() => normalizeEncryptedAudioRef(ref)).toThrow();
+    }
   });
 });

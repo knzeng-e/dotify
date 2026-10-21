@@ -1,42 +1,20 @@
 // Server-side content-key custody.
 //
-// Content AES-256 keys are derived from explicit key-version secrets:
-//
-//   HKDF-SHA256(ikm  = version secret (hex-decoded),
-//               salt = empty,
-//               info = 'dotify-content-key-v1:<contentHash>') -> 32 bytes
-//   or, for new release-bound uploads,
-//               info = '<keyVersion>:<chainId>:<runtime>:<contentHash>'
-//                      -> 32 bytes
-//
-// This is the SAME derivation the upload route uses to encrypt audio before
-// pinning (services/api/src/routes/uploads.ts). Keep them identical: a key
-// delivered here must decrypt bytes encrypted there. The derivation is
-// centralized in this module so the two paths cannot drift.
-//
-// Version secrets never leave this process; only the derived per-track key is
-// returned, and only after the wallet signature and on-chain access check pass.
-// This replaces the prototype's frontend-bundled VITE_CONTENT_SECRET.
-//
-// Security boundary, stated plainly: this protects distribution access, not
-// analog capture. An authorized listener can record what they can play. The
-// derivation is deterministic, so "temporary" applies to the grant, not the
-// key bytes. Rotating the active key version affects only future uploads when
-// older version secrets are retained. Artist-operated key custody may replace
-// this central derivation later.
+// Release-bound AES keys use HKDF with the configured version secret and
+// chain/runtime/original hash. Secrets stay server-side; signed/session/Free
+// authority controls delivery. Version rotation and permanent nonce custody
+// remain required even with an empty catalog. This is access control, not DRM.
 
 import { hkdfSync } from 'node:crypto';
 import { config } from '../config.js';
 
-export const LEGACY_CONTENT_KEY_VERSION = 'dotify-content-key-v1';
 export const RELEASE_BOUND_CONTENT_KEY_VERSION = 'dotify-content-key-v2';
 
-const LEGACY_HKDF_INFO_PREFIX = `${LEGACY_CONTENT_KEY_VERSION}:`;
 const MIN_MASTER_SECRET_BYTES = 32;
 const HEX_HASH_PATTERN = /^0x[0-9a-fA-F]{64}$/;
 const HEX_ADDRESS_PATTERN = /^0x[0-9a-fA-F]{40}$/;
-const CONTENT_KEY_VERSION_PATTERN = /^dotify-content-key-v([1-9][0-9]*)$/;
-const RELEASE_BOUND_AUDIO_REF_PATTERN = /^dotify:enc:v[23]:key-v([1-9][0-9]*):ipfs:\/\//;
+const CONTENT_KEY_VERSION_PATTERN = /^dotify-content-key-v((?:[2-9]|[1-9][0-9]+))$/;
+const RELEASE_BOUND_AUDIO_REF_PATTERN = /^dotify:enc:v3:key-v((?:[2-9]|[1-9][0-9]+)):ipfs:\/\//;
 
 export type ContentKeyVersion = `dotify-content-key-v${number}`;
 
@@ -54,7 +32,7 @@ export type ContentKeyDerivationScope = {
   runtimeAddress?: string;
 };
 
-export type ContentKeyDerivationInput = string | ContentKeyDerivationScope;
+export type ContentKeyDerivationInput = ContentKeyDerivationScope;
 
 export type ContentKeyStatus = {
   configured: boolean;
@@ -77,18 +55,7 @@ export function isSupportedContentKeyVersion(value: string): value is ContentKey
 export function contentKeyVersionForAudioRef(audioRef: string): ContentKeyVersion | null {
   const releaseBound = RELEASE_BOUND_AUDIO_REF_PATTERN.exec(audioRef);
   if (releaseBound?.[1]) return `dotify-content-key-v${releaseBound[1]}` as ContentKeyVersion;
-  if (audioRef.startsWith('dotify:enc:v2:ipfs://') || audioRef.startsWith('dotify:enc:ipfs://')) return LEGACY_CONTENT_KEY_VERSION;
   return null;
-}
-
-function contentKeyAudioRefToken(keyVersion: ContentKeyVersion): string {
-  const match = CONTENT_KEY_VERSION_PATTERN.exec(keyVersion);
-  if (!match?.[1]) throw new Error(`Unsupported content-key version: ${keyVersion}`);
-  return `key-v${match[1]}`;
-}
-
-export function makeReleaseBoundEncryptedAudioV2Ref(cid: string, keyVersion = getActiveContentKeyVersion()): string {
-  return `dotify:enc:v2:${contentKeyAudioRefToken(keyVersion)}:ipfs://${cid}`;
 }
 
 function normalizeSecretHex(secret: string | undefined): string | null {
@@ -111,11 +78,10 @@ function configInput(overrides: ContentKeyVaultConfigInput = {}): Required<Conte
 function parseVersionedSecrets(source: Required<ContentKeyVaultConfigInput>): { secrets: Map<ContentKeyVersion, string>; errors: string[] } {
   const secrets = new Map<ContentKeyVersion, string>();
   const errors: string[] = [];
-  const legacySecret = normalizeSecretHex(source.contentKeyMasterSecret);
+  const defaultSecret = normalizeSecretHex(source.contentKeyMasterSecret);
 
-  if (legacySecret) {
-    secrets.set(LEGACY_CONTENT_KEY_VERSION, legacySecret);
-    secrets.set(RELEASE_BOUND_CONTENT_KEY_VERSION, legacySecret);
+  if (defaultSecret) {
+    secrets.set(RELEASE_BOUND_CONTENT_KEY_VERSION, defaultSecret);
   } else if (source.contentKeyMasterSecret.trim()) {
     errors.push('CONTENT_KEY_MASTER_SECRET is not 32+ bytes of hex.');
   }
@@ -192,9 +158,10 @@ export function getContentKeyVaultStatus(overrides: ContentKeyVaultConfigInput =
 }
 
 function masterSecretBytes(keyVersion: ContentKeyVersion, overrides: ContentKeyVaultConfigInput = {}): Buffer | null {
-  const secret = getActiveContentKeyVersion(overrides) === keyVersion
-    ? getActiveContentKeyMasterSecret(overrides)
-    : parseVersionedSecrets(configInput(overrides)).secrets.get(keyVersion);
+  const secret =
+    getActiveContentKeyVersion(overrides) === keyVersion
+      ? getActiveContentKeyMasterSecret(overrides)
+      : parseVersionedSecrets(configInput(overrides)).secrets.get(keyVersion);
   return secret ? Buffer.from(secret, 'hex') : null;
 }
 
@@ -202,19 +169,11 @@ function normalizeDerivationScope(
   input: ContentKeyDerivationInput,
   overrides: ContentKeyVaultConfigInput = {}
 ): { contentHash: string; keyVersion: ContentKeyVersion; info: string } | null {
-  if (typeof input === 'string') {
-    const contentHash = input.toLowerCase();
-    if (!HEX_HASH_PATTERN.test(contentHash)) return null;
-    return { contentHash, keyVersion: LEGACY_CONTENT_KEY_VERSION, info: `${LEGACY_HKDF_INFO_PREFIX}${contentHash}` };
-  }
+  if (!input || typeof input !== 'object' || typeof input.contentHash !== 'string') return null;
 
   const contentHash = input.contentHash.toLowerCase();
   const keyVersion = input.keyVersion ?? getActiveContentKeyVersion(overrides);
   if (!HEX_HASH_PATTERN.test(contentHash) || !isSupportedContentKeyVersion(keyVersion)) return null;
-
-  if (keyVersion === LEGACY_CONTENT_KEY_VERSION) {
-    return { contentHash, keyVersion, info: `${LEGACY_HKDF_INFO_PREFIX}${contentHash}` };
-  }
 
   const runtimeAddress = input.runtimeAddress?.toLowerCase();
   const chainId = input.chainId ?? configInput(overrides).chainId;
@@ -230,7 +189,7 @@ export function getContentKeyStatus(contentHash: string, overrides: ContentKeyVa
   const status = getContentKeyVaultStatus(overrides);
   return {
     ...status,
-    contentHash,
+    contentHash
   };
 }
 
@@ -252,7 +211,7 @@ export function deriveContentKey(input: ContentKeyDerivationInput, overrides: Co
     return {
       ok: false,
       code: 'KEY_SCOPE_INVALID',
-      reason: 'The requested content-key scope is invalid; content keys cannot be derived.',
+      reason: 'The requested content-key scope is invalid; content keys cannot be derived.'
     };
   }
 
@@ -262,7 +221,7 @@ export function deriveContentKey(input: ContentKeyDerivationInput, overrides: Co
     return {
       ok: false,
       code: status.configured ? 'KEY_VERSION_NOT_CONFIGURED' : 'KEY_SERVICE_NOT_CONFIGURED',
-      reason: `Content-key version ${scope.keyVersion} is not configured; retain its secret or re-encrypt the release before serving keys.`,
+      reason: `Content-key version ${scope.keyVersion} is not configured; retain its secret or re-encrypt the release before serving keys.`
     };
   }
 
@@ -271,7 +230,7 @@ export function deriveContentKey(input: ContentKeyDerivationInput, overrides: Co
     return {
       ok: false,
       code: 'KEY_SERVICE_NOT_CONFIGURED',
-      reason: 'Content-key secrets are not configured correctly; content keys cannot be derived.',
+      reason: 'Content-key secrets are not configured correctly; content keys cannot be derived.'
     };
   }
   return { ok: true, contentKey: `0x${key.toString('hex')}` };
