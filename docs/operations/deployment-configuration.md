@@ -22,6 +22,18 @@ when promoted to main. This is documentation hosting, not an app deployment or
 new API/CORS origin. Restore this exact source if Pages configuration drifts;
 do not enable both optional workflows as a workaround.
 
+## API non-root preparation, 2026-10-21
+
+The default API image now runs as UID/GID 1000 and checks storage access before
+loading persisted session/catalog services. This is prepared code, not a live
+cutover: the last recorded API 28 deployment still runs the older root image.
+Do not deploy the new runner against the existing root-owned volume without
+following the [offline ownership and rollback procedure](api-nonroot-storage.md).
+An explicit maintenance image changes only reviewed file ownership/modes;
+startup never performs a privileged recursive repair. No new environment
+variables, secrets, origins, mounts, scaling or key rotation are introduced.
+See the [isolated rehearsal evidence](../backlog/implementation/evidence/W30-api-nonroot-2026-10-21.md).
+
 ## W32 format foundation, 2026-10-20
 
 The inactive W32 format/codec slice does not change upload routes, running
@@ -2272,7 +2284,9 @@ Behavior changes: content-key responses carry `Cache-Control: no-store`; the
 signaling service no longer broadcasts `rooms:updated` and coalesces solo
 presence; room creation is limited per network and capped; both images start
 Node directly and close cleanly on SIGTERM. The signaling image runs as the
-`node` user. The API image stays root because the Fly volume is root-owned.
+`node` user. At that deployment the API image stayed root because the Fly
+volume was root-owned. The 2026-10-21 preparation above supplies the remaining
+non-root cutover; live validation is still required.
 
 With a stable session epoch, logout returns HTTP 503 with
 `SESSION_REVOCATION_UNAVAILABLE` if its revocation cannot be written. The token

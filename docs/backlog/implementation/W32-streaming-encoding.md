@@ -11,6 +11,16 @@ Implement **W32** only. Read `AGENTS.md`, `docs/backlog/implementation/common.md
 - Release stage: Next (streaming experience track). Applied during the trusted pilot when ready.
 - Product purpose: every protected or free release starts within a second on every supported browser, without downloading the whole file first.
 
+## Owner priority, 2026-10-21
+
+First activation targets **new artist publications**: durable encode jobs with
+progress/retry, encrypted manifest/segment publication, existing access checks,
+and real player/room playback including measured gain. Existing releases keep
+DAV2; catalog re-encoding is deferred. Do not make an existing-catalog migration
+a prerequisite for this first activation or rewrite legacy ciphertext. The
+format/codec foundation merged in #312 is inactive until those connections and
+Web/Product acceptance exist. See the [W30 prerequisite evidence](evidence/W30-api-nonroot-2026-10-21.md).
+
 ## Problem at audit
 
 - Uploads are encrypted in their original format; there is no transcoding (`services/api/src/services/mediaValidation.ts:109-130`). WAV and FLAC masters are served as is.
