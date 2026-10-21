@@ -1747,12 +1747,12 @@
               <p class="horizon-label">Trusted pilot and streaming</p>
               <h3>Open Dotify to a small trusted circle, then make listening continuous.</h3>
               <p>
-                The <a href="adr/0032-streaming-renditions.md">streaming-format foundation</a> is being validated with encrypted AAC segments
+                The <a href="adr/0032-streaming-renditions.md">streaming publication path</a> is implemented for new uploads, with encrypted AAC segments
                 and preserved masters. Upload jobs, player integration and device acceptance remain separate steps; published listening has not switched formats.
               </p>
               <p>
                 The hosted-service hardening is deployed: client limits account for the hosting proxy, playback no longer broadcasts room lists globally,
-                and sign-in and catalog state survive redeploys. API non-root execution with safe volume ownership still needs completion.
+                and sign-in and catalog state survive redeploys. API non-root execution is prepared separately. Durable artist jobs, an isolated encoder and authenticated player/room playback await coordinated deployment and native acceptance.
                 A trusted pilot of at most 42 people remains subject to device, listening and payment acceptance.
                 The remaining streaming work aims at first sound within a second:
                 releases encoded for streaming with the same encryption and access checks, encrypted media served through a cache that cannot read it,

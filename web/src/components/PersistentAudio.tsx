@@ -1,3 +1,4 @@
+import { attachAudioNormalization } from '../features/player/audioNormalization';
 // ── Persistent audio elements ───────────────────────────────────────────────
 // Rendered once at the App root. Owns the two <audio> nodes so playback survives
 // tab navigation. The host node is replaced only for a new resolved source
@@ -35,6 +36,9 @@ export function PersistentAudio({
       const previous = localAudioRef.current;
       localAudioRef.current = audio;
       if (previous && previous !== audio) retireHostAudio(previous);
+      if (audio) {
+        attachAudioNormalization(audio);
+      }
     },
     [localAudioRef]
   );

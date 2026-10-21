@@ -93,6 +93,9 @@ const envSchema = z.object({
     z.string().min(32).max(256).optional()
   ),
   NATIVE_CONTRIBUTION_SNAPSHOT_PATH: z.string().default('.data/native-contributions.json'),
+  STREAMING_WORKER_URL: z.string().url().optional(),
+  STREAMING_WORKER_TOKEN: z.string().min(32).optional(),
+  STREAMING_STATE_PATH: z.string().default('.data/streaming'),
   CATALOG_SNAPSHOT_PATH: z.string().default('.data/catalog.json'),
   // A stable epoch keeps sessions valid across redeploys; rotating it signs
   // everyone out. Unset keeps the per-process random epoch.

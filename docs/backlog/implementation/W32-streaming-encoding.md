@@ -11,6 +11,17 @@ Implement **W32** only. Read `AGENTS.md`, `docs/backlog/implementation/common.md
 - Release stage: Next (streaming experience track). Applied during the trusted pilot when ready.
 - Product purpose: every protected or free release starts within a second on every supported browser, without downloading the whole file first.
 
+## Owner-selected first activation, 2026-10-21
+
+New publications first; existing releases keep DAV2 and their migration is
+deferred. This continuation connects durable bounded jobs, isolated encoding,
+studio progress/retry/discard, immutable encrypted publication and actual player/
+room playback with loudness gain. W30 non-root is prepared in #316 and remains
+a live prerequisite. The coordinated clean testnet cutover is #317. See the
+[activation procedure](../../operations/streaming-publication.md) and
+[dated evidence](evidence/W32-publication-2026-10-21.md). No live worker/API/Web/
+Product deployment is implied by implemented code.
+
 ## Problem at audit
 
 - Uploads are encrypted in their original format; there is no transcoding (`services/api/src/services/mediaValidation.ts:109-130`). WAV and FLAC masters are served as is.

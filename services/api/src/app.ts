@@ -1,3 +1,8 @@
+import { StreamingJobs } from './services/streamingJobs.js';
+import { createStreamingWorkerClient } from './services/streamingWorkerClient.js';
+import { deriveContentKeyBytes } from './services/keyVault.js';
+import { checkArtistAuthority } from './services/chainAccess.js';
+import { pinFilesToPinata } from './services/pinata.js';
 // Fastify app assembly, extracted from index.ts so tests can build the full
 // app (request IDs, error envelope, route registration) without listening.
 
@@ -13,7 +18,7 @@ import { authRoutes } from './routes/auth.js';
 import { healthRoutes } from './routes/health.js';
 import { keyRoutes } from './routes/keys.js';
 import { turnRoutes } from './routes/turn.js';
-import { uploadRoutes } from './routes/uploads.js';
+import { createUploadRoutes } from './routes/uploads.js';
 import { createCatalogRoutes } from './routes/catalog.js';
 import { createMediaRoutes } from './routes/media.js';
 import { NativeContributionLedger } from './services/nativeContributionLedger.js';
@@ -152,7 +157,28 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   await app.register(authRoutes, { prefix: '/api/auth' });
   await app.register(turnRoutes, { prefix: '/api/turn' });
   await app.register(keyRoutes, { prefix: '/api/tracks' });
-  await app.register(uploadRoutes, { prefix: '/api/uploads' });
+  let streaming: StreamingJobs | undefined;
+  if (Boolean(config.STREAMING_WORKER_URL) !== Boolean(config.STREAMING_WORKER_TOKEN))
+    throw new Error('Configure both the isolated streaming worker URL and token');
+  if (config.STREAMING_WORKER_URL && config.STREAMING_WORKER_TOKEN) {
+    if (config.NODE_ENV === 'production' && process.getuid?.() !== 1000)
+      throw new Error('Streaming activation requires the reviewed non-root UID 1000 API image');
+    if (config.UPLOAD_GLOBAL_CONCURRENCY > 2) throw new Error('Streaming publication requires UPLOAD_GLOBAL_CONCURRENCY at most 2');
+    streaming = new StreamingJobs({
+      directory: config.STREAMING_STATE_PATH,
+      deriveKey: deriveContentKeyBytes,
+      authority: async (owner, runtime, chainId) => {
+        if (chainId !== config.DOTIFY_CHAIN_ID) return false;
+        const result = await checkArtistAuthority(owner);
+        return result.allowed && result.runtime.toLowerCase() === runtime;
+      },
+      transcode: createStreamingWorkerClient(config.STREAMING_WORKER_URL, config.STREAMING_WORKER_TOKEN),
+      pin: (files, name, signal) => pinFilesToPinata(files, name, { app: 'dotify', type: 'streaming-audio' }, signal)
+    });
+    await streaming.start();
+    app.addHook('onClose', async () => streaming!.stop());
+  }
+  await app.register(createUploadRoutes(undefined, streaming), { prefix: '/api/uploads' });
   const catalog = options.catalog ?? defaultCatalogReadModel;
   await catalog.start();
   app.addHook('onClose', async () => {

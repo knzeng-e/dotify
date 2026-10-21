@@ -1,0 +1,24 @@
+FROM node:22.13.1-slim AS build
+WORKDIR /build
+COPY package*.json ./
+RUN npm ci
+COPY tsconfig*.json ./
+COPY src ./src
+RUN npm run build
+
+FROM node:22.13.1-slim
+# Distribution FFmpeg/native AAC; retain license/build/package versions in image.
+RUN apt-get update && apt-get install --no-install-recommends -y ffmpeg \
+    && mkdir -p /usr/share/dotify-encoder \
+    && ffmpeg -version > /usr/share/dotify-encoder/build.txt 2>&1 \
+    && ffmpeg -L > /usr/share/dotify-encoder/license.txt 2>&1 \
+    && dpkg-query -W > /usr/share/dotify-encoder/packages.txt \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+# Deliberately no API, custody/config, node_modules, mounts or signing tools.
+COPY --from=build /build/package.json ./
+COPY --from=build /build/dist/worker/server.js ./worker/server.js
+COPY --from=build /build/dist/services/streamingTranscoder.js /build/dist/services/streamingBundle.js /build/dist/services/mediaValidation.js ./services/
+USER node
+ENV NODE_ENV=production
+CMD ["node", "worker/server.js"]

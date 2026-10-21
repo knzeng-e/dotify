@@ -1,3 +1,4 @@
+import { AUDIO_PREPARATION_LABELS, AudioPreparationError } from '../features/uploads/streamingPreparation';
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { getAddress, isAddress } from 'viem';
 import { getPublicClient, getWalletClient, resolveEvmChain } from '../shared/config/contracts';
@@ -922,7 +923,20 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
       const uploadIdentity = await getUploadIdentity();
       const uploadAudioForCurrentRuntime = () =>
         rawAudioBytes
-          ? uploadProtectedAudio({ bytes: rawAudioBytes, name: title || 'audio', mime: rawAudioBlob?.type ?? '' }, fileHash, uploadIdentity)
+          ? uploadProtectedAudio({ bytes: rawAudioBytes, name: title || 'audio', mime: rawAudioBlob?.type ?? '' }, fileHash, {
+              ...uploadIdentity!,
+              onAudioPreparation: phase => {
+                const message = AUDIO_PREPARATION_LABELS[phase];
+                setRightsStatus(message);
+                setTransactionFeedback({
+                  tone: 'pending',
+                  title: 'Preparing your music',
+                  message,
+                  steps: buildReleasePublicationRoadmap('assets'),
+                  technicalFacts: releasePublicationTechnicalFacts(runtimeAddress)
+                });
+              }
+            })
           : Promise.resolve('');
 
       const [resolvedAudioUpload, resolvedCoverCID] = await Promise.all([
@@ -1235,6 +1249,32 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
       setTransactionFeedback({
         tone: 'error',
         title: 'Publication needs attention',
+        ...(registrationError instanceof AudioPreparationError && registrationError.discard && !submittedRegistrationTxHash
+          ? {
+              recoveryAction: {
+                label: 'Discard failed preparation',
+                run: () => {
+                  void registrationError.discard!()
+                    .then(() => {
+                      audioUploadRef.current = null;
+                      setRightsStatus('Ready to prepare your music again');
+                      setTransactionFeedback({
+                        tone: 'success',
+                        title: 'Ready to try again',
+                        message: 'Your release draft is unchanged. Publish again to prepare your music.'
+                      });
+                    })
+                    .catch(() =>
+                      setTransactionFeedback({
+                        tone: 'error',
+                        title: 'Preparation is still saved',
+                        message: 'The failed preparation could not be removed. Reconnect your artist account and try again.'
+                      })
+                    );
+                }
+              }
+            }
+          : {}),
         message: buildReleaseRegistrationFailureMessage({
           error: message,
           submittedTxHash: submittedRegistrationTxHash,

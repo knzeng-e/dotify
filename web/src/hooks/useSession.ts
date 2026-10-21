@@ -1,3 +1,4 @@
+import { normalizedAudioCapture } from '../features/player/audioNormalization';
 import { useEffect, useRef, useState } from 'react';
 import type { RoomRealtimePort, RoomRequests, RoomTrackEmitter } from '../features/rooms/roomRealtimePort';
 import type { RoomTyping, RoomActivity } from '../shared/types';
@@ -911,6 +912,12 @@ export function useSession(deps: UseSessionDeps) {
     // One Web Audio destination survives pause/seek on this element. Next
     // creates a new generation and replaces the sender's track. Native capture
     // can retire tracks between metadata and playing; prefer the stable graph.
+    const normalized = normalizedAudioCapture(audio);
+    if (normalized) {
+      normalized.sync();
+      void normalized.resume().catch(() => undefined);
+      return normalized.stream;
+    }
     const contextCtor = window.AudioContext ?? (window as AudioContextWindow).webkitAudioContext;
     if (!contextCtor) {
       const capturable = audio as CapturableMediaElement;

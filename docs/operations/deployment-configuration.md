@@ -22,6 +22,25 @@ when promoted to main. This is documentation hosting, not an app deployment or
 new API/CORS origin. Restore this exact source if Pages configuration drifts;
 do not enable both optional workflows as a workaround.
 
+## W32 new-publication preparation, 2026-10-21
+
+New code connects signed/scoped artist uploads to a durable encrypted queue,
+a separately isolated private encoder, 202 progress/retry and v3 player/room
+playback. This is **not deployed**. Existing DAV2 releases remain readable;
+existing-catalog re-encoding is deferred under the owner's new-publications-first
+choice. See [activation, resources and rollback](streaming-publication.md).
+
+The activation plan adds a dedicated worker token/URL and permanent streaming
+custody subtree to the existing API volume. It requires one private 512 MiB
+encoder, a 1 GiB single-writer API and at most two concurrent uploads, based on
+local 15-minute resource evidence. No frontend secrets, new CORS origins,
+content-key rotation, paid listener gate or room-guest key path is introduced.
+W30 non-root/ownership must precede provisioning; initialization is explicit,
+never a missing-ledger repair. New Fly resources/configuration are prepared,
+not applied by this PR. Do not run an old three-file maintenance tool recursively
+across the new nonce subtree. Ordinary Web and native Product acceptance and real
+Pinata load remain release gates.
+
 ## W32 format foundation, 2026-10-20
 
 The inactive W32 format/codec slice does not change upload routes, running

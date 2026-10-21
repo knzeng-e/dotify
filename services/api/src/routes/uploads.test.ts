@@ -1,3 +1,7 @@
+import { StreamingJobs, initializeStreamingJobs } from '../services/streamingJobs.js';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import assert from 'node:assert/strict';
 import { afterEach, describe, it } from 'node:test';
 import Fastify, { type FastifyInstance } from 'fastify';
@@ -49,6 +53,7 @@ const pngBytes = Buffer.concat([
 let app: FastifyInstance | null = null;
 
 type BuildOptions = {
+  jobs?: StreamingJobs;
   routeDeps?: Partial<UploadRouteDeps>;
   authorizationOptions?: Parameters<typeof createUploadAuthorizationService>[0];
 };
@@ -94,7 +99,7 @@ async function buildApp(options: BuildOptions = {}): Promise<FastifyInstance> {
 
   app = Fastify();
   await app.register(multipart);
-  await app.register(createUploadRoutes(deps), { prefix: '/api/uploads' });
+  await app.register(createUploadRoutes(deps, options.jobs), { prefix: '/api/uploads' });
   return app;
 }
 
@@ -511,5 +516,97 @@ describe('POST /api/uploads/metadata', () => {
     });
     assert.equal(response.statusCode, 413);
     assert.equal(response.json().code, 'UPLOAD_BUDGET_EXCEEDED');
+  });
+});
+
+describe('asynchronous streaming upload boundary', () => {
+  it('requires a scoped upload, returns only an owned job, and restricts progress/retry to its session', async () => {
+    const root = await mkdtemp(path.join(tmpdir(), 'dotify-stream-upload-'));
+    const directory = path.join(root, 'state');
+    await initializeStreamingJobs(directory);
+    const jobs = new StreamingJobs({
+      directory,
+      deriveKey: () => Buffer.alloc(32, 7),
+      authority: async () => true,
+      transcode: async () => {
+        throw new Error('not needed for admission');
+      },
+      pin: async () => {
+        throw new Error('not needed');
+      }
+    });
+    try {
+      await jobs.start(false);
+      const server = await buildApp({
+        jobs,
+        routeDeps: {
+          verifySessionToken: token =>
+            token === SESSION_TOKEN
+              ? { valid: true, address: ADDRESS, chainId: CHAIN_ID, jti: 'artist' }
+              : token === 'other-artist'
+                ? { valid: true, address: '0x9999999999999999999999999999999999999999', chainId: CHAIN_ID, jti: 'other' }
+                : { valid: false, code: 'SESSION_INVALID', reason: 'Invalid' }
+        }
+      });
+      const rejected = await server.inject({
+        method: 'POST',
+        url: '/api/uploads/audio',
+        headers: multipartHeaders(),
+        payload: multipartAudio(audioBytes, audioHash)
+      });
+      assert.equal(rejected.statusCode, 401);
+      const authorization = (await authorize(server, 'audio', audioBytes.length)).json().uploadAuthorization;
+      const response = await server.inject({
+        method: 'POST',
+        url: '/api/uploads/audio',
+        headers: multipartHeaders(authorization),
+        payload: multipartAudio(audioBytes, audioHash)
+      });
+      assert.equal(response.statusCode, 202);
+      assert.equal(response.headers['cache-control'], 'no-store');
+      const job = response.json();
+      assert.equal(job.state, 'queued');
+      assert.equal(job.result, undefined);
+      assert(!response.body.includes('contentKey'));
+      assert.equal((await server.inject({ url: `/api/uploads/audio/jobs/${job.id}` })).statusCode, 401);
+      assert.equal((await server.inject({ url: `/api/uploads/audio/jobs/${job.id}`, headers: { authorization: `Bearer ${SESSION_TOKEN}` } })).statusCode, 200);
+      assert.equal((await server.inject({ url: `/api/uploads/audio/jobs/${job.id}`, headers: { authorization: 'Bearer other-artist' } })).statusCode, 404);
+      assert.equal(
+        (await server.inject({ method: 'POST', url: `/api/uploads/audio/jobs/${job.id}/retry`, headers: { authorization: 'Bearer other-artist' } })).statusCode,
+        404
+      );
+      assert.equal(
+        (
+          await server.inject({
+            method: 'POST',
+            url: '/api/uploads/audio',
+            headers: multipartHeaders(authorization),
+            payload: multipartAudio(audioBytes, audioHash)
+          })
+        ).statusCode,
+        409
+      );
+      const owned = JSON.parse(await (await import('node:fs/promises')).readFile(path.join(directory, 'jobs.json'), 'utf8')).jobs[0];
+      assert.equal(
+        (await server.inject({ method: 'POST', url: `/api/uploads/audio/jobs/${owned.id}/discard`, headers: { authorization: `Bearer ${SESSION_TOKEN}` } }))
+          .statusCode,
+        409
+      );
+      await jobs.runNext();
+      assert.equal(
+        (await server.inject({ method: 'POST', url: `/api/uploads/audio/jobs/${owned.id}/discard`, headers: { authorization: 'Bearer other-artist' } }))
+          .statusCode,
+        404
+      );
+      assert.equal(
+        (await server.inject({ method: 'POST', url: `/api/uploads/audio/jobs/${owned.id}/discard`, headers: { authorization: `Bearer ${SESSION_TOKEN}` } }))
+          .statusCode,
+        204
+      );
+      assert.equal(jobs.get(owned.id, ADDRESS, CHAIN_ID), null);
+    } finally {
+      await jobs.stop();
+      await rm(root, { recursive: true, force: true });
+    }
   });
 });
