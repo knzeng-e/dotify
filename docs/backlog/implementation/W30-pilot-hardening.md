@@ -12,6 +12,15 @@ Implement **W30** only. Read `AGENTS.md`, `docs/backlog/implementation/common.md
 - Source: architecture audit of `origin/dev` `9965862` on 2026-10-15 (owner session).
 - Product purpose: about 42 trusted people on several continents must be able to open, join, and listen at the same time without hitting a shared limit or losing their session to a redeploy.
 
+## Remaining process-hygiene slice, 2026-10-21
+
+The earlier proxy, presence, session and catalog changes are already delivered.
+The API non-root remainder is now implemented and locally rehearsed, separately
+from the inactive W32 format foundation. See the [evidence](evidence/W30-api-nonroot-2026-10-21.md)
+and [operator procedure](../../operations/api-nonroot-storage.md). No live
+ownership migration or deployment has been performed by this slice; #285 stays
+open for the operator window and acceptance readbacks.
+
 ## Outcome
 
 The API and signaling service identify real clients behind the Fly proxy, stop broadcasting to every socket on every playback tick, keep sessions and the catalog across a redeploy, and bound the remaining unauthenticated abuse paths. No new service, store, or region is introduced.

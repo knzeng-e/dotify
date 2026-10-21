@@ -4,4 +4,5 @@ dist
 .env.*
 npm-debug.log*
 fly.toml
+.data
 

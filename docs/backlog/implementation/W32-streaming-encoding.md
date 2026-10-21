@@ -20,7 +20,8 @@ room playback with loudness gain. W30 non-root is prepared in #316 and remains
 a live prerequisite. The coordinated clean testnet cutover is #317. See the
 [activation procedure](../../operations/streaming-publication.md) and
 [dated evidence](evidence/W32-publication-2026-10-21.md). No live worker/API/Web/
-Product deployment is implied by implemented code.
+Product deployment is implied by implemented code. See the
+[W30 prerequisite evidence](evidence/W30-api-nonroot-2026-10-21.md).
 
 ## Problem at audit
 

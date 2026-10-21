@@ -63,12 +63,13 @@ these checks are synthetic.
 
 | Check | Observed result |
 | --- | --- |
-| API full suite | 203 passed, 0 failed/skipped, including queue admission/restart/tombstone recovery, retry ciphertext reuse, scoped upload replay and private status/discard, v3 canonical access and bounded relay checks |
+| API full suite | 213 passed after integrating the #316 prerequisite (203 before integration), 0 failed/skipped, including queue admission/restart/tombstone recovery, retry ciphertext reuse, scoped upload replay and private status/discard, v3 canonical access and bounded relay checks |
 | API typecheck/build | Passed |
 | Codec/nonce suite | 6 passed, including real FFmpeg decoding, invalid/cancelled parser cleanup, key/nonce uniqueness and tamper/order/scope refusal |
 | Web unit suite | 1013 passed across 127 files, including explicit-only discard |
 | Web lint/build | Passed; two existing App hook warnings and existing bundle/Browserslist notices retained |
 | New actual reader/graph journey | Chromium and WebKit pass, using the real v3 reader, relay transport, persistent audio/gain module and live capturable track; no archive or unused rendition is requested |
+| Legacy audio continuity | 28 passed across Chromium and WebKit, including recovery, pause and fresh source generations |
 | Full reader/compatibility matrix | 16 passed across Chromium and WebKit; physical Product is not inferred from WebKit |
 | Frozen Product build and formatting | Passed; native execution remains a separate gate |
 | Isolated 60-second encode/publication | Passed: 15,801 ms; controller peak 141,900 KiB; encoder peak 56,987,648 bytes; actual object authentication and malformed/unauthenticated refusal |
