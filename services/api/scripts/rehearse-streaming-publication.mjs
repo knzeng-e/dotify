@@ -67,6 +67,8 @@ try {
     '-e',
     "import {existsSync} from 'node:fs'; if(existsSync('/app/services/keyVault.js')||existsSync('/app/config.js')||existsSync('/app/node_modules')||process.env.CONTENT_KEY_MASTER_SECRET)process.exit(1); console.log('parser isolation verified');"
   ]);
+  // Only this rehearsal-created empty volume needs explicit root provisioning.
+  // The API/controller and parser below always execute as non-root.
   const setup = `${label}-setup`;
   containers.push(setup);
   docker([
@@ -75,13 +77,18 @@ try {
     '--name',
     setup,
     '--network=none',
+    '--user=0:0',
+    '--read-only',
+    '--cap-drop=ALL',
+    '--cap-add=CHOWN',
+    '--security-opt=no-new-privileges',
     '--mount',
     `type=volume,source=${volume},target=/state`,
     '--entrypoint=node',
     api,
     '--input-type=module',
     '-e',
-    "import {chown,chmod} from 'node:fs/promises';await chown('/state',1000,1000);await chmod('/state',0o700);"
+    "import {chown,chmod} from 'node:fs/promises';await chmod('/state',0o700);await chown('/state',1000,1000);"
   ]);
   const client = `${label}-client`;
   containers.push(client);
