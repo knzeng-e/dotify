@@ -1,5 +1,21 @@
 # Deployment Configuration Runbook
 
+## Clean testnet contract preparation, 2026-10-21
+
+The owner-requested fresh core deployment is live on the existing testnet,
+chain 420420417: factory `0x708d35eee7c1416f6d332344068be9d714aec24c`,
+directory `0x8e611ef60169f8ed93019de4a3034a504ae2ad29`. Both CDM package names
+are finalized at version 2. All ten core contracts are source-verified, and the
+fresh owner-guard audit finds zero finalized/pending runtimes. No previous core
+contract, artist state, claim or IPFS data was deleted.
+
+API, signaling, Web and Product are **not cut over** by these transactions. Their
+staged configuration, empty frozen bootstrap, directory-scoped browser cache and
+recorded CDM versions must deploy together after W30/W32 review and provisioning.
+See [identities, evidence, rollout and rollback](fresh-testnet-2026-10-21.md).
+Existing session/custody/receipt state and keys must survive that rollout. Do not
+refresh the new bootstrap from the still-old live API while preparing clients.
+
 ## Release publication and documentation hosting, 2026-10-20
 
 GitHub 1.4.0 tags final main `9788ec0`; Product `[0,1,57]` was separately signed
