@@ -1,32 +1,29 @@
-export type AudioV2StartupPhase =
+export type StreamingStartupPhase =
   | 'key-authorized'
   | 'gateway-selected'
-  | 'header-ready'
-  | 'first-range-ready'
-  | 'first-chunk-decrypted'
-  | 'first-chunk-appended'
-  | 'fallback'
+  | 'manifest-ready'
+  | 'first-object-ready'
+  | 'first-segment-decrypted'
+  | 'first-segment-appended'
+  | 'compatibility-reader'
   | 'error';
 
-export type AudioV2StartupErrorKind = 'key-unavailable' | 'authentication';
+export type StreamingStartupErrorKind = 'key-unavailable' | 'authentication' | 'transport';
 export type HostAudioTerminalReason = 'access-denied' | 'selection-failed' | 'selection-interrupted' | 'autoplay-blocked' | 'media-error' | 'muted-output';
 
-export type AudioV2StartupMetric = {
-  phase: AudioV2StartupPhase;
+export type StreamingStartupMetric = {
+  phase: StreamingStartupPhase;
   audioRef: string;
   cid: string;
   elapsedMs: number;
   timestamp: number;
   gatewayUrl?: string;
-  rangeStart?: number;
-  rangeEnd?: number;
-  chunkIndex?: number;
-  hedged?: boolean;
+  objectPath?: string;
+  objectBytes?: number;
+  segmentIndex?: number;
   gatewayRecovered?: boolean;
   fromCache?: boolean;
-  intentPrefetched?: boolean;
-  decryptor?: 'worker' | 'main-thread';
-  errorKind?: AudioV2StartupErrorKind;
+  errorKind?: StreamingStartupErrorKind;
   detail?: string;
 };
 
@@ -41,7 +38,7 @@ export type HostAudioStartupMetric = {
 };
 
 export type AudioStartupTelemetrySnapshot = {
-  dav2: AudioV2StartupMetric[];
+  streaming: StreamingStartupMetric[];
   host: HostAudioStartupMetric[];
   latestMediaPlayingMs: number | null;
 };
@@ -64,18 +61,18 @@ declare global {
 }
 
 const MAX_AUDIO_STARTUP_EVENTS = 160;
-const audioV2Phases = new Set<AudioV2StartupPhase>([
+const streamingPhases = new Set<StreamingStartupPhase>([
   'key-authorized',
   'gateway-selected',
-  'header-ready',
-  'first-range-ready',
-  'first-chunk-decrypted',
-  'first-chunk-appended',
-  'fallback',
+  'manifest-ready',
+  'first-object-ready',
+  'first-segment-decrypted',
+  'first-segment-appended',
+  'compatibility-reader',
   'error'
 ]);
 const hostPhases = new Set<HostAudioStartupMetric['phase']>(['playback-intent', 'source-selected', 'metadata-ready', 'media-playing', 'error']);
-const audioV2ErrorKinds = new Set<AudioV2StartupErrorKind>(['key-unavailable', 'authentication']);
+const streamingErrorKinds = new Set<StreamingStartupErrorKind>(['key-unavailable', 'authentication', 'transport']);
 const hostTerminalReasons = new Set<HostAudioTerminalReason>([
   'access-denied',
   'selection-failed',
@@ -85,7 +82,7 @@ const hostTerminalReasons = new Set<HostAudioTerminalReason>([
   'muted-output'
 ]);
 
-let dav2Metrics: AudioV2StartupMetric[] = [];
+let streamingMetrics: StreamingStartupMetric[] = [];
 let hostMetrics: HostAudioStartupMetric[] = [];
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -108,24 +105,21 @@ function optionalString(value: unknown): value is string | undefined {
   return value === undefined || typeof value === 'string';
 }
 
-function isAudioV2StartupMetric(value: unknown): value is AudioV2StartupMetric {
+function isStreamingStartupMetric(value: unknown): value is StreamingStartupMetric {
   if (!isRecord(value)) return false;
   return (
-    audioV2Phases.has(value.phase as AudioV2StartupPhase) &&
+    streamingPhases.has(value.phase as StreamingStartupPhase) &&
     typeof value.audioRef === 'string' &&
     typeof value.cid === 'string' &&
     isFiniteNumber(value.elapsedMs) &&
     isFiniteNumber(value.timestamp) &&
     optionalString(value.gatewayUrl) &&
-    optionalNumber(value.rangeStart) &&
-    optionalNumber(value.rangeEnd) &&
-    optionalNumber(value.chunkIndex) &&
-    optionalBoolean(value.hedged) &&
+    optionalString(value.objectPath) &&
+    optionalNumber(value.objectBytes) &&
+    optionalNumber(value.segmentIndex) &&
     optionalBoolean(value.gatewayRecovered) &&
     optionalBoolean(value.fromCache) &&
-    optionalBoolean(value.intentPrefetched) &&
-    (value.decryptor === undefined || value.decryptor === 'worker' || value.decryptor === 'main-thread') &&
-    (value.errorKind === undefined || audioV2ErrorKinds.has(value.errorKind as AudioV2StartupErrorKind)) &&
+    (value.errorKind === undefined || streamingErrorKinds.has(value.errorKind as StreamingStartupErrorKind)) &&
     optionalString(value.detail)
   );
 }
@@ -150,16 +144,20 @@ function pushBounded<T>(items: T[], item: T): T[] {
 }
 
 export function clearAudioStartupTelemetry(): void {
-  dav2Metrics = [];
+  streamingMetrics = [];
   hostMetrics = [];
 }
 
-export function recordAudioV2StartupMetric(metric: AudioV2StartupMetric): void {
-  dav2Metrics = pushBounded(dav2Metrics, metric);
+export function recordStreamingStartupMetric(metric: StreamingStartupMetric): void {
+  streamingMetrics = pushBounded(streamingMetrics, metric);
 }
 
 export function recordHostAudioStartupMetric(metric: HostAudioStartupMetric): void {
   hostMetrics = pushBounded(hostMetrics, metric);
+}
+
+export function publishStreamingStartupMetric(detail: StreamingStartupMetric): void {
+  if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('dotify:streaming-startup', { detail }));
 }
 
 export function publishHostAudioStartupMetric(detail: HostAudioStartupMetric): void {
@@ -173,22 +171,22 @@ export function publishHostAudioStartupMetric(detail: HostAudioStartupMetric): v
 export function getAudioStartupTelemetrySnapshot(): AudioStartupTelemetrySnapshot {
   const latestMediaPlaying = [...hostMetrics].reverse().find(metric => metric.phase === 'media-playing');
   return {
-    dav2: [...dav2Metrics],
+    streaming: [...streamingMetrics],
     host: [...hostMetrics],
     latestMediaPlayingMs: latestMediaPlaying?.elapsedMs ?? null
   };
 }
 
-export function audioV2StartupPhaseLabel(metric: Pick<AudioV2StartupMetric, 'phase'>): string {
+export function streamingStartupPhaseLabel(metric: Pick<StreamingStartupMetric, 'phase'>): string {
   switch (metric.phase) {
     case 'key-authorized':
       return 'Loading your track…';
     case 'gateway-selected':
-    case 'header-ready':
-    case 'first-range-ready':
-    case 'first-chunk-decrypted':
-    case 'first-chunk-appended':
-    case 'fallback':
+    case 'manifest-ready':
+    case 'first-object-ready':
+    case 'first-segment-decrypted':
+    case 'first-segment-appended':
+    case 'compatibility-reader':
       return 'Loading your track…';
     case 'error':
       return 'Audio unavailable';
@@ -200,9 +198,9 @@ export function audioV2StartupPhaseLabel(metric: Pick<AudioV2StartupMetric, 'pha
 export function installAudioStartupTelemetry(target: AudioStartupTelemetryTarget | undefined = typeof window === 'undefined' ? undefined : window): () => void {
   if (!target) return () => undefined;
 
-  const handleDav2Metric = (event: Event) => {
+  const handleStreamingMetric = (event: Event) => {
     const detail = (event as CustomEvent<unknown>).detail;
-    if (isAudioV2StartupMetric(detail)) recordAudioV2StartupMetric(detail);
+    if (isStreamingStartupMetric(detail)) recordStreamingStartupMetric(detail);
   };
   const handleHostMetric = (event: Event) => {
     const detail = (event as CustomEvent<unknown>).detail;
@@ -214,11 +212,11 @@ export function installAudioStartupTelemetry(target: AudioStartupTelemetryTarget
   };
 
   target.__DOTIFY_AUDIO_STARTUP__ = telemetryApi;
-  target.addEventListener('dotify:dav2-startup', handleDav2Metric);
+  target.addEventListener('dotify:streaming-startup', handleStreamingMetric);
   target.addEventListener('dotify:host-audio-startup', handleHostMetric);
 
   return () => {
-    target.removeEventListener('dotify:dav2-startup', handleDav2Metric);
+    target.removeEventListener('dotify:streaming-startup', handleStreamingMetric);
     target.removeEventListener('dotify:host-audio-startup', handleHostMetric);
     if (target.__DOTIFY_AUDIO_STARTUP__ === telemetryApi) {
       delete target.__DOTIFY_AUDIO_STARTUP__;

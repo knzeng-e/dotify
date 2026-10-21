@@ -1,7 +1,7 @@
 import type { AudioStartupTelemetrySnapshot, HostAudioTerminalReason } from './audioStartupTelemetry';
 import { normalizeIpfsCid } from '../../shared/utils/ipfsCid';
 
-export const FIRST_SOUND_EVIDENCE_STORAGE_KEY = 'dotify:first-sound-evidence:v5';
+export const FIRST_SOUND_EVIDENCE_STORAGE_KEY = 'dotify:first-sound-evidence:v6';
 export const MAX_FIRST_SOUND_SAMPLES = 120;
 
 export const FIRST_SOUND_SURFACES = [
@@ -26,7 +26,7 @@ export const FIRST_SOUND_SCENARIOS = [
   'broken-gateway',
   'slow-key-service',
   'interrupted-navigation',
-  'corrupted-dav2'
+  'corrupted-streaming'
 ] as const;
 
 export type FirstSoundSurface = (typeof FIRST_SOUND_SURFACES)[number];
@@ -45,7 +45,7 @@ export const FIRST_SOUND_SCENARIO_EXPECTATIONS: Record<FirstSoundScenario, First
   'broken-gateway': 'first-audio',
   'slow-key-service': 'first-audio',
   'interrupted-navigation': 'error',
-  'corrupted-dav2': 'error'
+  'corrupted-streaming': 'error'
 };
 
 export type FirstSoundCandidate = {
@@ -85,14 +85,11 @@ export type FirstSoundSample = {
   measurement: 'human-confirmed' | 'automatic-error';
   firstSoundMs: number | null;
   capturedAt: string;
-  dav2: {
+  streaming: {
     observed: boolean;
-    fallback: boolean;
-    hedged: boolean;
+    compatibilityReader: boolean;
     gatewayRecovered: boolean;
-    intentPrefetched: boolean;
-    decryptor: 'worker' | 'main-thread' | null;
-    firstRangeBytes: number | null;
+    firstObjectBytes: number | null;
     keyAuthorizationMs: number | null;
     authenticationFailed: boolean;
   };
@@ -100,7 +97,7 @@ export type FirstSoundSample = {
 };
 
 export type FirstSoundEvidenceDraft = {
-  schemaVersion: 5;
+  schemaVersion: 6;
   candidate: FirstSoundCandidate;
   profile: FirstSoundTestProfile | null;
   activeAttempt: FirstSoundAttempt | null;
@@ -108,7 +105,7 @@ export type FirstSoundEvidenceDraft = {
 };
 
 export type FirstSoundEvidence = {
-  schemaVersion: 5;
+  schemaVersion: 6;
   candidate: FirstSoundCandidate;
   profile: FirstSoundTestProfile;
   capturedAt: string;
@@ -224,15 +221,13 @@ function parseSample(value: unknown): FirstSoundSample | null {
   if (value.measurement !== (value.outcome === 'first-audio' ? 'human-confirmed' : 'automatic-error')) return null;
   if (value.firstSoundMs !== null && (typeof value.firstSoundMs !== 'number' || !Number.isFinite(value.firstSoundMs) || value.firstSoundMs < 0)) return null;
   if (typeof value.capturedAt !== 'string' || !Number.isFinite(Date.parse(value.capturedAt))) return null;
-  if (!isRecord(value.dav2)) return null;
-  const decryptor = value.dav2.decryptor;
-  if (decryptor !== null && decryptor !== 'worker' && decryptor !== 'main-thread') return null;
-  const firstRangeBytes = value.dav2.firstRangeBytes;
-  if (firstRangeBytes !== null && (!Number.isSafeInteger(firstRangeBytes) || (firstRangeBytes as number) <= 0)) return null;
-  const keyAuthorizationMs = value.dav2.keyAuthorizationMs;
+  if (!isRecord(value.streaming)) return null;
+  const firstObjectBytes = value.streaming.firstObjectBytes;
+  if (firstObjectBytes !== null && (!Number.isSafeInteger(firstObjectBytes) || (firstObjectBytes as number) <= 0)) return null;
+  const keyAuthorizationMs = value.streaming.keyAuthorizationMs;
   if (keyAuthorizationMs !== null && (typeof keyAuthorizationMs !== 'number' || !Number.isFinite(keyAuthorizationMs) || keyAuthorizationMs < 0)) return null;
-  for (const field of ['observed', 'fallback', 'hedged', 'gatewayRecovered', 'intentPrefetched', 'authenticationFailed'] as const) {
-    if (typeof value.dav2[field] !== 'boolean') return null;
+  for (const field of ['observed', 'compatibilityReader', 'gatewayRecovered', 'authenticationFailed'] as const) {
+    if (typeof value.streaming[field] !== 'boolean') return null;
   }
   if (
     value.hostTerminalReason !== null &&
@@ -261,7 +256,7 @@ function parseAttempt(value: unknown): FirstSoundAttempt | null {
 }
 
 function parseDraft(value: unknown): FirstSoundEvidenceDraft | null {
-  if (!isRecord(value) || value.schemaVersion !== 5 || !isRecord(value.candidate) || !Array.isArray(value.samples)) return null;
+  if (!isRecord(value) || value.schemaVersion !== 6 || !isRecord(value.candidate) || !Array.isArray(value.samples)) return null;
   const candidate = normalizeCandidate({
     gitSha: typeof value.candidate.gitSha === 'string' ? value.candidate.gitSha : '',
     buildConfigDigest: typeof value.candidate.buildConfigDigest === 'string' ? value.candidate.buildConfigDigest : '',
@@ -279,7 +274,7 @@ function parseDraft(value: unknown): FirstSoundEvidenceDraft | null {
   if (value.activeAttempt !== null && !activeAttempt) return null;
   if (!profile && activeAttempt) return null;
   if (profile && activeAttempt && activeAttempt.surface !== profile.surface) return null;
-  return { schemaVersion: 5, candidate, profile, activeAttempt, samples: samples.slice(-MAX_FIRST_SOUND_SAMPLES) as FirstSoundSample[] };
+  return { schemaVersion: 6, candidate, profile, activeAttempt, samples: samples.slice(-MAX_FIRST_SOUND_SAMPLES) as FirstSoundSample[] };
 }
 
 function sameCandidate(left: FirstSoundCandidate, right: FirstSoundCandidate): boolean {
@@ -324,7 +319,7 @@ export function bindFirstSoundCandidate(context: FirstSoundEvidenceContext, depl
   if (!candidate) return null;
   const current = readFirstSoundEvidenceDraft();
   if (current && sameCandidate(current.candidate, candidate)) return current;
-  const next: FirstSoundEvidenceDraft = { schemaVersion: 5, candidate, profile: null, activeAttempt: null, samples: [] };
+  const next: FirstSoundEvidenceDraft = { schemaVersion: 6, candidate, profile: null, activeAttempt: null, samples: [] };
   writeDraft(next);
   return next;
 }
@@ -402,17 +397,18 @@ export function finishFirstSoundAttempt(snapshot: AudioStartupTelemetrySnapshot,
   const nextIntentIndex = nextIntentOffset < 0 ? hostEvents.length : playbackIntentIndex + 1 + nextIntentOffset;
   const nextIntent = hostEvents[nextIntentIndex];
   const correlatedHostEvents = hostEvents.filter(metric => metric.attemptId === attemptId);
-  const dav2Events = snapshot.dav2.filter(metric => metric.timestamp >= playbackIntent.timestamp && (!nextIntent || metric.timestamp < nextIntent.timestamp));
+  const streamingEvents = snapshot.streaming.filter(
+    metric => metric.timestamp >= playbackIntent.timestamp && (!nextIntent || metric.timestamp < nextIntent.timestamp)
+  );
   const hostError = correlatedHostEvents.find(metric => metric.phase === 'error');
   const mediaPlaying = correlatedHostEvents.find(metric => metric.phase === 'media-playing');
-  const dav2Error = dav2Events.find(metric => metric.phase === 'error');
-  const terminalError = [hostError, dav2Error].filter(metric => metric !== undefined).sort((left, right) => left.timestamp - right.timestamp)[0];
+  const streamingError = streamingEvents.find(metric => metric.phase === 'error');
+  const terminalError = [hostError, streamingError].filter(metric => metric !== undefined).sort((left, right) => left.timestamp - right.timestamp)[0];
   const outcome = terminalError ? 'error' : audibleConfirmed && mediaPlaying ? 'first-audio' : null;
   if (!outcome) return null;
 
-  const firstRange = dav2Events.find(metric => metric.phase === 'first-range-ready' && metric.rangeStart !== undefined && metric.rangeEnd !== undefined);
-  const decryptor = [...dav2Events].reverse().find(metric => metric.decryptor)?.decryptor ?? null;
-  const keyAuthorization = dav2Events.find(metric => metric.phase === 'key-authorized');
+  const firstObject = streamingEvents.find(metric => metric.phase === 'first-object-ready' && metric.objectBytes !== undefined);
+  const keyAuthorization = streamingEvents.find(metric => metric.phase === 'key-authorized');
   const sample: FirstSoundSample = {
     id: attempt.id,
     surface: attempt.surface,
@@ -424,16 +420,13 @@ export function finishFirstSoundAttempt(snapshot: AudioStartupTelemetrySnapshot,
     measurement: outcome === 'first-audio' ? 'human-confirmed' : 'automatic-error',
     firstSoundMs: outcome === 'first-audio' ? Math.max(0, now - playbackIntent.timestamp) : null,
     capturedAt: new Date(now).toISOString(),
-    dav2: {
-      observed: dav2Events.length > 0,
-      fallback: dav2Events.some(metric => metric.phase === 'fallback'),
-      hedged: dav2Events.some(metric => metric.hedged === true),
-      gatewayRecovered: dav2Events.some(metric => metric.gatewayRecovered === true),
-      intentPrefetched: dav2Events.some(metric => metric.intentPrefetched === true),
-      decryptor,
-      firstRangeBytes: firstRange?.rangeStart !== undefined && firstRange.rangeEnd !== undefined ? firstRange.rangeEnd - firstRange.rangeStart + 1 : null,
+    streaming: {
+      observed: streamingEvents.length > 0,
+      compatibilityReader: streamingEvents.some(metric => metric.phase === 'compatibility-reader'),
+      gatewayRecovered: streamingEvents.some(metric => metric.gatewayRecovered === true),
+      firstObjectBytes: firstObject?.objectBytes ?? null,
       keyAuthorizationMs: keyAuthorization?.elapsedMs ?? null,
-      authenticationFailed: dav2Events.some(metric => metric.phase === 'error' && metric.errorKind === 'authentication')
+      authenticationFailed: streamingEvents.some(metric => metric.phase === 'error' && metric.errorKind === 'authentication')
     },
     hostTerminalReason: hostError?.terminalReason ?? null
   };
@@ -461,7 +454,7 @@ export function clearFirstSoundEvidence(): void {
 export function buildFirstSoundEvidence(draft: FirstSoundEvidenceDraft, now = Date.now()): FirstSoundEvidence | null {
   if (!draft.profile) return null;
   return {
-    schemaVersion: 5,
+    schemaVersion: 6,
     candidate: draft.candidate,
     profile: draft.profile,
     capturedAt: new Date(now).toISOString(),

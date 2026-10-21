@@ -1670,6 +1670,9 @@
                 record stay separate from any claim that a community has already shipped.
               </p>
               <p>
+                The next internal test resets artist runtimes and the catalog, using one authenticated streaming format. Artists republish their masters;
+                compatibility with retired test audio is removed under <a href="adr/0033-streaming-only-internal-reset.md">ADR 0033</a>.
+                The matching API, encoder and Web/Product cutover is prepared, not yet deployed.
                 Streaming acceptance also checks continuity after a network interruption, reopening a track, and protected listening without repeated
                 sign-in prompts. Protected listening requires reusable sessions; a session-service outage does not switch to signatures per track.
                 The current stability follow-up adds a bounded API cache for registered encrypted media to reduce public-gateway failures.

@@ -22,7 +22,7 @@ const CONTENT_HASH = `0x${'ab'.repeat(32)}` as const;
 const CHAIN_ID = 420420417;
 const RUNTIME = '0x2222222222222222222222222222222222222222' as const;
 const ARTIST = '0x3333333333333333333333333333333333333333' as const;
-const AUDIO_REF = 'dotify:enc:v2:key-v2:ipfs://release-cid';
+const AUDIO_REF = 'dotify:enc:v3:key-v2:ipfs://QmEsos715F9xLtMdKNJ3thCD4skf5ZR4bKjS3RnhP3VNTf';
 const KEY_VERSION = 'dotify-content-key-v2';
 const RELEASE_ID = `${RUNTIME}:${CONTENT_HASH}`;
 const productSecretKey = secretFromSeed(new Uint8Array(32).fill(7));
@@ -77,7 +77,7 @@ function encodeProductSignature(raw: Uint8Array, shape: ProductSignatureShape): 
 
 async function productSignedPayload(
   overrides: Partial<SignedRequestPayload> = {},
-  options: { envelope?: ProductEnvelope; shape?: ProductSignatureShape } = {},
+  options: { envelope?: ProductEnvelope; shape?: ProductSignatureShape } = {}
 ) {
   const requester = overrides.requester ?? deriveProductAccountH160(productPublicKey);
   const challenge = createWalletNonceChallenge({ address: requester, chainId: CHAIN_ID });
@@ -135,7 +135,11 @@ describe('verifySignedRequest', () => {
 
   it('binds canonical release identity to signed key requests', async () => {
     const { payload, signature } = await signedPayload({ release: releaseIdentity() });
-    const tampered = { ...payload, release: { ...payload.release!, audioRef: 'dotify:enc:v2:key-v2:ipfs://other-cid' }, signature };
+    const tampered = {
+      ...payload,
+      release: { ...payload.release!, audioRef: 'dotify:enc:v3:key-v2:ipfs://Qm8rBzebtR1KWZxjGj8zdcWJz2jHbDFuxLB9ZBS5pPwQYN' },
+      signature
+    };
 
     const result = await verifySignedRequest(tampered);
 
@@ -373,9 +377,8 @@ describe('verifySignedRequest', () => {
 
   it('matches the Product SDK H160 derivation vector for a native Substrate public key', () => {
     const alicePublicKey = new Uint8Array([
-      0xd4, 0x35, 0x93, 0xc7, 0x15, 0xfd, 0xd3, 0x1c, 0x61, 0x14, 0x1a, 0xbd, 0x04, 0xa9, 0x9f,
-      0xd6, 0x82, 0x2c, 0x85, 0x58, 0x85, 0x4c, 0xcd, 0xe3, 0x9a, 0x56, 0x84, 0xe7, 0xa5, 0x6d,
-      0xa2, 0x7d
+      0xd4, 0x35, 0x93, 0xc7, 0x15, 0xfd, 0xd3, 0x1c, 0x61, 0x14, 0x1a, 0xbd, 0x04, 0xa9, 0x9f, 0xd6, 0x82, 0x2c, 0x85, 0x58, 0x85, 0x4c, 0xcd, 0xe3, 0x9a,
+      0x56, 0x84, 0xe7, 0xa5, 0x6d, 0xa2, 0x7d
     ]);
 
     assert.equal(deriveProductAccountH160(alicePublicKey), '0x9621dde636de098b43efb0fa9b61facfe328f99d');

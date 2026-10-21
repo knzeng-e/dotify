@@ -16,7 +16,6 @@ const keyServiceTimeout = () => AbortSignal.timeout(15_000);
 
 export type KeyRequestPurpose = 'individual' | 'room_host';
 export const PRODUCT_SR25519_SIGNATURE_SCHEME = 'product-sr25519-v1';
-export const LEGACY_CONTENT_KEY_VERSION = 'dotify-content-key-v1';
 export const RELEASE_BOUND_CONTENT_KEY_VERSION = 'dotify-content-key-v2';
 export type ContentKeyVersion = `dotify-content-key-v${number}`;
 

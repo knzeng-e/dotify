@@ -25,6 +25,16 @@
   },
   "items": [
     {
+      "id": "streaming-only-reset",
+      "doc": "docs/backlog/streaming-only-reset.md",
+      "issue": 320,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Now",
+      "note": "Owner retires the internal catalog: remove DAV1/DAV2 playback/publication/migration paths; keep current streaming, release-bound keys and permanent nonce custody. Follows #319."
+    },
+    {
       "id": "fresh-testnet-streaming-cutover",
       "doc": "docs/backlog/fresh-testnet-streaming-cutover.md",
       "issue": 317,

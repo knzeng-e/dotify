@@ -32,7 +32,7 @@ const optionalContentKeyVersion = z.preprocess(
   value => (typeof value === 'string' && value.trim() === '' ? undefined : value),
   z
     .string()
-    .regex(/^dotify-content-key-v[1-9][0-9]*$/, 'CONTENT_KEY_ACTIVE_VERSION must look like dotify-content-key-vN')
+    .regex(/^dotify-content-key-v(?:[2-9]|[1-9][0-9]+)$/, 'CONTENT_KEY_ACTIVE_VERSION must be release-bound version 2 or later')
     .optional()
 );
 
@@ -120,8 +120,8 @@ const envSchema = z.object({
       .optional()
   ),
   // Optional JSON object mapping explicit content-key versions to 32+ byte hex
-  // secrets. CONTENT_KEY_MASTER_SECRET remains the legacy v1/v2 compatibility
-  // source when this map omits those versions.
+  // secrets. CONTENT_KEY_MASTER_SECRET supplies release-bound v2 when the map
+  // omits that version. No hash-only version is supported.
   CONTENT_KEY_MASTER_SECRETS: optionalNonEmptyString,
   CONTENT_KEY_ACTIVE_VERSION: optionalContentKeyVersion,
   // Pinata JWT — must stay server-side only. Never expose in frontend env.

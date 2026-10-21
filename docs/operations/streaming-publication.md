@@ -1,7 +1,7 @@
 # New-publication streaming activation
 
-Refs #287 / W32. Code is prepared for new artist uploads; existing DAV2 releases
-remain compatible. This procedure does not deploy services by itself. W30's
+Refs #287 / W32 and #320. The internal catalog resets with #319; artists recreate
+their runtime and republish. Only authenticated v3 streaming remains supported. This procedure does not deploy services by itself. W30's
 non-root/volume cutover (#316) must be merged and verified first.
 
 ## Components and authority
@@ -50,14 +50,14 @@ archive outside the playback reader.
 
 ## Configuration and resource envelope
 
-| Setting | Owner/default | Boundary |
-| --- | --- | --- |
-| `STREAMING_WORKER_URL` | API only; unset outside activation | HTTPS, or HTTP only on `.internal`/loopback; no credentials/path/query/redirects |
-| `STREAMING_WORKER_TOKEN` | Dedicated secret on API and encoder | At least 32 characters; never reuse custody/session/Pinata/signing secrets |
-| `STREAMING_STATE_PATH` | API; `.data/streaming` locally | Live plan `/data/contributions/streaming` on the existing volume |
-| `UPLOAD_GLOBAL_CONCURRENCY` | API activation plan `2` | Configured streaming refuses values above 2 |
-| API memory | Activation plan **1024 MiB**, one CPU/writer | Existing relay/catalog/request buffers need headroom beyond encoding control |
-| Encoder | Private one warm Machine, 512 MiB, one CPU | No public HTTP/TCP service or volume; one encode at a time |
+| Setting                     | Owner/default                                | Boundary                                                                         |
+| --------------------------- | -------------------------------------------- | -------------------------------------------------------------------------------- |
+| `STREAMING_WORKER_URL`      | API only; required to publish audio          | HTTPS, or HTTP only on `.internal`/loopback; no credentials/path/query/redirects |
+| `STREAMING_WORKER_TOKEN`    | Dedicated secret on API and encoder          | At least 32 characters; never reuse custody/session/Pinata/signing secrets       |
+| `STREAMING_STATE_PATH`      | API; `.data/streaming` locally               | Live plan `/data/contributions/streaming` on the existing volume                 |
+| `UPLOAD_GLOBAL_CONCURRENCY` | API activation plan `2`                      | Configured streaming refuses values above 2                                      |
+| API memory                  | Activation plan **1024 MiB**, one CPU/writer | Existing relay/catalog/request buffers need headroom beyond encoding control     |
+| Encoder                     | Private one warm Machine, 512 MiB, one CPU   | No public HTTP/TCP service or volume; one encode at a time                       |
 
 Queue: four retained unfinished jobs (including failed), at most 200 MiB of
 original masters and 64 status records. Inputs remain limited to 50 MiB and
@@ -92,10 +92,10 @@ They clean up only their own containers/images/network/volume.
 
 Observed local Linux/arm64 Node 22.13.1 / Debian FFmpeg 5.1.9-0+deb12u1:
 
-| Synthetic profile | End-to-end job | Controller peak RSS | Encoder cgroup memory peak | Encoder CPU |
-| --- | --- | --- | --- | --- |
-| 60 seconds | 15,801 ms | 141,900 KiB | 56,987,648 bytes | 14.73 seconds |
-| 900 seconds / 43 MiB WAV | 148,491 ms | 462,272 KiB | 268,025,856 bytes | 143.83 seconds |
+| Synthetic profile        | End-to-end job | Controller peak RSS | Encoder cgroup memory peak | Encoder CPU    |
+| ------------------------ | -------------- | ------------------- | -------------------------- | -------------- |
+| 60 seconds               | 15,801 ms      | 141,900 KiB         | 56,987,648 bytes           | 14.73 seconds  |
+| 900 seconds / 43 MiB WAV | 148,491 ms     | 462,272 KiB         | 268,025,856 bytes          | 143.83 seconds |
 
 The controller fixture uses a verifying in-memory pin sink, not real Pinata or
 the complete HTTP API under load. These samples are not a Fly capacity/SLA
@@ -114,7 +114,10 @@ No new npm dependency or key scheme was added.
 ## Deployment sequence after review
 
 1. Complete the W30 non-root same-volume procedure. Back up current trust data;
-   preserve the stable session epoch and all key-version secrets.
+   preserve the stable session epoch and all custody backups. If active versioned
+   configuration includes hash-only key v1, retire that entry from the new
+   service configuration; retain its historical backup separately. Only versions
+   2+ are supported, and their permanent nonce reservations must stay intact.
 2. Prepare the reviewed encoder image from `services/api/Dockerfile.encoder`.
    The proposed `services/api/fly.encoder.toml` has no public service. Confirm
    the app name/region and one warm Machine (`--ha=false`); `.internal` DNS
@@ -154,9 +157,10 @@ keep the non-root runner and review any future custody ownership migration.
 
 For an encoding outage, retain the v3-aware API/client, disable new streaming
 admission by removing **both** worker settings in a reviewed rollback, and keep
-all queue/ciphertext/nonce state. New uploads then use DAV2; existing v3 releases
-still use their authenticated manifests/segments and existing keys. Bringing
+all queue/ciphertext/nonce state. Audio upload then returns 503; it never writes
+an old container. Published v3 releases still use their authenticated
+manifests/segments and existing keys. Bringing
 back the same state and worker resumes queued work. Never roll back to a client
-that treats v3 as legacy ciphertext. Returning to an older directory requires
-its matching clients/config/bootstrap and the latest revocation/custody state,
-not deletion of the newly deployed contracts.
+that treats v3 as legacy ciphertext. Old internal releases are retired by the owner decision in ADR 0033; this
+client has no old-directory playback rollback. Retain historical contracts/pins
+and custody safely; do not erase them as part of an application rollback.

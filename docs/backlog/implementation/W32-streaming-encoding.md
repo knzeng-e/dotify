@@ -1,5 +1,7 @@
 # W32 - Encode releases for streaming at upload
 
+**2026-10-21 owner amendment:** [#320](../streaming-only-reset.md) supersedes the legacy catalog compatibility/migration requirements below. Restart on new artist runtimes with streaming-only publications; retain nonce custody and physical-device acceptance. Original problem/plan statements remain historical context, not instructions to restore removed codecs.
+
 Copy this entire file into an agent working in the Dotify repository, or use the launcher in README.md.
 
 ## Agent assignment

@@ -201,7 +201,7 @@ export function createArtistPublishE2eTrack(input: ArtistPublishTrackInput): Cat
     title: input.title.trim() || 'Untitled',
     artist: input.artistName.trim() || 'Unknown artist',
     artistAddress: input.artistAddress,
-    audioRef: input.audioCID ? `dotify:enc:ipfs://${input.audioCID}` : `dotify:local:${input.hash}`,
+    audioRef: input.audioCID ? `dotify:enc:v3:key-v2:ipfs://${input.audioCID}` : `dotify:local:${input.hash}`,
     imageRef: E2E_ARTIST_COVER_DATA_URL,
     priceDot: input.accessMode === 'classic' ? input.priceDot : '0',
     duration: 42,

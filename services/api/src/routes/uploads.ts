@@ -2,18 +2,16 @@ import { StreamingJobError, type StreamingJobs } from '../services/streamingJobs
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { blake2b } from '@noble/hashes/blake2';
 import { z } from 'zod';
-import { encryptAudioV2Container } from '../services/audioV2.js';
 import { checkArtistAuthority as defaultCheckArtistAuthority, type ArtistAuthorityResult } from '../services/chainAccess.js';
 import {
   deriveContentKeyBytes as defaultDeriveContentKeyBytes,
   getActiveContentKeyVersion,
-  makeReleaseBoundEncryptedAudioV2Ref,
   type ContentKeyDerivationInput,
   type ContentKeyVersion
 } from '../services/keyVault.js';
 import { detectAudioMedia, detectImageMedia } from '../services/mediaValidation.js';
 import { createResponsiveCover, type ResponsiveCover } from '../services/coverVariants.js';
-import { PinataError, PinataUnconfiguredError, pinFilesToPinata, pinFileToPinata, pinJsonToPinata, type PinataFile } from '../services/pinata.js';
+import { PinataError, PinataUnconfiguredError, pinFilesToPinata, pinJsonToPinata, type PinataFile } from '../services/pinata.js';
 import { verifySessionToken as defaultVerifySessionToken, type SessionVerification } from '../services/sessionTokens.js';
 import {
   uploadAuthorizationService,
@@ -122,7 +120,6 @@ const dotifyManifestSchema = z
   })
   .strict();
 
-type PinFile = (bytes: Uint8Array, filename: string, keyvalues?: Record<string, string>, signal?: AbortSignal) => Promise<string>;
 type PinFiles = (files: PinataFile[], name: string, keyvalues?: Record<string, string>, signal?: AbortSignal) => Promise<string>;
 type PinJson = (json: unknown, name: string, keyvalues?: Record<string, string>, signal?: AbortSignal) => Promise<string>;
 
@@ -132,9 +129,7 @@ export type UploadRouteDeps = {
   authorizations: UploadAuthorizationService;
   getActiveContentKeyVersion: () => ContentKeyVersion;
   deriveContentKeyBytes: (input: ContentKeyDerivationInput) => Buffer | null;
-  encryptAudio: typeof encryptAudioV2Container;
   createCover: (bytes: Uint8Array, originalExtension: string) => Promise<ResponsiveCover>;
-  pinFile: PinFile;
   pinFiles: PinFiles;
   pinJson: PinJson;
 };
@@ -145,9 +140,7 @@ const defaultDeps: UploadRouteDeps = {
   authorizations: uploadAuthorizationService,
   getActiveContentKeyVersion,
   deriveContentKeyBytes: defaultDeriveContentKeyBytes,
-  encryptAudio: encryptAudioV2Container,
   createCover: createResponsiveCover,
-  pinFile: pinFileToPinata,
   pinFiles: pinFilesToPinata,
   pinJson: pinJsonToPinata
 };
@@ -322,6 +315,7 @@ export function createUploadRoutes(deps: UploadRouteDeps = defaultDeps, jobs?: S
     });
 
     app.post('/audio', async (request: FastifyRequest, reply: FastifyReply) => {
+      if (!jobs) return reply.code(503).send({ code: 'STREAMING_UNAVAILABLE', error: 'Audio preparation is unavailable. Please try again later.' });
       const lease = beginAuthorizedUpload(request, reply, 'audio', deps.authorizations);
       if (!lease) return;
       const abort = requestAbortController(request);
@@ -376,67 +370,24 @@ export function createUploadRoutes(deps: UploadRouteDeps = defaultDeps, jobs?: S
           });
         }
 
-        if (jobs) {
-          try {
-            abort.signal.throwIfAborted();
-            const job = await jobs.enqueue({
-              owner: lease.payload.address,
-              scope: { chainId: lease.payload.chainId, runtimeAddress: lease.payload.runtimeAddress.toLowerCase(), contentHash: normalizedHash, keyVersion },
-              master: fileBuffer
-            });
-            completed = lease.complete(fileBuffer.length);
-            if (!completed) return reply.status(500).send({ error: 'Upload quota accounting failed.', code: 'UPLOAD_ACCOUNTING_FAILED' });
-            return reply.header('Cache-Control', 'no-store').status(202).send(job);
-          } catch (error) {
-            if (error instanceof StreamingJobError)
-              return reply.status(error.status).send({ error: 'Audio preparation is busy or unavailable. Please try again.', code: error.code });
-            throw error;
-          } finally {
-            contentKey.fill(0);
-            fileBuffer.fill(0);
-          }
-        }
-
-        let encrypted: Buffer;
         try {
-          encrypted = deps.encryptAudio(fileBuffer, contentKey, {
-            contentHash: normalizedHash,
-            mediaMime: media.mime,
-            leadingMetadataBytes: media.leadingMetadataBytes ?? 0
+          abort.signal.throwIfAborted();
+          const job = await jobs.enqueue({
+            owner: lease.payload.address,
+            scope: { chainId: lease.payload.chainId, runtimeAddress: lease.payload.runtimeAddress.toLowerCase(), contentHash: normalizedHash, keyVersion },
+            master: fileBuffer
           });
-        } catch {
-          request.log.error('Audio encryption failed');
-          return reply.status(500).send({ error: 'Audio encryption failed.', code: 'AUDIO_ENCRYPTION_FAILED' });
-        }
-
-        let cid: string;
-        try {
-          cid = await deps.pinFile(
-            new Uint8Array(encrypted),
-            `${normalizedHash.slice(2, 10)}.dav2`,
-            {
-              app: 'dotify',
-              type: 'audio',
-              encrypted: 'true',
-              container: 'dotify.audio.v2',
-              keyVersion,
-              runtimeAddress: lease.payload.runtimeAddress,
-              contentHash: normalizedHash
-            },
-            abort.signal
-          );
+          completed = lease.complete(fileBuffer.length);
+          if (!completed) return reply.status(500).send({ error: 'Upload quota accounting failed.', code: 'UPLOAD_ACCOUNTING_FAILED' });
+          return reply.header('Cache-Control', 'no-store').status(202).send(job);
         } catch (error) {
-          return handleUploadError(error, reply);
+          if (error instanceof StreamingJobError)
+            return reply.status(error.status).send({ error: 'Audio preparation is busy or unavailable. Please try again.', code: error.code });
+          throw error;
+        } finally {
+          contentKey.fill(0);
+          fileBuffer.fill(0);
         }
-
-        completed = lease.complete(fileBuffer.length);
-        if (!completed) return reply.status(500).send({ error: 'Upload quota accounting failed.', code: 'UPLOAD_ACCOUNTING_FAILED' });
-        return reply.status(200).send({
-          ref: makeReleaseBoundEncryptedAudioV2Ref(cid, keyVersion),
-          contentHash: normalizedHash,
-          keyVersion,
-          runtimeAddress: lease.payload.runtimeAddress
-        });
       } finally {
         abort.detach();
         if (!completed) lease.abort();

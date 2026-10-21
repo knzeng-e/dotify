@@ -5,7 +5,7 @@ const ready = {
   id,
   state: 'ready',
   result: {
-    ref: 'dotify:enc:v3:key-v2:ipfs://directory',
+    ref: 'dotify:enc:v3:key-v2:ipfs://Qm4SqYb857winFMDRhCDJobJKar9BDtsE8q1oZhDVSrZhC',
     runtimeAddress: `0x${'12'.repeat(20)}`,
     contentHash: `0x${'34'.repeat(32)}`,
     keyVersion: 'dotify-content-key-v2'

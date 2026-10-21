@@ -1,136 +1,23 @@
-// Best-effort audio protection: per-track AES-256-GCM encryption with app-derived keys.
-//
-// Key derivation: blake2b256(APP_SECRET ‖ "dotify-content-key-v1:" ‖ contentHash)
-// This is deterministic — the app never needs to store or transmit content keys.
-//
-// Protection model:
-//   • IPFS stores only encrypted bytes — the raw CID is not playable.
-//   • The contentHash (cleartext identity) is used as key-derivation input, not stored separately.
-//   • VITE_CONTENT_SECRET is bundled in the JS (best-effort, not DRM). It is demo/local only;
-//     production key delivery must use the backend service.
-//
-// Access policy (PoP / payment checks) is enforced separately at the call site.
-
-import { blake2b256 } from '@polkadot-apps/utils';
-import { encryptAudio, decryptAudio } from './crypto';
-
-const APP_SECRET_HEX = (import.meta.env.VITE_CONTENT_SECRET as string | undefined) ?? '';
-
-// ---------------------------------------------------------------------------
-// Internal helpers
-// ---------------------------------------------------------------------------
-
-function getAppSecret(): Uint8Array {
-  const hex = APP_SECRET_HEX.replace(/^0x/, '').replace(/\s+/g, '');
-  if (!hex) return new Uint8Array(32); // dev fallback: all-zero key
-  const out = new Uint8Array(Math.floor(hex.length / 2));
-  for (let i = 0; i < out.length; i++) {
-    out[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
-  }
-  return out;
-}
-
-// ---------------------------------------------------------------------------
-// Public API
-// ---------------------------------------------------------------------------
-
-/** Derive a 32-byte AES-256 content key for a specific track. */
-export function deriveContentKey(contentHash: string): Uint8Array {
-  const secret = getAppSecret();
-  const label = new TextEncoder().encode(`dotify-content-key-v1:${contentHash}`);
-  const combined = new Uint8Array(secret.length + label.length);
-  combined.set(secret, 0);
-  combined.set(label, secret.length);
-  return blake2b256(combined);
-}
-
-/** Encrypt raw audio bytes with the per-track derived key. Output: nonce(12) ‖ ciphertext. */
-export async function encryptTrackAudio(bytes: Uint8Array, contentHash: string): Promise<Uint8Array> {
-  return encryptAudio(bytes, deriveContentKey(contentHash));
-}
-
-/** Decrypt audio bytes previously encrypted by encryptTrackAudio. */
-export async function decryptTrackAudio(packed: Uint8Array, contentHash: string): Promise<Uint8Array> {
-  return decryptAudio(packed, deriveContentKey(contentHash));
-}
-
-// ---------------------------------------------------------------------------
-// audioRef URI helpers (stored in the EVM registry)
-// ---------------------------------------------------------------------------
-
-const ENC_AUDIO_PREFIX = 'dotify:enc:ipfs://';
-const ENC_AUDIO_V2_PREFIX = 'dotify:enc:v2:ipfs://';
-const ENC_AUDIO_V3_RELEASE_KEY_PATTERN = /^dotify:enc:v3:key-v([1-9][0-9]*):ipfs:\/\//;
-const ENC_AUDIO_V2_RELEASE_KEY_PATTERN = /^dotify:enc:v2:key-v([1-9][0-9]*):ipfs:\/\//;
-
-export const LEGACY_CONTENT_KEY_VERSION = 'dotify-content-key-v1';
+/** Protected streaming references. Keys are delivered only by the authorized API. */
 export const RELEASE_BOUND_CONTENT_KEY_VERSION = 'dotify-content-key-v2';
 export type ContentKeyVersion = `dotify-content-key-v${number}`;
-
-/**
- * Build the on-chain audioRef for an encrypted IPFS upload.
- * Example: makeEncryptedAudioRef("QmXXX") → "dotify:enc:ipfs://QmXXX"
- */
-export function makeEncryptedAudioRef(audioCID: string): string {
-  return `${ENC_AUDIO_PREFIX}${audioCID}`;
+const REF = /^dotify:enc:v3:key-v((?:[2-9]|[1-9][0-9]+)):ipfs:\/\/((?:Qm[1-9A-HJ-NP-Za-km-z]{44}|b[a-z2-7]{20,110}))$/;
+export function isEncryptedAudioV3Ref(ref: string): boolean {
+  return REF.test(ref);
 }
-
-/** Build the on-chain audioRef for a chunked encrypted IPFS upload. */
-export function makeEncryptedAudioV2Ref(audioCID: string): string {
-  return `${ENC_AUDIO_V2_PREFIX}${audioCID}`;
+export function isEncryptedAudioRef(ref: string): boolean {
+  return isEncryptedAudioV3Ref(ref);
 }
-
-function contentKeyAudioRefToken(keyVersion: ContentKeyVersion): string {
-  const match = /^dotify-content-key-v([1-9][0-9]*)$/.exec(keyVersion);
-  if (!match?.[1]) throw new Error(`Unsupported content-key version: ${keyVersion}`);
-  return `key-v${match[1]}`;
+export function normalizeEncryptedAudioRef(ref: string): string {
+  if (!REF.test(ref)) throw new Error('The prepared audio reference is invalid. Publish the track again.');
+  return ref;
 }
-
-function releaseBoundAudioRefPrefix(audioRef: string): string | null {
-  return ENC_AUDIO_V2_RELEASE_KEY_PATTERN.exec(audioRef)?.[0] ?? null;
+export function encryptedRefToCID(ref: string): string {
+  const match = REF.exec(ref);
+  if (!match) throw new Error('Invalid streaming audio reference');
+  return match[2];
 }
-
-/** Build the on-chain audioRef for a DAV2 asset encrypted with a release-bound key version. */
-export function makeReleaseBoundEncryptedAudioV2Ref(audioCID: string, keyVersion: ContentKeyVersion = RELEASE_BOUND_CONTENT_KEY_VERSION): string {
-  return `dotify:enc:v2:${contentKeyAudioRefToken(keyVersion)}:ipfs://${audioCID}`;
-}
-
-/** Normalize an upload response that may already be a full encrypted audio ref. */
-export function normalizeEncryptedAudioRef(audioRefOrCid: string): string {
-  if (isEncryptedAudioRef(audioRefOrCid)) return audioRefOrCid;
-  return makeEncryptedAudioRef(audioRefOrCid);
-}
-
-/** Returns true when the audioRef is any encrypted Dotify audio ref. */
-export function isEncryptedAudioRef(audioRef: string): boolean {
-  return (
-    isEncryptedAudioV3Ref(audioRef) ||
-    audioRef.startsWith(ENC_AUDIO_PREFIX) ||
-    audioRef.startsWith(ENC_AUDIO_V2_PREFIX) ||
-    releaseBoundAudioRefPrefix(audioRef) !== null
-  );
-}
-
-export function isEncryptedAudioV3Ref(audioRef: string): boolean {
-  return ENC_AUDIO_V3_RELEASE_KEY_PATTERN.test(audioRef);
-}
-
-/** Returns true when the audioRef points to a chunked DAV2 encrypted asset. */
-export function isEncryptedAudioV2Ref(audioRef: string): boolean {
-  return audioRef.startsWith(ENC_AUDIO_V2_PREFIX) || releaseBoundAudioRefPrefix(audioRef) !== null;
-}
-
-/** Extract the raw IPFS CID from an encrypted audioRef. */
-export function encryptedRefToCID(audioRef: string): string {
-  const releaseBoundPrefix = ENC_AUDIO_V3_RELEASE_KEY_PATTERN.exec(audioRef)?.[0] ?? releaseBoundAudioRefPrefix(audioRef);
-  if (releaseBoundPrefix) return audioRef.slice(releaseBoundPrefix.length);
-  if (audioRef.startsWith(ENC_AUDIO_V2_PREFIX)) return audioRef.slice(ENC_AUDIO_V2_PREFIX.length);
-  return audioRef.slice(ENC_AUDIO_PREFIX.length);
-}
-
-export function contentKeyVersionForAudioRef(audioRef: string): ContentKeyVersion | null {
-  const releaseBound = ENC_AUDIO_V3_RELEASE_KEY_PATTERN.exec(audioRef) ?? ENC_AUDIO_V2_RELEASE_KEY_PATTERN.exec(audioRef);
-  if (releaseBound?.[1]) return `dotify-content-key-v${releaseBound[1]}` as ContentKeyVersion;
-  if (audioRef.startsWith(ENC_AUDIO_V2_PREFIX) || audioRef.startsWith(ENC_AUDIO_PREFIX)) return LEGACY_CONTENT_KEY_VERSION;
-  return null;
+export function contentKeyVersionForAudioRef(ref: string): ContentKeyVersion | null {
+  const version = REF.exec(ref)?.[1];
+  return version ? (`dotify-content-key-v${version}` as ContentKeyVersion) : null;
 }

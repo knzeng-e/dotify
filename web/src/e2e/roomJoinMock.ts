@@ -82,7 +82,7 @@ export const E2E_ROOM_PROTECTED_TRACK: CatalogTrack = {
   title: E2E_ROOM_PROTECTED_TITLE,
   artist: 'Dotify Room Host',
   artistAddress: E2E_ROOM_ARTIST,
-  audioRef: 'dotify:enc:ipfs://room-join-e2e-protected',
+  audioRef: 'dotify:enc:v3:key-v2:ipfs://QmafmXF11dKMXto7s39giJoRBJdZ3yvVtYx5fCCEVnW3qF',
   imageRef: PROTECTED_COVER,
   priceDot: '0.5',
   localUrl: E2E_ROOM_PROTECTED_AUDIO_URL,
@@ -139,7 +139,7 @@ export function getRoomJoinE2eTracks(): CatalogTrack[] {
   const protectedTrack = {
     ...E2E_ROOM_PROTECTED_TRACK,
     ...(responsiveImageRef ? { imageRef: responsiveImageRef } : {}),
-    ...(params?.get('e2eDav2Intent') === 'on' ? { audioRef: 'dotify:enc:v2:ipfs://bafy-e2e-intent-audio' } : {})
+    ...(params?.get('e2eStreamingIntent') === 'on' ? { audioRef: 'dotify:enc:v3:key-v2:ipfs://QmBptPVvSfjAZdLedjaQUqTfpaJ39rX8uUZkfVZwf4yec8' } : {})
   };
   const publicTrack = responsiveImageRef ? { ...E2E_ROOM_PUBLIC_TRACK, imageRef: responsiveImageRef } : E2E_ROOM_PUBLIC_TRACK;
   const tracks = [protectedTrack, publicTrack];

@@ -1,13 +1,13 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import {
-  audioV2StartupPhaseLabel,
+  streamingStartupPhaseLabel,
   clearAudioStartupTelemetry,
   getAudioStartupTelemetrySnapshot,
   installAudioStartupTelemetry,
-  recordAudioV2StartupMetric,
+  recordStreamingStartupMetric,
   recordHostAudioStartupMetric,
   type AudioStartupTelemetryApi,
-  type AudioV2StartupMetric,
+  type StreamingStartupMetric,
   type HostAudioStartupMetric
 } from './audioStartupTelemetry';
 
@@ -15,21 +15,17 @@ type TestTarget = EventTarget & {
   __DOTIFY_AUDIO_STARTUP__?: AudioStartupTelemetryApi;
 };
 
-const dav2Metric: AudioV2StartupMetric = {
-  phase: 'first-range-ready',
-  audioRef: 'dotify:enc:v2:ipfs://QmAudio',
+const streamingMetric: StreamingStartupMetric = {
+  phase: 'first-object-ready',
+  audioRef: 'dotify:enc:v3:key-v2:ipfs://Qm9xbPnX2h2VnxfRwzFjHa13DQXGJM66ikuLncRHkKydcZ',
   cid: 'QmAudio',
   elapsedMs: 412.4,
   timestamp: 1_700_000_000_000,
   gatewayUrl: 'https://gateway.example/ipfs/QmAudio',
-  rangeStart: 128,
-  rangeEnd: 512,
-  chunkIndex: 0,
-  hedged: true,
+  objectBytes: 385,
+  segmentIndex: 0,
   gatewayRecovered: true,
-  fromCache: false,
-  intentPrefetched: true,
-  decryptor: 'worker'
+  fromCache: false
 };
 
 const hostMetric: HostAudioStartupMetric = {
@@ -46,12 +42,12 @@ describe('audio startup telemetry', () => {
     clearAudioStartupTelemetry();
   });
 
-  it('records DAV2 and host metrics in a bounded frontend snapshot', () => {
-    recordAudioV2StartupMetric(dav2Metric);
+  it('records streaming and host metrics in a bounded frontend snapshot', () => {
+    recordStreamingStartupMetric(streamingMetric);
     recordHostAudioStartupMetric(hostMetric);
 
     expect(getAudioStartupTelemetrySnapshot()).toEqual({
-      dav2: [dav2Metric],
+      streaming: [streamingMetric],
       host: [hostMetric],
       latestMediaPlayingMs: 820.2
     });
@@ -61,12 +57,12 @@ describe('audio startup telemetry', () => {
     const target = new EventTarget() as TestTarget;
     const cleanup = installAudioStartupTelemetry(target);
 
-    target.dispatchEvent(new CustomEvent('dotify:dav2-startup', { detail: dav2Metric }));
+    target.dispatchEvent(new CustomEvent('dotify:streaming-startup', { detail: streamingMetric }));
     target.dispatchEvent(new CustomEvent('dotify:host-audio-startup', { detail: hostMetric }));
-    target.dispatchEvent(new CustomEvent('dotify:dav2-startup', { detail: { phase: 'bad' } }));
+    target.dispatchEvent(new CustomEvent('dotify:streaming-startup', { detail: { phase: 'bad' } }));
 
     expect(target.__DOTIFY_AUDIO_STARTUP__?.snapshot()).toEqual({
-      dav2: [dav2Metric],
+      streaming: [streamingMetric],
       host: [hostMetric],
       latestMediaPlayingMs: 820.2
     });
@@ -77,18 +73,18 @@ describe('audio startup telemetry', () => {
 
   it('keeps only the most recent telemetry records', () => {
     for (let index = 0; index < 170; index += 1) {
-      recordAudioV2StartupMetric({ ...dav2Metric, elapsedMs: index });
+      recordStreamingStartupMetric({ ...streamingMetric, elapsedMs: index });
     }
 
     const snapshot = getAudioStartupTelemetrySnapshot();
-    expect(snapshot.dav2).toHaveLength(160);
-    expect(snapshot.dav2[0].elapsedMs).toBe(10);
-    expect(snapshot.dav2[snapshot.dav2.length - 1]?.elapsedMs).toBe(169);
+    expect(snapshot.streaming).toHaveLength(160);
+    expect(snapshot.streaming[0].elapsedMs).toBe(10);
+    expect(snapshot.streaming[snapshot.streaming.length - 1]?.elapsedMs).toBe(169);
   });
 
-  it('maps DAV2 phases to listener-safe progress labels', () => {
-    expect(audioV2StartupPhaseLabel({ phase: 'key-authorized' })).toBe('Loading your track…');
-    expect(audioV2StartupPhaseLabel({ phase: 'first-range-ready' })).toBe('Loading your track…');
-    expect(audioV2StartupPhaseLabel({ phase: 'error' })).toBe('Audio unavailable');
+  it('maps streaming phases to listener-safe progress labels', () => {
+    expect(streamingStartupPhaseLabel({ phase: 'key-authorized' })).toBe('Loading your track…');
+    expect(streamingStartupPhaseLabel({ phase: 'first-object-ready' })).toBe('Loading your track…');
+    expect(streamingStartupPhaseLabel({ phase: 'error' })).toBe('Audio unavailable');
   });
 });

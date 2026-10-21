@@ -63,7 +63,7 @@ const SCENARIO_LABELS: Record<FirstSoundScenario, string> = {
   'broken-gateway': 'Broken gateway with recovery',
   'slow-key-service': 'Slow key service',
   'interrupted-navigation': 'Interrupted navigation',
-  'corrupted-dav2': 'Corrupted DAV2 chunk'
+  'corrupted-streaming': 'Corrupted streaming chunk'
 };
 
 const FLOW_BUDGET_MS: Record<FirstSoundFlow, number> = {

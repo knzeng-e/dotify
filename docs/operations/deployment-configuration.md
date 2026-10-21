@@ -1,5 +1,40 @@
 # Deployment Configuration Runbook
 
+## Current audio reset policy, 2026-10-21
+
+The owner retires the internal catalog under [#320](../backlog/streaming-only-reset.md)
+and [ADR 0033](../adr/0033-streaming-only-internal-reset.md). Only authenticated
+v3 streaming is supported after the coordinated #319 cutover. Earlier dated
+DAV2/range/inline-worker/legacy rollback notes below describe historical builds,
+not the current deployment recipe. No live services or data are changed by this
+source preparation.
+
+- Deploy the API/isolated encoder and matching Web/Product clients together,
+  using the fresh directory and empty bootstrap. Recreate artist runtimes and
+  republish originals. Missing worker settings return 503 on audio upload.
+- The ciphertext relay serves only `/api/media/:cid/stream/manifest.json` and
+  fixed rendition init/media objects for active canonical encrypted releases.
+  No bare CID, Range, archive or arbitrary URL relay remains. Two cold reads,
+  16 MiB/64 cached entries, 256 KiB manifests and 1 MiB+16 byte segments bound
+  transport; every request, including cache hits, rechecks catalog eligibility.
+  Independent subscriber cancellation, no-store responses and reviewed HTTPS
+  gateway redirects remain enforced. Restart clears only in-memory ciphertext.
+- The browser reads authenticated manifest/init/segments; it never derives keys
+  from a frontend secret. A 4 MiB/16-entry/30-second manifest/init ciphertext
+  cache may warm two neighbors without any key request. Playback still checks
+  access and authenticates every object. AAC Blob compatibility uses the same
+  rendition on hosts without standard MSE; no old file codec is retained.
+- Key versions 2+ remain release-bound to chain/runtime/hash. Keep v2 secrets
+  when rotating to v3 and retain the permanent actual-key nonce ledger union.
+  A catalog reset is not permission to erase custody or recycle nonces.
+- First-sound evidence is schema 6 with manifest/segment events. Earlier schema
+  5 exports are historical and cannot qualify the new candidate. Physical
+  Product/device acceptance remains required; browser automation is not proof
+  of installed Host behavior.
+
+See [publication, provisioning and recovery](streaming-publication.md) for the
+resource/token/volume boundaries and explicit operator sequence.
+
 ## Clean testnet contract preparation, 2026-10-21
 
 The owner-requested fresh core deployment is live on the existing testnet,
@@ -54,9 +89,8 @@ See the [isolated rehearsal evidence](../backlog/implementation/evidence/W30-api
 
 New code connects signed/scoped artist uploads to a durable encrypted queue,
 a separately isolated private encoder, 202 progress/retry and v3 player/room
-playback. This is **not deployed**. Existing DAV2 releases remain readable;
-existing-catalog re-encoding is deferred under the owner's new-publications-first
-choice. See [activation, resources and rollback](streaming-publication.md).
+playback. This is **not deployed**. The subsequent owner reset retires the
+old catalog and removes DAV1/DAV2 compatibility; artists republish. See [activation, resources and rollback](streaming-publication.md).
 
 The activation plan adds a dedicated worker token/URL and permanent streaming
 custody subtree to the existing API volume. It requires one private 512 MiB
@@ -597,27 +631,27 @@ Build settings for the repo-root Netlify site:
 
 Required production variables:
 
-| Key                       | Value                                                                                                                            | Notes                                                            |
-| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| `VITE_DOTIFY_DEPLOYMENT`  | `production`                                                                                                                     | Enables fail-closed production env validation.                   |
-| `VITE_DOTIFY_HOST_MODE`   | `off`                                                                                                                            | Prevents the standalone build from probing Product host APIs.    |
-| `VITE_SIGNAL_URL`         | `https://dotify-signal.fly.dev`                                                                                                  | Public Socket.IO signaling origin.                               |
-| `VITE_DOTIFY_API_URL`     | `https://dotify-api.fly.dev`                                                                                                     | Backend API for uploads, key delivery, and cached catalog reads. |
-| `VITE_PINATA_GATEWAY`     | `https://gateway.pinata.cloud`                                                                                                   | Primary browser read gateway for Pinata-backed track assets.     |
+| Key                       | Value                                                                                    | Notes                                                            |
+| ------------------------- | ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `VITE_DOTIFY_DEPLOYMENT`  | `production`                                                                             | Enables fail-closed production env validation.                   |
+| `VITE_DOTIFY_HOST_MODE`   | `off`                                                                                    | Prevents the standalone build from probing Product host APIs.    |
+| `VITE_SIGNAL_URL`         | `https://dotify-signal.fly.dev`                                                          | Public Socket.IO signaling origin.                               |
+| `VITE_DOTIFY_API_URL`     | `https://dotify-api.fly.dev`                                                             | Backend API for uploads, key delivery, and cached catalog reads. |
+| `VITE_PINATA_GATEWAY`     | `https://gateway.pinata.cloud`                                                           | Primary browser read gateway for Pinata-backed track assets.     |
 | `VITE_IPFS_READ_GATEWAYS` | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation` | Ordered fallback gateway list.                                   |
 
 Optional production variables:
 
-| Key                            | When to set                                                                                                                                        |
-| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Key                            | When to set                                                                                                                                                            |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `VITE_DOTIFY_DEBUG_PANEL=true` | Temporary operator smoke checks plus first-sound, Product CDM, and room evidence exports under `You -> Production readiness`; unset for ordinary listener deployments. |
-| `VITE_TURN_URL`                | Browser-visible TURN fallback for DevNet/static credentials. Prefer API grants for production. Accepts comma-separated `turn:` / `turns:` URLs.    |
-| `VITE_TURN_USERNAME`           | Static fallback only. Do not use long-lived production credentials here.                                                                           |
-| `VITE_TURN_CREDENTIAL`         | Static fallback only. Do not use long-lived production credentials here.                                                                           |
-| `VITE_ETH_RPC_URL`             | Override the default Paseo Asset Hub EVM RPC. Must be HTTPS in production.                                                                         |
-| `VITE_WS_URL`                  | Override the default Polkadot WebSocket RPC. Must be WSS in production.                                                                            |
-| `VITE_BULLETIN_WS_URL`         | Override the default Product DevNet Bulletin RPC. Must be WSS in production.                                                                       |
-| `VITE_BLOCKSCOUT_BASE_URL`     | Override explorer links. Must be HTTPS in production.                                                                                              |
+| `VITE_TURN_URL`                | Browser-visible TURN fallback for DevNet/static credentials. Prefer API grants for production. Accepts comma-separated `turn:` / `turns:` URLs.                        |
+| `VITE_TURN_USERNAME`           | Static fallback only. Do not use long-lived production credentials here.                                                                                               |
+| `VITE_TURN_CREDENTIAL`         | Static fallback only. Do not use long-lived production credentials here.                                                                                               |
+| `VITE_ETH_RPC_URL`             | Override the default Paseo Asset Hub EVM RPC. Must be HTTPS in production.                                                                                             |
+| `VITE_WS_URL`                  | Override the default Polkadot WebSocket RPC. Must be WSS in production.                                                                                                |
+| `VITE_BULLETIN_WS_URL`         | Override the default Product DevNet Bulletin RPC. Must be WSS in production.                                                                                           |
+| `VITE_BLOCKSCOUT_BASE_URL`     | Override explorer links. Must be HTTPS in production.                                                                                                                  |
 
 Deploy-preview note:
 
@@ -634,20 +668,20 @@ The browser-safe Product build profile is tracked in
 
 Required Product values:
 
-| Key                             | Current value                                                                                                                    |
-| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| `VITE_DOTIFY_DEPLOYMENT`        | `production`                                                                                                                     |
-| `VITE_DOTIFY_HOST_MODE`         | `required`                                                                                                                       |
-| `VITE_DOTIFY_PRODUCT_ID`        | `dotify-test01.dot`                                                                                                              |
-| `VITE_PUBLIC_APP_URL`           | `https://dotify-test01.dev-dot.li`                                                                                               |
-| `VITE_DOTIFY_API_URL`           | `https://dotify-api.fly.dev`                                                                                                     |
-| `VITE_SIGNAL_URL`               | `https://dotify-signal.fly.dev`                                                                                                  |
-| `VITE_DOTIFY_ROOM_BEACONS`      | `off`                                                                                                                            |
-| `VITE_DOTIFY_ROOM_REALTIME`     | `off`; `observe` or `dual` only for an authorized Product measurement candidate                                                     |
-| `VITE_BULLETIN_WS_URL`          | `wss://bulletin-paseo.tservices.es:8443`                                                                                         |
-| `VITE_PINATA_GATEWAY`           | `https://gateway.pinata.cloud`                                                                                                   |
-| `VITE_IPFS_READ_GATEWAYS`       | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation` |
-| Product executable `appVersion` | `[0, 1, 57]` published release follow-up; `[0, 1, 56]` is the current client rollback artifact                          |
+| Key                             | Current value                                                                                  |
+| ------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `VITE_DOTIFY_DEPLOYMENT`        | `production`                                                                                   |
+| `VITE_DOTIFY_HOST_MODE`         | `required`                                                                                     |
+| `VITE_DOTIFY_PRODUCT_ID`        | `dotify-test01.dot`                                                                            |
+| `VITE_PUBLIC_APP_URL`           | `https://dotify-test01.dev-dot.li`                                                             |
+| `VITE_DOTIFY_API_URL`           | `https://dotify-api.fly.dev`                                                                   |
+| `VITE_SIGNAL_URL`               | `https://dotify-signal.fly.dev`                                                                |
+| `VITE_DOTIFY_ROOM_BEACONS`      | `off`                                                                                          |
+| `VITE_DOTIFY_ROOM_REALTIME`     | `off`; `observe` or `dual` only for an authorized Product measurement candidate                |
+| `VITE_BULLETIN_WS_URL`          | `wss://bulletin-paseo.tservices.es:8443`                                                       |
+| `VITE_PINATA_GATEWAY`           | `https://gateway.pinata.cloud`                                                                 |
+| `VITE_IPFS_READ_GATEWAYS`       | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation`       |
+| Product executable `appVersion` | `[0, 1, 57]` published release follow-up; `[0, 1, 56]` is the current client rollback artifact |
 
 The Product executable version is part of the published Product manifest. Bump
 it whenever the Product bundle changes runtime behavior, host SDK integration,
@@ -959,17 +993,17 @@ chunk on demand; the Bulletin single-file build inlines it.
 
 Current Product host SDK dependencies:
 
-| Package                                              | Current value | Latest stable checked 2026-10-09 |
-| ---------------------------------------------------- | ------------- | -------------------------------- |
-| `@parity/product-sdk`                                | `0.27.0`      | `0.35.0`                         |
-| `@parity/product-sdk-host`                           | `0.19.1`      | `0.25.0`                         |
-| `@parity/product-sdk-statement-store`                | `0.6.9`       | `0.6.16`                         |
-| `@parity/product-sdk-descriptors`                    | `0.11.0`      | `0.13.0`                         |
-| `@parity/product-sdk-tx`                             | `0.4.7`       | `0.4.13`                         |
-| root `polkadot-api`                                  | `1.23.3`      | `3.2.1`                          |
-| `@parity/truapi` override                            | `0.13.1`      | codec-1 compatibility pin        |
-| `@parity/polkadot-app-deploy`                        | `0.20.0`      | `0.20.0` stable                  |
-| `engine.io-client`                                   | `6.6.6`       | `6.6.6`                          |
+| Package                               | Current value | Latest stable checked 2026-10-09 |
+| ------------------------------------- | ------------- | -------------------------------- |
+| `@parity/product-sdk`                 | `0.27.0`      | `0.35.0`                         |
+| `@parity/product-sdk-host`            | `0.19.1`      | `0.25.0`                         |
+| `@parity/product-sdk-statement-store` | `0.6.9`       | `0.6.16`                         |
+| `@parity/product-sdk-descriptors`     | `0.11.0`      | `0.13.0`                         |
+| `@parity/product-sdk-tx`              | `0.4.7`       | `0.4.13`                         |
+| root `polkadot-api`                   | `1.23.3`      | `3.2.1`                          |
+| `@parity/truapi` override             | `0.13.1`      | codec-1 compatibility pin        |
+| `@parity/polkadot-app-deploy`         | `0.20.0`      | `0.20.0` stable                  |
+| `engine.io-client`                    | `6.6.6`       | `6.6.6`                          |
 
 Keep the Product SDK packages pinned exactly during Product DevNet hardening.
 Recheck npm and the official Product docs before changing them because the
@@ -1225,16 +1259,16 @@ Open app `dotify-api`.
 
 Non-secret runtime values are tracked in `services/api/fly.toml`:
 
-| Key                        | Current value                                                                                                                                                                                                                |
-| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `API_PORT`                 | `8790`                                                                                                                                                                                                                       |
-| `NODE_ENV`                 | `production`                                                                                                                                                                                                                 |
-| `API_ORIGINS`              | `https://muzinga.netlify.app,https://dotify-test01.dev-dot.li,https://dotify-test01.app.dev-dot.li,https://dotify-test01.app.dot.li,https://dotify-test01.dot,polkadot://dotify-test01.dot,polkadot://app.dotify-test01.dot` |
-| `PASEO_ASSET_HUB_NATIVE_RPC` | `https://asset-hub-paseo-rpc.n.dwellir.com` (HTTPS historical native receipts; no signing) |
-| `PASEO_ASSET_HUB_RPC`      | `https://eth-rpc-testnet.polkadot.io/`                                                                                                                                                                                       |
-| `DOTIFY_FACTORY_ADDRESS`   | `0x835a626a9a6965b197d079ae56b1ec94033c2699`                                                                                                                                                                                 |
-| `DOTIFY_DIRECTORY_ADDRESS` | `0x4e883827d61e573094c7b777bae323070ea9f954`                                                                                                                                                                                 |
-| `DOTIFY_CHAIN_ID`          | `420420417`                                                                                                                                                                                                                  |
+| Key                          | Current value                                                                                                                                                                                                                |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `API_PORT`                   | `8790`                                                                                                                                                                                                                       |
+| `NODE_ENV`                   | `production`                                                                                                                                                                                                                 |
+| `API_ORIGINS`                | `https://muzinga.netlify.app,https://dotify-test01.dev-dot.li,https://dotify-test01.app.dev-dot.li,https://dotify-test01.app.dot.li,https://dotify-test01.dot,polkadot://dotify-test01.dot,polkadot://app.dotify-test01.dot` |
+| `PASEO_ASSET_HUB_NATIVE_RPC` | `https://asset-hub-paseo-rpc.n.dwellir.com` (HTTPS historical native receipts; no signing)                                                                                                                                   |
+| `PASEO_ASSET_HUB_RPC`        | `https://eth-rpc-testnet.polkadot.io/`                                                                                                                                                                                       |
+| `DOTIFY_FACTORY_ADDRESS`     | `0x835a626a9a6965b197d079ae56b1ec94033c2699`                                                                                                                                                                                 |
+| `DOTIFY_DIRECTORY_ADDRESS`   | `0x4e883827d61e573094c7b777bae323070ea9f954`                                                                                                                                                                                 |
+| `DOTIFY_CHAIN_ID`            | `420420417`                                                                                                                                                                                                                  |
 
 <a id="shared-native-contribution-ledger-product-0140"></a>
 
@@ -1339,17 +1373,17 @@ flyctl deploy
 
 Set server-side values in the app's Secrets area:
 
-| Secret                      | Required                      | Notes                                                                                                                                                      |
-| --------------------------- | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `PINATA_JWT`                | Uploads                       | Backend-only Pinata token. Never expose in Netlify.                                                                                                        |
-| `CONTENT_KEY_MASTER_SECRET` | Audio upload and key delivery | 64+ hex chars, at least 32 random bytes. Compatibility source for v1/v2 when the explicit version map omits them. Never expose or rely on Fly as a backup. |
-| `CONTENT_KEY_MASTER_SECRETS` | Key rotation                 | Optional JSON object from `dotify-content-key-vN` to 64+ hex chars. Keep every retained version needed by existing releases.                               |
-| `CONTENT_KEY_ACTIVE_VERSION` | New encrypted uploads        | Optional active version for new backend uploads. Default is `dotify-content-key-v2`; change only after backing up and configuring the matching secret.       |
-| `GIT_COMMIT_SHA`            | Optional                      | Set by CI/build automation when available; `/version` can fall back in dev checkouts.                                                                      |
-| `TURN_REST_SECRET`          | Reliable rooms                | Backend-only HMAC secret shared with the TURN relay REST auth mechanism. Preferred production path.                                                        |
-| `TURN_CAPABILITY_SECRET`    | Reliable rooms                | 32+ character secret shared only with signaling; verifies that TURN grant callers are current room participants. Keep distinct from `TURN_REST_SECRET`.     |
-| `TURN_USERNAME`             | Optional fallback             | Static DevNet TURN username when REST auth is unavailable.                                                                                                 |
-| `TURN_CREDENTIAL`           | Optional fallback             | Static DevNet TURN password when REST auth is unavailable.                                                                                                 |
+| Secret                       | Required                      | Notes                                                                                                                                                      |
+| ---------------------------- | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PINATA_JWT`                 | Uploads                       | Backend-only Pinata token. Never expose in Netlify.                                                                                                        |
+| `CONTENT_KEY_MASTER_SECRET`  | Audio upload and key delivery | 64+ hex chars, at least 32 random bytes. Compatibility source for v1/v2 when the explicit version map omits them. Never expose or rely on Fly as a backup. |
+| `CONTENT_KEY_MASTER_SECRETS` | Key rotation                  | Optional JSON object from `dotify-content-key-vN` to 64+ hex chars. Keep every retained version needed by existing releases.                               |
+| `CONTENT_KEY_ACTIVE_VERSION` | New encrypted uploads         | Optional active version for new backend uploads. Default is `dotify-content-key-v2`; change only after backing up and configuring the matching secret.     |
+| `GIT_COMMIT_SHA`             | Optional                      | Set by CI/build automation when available; `/version` can fall back in dev checkouts.                                                                      |
+| `TURN_REST_SECRET`           | Reliable rooms                | Backend-only HMAC secret shared with the TURN relay REST auth mechanism. Preferred production path.                                                        |
+| `TURN_CAPABILITY_SECRET`     | Reliable rooms                | 32+ character secret shared only with signaling; verifies that TURN grant callers are current room participants. Keep distinct from `TURN_REST_SECRET`.    |
+| `TURN_USERNAME`              | Optional fallback             | Static DevNet TURN username when REST auth is unavailable.                                                                                                 |
+| `TURN_CREDENTIAL`            | Optional fallback             | Static DevNet TURN password when REST auth is unavailable.                                                                                                 |
 
 Content-key rotation procedure:
 
@@ -1358,12 +1392,12 @@ Content-key rotation procedure:
 2. Create a new 32-byte hex secret locally with
    `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`.
 3. Build a retained JSON map containing every version that still has published
-   ciphertext, for example v1, v2, and a new v3. Store that JSON in the secret
+   ciphertext, for example v2 and a new v3. Store that JSON in the secret
    manager before deploying.
 4. Set `CONTENT_KEY_MASTER_SECRETS` and `CONTENT_KEY_ACTIVE_VERSION` on Fly,
-   then deploy the API. Existing v1/v2 releases should still decrypt; new
+   then deploy the API. Existing current-format v2-key releases should still decrypt; new
    uploads should return an audio ref shaped like
-   `dotify:enc:v2:key-v3:ipfs://<CID>`.
+   `dotify:enc:v3:key-v3:ipfs://<directory CID>`.
 5. Run `npm --prefix services/api run key-custody:rehearse` locally. The script
    uses synthetic secrets and writes only a synthetic backup under `/tmp`; it is
    a rehearsal of the operator process, not a production export.
@@ -1474,7 +1508,7 @@ TURN relay variables:
 | ----------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `TURN_URLS`                         | unset   | Set to comma-separated public relay URLs when deploying reliable room audio, for example `turn:turn.example.org:3478?transport=udp,turns:turn.example.org:443?transport=tcp`. |
 | `TURN_REST_SECRET`                  | unset   | Preferred production credential path. Store as a Fly secret only.                                                                                                             |
-| `TURN_CAPABILITY_SECRET`            | unset   | Required with TURN. Store as a Fly secret and set the same value as `SIGNAL_TURN_CAPABILITY_SECRET` on signaling. Keep it distinct from `TURN_REST_SECRET`.                      |
+| `TURN_CAPABILITY_SECRET`            | unset   | Required with TURN. Store as a Fly secret and set the same value as `SIGNAL_TURN_CAPABILITY_SECRET` on signaling. Keep it distinct from `TURN_REST_SECRET`.                   |
 | `TURN_USERNAME` / `TURN_CREDENTIAL` | unset   | Rotated DevNet/static fallback only when the relay cannot mint REST credentials. Store as Fly secrets.                                                                        |
 | `TURN_TTL_SECONDS`                  | `3600`  | Adjust only with relay policy. REST credentials embed this expiry in the username.                                                                                            |
 
@@ -1596,30 +1630,22 @@ the candidate ready.
    terminal failure is recorded without an audible confirmation.
 5. Repeat cold and warm attempts, then download the candidate-bound JSON.
 
-Schema v5 keeps first-sound duration, its `human-confirmed` or `automatic-error`
-measurement method, the sanitized test profile, the declared scenario with its
-fixed expected outcome, a bounded host terminal reason, and coarse DAV2 path
-facts only. It
-omits wallet addresses, listener identity, exact
-location, audio refs/CIDs, gateway URLs, media source URLs, keys, signatures,
-and per-listener history. Changing the SHA, public build-configuration digest,
-Product app version, deployment CID, device profile, or network type starts a
-new evidence set instead of mixing candidates or materially different test
-conditions.
-The report combines ordinary-web and Product exports when their git SHA
-matches. Product samples must still carry one consistent Product app version
-and deployed CID; those Product-only fields do not invalidate ordinary-web
-exports where they are intentionally absent. A final key or gateway failure is
-recorded even when no playable media source was created. Ordinary playback
-alone supplies the surface-success, p75, and fallback-rate gates. Denied
-protected access, broken-gateway recovery, slow-key recovery, interrupted
-navigation, and corrupted DAV2 each have a separate gate against their declared
-expected outcome, so an intentional controlled error cannot be mistaken for a
-normal-playback regression. The label alone is insufficient: those gates also
-require, respectively, an `access-denied` host reason, a successful failover to
-a later DAV2 gateway, at least
-1,000 ms before DAV2 key authorization, a `selection-interrupted` host reason,
-or a DAV2 authentication failure.
+Schema v6 keeps first-sound duration, its `human-confirmed` or `automatic-error`
+method, sanitized profile/scenario, bounded host terminal reason and coarse
+streaming facts (key authorization, first media-object bytes, gateway recovery,
+AAC compatibility reader and authentication failure). It omits wallet identity,
+location, audio refs/CIDs, gateway/source URLs, keys and signatures. Changing a
+candidate/config/deployment/profile/network starts a separate evidence set.
+Schema 5 exports are refused rather than relabeled as current playback.
+
+Ordinary playback supplies surface-success and p75 gates. Denied access, broken
+gateway, slow key, interrupted navigation and corrupted streaming media have
+separate expected-outcome gates with actual telemetry proof: access denial,
+successful gateway failover, at least 1,000 ms key authorization, selection
+interruption, or authentication failure respectively. Controlled errors do not
+count as ordinary success. Exports may combine only for the same source identity;
+Product additionally requires one version/CID. Nothing here certifies a physical
+Host from synthetic browser results.
 
 Combine exports from physical surfaces and produce the release report with:
 
@@ -1659,8 +1685,9 @@ disconnects its Web Audio nodes, stops its destination track, and closes its
 AudioContext. A muted or zero-volume `playing` event is recorded as an error. An
 unmuted `playing` event only proves that the media clock advanced; the operator
 confirmation supplies the evidence that sound reached the actual output route.
-The DAV2 fallback-rate target remains unproven until at least 100 DAV2 attempts
-are present; fewer attempts are reported as `not-run`, never rounded into a claim.
+AAC Blob-reader use is reported descriptively; it is a supported current-format
+reader, not an error percentage. The same physical first-sound and failure gates
+apply to MSE and Blob paths.
 Synthetic Chromium evidence validates the capture mechanism but does not count
 as physical Safari, mobile, or Product-host evidence.
 
@@ -1678,20 +1705,20 @@ Open app `dotify-signal`.
 
 Non-secret runtime values are tracked in `web/fly.signal.toml`:
 
-| Key                           | Current value                                                                                                                                                                                                                |
-| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `SIGNAL_PORT`                 | `8788`                                                                                                                                                                                                                       |
-| `SIGNAL_HOST`                 | `0.0.0.0`                                                                                                                                                                                                                    |
-| `SIGNAL_ROOM_TTL_MS`          | `21600000`                                                                                                                                                                                                                   |
-| `SIGNAL_HOST_TIMEOUT_MS`      | `120000`                                                                                                                                                                                                                     |
-| `SIGNAL_MAX_LISTENERS`        | `24`                                                                                                                                                                                                                         |
-| `SIGNAL_TURN_CAPABILITY_TTL_MS` | `120000`                                                                                                                                                                                                                   |
-| `SIGNAL_CONTRIBUTION_RPC_URL` | `https://eth-rpc-testnet.polkadot.io/`                                                                                                                                                                                       |
-| `SIGNAL_CONTRIBUTION_CHAIN_ID` | `420420417`                                                                                                                                                                                                                 |
-| `SIGNAL_CONTRIBUTION_DIRECTORY` | `0x4e883827d61e573094c7b777bae323070ea9f954`                                                                                                                                                                               |
-| `SIGNAL_CONTRIBUTION_API_URL` | `https://dotify-api.fly.dev/api`                                                                                                                                                                                             |
-| `SIGNAL_ALLOW_MISSING_ORIGIN` | `true`                                                                                                                                                                                                                       |
-| `SIGNAL_ORIGINS`              | `https://muzinga.netlify.app,https://dotify-test01.dev-dot.li,https://dotify-test01.app.dev-dot.li,https://dotify-test01.app.dot.li,https://dotify-test01.dot,polkadot://dotify-test01.dot,polkadot://app.dotify-test01.dot` |
+| Key                             | Current value                                                                                                                                                                                                                |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SIGNAL_PORT`                   | `8788`                                                                                                                                                                                                                       |
+| `SIGNAL_HOST`                   | `0.0.0.0`                                                                                                                                                                                                                    |
+| `SIGNAL_ROOM_TTL_MS`            | `21600000`                                                                                                                                                                                                                   |
+| `SIGNAL_HOST_TIMEOUT_MS`        | `120000`                                                                                                                                                                                                                     |
+| `SIGNAL_MAX_LISTENERS`          | `24`                                                                                                                                                                                                                         |
+| `SIGNAL_TURN_CAPABILITY_TTL_MS` | `120000`                                                                                                                                                                                                                     |
+| `SIGNAL_CONTRIBUTION_RPC_URL`   | `https://eth-rpc-testnet.polkadot.io/`                                                                                                                                                                                       |
+| `SIGNAL_CONTRIBUTION_CHAIN_ID`  | `420420417`                                                                                                                                                                                                                  |
+| `SIGNAL_CONTRIBUTION_DIRECTORY` | `0x4e883827d61e573094c7b777bae323070ea9f954`                                                                                                                                                                                 |
+| `SIGNAL_CONTRIBUTION_API_URL`   | `https://dotify-api.fly.dev/api`                                                                                                                                                                                             |
+| `SIGNAL_ALLOW_MISSING_ORIGIN`   | `true`                                                                                                                                                                                                                       |
+| `SIGNAL_ORIGINS`                | `https://muzinga.netlify.app,https://dotify-test01.dev-dot.li,https://dotify-test01.app.dev-dot.li,https://dotify-test01.app.dot.li,https://dotify-test01.dot,polkadot://dotify-test01.dot,polkadot://app.dotify-test01.dot` |
 
 The production origins are public configuration tracked in
 `web/fly.signal.toml`; they are not secrets. Temporary preview origins may be
@@ -1990,7 +2017,6 @@ places in the same PR:
 - Fly app configuration:
   <https://www.fly.io/docs/reference/configuration/>
 
-
 ## Shared-presence room rollout
 
 `VITE_DOTIFY_ROOM_GALAXY=on` enables the existing optional 3D selector. It is
@@ -2096,13 +2122,13 @@ bound to them. Do not replace artist runtimes to obtain the new functions.
    notification, earnings refresh and pending/reload recovery without repayment.
    Repeat outside the scheduled interval and after a policy change.
 
-| Server-only setting | Purpose |
-| --- | --- |
+| Server-only setting                | Purpose                                                                                                        |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------------------- |
 | `SIGNAL_CONTRIBUTION_ATTESTOR_KEY` | Dedicated unfunded EVM signing key for room context proofs; use the host secret store. No fallback key exists. |
-| `SIGNAL_CONTRIBUTION_RPC_URL` | Public EVM RPC for the deployed artist runtimes. |
-| `SIGNAL_CONTRIBUTION_CHAIN_ID` | Exact EVM chain ID, checked against the RPC. |
-| `SIGNAL_CONTRIBUTION_DIRECTORY` | ArtistDirectory address from the manifest. |
-| `SIGNAL_CONTRIBUTION_API_URL` | Trusted API base including `/api`, e.g. `https://dotify-api.fly.dev/api`; validates host bearer sessions. |
+| `SIGNAL_CONTRIBUTION_RPC_URL`      | Public EVM RPC for the deployed artist runtimes.                                                               |
+| `SIGNAL_CONTRIBUTION_CHAIN_ID`     | Exact EVM chain ID, checked against the RPC.                                                                   |
+| `SIGNAL_CONTRIBUTION_DIRECTORY`    | ArtistDirectory address from the manifest.                                                                     |
+| `SIGNAL_CONTRIBUTION_API_URL`      | Trusted API base including `/api`, e.g. `https://dotify-api.fly.dev/api`; validates host bearer sessions.      |
 
 No new storage mount is required. Contribution ledgers are on-chain; browser
 storage holds recovery references and rooms hold only ephemeral context/chat.
@@ -2118,6 +2144,7 @@ revert the frontend while preserving local recovery records. Do not blindly
 replace the upgraded facet with an old one that omits contribution claims.
 The former claimable-royalty balance and contribution claim balances are
 separate; legacy receipts and old direct wallet gifts cannot be reclassified.
+
 ## Nearby pilot configuration (W19)
 
 Nearby is included by default in new Web/Product builds and single-worker
@@ -2157,10 +2184,10 @@ then verify one active worker and `nearbyEnabled: true` after rollout. This
 release increments the Product executable identity, retaining the native
 runtime profile and existing origins. Installed-device evidence remains pending.
 
-| Setting | Default | Effect |
-| --- | --- | --- |
+| Setting              | Default         | Effect                                                                                                                                   |
+| -------------------- | --------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
 | `VITE_DOTIFY_NEARBY` | unset → enabled | Unset or exact `on` includes Nearby in both Web and Product. `off` or an invalid value disables UI and effects. No URL/storage override. |
-| `SIGNAL_NEARBY` | unset → enabled | Unset or exact `on` registers handlers; `off` or an invalid value returns `DISABLED`. Requires single-worker signaling. |
+| `SIGNAL_NEARBY`      | unset → enabled | Unset or exact `on` registers handlers; `off` or an invalid value returns `DISABLED`. Requires single-worker signaling.                  |
 
 Use the existing HTTPS signaling origin/CORS policy and room transport. No new
 service, port, third-party geocoder, storage mount, secret or Product permission
@@ -2305,15 +2332,15 @@ See [automatic radar evidence](../backlog/implementation/evidence/W19-automatic-
 Applies to the trusted pilot of at most 42 participants (W13 owner update).
 No new service, store, region or secret value is committed.
 
-| Service | Setting | Value in Fly config | Effect |
-| --- | --- | --- | --- |
-| API | `API_TRUST_PROXY` | `fly` | Rate limits use the `Fly-Client-IP` header set by the Fly edge. Unset or `off` uses the socket address; never set `fly` where clients can reach the API without Fly. |
-| API | `CATALOG_SNAPSHOT_PATH` | `/data/contributions/catalog.json` | The snapshot survives redeploys, so key delivery does not wait for a cold reindex. Same volume as the contribution ledger. |
-| API | `SESSION_REVOCATIONS_PATH` | `/data/contributions/session-revocations.json` | Signed-out sessions stay signed out across restarts when `SESSION_EPOCH` is set. |
-| API | `SESSION_EPOCH` | Fly secret, not in `fly.toml` | 16-128 characters. Set it to keep sessions across redeploys; rotate it to sign everyone out. Unset keeps the per-process random epoch. If the revocation file is unreadable at boot, the API uses a random epoch (fail closed). |
-| API | `PASEO_ASSET_HUB_RPC_FALLBACK` | unset | Optional second RPC for access checks. Each access read now times out after 4 s with one retry. |
-| Signaling | `SIGNAL_TRUST_PROXY` | `true` | Network limits use `Fly-Client-IP`, otherwise the last `X-Forwarded-For` hop. The client-supplied leftmost hop is never used. |
-| Signaling | `max_machines_running` | `1` | Rooms and limiters are process memory; a second machine would split rooms. |
+| Service   | Setting                        | Value in Fly config                            | Effect                                                                                                                                                                                                                          |
+| --------- | ------------------------------ | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| API       | `API_TRUST_PROXY`              | `fly`                                          | Rate limits use the `Fly-Client-IP` header set by the Fly edge. Unset or `off` uses the socket address; never set `fly` where clients can reach the API without Fly.                                                            |
+| API       | `CATALOG_SNAPSHOT_PATH`        | `/data/contributions/catalog.json`             | The snapshot survives redeploys, so key delivery does not wait for a cold reindex. Same volume as the contribution ledger.                                                                                                      |
+| API       | `SESSION_REVOCATIONS_PATH`     | `/data/contributions/session-revocations.json` | Signed-out sessions stay signed out across restarts when `SESSION_EPOCH` is set.                                                                                                                                                |
+| API       | `SESSION_EPOCH`                | Fly secret, not in `fly.toml`                  | 16-128 characters. Set it to keep sessions across redeploys; rotate it to sign everyone out. Unset keeps the per-process random epoch. If the revocation file is unreadable at boot, the API uses a random epoch (fail closed). |
+| API       | `PASEO_ASSET_HUB_RPC_FALLBACK` | unset                                          | Optional second RPC for access checks. Each access read now times out after 4 s with one retry.                                                                                                                                 |
+| Signaling | `SIGNAL_TRUST_PROXY`           | `true`                                         | Network limits use `Fly-Client-IP`, otherwise the last `X-Forwarded-For` hop. The client-supplied leftmost hop is never used.                                                                                                   |
+| Signaling | `max_machines_running`         | `1`                                            | Rooms and limiters are process memory; a second machine would split rooms.                                                                                                                                                      |
 
 Behavior changes: content-key responses carry `Cache-Control: no-store`; the
 signaling service no longer broadcasts `rooms:updated` and coalesces solo
@@ -2375,7 +2402,6 @@ server with a creation budget of 1,000/minute because isolated browser users
 all share loopback. This fixture is excluded from the production image; the
 production CLI retains 10/minute. Signaling integration tests independently
 verify the production default and refusal behavior.
-
 
 ## Physical-test discovery follow-up — 2026-10-17
 

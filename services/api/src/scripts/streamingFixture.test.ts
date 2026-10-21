@@ -5,7 +5,6 @@ import path from 'node:path';
 import { blake2b } from '@noble/hashes/blake2';
 import { encodeStreamingRelease } from '../services/streamingEncoder.js';
 import { initializeStreamingNonceLedger, StreamingNonceLedger } from '../services/streamingNonces.js';
-import { encryptAudioV2Container } from '../services/audioV2.js';
 
 const output = process.argv[2];
 if (!output) throw new Error('Provide an explicit synthetic fixture output path');
@@ -25,8 +24,7 @@ try {
   master.writeUInt16LE(16, 34);
   master.write('data', 36);
   master.writeUInt32LE(frames * 2, 40);
-  for (let index = 0; index < frames; index += 1)
-    master.writeInt16LE(Math.round(Math.sin((index * 2 * Math.PI * 440) / 48_000) * 2000), 44 + index * 2);
+  for (let index = 0; index < frames; index += 1) master.writeInt16LE(Math.round(Math.sin((index * 2 * Math.PI * 440) / 48_000) * 2000), 44 + index * 2);
   const key = Buffer.alloc(32, 71);
   const scope = {
     chainId: 420420417,
@@ -44,19 +42,15 @@ try {
     ffmpegPath: process.env.DOTIFY_TEST_FFMPEG
   });
   await mkdir(path.dirname(path.resolve(output)), { recursive: true });
-  const baseline = encryptAudioV2Container(master, key, { contentHash: scope.contentHash, mediaMime: 'audio/wav' });
   await writeFile(
     output,
     JSON.stringify({
       schema: 'dotify.synthetic-streaming-fixture.v1',
       keyHex: key.toString('hex'),
       scope,
-      baseline: baseline.toString('base64'),
       manifest: result.files.find(file => file.name === 'manifest.json')!.bytes.toString('base64'),
       files: Object.fromEntries(
-        result.files
-          .filter(file => file.name !== 'manifest.json' && !file.name.startsWith('archive/'))
-          .map(file => [file.name, file.bytes.toString('base64')])
+        result.files.filter(file => file.name !== 'manifest.json' && !file.name.startsWith('archive/')).map(file => [file.name, file.bytes.toString('base64')])
       )
     })
   );

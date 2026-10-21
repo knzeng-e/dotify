@@ -23,21 +23,6 @@ function mpegFrame(): Buffer {
 }
 const audioBytes = Buffer.concat([mpegFrame(), mpegFrame()]);
 const audioHash = `0x${Buffer.from(blake2b(audioBytes, { dkLen: 32 })).toString('hex')}`;
-function id3Mpeg(tagBytes: number): Buffer {
-  const header = Buffer.from([
-    0x49,
-    0x44,
-    0x33,
-    0x04,
-    0x00,
-    0x00,
-    (tagBytes >>> 21) & 0x7f,
-    (tagBytes >>> 14) & 0x7f,
-    (tagBytes >>> 7) & 0x7f,
-    tagBytes & 0x7f
-  ]);
-  return Buffer.concat([header, Buffer.alloc(tagBytes, 0x20), mpegFrame(), mpegFrame()]);
-}
 const truncatedMpegBytes = mpegFrame();
 const truncatedMpegHash = `0x${Buffer.from(blake2b(truncatedMpegBytes, { dkLen: 32 })).toString('hex')}`;
 const pngBytes = Buffer.concat([
@@ -53,7 +38,7 @@ const pngBytes = Buffer.concat([
 let app: FastifyInstance | null = null;
 
 type BuildOptions = {
-  jobs?: StreamingJobs;
+  jobs?: StreamingJobs | null;
   routeDeps?: Partial<UploadRouteDeps>;
   authorizationOptions?: Parameters<typeof createUploadAuthorizationService>[0];
 };
@@ -79,7 +64,6 @@ async function buildApp(options: BuildOptions = {}): Promise<FastifyInstance> {
     authorizations,
     getActiveContentKeyVersion: () => RELEASE_BOUND_CONTENT_KEY_VERSION,
     deriveContentKeyBytes: () => Buffer.alloc(32, 7),
-    encryptAudio: bytes => Buffer.from(bytes),
     createCover: async (bytes, originalExtension) => ({
       files: [
         { path: 'cover/placeholder.webp', bytes: new Uint8Array([1]), mime: 'image/webp' },
@@ -91,7 +75,6 @@ async function buildApp(options: BuildOptions = {}): Promise<FastifyInstance> {
       width: 640,
       height: 640
     }),
-    pinFile: async () => 'file-cid',
     pinFiles: async () => 'cover-directory-cid',
     pinJson: async () => 'json-cid',
     ...options.routeDeps
@@ -99,7 +82,18 @@ async function buildApp(options: BuildOptions = {}): Promise<FastifyInstance> {
 
   app = Fastify();
   await app.register(multipart);
-  await app.register(createUploadRoutes(deps, options.jobs), { prefix: '/api/uploads' });
+  await app.register(
+    createUploadRoutes(
+      deps,
+      options.jobs === null
+        ? undefined
+        : (options.jobs ??
+            ({
+              enqueue: async () => ({ id: '12345678-1234-4234-8234-123456789abc', state: 'queued', attempts: 0, updatedAt: Date.now() })
+            } as unknown as StreamingJobs))
+    ),
+    { prefix: '/api/uploads' }
+  );
   return app;
 }
 
@@ -191,10 +185,7 @@ describe('authorized upload routes', () => {
       headers: multipartHeaders(grant),
       payload: multipartAudio(audioBytes, audioHash, 'application/octet-stream')
     });
-    assert.equal(response.statusCode, 200);
-    assert.equal(response.json().ref, 'dotify:enc:v2:key-v2:ipfs://file-cid');
-    assert.equal(response.json().runtimeAddress, RUNTIME);
-    assert.equal(response.json().keyVersion, RELEASE_BOUND_CONTENT_KEY_VERSION);
+    assert.equal(response.statusCode, 202);
   });
 
   it('derives backend audio keys from the artist runtime-bound key scope', async () => {
@@ -215,7 +206,7 @@ describe('authorized upload routes', () => {
       payload: multipartAudio(audioBytes, audioHash)
     });
 
-    assert.equal(response.statusCode, 200);
+    assert.equal(response.statusCode, 202);
     assert.deepEqual(derivationScope, {
       contentHash: audioHash,
       keyVersion: RELEASE_BOUND_CONTENT_KEY_VERSION,
@@ -244,40 +235,13 @@ describe('authorized upload routes', () => {
       payload: multipartAudio(audioBytes, audioHash)
     });
 
-    assert.equal(response.statusCode, 200);
-    assert.equal(response.json().ref, 'dotify:enc:v2:key-v3:ipfs://file-cid');
-    assert.equal(response.json().keyVersion, activeVersion);
+    assert.equal(response.statusCode, 202);
     assert.deepEqual(derivationScope, {
       contentHash: audioHash,
       keyVersion: activeVersion,
       chainId: CHAIN_ID,
       runtimeAddress: RUNTIME
     });
-  });
-
-  it('carries a validated MP3 ID3 offset into DAV2 first-chunk sizing', async () => {
-    const tagBytes = 300 * 1024;
-    const taggedAudio = id3Mpeg(tagBytes);
-    const taggedHash = `0x${Buffer.from(blake2b(taggedAudio, { dkLen: 32 })).toString('hex')}`;
-    let encryptionOptions: Parameters<UploadRouteDeps['encryptAudio']>[2] | undefined;
-    const server = await buildApp({
-      routeDeps: {
-        encryptAudio: (bytes, _key, options) => {
-          encryptionOptions = options;
-          return Buffer.from(bytes);
-        }
-      }
-    });
-    const grant = (await authorize(server, 'audio', taggedAudio.length)).json().uploadAuthorization;
-    const response = await server.inject({
-      method: 'POST',
-      url: '/api/uploads/audio',
-      headers: multipartHeaders(grant),
-      payload: multipartAudio(taggedAudio, taggedHash)
-    });
-
-    assert.equal(response.statusCode, 200);
-    assert.equal(encryptionOptions?.leadingMetadataBytes, 10 + tagBytes);
   });
 
   it('rejects spoofed audio MIME when the received bytes are an image', async () => {
@@ -609,4 +573,17 @@ describe('asynchronous streaming upload boundary', () => {
       await rm(root, { recursive: true, force: true });
     }
   });
+});
+
+it('refuses audio publication without a streaming worker instead of producing an older format', async () => {
+  const server = await buildApp({ jobs: null });
+  const response = await server.inject({
+    method: 'POST',
+    url: '/api/uploads/audio',
+    headers: multipartHeaders(),
+    payload: multipartAudio(audioBytes, audioHash)
+  });
+  assert.equal(response.statusCode, 503);
+  assert.equal(response.json().code, 'STREAMING_UNAVAILABLE');
+  assert.equal(response.json().ref, undefined);
 });

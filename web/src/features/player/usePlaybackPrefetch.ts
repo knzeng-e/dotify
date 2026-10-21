@@ -1,5 +1,5 @@
 import { useEffect, type RefObject } from 'react';
-import { startAudioV2NeighborPrefetch } from '../catalog/audioV2IntentPrefetch';
+import { startStreamingNeighborPrefetch } from '../catalog/streamingPrefetch';
 import { allowNeighborPrefetch, hasPlaybackHeadroom } from './trackNavigation';
 
 type PlaybackConnection = EventTarget & { saveData?: boolean; effectiveType?: string };
@@ -40,7 +40,7 @@ export function usePlaybackPrefetch(
       // Let the current selection and its first media frame finish first.
       timer = setTimeout(() => {
         timer = undefined;
-        if (playbackPrefetchAllowed() && hasPlaybackHeadroom(audio)) stop = startAudioV2NeighborPrefetch(refs);
+        if (playbackPrefetchAllowed() && hasPlaybackHeadroom(audio)) stop = startStreamingNeighborPrefetch(refs);
       }, 500);
     };
     const connection = (navigator as Navigator & { connection?: PlaybackConnection }).connection;

@@ -1,8 +1,12 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { createChainAccessService, type ReleaseKeyIdentity } from './chainAccess.js';
-import { LEGACY_CONTENT_KEY_VERSION, RELEASE_BOUND_CONTENT_KEY_VERSION, makeReleaseBoundEncryptedAudioV2Ref } from './keyVault.js';
+import { RELEASE_BOUND_CONTENT_KEY_VERSION } from './keyVault.js';
 import type { CatalogMetadata, CatalogRelease, CatalogSnapshot } from './catalog/index.js';
+
+function makeStreamingRef(cid: string) {
+  return `dotify:enc:v3:key-v2:ipfs://${cid}`;
+}
 
 const CHAIN_ID = 420420417;
 const DIRECTORY = '0x9999999999999999999999999999999999999999' as const;
@@ -15,7 +19,7 @@ const HASH = `0x${'ab'.repeat(32)}` as const;
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 function audioRef(runtime: string): string {
-  return makeReleaseBoundEncryptedAudioV2Ref(`cid-${runtime.slice(2, 6)}`);
+  return makeStreamingRef(`cid-${runtime.slice(2, 6)}`);
 }
 
 function release(overrides: Partial<CatalogRelease> = {}): CatalogRelease {
@@ -103,7 +107,7 @@ function identity(candidate: CatalogRelease): ReleaseKeyIdentity {
     runtimeAddress: candidate.runtimeAddress,
     artistAddress: candidate.artistAddress,
     audioRef: candidate.audioRef,
-    keyVersion: candidate.audioRef.startsWith('dotify:enc:v2:key-v2:') ? RELEASE_BOUND_CONTENT_KEY_VERSION : LEGACY_CONTENT_KEY_VERSION
+    keyVersion: RELEASE_BOUND_CONTENT_KEY_VERSION
   };
 }
 
@@ -229,35 +233,21 @@ describe('canonical release access', () => {
     const result = await access.checkTrackAccess({ contentHash: HASH, requester: REQUESTER, purpose: 'individual' });
 
     assert.equal(result.allowed, false);
-    if (!result.allowed) assert.equal(result.code, 'AMBIGUOUS_RUNTIME');
+    if (!result.allowed) assert.equal(result.code, 'RELEASE_IDENTITY_MISMATCH');
   });
 
-  it('rejects legacy v1 duplicate hashes even with an explicit release identity', async () => {
-    const releaseA = release({ runtimeAddress: RUNTIME_A, artistAddress: ARTIST_A, audioRef: 'dotify:enc:v2:ipfs://cid-a' });
-    const releaseB = release({ runtimeAddress: RUNTIME_B, artistAddress: ARTIST_B, audioRef: 'dotify:enc:v2:ipfs://cid-b' });
-    const { access } = service([releaseA, releaseB]);
-
-    const result = await access.checkTrackAccess({
-      contentHash: HASH,
-      requester: REQUESTER,
-      purpose: 'individual',
-      release: identity(releaseA)
-    });
-
-    assert.equal(result.allowed, false);
-    if (!result.allowed) assert.equal(result.code, 'AMBIGUOUS_RUNTIME');
-  });
-
-  it('keeps the legacy hash-only migration path for one fresh catalog match', async () => {
-    const releaseA = release({ audioRef: 'dotify:enc:v2:ipfs://legacy-cid' });
+  it('rejects unsupported audio formats even with a full release identity', async () => {
+    const releaseA = release({ audioRef: 'dotify:enc:v2:key-v2:ipfs://legacy' });
     const { access } = service([releaseA]);
-
+    const result = await access.checkTrackAccess({ contentHash: HASH, requester: REQUESTER, purpose: 'individual', release: identity(releaseA) });
+    assert.equal(result.allowed, false);
+    if (!result.allowed) assert.equal(result.code, 'RELEASE_NOT_ENCRYPTED');
+  });
+  it('requires full identity even for one matching current streaming release', async () => {
+    const { access } = service([release()]);
     const result = await access.checkTrackAccess({ contentHash: HASH, requester: REQUESTER, purpose: 'individual' });
-
-    assert.equal(result.allowed, true);
-    if (!result.allowed) return;
-    assert.equal(result.keyScope.keyVersion, LEGACY_CONTENT_KEY_VERSION);
-    assert.equal(result.keyScope.runtimeAddress, RUNTIME_A);
+    assert.equal(result.allowed, false);
+    if (!result.allowed) assert.equal(result.code, 'RELEASE_IDENTITY_MISMATCH');
   });
 
   it('fails closed when the catalog snapshot is stale', async () => {
@@ -283,7 +273,7 @@ describe('canonical release access', () => {
       contentHash: HASH,
       requester: REQUESTER,
       purpose: 'individual',
-      release: { ...identity(releaseA), audioRef: makeReleaseBoundEncryptedAudioV2Ref('other-cid') }
+      release: { ...identity(releaseA), audioRef: makeStreamingRef('other-cid') }
     });
 
     assert.equal(result.allowed, false);
@@ -315,7 +305,7 @@ describe('canonical release access', () => {
     const { access, client } = service([releaseA]);
     client.releases.set(`${RUNTIME_A}:${HASH}`.toLowerCase(), {
       artist: ARTIST_A,
-      audioRef: makeReleaseBoundEncryptedAudioV2Ref('replaced-cid'),
+      audioRef: makeStreamingRef('replaced-cid'),
       active: true
     });
 
@@ -351,7 +341,7 @@ describe('canonical release access', () => {
 
 describe('v3 publication access stays canonical', () => {
   it('keeps Classic listener/host denials and Free zero-address authority on the existing key scope', async () => {
-    const candidate = release({ audioRef: 'dotify:enc:v3:key-v2:ipfs://stream-directory' });
+    const candidate = release({ audioRef: 'dotify:enc:v3:key-v2:ipfs://Qm4GXs5NdGtLB4UYL2UMo2k9snMQ7g4Brj18qqYZ2aigCG' });
     const { access, client } = service([candidate]);
     const canonical = { ...identity(candidate), keyVersion: RELEASE_BOUND_CONTENT_KEY_VERSION };
     const allowed = await access.checkTrackAccess({ contentHash: HASH, requester: REQUESTER, purpose: 'individual', release: canonical });
