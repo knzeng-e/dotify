@@ -26,12 +26,16 @@ identity; the frozen Product bootstrap is empty, matching the fresh directory.
 
 ## Release gate
 
-The Web/API/signaling/Product services still use their existing live releases.
-Merge and validate the W30 non-root/storage prerequisite and W32 new-publication
-path before the coordinated cutover. Prepare the new isolated encoder and
-permanent nonce custody; preserve the old catalog/receipt/session files and
-secrets. The backend's new-directory index must be healthy before publishing
-clients. Do not refresh the bootstrap from the old API during packaging.
+The coordinated 2026-10-22 rollout activated API 29, signaling 37, private
+encoder 1 and Product 0.1.58 on the new directory; the empty index is healthy.
+Same-volume non-root migration and streaming custody initialization preserved
+existing key/receipt/session history. See the operational rollout record.
+
+The first real Product artist attempt reached bootstrap stage 7, then exposed
+a native SDK deposit-sizing error. The [correction evidence](implementation/evidence/product-artist-bootstrap-2026-10-22.md)
+isolates the peak-versus-net deposit mismatch by read-only replay. Publish the
+reviewed client correction before retrying the same pending runtime; no new
+factory or artist runtime deployment is needed for that retry.
 
 After cutover, the owner creates a fresh artist space and publishes a new v3
 release. Verify individual playback, protected denial, room-host access,
