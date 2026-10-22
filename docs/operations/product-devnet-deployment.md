@@ -23,6 +23,13 @@ or timed-out request; Dotify cannot undo the Host's permission decision.
 Operational rollback uses `VITE_DOTIFY_NEARBY=off` and/or `SIGNAL_NEARBY=off`;
 there is no Product-specific feature gate. Old snapshots expire within 90 seconds.
 
+## Product 0.1.59 bootstrap correction candidate
+
+The Product-only candidate includes merged dev `9ba2008` (#323) and keeps the
+0.1.58 streaming reset's directory, permissions and services. It is not yet
+published. Follow the [0.1.59 record](../backlog/implementation/evidence/product-0.1.59-rollout-2026-10-22.md)
+for publication identity and the artist-owned resume acceptance gate.
+
 ## Product 0.1.58 published streaming reset
 
 Published from clean packaging `113aa9c568966f3ec271f0ee0af3526f1bcaea68`,
