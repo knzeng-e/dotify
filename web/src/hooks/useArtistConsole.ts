@@ -533,6 +533,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
     }
 
     setIsRegisteringArtist(true);
+    let pendingRuntime: `0x${string}` | null = null;
 
     try {
       const existingRuntime = await refreshArtistRuntime();
@@ -557,7 +558,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
 
       const runtimeWriter = getRuntimeWriter();
 
-      let pendingRuntime = await runtimeReader.pendingRuntimeOf(factoryAddress!, activeEvmAddress);
+      pendingRuntime = await runtimeReader.pendingRuntimeOf(factoryAddress!, activeEvmAddress);
 
       let txHash: `0x${string}` | undefined;
       const confirmedBootstrapTxHashes: Partial<Record<number, `0x${string}`>> = {};
@@ -651,7 +652,11 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
       setTransactionFeedback({
         tone: 'error',
         title: 'Artist registration failed',
-        message
+        message,
+        technicalFacts: [
+          ...(artistSpaceTechnicalFacts(pendingRuntime) ?? []),
+          ...(registrationError instanceof Error ? [{ label: 'Details', value: registrationError.message }] : [])
+        ]
       });
     } finally {
       setIsRegisteringArtist(false);

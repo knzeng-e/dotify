@@ -363,6 +363,8 @@ describe('createProductCdmRuntimeWriter', () => {
     await expect(writer.setReleaseActive(runtime, hash, false)).resolves.toBe(txHash);
     await expect(writer.waitForTransaction(txHash)).resolves.toBeUndefined();
 
+    expect(createRuntime.tx).toHaveBeenCalledWith({ waitFor: 'finalized' });
+    expect(installRuntimeStep.tx).toHaveBeenCalledWith({ waitFor: 'finalized' });
     expect(musicRoyPayAccess.tx).toHaveBeenCalledWith(hash, { value: 30_000_000_000n, waitFor: 'finalized' });
     expect(musicRoyClaim.tx).toHaveBeenCalledWith(splitRecipient);
     expect(musicGiftContribute.tx).toHaveBeenCalledWith(hash, { value: 42_000_000_000n, waitFor: 'finalized' });

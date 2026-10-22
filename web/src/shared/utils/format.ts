@@ -145,6 +145,10 @@ export function describeArtistRegistrationError(error: unknown) {
     return 'Artist registration exceeds the current Polkadot Hub EVM weight limit. Redeploy the updated ArtistRuntimeFactory, then refresh the app deployment addresses before trying again.';
   }
 
+  if (/Product CDM transaction "installRuntimeStep".*Revive\.ContractReverted/i.test(message)) {
+    return 'Your artist space setup could not finish. Completed steps are saved. Try again to continue setup.';
+  }
+
   if (/artist already has a runtime/i.test(message)) {
     return 'This wallet already owns an artist space. Refresh the status and manage releases there.';
   }
