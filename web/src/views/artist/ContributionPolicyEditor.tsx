@@ -5,6 +5,7 @@ import { useWalletContext } from '../../app/providers';
 import { contributionReader, emptyPolicy, type ContributionPolicy } from '../../features/donations/contributions';
 import { useContributionWriter } from '../../features/donations/useContributionWriter';
 import type { CatalogTrack } from '../../shared/types';
+import { effectiveRoomAuthority, readDotifyRoomAuthority } from '../../features/donations/roomAuthority';
 
 function dateInput(seconds: bigint) {
   if (!seconds) return '';
@@ -26,15 +27,18 @@ function PolicyEditor({ runtime, tracks }: { runtime: Address; tracks: CatalogTr
   const [recipients, setRecipients] = useState<Array<{ address: string; percent: string }>>([]);
   const [start, setStart] = useState('');
   const [end, setEnd] = useState('');
+  const [fallback, setFallback] = useState<ContributionPolicy>(emptyPolicy);
+  const [authorityBusy, setAuthorityBusy] = useState(false);
   useEffect(() => {
     let canceled = false;
     setLoaded(false);
     setMessage('');
-    contributionReader(wallet.ethRpcUrl)
-      .policy(runtime, scope)
-      .then(value => {
+    const reader = contributionReader(wallet.ethRpcUrl);
+    Promise.all([reader.policy(runtime, scope), scope === zeroHash ? Promise.resolve(emptyPolicy) : reader.policy(runtime, zeroHash)])
+      .then(([value, inherited]) => {
         if (canceled) return;
         setPolicy(value);
+        setFallback(inherited);
         setRecipients(value.recipients.map((address, i) => ({ address, percent: String(value.shares[i] / 100) })));
         setStart(dateInput(value.startsAt));
         setEnd(dateInput(value.endsAt));
@@ -65,6 +69,8 @@ function PolicyEditor({ runtime, tracks }: { runtime: Address; tracks: CatalogTr
         throw new Error('Use valid receiving accounts and positive shares totaling at most 100%.');
       if (!/^0x[\da-f]{64}$/i.test(policy.campaign) || !isAddress(policy.roomAttestor))
         throw new Error('Check the campaign reference and room authority address.');
+      if (scope !== zeroHash && policy.hostBps > 0 && effectiveRoomAuthority(policy, fallback) === zeroAddress)
+        throw new Error('Enable room verification below before sharing tips with hosts.');
       const next = {
         ...policy,
         recipients: recipients.map(row => row.address as Address),
@@ -96,7 +102,7 @@ function PolicyEditor({ runtime, tracks }: { runtime: Address; tracks: CatalogTr
       </div>
       <label>
         Contributions
-        <select className='field' disabled={busy} value={scope} onChange={event => setScope(event.target.value as Hash)}>
+        <select className='field' disabled={busy || authorityBusy} value={scope} onChange={event => setScope(event.target.value as Hash)}>
           <option value={zeroHash}>Gifts to your artist profile</option>
           {tracks.map(track => (
             <option key={track.id} value={track.hash}>
@@ -112,7 +118,7 @@ function PolicyEditor({ runtime, tracks }: { runtime: Address; tracks: CatalogTr
             void save();
           }}
         >
-          <fieldset disabled={busy}>
+          <fieldset disabled={busy || authorityBusy}>
             <label>
               Purpose
               <input
@@ -130,19 +136,50 @@ function PolicyEditor({ runtime, tracks }: { runtime: Address; tracks: CatalogTr
               </label>
             )}
             {scope !== zeroHash && policy.hostBps > 0 && (
-              <label className='contribution-host-share'>
-                Host share of the whole room tip (%)
-                <input
-                  className='field'
-                  type='number'
-                  min='0.01'
-                  max='100'
-                  step='0.01'
-                  value={policy.hostBps / 100}
-                  onChange={event => setPolicy({ ...policy, hostBps: Math.round(Number(event.target.value) * 100) })}
-                />
-                <small>The rest follows the work's rights split. Destinations below apply only to your resulting share.</small>
-              </label>
+              <>
+                <label className='contribution-host-share'>
+                  Host share of the whole room tip (%)
+                  <input
+                    className='field'
+                    type='number'
+                    min='0.01'
+                    max='100'
+                    step='0.01'
+                    value={policy.hostBps / 100}
+                    onChange={event => setPolicy({ ...policy, hostBps: Math.round(Number(event.target.value) * 100) })}
+                  />
+                  <small>The rest follows the work's rights split. Destinations below apply only to your resulting share.</small>
+                </label>
+                <div role='status'>
+                  <p>
+                    {effectiveRoomAuthority(policy, fallback) === zeroAddress
+                      ? 'Room verification is required so connected hosts can receive their share.'
+                      : 'Room verification is configured. Save to apply any changes.'}
+                  </p>
+                  <button
+                    type='button'
+                    className='secondary-action'
+                    disabled={authorityBusy}
+                    onClick={async () => {
+                      if (!wallet.expectedChainId) return;
+                      setAuthorityBusy(true);
+                      setMessage('');
+                      try {
+                        const authority = await readDotifyRoomAuthority(wallet.expectedChainId);
+                        setPolicy(current => ({ ...current, roomAttestor: authority }));
+                        setMessage('Dotify room verification selected. Save contribution settings to approve it for this track.');
+                      } catch (error) {
+                        setMessage(error instanceof Error ? error.message : 'Room verification is unavailable.');
+                      } finally {
+                        setAuthorityBusy(false);
+                      }
+                    }}
+                  >
+                    {authorityBusy ? 'Checking room verification…' : 'Use Dotify room verification'}
+                  </button>
+                  <small>You authorize this room service to verify host accounts for shared tips. Your signature is required to save this choice.</small>
+                </div>
+              </>
             )}
             <div className='contribution-policy-dates'>
               <label>
@@ -223,7 +260,7 @@ function PolicyEditor({ runtime, tracks }: { runtime: Address; tracks: CatalogTr
               </label>
               <p>This authority verifies the host and room for shared tips. A track can inherit the authority saved for your profile gifts.</p>
             </details>
-            <button className='primary-action' disabled={busy || assigned > 100}>
+            <button className='primary-action' disabled={busy || authorityBusy || assigned > 100}>
               {busy ? 'Saving…' : 'Save contribution settings'}
             </button>
           </fieldset>

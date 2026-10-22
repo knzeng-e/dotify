@@ -156,6 +156,31 @@ test('artist saves a scheduled gift destination and reloads it from Rights', asy
   await expect(policy).toContainText('25% of your remaining portion stays with you');
 });
 
+test('host sharing requires explicit artist approval of room verification', async ({ page }) => {
+  await page.route('**/contributions/config', route => route.fulfill({ json: { chainId: 420420417, attestor: '0x0000000000000000000000000000000000001234' } }));
+  await createArtistProfile(page);
+  await completeReleaseDraft(page);
+  await page.getByTestId('publish-release-button').click();
+  await expect(page.getByRole('dialog')).toContainText('Release published');
+  await page.getByRole('button', { name: 'Close', exact: true }).click();
+  await page.getByRole('tab', { name: 'Rights & support', exact: true }).click();
+  const policy = page.locator('.contribution-policy');
+  await policy.locator('select').selectOption({ label: 'Tips · E2E Published Signal' });
+  await policy.getByLabel('Share room tips with hosts', { exact: true }).check();
+  await policy.getByRole('button', { name: 'Save contribution settings', exact: true }).click();
+  await expect(policy).toContainText('Enable room verification below before sharing tips with hosts');
+  await policy.getByRole('button', { name: 'Use Dotify room verification', exact: true }).click();
+  await expect(policy).toContainText('Save contribution settings to approve it for this track');
+  await policy.getByRole('button', { name: 'Save contribution settings', exact: true }).click();
+  await expect(policy).toContainText('Contribution settings saved');
+  await page.getByRole('tab', { name: 'Overview', exact: true }).click();
+  await page.getByRole('tab', { name: 'Rights & support', exact: true }).click();
+  await policy.locator('select').selectOption({ label: 'Tips · E2E Published Signal' });
+  await expect(policy.getByLabel('Share room tips with hosts', { exact: true })).toBeChecked();
+  await policy.locator('summary').click();
+  await expect(policy.getByLabel('Room authority address', { exact: true })).toHaveValue('0x0000000000000000000000000000000000001234');
+});
+
 test('artist can create a runtime, publish a release, and see it in the listener catalog', async ({ page }, info) => {
   await createArtistProfile(page);
   await completeReleaseDraft(page);

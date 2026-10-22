@@ -2467,3 +2467,20 @@ After publishing the correction, retry setup with the same connected artist;
 the existing flow re-reads and resumes the pending runtime. Verify the directory
 entry, artist ownership and cleared pending state after the user's approval.
 See the [native replay and validation evidence](../backlog/implementation/evidence/product-artist-bootstrap-2026-10-22.md).
+
+
+## Room-tip authority configuration correction, 2026-10-22
+
+A current runtime can still lack room policy configuration. Connected hosts with
+an active nonzero share require the artist's effective `roomAttestor` to match
+the signaling signer; missing/mismatched configuration fails before submission,
+without reducing the host's share. No active host allocation uses a direct tip
+and the existing bounded room intent for confirmed chat announcements.
+
+Deploy signaling and matching clients together. `GET /contributions/config`
+returns only the public attestor address and chain ID from existing settings,
+with no-store and existing CORS. There is no new secret or frontend signer.
+Artists explicitly select “Use Dotify room verification” in Rights & support
+for the work and approve Save contribution settings. Existing custom authorities
+and profile inheritance remain under artist control. Do not fill this on chain
+with an operator signer. See [diagnosis and acceptance](../backlog/implementation/evidence/room-tip-verification-2026-10-22.md).

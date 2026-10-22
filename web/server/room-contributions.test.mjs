@@ -10,7 +10,13 @@ const config = { chainId: 42, directory: address, api: 'https://api.example/api'
 function setup() {
   const client = {
     getChainId: async () => 42,
-    readContract: async ({ functionName }) => (functionName === 'runtimeOf' ? address : [{ artist: address, active: true, title: 'Work' }])
+    getBlock: async () => ({ timestamp: 1700000000n }),
+    readContract: async ({ functionName }) =>
+      functionName === 'musicGiftPolicy'
+        ? { hostBps: 1000, startsAt: 0n, endsAt: 0n, roomAttestor: address }
+        : functionName === 'runtimeOf'
+          ? address
+          : [{ artist: address, active: true, title: 'Work' }]
   };
   const service = createRoomContributions(config, { client, signer: account, fetch: async () => ({ ok: true, json: async () => ({ address, chainId: 42 }) }) });
   const room = { hostId: 'host', track: { hash, runtimeAddress: address } };
@@ -58,12 +64,52 @@ test('an unavailable attestor cannot silently remove a connected host allocation
   const { client, room, input } = setup();
   room.tipHost = address;
   const service = createRoomContributions(config, { client });
-  await assert.rejects(() => service.quote(room, input), /verification is unavailable/);
+  await assert.rejects(() => service.quote(room, input), /cannot verify/);
+});
+test('a connected host without an active allocation never blocks a direct tip or needs a signer', async () => {
+  for (const policy of [
+    { hostBps: 0, startsAt: 0n, endsAt: 0n },
+    { hostBps: 1000, startsAt: 0n, endsAt: 1n },
+    { hostBps: 1000, startsAt: 1800000000n, endsAt: 0n }
+  ]) {
+    const { client, room, input } = setup();
+    room.tipHost = address;
+    const read = client.readContract;
+    client.readContract = args => (args.functionName === 'musicGiftPolicy' ? { ...policy, roomAttestor: zeroAddress } : read(args));
+    const service = createRoomContributions(config, { client });
+    const quote = await service.quote(room, input);
+    assert.equal(quote.host, zeroAddress);
+    assert.equal(quote.room, zeroHash);
+    assert.equal(quote.proof, '0x');
+    assert.equal(room.tipIntents.size, 1);
+  }
+});
+test('active host sharing fails closed for missing or mismatched authority and supports profile inheritance', async () => {
+  for (const authority of [zeroAddress, '0x0000000000000000000000000000000000000001', address]) {
+    const { client, service, room, input } = setup();
+    room.tipHost = address;
+    const read = client.readContract;
+    client.readContract = args =>
+      args.functionName === 'musicGiftPolicy'
+        ? { hostBps: 1000, startsAt: 0n, endsAt: 0n, roomAttestor: args.args[0] === zeroHash ? authority : zeroAddress }
+        : read(args);
+    if (authority === address) assert.notEqual((await service.quote(room, input)).room, zeroHash);
+    else {
+      await assert.rejects(() => service.quote(room, input), /room verification/);
+      assert.equal(room.tipIntents, undefined);
+    }
+  }
 });
 test('a fresh unique catalog release repairs missing room attribution before quoting', async () => {
   const client = {
     getChainId: async () => 42,
-    readContract: async ({ functionName }) => (functionName === 'runtimeOf' ? address : [{ artist: address, active: true, title: 'Work' }])
+    getBlock: async () => ({ timestamp: 1700000000n }),
+    readContract: async ({ functionName }) =>
+      functionName === 'musicGiftPolicy'
+        ? { hostBps: 1000, startsAt: 0n, endsAt: 0n, roomAttestor: address }
+        : functionName === 'runtimeOf'
+          ? address
+          : [{ artist: address, active: true, title: 'Work' }]
   };
   const requests = [];
   const service = createRoomContributions(config, {
