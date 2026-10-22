@@ -29,9 +29,14 @@ function PolicyEditor({ runtime, tracks }: { runtime: Address; tracks: CatalogTr
   const [end, setEnd] = useState('');
   const [fallback, setFallback] = useState<ContributionPolicy>(emptyPolicy);
   const [authorityBusy, setAuthorityBusy] = useState(false);
+  const [authorityRetry, setAuthorityRetry] = useState(0);
+  const [authorityPrepared, setAuthorityPrepared] = useState(false);
+  const roomAuthority = effectiveRoomAuthority(policy, fallback);
+  const sharesWithHosts = policy.hostBps > 0;
   useEffect(() => {
     let canceled = false;
     setLoaded(false);
+    setAuthorityPrepared(false);
     setMessage('');
     const reader = contributionReader(wallet.ethRpcUrl);
     Promise.all([reader.policy(runtime, scope), scope === zeroHash ? Promise.resolve(emptyPolicy) : reader.policy(runtime, zeroHash)])
@@ -51,6 +56,28 @@ function PolicyEditor({ runtime, tracks }: { runtime: Address; tracks: CatalogTr
       canceled = true;
     };
   }, [runtime, scope, wallet.ethRpcUrl, wallet.listenerEvmAddress]);
+  useEffect(() => {
+    if (!loaded || !wallet.expectedChainId || scope === zeroHash || !sharesWithHosts || roomAuthority !== zeroAddress) {
+      setAuthorityBusy(false);
+      return;
+    }
+    const controller = new AbortController();
+    setAuthorityBusy(true);
+    setMessage('');
+    void readDotifyRoomAuthority(wallet.expectedChainId, controller.signal)
+      .then(authority => {
+        if (controller.signal.aborted) return;
+        setAuthorityPrepared(true);
+        setAuthorityBusy(false);
+        setPolicy(current => ({ ...current, roomAttestor: authority }));
+      })
+      .catch(error => {
+        if (controller.signal.aborted) return;
+        setAuthorityBusy(false);
+        setMessage(error instanceof Error ? error.message : 'Room verification is unavailable.');
+      });
+    return () => controller.abort();
+  }, [loaded, scope, sharesWithHosts, roomAuthority, wallet.expectedChainId, authorityRetry]);
   const assigned = recipients.reduce((total, row) => total + Number(row.percent || 0), 0);
   async function save() {
     setBusy(true);
@@ -70,7 +97,7 @@ function PolicyEditor({ runtime, tracks }: { runtime: Address; tracks: CatalogTr
       if (!/^0x[\da-f]{64}$/i.test(policy.campaign) || !isAddress(policy.roomAttestor))
         throw new Error('Check the campaign reference and room authority address.');
       if (scope !== zeroHash && policy.hostBps > 0 && effectiveRoomAuthority(policy, fallback) === zeroAddress)
-        throw new Error('Enable room verification below before sharing tips with hosts.');
+        throw new Error('Room verification is not ready. Retry verification before saving.');
       const next = {
         ...policy,
         recipients: recipients.map(row => row.address as Address),
@@ -85,6 +112,7 @@ function PolicyEditor({ runtime, tracks }: { runtime: Address; tracks: CatalogTr
       const updated = await contributionReader(wallet.ethRpcUrl).policy(runtime, scope);
       if (updated.version <= policy.version) throw new Error('Update submitted; waiting for the new settings. Refresh before submitting again.');
       setPolicy(updated);
+      setAuthorityPrepared(false);
       setMessage('Contribution settings saved. Existing receipts are unchanged.');
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'The settings could not be saved.');
@@ -102,7 +130,7 @@ function PolicyEditor({ runtime, tracks }: { runtime: Address; tracks: CatalogTr
       </div>
       <label>
         Contributions
-        <select className='field' disabled={busy || authorityBusy} value={scope} onChange={event => setScope(event.target.value as Hash)}>
+        <select className='field' disabled={busy} value={scope} onChange={event => setScope(event.target.value as Hash)}>
           <option value={zeroHash}>Gifts to your artist profile</option>
           {tracks.map(track => (
             <option key={track.id} value={track.hash}>
@@ -152,32 +180,19 @@ function PolicyEditor({ runtime, tracks }: { runtime: Address; tracks: CatalogTr
                 </label>
                 <div role='status'>
                   <p>
-                    {effectiveRoomAuthority(policy, fallback) === zeroAddress
-                      ? 'Room verification is required so connected hosts can receive their share.'
-                      : 'Room verification is configured. Save to apply any changes.'}
+                    {authorityBusy
+                      ? 'Preparing Dotify room verification…'
+                      : roomAuthority === zeroAddress
+                        ? 'Room verification could not be prepared. Retry before saving.'
+                        : authorityPrepared
+                          ? 'Dotify will verify connected hosts for shared tips. Save to approve this choice with your signature.'
+                          : 'Your existing room verification is preserved. Save to approve changes to host sharing.'}
                   </p>
-                  <button
-                    type='button'
-                    className='secondary-action'
-                    disabled={authorityBusy}
-                    onClick={async () => {
-                      if (!wallet.expectedChainId) return;
-                      setAuthorityBusy(true);
-                      setMessage('');
-                      try {
-                        const authority = await readDotifyRoomAuthority(wallet.expectedChainId);
-                        setPolicy(current => ({ ...current, roomAttestor: authority }));
-                        setMessage('Dotify room verification selected. Save contribution settings to approve it for this track.');
-                      } catch (error) {
-                        setMessage(error instanceof Error ? error.message : 'Room verification is unavailable.');
-                      } finally {
-                        setAuthorityBusy(false);
-                      }
-                    }}
-                  >
-                    {authorityBusy ? 'Checking room verification…' : 'Use Dotify room verification'}
-                  </button>
-                  <small>You authorize this room service to verify host accounts for shared tips. Your signature is required to save this choice.</small>
+                  {!authorityBusy && roomAuthority === zeroAddress && (
+                    <button type='button' className='secondary-action' onClick={() => setAuthorityRetry(value => value + 1)}>
+                      Retry verification
+                    </button>
+                  )}
                 </div>
               </>
             )}
@@ -255,7 +270,10 @@ function PolicyEditor({ runtime, tracks }: { runtime: Address; tracks: CatalogTr
                   className='field'
                   value={policy.roomAttestor === zeroAddress ? '' : policy.roomAttestor}
                   placeholder='0x…'
-                  onChange={event => setPolicy({ ...policy, roomAttestor: (event.target.value || zeroAddress) as Address })}
+                  onChange={event => {
+                    setAuthorityPrepared(false);
+                    setPolicy({ ...policy, roomAttestor: (event.target.value || zeroAddress) as Address });
+                  }}
                 />
               </label>
               <p>This authority verifies the host and room for shared tips. A track can inherit the authority saved for your profile gifts.</p>

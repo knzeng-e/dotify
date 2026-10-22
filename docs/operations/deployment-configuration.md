@@ -2480,7 +2480,11 @@ and the existing bounded room intent for confirmed chat announcements.
 Deploy signaling and matching clients together. `GET /contributions/config`
 returns only the public attestor address and chain ID from existing settings,
 with no-store and existing CORS. There is no new secret or frontend signer.
-Artists explicitly select “Use Dotify room verification” in Rights & support
-for the work and approve Save contribution settings. Existing custom authorities
-and profile inheritance remain under artist control. Do not fill this on chain
+Enabling host sharing in Rights & support automatically prepares the public
+authority only if the work has no effective authority. Already enabled policies
+with missing authority are also prepared on load. This is a local draft: the
+artist reviews the explanation and approves Save contribution settings. Existing
+custom authorities and profile inheritance remain under artist control; address
+editing stays in advanced details. Failed lookups offer a retry and prevent an
+unconfigured sharing policy from being saved. No automatic on-chain write occurs. Do not fill this on chain
 with an operator signer. See [diagnosis and acceptance](../backlog/implementation/evidence/room-tip-verification-2026-10-22.md).

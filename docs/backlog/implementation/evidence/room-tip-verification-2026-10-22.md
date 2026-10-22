@@ -23,10 +23,13 @@ Host/track identity is rechecked after asynchronous reads.
 
 `GET /contributions/config` exposes only the configured chain ID and public
 attestor address, no secret, with no-store and existing exact-origin CORS.
-The artist editor offers explicit selection of Dotify room verification, then
-requires the normal signed policy save. A custom authority is never replaced
-without that selection. Profile inheritance is preserved; zero effective
-authority cannot be saved with host sharing enabled. Generic quote failures no
+Enabling host sharing automatically prepares Dotify room verification when no
+effective authority exists, including when loading an already enabled but
+unconfigured policy. This fills a local draft, explains what the artist is
+authorizing, and requires the normal signed policy save. Artists do not need
+to know or enter an address. Existing custom authorities are never replaced
+automatically; their address remains editable under advanced details. Profile
+inheritance is preserved; zero effective authority cannot be saved with host sharing enabled. Generic quote failures no
 longer assert that an upgrade is needed or expose truncated contract errors.
 
 ## Evidence and remaining gates
@@ -37,12 +40,14 @@ longer assert that an upgrade is needed or expose truncated contract errors.
   passes 17 tests including the added public-config HTTP regression. Policy cases cover absent/mismatched
   signer, inherited authority, inactive allocation, host-change races, direct
   tip receipts and exactly-once announcements.
-- Chromium: scheduled gift save/reload passes; host-sharing test proves missing
-  authority blocks save, explicit selection is not yet a write, then normal
-  policy save persists the choice across remount. These are simulated writes.
+- Chromium: scheduled gift save/reload passes; four host-sharing scenarios prove automatic
+  preparation is not a write, signed save persists across remount, wrong-network
+  configuration blocks save and supports retry, inherited and explicit custom
+  authorities survive without a lookup, and canceled lookups cannot leak into
+  another scope. These are simulated writes.
 - Web and frozen Product builds pass. Lint has zero errors and the two existing App E2E hook warnings.
 
 Not deployed. After merge deploy signaling and matching Web/Product, then the
-artist selects the work in Rights & support, chooses Dotify room verification
-and saves through normal approval. Retry a room tip with a connected host and
-verify finalized recipient shares/chat. Do not change live policy as operator.
+artist selects the work in Rights & support, enables host sharing if needed,
+reviews the verification explanation and saves through normal approval. Retry a
+room tip with a connected host and verify finalized recipient shares/chat. Do not change live policy as operator.
