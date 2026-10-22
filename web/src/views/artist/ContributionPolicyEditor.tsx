@@ -45,7 +45,7 @@ function PolicyEditor({ runtime, tracks }: { runtime: Address; tracks: CatalogTr
         setLoaded(true);
       })
       .catch(() => {
-        if (!canceled) setMessage('Contribution settings are unavailable. This runtime may need an artist-approved upgrade.');
+        if (!canceled) setMessage('Contribution settings could not be loaded. Check your connection and try again.');
       });
     return () => {
       canceled = true;
