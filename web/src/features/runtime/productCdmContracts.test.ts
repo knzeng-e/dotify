@@ -16,6 +16,9 @@ function buildDeps(overrides: Handles = {}, spies: Record<string, ReturnType<typ
   const destroy = spies.destroy ?? vi.fn();
 
   class ContractManager {
+    constructor(...args: unknown[]) {
+      spies.managerRuntime?.(...args);
+    }
     getAddress(library: string) {
       if (library === DOTIFY_CDM_PACKAGES.directory) return DIRECTORY;
       if (library === DOTIFY_CDM_PACKAGES.factory) return FACTORY;
@@ -30,7 +33,7 @@ function buildDeps(overrides: Handles = {}, spies: Record<string, ReturnType<typ
     loadContracts: async () =>
       ({
         ContractManager,
-        createContractRuntimeFromClient: vi.fn(() => ({ runtime: true })),
+        createContractRuntimeFromClient: spies.createContractRuntimeFromClient ?? vi.fn(() => ({ runtime: true })),
         createContract
       }) as never,
     loadChain: async () =>
@@ -55,6 +58,33 @@ function buildDeps(overrides: Handles = {}, spies: Record<string, ReturnType<typ
 }
 
 describe('createProductCdmContracts', () => {
+  it('binds both static packages and artist runtimes to the peak-deposit adapter', async () => {
+    const managerRuntime = vi.fn();
+    const createContract = vi.fn((..._args: unknown[]) => ({}));
+    const response = {
+      result: { success: true, value: { flags: 0, data: new Uint8Array(32) } },
+      storage_deposit: { type: 'Charge', value: 52n },
+      max_storage_deposit: { type: 'Charge', value: 105n }
+    };
+    const dryRunCall = vi.fn(async () => response);
+    const contracts = await createProductCdmContracts(
+      { environment: 'devnet' },
+      buildDeps(
+        {},
+        {
+          managerRuntime,
+          createContract,
+          createContractRuntimeFromClient: vi.fn(() => ({ dryRunCall }))
+        }
+      )
+    );
+    contracts.resolver.getRuntimeContract(RUNTIME);
+    const adapted = managerRuntime.mock.calls[0][1];
+    expect(createContract.mock.calls[0][0]).toBe(adapted);
+    await expect(adapted.dryRunCall()).resolves.toMatchObject({ storage_deposit: { type: 'Charge', value: 105n } });
+    expect(response.storage_deposit.value).toBe(52n);
+  });
+
   it.each([
     [100n, 0n, 90n],
     [100n, 40n, 60n],

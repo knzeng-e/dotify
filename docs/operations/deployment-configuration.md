@@ -2466,3 +2466,19 @@ always opening the discovery route `#/rooms`. Room codes and existing URL
 queries/fragments are not transferred; hosting authority stays in Product.
 Validate this recovery while hosting a room: the browser must show the radar,
 without a join prompt or an automatic join using a remembered browser identity.
+
+## Product artist bootstrap deposit correction, 2026-10-22
+
+Product 0.1.58 can reach pending bootstrap stage 7 and then revert because its
+contracts SDK sizes `storage_deposit_limit` from net charge rather than the
+peak needed before intermediate refunds. The source correction sizes from
+Revive's verified `max_storage_deposit` and waits for factory-step finality.
+No environment, contract, secret, volume or API/signaling deployment changes.
+A new Web/Product client publication is required after merge; this paragraph
+does not claim the failing live executable has been replaced.
+
+Do not redeploy an artist runtime stuck at stage 7 or wipe its pending state.
+After publishing the correction, retry setup with the same connected artist;
+the existing flow re-reads and resumes the pending runtime. Verify the directory
+entry, artist ownership and cleared pending state after the user's approval.
+See the [native replay and validation evidence](../backlog/implementation/evidence/product-artist-bootstrap-2026-10-22.md).

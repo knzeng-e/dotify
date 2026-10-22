@@ -133,6 +133,7 @@ export function evmValueToNativeUnits(value: bigint, nativeTokenDecimals: number
 export function productCdmPaymentWasNotSubmitted(error: unknown): boolean {
   const preSubmissionNames = new Set([
     'ProductCdmNativeValueError',
+    'ProductCdmStorageDepositError',
     'ContractSignerMissingError',
     'ContractInvalidOriginError',
     'ContractDryRunFailedError',
@@ -317,11 +318,11 @@ export function createProductCdmRuntimeWriter(deps: ProductCdmRuntimeWriterDeps)
       }
     },
     createRuntime(factoryAddress) {
-      return txContract(deps.contracts.getFactoryContract(factoryAddress), 'createRuntime');
+      return txContract(deps.contracts.getFactoryContract(factoryAddress), 'createRuntime', [{ waitFor: 'finalized' }]);
     },
 
     installRuntimeStep(factoryAddress) {
-      return txContract(deps.contracts.getFactoryContract(factoryAddress), 'installRuntimeStep');
+      return txContract(deps.contracts.getFactoryContract(factoryAddress), 'installRuntimeStep', [{ waitFor: 'finalized' }]);
     },
 
     registerTrack(runtimeAddress, registration: RuntimeTrackRegistration) {
