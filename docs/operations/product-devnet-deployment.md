@@ -23,12 +23,19 @@ or timed-out request; Dotify cannot undo the Host's permission decision.
 Operational rollback uses `VITE_DOTIFY_NEARBY=off` and/or `SIGNAL_NEARBY=off`;
 there is no Product-specific feature gate. Old snapshots expire within 90 seconds.
 
-## Product 0.1.59 bootstrap correction candidate
+## Product 0.1.59 published bootstrap correction
 
-The Product-only candidate includes merged dev `9ba2008` (#323) and keeps the
-0.1.58 streaming reset's directory, permissions and services. It is not yet
-published. Follow the [0.1.59 record](../backlog/implementation/evidence/product-0.1.59-rollout-2026-10-22.md)
-for publication identity and the artist-owned resume acceptance gate.
+Published from clean packaging `627b4fa2399ab84ac5081aa8c6a7210761381a57`, including merged
+dev `9ba2008` (#323), at root/app CID
+`bafybeia7d6qbsqq7tj32tgvzc3z3vr3x6cxhtlyve6fc3k52zqeqmjhhum`. Finalized manifest `[0,1,59]`,
+all 124 public CAR hashes and exact index/entry bytes pass. Source and packaging
+CI pass; the local signer is removed. This Product-only update retains the
+0.1.58 directory, frozen empty catalog, permissions and running services.
+
+Reload Dotify in Product, then let the artist retry the existing pending setup
+through normal Host approvals. Do not create another runtime or approve it as
+operator. The [0.1.59 record](../backlog/implementation/evidence/product-0.1.59-rollout-2026-10-22.md)
+distinguishes verified publication from the remaining native registration gate.
 
 ## Product 0.1.58 published streaming reset
 

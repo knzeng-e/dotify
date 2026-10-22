@@ -1,5 +1,17 @@
 # Deployment Configuration Runbook
 
+## Product bootstrap follow-up published, 2026-10-22
+
+Product 0.1.59 publishes merged #323's native peak-storage-deposit correction
+at root/app CID `bafybeia7d6qbsqq7tj32tgvzc3z3vr3x6cxhtlyve6fc3k52zqeqmjhhum`.
+Finalized manifest, all 124 public CAR blocks and exact index/entry identity
+are verified; the local signer is removed. API 29/signaling 37/encoder 1 and
+contracts/CDM were not restarted or changed. Ordinary Web remains on the
+previous streaming-reset source. See [the Product-only evidence](../backlog/implementation/evidence/product-0.1.59-rollout-2026-10-22.md).
+The artist must resume their pending runtime through normal user approval;
+publication alone does not complete registration. The following 0.1.58 section
+records the earlier coordinated server/catalog reset.
+
 ## Streaming reset deployed, 2026-10-22
 
 API 29, signaling 37 and private encoder 1 serve tested source `142fc63`.
