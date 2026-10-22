@@ -68,8 +68,9 @@ continues the existing factory pending runtime through normal user approvals.
   Wiring coverage checks the same adaptation reaches static and dynamic handles.
 - Frozen Product build passes. ESLint has no errors and the two existing E2E
   App hook warnings; no new dependency or eager Product SDK runtime import.
-- Five Chromium Product identity/browser tests pass. They are simulated-host
-  tests, not real wallet approvals or on-chain bootstrap completion.
+- Five Chromium Product identity tests and sixteen artist-publication/browser
+  tests pass. They use simulated hosts/writes, not real wallet approvals or
+  on-chain bootstrap completion.
 - Read-only native replay with the actual adapter and SDK succeeds at the
   chain-reported peak, preserving the original weight/value/calldata.
 
