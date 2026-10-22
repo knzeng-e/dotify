@@ -2,14 +2,14 @@
 const MAX_CACHE_BYTES = 16 * 1024 * 1024;
 const MAX_ENTRIES = 64;
 const GATEWAYS = ['https://gateway.pinata.cloud', 'https://ipfs.io', 'https://dweb.link'];
-function safeGatewayRedirect(url: URL): boolean {
+function safeGatewayRedirect(url: URL, dedicated?: string): boolean {
   return (
     url.protocol === 'https:' &&
     !url.username &&
     !url.password &&
     !url.port &&
     !url.search &&
-    (['gateway.pinata.cloud', 'ipfs.io', 'dweb.link'].includes(url.hostname) ||
+    ([...(dedicated ? [new URL(dedicated).hostname] : []), 'gateway.pinata.cloud', 'ipfs.io', 'dweb.link'].includes(url.hostname) ||
       url.hostname.endsWith('.ipfs.dweb.link') ||
       url.hostname.endsWith('.ipfs.ipfs.io'))
   );
@@ -37,7 +37,7 @@ function objectBudget(object: string): number {
     throw new MediaError(404, 'MEDIA_NOT_FOUND');
   return object.endsWith('/manifest.json') ? 256 * 1024 : 1024 * 1024 + 16;
 }
-export function createEncryptedMediaReader(fetchImpl: typeof fetch = fetch) {
+export function createEncryptedMediaReader(fetchImpl: typeof fetch = fetch, dedicatedGateway?: string) {
   const cache = new Map<string, EncryptedMedia>();
   const pending = new Map<string, PendingRead>();
   let cacheBytes = 0,
@@ -57,10 +57,10 @@ export function createEncryptedMediaReader(fetchImpl: typeof fetch = fetch) {
   };
   async function download(object: string, signal: AbortSignal): Promise<EncryptedMedia> {
     const maxBytes = objectBudget(object);
-    for (const gateway of GATEWAYS) {
+    for (const gateway of [...(dedicatedGateway ? [dedicatedGateway.replace(/\/$/, '')] : []), ...GATEWAYS]) {
       signal.throwIfAborted();
       const controller = new AbortController();
-      const deadline = setTimeout(() => controller.abort(), 12_000);
+      const deadline = setTimeout(() => controller.abort(), dedicatedGateway && gateway === dedicatedGateway.replace(/\/$/, '') ? 3000 : 12_000);
       try {
         let url = `${gateway}/ipfs/${object}`;
         let response: Response | undefined;
@@ -72,7 +72,7 @@ export function createEncryptedMediaReader(fetchImpl: typeof fetch = fetch) {
           void response.body?.cancel().catch(() => undefined);
           if (!location || redirects === 2) throw new Error('invalid redirect');
           const target = new URL(location, url);
-          if (!safeGatewayRedirect(target)) throw new Error('untrusted redirect');
+          if (!safeGatewayRedirect(target, dedicatedGateway)) throw new Error('untrusted redirect');
           url = target.href;
         }
         if (!response) continue;

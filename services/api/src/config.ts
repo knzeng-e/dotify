@@ -71,6 +71,57 @@ const optionalTurnUrlList = z.preprocess(
 );
 
 const envSchema = z.object({
+  MEDIA_EDGE_URL: z.preprocess(
+    value => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+    z
+      .string()
+      .url()
+      .refine(value => {
+        try {
+          const url = new URL(value);
+          return (
+            url.protocol === 'https:' &&
+            !url.username &&
+            !url.password &&
+            !url.port &&
+            !url.search &&
+            !url.hash &&
+            url.pathname === '/' &&
+            url.hostname !== 'localhost' &&
+            !url.hostname.endsWith('.local') &&
+            !/^[\d.]+$/.test(url.hostname) &&
+            !url.hostname.includes(':')
+          );
+        } catch {
+          return false;
+        }
+      }, 'MEDIA_EDGE_URL must be a public HTTPS origin without credentials or a path')
+      .optional()
+  ),
+  MEDIA_IPFS_GATEWAY: z.preprocess(
+    value => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+    z
+      .string()
+      .url()
+      .refine(value => {
+        try {
+          const url = new URL(value);
+          return (
+            url.protocol === 'https:' &&
+            url.hostname.endsWith('.mypinata.cloud') &&
+            !url.username &&
+            !url.password &&
+            !url.port &&
+            !url.search &&
+            !url.hash &&
+            url.pathname === '/'
+          );
+        } catch {
+          return false;
+        }
+      }, 'MEDIA_IPFS_GATEWAY must be a dedicated HTTPS mypinata.cloud origin')
+      .optional()
+  ),
   API_PORT: z.coerce.number().int().min(1).max(65535).default(8790),
   API_ORIGIN: z.string().url().default('http://localhost:5273'),
   API_ORIGINS: optionalOriginList,

@@ -1675,7 +1675,7 @@
                 The matching API, encoder and Web/Product cutover is prepared, not yet deployed.
                 Streaming acceptance also checks continuity after a network interruption, reopening a track, and protected listening without repeated
                 sign-in prompts. Protected listening requires reusable sessions; a session-service outage does not switch to signatures per track.
-                The current stability follow-up adds a bounded API cache for registered encrypted media to reduce public-gateway failures.
+                The current stability follow-up adds a bounded API cache for registered encrypted media to reduce public-gateway failures. A prepared CDN integration adds edge-first delivery and bounded warming of confirmed new publications, using the existing dedicated gateway rather than adding a storage authority. The cache sees only ciphertext; artist access remains separate. Activation and three-region first-sound acceptance are still pending because the supplied gateway rejects the current content.
                 It holds ciphertext only and leaves access and keys outside the cache. A temporary discovery refresh failure retains only an already-valid invitation,
                 while expiry and opt-out still remove it. Entry asks clearly for a name or nickname without repeating an already-selected room code.
                 Product 0.1.54 published this stability follow-up from merged #302, including bounded presence-driven planet size and light.

@@ -25,7 +25,7 @@ import { NativeContributionLedger } from './services/nativeContributionLedger.js
 import { createContributionHistoryRoutes } from './routes/contributionHistory.js';
 import { createNativeReceiptRoutes } from './routes/nativeReceipts.js';
 import { createNativeReceiptService } from './services/nativeReceipts.js';
-import { catalogReadModel as defaultCatalogReadModel } from './services/catalog/index.js';
+import { catalogReadModel as defaultCatalogReadModel, mediaPrewarmer } from './services/catalog/index.js';
 import type { CatalogReadModel } from './services/catalog/readModel.js';
 
 // Every response carries a correlation ID (echoed from a well-formed incoming
@@ -183,6 +183,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   await catalog.start();
   app.addHook('onClose', async () => {
     catalog.stop();
+    if (catalog === defaultCatalogReadModel) mediaPrewarmer?.close();
   });
   await app.register(createCatalogRoutes({ catalog }));
   await app.register(createMediaRoutes({ catalog }));

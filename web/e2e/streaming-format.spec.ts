@@ -107,6 +107,14 @@ test('browser authenticates identity/order and refuses archive playback', async 
 
 test('publication player reads authenticated segments and shares normalized audio without archive access', async ({ page }) => {
   const requests: string[] = [];
+  const edgeRequests: string[] = [];
+  await page.route('https://media.edge.test/**', async route => {
+    edgeRequests.push(route.request().url());
+    expect(route.request().headers().authorization).toBeUndefined();
+    expect(route.request().headers().cookie).toBeUndefined();
+    expect(route.request().headers().range).toBeUndefined();
+    await route.fulfill({ status: 404, headers: { 'access-control-allow-origin': '*' }, body: '' });
+  });
   await page.route('**/publication-player', route =>
     route.fulfill({ contentType: 'text/html', body: '<!doctype html><button id="play">Play</button><audio id="audio"></audio>' })
   );
@@ -162,6 +170,8 @@ test('publication player reads authenticated segments and shares normalized audi
   expect(result.progressive).toBe(true);
   expect(result.capturedTracks).toBe(1);
   expect(result.duration).toBeGreaterThan(8);
+  expect(edgeRequests.some(url => url.endsWith('/manifest.json'))).toBe(true);
+  expect(edgeRequests.some(url => url.endsWith('/160/segment-000.bin'))).toBe(true);
   expect(requests).toContain('manifest.json');
   expect(requests).toContain('160/init.bin');
   expect(requests).toContain('160/segment-000.bin');

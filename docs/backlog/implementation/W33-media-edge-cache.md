@@ -30,6 +30,17 @@ acceptance. Retain the remaining scope below.
 4. **Client order.** Edge first, then the existing Pinata and IPFS fallbacks. IPFS stays the source of truth.
 5. **Honest documentation.** Public docs say the edge is a cache that accelerates delivery and has no authority over access.
 
+## 2026-10-22 execution note
+
+The internal reset retired DAV2. This sequence now applies only to authenticated
+v3 manifest/init/segment objects; no legacy range reader is restored. The API
+read-through remains the fallback. The owner supplied an existing dedicated
+Pinata gateway/CDN, selected by [ADR 0034](../../adr/0034-media-cdn-and-native-storage.md)
+without creating another provider account. Prepared code and remaining
+provider/three-region audible acceptance are recorded in [W33 evidence](evidence/W33.md).
+Six authorized regional HTTP probes return API 200 and gateway 401. This is an
+activation blocker, not a successful latency improvement or completed #288.
+
 ## Acceptance and meaningful verification
 
 - Latency evidence (time to first byte and time to first sound) from at least three regions, before and after.

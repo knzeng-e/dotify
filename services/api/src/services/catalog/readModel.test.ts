@@ -104,6 +104,31 @@ function model(gateway: CatalogChainGateway, store: CatalogSnapshotStore, now = 
 }
 
 describe('CatalogReadModel', () => {
+  it('notifies acceleration only after persistence and isolates observer failure from catalog health', async () => {
+    const gateway = new FakeGateway(),
+      store = new MemoryStore();
+    let calls = 0;
+    const catalog = new CatalogReadModel({
+      gateway,
+      store,
+      pollIntervalMs: 60000,
+      reconcileIntervalMs: 300000,
+      staleAfterMs: 60000,
+      confirmations: 2,
+      onSnapshot: snapshot => {
+        calls++;
+        assert.deepEqual(snapshot, store.snapshot);
+        throw new Error('cache unavailable');
+      }
+    });
+    await catalog.sync();
+    assert.equal(calls, 1);
+    assert.equal(catalog.getMetadata().state, 'fresh');
+    gateway.head = 14;
+    store.failSave = true;
+    await assert.rejects(catalog.sync(), /disk unavailable/);
+    assert.equal(calls, 1);
+  });
   it('builds and persists a deterministic chain snapshot', async () => {
     const gateway = new FakeGateway();
     const store = new MemoryStore();
