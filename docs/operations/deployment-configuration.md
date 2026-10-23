@@ -1,13 +1,41 @@
 # Deployment Configuration Runbook
 
+## Product bootstrap follow-up published, 2026-10-22
+
+Product 0.1.59 publishes merged #323's native peak-storage-deposit correction
+at root/app CID `bafybeia7d6qbsqq7tj32tgvzc3z3vr3x6cxhtlyve6fc3k52zqeqmjhhum`.
+Finalized manifest, all 124 public CAR blocks and exact index/entry identity
+are verified; the local signer is removed. API 29/signaling 37/encoder 1 and
+contracts/CDM were not restarted or changed. Ordinary Web remains on the
+previous streaming-reset source. See [the Product-only evidence](../backlog/implementation/evidence/product-0.1.59-rollout-2026-10-22.md).
+The artist must resume their pending runtime through normal user approval;
+publication alone does not complete registration. The following 0.1.58 section
+records the earlier coordinated server/catalog reset.
+
+## Streaming reset deployed, 2026-10-22
+
+API 29, signaling 37 and private encoder 1 serve tested source `142fc63`.
+Product 0.1.58 is finalized at root/app CID
+`bafybeiguwd2uaz7qv3l66rxpviw5aajmu6xka74vzqgd2regl2vnbh7x7y`;
+Web serves the matching merged application source. The fresh factory/directory
+and empty catalog are active. The existing API volume was backed up and migrated
+without changing persisted bytes, then streaming custody was initialized once.
+The API runs as UID 1000 with 1 GiB; the 512 MiB encoder is private and warm.
+
+See the [rollout evidence](../backlog/implementation/evidence/product-0.1.58-rollout-2026-10-22.md)
+for exact images, backup, integrity and live checks. Real artist publication and
+physical-device listening/value flows still require acceptance. Earlier dated
+preparation and rollback notes are historical; 0.1.57 is not a compatible
+standalone rollback after this reset. Preserve the latest nonce/revocation
+custody and follow the streaming recovery procedure.
+
 ## Current audio reset policy, 2026-10-21
 
 The owner retires the internal catalog under [#320](../backlog/streaming-only-reset.md)
 and [ADR 0033](../adr/0033-streaming-only-internal-reset.md). Only authenticated
 v3 streaming is supported after the coordinated #319 cutover. Earlier dated
 DAV2/range/inline-worker/legacy rollback notes below describe historical builds,
-not the current deployment recipe. No live services or data are changed by this
-source preparation.
+not the current deployment recipe. The coordinated rollout is recorded above.
 
 - Deploy the API/isolated encoder and matching Web/Product clients together,
   using the fresh directory and empty bootstrap. Recreate artist runtimes and
@@ -44,12 +72,12 @@ are finalized at version 2. All ten core contracts are source-verified, and the
 fresh owner-guard audit finds zero finalized/pending runtimes. No previous core
 contract, artist state, claim or IPFS data was deleted.
 
-API, signaling, Web and Product are **not cut over** by these transactions. Their
+These contract transactions did not themselves cut over the applications. The
+2026-10-22 rollout above subsequently activated their
 staged configuration, empty frozen bootstrap, directory-scoped browser cache and
-recorded CDM versions must deploy together after W30/W32 review and provisioning.
+recorded CDM versions together after W30/W32 review and provisioning.
 See [identities, evidence, rollout and rollback](fresh-testnet-2026-10-21.md).
-Existing session/custody/receipt state and keys must survive that rollout. Do not
-refresh the new bootstrap from the still-old live API while preparing clients.
+Existing session/custody/receipt state and keys must survive that rollout. Do not refresh a fresh-directory bootstrap from an API still serving an older directory.
 
 ## Release publication and documentation hosting, 2026-10-20
 
@@ -76,8 +104,8 @@ do not enable both optional workflows as a workaround.
 ## API non-root preparation, 2026-10-21
 
 The default API image now runs as UID/GID 1000 and checks storage access before
-loading persisted session/catalog services. This is prepared code, not a live
-cutover: the last recorded API 28 deployment still runs the older root image.
+loading persisted session/catalog services. At preparation time API 28 still
+ran the older root image; API 29 completed the migration on 2026-10-22 above.
 Do not deploy the new runner against the existing root-owned volume without
 following the [offline ownership and rollback procedure](api-nonroot-storage.md).
 An explicit maintenance image changes only reviewed file ownership/modes;
@@ -89,7 +117,8 @@ See the [isolated rehearsal evidence](../backlog/implementation/evidence/W30-api
 
 New code connects signed/scoped artist uploads to a durable encrypted queue,
 a separately isolated private encoder, 202 progress/retry and v3 player/room
-playback. This is **not deployed**. The subsequent owner reset retires the
+playback. This was not deployed at preparation time; the 2026-10-22 rollout
+above activated it. The subsequent owner reset retires the
 old catalog and removes DAV1/DAV2 compatibility; artists republish. See [activation, resources and rollback](streaming-publication.md).
 
 The activation plan adds a dedicated worker token/URL and permanent streaming
@@ -98,8 +127,8 @@ encoder, a 1 GiB single-writer API and at most two concurrent uploads, based on
 local 15-minute resource evidence. No frontend secrets, new CORS origins,
 content-key rotation, paid listener gate or room-guest key path is introduced.
 W30 non-root/ownership must precede provisioning; initialization is explicit,
-never a missing-ledger repair. New Fly resources/configuration are prepared,
-not applied by this PR. Do not run an old three-file maintenance tool recursively
+never a missing-ledger repair. These resources/configuration were prepared in that PR and applied in the
+2026-10-22 rollout above. Do not run an old three-file maintenance tool recursively
 across the new nonce subtree. Ordinary Web and native Product acceptance and real
 Pinata load remain release gates.
 
@@ -681,7 +710,7 @@ Required Product values:
 | `VITE_BULLETIN_WS_URL`          | `wss://bulletin-paseo.tservices.es:8443`                                                       |
 | `VITE_PINATA_GATEWAY`           | `https://gateway.pinata.cloud`                                                                 |
 | `VITE_IPFS_READ_GATEWAYS`       | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation`       |
-| Product executable `appVersion` | `[0, 1, 57]` published release follow-up; `[0, 1, 56]` is the current client rollback artifact |
+| Product executable `appVersion` | `[0, 1, 58]` streaming reset; pre-reset clients are historical, not a standalone rollback |
 
 The Product executable version is part of the published Product manifest. Bump
 it whenever the Product bundle changes runtime behavior, host SDK integration,
@@ -1257,12 +1286,10 @@ https://fly.io/dashboard
 
 Open app `dotify-api`.
 
-The table lists the **tracked post-cutover values** in `services/api/fly.toml`,
-not a readback of the currently deployed Fly environment. At the last recorded
-rollout, API 28 still used the previous factory/directory pair. The
-[cutover and rollback record](fresh-testnet-2026-10-21.md) distinguishes that live
-baseline from the fresh contracts already deployed on-chain. Verify the API's
-actual deployed identity during rollout before publishing matching clients.
+The table lists the tracked values in `services/api/fly.toml`. API 29 was
+verified against this fresh factory/directory during the 2026-10-22 rollout.
+Always compare the actual deployed identity before publishing matching clients;
+a configuration file alone is not deployment evidence.
 
 | Key                          | Tracked post-cutover value                                                                                                                                                                                                                |
 | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -2484,3 +2511,45 @@ After publishing the correction, retry setup with the same connected artist;
 the existing flow re-reads and resumes the pending runtime. Verify the directory
 entry, artist ownership and cleared pending state after the user's approval.
 See the [native replay and validation evidence](../backlog/implementation/evidence/product-artist-bootstrap-2026-10-22.md).
+
+
+## Room-tip authority configuration correction, 2026-10-22
+
+A current runtime can still lack room policy configuration. Connected hosts with
+an active nonzero share require the artist's effective `roomAttestor` to match
+the signaling signer; missing/mismatched configuration fails before submission,
+without reducing the host's share. No active host allocation uses a direct tip
+and the existing bounded room intent for confirmed chat announcements.
+
+Deploy signaling and matching clients together. `GET /contributions/config`
+returns only the public attestor address and chain ID from existing settings,
+with no-store and existing CORS. There is no new secret or frontend signer.
+Enabling host sharing in Rights & support automatically prepares the public
+authority only if the work has no effective authority. Already enabled policies
+with missing authority are also prepared on load. This is a local draft: the
+artist reviews the explanation and approves Save contribution settings. Existing
+custom authorities and profile inheritance remain under artist control; address
+editing stays in advanced details. Failed lookups offer a retry and prevent an
+unconfigured sharing policy from being saved. No automatic on-chain write occurs. Do not fill this on chain
+with an operator signer. See [diagnosis and acceptance](../backlog/implementation/evidence/room-tip-verification-2026-10-22.md).
+
+## Contribution contract validation and optimization, 2026-10-23
+
+Source follow-up in #324 adds existence checks to nonzero `musicGiftPolicy`
+scopes, contribution custom errors, and measured storage/loop optimizations in
+the royalties facet/library. Profile scope zero, existing storage namespaces,
+policy layout, function selectors, event payloads, paid access and pending
+claims are preserved; the client royalties ABI is regenerated for typed errors.
+An actual local baseline-to-candidate selector cut preserves catalogue, policies,
+paid access, used intents and recoverable pending contributions. See the
+[measurements and reproducible rehearsal](../backlog/implementation/evidence/contribution-gas-2026-10-23.md).
+
+No live contract, factory, deployment manifest, CDM binding or artist policy was
+modified. Web/Product publication alone will not activate these contract changes.
+For existing artists, deploy and code-hash verify the reviewed royalties facet,
+rehearse the current upgrade plan against native Product, and use the normal
+artist-owner approval for selector replacement. Keep namespace storage intact;
+do not reset purchases or pending balances. New runtimes need a separately
+coordinated factory/facet configuration. The earlier signaling/client repair
+works with the existing facet and can be rolled out independently. Local EVM
+gas reductions do not establish native Revive fee or storage-deposit savings.

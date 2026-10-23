@@ -3,6 +3,117 @@
 
 export const musicRoyaltiesAbi = [
   {
+    "inputs": [],
+    "name": "ContributionAlreadySubmitted",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ContributionArtistOnly",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ContributionClaimRejected",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ContributionDescriptionTooLong",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ContributionDistributionChanged",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ContributionHostWithoutRoom",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ContributionInvalidAmount",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ContributionInvalidDates",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ContributionInvalidHostShare",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ContributionInvalidProofEncoding",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ContributionInvalidProofLength",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ContributionInvalidProofSigner",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "index",
+        "type": "uint256"
+      }
+    ],
+    "name": "ContributionInvalidRecipient",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ContributionInvalidRecipients",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ContributionInvalidRoomProof",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ContributionInvalidShares",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ContributionNothingToClaim",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ContributionPolicyChanged",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ContributionQuoteExpired",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ContributionRoomUnavailable",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ContributionUnexpectedProof",
+    "type": "error"
+  },
+  {
     "anonymous": false,
     "inputs": [
       {
