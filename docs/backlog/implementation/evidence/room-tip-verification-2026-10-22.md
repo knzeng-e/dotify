@@ -51,3 +51,13 @@ Not deployed. After merge deploy signaling and matching Web/Product, then the
 artist selects the work in Rights & support, enables host sharing if needed,
 reviews the verification explanation and saves through normal approval. Retry a
 room tip with a connected host and verify finalized recipient shares/chat. Do not change live policy as operator.
+
+## Owner Solidity review follow-up, 2026-10-23
+
+The same PR now rejects unknown nonzero policy scopes, retains default profile
+and registered-work policy semantics, and applies measured contribution/royalty
+optimizations with typed errors and regenerated ABI. See the [pattern decisions,
+local gas measurements and old-facet upgrade rehearsal](contribution-gas-2026-10-23.md).
+These contract behaviors require a separately deployed/verified royalties facet
+and normal artist approval. The signaling/client configuration repair above
+does not require forcing a live policy write or reset.

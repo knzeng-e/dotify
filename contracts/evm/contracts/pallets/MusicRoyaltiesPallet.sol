@@ -154,7 +154,8 @@ contract MusicRoyaltiesPallet is MusicContributionsPallet {
   /// @notice Sum of all basis points across the track's royalty splits.
   function musicRoyTotalBps(bytes32 contentHash) external view returns (uint16 total) {
     LibMusicRoyalties.RoyaltySplit[] storage sp = LibMusicRoyalties.store().splits[contentHash];
-    for (uint256 i = 0; i < sp.length; i++) {
+    uint256 splitCount = sp.length;
+    for (uint256 i; i < splitCount; ++i) {
       total += sp[i].bps;
     }
   }
@@ -164,7 +165,8 @@ contract MusicRoyaltiesPallet is MusicContributionsPallet {
     LibMusicRoyalties.RoyaltySplit[] storage sp = royaltyStore.splits[contentHash];
     uint256 distributed;
 
-    for (uint256 i = 0; i < sp.length; i++) {
+    uint256 splitCount = sp.length;
+    for (uint256 i; i < splitCount; ++i) {
       uint256 share = (amount * sp[i].bps) / 10_000;
       distributed += share;
       _settleRoyaltyShare(royaltyStore, contentHash, listener, sp[i].recipient, share);
