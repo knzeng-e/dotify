@@ -801,7 +801,7 @@ export function useSession(deps: UseSessionDeps) {
   async function ensureRoomTransportReady() {
     if (!roomPermissionRef.current) {
       roomPermissionRef.current = ensureProductHostRoomPermissions(signalUrl, undefined, {
-        remoteUrls: dotifyApiUrl ? [dotifyApiUrl] : []
+        remoteUrls: [dotifyApiUrl, import.meta.env.VITE_DOTIFY_MEDIA_EDGE_URL].filter((url): url is string => Boolean(url))
       })
         .then(result => {
           if (result.ok) return true;

@@ -343,4 +343,16 @@ describe('validateProductionEnvironment', () => {
       }).errors
     ).toEqual(['VITE_TURN_URL must use turn: or turns: in production.']);
   });
+  it('keeps a media edge public and free of identity-bearing cache keys', () => {
+    expect(validateProductionEnvironment({ ...validProductionEnv, VITE_DOTIFY_MEDIA_EDGE_URL: 'https://media.example' }).errors).toEqual([]);
+    for (const value of [
+      'https://user:secret@media.example',
+      'https://media.example?token=secret',
+      'https://media.example/ipfs',
+      'https://media.example#session',
+      'http://media.example',
+      'https://localhost'
+    ])
+      expect(validateProductionEnvironment({ ...validProductionEnv, VITE_DOTIFY_MEDIA_EDGE_URL: value }).errors.length).toBeGreaterThan(0);
+  });
 });

@@ -312,6 +312,17 @@ export function validateProductionEnvironment(env: EnvironmentLike): ProductionE
   validateUrl(env, 'VITE_SIGNAL_URL', { required: true, protocols: ['https:', 'wss:'], errors });
   validateUrl(env, 'VITE_DOTIFY_API_URL', { required: true, protocols: ['https:'], errors });
   validateUrl(env, 'VITE_PINATA_GATEWAY', { required: true, protocols: ['https:'], errors });
+  const edge = env.VITE_DOTIFY_MEDIA_EDGE_URL;
+  if (typeof edge === 'string' && edge.trim()) {
+    validateUrl(env, 'VITE_DOTIFY_MEDIA_EDGE_URL', { protocols: ['https:'], errors });
+    try {
+      const url = new URL(edge);
+      if (url.username || url.password || url.port || url.search || url.hash || url.pathname !== '/')
+        errors.push('VITE_DOTIFY_MEDIA_EDGE_URL must be an HTTPS origin without credentials, a port, path, query or fragment.');
+    } catch {
+      /* validateUrl reports malformed URLs */
+    }
+  }
   validateUrlList(env, 'VITE_IPFS_READ_GATEWAYS', { required: true, protocols: ['https:'], errors });
   validateUrl(env, 'VITE_ETH_RPC_URL', { protocols: ['https:'], errors });
   validateUrl(env, 'VITE_WS_URL', { protocols: ['wss:'], errors });

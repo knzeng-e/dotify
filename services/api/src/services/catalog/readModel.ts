@@ -12,6 +12,7 @@ export type CatalogReadModelOptions = {
   staleAfterMs: number;
   confirmations: number;
   now?: () => Date;
+  onSnapshot?: (snapshot: CatalogSnapshot) => void;
 };
 
 export class CatalogReadModel {
@@ -22,6 +23,7 @@ export class CatalogReadModel {
   private readonly staleAfterMs;
   private readonly confirmations;
   private readonly now;
+  private readonly onSnapshot;
   private snapshot: CatalogSnapshot | null = null;
   private failure: { kind: FailureKind; at: string } | null = null;
   private syncInFlight: Promise<CatalogSnapshot> | null = null;
@@ -36,6 +38,7 @@ export class CatalogReadModel {
     this.staleAfterMs = options.staleAfterMs;
     this.confirmations = options.confirmations;
     this.now = options.now ?? (() => new Date());
+    this.onSnapshot = options.onSnapshot;
   }
 
   async start(): Promise<void> {
@@ -156,6 +159,12 @@ export class CatalogReadModel {
 
     this.snapshot = nextSnapshot;
     this.failure = null;
+    // Acceleration cannot fail or delay the durable catalog checkpoint.
+    try {
+      this.onSnapshot?.(nextSnapshot);
+    } catch {
+      /* best-effort observer */
+    }
     return nextSnapshot;
   }
 

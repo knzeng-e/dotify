@@ -205,3 +205,15 @@ it('propagates a real HTTP disconnect and accepts a fresh client afterwards', { 
     await app.close();
   }
 });
+it('prefers the dedicated gateway and keeps public recovery without forwarding ranges or credentials', async () => {
+  const urls: string[] = [];
+  const reader = createEncryptedMediaReader(async (url, init) => {
+    urls.push(String(url));
+    assert.equal(init?.headers, undefined);
+    assert.equal(init?.redirect, 'manual');
+    return urls.length === 1 ? new Response(null, { status: 401 }) : bytes();
+  }, 'https://owned.mypinata.cloud');
+  assert.deepEqual([...(await reader.read(object)).bytes], [1, 2, 3]);
+  assert.equal(urls[0], `https://owned.mypinata.cloud/ipfs/${object}`);
+  assert.equal(urls[1], `https://gateway.pinata.cloud/ipfs/${object}`);
+});

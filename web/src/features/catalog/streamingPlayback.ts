@@ -2,6 +2,7 @@ import { readStreamingManifest, decryptStreamingMedia, type StreamingScope } fro
 import { readAudioBody } from './readAudioBody';
 import { getAudioGatewayUrls } from '../../services/pinata';
 import { pumpStreamingReadAhead } from './streamingPipeline';
+import { streamingObjectUrls } from './streamingTransport';
 import type { StreamingStartupMetric } from './audioStartupTelemetry';
 type ReaderMetric = Pick<
   StreamingStartupMetric,
@@ -49,14 +50,18 @@ export async function fetchStreamingObject(
     warmBytes -= cached.bytes.length;
     warmObjects.delete(cacheKey);
   }
-  const urls = [...(api ? [`${api}/api/media/${cid}/stream/${path}`] : []), ...getAudioGatewayUrls(`${cid}/${path}`)];
+  const urls = streamingObjectUrls(cid, path, {
+    edge: import.meta.env.VITE_DOTIFY_MEDIA_EDGE_URL,
+    api,
+    gateways: getAudioGatewayUrls(`${cid}/${path}`)
+  });
   for (let attempt = 0; attempt < 2; attempt++)
     for (const [index, url] of urls.entries()) {
       signal.throwIfAborted();
       const controller = new AbortController();
-      const deadline = setTimeout(() => controller.abort(), 12_000);
+      const deadline = setTimeout(() => controller.abort(), import.meta.env.VITE_DOTIFY_MEDIA_EDGE_URL && index === 0 ? 3000 : 12_000);
       try {
-        const response = await fetch(url, { signal: AbortSignal.any([signal, controller.signal]) });
+        const response = await fetch(url, { signal: AbortSignal.any([signal, controller.signal]), credentials: 'omit' });
         if (response.status !== 200) {
           await response.body?.cancel();
           continue;

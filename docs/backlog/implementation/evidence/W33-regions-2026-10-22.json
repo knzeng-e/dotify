@@ -1,0 +1,136 @@
+{
+  "observedAt": "2026-10-22T16:32:08.458Z",
+  "kind": "public-http-transport-only",
+  "firstSoundMeasured": false,
+  "limits": "6 anonymous probe tests; same probes",
+  "baseline": {
+    "id": "2W56RxfUua4SpSVZB00021Mf2",
+    "url": "https://dotify-api.fly.dev/api/media/QmNtaxo36kon9yMt6rceN9XPzbDBebftEcZfpmzmnWtaHb/stream/manifest.json",
+    "status": "finished",
+    "probesCount": 3,
+    "results": [
+      {
+        "location": {
+          "continent": "EU",
+          "country": "FI",
+          "city": "Helsinki"
+        },
+        "status": "finished",
+        "http": 200,
+        "timings": {
+          "total": 143,
+          "dns": 31,
+          "tcp": 31,
+          "tls": 36,
+          "firstByte": 35,
+          "download": 10
+        },
+        "headers": {
+          "cache-control": "no-store"
+        }
+      },
+      {
+        "location": {
+          "continent": "NA",
+          "country": "US",
+          "city": "Buffalo"
+        },
+        "status": "finished",
+        "http": 200,
+        "timings": {
+          "total": 206,
+          "dns": 28,
+          "tcp": 12,
+          "tls": 46,
+          "firstByte": 114,
+          "download": 6
+        },
+        "headers": {
+          "cache-control": "no-store"
+        }
+      },
+      {
+        "location": {
+          "continent": "AS",
+          "country": "JP",
+          "city": "Tokyo"
+        },
+        "status": "finished",
+        "http": 200,
+        "timings": {
+          "total": 733,
+          "dns": 4,
+          "tcp": 1,
+          "tls": 14,
+          "firstByte": 472,
+          "download": 242
+        },
+        "headers": {
+          "cache-control": "no-store"
+        }
+      }
+    ]
+  },
+  "candidate": {
+    "id": "2jmTsI5wKBaNeFVPu00021Mf2",
+    "url": "https://chocolate-selected-ocelot-159.mypinata.cloud/ipfs/QmNtaxo36kon9yMt6rceN9XPzbDBebftEcZfpmzmnWtaHb/manifest.json",
+    "status": "finished",
+    "probesCount": 3,
+    "results": [
+      {
+        "location": {
+          "continent": "EU",
+          "country": "FI",
+          "city": "Helsinki"
+        },
+        "status": "finished",
+        "http": 401,
+        "timings": {
+          "total": 492,
+          "dns": 6,
+          "tcp": 2,
+          "tls": 7,
+          "firstByte": 477,
+          "download": 0
+        },
+        "headers": {}
+      },
+      {
+        "location": {
+          "continent": "NA",
+          "country": "US",
+          "city": "Buffalo"
+        },
+        "status": "finished",
+        "http": 401,
+        "timings": {
+          "total": 411,
+          "dns": 43,
+          "tcp": 17,
+          "tls": 29,
+          "firstByte": 322,
+          "download": 0
+        },
+        "headers": {}
+      },
+      {
+        "location": {
+          "continent": "AS",
+          "country": "JP",
+          "city": "Tokyo"
+        },
+        "status": "finished",
+        "http": 401,
+        "timings": {
+          "total": 375,
+          "dns": 11,
+          "tcp": 1,
+          "tls": 9,
+          "firstByte": 353,
+          "download": 1
+        },
+        "headers": {}
+      }
+    ]
+  }
+}

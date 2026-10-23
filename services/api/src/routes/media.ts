@@ -1,10 +1,11 @@
 import type { FastifyInstance } from 'fastify';
 import type { CatalogReadModel } from '../services/catalog/readModel.js';
 import { createEncryptedMediaReader, encryptedMediaCid, MediaError } from '../services/encryptedMedia.js';
+import { config } from '../config.js';
 
 export function createMediaRoutes({
   catalog,
-  reader = createEncryptedMediaReader()
+  reader = createEncryptedMediaReader(fetch, config.MEDIA_IPFS_GATEWAY)
 }: {
   catalog: Pick<CatalogReadModel, 'getSnapshot'>;
   reader?: ReturnType<typeof createEncryptedMediaReader>;
