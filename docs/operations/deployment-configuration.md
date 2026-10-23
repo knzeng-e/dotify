@@ -1,5 +1,20 @@
 # Deployment Configuration Runbook
 
+## Product 0.1.60 Host compatibility candidate, 2026-10-23
+
+Packaging merged dev `a60a89fda4f62819ec2b7bb16c4d4c71bfe176b7` as
+Product 0.1.60 for the observed Desktop 0.1.4-rc.3 TrUAPI 0.25 protocol.
+This is a Product-only publication; API, signaling, encoder, Web and deployed
+artist contracts are unchanged. The merged media-edge setting stays unset,
+and the dedicated Pinata gateway is not enabled while it returns HTTP 401.
+The #324 signaling endpoint and new contribution facet need their separate
+rollout; including client code does not activate those server/contract changes.
+
+See [the publication record](../backlog/implementation/evidence/product-0.1.60-rollout-2026-10-23.md).
+Until finalized readback is recorded there, 0.1.59 remains the verified published
+version. Physical Desktop and mobile reconnection remain acceptance gates.
+
+
 ## Product bootstrap follow-up published, 2026-10-22
 
 Product 0.1.59 publishes merged #323's native peak-storage-deposit correction
