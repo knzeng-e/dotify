@@ -23,7 +23,7 @@ const result = () => ({
 
 function fixture(value: unknown = result()) {
   const events = new Subject();
-  const transaction = { signSubmitAndWatch: vi.fn(() => events) };
+  const transaction = { createSubmitAndWatch: vi.fn(() => events) };
   const call = vi.fn((_args: Record<string, unknown>) => transaction);
   const dryRunCall = vi.fn(async () => value);
   const raw = { api: { tx: { Revive: { call } } }, dryRunCall } as unknown as Parameters<typeof withProductPeakStorageDeposit>[0];
@@ -60,7 +60,7 @@ describe('Product CDM peak storage sizing', () => {
       const f = fixture({ ...result(), max_storage_deposit: peak });
       await expect(f.contract.installRuntimeStep.prepare()).rejects.toBeInstanceOf(ProductCdmStorageDepositError);
       expect(f.call).not.toHaveBeenCalled();
-      expect(f.transaction.signSubmitAndWatch).not.toHaveBeenCalled();
+      expect(f.transaction.createSubmitAndWatch).not.toHaveBeenCalled();
       expect(productCdmPaymentWasNotSubmitted(new ProductCdmStorageDepositError())).toBe(true);
     }
   );
@@ -86,9 +86,9 @@ describe('Product CDM peak storage sizing', () => {
       resolved = true;
       return value;
     });
-    await vi.waitFor(() => expect(f.transaction.signSubmitAndWatch).toHaveBeenCalledTimes(1));
+    await vi.waitFor(() => expect(f.transaction.createSubmitAndWatch).toHaveBeenCalledTimes(1));
     const common = { ok: true, txHash: hash, events: [], block: { hash, number: 100, index: 0 } };
-    f.events.next({ type: 'txBestBlocksState', found: true, ...common });
+    f.events.next({ type: 'inBestBlock', ...common });
     await Promise.resolve();
     expect(resolved).toBe(false);
     f.events.next({ type: 'finalized', ...common });
