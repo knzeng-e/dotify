@@ -22,6 +22,18 @@ afterEach(async () => {
 });
 
 describe('signaling smoke check', () => {
+  it('publishes only the public room authority and network with no-store and exact-origin CORS', async () => {
+    const url = await startServer({
+      origins: ['https://dotify.example'],
+      contributions: { chainId: 42, key: `0x${'11'.repeat(32)}` }
+    });
+    const response = await fetch(`${url}/contributions/config`, { headers: { Origin: 'https://dotify.example' } });
+    assert.equal(response.headers.get('cache-control'), 'no-store');
+    assert.equal(response.headers.get('access-control-allow-origin'), 'https://dotify.example');
+    assert.deepEqual(Object.keys(await response.json()).sort(), ['attestor', 'chainId']);
+    const denied = await fetch(`${url}/contributions/config`, { headers: { Origin: 'https://other.example' } });
+    assert.equal(denied.headers.get('access-control-allow-origin'), null);
+  });
   it('checks health and public status without mutating room state', async () => {
     const url = await startServer();
     const result = await runSignalingSmoke({ url, includeRoom: false, timeoutMs: 2_000 });

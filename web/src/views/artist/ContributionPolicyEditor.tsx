@@ -5,6 +5,7 @@ import { useWalletContext } from '../../app/providers';
 import { contributionReader, emptyPolicy, type ContributionPolicy } from '../../features/donations/contributions';
 import { useContributionWriter } from '../../features/donations/useContributionWriter';
 import type { CatalogTrack } from '../../shared/types';
+import { effectiveRoomAuthority, readDotifyRoomAuthority } from '../../features/donations/roomAuthority';
 
 function dateInput(seconds: bigint) {
   if (!seconds) return '';
@@ -26,27 +27,57 @@ function PolicyEditor({ runtime, tracks }: { runtime: Address; tracks: CatalogTr
   const [recipients, setRecipients] = useState<Array<{ address: string; percent: string }>>([]);
   const [start, setStart] = useState('');
   const [end, setEnd] = useState('');
+  const [fallback, setFallback] = useState<ContributionPolicy>(emptyPolicy);
+  const [authorityBusy, setAuthorityBusy] = useState(false);
+  const [authorityRetry, setAuthorityRetry] = useState(0);
+  const [authorityPrepared, setAuthorityPrepared] = useState(false);
+  const roomAuthority = effectiveRoomAuthority(policy, fallback);
+  const sharesWithHosts = policy.hostBps > 0;
   useEffect(() => {
     let canceled = false;
     setLoaded(false);
+    setAuthorityPrepared(false);
     setMessage('');
-    contributionReader(wallet.ethRpcUrl)
-      .policy(runtime, scope)
-      .then(value => {
+    const reader = contributionReader(wallet.ethRpcUrl);
+    Promise.all([reader.policy(runtime, scope), scope === zeroHash ? Promise.resolve(emptyPolicy) : reader.policy(runtime, zeroHash)])
+      .then(([value, inherited]) => {
         if (canceled) return;
         setPolicy(value);
+        setFallback(inherited);
         setRecipients(value.recipients.map((address, i) => ({ address, percent: String(value.shares[i] / 100) })));
         setStart(dateInput(value.startsAt));
         setEnd(dateInput(value.endsAt));
         setLoaded(true);
       })
       .catch(() => {
-        if (!canceled) setMessage('Contribution settings are unavailable. This runtime may need an artist-approved upgrade.');
+        if (!canceled) setMessage('Contribution settings could not be loaded. Check your connection and try again.');
       });
     return () => {
       canceled = true;
     };
   }, [runtime, scope, wallet.ethRpcUrl, wallet.listenerEvmAddress]);
+  useEffect(() => {
+    if (!loaded || !wallet.expectedChainId || scope === zeroHash || !sharesWithHosts || roomAuthority !== zeroAddress) {
+      setAuthorityBusy(false);
+      return;
+    }
+    const controller = new AbortController();
+    setAuthorityBusy(true);
+    setMessage('');
+    void readDotifyRoomAuthority(wallet.expectedChainId, controller.signal)
+      .then(authority => {
+        if (controller.signal.aborted) return;
+        setAuthorityPrepared(true);
+        setAuthorityBusy(false);
+        setPolicy(current => ({ ...current, roomAttestor: authority }));
+      })
+      .catch(error => {
+        if (controller.signal.aborted) return;
+        setAuthorityBusy(false);
+        setMessage(error instanceof Error ? error.message : 'Room verification is unavailable.');
+      });
+    return () => controller.abort();
+  }, [loaded, scope, sharesWithHosts, roomAuthority, wallet.expectedChainId, authorityRetry]);
   const assigned = recipients.reduce((total, row) => total + Number(row.percent || 0), 0);
   async function save() {
     setBusy(true);
@@ -65,6 +96,8 @@ function PolicyEditor({ runtime, tracks }: { runtime: Address; tracks: CatalogTr
         throw new Error('Use valid receiving accounts and positive shares totaling at most 100%.');
       if (!/^0x[\da-f]{64}$/i.test(policy.campaign) || !isAddress(policy.roomAttestor))
         throw new Error('Check the campaign reference and room authority address.');
+      if (scope !== zeroHash && policy.hostBps > 0 && effectiveRoomAuthority(policy, fallback) === zeroAddress)
+        throw new Error('Room verification is not ready. Retry verification before saving.');
       const next = {
         ...policy,
         recipients: recipients.map(row => row.address as Address),
@@ -79,6 +112,7 @@ function PolicyEditor({ runtime, tracks }: { runtime: Address; tracks: CatalogTr
       const updated = await contributionReader(wallet.ethRpcUrl).policy(runtime, scope);
       if (updated.version <= policy.version) throw new Error('Update submitted; waiting for the new settings. Refresh before submitting again.');
       setPolicy(updated);
+      setAuthorityPrepared(false);
       setMessage('Contribution settings saved. Existing receipts are unchanged.');
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'The settings could not be saved.');
@@ -112,7 +146,7 @@ function PolicyEditor({ runtime, tracks }: { runtime: Address; tracks: CatalogTr
             void save();
           }}
         >
-          <fieldset disabled={busy}>
+          <fieldset disabled={busy || authorityBusy}>
             <label>
               Purpose
               <input
@@ -130,19 +164,37 @@ function PolicyEditor({ runtime, tracks }: { runtime: Address; tracks: CatalogTr
               </label>
             )}
             {scope !== zeroHash && policy.hostBps > 0 && (
-              <label className='contribution-host-share'>
-                Host share of the whole room tip (%)
-                <input
-                  className='field'
-                  type='number'
-                  min='0.01'
-                  max='100'
-                  step='0.01'
-                  value={policy.hostBps / 100}
-                  onChange={event => setPolicy({ ...policy, hostBps: Math.round(Number(event.target.value) * 100) })}
-                />
-                <small>The rest follows the work's rights split. Destinations below apply only to your resulting share.</small>
-              </label>
+              <>
+                <label className='contribution-host-share'>
+                  Host share of the whole room tip (%)
+                  <input
+                    className='field'
+                    type='number'
+                    min='0.01'
+                    max='100'
+                    step='0.01'
+                    value={policy.hostBps / 100}
+                    onChange={event => setPolicy({ ...policy, hostBps: Math.round(Number(event.target.value) * 100) })}
+                  />
+                  <small>The rest follows the work's rights split. Destinations below apply only to your resulting share.</small>
+                </label>
+                <div role='status'>
+                  <p>
+                    {authorityBusy
+                      ? 'Preparing Dotify room verification…'
+                      : roomAuthority === zeroAddress
+                        ? 'Room verification could not be prepared. Retry before saving.'
+                        : authorityPrepared
+                          ? 'Dotify will verify connected hosts for shared tips. Save to approve this choice with your signature.'
+                          : 'Your existing room verification is preserved. Save to approve changes to host sharing.'}
+                  </p>
+                  {!authorityBusy && roomAuthority === zeroAddress && (
+                    <button type='button' className='secondary-action' onClick={() => setAuthorityRetry(value => value + 1)}>
+                      Retry verification
+                    </button>
+                  )}
+                </div>
+              </>
             )}
             <div className='contribution-policy-dates'>
               <label>
@@ -218,12 +270,15 @@ function PolicyEditor({ runtime, tracks }: { runtime: Address; tracks: CatalogTr
                   className='field'
                   value={policy.roomAttestor === zeroAddress ? '' : policy.roomAttestor}
                   placeholder='0x…'
-                  onChange={event => setPolicy({ ...policy, roomAttestor: (event.target.value || zeroAddress) as Address })}
+                  onChange={event => {
+                    setAuthorityPrepared(false);
+                    setPolicy({ ...policy, roomAttestor: (event.target.value || zeroAddress) as Address });
+                  }}
                 />
               </label>
               <p>This authority verifies the host and room for shared tips. A track can inherit the authority saved for your profile gifts.</p>
             </details>
-            <button className='primary-action' disabled={busy || assigned > 100}>
+            <button className='primary-action' disabled={busy || authorityBusy || assigned > 100}>
               {busy ? 'Saving…' : 'Save contribution settings'}
             </button>
           </fieldset>

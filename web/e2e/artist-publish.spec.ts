@@ -156,6 +156,114 @@ test('artist saves a scheduled gift destination and reloads it from Rights', asy
   await expect(policy).toContainText('25% of your remaining portion stays with you');
 });
 
+async function openPublishedTipPolicy(page: Page) {
+  await createArtistProfile(page);
+  await completeReleaseDraft(page);
+  await page.getByTestId('publish-release-button').click();
+  await expect(page.getByRole('dialog')).toContainText('Release published');
+  await page.getByRole('button', { name: 'Close', exact: true }).click();
+  await page.getByRole('tab', { name: 'Rights & support', exact: true }).click();
+  const policy = page.locator('.contribution-policy');
+  await policy.locator('select').selectOption({ label: 'Tips · E2E Published Signal' });
+  return policy;
+}
+
+test('host sharing prepares verification automatically but only persists after artist approval', async ({ page }) => {
+  await page.route('**/contributions/config', route => route.fulfill({ json: { chainId: 420420417, attestor: '0x0000000000000000000000000000000000001234' } }));
+  const policy = await openPublishedTipPolicy(page);
+  await policy.getByLabel('Share room tips with hosts', { exact: true }).check();
+  await expect(policy).toContainText('Save to approve this choice with your signature');
+  await expect(policy.getByRole('button', { name: 'Use Dotify room verification', exact: true })).toHaveCount(0);
+  // Preparing the public address must not save a policy or request a signature.
+  await page.getByRole('tab', { name: 'Overview', exact: true }).click();
+  await page.getByRole('tab', { name: 'Rights & support', exact: true }).click();
+  await policy.locator('select').selectOption({ label: 'Tips · E2E Published Signal' });
+  await expect(policy.getByLabel('Share room tips with hosts', { exact: true })).not.toBeChecked();
+  await policy.getByLabel('Share room tips with hosts', { exact: true }).check();
+  await expect(policy).toContainText('Save to approve this choice with your signature');
+  await policy.getByRole('button', { name: 'Save contribution settings', exact: true }).click();
+  await expect(policy).toContainText('Contribution settings saved');
+  await page.getByRole('tab', { name: 'Overview', exact: true }).click();
+  await page.getByRole('tab', { name: 'Rights & support', exact: true }).click();
+  await policy.locator('select').selectOption({ label: 'Tips · E2E Published Signal' });
+  await expect(policy.getByLabel('Share room tips with hosts', { exact: true })).toBeChecked();
+  await policy.locator('summary').click();
+  await expect(policy.getByLabel('Room authority address', { exact: true })).toHaveValue('0x0000000000000000000000000000000000001234');
+});
+
+test('host sharing rejects a wrong-network authority and can retry preparation', async ({ page }) => {
+  let correctNetwork = false;
+  await page.route('**/contributions/config', route =>
+    route.fulfill({
+      json: { chainId: correctNetwork ? 420420417 : 1, attestor: '0x0000000000000000000000000000000000001234' }
+    })
+  );
+  const policy = await openPublishedTipPolicy(page);
+  await policy.getByLabel('Share room tips with hosts', { exact: true }).check();
+  await expect(policy).toContainText('Room verification is unavailable on this network');
+  await policy.getByRole('button', { name: 'Save contribution settings', exact: true }).click();
+  await expect(policy).toContainText('Room verification is not ready');
+  await expect(policy).not.toContainText('Contribution settings saved');
+  correctNetwork = true;
+  await policy.getByRole('button', { name: 'Retry verification', exact: true }).click();
+  await expect(policy).toContainText('Save to approve this choice with your signature');
+  await policy.getByRole('button', { name: 'Save contribution settings', exact: true }).click();
+  await expect(policy).toContainText('Contribution settings saved');
+});
+
+test('host sharing preserves a custom inherited authority without contacting Dotify', async ({ page }) => {
+  let lookups = 0;
+  await page.route('**/contributions/config', route => {
+    lookups++;
+    return route.fulfill({ status: 503 });
+  });
+  const policy = await openPublishedTipPolicy(page);
+  await policy.locator('select').selectOption({ label: 'Gifts to your artist profile' });
+  await policy.locator('summary').click();
+  await policy.getByLabel('Room authority address', { exact: true }).fill('0x0000000000000000000000000000000000005678');
+  await policy.getByRole('button', { name: 'Save contribution settings', exact: true }).click();
+  await expect(policy).toContainText('Contribution settings saved');
+  await policy.locator('select').selectOption({ label: 'Tips · E2E Published Signal' });
+  await policy.getByLabel('Share room tips with hosts', { exact: true }).check();
+  await expect(policy).toContainText('Your existing room verification is preserved');
+  await policy.getByRole('button', { name: 'Save contribution settings', exact: true }).click();
+  await expect(policy).toContainText('Contribution settings saved');
+  // The track still inherits the profile address, rather than copying a replacement.
+  await expect(policy.getByLabel('Room authority address', { exact: true })).toHaveValue('');
+  await policy.getByLabel('Room authority address', { exact: true }).fill('0x0000000000000000000000000000000000009876');
+  await policy.getByLabel('Share room tips with hosts', { exact: true }).uncheck();
+  await policy.getByLabel('Share room tips with hosts', { exact: true }).check();
+  await expect(policy.getByLabel('Room authority address', { exact: true })).toHaveValue('0x0000000000000000000000000000000000009876');
+  await expect(policy).toContainText('Your existing room verification is preserved');
+  await policy.getByRole('button', { name: 'Save contribution settings', exact: true }).click();
+  await expect(policy).toContainText('Contribution settings saved');
+  expect(lookups).toBe(0);
+});
+
+test('a pending room authority lookup cannot leak into another contribution scope', async ({ page }) => {
+  let releaseLookup!: () => void;
+  const held = new Promise<void>(resolve => {
+    releaseLookup = resolve;
+  });
+  await page.route('**/contributions/config', async route => {
+    await held;
+    await route.fulfill({ json: { chainId: 420420417, attestor: '0x0000000000000000000000000000000000001234' } }).catch(() => {});
+  });
+  const policy = await openPublishedTipPolicy(page);
+  await policy.getByLabel('Share room tips with hosts', { exact: true }).check();
+  await expect(policy).toContainText('Preparing Dotify room verification');
+  await policy.locator('select').selectOption({ label: 'Gifts to your artist profile' });
+  releaseLookup();
+  await policy.locator('summary').click();
+  await expect(policy.getByLabel('Room authority address', { exact: true })).toHaveValue('');
+  await policy.getByRole('button', { name: 'Save contribution settings', exact: true }).click();
+  await expect(policy).toContainText('Contribution settings saved');
+  await page.getByRole('tab', { name: 'Overview', exact: true }).click();
+  await page.getByRole('tab', { name: 'Rights & support', exact: true }).click();
+  await policy.locator('summary').click();
+  await expect(policy.getByLabel('Room authority address', { exact: true })).toHaveValue('');
+});
+
 test('artist can create a runtime, publish a release, and see it in the listener catalog', async ({ page }, info) => {
   await createArtistProfile(page);
   await completeReleaseDraft(page);
