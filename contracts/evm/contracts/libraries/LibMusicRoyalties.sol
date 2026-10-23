@@ -33,14 +33,16 @@ library LibMusicRoyalties {
 
   /// @dev Writes splits and returns total bps. Reverts on any validation failure.
   function storeSplits(Storage storage s, bytes32 contentHash, address[] calldata recipients, uint16[] calldata bps) internal returns (uint16 totalBps) {
-    require(recipients.length > 0, 'MusicRoyalties: no splits');
-    require(recipients.length == bps.length, 'MusicRoyalties: length mismatch');
-    for (uint256 i = 0; i < recipients.length; i++) {
+    uint256 recipientCount = recipients.length;
+    require(recipientCount > 0, 'MusicRoyalties: no splits');
+    require(recipientCount == bps.length, 'MusicRoyalties: length mismatch');
+    RoyaltySplit[] storage splits = s.splits[contentHash];
+    for (uint256 i; i < recipientCount; ++i) {
       require(recipients[i] != address(0), 'MusicRoyalties: zero recipient');
       require(bps[i] > 0, 'MusicRoyalties: zero bps');
       totalBps += bps[i];
       require(totalBps <= 10_000, 'MusicRoyalties: bps overflow');
-      s.splits[contentHash].push(RoyaltySplit({ recipient: recipients[i], bps: bps[i] }));
+      splits.push(RoyaltySplit({ recipient: recipients[i], bps: bps[i] }));
     }
   }
 
@@ -52,8 +54,8 @@ library LibMusicRoyalties {
 
   function addClaimable(Storage storage s, address recipient, uint256 amount) internal returns (uint256 pendingTotal) {
     if (amount == 0) return s.claimable[recipient];
-    s.claimable[recipient] += amount;
-    return s.claimable[recipient];
+    pendingTotal = s.claimable[recipient] + amount;
+    s.claimable[recipient] = pendingTotal;
   }
 
   function takeClaimable(Storage storage s, address recipient) internal returns (uint256 amount) {
@@ -65,7 +67,7 @@ library LibMusicRoyalties {
 
   function restoreClaimable(Storage storage s, address recipient, uint256 amount) internal returns (uint256 pendingTotal) {
     if (amount == 0) return s.claimable[recipient];
-    s.claimable[recipient] += amount;
-    return s.claimable[recipient];
+    pendingTotal = s.claimable[recipient] + amount;
+    s.claimable[recipient] = pendingTotal;
   }
 }

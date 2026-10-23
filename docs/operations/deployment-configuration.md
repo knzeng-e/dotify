@@ -2494,3 +2494,45 @@ After publishing the correction, retry setup with the same connected artist;
 the existing flow re-reads and resumes the pending runtime. Verify the directory
 entry, artist ownership and cleared pending state after the user's approval.
 See the [native replay and validation evidence](../backlog/implementation/evidence/product-artist-bootstrap-2026-10-22.md).
+
+
+## Room-tip authority configuration correction, 2026-10-22
+
+A current runtime can still lack room policy configuration. Connected hosts with
+an active nonzero share require the artist's effective `roomAttestor` to match
+the signaling signer; missing/mismatched configuration fails before submission,
+without reducing the host's share. No active host allocation uses a direct tip
+and the existing bounded room intent for confirmed chat announcements.
+
+Deploy signaling and matching clients together. `GET /contributions/config`
+returns only the public attestor address and chain ID from existing settings,
+with no-store and existing CORS. There is no new secret or frontend signer.
+Enabling host sharing in Rights & support automatically prepares the public
+authority only if the work has no effective authority. Already enabled policies
+with missing authority are also prepared on load. This is a local draft: the
+artist reviews the explanation and approves Save contribution settings. Existing
+custom authorities and profile inheritance remain under artist control; address
+editing stays in advanced details. Failed lookups offer a retry and prevent an
+unconfigured sharing policy from being saved. No automatic on-chain write occurs. Do not fill this on chain
+with an operator signer. See [diagnosis and acceptance](../backlog/implementation/evidence/room-tip-verification-2026-10-22.md).
+
+## Contribution contract validation and optimization, 2026-10-23
+
+Source follow-up in #324 adds existence checks to nonzero `musicGiftPolicy`
+scopes, contribution custom errors, and measured storage/loop optimizations in
+the royalties facet/library. Profile scope zero, existing storage namespaces,
+policy layout, function selectors, event payloads, paid access and pending
+claims are preserved; the client royalties ABI is regenerated for typed errors.
+An actual local baseline-to-candidate selector cut preserves catalogue, policies,
+paid access, used intents and recoverable pending contributions. See the
+[measurements and reproducible rehearsal](../backlog/implementation/evidence/contribution-gas-2026-10-23.md).
+
+No live contract, factory, deployment manifest, CDM binding or artist policy was
+modified. Web/Product publication alone will not activate these contract changes.
+For existing artists, deploy and code-hash verify the reviewed royalties facet,
+rehearse the current upgrade plan against native Product, and use the normal
+artist-owner approval for selector replacement. Keep namespace storage intact;
+do not reset purchases or pending balances. New runtimes need a separately
+coordinated factory/facet configuration. The earlier signaling/client repair
+works with the existing facet and can be rolled out independently. Local EVM
+gas reductions do not establish native Revive fee or storage-deposit savings.

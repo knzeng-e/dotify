@@ -214,6 +214,12 @@ export function startSignalingServer(overrides = {}, dependencies = {}) {
   const httpServer = createServer((request, response) => {
     const requestUrl = new URL(request.url ?? '/', `http://${request.headers.host ?? 'localhost'}`);
 
+    if (requestUrl.pathname === '/contributions/config' && request.method === 'GET') {
+      response.setHeader('cache-control', 'no-store');
+      sendJson(request, response, 200, contributions.configuration());
+      return;
+    }
+
     if (requestUrl.pathname === '/health') {
       const listenerTotal = Array.from(rooms.values()).reduce((total, room) => total + room.listeners.size, 0);
       sendJson(request, response, 200, {
