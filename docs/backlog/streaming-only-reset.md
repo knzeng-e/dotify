@@ -1,5 +1,11 @@
 # Streaming-only internal reset
 
+## Current reconciliation, 2026-10-23
+
+#321 is merged and the streaming-only path deployed in the 0.1.58 coordinated
+reset. #320 closes as compatibility cleanup, not as an accepted native streaming
+pilot. #287/#317/#158 retain real publication/audio/value-flow acceptance.
+
 Issue: #320. Priority P1; Track Production spine; Phase Now; Type Work.
 Depends on the empty-directory cutover in #317 / #319 and W32 / #287 / #318.
 
