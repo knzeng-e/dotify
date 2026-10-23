@@ -19,9 +19,30 @@ endpoint and Solidity changes are not activated by this executable alone.
 
 ## Publication status
 
-Prepared, not yet published. Build, live Host profile verification and signed
-DotNS/public artifact readback will be recorded after execution. Never infer
-live publication from the deployment config version alone.
+Published from clean packaging commit `cb63d0749aba0a43980f1d3dd3f52a3c9866cf66`. All 11 merged-dev
+checks pass. The packaging build and 25 deployment/protocol tests pass locally;
+packaging CI 39959985162 passes its completed checks, with the browser job still
+stalled at **Install Playwright browser**, before executing tests. This is not a
+claim that the packaging browser job passed. Existing large-chunk warnings remain.
+
+Live Host Remote Config verification passed before and after signing. Independent
+finalized readback at block **14811178** confirms root
+`dotify-test01.dot` and executable `app.dotify-test01.dot` both resolve to
+`bafybeia2dhkny3yv4oy2dzubqa24qlt2kacnd64sy5mjf3qw47dhdveuum`, with executable manifest `[0,1,60]`.
+
+- Root contenthash transaction: `0x0925f9799b33facec288045faad372e0fca6dfb0666d12f744771b84914fcfaa`.
+- Executable manifest transaction: `0x22f8d4930dc4bddefc4f860dd02bc323f00f4039d41b266c8a367dbc4f5a1223`.
+- Public CAR downloaded successfully: 12,769,136 bytes; all 127 SHA-256 block
+  hashes verified. Archive SHA-256 `db7e5ab434138c6277709820e7b1722cb7e733cf14a8ffe36730b783ab753469`.
+- Internal UnixFS directory `bafybeihmom5evkg7czg37fuvr74mazgmwciyyjvatp6f2wsqagfs2c2jpe` matches fresh local merkleization;
+  DotNS resolves the transport DAG, not that inner directory root.
+- Exact index and entry bytes match the local signed build. Entry `assets/index-Cn02Vu47.js`,
+  SHA-256 `9065da406c34e846265e3d26a4ed97ca232cf1c0c9f7dc69701f97f94074c14b`, embeds the packaging SHA above.
+- API readiness and signaling health return HTTP 200. No services restarted.
+  The local DotNS signer was removed and its absence independently verified.
+
+These checks prove publication and artifact identity, not an installed Host's
+cache refresh or physical-device connection recovery.
 
 ## Remaining acceptance
 
