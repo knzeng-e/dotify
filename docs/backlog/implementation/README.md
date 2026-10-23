@@ -2,12 +2,23 @@
 
 Agent-ready work sequences for shipping a trustworthy musical commons on Product DevNet and ordinary web, then expanding discovery. Written 2026-09-05 against dev `bb3e2557215ee8628f4c0e107de6d1e984baaccf` and extended with W27 on 2026-09-22; agents must refresh the source before acting. This is a plan, not a claim that these features or branches already exist.
 
+## Current delivery correction, 2026-10-23
+
+Use the [current audit](evidence/backlog-reconciliation-2026-10-23.md) before
+acting on historical sequence prompts below. W29 and room-life implementation
+are delivered. W30's same-volume non-root cutover completed in the 0.1.58 reset;
+W32/current-format jobs, encoder and playback are deployed, with native/live
+acceptance retained in #287/#317/#158. W33 code is merged but gateway access and
+measured activation remain blocked. W19's remaining scope is exact-Host location
+and lifecycle validation; do not restore manual scans/city exploration. W31's
+specific missing Worldwide-report test remains open. W34-W39 are still future work.
+
 ## Owner priority update: trusted pilot and streaming track, 2026-10-16
 
 The [2026-10-20 reconciliation](evidence/backlog-reconciliation-2026-10-20.md)
-supersedes the delivery assumptions in this dated scheduling snapshot. W30/W31
-are merged and deployed; API non-root/volume migration and the dedicated
-Worldwide-report E2E remain explicit remainders. Mobile forms #306 are delivered
+records an earlier checkpoint, superseded by the 2026-10-23 correction above.
+Its API non-root remainder subsequently completed; the dedicated Worldwide-report
+E2E remains open. W30/W31 implementation is merged and deployed. Mobile forms #306 are delivered
 in Product 0.1.56. W32 is selected for implementation, with its release gates
 unchanged. Do not reimplement delivered scopes from the older list below.
 
@@ -51,12 +62,12 @@ This historical snapshot is superseded by dated owner updates above and below.
 The sequences are recipes; they are not a second workflow board. GitHub Project
 5 owns live status, and each evidence file records the delivered boundary.
 
-| State                            | Sequences                    | Meaning                                                                                                                                                                                                                           |
-| -------------------------------- | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Delivered implementation records | W01-W12, W14, W18, W21-W25   | Their acceptance scope is merged into `dev`. Broader live-device evidence belongs to W13 or to #87, #88, and #89.                                                                                                                 |
-| Delivered feasibility record     | W16                          | Product CASH cannot currently authorize Asset Hub access with the evidence exposed by the Product APIs; PAS remains the executable pilot rail.                                                                                    |
+| State                            | Sequences                    | Meaning                                                                                                                                                                                                                                                                                                                                                   |
+| -------------------------------- | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Delivered implementation records | W01-W12, W14, W18, W21-W25   | Their acceptance scope is merged into `dev`. Broader live-device evidence belongs to W13 or to #87, #88, and #89.                                                                                                                                                                                                                                         |
+| Delivered feasibility record     | W16                          | Product CASH cannot currently authorize Asset Hub access with the evidence exposed by the Product APIs; PAS remains the executable pilot rail.                                                                                                                                                                                                            |
 | Active release gate              | W13                          | Product CDM validation app `[0, 1, 27]` remains the last host-observed candidate. The `[0, 1, 29]` debug upload used the transient `pad` 0.16.2 DotNS generation and is not Product-host evidence; republish it through the verified 0.16.7 profile before payment/access, room, physical-device, rollback, release-profile, and aggregate pilot capture. |
-| Not activated                    | W15, W17, W19, W20, W26, W27 | Do not start before their dependency and pilot gates are satisfied.                                                                                                                                                               |
+| Not activated                    | W15, W17, W19, W20, W26, W27 | Do not start before their dependency and pilot gates are satisfied.                                                                                                                                                                                                                                                                                       |
 
 W14 is complete as an optional implementation with a full 2D/list fallback;
 that does not authorize making 3D the default. W18 is complete as a privacy
@@ -163,7 +174,7 @@ does not displace W13 release evidence gates.
 | [W16](W16-product-cash-settlement.md)   | Prove a real Product CASH settlement path                   | `feat/product-cash-settlement`   | W05, W11                                                   |
 | [W17](W17-human-free-evidence.md)       | Bind Human free access to real private personhood           | `feat/human-free-evidence`       | W03, W11                                                   |
 | [W18](W18-nearby-privacy-design.md)     | Design nearby discovery with explicit privacy boundaries    | `docs/nearby-privacy-design`     | W09, W10                                                   |
-| [W19](W19-nearby-rooms.md)              | Find/open nearby rooms with approximate km radii             | `feat/nearby-rooms`              | W09, W10, W18; W13 for release                              |
+| [W19](W19-nearby-rooms.md)              | Find/open nearby rooms with approximate km radii            | `feat/nearby-rooms`              | W09, W10, W18; W13 for release                             |
 | [W20](W20-community-sovereignty.md)     | Choose the next community and sovereignty increment         | `docs/community-sovereignty`     | W13                                                        |
 | [W21](W21-first-listening-screen.md)    | Make the first listening screen trustworthy                 | `fix/first-listening-screen`     | W08, W10                                                   |
 | [W22](W22-room-hosting-clarity.md)      | Make hosting and joining a room unmistakable                | `fix/room-hosting-clarity`       | W09, W10                                                   |

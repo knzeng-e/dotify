@@ -1,5 +1,16 @@
 # Publication and room follow-up — 2026-10-11
 
+## Current reconciliation, 2026-10-23
+
+#270 and the 0.1.48 rollout delivered this implementation. The owner-authorized
+reset retired the three previous artist runtimes: their missing metadata
+selector must not trigger new upgrade/migration work. #269 remains open for
+capability and real metadata correction/read-back on the actual new runtime,
+and coordinated room-tip verification/receipt acceptance (including #324's
+server and contract activation boundaries). Fresh factory deployment alone is
+not proof that an optional metadata selector is installed. Broader physical
+artwork/navigation/audio evidence remains #87/#85/#158.
+
 Owner-reported acceptance gaps on published Product 0.1.47.
 
 GitHub issue: #269.

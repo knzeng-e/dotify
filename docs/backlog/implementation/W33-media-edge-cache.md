@@ -1,5 +1,14 @@
 # W33 - Serve encrypted media through a read-through edge cache
 
+## Current reconciliation, 2026-10-23
+
+#325 is merged. Edge-first authenticated ciphertext delivery and bounded
+pre-warming are implemented, with API/IPFS fallback and unset-by-default public
+origins. #288 stays open: the dedicated gateway returned 401 in three authorized
+regional probes. Correct access, verify exact ciphertext/CORS/cache behavior,
+then activate and measure paired audible startup. Do not interpret HTTP probe
+timings as first sound or reactivate DAV2 range readers. See [W33](evidence/W33.md).
+
 Copy this entire file into an agent working in the Dotify repository, or use the launcher in README.md.
 
 ## Agent assignment

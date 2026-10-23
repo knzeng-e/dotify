@@ -1,5 +1,15 @@
 # W19 — Product location continuation
 
+## Current reconciliation, 2026-10-23
+
+This is historical evidence for #279, not the current UX or a native support
+matrix. #298/#300/#304 supersede manual scan, city selection and early lifecycle
+rules. #326 pins SDK 0.39 / TrUAPI 0.25; Product 0.1.60 publication is recorded
+in [#327](https://github.com/knzeng-e/dotify/pull/327). The protocol match on the
+inspected Desktop is not physical coordinate-delivery evidence. #274 remains
+open for current exact-Host location/lifecycle acceptance. Do not use the old
+city/snapshot steps below as a new implementation or release instruction.
+
 ## Identity and scope
 
 - Date: 2026-10-14. Existing issue: [#274](https://github.com/knzeng-e/dotify/issues/274).
@@ -69,15 +79,15 @@ browser fixture uses the installed SDK fake client together with real browser
 Geolocation/Permissions APIs and the real signaling service. This is adapter
 evidence, not installed-Host evidence.
 
-| Check | Observed result |
-| --- | --- |
-| Full unit suite before final strict-state hardening | 119 files / 914 tests passed. |
-| Final permission/location/session/flags tests | 36/36 passed, including the added unknown-state rejection, snapshot policy capture and late cancellation/expiry paths. |
-| Typecheck and Web build | Passed. |
-| Frozen Product build, Nearby and Product location flags on | Passed on the tested implementation above; no bootstrap refresh/deployment. |
-| Nearby Playwright | 3/3 passed, 0 flaky: installed SDK fake client plus real browser positioning, denial/missing API, explicit city choice and ordinary protected host → guest audio. |
-| Lint / formatting | Zero errors; two existing App.tsx hook warnings. Prettier passed. |
-| Offline backlog / diff checks | Passed. |
+| Check                                                      | Observed result                                                                                                                                                   |
+| ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Full unit suite before final strict-state hardening        | 119 files / 914 tests passed.                                                                                                                                     |
+| Final permission/location/session/flags tests              | 36/36 passed, including the added unknown-state rejection, snapshot policy capture and late cancellation/expiry paths.                                            |
+| Typecheck and Web build                                    | Passed.                                                                                                                                                           |
+| Frozen Product build, Nearby and Product location flags on | Passed on the tested implementation above; no bootstrap refresh/deployment.                                                                                       |
+| Nearby Playwright                                          | 3/3 passed, 0 flaky: installed SDK fake client plus real browser positioning, denial/missing API, explicit city choice and ordinary protected host → guest audio. |
+| Lint / formatting                                          | Zero errors; two existing App.tsx hook warnings. Prettier passed.                                                                                                 |
+| Offline backlog / diff checks                              | Passed.                                                                                                                                                           |
 
 The final browser run took 23.8 seconds. Wire assertions found no precise fix
 or wallet field. Screenshots of current-position and named-city states were

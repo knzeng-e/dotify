@@ -28,11 +28,11 @@
       "id": "streaming-only-reset",
       "doc": "docs/backlog/streaming-only-reset.md",
       "issue": 320,
-      "kind": "work",
+      "kind": "record",
       "priority": "P1",
       "track": "Production spine",
-      "phase": "Now",
-      "note": "Owner retires the internal catalog: remove DAV1/DAV2 playback/publication/migration paths; keep current streaming, release-bound keys and permanent nonce custody. Follows #319."
+      "phase": "Record",
+      "note": "Delivered by merged #321; the 0.1.58 coordinated rollout activates the streaming-only path. Retired catalogs need no migration. Real/native streaming acceptance remains #287/#317/#158."
     },
     {
       "id": "fresh-testnet-streaming-cutover",
@@ -42,7 +42,7 @@
       "priority": "P1",
       "track": "Production spine",
       "phase": "Now",
-      "note": "Owner requested clean testnet reset alongside W32 new-publication streaming. Fresh core contracts and CDM version 2 are live; coordinated API/Web/Product cutover and artist re-onboarding remain gated on W30/W32."
+      "note": "Fresh contracts/CDM v2 and coordinated API/signaling/encoder/Web/Product cutover deployed on 2026-10-22. #323 fixes native bootstrap; #326 and published Product 0.1.60 (#327) update Host compatibility. Owner reports successful artist setup/publication; candidate-bound audio/access/value-flow evidence remains open. Preserve later custody and nonce history."
     },
     {
       "id": "mobile-form-continuity",
@@ -68,10 +68,11 @@
       "id": "room-life",
       "doc": "docs/backlog/room-life-and-artist-visits.md",
       "issue": 257,
-      "kind": "work",
+      "kind": "record",
       "priority": "P1",
       "track": "Room reliability",
-      "phase": "Next"
+      "phase": "Record",
+      "note": "Delivered by #258 (stacked into #256), #261/#263 and #300/#304. Chat presence, verified artist visits and private-safe aggregates are implemented; physical native/social/audio acceptance remains #85/#89/#158."
     },
     {
       "id": "01",
@@ -280,7 +281,7 @@
       "priority": "P1",
       "track": "Product SDK",
       "phase": "Product feasibility",
-      "note": "Owns exact SDK/Host compatibility assessment, coordinated SDK 0.36 migration and shared versioned network profile. Stablecoin/Coinage follow-up is Later by owner decision 2026-10-14; W16 remains dated delivered evidence. Nearby browser/manual-area prototyping is independent."
+      "note": "SDK 0.39/TrUAPI 0.25 pairing merged in #326 and published as Product 0.1.60 (#327), matching inspected Desktop 0.1.4-rc.3. Physical Desktop/mobile account, signing, media and location acceptance plus shared network profile remain; do not infer mobile wire capability from its version label."
     },
     {
       "id": "catalog-read-model",
@@ -300,7 +301,7 @@
       "priority": "P1",
       "track": "Production spine",
       "phase": "Next",
-      "note": "Responsive variants are delivered by #198. Keep active for live upload, mobile transfer and paint, gateway timeout, cache-edge, and legacy-backfill evidence."
+      "note": "Responsive variants are delivered by #198. Keep live current-publication cover/mobile/gateway/cache evidence; the internal reset retires legacy-cover backfill. W33 edge activation is separate."
     },
     {
       "id": "release-room-followup",
@@ -309,7 +310,8 @@
       "kind": "work",
       "priority": "P1",
       "track": "Production spine",
-      "phase": "Now"
+      "phase": "Now",
+      "note": "#270 and 0.1.48 delivered the follow-up code/rollout. The reset retired the three old runtimes, so their missing-selector upgrade is no longer an active task. Verify metadata capability/correction on the actual new runtime and #324 coordinated room-tip/receipt activation; native/artwork/room acceptance remains explicit."
     },
     {
       "id": "dav2-startup",
@@ -319,7 +321,7 @@
       "priority": "P0",
       "track": "Production spine",
       "phase": "Next",
-      "note": "DAV2 pipelining, worker decryption, warm intent, bounded first range, and evidence tooling are delivered. Keep active for candidate-bound physical browser, device, and gateway measurements."
+      "note": "Historical id retained; DAV1/DAV2 readers and old first-sound exports are retired by #321/ADR 0033. Measure current authenticated v3 AAC startup with schema-6 evidence on exact Web/Product builds; coordinate W32/W33/W13 without restoring legacy range/worker paths."
     },
     {
       "id": "turn-sfu-resilience",
@@ -545,21 +547,21 @@
       "id": "W29",
       "doc": "docs/backlog/implementation/W29-ux-clarity-pass.md",
       "issue": 250,
-      "kind": "work",
+      "kind": "record",
       "priority": "P1",
       "track": "Design record",
-      "phase": "Next",
-      "note": "Owner-requested clarity slice from the 2026-10-08 audit, implemented by PR #249: one word per gesture, room-first home, named payment recipients, named and retried protected playback failures, room exit in the header, sign-in chained to a purposeful connect. Reverses the W21/W28 choice to keep prices off catalog cards. Evidence: docs/backlog/implementation/evidence/W29.md. Project 5 owns workflow status."
+      "phase": "Record",
+      "note": "Delivered by merged #249 and later recovery work. Real-wallet chained sign-in and protected failure recovery remain #85/#158 acceptance, not another W29 implementation."
     },
     {
       "id": "W30",
       "doc": "docs/backlog/implementation/W30-pilot-hardening.md",
       "issue": 285,
-      "kind": "work",
+      "kind": "record",
       "priority": "P0",
       "track": "Production spine",
-      "phase": "Now",
-      "note": "#296 is merged; 0.1.52 records deployment and proxy identity, single signaling worker and TURN checks. Remaining #285 scope: API non-root execution with safe volume ownership and migration/rollback evidence. See evidence/backlog-reconciliation-2026-10-20.md; do not repeat delivered hardening."
+      "phase": "Record",
+      "note": "Delivered by #296/#316; 2026-10-22 rollout records same-volume backup, preserved hashes, UID/GID 1000, unchanged custody/session epoch and live active/revoked-session continuity. Pilot network/load acceptance remains #89/#158."
     },
     {
       "id": "W31",
@@ -579,7 +581,7 @@
       "priority": "P1",
       "track": "Production spine",
       "phase": "Next",
-      "note": "Refs #88. #312 format foundation is merged. Owner selected new publications first (2026-10-21); durable jobs, isolated encoder, studio progress/retry and player/room integration are prepared in the continuation PR. Existing DAV2 catalog migration is deferred. Preserve W30, coordinated #317 cutover and native/live acceptance gates. Evidence: implementation/evidence/W32-publication-2026-10-21.md."
+      "note": "#312/#318/#321 are merged; durable owned jobs, private encoder, authenticated playback and streaming custody were deployed in the 0.1.58 reset. No catalog migration remains. Keep real current-publication/pinning, native playback/host-guest, prolonged listening and load acceptance open with #317/#158."
     },
     {
       "id": "W33",
@@ -589,7 +591,7 @@
       "priority": "P1",
       "track": "Production spine",
       "phase": "Next",
-      "note": "Refs #88 backend read-through decision. Immutable edge cache for encrypted content-addressed media; IPFS remains the source of truth."
+      "note": "#325 is merged: edge-first ciphertext delivery and bounded warming are prepared; new origins remain unset. Existing dedicated gateway returned 401 in three authorized regional probes. Correct public ciphertext/CORS/cache access before activation and paired audible measurements; HTTP response time is not first sound."
     },
     {
       "id": "W34",
@@ -669,7 +671,7 @@
       "priority": "P1",
       "track": "Design record",
       "phase": "Record",
-      "note": "Owner-requested 2026-10-14 backlog reprioritization delivered by PR #277. This record activates #274/W19 as the next product implementation; it does not claim Nearby is implemented."
+      "note": "Decision record delivered by #277 and extended by #295. Nearby implementation subsequently shipped; retain this dated priority decision as history rather than active work."
     },
     {
       "id": "W19",
@@ -679,7 +681,7 @@
       "priority": "P1",
       "track": "Room reliability",
       "phase": "Now",
-      "note": "Next product expansion: separate host/listener opt-ins and approximate km radii. W09/W10/W18 plus radius review for implementation; W13 and privacy/device/room evidence for public enablement."
+      "note": "Nearby/Worldwide galaxy and controls are delivered through #278/#279/#283/#298/#300/#304. Remaining scope is exact-Host native location/permission, lifecycle and two-client discovery-to-audio acceptance. Automatic scans, 5–42 km controls and removal of city exploration supersede the original prompt."
     },
     {
       "id": "artist-runtime-features",
@@ -700,6 +702,26 @@
       "track": "Production spine",
       "phase": "Next",
       "note": "After first Nearby slice: per-artist export and second-operator synthetic recovery. W07 stays a delivered record; real key migration separately approved."
+    },
+    {
+      "id": "pr-review-quality",
+      "doc": "docs/backlog/pr-review-quality.md",
+      "issue": 240,
+      "kind": "record",
+      "priority": "P2",
+      "track": "Design record",
+      "phase": "Record",
+      "note": "Delivered by merged #241; concise four-section PR template and review-writing guide. Added to the manifest during the 2026-10-23 audit to match Project 5."
+    },
+    {
+      "id": "native-gifts-tips",
+      "doc": "docs/backlog/native-gifts-tips.md",
+      "issue": 229,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Cultural propagation",
+      "phase": "Now",
+      "note": "Native gifts/tips and recovery are implemented. #324 adds reviewed room policy/authority handling; server/facet activation and real native receipt/chat/policy acceptance remain. No operator-funded test or artist policy write is implied."
     }
   ]
 }

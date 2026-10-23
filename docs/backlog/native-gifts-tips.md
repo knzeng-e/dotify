@@ -1,5 +1,15 @@
 # Native gifts, work tips and direct allocations
 
+## Current reconciliation, 2026-10-23
+
+The #230 implementation and receipt/continuity corrections are merged.
+#324 adds room-policy preparation, automatic public authority lookup and scope
+validation. Product 0.1.60 includes the client, but its publication does not
+redeploy signaling or activate the new contribution facet. #229 stays open for
+coordinated real tip/receipt/chat and policy acceptance with the actual artist
+runtime. No authority change, owner-approved facet cut or repeat funded payment
+is authorized by this backlog reconciliation.
+
 Owner-authorized scope, 2026-10-01. Branch: `feat/native-gifts-tips`.
 Base: `d75b0385cde473962b112de92eb13aa01263bb5d` (dev CI passed).
 

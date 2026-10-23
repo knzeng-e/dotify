@@ -9,8 +9,21 @@ Implement **W13** only. Read `AGENTS.md`, `docs/backlog/implementation/common.md
 - Branch: `feat/pilot-release` created from the latest tested `origin/dev` when work starts.
 - Dependencies: W01, W02, W03, W04, W05, W06, W07, W08, W09, W10, W11, W12.
 - Release stage: Pilot gate.
-- Existing issue: No dedicated issue assigned yet; reuse a matching open issue or create a scoped ticket when this sequence starts.
+- Existing issue: #158. Reuse this release gate; do not create a duplicate pilot issue.
 - Product purpose: effortless shared listening, meaningful artist control, transparent value, and a coherent poetic interface. Product DevNet is a first-class target alongside ordinary web.
+
+## Candidate and prerequisite correction, 2026-10-23
+
+W30's non-root cutover and the new streaming services are deployed in the
+[0.1.58 reset](evidence/product-0.1.58-rollout-2026-10-22.md). The latest Product
+compatibility publication is 0.1.60 ([#327](https://github.com/knzeng-e/dotify/pull/327)),
+but API/signaling/Web are not thereby redeployed to the same source. Select and
+record a coherent candidate before a pilot claim. Historical 0.1.25/0.1.26
+rollback targets and old DAV2 measurements do not validate the reset catalog.
+Use current v3/schema-6 first-sound evidence and a compatible rollback that
+preserves the latest custody, revocations and permanent nonce reservations.
+#274 retains native location; #85/#89 retain native signing/network/media checks.
+The owner's 42-person limit below supersedes the earlier proposed sample.
 
 ## Owner update: trusted pilot from 2026-10-17
 
