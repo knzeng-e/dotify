@@ -11,7 +11,7 @@ export default defineConfig({
     command: 'npm run dev -- --host 127.0.0.1 --port 5291 --strictPort',
     url: 'http://127.0.0.1:5291',
     reuseExistingServer: false,
-    env: { VITE_DOTIFY_API_URL: 'http://127.0.0.1:5291', VITE_DOTIFY_RUNTIME_ADAPTER: 'viem' }
+    env: { VITE_DOTIFY_API_URL: 'http://127.0.0.1:5291', VITE_DOTIFY_RUNTIME_ADAPTER: 'viem', VITE_DOTIFY_MEDIA_EDGE_URL: 'https://media.edge.test' }
   },
   use: { baseURL: 'http://127.0.0.1:5291', trace: 'retain-on-failure', launchOptions: { timeout: 20_000 } },
   projects: ['chromium', 'webkit', 'firefox'].map(browserName => ({

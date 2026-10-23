@@ -1641,6 +1641,23 @@ Validate Product protected playback through host smoke tests after each Product
 publication before treating Product identity as production-ready for gated
 listening.
 
+### W33 prepared public media CDN, 2026-10-22
+
+[ADR 0034](../adr/0034-media-cdn-and-native-storage.md) reuses the owner's dedicated
+Pinata gateway/CDN, without adding an operator. New optional deployment origins
+are `VITE_DOTIFY_MEDIA_EDGE_URL` (Web/Product edge-first ciphertext),
+`MEDIA_EDGE_URL` (API post-index warming), and `MEDIA_IPFS_GATEWAY` (API dedicated
+Pinata origin on misses). They accept no identity token or query string. The API
+relay remains catalog-gated/no-store; CDN bytes do not confer access or keys.
+
+Not activated: the provided gateway returns 401 in three regions for the
+current published CID. Keep defaults until provider content/access is corrected,
+then validate exact bytes, immutable headers, CORS and physical Host networking.
+See [activation, bounds, cost, purge and rollback](media-cdn.md) and
+[W33 evidence](../backlog/implementation/evidence/W33.md). Product Cloud Storage
+is documented as Host CID storage/retrieval, not asserted to be an audio CDN or
+an ordinary-Web replacement. No account, plan or live configuration was changed.
+
 ### First-sound candidate evidence
 
 Every ordinary Vite build now embeds its exact git SHA in
