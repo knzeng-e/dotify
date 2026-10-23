@@ -1,6 +1,10 @@
 # API non-root storage cutover
 
-Status: prepared and locally rehearsed on 2026-10-21, **not deployed**.
+Status: rehearsed on 2026-10-21 and executed on 2026-10-22 for API 29.
+See the [rollout evidence](../backlog/implementation/evidence/product-0.1.58-rollout-2026-10-22.md).
+The volume now includes streaming nonce custody: this original three-file
+utility must not be rerun against that expanded inventory. Preserve the
+latest state and use the streaming recovery policy.
 Refs #285, [W30 evidence](../backlog/implementation/evidence/W30-api-nonroot-2026-10-21.md).
 This is an operator procedure for a separately authorized maintenance window.
 Merging the code or running CI does not execute it against Fly.

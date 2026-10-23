@@ -33,9 +33,10 @@ existing key/receipt/session history. See the operational rollout record.
 
 The first real Product artist attempt reached bootstrap stage 7, then exposed
 a native SDK deposit-sizing error. The [correction evidence](implementation/evidence/product-artist-bootstrap-2026-10-22.md)
-isolates the peak-versus-net deposit mismatch by read-only replay. Publish the
-reviewed client correction before retrying the same pending runtime; no new
-factory or artist runtime deployment is needed for that retry.
+isolates the peak-versus-net deposit mismatch by read-only replay. Product 0.1.59 publishes the
+reviewed correction with finalized/public artifact readback in its [rollout record](implementation/evidence/product-0.1.59-rollout-2026-10-22.md).
+The artist can retry the same pending runtime; no new factory or artist runtime
+deployment is needed. Native approval and directory/owner acceptance remain open.
 
 After cutover, the owner creates a fresh artist space and publishes a new v3
 release. Verify individual playback, protected denial, room-host access,

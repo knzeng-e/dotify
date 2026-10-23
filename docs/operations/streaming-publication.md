@@ -1,5 +1,9 @@
 # New-publication streaming activation
 
+Activated with API 29, encoder 1 and Product 0.1.58 on 2026-10-22.
+See the [rollout evidence](../backlog/implementation/evidence/product-0.1.58-rollout-2026-10-22.md);
+real artist publication and physical-device acceptance remain open.
+
 Refs #287 / W32 and #320. The internal catalog resets with #319; artists recreate
 their runtime and republish. Only authenticated v3 streaming remains supported. This procedure does not deploy services by itself. W30's
 non-root/volume cutover (#316) must be merged and verified first.
