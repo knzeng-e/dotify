@@ -1020,28 +1020,43 @@ renderer remains the default until supported-device performance evidence
 justifies promoting 3D. The normal web and Product builds lazy-load the `three`
 chunk on demand; the Bulletin single-file build inlines it.
 
-Current Product host SDK dependencies:
+Product Host compatibility candidate, checked 2026-10-23 (not yet published):
 
-| Package                               | Current value | Latest stable checked 2026-10-09 |
-| ------------------------------------- | ------------- | -------------------------------- |
-| `@parity/product-sdk`                 | `0.27.0`      | `0.35.0`                         |
-| `@parity/product-sdk-host`            | `0.19.1`      | `0.25.0`                         |
-| `@parity/product-sdk-statement-store` | `0.6.9`       | `0.6.16`                         |
-| `@parity/product-sdk-descriptors`     | `0.11.0`      | `0.13.0`                         |
-| `@parity/product-sdk-tx`              | `0.4.7`       | `0.4.13`                         |
-| root `polkadot-api`                   | `1.23.3`      | `3.2.1`                          |
-| `@parity/truapi` override             | `0.13.1`      | codec-1 compatibility pin        |
-| `@parity/polkadot-app-deploy`         | `0.20.0`      | `0.20.0` stable                  |
-| `engine.io-client`                    | `6.6.6`       | `6.6.6`                          |
+| Package | Candidate value | Boundary |
+| --- | --- | --- |
+| `@parity/product-sdk` | `0.39.0` | Latest compatible release for the observed TrUAPI 0.25 Host |
+| `@parity/product-sdk-host` | `0.28.0` | Same 0.25 protocol family |
+| `@parity/product-sdk-statement-store` | `0.7.3` | Matched SDK release |
+| `@parity/product-sdk-descriptors` | `0.14.0` | Product PAPI 3 descriptors |
+| `@parity/product-sdk-tx` | `0.5.3` | PAPI 3 transaction lifecycle |
+| root `polkadot-api` | `^1.23.3` | Existing `@polkadot-apps` Bulletin/legacy callers only |
+| `@parity/truapi` override | `0.25.0` | Codec 3, schema `3c45e49b26c1ab97` |
+| `@parity/polkadot-app-deploy` | `0.20.0` | Publication tooling unchanged |
+| `engine.io-client` | `6.6.6` | Room transport unchanged |
 
-Keep the Product SDK packages pinned exactly during Product DevNet hardening.
-Recheck npm and the official Product docs before changing them because the
-mobile host API is still moving quickly. `polkadot-api` remains on `1.23.3` at
-the Dotify root because `@polkadot-apps` chain-client/keys/signer still depend
-on that line. The Product graph uses PAPI 2.2.x. Keep TruAPI pinned to 0.13.1
-for the recovery baseline; require raw wire tests and real supported-Host
-connection evidence before adopting a new codec. The Host-wrapper PAPI override
-introduced in 0.1.44 is no longer needed by the restored dependency graph.
+Keep the Product SDK packages pinned exactly during hardening. Installed
+Desktop Dev 0.1.4-rc.3 embeds TrUAPI and truapi-host 0.25.0; Dotify's published
+0.13.1/codec-1 dependency cannot communicate with it. SDK 0.40.0 instead requires
+TrUAPI 0.26 with a different schema even though its codec number is also 3.
+Pinning only a codec number or upgrading to npm `latest` is insufficient.
+The October 10 codec-1 recovery above remains historical evidence for the old
+Desktop 0.1.3 Host, not the target of this candidate.
+
+Root PAPI stays on the existing line for `@polkadot-apps` chain-client/keys/signer.
+The Product SDK resolves its own PAPI 3.2.x graph; do not force the legacy root
+version into Product SDK packages. The SDK's PAPI-3 `createSubmitAndWatch` /
+`inBestBlock` lifecycle is exercised by the factory finality regression. Keep
+`withProductPeakStorageDeposit`: SDK contracts 0.11.3 still sizes from net charge
+without that adaptation. No account derivation, genesis, contract/CDM address,
+policy, receipt journal or nonce state changes are part of this update.
+
+A new reviewed Web/Product bundle is necessary to activate the dependency change;
+no server or contract redeployment is required. Do not reset artist runtimes or
+clear account storage to repair a protocol decoder failure. Real Desktop/mobile
+connection, same-account continuity, signing, room permissions and protected
+playback remain acceptance gates. The owner reports mobile 0.10.0 (18) also
+fails; its exact embedded TrUAPI build has not been independently verified.
+See [diagnosis and validation](../backlog/implementation/evidence/product-host-0.1.4-2026-10-23.md).
 
 W27 adds `VITE_DOTIFY_ROOM_REALTIME`, default off. It requires a Product host
 mode and observes aggregate room presence plus encrypted social mirrors;

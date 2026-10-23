@@ -10,7 +10,7 @@ export class ProductCdmStorageDepositError extends Error {
 }
 
 /**
- * SDK contracts 0.10.7 sizes its storage limit from the net deposit. Revive
+ * SDK contracts 0.11.3 still sizes its storage limit from the net deposit. Revive
  * also reports the peak required before refunds: finalizing a runtime writes
  * directory/owner state before releasing its pending-bootstrap storage.
  * Feed that peak into the SDK sizing slot without changing calldata, value,

@@ -1,5 +1,18 @@
 # Deploy Dotify To Product DevNet
 
+## New Host compatibility candidate, 2026-10-23
+
+Desktop Dev 0.1.4-rc.3 embeds TrUAPI 0.25.0 / codec 3, schema
+`3c45e49b26c1ab97`. The published Dotify codec-1 bundle is incompatible.
+The reviewed candidate pins SDK 0.39.0 / host 0.28.0 / TrUAPI 0.25.0;
+SDK 0.40.0 targets a different 0.26 schema and is not a compatible shortcut.
+This source update is not a publication. Preserve the existing Dotify product
+identifier, account index zero, CDM snapshots and factory/deposit safeguards.
+After merge, publish a new executable and verify the same account, native
+signing and room permissions on Desktop and the owner's mobile 0.10.0 (18).
+Mobile's embedded protocol and real-device behavior are still unverified.
+See [evidence and rollout boundary](../backlog/implementation/evidence/product-host-0.1.4-2026-10-23.md).
+
 ## Nearby in the default Product build
 
 Nearby is included by default, matching Web. Build-only validation uses
