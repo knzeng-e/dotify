@@ -41,3 +41,7 @@ chunking and independent operational-off behavior. Physical Host graphics,
 long-duration mobile energy/thermal behavior and hardware FPS remain acceptance
 limits, separate from #274 location and #85/#89/#158 native/media/pilot gates.
 No deployment, contract change or participant contact is part of this fix.
+
+[Local verification, 2026-10-24](implementation/evidence/room-galaxy-restoration-2026-10-24.md)
+records browser, build, rollback and continuity results and the remaining physical
+device limits.
