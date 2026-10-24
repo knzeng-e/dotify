@@ -8,8 +8,8 @@ labels. A signed session proves identity; the artist runtime still decides acces
 
 For each release the API first checks the full supplied identity against its
 fresh, confirmed catalog. It obtains an uncached current block header, then reads
-`runtimeOf`, `musicRegGetTrack` and `musicAccCanAccess` concurrently at that block
-number. Every read must succeed and match. This saves sequential network waits
+`runtimeOf`, `musicRegGetTrack` and `musicAccCanAccess` concurrently at that exact block
+hash with EIP-1898 `requireCanonical`. Every read must succeed and match. This saves sequential network waits
 without assuming a Multicall contract exists on Product DevNet.
 
 The service retains at most 512 verdicts in process memory, not keys. Both policy
@@ -19,8 +19,9 @@ canonical release and observed block number/hash. A new block or same-height
 reorg misses the cache. Canonical freshness is checked even on a hit. Failure to
 obtain the current head denies access, including when an older allow is cached;
 RPC failures themselves are not cached. Concurrent overlapping requests share
-one head read and identical in-flight verdicts. Reads by block number depend on
-the configured RPC's consistent view of that block, as existing indexed reads do.
+one head read and identical in-flight verdicts. There is no numeric-block or latest-state fallback if the pinned call fails.
+The configured public RPC accepted a read-only EIP-1898 probe on 2026-10-25;
+this verifies wire support, not native Host acceptance.
 
 `POST /api/tracks/keys/prepare` accepts an existing `sessionToken`, purpose
 `individual` or `room_host`, and one to five complete track identities. It never
@@ -39,7 +40,9 @@ at most five tracks. Individual key delivery remains the ordinary cold fallback.
 Once audio is advancing with sufficient buffered headroom, the existing
 neighbour-prefetch hook prepares up to five queued/adjacent releases. It respects
 background, offline, data-saving, stalled and paused states. It refreshes at most
-once per 20 seconds while eligible. Speculation reuses a session and never opens
+once per 20 seconds while eligible, refreshing grants with at most ten seconds
+remaining while retaining a usable grant during that refresh. Server verdicts
+near expiry are also rechecked rather than extending an old result. Speculation reuses a session and never opens
 or renews one, prompts a wallet, or changes the currently playing source. A room
 guest never enters this host-only path.
 

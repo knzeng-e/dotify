@@ -205,7 +205,7 @@ encrypted tracks it includes the canonical release identity:
 
 The key service resolves that identity against the fresh confirmed catalog
 snapshot, then checks the directory mapping, track state and runtime policy
-concurrently at one observed block before deriving a key. W34 uses a bounded,
+concurrently at one observed canonical block hash before deriving a key. W34 uses a bounded,
 block-bound verdict cache and session-only queue preparation; see
 [fast access boundaries](fast-access-preparation.md). It
 does not trust frontend runtime allowlists or scan unrelated runtimes for modern
