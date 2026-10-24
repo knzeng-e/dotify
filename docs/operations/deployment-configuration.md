@@ -1,5 +1,24 @@
 # Deployment Configuration Runbook
 
+## Product 0.1.60 Host compatibility published, 2026-10-23
+
+Product 0.1.60 publishes merged dev `a60a89f` (#326 included) from clean
+packaging `cb63d0749aba0a43980f1d3dd3f52a3c9866cf66`. Root and executable resolve to
+`bafybeia2dhkny3yv4oy2dzubqa24qlt2kacnd64sy5mjf3qw47dhdveuum` at finalized block 14811178.
+The manifest version, all 127 downloaded CAR blocks and exact executable
+bytes are verified; the local signer was removed and its absence checked.
+
+This Product-only release targets the inspected Desktop 0.1.4-rc.3 TrUAPI 0.25
+protocol. API/signaling/encoder, ordinary Web, CDM and artist contracts were not
+redeployed. #324's signaling authority endpoint and new contribution facet still
+require their separate rollout. Media-edge configuration stays unset; the supplied
+dedicated Pinata gateway is not activated while it returns HTTP 401.
+
+See [publication evidence and remaining gates](../backlog/implementation/evidence/product-0.1.60-rollout-2026-10-23.md).
+Physical Desktop and mobile connection, same-account continuity, signing/audio
+and location consent remain acceptance checks. Earlier 0.1.59/0.1.58 sections
+retain historical publication and server/reset evidence.
+
 ## Product bootstrap follow-up published, 2026-10-22
 
 Product 0.1.59 publishes merged #323's native peak-storage-deposit correction
