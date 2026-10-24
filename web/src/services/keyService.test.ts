@@ -929,3 +929,21 @@ it('a single key reply that arrives after wallet scope cleanup cannot return a k
   settle(keyRequestResponse());
   await failure;
 });
+
+it('cannot rebind the previous identity if cleanup happens before the cached session resolves', async () => {
+  const scopeKey = `dotify:session:v2:${encodeURIComponent('https://api.test')}:${ADDRESS}:420420417:eip191`;
+  installLocalStorage([[scopeKey, JSON.stringify({ token: 'queue-session-token', expiresAt: new Date(Date.now() + 3_600_000).toISOString() })]]);
+  const service = await loadKeyService();
+  const fetchMock = vi.fn();
+  vi.stubGlobal('fetch', fetchMock);
+  const request = service.requestContentKey({
+    signer: { address: ADDRESS, signMessage: vi.fn() },
+    chainId: 420420417,
+    purpose: 'individual',
+    contentHash: CONTENT_HASH,
+    release: releaseIdentity()
+  });
+  service.clearPreparedContentKeys();
+  await expect(request).rejects.toMatchObject({ code: 'SESSION_CANCELLED' });
+  expect(fetchMock).not.toHaveBeenCalled();
+});

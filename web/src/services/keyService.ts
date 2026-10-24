@@ -121,9 +121,11 @@ export type ContentKeyReleaseIdentity = {
 // ---------------------------------------------------------------------------
 
 const preparedKeys = createPreparedKeys();
+let preparedKeyGeneration = 0;
 let preparedSession: { signer: DotifySessionIdentity; chainId: number; token: string; scope: string } | null = null;
 /** Called synchronously on disconnect and during wallet scope cleanup. */
 export function clearPreparedContentKeys(): void {
+  preparedKeyGeneration++;
   preparedKeys.clear();
   preparedSession = null;
 }
@@ -510,7 +512,12 @@ export async function requestContentKey(request: ContentKeyRequest): Promise<Con
   if (!API_URL) throw new KeyServiceError('Backend key service is not configured.', 'KEY_SERVICE_NOT_CONFIGURED');
   const signer = resolveRequestSigner(request);
   if (!signer) throw new KeyServiceError('Connect an account before requesting protected playback.', 'WALLET_REQUIRED');
+  let generation = preparedKeyGeneration;
+  const assertIdentityCurrent = () => {
+    if (generation !== preparedKeyGeneration) throw new KeyServiceError('Listening identity changed during preparation.', 'SESSION_CANCELLED');
+  };
   let token = await getOrCreateDotifySession(signer, request.chainId);
+  assertIdentityCurrent();
   if (!token) throw sessionUnavailable();
   let preparedScope = `${sessionCache.keyFor(sessionScope(signer, request.chainId))}:${token}`;
   let preparedEpoch = preparedKeys.bind(preparedScope);
@@ -525,7 +532,9 @@ export async function requestContentKey(request: ContentKeyRequest): Promise<Con
       // Service/proxy failures are not proof that the cached identity expired.
       if (RENEWABLE_SESSION_CODES.has(failure.code)) {
         clearStoredSession(signer.address, token);
+        generation = preparedKeyGeneration;
         token = await getOrCreateDotifySession(signer, request.chainId);
+        assertIdentityCurrent();
         if (!token) throw sessionUnavailable();
         preparedScope = `${sessionCache.keyFor(sessionScope(signer, request.chainId))}:${token}`;
         preparedEpoch = preparedKeys.bind(preparedScope);

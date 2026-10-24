@@ -1442,14 +1442,22 @@ export function useCatalog(deps: UseCatalogDeps) {
   const preparationSigner = connectedWallet?.keyRequestSigner;
   const preparationIdentity = `${connectedWallet?.evmAddress}:${connectedWallet?.chainId}:${preparationSigner?.signatureScheme}:${preparationSigner?.signatureScheme === 'product-sr25519-v1' ? preparationSigner.productPublicKey : ''}`;
   const preparationLifetime = useRef(new AbortController());
+  const preparationIdentityRef = useRef(preparationIdentity);
   useLayoutEffect(() => {
+    preparationIdentityRef.current = preparationIdentity;
     const lifetime = new AbortController();
     preparationLifetime.current = lifetime;
     return () => lifetime.abort();
   }, [preparationIdentity]);
 
   async function prepareQueuedContentKeys(tracks: CatalogTrack[], signal: AbortSignal) {
-    if (!connectedWallet || (!connectedWallet.keyRequestSigner && !connectedWallet.createEvmClient) || signal.aborted) return;
+    if (
+      !connectedWallet ||
+      (!connectedWallet.keyRequestSigner && !connectedWallet.createEvmClient) ||
+      signal.aborted ||
+      preparationIdentityRef.current !== preparationIdentity
+    )
+      return;
     const lifetime = preparationLifetime.current;
     const candidates = tracks
       .filter(track => track.active !== false)
