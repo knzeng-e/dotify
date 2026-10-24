@@ -12,14 +12,14 @@ it.each(['off', 'true', 'ON', ''])('disables Nearby for an explicit off or inval
   expect(roomExperienceFlags).toEqual({ galaxy: false, nearby: false });
 });
 
-it.each([undefined, 'on'])('includes Nearby by default or explicit on (%s), without enabling Galaxy', async value => {
+it.each([undefined, 'on'])('includes Nearby and the optional 3D choice by default (%s)', async value => {
   vi.stubEnv('VITE_DOTIFY_ROOM_GALAXY', undefined);
   vi.stubEnv('VITE_DOTIFY_NEARBY', value);
   const { roomExperienceFlags } = await import('./roomExperienceFlags');
-  expect(roomExperienceFlags).toEqual({ galaxy: false, nearby: true });
+  expect(roomExperienceFlags).toEqual({ galaxy: true, nearby: true });
 });
 
-it('requires an explicit opt-in for the galaxy experiment', async () => {
+it('retains explicit on for the optional 3D choice', async () => {
   vi.stubEnv('VITE_DOTIFY_ROOM_GALAXY', 'on');
   vi.stubEnv('VITE_DOTIFY_NEARBY', 'on');
   const { roomExperienceFlags } = await import('./roomExperienceFlags');

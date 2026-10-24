@@ -17,6 +17,10 @@ The 0.1.58 reset already deployed non-root API storage and current streaming;
 #287/#317 retain real/native acceptance. #288 has merged code but a gateway-401
 activation blocker. Neither the old DAV2 catalog nor its migration is active work.
 
+The next scoped correction is [#329, restore Galaxy 3D](room-galaxy-restoration.md),
+requested after this audit. It reconnects the optional presentation to the current
+scoped radar; it does not reopen delivered W14 or waive native/pilot acceptance.
+
 ## Status contract
 
 GitHub Project 5 owns live workflow status. This document records scope,
@@ -183,6 +187,7 @@ workflow status; this table describes remaining scope without reopening delivere
 
 | Priority | GitHub issue | Phase                    | Remaining outcome                                                                                                                                               |
 | -------- | ------------ | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P1       | #329         | Now (regression)         | Restore optional 3D on the same scoped room results, with shared inspection/actions, lazy rendering and mobile/graphics fallback.                               |
 | P1       | #286 / W31   | Now (pilot polish)       | Add/verify the dedicated Worldwide-report E2E missing from the original evidence. Discovery controls and lazy studio are already delivered.                     |
 | P0       | #158 / W13   | Now                      | Bind Product payment/access, room, first-sound, rollback, release-profile, and consented pilot evidence to one accepted candidate.                              |
 | P1       | #317         | Now (cutover acceptance) | Record current-catalog real publication/pinning, same-runtime native recovery and current-format access/audio/value acceptance; the cutover itself is deployed. |

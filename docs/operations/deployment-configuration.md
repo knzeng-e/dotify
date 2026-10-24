@@ -697,19 +697,19 @@ The browser-safe Product build profile is tracked in
 
 Required Product values:
 
-| Key                             | Current value                                                                                  |
-| ------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `VITE_DOTIFY_DEPLOYMENT`        | `production`                                                                                   |
-| `VITE_DOTIFY_HOST_MODE`         | `required`                                                                                     |
-| `VITE_DOTIFY_PRODUCT_ID`        | `dotify-test01.dot`                                                                            |
-| `VITE_PUBLIC_APP_URL`           | `https://dotify-test01.dev-dot.li`                                                             |
-| `VITE_DOTIFY_API_URL`           | `https://dotify-api.fly.dev`                                                                   |
-| `VITE_SIGNAL_URL`               | `https://dotify-signal.fly.dev`                                                                |
-| `VITE_DOTIFY_ROOM_BEACONS`      | `off`                                                                                          |
-| `VITE_DOTIFY_ROOM_REALTIME`     | `off`; `observe` or `dual` only for an authorized Product measurement candidate                |
-| `VITE_BULLETIN_WS_URL`          | `wss://bulletin-paseo.tservices.es:8443`                                                       |
-| `VITE_PINATA_GATEWAY`           | `https://gateway.pinata.cloud`                                                                 |
-| `VITE_IPFS_READ_GATEWAYS`       | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation`       |
+| Key                             | Current value                                                                             |
+| ------------------------------- | ----------------------------------------------------------------------------------------- |
+| `VITE_DOTIFY_DEPLOYMENT`        | `production`                                                                              |
+| `VITE_DOTIFY_HOST_MODE`         | `required`                                                                                |
+| `VITE_DOTIFY_PRODUCT_ID`        | `dotify-test01.dot`                                                                       |
+| `VITE_PUBLIC_APP_URL`           | `https://dotify-test01.dev-dot.li`                                                        |
+| `VITE_DOTIFY_API_URL`           | `https://dotify-api.fly.dev`                                                              |
+| `VITE_SIGNAL_URL`               | `https://dotify-signal.fly.dev`                                                           |
+| `VITE_DOTIFY_ROOM_BEACONS`      | `off`                                                                                     |
+| `VITE_DOTIFY_ROOM_REALTIME`     | `off`; `observe` or `dual` only for an authorized Product measurement candidate           |
+| `VITE_BULLETIN_WS_URL`          | `wss://bulletin-paseo.tservices.es:8443`                                                  |
+| `VITE_PINATA_GATEWAY`           | `https://gateway.pinata.cloud`                                                            |
+| `VITE_IPFS_READ_GATEWAYS`       | `https://ipfs.io,https://dweb.link,https://devnet-ipfs.api.polkadotcommunity.foundation`  |
 | Product executable `appVersion` | `[0, 1, 58]` streaming reset; pre-reset clients are historical, not a standalone rollback |
 
 The Product executable version is part of the published Product manifest. Bump
@@ -1022,17 +1022,17 @@ chunk on demand; the Bulletin single-file build inlines it.
 
 Product Host compatibility candidate, checked 2026-10-23 (not yet published):
 
-| Package | Candidate value | Boundary |
-| --- | --- | --- |
-| `@parity/product-sdk` | `0.39.0` | Latest compatible release for the observed TrUAPI 0.25 Host |
-| `@parity/product-sdk-host` | `0.28.0` | Same 0.25 protocol family |
-| `@parity/product-sdk-statement-store` | `0.7.3` | Matched SDK release |
-| `@parity/product-sdk-descriptors` | `0.14.0` | Product PAPI 3 descriptors |
-| `@parity/product-sdk-tx` | `0.5.3` | PAPI 3 transaction lifecycle |
-| root `polkadot-api` | `^1.23.3` | Existing `@polkadot-apps` Bulletin/legacy callers only |
-| `@parity/truapi` override | `0.25.0` | Codec 3, schema `3c45e49b26c1ab97` |
-| `@parity/polkadot-app-deploy` | `0.20.0` | Publication tooling unchanged |
-| `engine.io-client` | `6.6.6` | Room transport unchanged |
+| Package                               | Candidate value | Boundary                                                    |
+| ------------------------------------- | --------------- | ----------------------------------------------------------- |
+| `@parity/product-sdk`                 | `0.39.0`        | Latest compatible release for the observed TrUAPI 0.25 Host |
+| `@parity/product-sdk-host`            | `0.28.0`        | Same 0.25 protocol family                                   |
+| `@parity/product-sdk-statement-store` | `0.7.3`         | Matched SDK release                                         |
+| `@parity/product-sdk-descriptors`     | `0.14.0`        | Product PAPI 3 descriptors                                  |
+| `@parity/product-sdk-tx`              | `0.5.3`         | PAPI 3 transaction lifecycle                                |
+| root `polkadot-api`                   | `^1.23.3`       | Existing `@polkadot-apps` Bulletin/legacy callers only      |
+| `@parity/truapi` override             | `0.25.0`        | Codec 3, schema `3c45e49b26c1ab97`                          |
+| `@parity/polkadot-app-deploy`         | `0.20.0`        | Publication tooling unchanged                               |
+| `engine.io-client`                    | `6.6.6`         | Room transport unchanged                                    |
 
 Keep the Product SDK packages pinned exactly during hardening. Installed
 Desktop Dev 0.1.4-rc.3 embeds TrUAPI and truapi-host 0.25.0; Dotify's published
@@ -1306,7 +1306,7 @@ verified against this fresh factory/directory during the 2026-10-22 rollout.
 Always compare the actual deployed identity before publishing matching clients;
 a configuration file alone is not deployment evidence.
 
-| Key                          | Tracked post-cutover value                                                                                                                                                                                                                |
+| Key                          | Tracked post-cutover value                                                                                                                                                                                                   |
 | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `API_PORT`                   | `8790`                                                                                                                                                                                                                       |
 | `NODE_ENV`                   | `production`                                                                                                                                                                                                                 |
@@ -1774,7 +1774,7 @@ API directory and Web/Product clients, following the
 [coordinated cutover record](fresh-testnet-2026-10-21.md). A source table does not
 prove that Fly has already applied these values.
 
-| Key                             | Tracked post-cutover value                                                                                                                                                                                                                |
+| Key                             | Tracked post-cutover value                                                                                                                                                                                                   |
 | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `SIGNAL_PORT`                   | `8788`                                                                                                                                                                                                                       |
 | `SIGNAL_HOST`                   | `0.0.0.0`                                                                                                                                                                                                                    |
@@ -2088,9 +2088,15 @@ places in the same PR:
 
 ## Shared-presence room rollout
 
-`VITE_DOTIFY_ROOM_GALAXY=on` enables the existing optional 3D selector. It is
-absent/off by default in both ordinary and Product builds; 2D/list remains the
-complete discovery path. The room lineup is part of the normal room protocol:
+The #329 correction restores **Room view → Radar / 3D / List** on the current
+scoped discovery. Radar remains the initial view. `VITE_DOTIFY_ROOM_GALAXY`
+defaults available in ordinary Web and Product when unset or exact `on`;
+explicit `off` or an invalid value removes only the 3D option after rebuilding.
+The scene and Three.js load on explicit 3D selection, consume the same scoped
+Nearby/Worldwide cards, and return to Radar on reduced motion, unavailable
+WebGL or context loss. No global room lookup or extra location permission is
+introduced. Physical Host graphics/performance remains unverified; this is a
+source correction, not a new live publication. The room lineup is part of the normal room protocol:
 the host publishes a bounded metadata-only order through signaling and every
 participant receives the same ephemeral snapshot. It needs no frontend flag,
 key, permission, CORS origin, or storage mount. Changing the galaxy flag still
@@ -2114,7 +2120,7 @@ host. **Enable host tips** is the renamed explicit account binding, not a new
 payment or a change to artist-selected shares. See
 [room conversation controls](../explanation/room-live-conversation.md#quiet-controls-and-role-specific-queue--2026-10-11).
 
-Rollback the galaxy experiment by rebuilding without its `on` value. The room
+Rollback 3D availability by rebuilding with explicit `VITE_DOTIFY_ROOM_GALAXY=off`. The room
 lineup requires a coordinated frontend/signaling rollback because old signaling
 servers ignore its events while the current frontend keeps playback functional.
 Nearby is included by default in new Web and Product builds; use the Nearby
@@ -2526,7 +2532,6 @@ After publishing the correction, retry setup with the same connected artist;
 the existing flow re-reads and resumes the pending runtime. Verify the directory
 entry, artist ownership and cleared pending state after the user's approval.
 See the [native replay and validation evidence](../backlog/implementation/evidence/product-artist-bootstrap-2026-10-22.md).
-
 
 ## Room-tip authority configuration correction, 2026-10-22
 

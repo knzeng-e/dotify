@@ -340,9 +340,7 @@ body {
   position: relative;
   height: clamp(320px, 46vh, 460px);
   border-radius: var(--radius-md);
-  background:
-    radial-gradient(ellipse at 50% 118%, rgb(19 39 65 / 0.62), transparent 62%),
-    linear-gradient(180deg, rgb(5 13 26 / 0.42), rgb(5 13 26 / 0.96));
+  background: radial-gradient(ellipse at 50% 118%, rgb(19 39 65 / 0.62), transparent 62%), linear-gradient(180deg, rgb(5 13 26 / 0.42), rgb(5 13 26 / 0.96));
   cursor: grab;
   isolation: isolate;
   overflow: hidden;
@@ -804,10 +802,9 @@ body {
   text-align: center;
 }
 
-/* Fallback doctrine: the sky is an enhancement. Small screens and reduced
-   motion get the card grid alone, which is the complete experience. */
+/* The legacy 2D sky stays desktop-only. Optional 3D is now selected through
+   the scoped radar, with bounded mobile rendering and its own fallback. */
 @media (max-width: 860px) {
-  .room-galaxy,
   .sky {
     display: none;
   }
