@@ -25,6 +25,16 @@
   },
   "items": [
     {
+      "id": "room-galaxy-restoration",
+      "doc": "docs/backlog/room-galaxy-restoration.md",
+      "issue": 329,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Room reliability",
+      "phase": "Now",
+      "note": "Owner-requested regression after #328: reconnect optional 3D to the same scoped Radar/List discovery and common inspection, with lazy graphics, mobile/accessibility fallback and unchanged audio/privacy."
+    },
+    {
       "id": "streaming-only-reset",
       "doc": "docs/backlog/streaming-only-reset.md",
       "issue": 320,

@@ -13,6 +13,7 @@ export default defineConfig({
     '**/nearby.spec.ts',
     '**/nearby-product.spec.ts',
     '**/nearby-off.spec.ts',
+    '**/room-galaxy-off.spec.ts',
     '**/streaming-format.spec.ts'
   ],
   timeout: 30_000,
@@ -55,7 +56,6 @@ export default defineConfig({
         VITE_E2E_ARTIST_PUBLISH: 'true',
         VITE_E2E_ROOM_JOIN: 'true',
         VITE_SIGNAL_URL: SIGNAL_URL,
-        VITE_DOTIFY_ROOM_GALAXY: 'on',
         VITE_E2E_READINESS_PANEL: 'true',
         // Exercise the opt-in observer with ordinary-web fallback. Production stays off.
         VITE_DOTIFY_ROOM_REALTIME: 'dual',

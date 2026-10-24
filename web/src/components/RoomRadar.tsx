@@ -1,5 +1,7 @@
-import { useEffect, useId, useState, type CSSProperties } from 'react';
-import { ArrowRight, Eye, List, Pause, Play, Radar, RefreshCw, ShieldCheck, SlidersHorizontal, X } from 'lucide-react';
+import { useCallback, useEffect, useId, useRef, useState, type CSSProperties } from 'react';
+import { ArrowRight, Eye, List, Orbit, Pause, Play, Radar, RefreshCw, ShieldCheck, SlidersHorizontal, X } from 'lucide-react';
+import { roomExperienceFlags } from '../features/rooms/roomExperienceFlags';
+import { RoomDiscoveryRenderer } from './RoomDiscoveryRenderer';
 import { Dialog } from './Dialog';
 import { ArtistPresenceBadge } from './ArtistPresenceBadge';
 import { CoverImage } from './CoverImage';
@@ -60,7 +62,22 @@ export function RoomRadar({
     document.addEventListener('keydown', dismiss);
     return () => document.removeEventListener('keydown', dismiss);
   }, [detailsId, dismissedDetailsId]);
-  const [listOnly, setListOnly] = useState(false);
+  const [view, setView] = useState<'radar' | '3d' | 'list'>('radar');
+  const listOnly = view === 'list';
+  const [viewMessage, setViewMessage] = useState('');
+  const viewSelectRef = useRef<HTMLSelectElement>(null);
+  const restoreViewFocus = useRef(false);
+  useEffect(() => {
+    if (view === 'radar' && restoreViewFocus.current) {
+      restoreViewFocus.current = false;
+      viewSelectRef.current?.focus();
+    }
+  }, [view, viewMessage]);
+  const handle3dUnavailable = useCallback((reason: 'motion' | 'graphics') => {
+    restoreViewFocus.current = !!document.activeElement?.closest('.room-galaxy');
+    setView('radar');
+    setViewMessage(reason === 'motion' ? 'Reduced motion is enabled. Radar view stays available.' : '3D is not available here. Radar view stays available.');
+  }, []);
   const { nearby, worldwide, rooms, paused, radius } = discovery;
   const [foreground, setForeground] = useState(() => typeof document === 'undefined' || document.visibilityState === 'visible');
   useEffect(() => {
@@ -141,21 +158,39 @@ export function RoomRadar({
             <SlidersHorizontal size={18} />
             <span>{radius} km</span>
           </button>
-          <button
-            className='radar-tool'
-            type='button'
-            aria-label={listOnly ? 'Show galaxy' : 'Show room list'}
-            aria-pressed={listOnly}
-            onClick={() => setListOnly(!listOnly)}
-          >
-            {listOnly ? <Radar size={19} /> : <List size={19} />}
-          </button>
+          <label className='radar-tool radar-view-control'>
+            {view === 'list' ? (
+              <List size={18} aria-hidden='true' />
+            ) : view === '3d' ? (
+              <Orbit size={18} aria-hidden='true' />
+            ) : (
+              <Radar size={18} aria-hidden='true' />
+            )}
+            <select
+              ref={viewSelectRef}
+              aria-label='Room view'
+              value={view}
+              onChange={event => {
+                setView(event.target.value as typeof view);
+                setViewMessage('');
+              }}
+            >
+              <option value='radar'>Radar</option>
+              {roomExperienceFlags.galaxy && <option value='3d'>3D</option>}
+              <option value='list'>List</option>
+            </select>
+          </label>
         </div>
       </header>
       <div className='radar-status' role='status'>
         <span className='radar-status-dot' data-scanning={scanning} />
         <span>{status}</span>
       </div>
+      {viewMessage && (
+        <p role='status' className='radar-view-note'>
+          {viewMessage}
+        </p>
+      )}
       {!!discovery.hiddenRooms?.length && (
         <button className='text-action radar-hidden-control' type='button' onClick={() => setHiddenOpen(true)}>
           <Eye size={16} aria-hidden='true' /> Hidden rooms ({discovery.hiddenRooms.length})
@@ -169,7 +204,19 @@ export function RoomRadar({
       )}
       {nearby.state.locationIssue === 'host-unavailable' && <ProductNearbyFallback />}
       <div className='radar-body' data-list-only={listOnly}>
-        {!listOnly && (
+        {view === '3d' && (
+          <div className='radar-stage'>
+            <RoomDiscoveryRenderer
+              rooms={rooms}
+              selectedRoomId={selectedId ?? undefined}
+              ownRoomId={ownRoomId}
+              onSelectRoom={setSelectedId}
+              onUnavailable={handle3dUnavailable}
+            />
+            <p className='radar-view-note'>Drag to explore. Positions are illustrative, not a map.</p>
+          </div>
+        )}
+        {view === 'radar' && (
           <div className='radar-stage'>
             <div
               className='radar-sky'
