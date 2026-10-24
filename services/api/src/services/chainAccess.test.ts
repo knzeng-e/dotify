@@ -440,15 +440,17 @@ describe('W34 block-bound verdicts', () => {
     const gate = new Promise<void>(resolve => {
       releaseReads = resolve;
     });
-    const started: bigint[] = [];
+    const started: string[] = [];
     f.client.readContract = async input => {
-      started.push((input as typeof input & { blockNumber: bigint }).blockNumber);
+      const pinned = input as typeof input & { blockHash: string; requireCanonical: boolean };
+      assert.equal(pinned.requireCanonical, true);
+      started.push(pinned.blockHash);
       await gate;
       return original(input);
     };
     const pending = f.access.checkTrackAccess(f.input);
     await new Promise(resolve => setImmediate(resolve));
-    assert.deepEqual(started, [102n, 102n, 102n]);
+    assert.deepEqual(started, [f.client.blockHash, f.client.blockHash, f.client.blockHash]);
     releaseReads();
     assert.equal((await pending).allowed, true);
     f.client.blockNumber++;
@@ -469,6 +471,34 @@ describe('W34 block-bound verdicts', () => {
     const denied = await f.access.checkPublicAccess(input);
     assert.equal(denied.allowed, false);
     if (!denied.allowed) assert.equal(denied.code, 'NOT_FREE');
+  });
+  it('coalesced callers keep the same expiry and both deny if verification outlasts the window', async () => {
+    const f = fixture();
+    const results = await Promise.all([f.access.checkTrackAccess(f.input), f.access.checkTrackAccess(f.input)]);
+    assert.equal(f.client.calls.length, 3);
+    for (const result of results) {
+      assert.equal(result.allowed, true);
+      if (result.allowed) assert.equal(result.validUntil, 31_000);
+    }
+    const slow = fixture();
+    const original = slow.client.readContract.bind(slow.client);
+    let settle!: () => void;
+    const gate = new Promise<void>(resolve => {
+      settle = resolve;
+    });
+    slow.client.readContract = async input => {
+      await gate;
+      return original(input);
+    };
+    const first = slow.access.checkTrackAccess(slow.input);
+    const second = slow.access.checkTrackAccess(slow.input);
+    await new Promise(resolve => setImmediate(resolve));
+    slow.advance(30_000);
+    settle();
+    for (const result of await Promise.all([first, second])) {
+      assert.equal(result.allowed, false);
+      if (!result.allowed) assert.equal(result.code, 'RPC_UNAVAILABLE');
+    }
   });
   it('inactive runtime and wrong catalog chain cannot receive keys', async () => {
     const f = fixture();

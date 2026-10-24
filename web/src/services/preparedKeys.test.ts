@@ -53,3 +53,13 @@ it('never reuses equal content hashes from a different artist runtime', () => {
   ).toBeNull();
   expect(keys.read('session', track, 'individual')).toEqual(response);
 });
+
+it('can refresh a near-expiry key without deleting the still-usable grant', () => {
+  let now = 100;
+  const keys = createPreparedKeys(() => now);
+  const generation = keys.bind('session');
+  keys.store('session', generation, track, 'individual', response, 30_100);
+  now += 20_000;
+  expect(keys.read('session', track, 'individual', 10_000)).toBeNull();
+  expect(keys.read('session', track, 'individual')).toEqual(response);
+});

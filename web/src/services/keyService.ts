@@ -607,7 +607,7 @@ export async function prepareContentKeys(input: {
   const epoch = preparedKeys.bind(scope);
   preparedSession = { signer, chainId: input.chainId, token, scope };
   const tracks = [...new Map(input.tracks.map(track => [preparedTrackKey(track, input.purpose), track])).values()]
-    .filter(track => !preparedKeys.read(scope, track, input.purpose))
+    .filter(track => !preparedKeys.read(scope, track, input.purpose, 10_000))
     .slice(0, 5);
   if (!tracks.length) return;
   const started = Date.now();

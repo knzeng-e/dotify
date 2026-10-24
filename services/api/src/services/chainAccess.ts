@@ -295,25 +295,34 @@ async function readReleaseVerdict(
   release: CanonicalRelease,
   requester: Address,
   purpose: 'individual' | 'room_host' | 'public',
-  blockNumber: bigint,
+  blockHash: `0x${string}`,
   chainId: number
 ): Promise<TrackAccessResult> {
   try {
     const [directoryRuntime, record, canAccess] = await Promise.all([
-      client.readContract({ address: directoryAddress, abi: artistDirectoryAbi, functionName: 'runtimeOf', args: [release.artistAddress], blockNumber }),
+      client.readContract({
+        address: directoryAddress,
+        abi: artistDirectoryAbi,
+        functionName: 'runtimeOf',
+        args: [release.artistAddress],
+        blockHash,
+        requireCanonical: true
+      }),
       client.readContract({
         address: release.runtimeAddress,
         abi: musicRegistryAbi,
         functionName: 'musicRegGetTrack',
         args: [release.contentHash],
-        blockNumber
+        blockHash,
+        requireCanonical: true
       }),
       client.readContract({
         address: release.runtimeAddress,
         abi: musicAccessAbi,
         functionName: 'musicAccCanAccess',
         args: [release.contentHash, requester],
-        blockNumber
+        blockHash,
+        requireCanonical: true
       })
     ]);
     if (!directoryRuntime || directoryRuntime.toLowerCase() === ZERO_ADDRESS || !sameAddress(directoryRuntime, release.runtimeAddress))
@@ -401,23 +410,26 @@ export function createChainAccessService(options: ChainAccessServiceOptions = {}
       head.hash
     ]);
     const cached = verdicts.get(key);
-    if (cached && cached.until > now()) return cached.result;
+    if (cached && cached.until > now() + 10_000) return cached.result;
     const existing = pending.get(key);
     if (existing) return existing;
-    const request = readReleaseVerdict(client, directoryAddress, canonical.release, requester, purpose, head.number, chainId);
-    pending.set(key, request);
-    try {
-      const raw = await request;
+    // Share the processed result, including its original expiry. Sharing only
+    // the raw RPC promise would let a second caller extend that grant window.
+    const request = (async (): Promise<TrackAccessResult> => {
+      const raw = await readReleaseVerdict(client, directoryAddress, canonical.release, requester, purpose, head.hash!, chainId);
       if (started + 30_000 <= now()) return fail('RPC_UNAVAILABLE', 'Access verification took too long. Please try again.');
       const result = raw.allowed ? { ...raw, validUntil: started + 30_000 } : raw;
-      // Transient RPC failures are not cached policy denials.
-      if ((result.allowed || result.code !== 'RPC_UNAVAILABLE') && started + 30_000 > now()) {
+      if (result.allowed || result.code !== 'RPC_UNAVAILABLE') {
         for (const [id, entry] of verdicts) if (entry.until <= now()) verdicts.delete(id);
         verdicts.delete(key);
         verdicts.set(key, { result, until: started + 30_000 });
         while (verdicts.size > 512) verdicts.delete(verdicts.keys().next().value!);
       }
       return result;
+    })();
+    pending.set(key, request);
+    try {
+      return await request;
     } finally {
       if (pending.get(key) === request) pending.delete(key);
     }

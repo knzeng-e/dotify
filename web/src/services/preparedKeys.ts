@@ -35,7 +35,7 @@ export function createPreparedKeys(now = Date.now) {
       return epoch;
     },
     current: (candidate: string, generation: number) => scope === candidate && epoch === generation,
-    read(candidate: string, track: PreparedTrack, purpose: KeyRequestPurpose) {
+    read(candidate: string, track: PreparedTrack, purpose: KeyRequestPurpose, minimumRemainingMs = 0) {
       if (candidate !== scope) return null;
       const key = preparedTrackKey(track, purpose);
       const grant = grants.get(key);
@@ -43,6 +43,7 @@ export function createPreparedKeys(now = Date.now) {
         grants.delete(key);
         return null;
       }
+      if (grant.until - now() <= minimumRemainingMs) return null;
       return grant.response;
     },
     store(candidate: string, generation: number, track: PreparedTrack, purpose: KeyRequestPurpose, response: ContentKeyResponse, until: number) {
