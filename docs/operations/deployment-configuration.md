@@ -1,5 +1,16 @@
 # Deployment Configuration Runbook
 
+## Product 0.1.61 scoped 3D release preparation, 2026-10-24
+
+Merged `dev` `620f7c6` (#330, with #327's publication record) is the source for
+Product executable `[0,1,61]`. The native runtime profile, permissions, contracts
+and frozen catalog are retained. This is a Product-only publication; the owner
+handles Web, and API/signaling/encoder stay running. Radar remains the initial
+view and 3D is an explicit presentation choice over the same public results.
+
+See [candidate and publication evidence](../backlog/implementation/evidence/product-0.1.61-rollout-2026-10-24.md).
+Preparation is not evidence of publication or physical-device acceptance.
+
 ## Product 0.1.60 Host compatibility published, 2026-10-23
 
 Product 0.1.60 publishes merged dev `a60a89f` (#326 included) from clean

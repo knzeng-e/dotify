@@ -1,5 +1,16 @@
 # Deploy Dotify To Product DevNet
 
+## Product 0.1.61 scoped 3D candidate, 2026-10-24
+
+The owner requests Product publication of merged `dev` `620f7c6` (#330).
+Executable `[0,1,61]` retains the existing native profile and permissions. The
+room view picker offers Radar / 3D / List; Radar stays initial and graphics
+failure falls back to it. Do not restart services or change artist runtimes.
+Web deployment belongs to the owner. Record finalized and public artifact
+verification in the [0.1.61 rollout](../backlog/implementation/evidence/product-0.1.61-rollout-2026-10-24.md)
+before claiming this candidate is published. Physical Host graphics and native
+location remain separate acceptance checks.
+
 ## New Host compatibility candidate, 2026-10-23
 
 Desktop Dev 0.1.4-rc.3 embeds TrUAPI 0.25.0 / codec 3, schema
