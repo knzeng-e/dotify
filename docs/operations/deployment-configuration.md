@@ -1,5 +1,28 @@
 # Deployment Configuration Runbook
 
+## W34 fast access rollout (prepared, not deployed)
+
+Deploy the W34 API before its Web/Product clients. No config variable, permission,
+contract or secret changes are required. `/api/tracks/keys/prepare` accepts at most
+five full identities with an existing identity session (12 requests/client/minute).
+`free-key` has its own 30 requests/client/minute limit. Both inherit W30's
+`API_TRUST_PROXY` client resolver; retain Fly's trusted-header deployment boundary.
+All key responses, including denials and quota errors, remain `no-store`.
+
+Verdicts live in a bounded process cache (512 entries, <=30 seconds, observed
+block number/hash plus full identity); a failed head read never serves an old
+allow. Clients hold at most five prepared grants in memory and drop them on
+identity/network/session changes. A batch expiry does not extend a cached verdict.
+No Redis or shared store is added. The existing single-writer/session topology
+remains; W36 owns shared trust state. See [design](../explanation/fast-access-preparation.md)
+and [evidence](../backlog/implementation/evidence/W34.md).
+
+Before release, verify a signed-in warm Next, expired/denied fallback, sign-out,
+account/network change, Free and protected playback, and a guest with zero key
+calls on ordinary Web and physical Product. Record actual first sound separately
+from the synthetic key-wait benchmark. Roll back clients first; keep custody,
+nonce, revocation and catalog files unchanged. Restarting only clears verdicts.
+
 ## Product 0.1.61 scoped 3D published, 2026-10-24
 
 Merged `dev` `620f7c6` (#330, with #327's publication record) is packaged from clean

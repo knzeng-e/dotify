@@ -39,3 +39,11 @@ No change to key derivation, session signing, or the room key invariant. No pers
 ## Handoff
 
 Write `docs/backlog/implementation/evidence/W34.md` using `evidence-template.md`.
+
+## Implementation checkpoint, 2026-10-25
+
+The implementation follows the current v3-only streaming path, not the historical
+DAV2 prefetch filenames above. See [design and boundaries](../../explanation/fast-access-preparation.md)
+and [verification evidence](evidence/W34.md). Parallel block-bound reads, bounded
+verdicts, a five-track session batch and memory-only queue preparation are included.
+Real-device first sound remains a release gate; this change is not a deployment.

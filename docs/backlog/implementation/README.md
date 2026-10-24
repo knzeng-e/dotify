@@ -11,7 +11,8 @@ W32/current-format jobs, encoder and playback are deployed, with native/live
 acceptance retained in #287/#317/#158. W33 code is merged but gateway access and
 measured activation remain blocked. W19's remaining scope is exact-Host location
 and lifecycle validation; do not restore manual scans/city exploration. W31's
-specific missing Worldwide-report test remains open. W34-W39 are still future work.
+specific Worldwide-report verification subsequently merged through #332. W34 (#289)
+is the selected implementation, using the current v3 format; W35-W39 remain later steps.
 
 ## Owner priority update: trusted pilot and streaming track, 2026-10-16
 
