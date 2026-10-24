@@ -347,6 +347,9 @@ jobs:
       - name: Verify Nearby operational rollback
         run: npm run test:e2e -- --config playwright.nearby-off.config.ts
 
+      - name: Verify optional 3D operational rollback
+        run: npm run test:e2e -- --config playwright.galaxy-off.config.ts
+
       - name: Verify encrypted audio continuity
         run: npm run test:audio-continuity -- --project chromium
 

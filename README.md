@@ -48,6 +48,11 @@ of native Product support. [Capture source and reproduction](docs/images/release
 
 **Find a listening room**
 
+The **Room view** picker offers **Radar**, **3D**, and **List**. Radar opens by
+default; choosing 3D loads the optional graphics. All views use the same rooms
+and Join flow, with Radar available when graphics or reduced-motion settings
+prevent 3D.
+
 ![Three parallel rooms with different covers, orbiting listeners and Nearby and Worldwide discovery](docs/images/release-preview/rooms-desktop.jpg)
 
 **Share the moment**

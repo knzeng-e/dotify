@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, Headphones, LocateFixed, Minus, Pause, Play, Plus, RotateCcw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, LocateFixed, Minus, Pause, Play, Plus, RotateCcw } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type {
   CSSProperties,
@@ -12,6 +12,7 @@ import type {
 import type {
   BufferGeometry,
   Group,
+  InstancedMesh,
   Material,
   Mesh,
   MeshBasicMaterial,
@@ -24,19 +25,38 @@ import type {
 } from 'three';
 
 import { CoverImage } from './CoverImage';
-import { SkyOfRooms } from './SkyOfRooms';
+import { ArtistPresenceBadge } from './ArtistPresenceBadge';
+import { RoomScopeIcon } from './RoomScopeIcon';
 import { roomConstellationPosition, shouldShowConstellationLabel } from '../features/rooms/roomConstellationLayout';
-import { roomHostDisplayName, roomPresenceCount } from '../features/rooms/roomState';
+import { discoveryPresenceCount, discoveryPresenceLabel } from '../features/rooms/roomDiscoveryPresentation';
+import type { DiscoveredRoom } from '../features/rooms/useRoomDiscovery';
 import { getGatewayUrlsForAssetRef } from '../services/pinata';
 import { auraForTrack } from '../shared/utils/aura';
-import type { OpenRoom, SessionAction } from '../shared/types';
 
-type RoomGalaxySceneProps = {
-  rooms: OpenRoom[];
+// Only the already scoped public discovery DTO enters the graphics boundary.
+// Never reconstruct a full OpenRoom/TrackInfo or fetch unscoped room state.
+export type GalaxyRoom = Pick<
+  DiscoveredRoom,
+  | 'roomId'
+  | 'hostName'
+  | 'title'
+  | 'artist'
+  | 'imageRef'
+  | 'listenerCount'
+  | 'presence'
+  | 'isFull'
+  | 'scope'
+  | 'distanceBand'
+  | 'roomName'
+  | 'artistPresent'
+  | 'connection'
+>;
+export type RoomGalaxySceneProps = {
+  rooms: GalaxyRoom[];
   selectedRoomId?: string;
-  sessionAction: SessionAction;
-  onSelectRoom?: (roomId: string) => void;
-  onJoinRoom: (roomId: string) => void;
+  ownRoomId?: string;
+  onSelectRoom: (roomId: string) => void;
+  onUnavailable: (reason: 'motion' | 'graphics') => void;
 };
 
 type ThreeModule = typeof import('three');
@@ -67,7 +87,7 @@ type GalaxyRuntime = {
   frameCount: number;
   hidden: boolean;
   resizeObserver?: ResizeObserver;
-  syncRooms: (rooms: OpenRoom[], selectedRoomId?: string) => void;
+  syncRooms: (rooms: GalaxyRoom[], selectedRoomId?: string) => void;
   renderOnce: () => void;
   dispose: () => void;
 };
@@ -90,7 +110,6 @@ declare global {
   }
 }
 
-const JOIN_FLOOD_MS = 420;
 const MIN_DISTANCE = 5.6;
 const MAX_DISTANCE = 11.5;
 const ZOOM_STEP = 0.6;
@@ -139,6 +158,7 @@ function disposeObject(object: Object3D) {
     const mesh = child as Mesh;
     mesh.geometry?.dispose();
     if (mesh.material) disposeMaterial(mesh.material);
+    if ('isInstancedMesh' in child && child.isInstancedMesh === true) (child as InstancedMesh).dispose();
   });
 }
 
@@ -148,8 +168,8 @@ function disposeRoomObject(object: RoomRenderObject) {
   disposeObject(object.group);
 }
 
-function colorStyleForRoom(room: OpenRoom) {
-  const aura = auraForTrack(room.track);
+function colorStyleForRoom(room: GalaxyRoom) {
+  const aura = auraForTrack(room);
   return {
     '--dot-a': aura.a,
     '--dot-b': aura.b,
@@ -197,20 +217,25 @@ function syncPetals(THREE: ThreeModule, object: RoomRenderObject, petalCount: nu
   object.petals.clear();
   object.petalCount = petalCount;
 
+  if (!petalCount) return;
+  const geometry = new THREE.SphereGeometry(0.045, 12, 8);
+  const material = new THREE.MeshBasicMaterial({ color: hslToColor(THREE, accent), transparent: true, opacity: 0.92 });
+  const points = new THREE.InstancedMesh(geometry, material, petalCount);
+  const matrix = new THREE.Matrix4();
   for (let index = 0; index < petalCount; index += 1) {
-    const petal = new THREE.Mesh(
-      new THREE.SphereGeometry(0.045, 12, 8),
-      new THREE.MeshBasicMaterial({ color: hslToColor(THREE, accent), transparent: true, opacity: 0.92 })
-    );
-    const angle = (index / Math.max(petalCount, 1)) * Math.PI * 2;
-    petal.position.set(Math.cos(angle) * 0.78, Math.sin(angle) * 0.16, Math.sin(angle) * 0.78);
-    object.petals.add(petal);
+    const ring = Math.floor(index / 12);
+    const count = Math.min(12, petalCount - ring * 12);
+    const angle = ((index % 12) / count) * Math.PI * 2;
+    const radius = 0.78 + ring * 0.14;
+    matrix.makeTranslation(Math.cos(angle) * radius, Math.sin(angle) * 0.16, Math.sin(angle) * radius);
+    points.setMatrixAt(index, matrix);
   }
+  object.petals.add(points);
 }
 
-function loadCoverTexture(runtime: GalaxyRuntime, object: RoomRenderObject, room: OpenRoom) {
-  const imageRef = room.track?.imageRef ?? '';
-  if (!imageRef || object.textureRef === imageRef) return;
+function loadCoverTexture(runtime: GalaxyRuntime, object: RoomRenderObject, room: GalaxyRoom) {
+  const imageRef = room.imageRef ?? '';
+  if (object.textureRef === imageRef) return;
 
   object.texture?.dispose();
   object.texture = undefined;
@@ -218,6 +243,7 @@ function loadCoverTexture(runtime: GalaxyRuntime, object: RoomRenderObject, room
   object.core.material.map = null;
   object.core.material.needsUpdate = true;
 
+  if (!imageRef) return;
   const [url] = getGatewayUrlsForAssetRef(imageRef);
   if (!url) return;
 
@@ -254,7 +280,8 @@ function createGalaxyRuntime(
   setOverlays: Dispatch<SetStateAction<GalaxyOverlay[]>>
 ): GalaxyRuntime {
   const preserveDrawingBuffer = import.meta.env.VITE_E2E_ROOM_JOIN === 'true';
-  const contextAttributes: WebGLContextAttributes = { alpha: true, antialias: true, preserveDrawingBuffer };
+  const compact = window.matchMedia('(max-width: 860px)').matches;
+  const contextAttributes: WebGLContextAttributes = { alpha: true, antialias: !compact, preserveDrawingBuffer };
   const context = (canvas.getContext('webgl2', contextAttributes) ?? canvas.getContext('webgl', contextAttributes)) as WebGLRenderingContext | null;
   if (!context) throw new Error('WebGL unavailable');
 
@@ -262,7 +289,7 @@ function createGalaxyRuntime(
     canvas,
     context,
     alpha: true,
-    antialias: true,
+    antialias: !compact,
     powerPreference: 'high-performance',
     preserveDrawingBuffer
   });
@@ -290,7 +317,7 @@ function createGalaxyRuntime(
     frameId: 0,
     frameCount: 0,
     hidden: document.hidden,
-    syncRooms(rooms: OpenRoom[], selectedRoomId?: string) {
+    syncRooms(rooms: GalaxyRoom[], selectedRoomId?: string) {
       const nextIds = new Set(rooms.map(room => room.roomId));
       for (const [roomId, object] of runtime.roomObjects) {
         if (!nextIds.has(roomId)) {
@@ -302,12 +329,13 @@ function createGalaxyRuntime(
 
       rooms.forEach(room => {
         const layout = roomConstellationPosition(room.roomId);
-        const aura = auraForTrack(room.track);
-        const presence = roomPresenceCount(room.listenerCount, true);
+        const aura = auraForTrack(room);
+        const presence = discoveryPresenceCount(room);
         const isSelected = selectedRoomId === room.roomId;
-        const isLive = room.playerState?.playing === true;
+        const isLive = room.connection !== 'reconnecting'; // Connection presence, not verified audibility.
         const isFull = room.isFull === true;
-        const scale = room.track ? Math.min(0.66 + presence * 0.035, 1.06) : 0.46;
+        const intensity = Math.min(Math.max((presence ?? 1) - 1, 0) / 24, 1);
+        const scale = 0.68 + intensity * 0.38;
         let object = runtime.roomObjects.get(room.roomId);
 
         if (!object) {
@@ -324,8 +352,8 @@ function createGalaxyRuntime(
         object.core.material.emissive.copy(hslToColor(THREE, aura.b));
         object.core.material.emissiveIntensity = isLive ? 0.42 : 0.22;
         object.halo.material.color.copy(hslToColor(THREE, aura.accent));
-        object.halo.material.opacity = isFull ? 0.08 : isSelected ? 0.3 : isLive ? 0.24 : 0.14;
-        syncPetals(THREE, object, room.track ? Math.min(presence, 12) : 0, aura.accent);
+        object.halo.material.opacity = isSelected ? 0.3 : isLive ? 0.14 + intensity * 0.14 : 0.08;
+        syncPetals(THREE, object, Math.min(presence ?? 0, 128), aura.accent);
         loadCoverTexture(runtime, object, room);
       });
     },
@@ -346,7 +374,7 @@ function createGalaxyRuntime(
     const rect = container.getBoundingClientRect();
     const width = Math.max(1, Math.floor(rect.width));
     const height = Math.max(1, Math.floor(rect.height));
-    const pixelRatio = Math.min(window.devicePixelRatio || 1, 1.5);
+    const pixelRatio = Math.min(window.devicePixelRatio || 1, window.matchMedia('(max-width: 860px)').matches ? 1 : 1.5);
     renderer.setPixelRatio(pixelRatio);
     renderer.setSize(width, height, false);
     camera.aspect = width / height;
@@ -385,16 +413,20 @@ function createGalaxyRuntime(
     setOverlays(next);
   }
 
+  let lastRender = 0;
   function animate(time: number) {
     runtime.frameId = window.requestAnimationFrame(animate);
+    if (runtime.hidden || (compact && time - lastRender < 32)) return;
+    lastRender = time;
     runtime.frameCount += 1;
-    if (runtime.hidden) return;
 
     const controls = controlsRef.current;
     const distance = controls.distance;
     const cosPhi = Math.cos(controls.phi);
     camera.position.set(Math.sin(controls.theta) * distance * cosPhi, 2.1 + Math.sin(controls.phi) * distance, Math.cos(controls.theta) * distance * cosPhi);
-    camera.lookAt(0, 0, 0);
+    const focused = [...runtime.roomObjects.values()].find(object => object.group.userData.selected === true);
+    if (focused) camera.lookAt(focused.group.position);
+    else camera.lookAt(0, 0, 0);
 
     for (const object of runtime.roomObjects.values()) {
       const live = object.group.userData.live === true;
@@ -402,7 +434,7 @@ function createGalaxyRuntime(
       const baseScale = Number(object.group.userData.scale ?? 1);
       const pulse = !controls.paused && live ? 1 + Math.sin(time / 520) * 0.055 : 1;
       object.core.scale.setScalar(baseScale * pulse);
-      object.halo.scale.setScalar(baseScale * (selected ? 2.05 : live ? 1.82 + Math.sin(time / 760) * 0.08 : 1.54));
+      object.halo.scale.setScalar(baseScale * (selected ? 2.05 : live ? 1.82 + (controls.paused ? 0 : Math.sin(time / 760) * 0.08) : 1.54));
       if (!controls.paused) object.petals.rotation.y += live ? 0.012 : 0.004;
     }
 
@@ -418,11 +450,13 @@ function createGalaxyRuntime(
   return runtime;
 }
 
-export function RoomGalaxyScene({ rooms, selectedRoomId, sessionAction, onSelectRoom, onJoinRoom }: RoomGalaxySceneProps) {
-  const compactOrReducedMotion = useMediaQuery('(max-width: 860px), (prefers-reduced-motion: reduce)');
+export function RoomGalaxyScene({ rooms, selectedRoomId, ownRoomId, onSelectRoom, onUnavailable }: RoomGalaxySceneProps) {
+  const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
   const [status, setStatus] = useState<SceneStatus>('loading');
   const [controls, setControls] = useState<GalaxyControls>(DEFAULT_CONTROLS);
-  const [joiningId, setJoiningId] = useState<string | null>(null);
+  const [focusedRoomId, setFocusedRoomId] = useState<string | undefined>();
+  const activeRoomId = selectedRoomId ?? focusedRoomId;
+  const cameraInitialized = useRef(false);
   const [overlays, setOverlays] = useState<GalaxyOverlay[]>([]);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -430,13 +464,20 @@ export function RoomGalaxyScene({ rooms, selectedRoomId, sessionAction, onSelect
   const controlsRef = useRef(controls);
   const overlaysRef = useRef<GalaxyOverlay[]>([]);
   const roomsRef = useRef(rooms);
-  const selectedRoomIdRef = useRef(selectedRoomId);
+  const selectedRoomIdRef = useRef(activeRoomId);
   const dragRef = useRef<DragState | null>(null);
-  const joinTimeoutRef = useRef<number | null>(null);
   const selectedRoomIndex = Math.max(
     0,
-    rooms.findIndex(room => room.roomId === selectedRoomId)
+    rooms.findIndex(room => room.roomId === activeRoomId)
   );
+  useEffect(() => {
+    if (cameraInitialized.current || !rooms.length) return;
+    cameraInitialized.current = true;
+    const room = rooms[0];
+    const position = roomConstellationPosition(room.roomId);
+    setFocusedRoomId(room.roomId);
+    updateControls(setControls, { theta: Math.atan2(position.x3d, position.z3d), phi: clamp(position.y3d / 7, -0.24, 0.24) });
+  }, [rooms]);
   const overlayByRoom = useMemo(() => new Map(overlays.map(overlay => [overlay.roomId, overlay])), [overlays]);
 
   useEffect(() => {
@@ -445,11 +486,14 @@ export function RoomGalaxyScene({ rooms, selectedRoomId, sessionAction, onSelect
 
   useEffect(() => {
     roomsRef.current = rooms;
-    selectedRoomIdRef.current = selectedRoomId;
-  }, [rooms, selectedRoomId]);
+    selectedRoomIdRef.current = activeRoomId;
+  }, [rooms, activeRoomId]);
 
   useEffect(() => {
-    if (compactOrReducedMotion) {
+    if (reducedMotion) {
+      // Let the owner inspect focus while the scene DOM still exists, then
+      // unmount it through the shared Radar fallback.
+      onUnavailable('motion');
       setStatus('unsupported');
       return;
     }
@@ -463,6 +507,7 @@ export function RoomGalaxyScene({ rooms, selectedRoomId, sessionAction, onSelect
 
     function handleContextLost(event: Event) {
       event.preventDefault();
+      onUnavailable('graphics');
       setStatus('context-lost');
       runtimeRef.current?.dispose();
       runtimeRef.current = null;
@@ -490,7 +535,10 @@ export function RoomGalaxyScene({ rooms, selectedRoomId, sessionAction, onSelect
         };
       })
       .catch(() => {
-        if (!cancelled) setStatus('error');
+        if (!cancelled) {
+          setStatus('error');
+          onUnavailable('graphics');
+        }
       });
 
     return () => {
@@ -500,12 +548,12 @@ export function RoomGalaxyScene({ rooms, selectedRoomId, sessionAction, onSelect
       runtimeRef.current = null;
       delete window.__DOTIFY_ROOM_GALAXY__;
     };
-  }, [compactOrReducedMotion]);
+  }, [reducedMotion, onUnavailable]);
 
   useEffect(() => {
-    runtimeRef.current?.syncRooms(rooms, selectedRoomId);
+    runtimeRef.current?.syncRooms(rooms, activeRoomId);
     runtimeRef.current?.renderOnce();
-  }, [rooms, selectedRoomId]);
+  }, [rooms, activeRoomId]);
 
   useEffect(() => {
     window.__DOTIFY_ROOM_GALAXY__ = {
@@ -525,37 +573,6 @@ export function RoomGalaxyScene({ rooms, selectedRoomId, sessionAction, onSelect
     };
   }, [rooms.length, status]);
 
-  useEffect(
-    () => () => {
-      if (joinTimeoutRef.current !== null) {
-        window.clearTimeout(joinTimeoutRef.current);
-        joinTimeoutRef.current = null;
-      }
-    },
-    []
-  );
-
-  const enterRoom = useCallback(
-    (roomId: string) => {
-      if (sessionAction !== 'idle' || joiningId) return;
-      if (rooms.find(room => room.roomId === roomId)?.isFull) return;
-      setJoiningId(roomId);
-      joinTimeoutRef.current = window.setTimeout(() => {
-        joinTimeoutRef.current = null;
-        setJoiningId(null);
-        onJoinRoom(roomId);
-      }, JOIN_FLOOD_MS);
-    },
-    [joiningId, onJoinRoom, rooms, sessionAction]
-  );
-
-  const selectRoom = useCallback(
-    (roomId: string) => {
-      onSelectRoom?.(roomId);
-    },
-    [onSelectRoom]
-  );
-
   const focusRoomAt = useCallback(
     (index: number) => {
       if (rooms.length === 0) return;
@@ -563,10 +580,10 @@ export function RoomGalaxyScene({ rooms, selectedRoomId, sessionAction, onSelect
       const room = rooms[normalized];
       if (!room) return;
       const position = roomConstellationPosition(room.roomId);
-      selectRoom(room.roomId);
+      setFocusedRoomId(room.roomId);
       updateControls(setControls, { theta: Math.atan2(position.x3d, position.z3d), phi: clamp(position.y3d / 7, -0.24, 0.24) });
     },
-    [rooms, selectRoom]
+    [rooms]
   );
 
   function resetCamera() {
@@ -626,9 +643,7 @@ export function RoomGalaxyScene({ rooms, selectedRoomId, sessionAction, onSelect
     action();
   }
 
-  if (compactOrReducedMotion || status === 'unsupported' || status === 'context-lost' || status === 'error') {
-    return <SkyOfRooms rooms={rooms} selectedRoomId={selectedRoomId} sessionAction={sessionAction} onSelectRoom={onSelectRoom} onJoinRoom={onJoinRoom} />;
-  }
+  if (status === 'unsupported' || status === 'context-lost' || status === 'error') return null;
 
   return (
     <div
@@ -652,58 +667,65 @@ export function RoomGalaxyScene({ rooms, selectedRoomId, sessionAction, onSelect
       <div className='room-galaxy-overlays' aria-label='Room galaxy selection'>
         {rooms.map((room, index) => {
           const overlay = overlayByRoom.get(room.roomId);
-          const presence = roomPresenceCount(room.listenerCount, true);
-          const hostDisplayName = roomHostDisplayName(room.hostName);
-          const selected = selectedRoomId === room.roomId;
+          const own = room.roomId === ownRoomId;
+          const selected = activeRoomId === room.roomId;
           const full = room.isFull === true;
           const label = shouldShowConstellationLabel(room.roomId, rooms.length, selected);
           const markerStyle = {
             ...colorStyleForRoom(room),
+            '--galaxy-cover-size': `${64 + Math.min(Math.max((discoveryPresenceCount(room) ?? 1) - 1, 0) / 24, 1) * 24}px`,
             left: overlay ? `${overlay.x}px` : '50%',
             top: overlay ? `${overlay.y}px` : '50%',
             opacity: overlay?.visible === false ? 0 : 1,
             pointerEvents: overlay?.visible === false ? 'none' : 'auto',
-            zIndex: overlay ? Math.round((1 - overlay.depth) * 100) : 1
+            zIndex: selected ? 1000 : overlay ? Math.round((1 - overlay.depth) * 100) : 1
           } as CSSProperties;
 
           return (
-            <div className='room-galaxy-marker' key={room.roomId} data-selected={selected} data-label={label ? 'visible' : 'compact'} style={markerStyle}>
+            <div
+              className='room-galaxy-marker'
+              key={room.roomId}
+              data-selected={selected}
+              data-own={own}
+              data-artist-present={room.artistPresent}
+              data-room-id={room.roomId}
+              data-label={label ? 'visible' : 'compact'}
+              style={markerStyle}
+            >
               <button
                 className='room-galaxy-room'
                 type='button'
-                onClick={() => selectRoom(room.roomId)}
-                onFocus={() => focusRoomAt(index)}
+                onClick={() => onSelectRoom(room.roomId)}
+                onFocus={event => {
+                  if (event.currentTarget.matches(':focus-visible')) focusRoomAt(index);
+                }}
                 aria-pressed={selected}
-                aria-label={`Inspect room ${room.roomId}: ${room.track?.title ?? 'audio session'}${hostDisplayName ? ` with ${hostDisplayName}` : ''}, ${presence} listening`}
+                aria-label={`Inspect ${own ? 'your room: ' : ''}${room.roomName || room.title}, ${room.artist}${room.artistPresent ? ', artist here' : ''}`}
+                aria-description={`Host: ${room.hostName}. ${discoveryPresenceLabel(room)}. ${room.scope === 'worldwide' ? 'Worldwide' : room.distanceBand || 'Nearby'}${room.connection === 'reconnecting' ? '. Reconnecting' : ''}`}
+                aria-haspopup='dialog'
               >
                 <span className='room-galaxy-cover' aria-hidden='true'>
-                  {room.track?.imageRef ? <CoverImage src={room.track.imageRef} alt='' fallbackLabel={room.track.title} loading='lazy' /> : null}
+                  <CoverImage src={room.imageRef ?? undefined} alt='' fallbackLabel={room.title} loading='lazy' />
+                  {room.artistPresent && <ArtistPresenceBadge compact />}
                 </span>
                 <span className='room-galaxy-copy'>
-                  <strong>{room.track?.title ?? 'Audio session'}</strong>
+                  <strong>{room.roomName || room.title}</strong>
                   <span>
-                    {hostDisplayName ? `${hostDisplayName} · ` : ''}
-                    {presence} here
+                    {room.artist}
                     {full && ' - full'}
                   </span>
                 </span>
               </button>
-              <button
-                className='room-galaxy-join'
-                type='button'
-                title={full ? 'Room full' : 'Join room'}
-                aria-label={full ? `Room ${room.roomId} is full` : `Join room ${room.roomId}`}
-                disabled={sessionAction !== 'idle' || full || joiningId === room.roomId}
-                onClick={() => enterRoom(room.roomId)}
-              >
-                <Headphones size={15} />
-              </button>
+              {own && <span className='room-galaxy-own'>Your room</span>}
+              <span className='room-galaxy-scope' aria-hidden='true'>
+                <RoomScopeIcon worldwide={room.scope === 'worldwide'} />
+              </span>
             </div>
           );
         })}
       </div>
 
-      {rooms.length > 1 && (
+      {rooms.length > 0 && (
         <div className='room-galaxy-controls' aria-label='3D galaxy navigation controls'>
           <div className='sky-control-group'>
             <button type='button' onClick={() => focusRoomAt(selectedRoomIndex - 1)} aria-label='Center previous room' title='Center previous room'>

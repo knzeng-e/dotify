@@ -107,6 +107,12 @@ test('real Web Audio stays silent through repeated host pauses and local pause s
       const analyser = context.createAnalyser();
       analyser.fftSize = 2048;
       context.createMediaStreamSource(stream).connect(analyser);
+      // Keep this separate measurement graph rendering in headless engines,
+      // without playing the received audio a second time. Match the continuity
+      // tests: an analyser alone is not an explicit destination for the graph.
+      const silentOutput = context.createGain();
+      silentOutput.gain.value = 0;
+      analyser.connect(silentOutput).connect(context.destination);
       const samples = new Float32Array(analyser.fftSize);
       Reflect.set(window, '__roomSyncMeter', () => {
         analyser.getFloatTimeDomainData(samples);
@@ -114,6 +120,7 @@ test('real Web Audio stays silent through repeated host pauses and local pause s
       });
       Reflect.set(window, '__roomSyncStream', stream);
     });
+    await expect.poll(() => guest.evaluate(() => Reflect.get(window, '__roomSyncContext').state)).toBe('running');
     const rms = () => guest.evaluate(() => Reflect.get(window, '__roomSyncMeter')() as number);
     await host.locator('.transport-play').click();
     await expect.poll(rms).toBeGreaterThan(0.02);

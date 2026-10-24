@@ -136,7 +136,9 @@ One vocabulary declined everywhere, instead of a zoo of loaders:
 - **The 3D room galaxy is optional.** W14 adds a bare Three.js renderer behind
   `RoomDiscoveryRenderer` because the implementation sequence explicitly tests
   a true 3D room field. It must stay lazy-loaded, data-driven, disposable, and
-  reversible to the 2D sky/list fallback. The 2D renderer remains the default
+  reversible to the scoped Radar/List fallback. The #329 correction offers
+  the optional choice through the normal Room view picker, while the same
+  Nearby/Worldwide discovery owner and audio remain mounted. Radar remains the default
   until supported-device performance evidence justifies promoting the 3D view.
   The normal web and Product builds keep the `three` code in an on-demand chunk;
   the Bulletin single-file build inlines it by design, so Bulletin-first
@@ -154,11 +156,11 @@ One vocabulary declined everywhere, instead of a zoo of loaders:
 
 ## Phasing
 
-| Phase | Surface | Content | WebGL |
-| --- | --- | --- | --- |
-| A | Listen | Stage rail: arc + aura lamp + unlocked glare | none (CSS + rAF) |
-| B | Rooms | Sky of rooms: dot-spheres + presence orbits, grid fallback, optional W14 3D renderer | optional Three.js |
-| C | Cross | Dot-birth loader, unlock ritual, reaction petals, studio orbit | none |
+| Phase | Surface | Content                                                                              | WebGL             |
+| ----- | ------- | ------------------------------------------------------------------------------------ | ----------------- |
+| A     | Listen  | Stage rail: arc + aura lamp + unlocked glare                                         | none (CSS + rAF)  |
+| B     | Rooms   | Sky of rooms: dot-spheres + presence orbits, grid fallback, optional W14 3D renderer | optional Three.js |
+| C     | Cross   | Dot-birth loader, unlock ritual, reaction petals, studio orbit                       | none              |
 
 Phase B note: the earlier prototype proved that DOM + CSS covers the essential
 room discovery experience at realistic room counts. W14 keeps that path as the
