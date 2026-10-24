@@ -1,25 +1,28 @@
 # Deploy Dotify To Product DevNet
 
-## Product 0.1.61 scoped 3D candidate, 2026-10-24
+## Product 0.1.61 scoped 3D published, 2026-10-24
 
-The owner requests Product publication of merged `dev` `620f7c6` (#330).
+Published from clean packaging `c294e21651ab007725d7fafa18be5c6de8e03419`, based on
+merged `dev` `620f7c6` (#330), at root/app CID
+`bafybeiavq23ghgrkkrq5frcwzy3zcnnq7tvp5umgixdz3exmllfxrd3wbi`.
 Executable `[0,1,61]` retains the existing native profile and permissions. The
 room view picker offers Radar / 3D / List; Radar stays initial and graphics
 failure falls back to it. Do not restart services or change artist runtimes.
-Web deployment belongs to the owner. Record finalized and public artifact
-verification in the [0.1.61 rollout](../backlog/implementation/evidence/product-0.1.61-rollout-2026-10-24.md)
-before claiming this candidate is published. Physical Host graphics and native
-location remain separate acceptance checks.
+Web deployment belongs to the owner. Finalized DotNS/version, all 135 public CAR
+blocks and exact entry/graphics bytes pass; the local signer is removed. See the
+[0.1.61 rollout](../backlog/implementation/evidence/product-0.1.61-rollout-2026-10-24.md)
+for identities and the compatible 0.1.60 rollback. Physical Host graphics and
+native location remain separate acceptance checks.
 
-## New Host compatibility candidate, 2026-10-23
+## Host compatibility baseline, 2026-10-23
 
 Desktop Dev 0.1.4-rc.3 embeds TrUAPI 0.25.0 / codec 3, schema
-`3c45e49b26c1ab97`. The published Dotify codec-1 bundle is incompatible.
-The reviewed candidate pins SDK 0.39.0 / host 0.28.0 / TrUAPI 0.25.0;
+`3c45e49b26c1ab97`. The historical 0.1.59 codec-1 bundle is incompatible.
+Product 0.1.60 and 0.1.61 pin SDK 0.39.0 / host 0.28.0 / TrUAPI 0.25.0;
 SDK 0.40.0 targets a different 0.26 schema and is not a compatible shortcut.
-This source update is not a publication. Preserve the existing Dotify product
+Preserve the existing Dotify product
 identifier, account index zero, CDM snapshots and factory/deposit safeguards.
-After merge, publish a new executable and verify the same account, native
+After publication, verify the same account, native
 signing and room permissions on Desktop and the owner's mobile 0.10.0 (18).
 Mobile's embedded protocol and real-device behavior are still unverified.
 See [evidence and rollout boundary](../backlog/implementation/evidence/product-host-0.1.4-2026-10-23.md).
