@@ -255,6 +255,10 @@ test('cover galaxies show exact live people and distinguish my room from an iden
     await expect(guest.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20_000 });
     await host.getByRole('button', { name: 'Keep listening and browse', exact: true }).click();
     const radar = await rooms(host);
+    // Exercise pointer crossing, not CSS-driven auto-scroll. A smooth scroll
+    // during locator.hover can move the open popup away from the real pointer.
+    // Keep radar/presence animations enabled; only page scrolling is immediate.
+    await host.addStyleTag({ content: 'html { scroll-behavior: auto !important; }' });
     await host.setViewportSize({ width: 1440, height: 1000 });
     const own = radar.locator('.radar-room-dot[data-own="true"]');
     const other = radar.locator('.radar-room-dot[data-own="false"]');
