@@ -52,3 +52,21 @@ audio devices; these results do not certify physical Product graphics or audio.
 - Merge and publish this fix before asking users to test the restored view.
   Product 0.1.60 publication traceability (#327) is still a separate open PR;
   the next package must advance beyond the version already published.
+
+## Review follow-up: reduced-motion focus
+
+[Review finding](https://github.com/knzeng-e/dotify/pull/330#discussion_r4367761744)
+identified that enabling reduced motion while a scene control was focused could
+discard focus before the Radar fallback inspected it. The new browser assertion
+failed on the reviewed revision, confirming the regression.
+
+The scene now lets its owner inspect focus before removing the scene DOM; the
+reduced-motion stylesheet no longer hides that DOM ahead of the effect. Rendering
+resources still dispose during the transition. The browser scenario verifies both
+restoration to the Room view picker from a scene control and preservation of
+focus on Search settings outside the scene. It also retains the context-loss and
+initially reduced-motion cases.
+
+All four 3D scenarios and the independent operational-off scenario pass after the
+fix. Touched-file lint/format checks and the Web build pass. These checks extend
+the evidence above; they do not add physical-device certification.

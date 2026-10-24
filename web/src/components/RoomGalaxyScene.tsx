@@ -491,8 +491,10 @@ export function RoomGalaxyScene({ rooms, selectedRoomId, ownRoomId, onSelectRoom
 
   useEffect(() => {
     if (reducedMotion) {
-      setStatus('unsupported');
+      // Let the owner inspect focus while the scene DOM still exists, then
+      // unmount it through the shared Radar fallback.
       onUnavailable('motion');
+      setStatus('unsupported');
       return;
     }
 
@@ -641,7 +643,7 @@ export function RoomGalaxyScene({ rooms, selectedRoomId, ownRoomId, onSelectRoom
     action();
   }
 
-  if (reducedMotion || status === 'unsupported' || status === 'context-lost' || status === 'error') return null;
+  if (status === 'unsupported' || status === 'context-lost' || status === 'error') return null;
 
   return (
     <div

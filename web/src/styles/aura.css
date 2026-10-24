@@ -880,10 +880,12 @@ body {
     transition: none;
   }
 
-  .room-galaxy,
   .sky {
     display: none;
   }
+
+  /* The 3D owner returns to Radar after preserving keyboard focus. Hiding the
+     scene here would discard that focus before the preference effect runs. */
 
   .room-galaxy-marker {
     transition: none;
