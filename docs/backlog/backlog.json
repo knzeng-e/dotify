@@ -581,7 +581,7 @@
       "priority": "P1",
       "track": "Room reliability",
       "phase": "Now",
-      "note": "#297 is merged and deployed from 0.1.52; discovery controls, recovery and lazy ArtistShell are delivered. Remaining implementation verification: dedicated Worldwide-report E2E missing from W31 evidence. Native reliability remains separate device/pilot acceptance."
+      "note": "#297 is merged and deployed from 0.1.52. The selected W31 follow-up adds dedicated Worldwide Report browser coverage for Web and a Product Host fixture, with real anonymous count acceptance, minimal payload, reversible local hiding and other-client access. Native reliability remains separate device/pilot acceptance."
     },
     {
       "id": "W32",
