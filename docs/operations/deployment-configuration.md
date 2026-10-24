@@ -1,5 +1,19 @@
 # Deployment Configuration Runbook
 
+## Product 0.1.61 scoped 3D published, 2026-10-24
+
+Merged `dev` `620f7c6` (#330, with #327's publication record) is packaged from clean
+commit `c294e21651ab007725d7fafa18be5c6de8e03419` as executable `[0,1,61]` at CID
+`bafybeiavq23ghgrkkrq5frcwzy3zcnnq7tvp5umgixdz3exmllfxrd3wbi`.
+Finalized root/app readback at block 14867115, all 135 public CAR blocks and exact
+entry/graphics bytes pass. The local signer is removed. Native profile, permissions, contracts
+and frozen catalog are retained. This is a Product-only publication; the owner
+handles Web, and API/signaling/encoder stay running. Radar remains the initial
+view and 3D is an explicit presentation choice over the same public results.
+
+See [publication evidence and rollback](../backlog/implementation/evidence/product-0.1.61-rollout-2026-10-24.md).
+Physical Host graphics, audio continuity and location remain acceptance checks.
+
 ## Product 0.1.60 Host compatibility published, 2026-10-23
 
 Product 0.1.60 publishes merged dev `a60a89f` (#326 included) from clean
