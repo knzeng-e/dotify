@@ -724,3 +724,208 @@ describe('keyService sessions', () => {
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 });
+
+describe('W34 prepared queue keys', () => {
+  function signedIn(scheme = 'eip191') {
+    const key = `dotify:session:v2:${encodeURIComponent('https://api.test')}:${ADDRESS}:420420417:${scheme}`;
+    return installLocalStorage([[key, JSON.stringify({ token: 'queue-session-token', expiresAt: new Date(Date.now() + 3_600_000).toISOString() })]]);
+  }
+  const tracks = () => [{ contentHash: CONTENT_HASH, release: releaseIdentity() }];
+  const batch = () =>
+    jsonResponse({
+      expiresAt: new Date(Date.now() + 30_000).toISOString(),
+      tracks: [
+        {
+          access: 'allowed',
+          playbackMode: 'full',
+          contentKey: CONTENT_KEY,
+          runtime: RUNTIME,
+          contentHash: CONTENT_HASH,
+          releaseId: RELEASE_ID
+        }
+      ]
+    });
+  it.each(['eip191', 'product-sr25519-v1'] as const)('Next uses a prepared %s grant with no key HTTP request or wallet prompt', async scheme => {
+    const storage = signedIn(scheme === 'eip191' ? scheme : `${scheme}:${PRODUCT_PUBLIC_KEY}`);
+    const service = await loadKeyService();
+    const signer = scheme === 'eip191' ? { address: ADDRESS, signMessage: vi.fn() } : productSigner();
+    const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) => batch());
+    vi.stubGlobal('fetch', fetchMock);
+    await service.prepareContentKeys({ signer, chainId: 420420417, purpose: 'room_host', tracks: tracks() });
+    const result = await service.requestContentKey({ signer, chainId: 420420417, purpose: 'room_host', ...tracks()[0] });
+    expect(result.access).toBe('allowed');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(signer.signMessage).not.toHaveBeenCalled();
+    expect([...storage.store.values(), ...storage.sessionStore.values()].join('')).not.toContain(CONTENT_KEY);
+    expect(JSON.parse(fetchMock.mock.calls[0][1]?.body as string)).toMatchObject({ sessionToken: 'queue-session-token', purpose: 'room_host' });
+  });
+  it('does not sign in an anonymous visitor or renew a missing session for speculation', async () => {
+    installLocalStorage();
+    const service = await loadKeyService();
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const signer = productSigner();
+    await service.prepareContentKeys({ signer, chainId: 420420417, purpose: 'individual', tracks: tracks() });
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(signer.signMessage).not.toHaveBeenCalled();
+  });
+  it('cannot reuse prepared keys after sign-out or an identity/chain scope cleanup', async () => {
+    signedIn();
+    const service = await loadKeyService();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => batch())
+    );
+    const signer = { address: ADDRESS, signMessage: vi.fn() };
+    await service.prepareContentKeys({ signer, chainId: 420420417, purpose: 'individual', tracks: tracks() });
+    expect(service.readPreparedContentKey(CONTENT_HASH, releaseIdentity(), 'individual')?.access).toBe('allowed');
+    service.clearPreparedContentKeys();
+    expect(service.readPreparedContentKey(CONTENT_HASH, releaseIdentity(), 'individual')).toBeNull();
+    await service.prepareContentKeys({ signer, chainId: 420420417, purpose: 'individual', tracks: tracks() });
+    await service.signOutOfDotifySession(ADDRESS);
+    expect(service.readPreparedContentKey(CONTENT_HASH, releaseIdentity(), 'individual')).toBeNull();
+  });
+  it('discards a late batch after disconnect, cancellation, session replacement or expiry', async () => {
+    for (const boundary of ['disconnect', 'abort', 'replace', 'expire'] as const) {
+      const storage = signedIn();
+      const service = await loadKeyService();
+      let settle!: (response: Response) => void;
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(
+          () =>
+            new Promise<Response>(resolve => {
+              settle = resolve;
+            })
+        )
+      );
+      const controller = new AbortController();
+      const pending = service.prepareContentKeys({
+        signer: { address: ADDRESS, signMessage: vi.fn() },
+        chainId: 420420417,
+        purpose: 'individual',
+        tracks: tracks(),
+        signal: controller.signal
+      });
+      if (boundary === 'disconnect') service.clearPreparedContentKeys();
+      if (boundary === 'abort') controller.abort();
+      if (boundary === 'replace') storage.store.clear();
+      settle(boundary === 'expire' ? jsonResponse({ expiresAt: new Date(Date.now() - 1).toISOString(), tracks: [] }) : batch());
+      await pending;
+      expect(service.readPreparedContentKey(CONTENT_HASH, releaseIdentity(), 'individual')).toBeNull();
+    }
+  });
+  it('bounds batches to five and never caches denied or wrong-runtime grants', async () => {
+    signedIn();
+    const service = await loadKeyService();
+    const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
+      const sent = JSON.parse(init?.body as string);
+      expect(sent.tracks).toHaveLength(5);
+      return jsonResponse({
+        expiresAt: new Date(Date.now() + 30_000).toISOString(),
+        tracks: sent.tracks.map((t: { contentHash: string; releaseId: string }, index: number) => ({
+          ...t,
+          ...(index === 0 ? { access: 'denied' } : { access: 'allowed', contentKey: CONTENT_KEY, runtime: ARTIST })
+        }))
+      });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    await service.prepareContentKeys({
+      signer: { address: ADDRESS, signMessage: vi.fn() },
+      chainId: 420420417,
+      purpose: 'individual',
+      tracks: Array.from({ length: 8 }, (_, i) => {
+        const contentHash = `0x${i.toString(16).padStart(64, '0')}` as `0x${string}`;
+        return { contentHash, release: { ...releaseIdentity(), releaseId: `${RUNTIME}:${contentHash}` } };
+      })
+    });
+    expect(service.readPreparedContentKey(CONTENT_HASH, releaseIdentity(), 'individual')).toBeNull();
+  });
+  it('measures warm Next key wait before and after preparation with a simulated 40ms API', async () => {
+    signedIn();
+    const service = await loadKeyService();
+    const fetchMock = vi.fn(async (url: string) => {
+      await new Promise(resolve => setTimeout(resolve, 40));
+      return url.endsWith('/prepare') ? batch() : keyRequestResponse();
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const request = { signer: { address: ADDRESS, signMessage: vi.fn() }, chainId: 420420417, purpose: 'individual' as const, ...tracks()[0] };
+    const before = performance.now();
+    await service.requestContentKey(request);
+    const cold = performance.now() - before;
+    await service.prepareContentKeys({ ...request, tracks: tracks() });
+    const calls = fetchMock.mock.calls.length;
+    const after = performance.now();
+    await service.requestContentKey(request);
+    const warm = performance.now() - after;
+    expect(fetchMock).toHaveBeenCalledTimes(calls);
+    console.info('W34 synthetic key wait (not audible startup)', JSON.stringify({ beforeMs: cold, preparedMs: warm, simulatedApiMs: 40 }));
+  });
+});
+
+it('expires prepared Free/individual keys without signing or extending the grant', async () => {
+  const scopeKey = `dotify:session:v2:${encodeURIComponent('https://api.test')}:${ADDRESS}:420420417:eip191`;
+  installLocalStorage([[scopeKey, JSON.stringify({ token: 'queue-session-token', expiresAt: new Date(Date.now() + 3_600_000).toISOString() })]]);
+  let now = Date.now();
+  vi.spyOn(Date, 'now').mockImplementation(() => now);
+  const service = await loadKeyService();
+  const fetchMock = vi.fn(async (url: string) =>
+    url.endsWith('/prepare')
+      ? jsonResponse({
+          expiresAt: new Date(now + 1000).toISOString(),
+          tracks: [{ access: 'allowed', playbackMode: 'full', contentKey: CONTENT_KEY, runtime: RUNTIME, contentHash: CONTENT_HASH, releaseId: RELEASE_ID }]
+        })
+      : keyRequestResponse()
+  );
+  vi.stubGlobal('fetch', fetchMock);
+  const signer = { address: ADDRESS, signMessage: vi.fn() };
+  await service.prepareContentKeys({ signer, chainId: 420420417, purpose: 'individual', tracks: [{ contentHash: CONTENT_HASH, release: releaseIdentity() }] });
+  expect((await service.requestFreeContentKey(CONTENT_HASH, releaseIdentity())).access).toBe('allowed');
+  expect(fetchMock).toHaveBeenCalledTimes(1);
+  now += 1000;
+  expect(
+    (await service.requestContentKey({ signer, chainId: 420420417, purpose: 'individual', contentHash: CONTENT_HASH, release: releaseIdentity() })).access
+  ).toBe('allowed');
+  expect(fetchMock).toHaveBeenCalledTimes(2);
+  expect(signer.signMessage).not.toHaveBeenCalled();
+});
+
+it('does not invalidate a healthy session on a proxy 401 during speculative preparation', async () => {
+  const scopeKey = `dotify:session:v2:${encodeURIComponent('https://api.test')}:${ADDRESS}:420420417:eip191`;
+  installLocalStorage([[scopeKey, JSON.stringify({ token: 'queue-session-token', expiresAt: new Date(Date.now() + 3_600_000).toISOString() })]]);
+  const service = await loadKeyService();
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => jsonResponse({ error: 'Gateway unavailable' }, 401))
+  );
+  const signer = { address: ADDRESS, signMessage: vi.fn() };
+  await service.prepareContentKeys({ signer, chainId: 420420417, purpose: 'individual', tracks: [{ contentHash: CONTENT_HASH, release: releaseIdentity() }] });
+  expect(service.existingDotifySession(signer, 420420417)).toBe('queue-session-token');
+  expect(signer.signMessage).not.toHaveBeenCalled();
+});
+
+it('a single key reply that arrives after wallet scope cleanup cannot return a key', async () => {
+  const scopeKey = `dotify:session:v2:${encodeURIComponent('https://api.test')}:${ADDRESS}:420420417:eip191`;
+  installLocalStorage([[scopeKey, JSON.stringify({ token: 'queue-session-token', expiresAt: new Date(Date.now() + 3_600_000).toISOString() })]]);
+  const service = await loadKeyService();
+  let settle!: (value: Response) => void;
+  const fetchMock = vi.fn(
+    () =>
+      new Promise<Response>(resolve => {
+        settle = resolve;
+      })
+  );
+  vi.stubGlobal('fetch', fetchMock);
+  const request = service.requestContentKey({
+    signer: { address: ADDRESS, signMessage: vi.fn() },
+    chainId: 420420417,
+    purpose: 'individual',
+    contentHash: CONTENT_HASH,
+    release: releaseIdentity()
+  });
+  await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+  service.clearPreparedContentKeys();
+  const failure = expect(request).rejects.toMatchObject({ code: 'SESSION_CANCELLED' });
+  settle(keyRequestResponse());
+  await failure;
+});

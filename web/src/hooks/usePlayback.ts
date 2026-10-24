@@ -47,6 +47,7 @@ type UsePlaybackDeps = {
   selectedTrackId: string;
   lineup: RoomLineupItem[];
   onLineupChange: (lineup: RoomLineupItem[]) => void;
+  onPrepareKeys?: (tracks: CatalogTrack[], signal: AbortSignal) => Promise<void>;
   onOpenTrack: (track: CatalogTrack) => void;
   onEmitPlayerState: (force: boolean) => void;
 };
@@ -194,7 +195,12 @@ export function usePlayback(deps: UsePlaybackDeps) {
     mode === 'host' && !trackSelectionPending && Boolean(audioSource),
     audioSourceGeneration,
     queuedTracks[0]?.audioRef ?? catalogTracks.find(track => track.id === neighbors.nextId)?.audioRef,
-    catalogTracks.find(track => track.id === neighbors.previousId)?.audioRef
+    catalogTracks.find(track => track.id === neighbors.previousId)?.audioRef,
+    async signal => {
+      const next = catalogTracks.find(track => track.id === neighbors.nextId);
+      const previous = catalogTracks.find(track => track.id === neighbors.previousId);
+      await deps.onPrepareKeys?.([...queuedTracks, ...(next ? [next] : []), ...(previous ? [previous] : [])].slice(0, 5), signal);
+    }
   );
 
   const syncFromAudio = useCallback(

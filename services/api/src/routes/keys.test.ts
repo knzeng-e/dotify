@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { afterEach, describe, it } from 'node:test';
 import Fastify, { type FastifyInstance } from 'fastify';
+import rateLimit from '@fastify/rate-limit';
+import { rateLimitKey } from '../app.js';
 import { createKeyRoutes, type KeyRouteDeps } from './keys.js';
 import { PRODUCT_SR25519_SIGNATURE_SCHEME, type KeySignatureRequest } from '../services/signatures.js';
 import type { CanonicalRelease } from '../services/chainAccess.js';
@@ -44,8 +46,9 @@ const allowAll: KeyRouteDeps = {
 
 let app: FastifyInstance | null = null;
 
-async function buildApp(deps: Partial<KeyRouteDeps> = {}): Promise<FastifyInstance> {
+async function buildApp(deps: Partial<KeyRouteDeps> = {}, limited = false): Promise<FastifyInstance> {
   app = Fastify();
+  if (limited) await app.register(rateLimit, { max: 100, timeWindow: '1 minute', keyGenerator: request => rateLimitKey(request, 'fly') });
   await app.register(createKeyRoutes({ ...allowAll, ...deps }), { prefix: '/api/tracks' });
   return app;
 }
@@ -566,4 +569,110 @@ describe('content-key response caching', () => {
     assert.equal(invalid.statusCode, 400);
     assert.equal(invalid.headers['cache-control'], 'no-store');
   });
+});
+
+describe('W34 session queue preparation', () => {
+  const payload = () => ({ sessionToken: 'valid-session-token', purpose: 'individual', tracks: [{ contentHash: CONTENT_HASH, ...releaseRequestFields() }] });
+  it('checks each track as the authenticated session and returns mixed results without denied keys', async () => {
+    const requests: unknown[] = [];
+    const hashB = `0x${'ef'.repeat(32)}`;
+    const server = await buildApp({
+      checkTrackAccess: async input => {
+        requests.push(input);
+        return input.contentHash === CONTENT_HASH
+          ? allowAll.checkTrackAccess(input)
+          : { allowed: false, code: 'LISTENER_ACCESS_REQUIRED', reason: 'Unlock this track.' };
+      }
+    });
+    const body = payload();
+    body.tracks.push({ ...body.tracks[0], contentHash: hashB, releaseId: `${RUNTIME}:${hashB}` });
+    const response = await server.inject({ method: 'POST', url: '/api/tracks/keys/prepare', payload: body });
+    assert.equal(response.statusCode, 200);
+    assert.equal(response.headers['cache-control'], 'no-store');
+    const result = response.json();
+    assert.equal(result.tracks[0].contentKey, KEY);
+    assert.equal(result.tracks[1].access, 'denied');
+    assert.equal('contentKey' in result.tracks[1], false);
+    assert.equal(requests.length, 2);
+    for (const input of requests) assert.equal((input as { requester: string }).requester, SESSION_ADDRESS);
+  });
+  it('rejects anonymous, guest, oversized and partial identity requests before chain access', async () => {
+    let reads = 0;
+    const server = await buildApp({
+      checkTrackAccess: async input => {
+        reads++;
+        return allowAll.checkTrackAccess(input);
+      }
+    });
+    const invalid = [
+      { tracks: payload().tracks },
+      { ...payload(), purpose: 'room_listener' },
+      { ...payload(), tracks: Array(6).fill(payload().tracks[0]) },
+      { ...payload(), tracks: [{ contentHash: CONTENT_HASH }] }
+    ];
+    for (const body of invalid) assert.equal((await server.inject({ method: 'POST', url: '/api/tracks/keys/prepare', payload: body })).statusCode, 400);
+    assert.equal(reads, 0);
+  });
+  for (const code of ['SESSION_REVOKED', 'SESSION_EXPIRED'] as const)
+    it(`rejects ${code} without reads or keys`, async () => {
+      let reads = 0;
+      const server = await buildApp({
+        verifySessionToken: () => ({ valid: false, code, reason: 'Session ended' }),
+        checkTrackAccess: async input => {
+          reads++;
+          return allowAll.checkTrackAccess(input);
+        }
+      });
+      const response = await server.inject({ method: 'POST', url: '/api/tracks/keys/prepare', payload: payload() });
+      assert.equal(response.statusCode, 401);
+      assert.equal(reads, 0);
+      assert.equal(response.json().contentKey, undefined);
+    });
+  it('rejects wrong-chain sessions and revocation while access reads are pending', async () => {
+    const server = await buildApp({ verifySessionToken: () => ({ valid: true, address: SESSION_ADDRESS, chainId: 1, jti: 'wrong' }) });
+    assert.equal((await server.inject({ method: 'POST', url: '/api/tracks/keys/prepare', payload: payload() })).statusCode, 401);
+    let current = true;
+    let derived = 0;
+    await server.close();
+    const revoked = await buildApp({
+      verifySessionToken: () => (current ? allowAll.verifySessionToken('token') : { valid: false, code: 'SESSION_REVOKED', reason: 'Signed out' }),
+      checkTrackAccess: async input => {
+        current = false;
+        return allowAll.checkTrackAccess(input);
+      },
+      deriveContentKey: input => {
+        derived++;
+        return allowAll.deriveContentKey(input);
+      }
+    });
+    assert.equal((await revoked.inject({ method: 'POST', url: '/api/tracks/keys/prepare', payload: payload() })).statusCode, 401);
+    assert.equal(derived, 0);
+  });
+  it('does not extend an old cached verdict with another 30-second client lifetime', async () => {
+    const until = Date.now() + 1000;
+    const server = await buildApp({ checkTrackAccess: async input => ({ ...(await allowAll.checkTrackAccess(input)), validUntil: until }) });
+    const response = await server.inject({ method: 'POST', url: '/api/tracks/keys/prepare', payload: payload() });
+    assert.equal(Date.parse(response.json().expiresAt), until);
+  });
+});
+
+// Uses the production W30 resolver: separate real clients and route buckets.
+it('applies independent batch/free budgets per trusted client without caching keys', async () => {
+  const server = await buildApp({}, true);
+  const headers = { 'fly-client-ip': '198.51.100.1' };
+  const batch = {
+    method: 'POST' as const,
+    url: '/api/tracks/keys/prepare',
+    headers,
+    payload: { sessionToken: 'valid-session-token', purpose: 'individual', tracks: [{ contentHash: CONTENT_HASH, ...releaseRequestFields() }] }
+  };
+  for (let n = 0; n < 12; n++) assert.equal((await server.inject(batch)).statusCode, 200);
+  assert.equal((await server.inject(batch)).statusCode, 429);
+  assert.equal((await server.inject({ ...batch, headers: { 'fly-client-ip': '198.51.100.2' } })).statusCode, 200);
+  const free = { method: 'POST' as const, url: `/api/tracks/${CONTENT_HASH}/free-key`, headers, payload: releaseRequestFields() };
+  for (let n = 0; n < 30; n++) assert.equal((await server.inject(free)).statusCode, 200);
+  const limit = await server.inject(free);
+  assert.equal(limit.statusCode, 429);
+  assert.equal(limit.headers['cache-control'], 'no-store');
+  assert.equal((await server.inject({ ...free, headers: { 'fly-client-ip': '198.51.100.2' } })).statusCode, 200);
 });

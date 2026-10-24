@@ -11,12 +11,14 @@ import { browserPaymentLock, persistentPaymentJournal } from '../features/paymen
 import type { PaymentAccountState } from '../features/payments/paymentModel';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { getGatewayUrl, type ProtectedAudioUpload } from '../services/pinata';
-import { getPublicClient, resolveEvmChain } from '../shared/config/contracts';
+import { resolveEvmChain } from '../shared/config/contracts';
 import { hexToBytes } from '../shared/utils/crypto';
 import { formatWeiAsDot, normalizeDisplayText, shorten, shortenAddress } from '../shared/utils/format';
 import {
   isKeyServiceConfigured,
   requestContentKey,
+  prepareContentKeys,
+  readPreparedContentKey,
   requestFreeContentKey,
   type ContentKeyReleaseIdentity,
   type KeyRequestPurpose
@@ -264,12 +266,6 @@ function releaseIdentityFromTrack(track: CatalogTrack): ContentKeyReleaseIdentit
   };
 }
 
-export function contentKeyCacheKey(contentHash: `0x${string}`, release?: ContentKeyReleaseIdentity): string {
-  const normalizedHash = contentHash.toLowerCase();
-  if (!release) throw new Error('A release identity is required for an audio key.');
-  return [release.keyVersion, release.runtimeAddress.toLowerCase(), release.releaseId.toLowerCase(), normalizedHash, release.audioRef].join(':');
-}
-
 export type UseCatalogDeps = {
   ethRpcUrl: string;
   listenerEvmAddress: `0x${string}` | null;
@@ -393,9 +389,6 @@ export function useCatalog(deps: UseCatalogDeps) {
   const activeTrackSelectionRef = useRef<ActiveTrackSelection | null>(null);
   const nextTrackSelectionIdRef = useRef(0);
   const e2eClassicAccessGrantedRef = useRef(false);
-  // Session cache of backend-delivered content keys: one wallet signature per
-  // track per session, instead of one per playback (signature-fatigue rule).
-  const contentKeysRef = useRef<Map<string, Uint8Array>>(new Map());
   // 'room_host' when the selected track streams into a room; room listeners
   // never request keys at all (they only receive the WebRTC stream).
   const keyRequestPurposeRef = useRef<KeyRequestPurpose>('individual');
@@ -703,16 +696,13 @@ export function useCatalog(deps: UseCatalogDeps) {
       return authorized ? new Uint8Array(32).fill(9) : null;
     }
 
-    const cacheKey = contentKeyCacheKey(contentHash, release);
-    const cached = contentKeysRef.current.get(cacheKey);
-    if (cached) return cached;
     if (!isKeyServiceConfigured()) return null;
     if (!connectedWallet || (!connectedWallet.createEvmClient && !connectedWallet.keyRequestSigner)) {
       throw new ProtectedPlaybackError('account-required', 'No connected account can request protected playback.');
     }
 
     const walletClient = connectedWallet.keyRequestSigner ? null : await getActiveWalletClient();
-    const chainId = walletClient?.chain?.id ?? (await getPublicClient(ethRpcUrl).getChainId());
+    const chainId = walletClient?.chain?.id ?? PRODUCT_DEVNET_EVM_CHAIN_ID;
     const response = await requestContentKey({
       contentHash,
       purpose: keyRequestPurposeRef.current,
@@ -724,7 +714,6 @@ export function useCatalog(deps: UseCatalogDeps) {
       throw new ProtectedPlaybackError('access-not-confirmed', response.message);
     }
     const keyBytes = hexToBytes(response.contentKey);
-    contentKeysRef.current.set(cacheKey, keyBytes);
     return keyBytes;
   }
 
@@ -734,17 +723,13 @@ export function useCatalog(deps: UseCatalogDeps) {
    * cannot open a paid or human-gated track.
    */
   async function resolveFreeContentKey(contentHash: `0x${string}`, release?: ContentKeyReleaseIdentity): Promise<Uint8Array | null> {
-    const cacheKey = contentKeyCacheKey(contentHash, release);
-    const cached = contentKeysRef.current.get(cacheKey);
-    if (cached) return cached;
     if (!isKeyServiceConfigured()) return null;
 
-    const response = await requestFreeContentKey(contentHash, release);
+    const response = await requestFreeContentKey(contentHash, release, keyRequestPurposeRef.current);
     if (response.access !== 'allowed') {
       throw new ProtectedPlaybackError('access-not-confirmed', response.message);
     }
     const keyBytes = hexToBytes(response.contentKey);
-    contentKeysRef.current.set(cacheKey, keyBytes);
     return keyBytes;
   }
 
@@ -801,7 +786,7 @@ export function useCatalog(deps: UseCatalogDeps) {
         cid: encryptedRefToCID(audioRef),
         key,
         scope: {
-          chainId: (await resolveEvmChain(ethRpcUrl)).id,
+          chainId: runtimeAdapterConfig.kind === 'product-cdm' ? PRODUCT_DEVNET_EVM_CHAIN_ID : (await resolveEvmChain(ethRpcUrl)).id,
           runtimeAddress: release.runtimeAddress.toLowerCase(),
           contentHash: contentHash.toLowerCase(),
           keyVersion: release.keyVersion
@@ -909,7 +894,8 @@ export function useCatalog(deps: UseCatalogDeps) {
       let audioUrl: string | null = null;
       let hasAccess = true;
 
-      if (isPolicyManagedTrack(track)) {
+      const preparedGrant = readPreparedContentKey(track.hash, releaseIdentityFromTrack(track), keyRequestPurposeRef.current);
+      if (isPolicyManagedTrack(track) && !preparedGrant) {
         hasAccess = await checkTrackAccess(track, listenerEvmAddress);
         if (!isTrackSelectionCurrent(selection)) return { playbackMode: 'full', audioSource: audioSourceRef.current };
         const smokeRuntime = runtimeAddressFromTrackId(track);
@@ -1453,6 +1439,37 @@ export function useCatalog(deps: UseCatalogDeps) {
     }
   }
 
+  const preparationSigner = connectedWallet?.keyRequestSigner;
+  const preparationIdentity = `${connectedWallet?.evmAddress}:${connectedWallet?.chainId}:${preparationSigner?.signatureScheme}:${preparationSigner?.signatureScheme === 'product-sr25519-v1' ? preparationSigner.productPublicKey : ''}`;
+  const preparationLifetime = useRef(new AbortController());
+  useLayoutEffect(() => {
+    const lifetime = new AbortController();
+    preparationLifetime.current = lifetime;
+    return () => lifetime.abort();
+  }, [preparationIdentity]);
+
+  async function prepareQueuedContentKeys(tracks: CatalogTrack[], signal: AbortSignal) {
+    if (!connectedWallet || (!connectedWallet.keyRequestSigner && !connectedWallet.createEvmClient) || signal.aborted) return;
+    const lifetime = preparationLifetime.current;
+    const candidates = tracks
+      .filter(track => track.active !== false)
+      .flatMap(track => {
+        const release = releaseIdentityFromTrack(track);
+        return release ? [{ contentHash: track.hash, release }] : [];
+      })
+      .slice(0, 5);
+    if (!candidates.length) return;
+    const walletClient = connectedWallet.keyRequestSigner ? undefined : await getActiveWalletClient();
+    if (signal.aborted || lifetime.signal.aborted) return;
+    await prepareContentKeys({
+      ...(connectedWallet.keyRequestSigner ? { signer: connectedWallet.keyRequestSigner } : { walletClient }),
+      chainId: walletClient?.chain?.id ?? PRODUCT_DEVNET_EVM_CHAIN_ID,
+      purpose: keyRequestPurposeRef.current,
+      tracks: candidates,
+      signal: AbortSignal.any([signal, lifetime.signal])
+    });
+  }
+
   function clearObjectUrls() {
     abortActiveTrackSelection();
     for (const url of objectUrlsRef.current.values()) {
@@ -1469,6 +1486,7 @@ export function useCatalog(deps: UseCatalogDeps) {
       isClassicUnlockE2e && track.id === E2E_CLASSIC_TRACK.id
         ? Promise.resolve({ name: track.artist, recipient: E2E_CLASSIC_TRACK.artistAddress!, releaseTitle: track.title })
         : resolveDonationArtist(track, runtimeReader),
+    prepareQueuedContentKeys,
     // State
     catalogTracks,
     allCatalogTracks,

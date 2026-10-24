@@ -1,4 +1,4 @@
-import { useEffect, type RefObject } from 'react';
+import { useEffect, useRef, type RefObject } from 'react';
 import { startStreamingNeighborPrefetch } from '../catalog/streamingPrefetch';
 import { allowNeighborPrefetch, hasPlaybackHeadroom } from './trackNavigation';
 
@@ -16,16 +16,41 @@ export function usePlaybackPrefetch(
   enabled: boolean,
   generation: number,
   nextAudioRef: string | undefined,
-  previousAudioRef: string | undefined
+  previousAudioRef: string | undefined,
+  prepareKeys?: (signal: AbortSignal) => Promise<void>
 ): void {
+  const prepareRef = useRef(prepareKeys);
+  useEffect(() => {
+    prepareRef.current = prepareKeys;
+  }, [prepareKeys]);
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio || !enabled) return;
     const refs = [nextAudioRef, previousAudioRef].filter((ref): ref is string => Boolean(ref));
     if (!refs.length) return;
+    let keyController = new AbortController();
+    let lastPreparation = -Infinity;
+    let preparing = false;
+    const prepare = () => {
+      if (preparing || Date.now() - lastPreparation < 20_000) return;
+      preparing = true;
+      lastPreparation = Date.now();
+      const current = keyController;
+      void prepareRef
+        .current?.(current.signal)
+        .catch(() => {})
+        .finally(() => {
+          if (keyController === current) preparing = false;
+        });
+      if (!prepareRef.current) preparing = false;
+    };
     let stop: (() => void) | undefined;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const cancel = () => {
+      keyController.abort();
+      keyController = new AbortController();
+      preparing = false;
+      lastPreparation = -Infinity;
       clearTimeout(timer);
       timer = undefined;
       stop?.();
@@ -36,11 +61,18 @@ export function usePlaybackPrefetch(
         cancel();
         return;
       }
-      if (stop || timer !== undefined) return;
+      if (stop) {
+        prepare();
+        return;
+      }
+      if (timer !== undefined) return;
       // Let the current selection and its first media frame finish first.
       timer = setTimeout(() => {
         timer = undefined;
-        if (playbackPrefetchAllowed() && hasPlaybackHeadroom(audio)) stop = startStreamingNeighborPrefetch(refs);
+        if (playbackPrefetchAllowed() && hasPlaybackHeadroom(audio)) {
+          stop = startStreamingNeighborPrefetch(refs);
+          prepare();
+        }
       }, 500);
     };
     const connection = (navigator as Navigator & { connection?: PlaybackConnection }).connection;

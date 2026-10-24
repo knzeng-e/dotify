@@ -72,6 +72,7 @@ export function PlaybackProvider({ children }: { children: ReactNode }) {
     lineup: session.roomLineup,
     onLineupChange: session.updateRoomLineup,
     onOpenTrack: handleOpenTrack,
+    onPrepareKeys: catalog.prepareQueuedContentKeys,
     onEmitPlayerState: session.emitPlayerState
   });
 

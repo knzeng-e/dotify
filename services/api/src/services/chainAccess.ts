@@ -7,9 +7,8 @@
 //   3. validates the current runtime track/audioRef/key version;
 //   4. calls musicAccCanAccess(contentHash, requester) on that target runtime.
 //
-// Hash-only requests remain as a migration path, but only while the confirmed
-// catalog snapshot is fresh and identifies exactly one encrypted release for
-// the hash. Ambiguous or stale evidence never receives a key.
+// Full v3 release identity is required. Short-lived verdicts are bound to the
+// current observed block; ambiguous, stale or unreachable evidence gets no key.
 
 import { createPublicClient, fallback, http, type Address, type PublicClient } from 'viem';
 import { config } from '../config.js';
@@ -74,7 +73,7 @@ const musicAccessAbi = [
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
-type ChainReadClient = Pick<PublicClient, 'readContract'>;
+type ChainReadClient = Pick<PublicClient, 'readContract' | 'getBlock'>;
 
 type CatalogReader = {
   getSnapshot(): CatalogSnapshot | null;
@@ -143,7 +142,7 @@ export type PublicTrackAccessRequest = {
 };
 
 export type TrackAccessResult =
-  | { allowed: true; runtime: Address; release: CanonicalRelease; keyScope: ContentKeyDerivationScope }
+  | { allowed: true; runtime: Address; release: CanonicalRelease; keyScope: ContentKeyDerivationScope; validUntil?: number }
   | { allowed: false; code: AccessDenialCode; reason: string };
 
 export type ArtistAuthorityResult =
@@ -161,6 +160,7 @@ export type ChainAccessServiceOptions = {
   getDirectoryAddress?: () => Address | undefined;
   getChainId?: () => number;
   catalog?: CatalogReader;
+  now?: () => number;
 };
 
 let clientCache: PublicClient | null = null;
@@ -287,48 +287,55 @@ function resolveCatalogRelease(input: {
   return fail('RELEASE_IDENTITY_MISMATCH', 'The full streaming release identity is required.');
 }
 
-async function validateReleaseOnChain(
+/** Independent reads use one observed block. No multicall deployment is assumed
+ * on Product DevNet; every identity and policy check must succeed. */
+async function readReleaseVerdict(
   client: ChainReadClient,
   directoryAddress: Address,
-  release: CanonicalRelease
-): Promise<TrackAccessResult | { allowed: true; release: CanonicalRelease }> {
+  release: CanonicalRelease,
+  requester: Address,
+  purpose: 'individual' | 'room_host' | 'public',
+  blockNumber: bigint,
+  chainId: number
+): Promise<TrackAccessResult> {
   try {
-    const directoryRuntime = (await client.readContract({
-      address: directoryAddress,
-      abi: artistDirectoryAbi,
-      functionName: 'runtimeOf',
-      args: [release.artistAddress]
-    })) as Address;
-
-    if (!directoryRuntime || directoryRuntime.toLowerCase() === ZERO_ADDRESS || !sameAddress(directoryRuntime, release.runtimeAddress)) {
+    const [directoryRuntime, record, canAccess] = await Promise.all([
+      client.readContract({ address: directoryAddress, abi: artistDirectoryAbi, functionName: 'runtimeOf', args: [release.artistAddress], blockNumber }),
+      client.readContract({
+        address: release.runtimeAddress,
+        abi: musicRegistryAbi,
+        functionName: 'musicRegGetTrack',
+        args: [release.contentHash],
+        blockNumber
+      }),
+      client.readContract({
+        address: release.runtimeAddress,
+        abi: musicAccessAbi,
+        functionName: 'musicAccCanAccess',
+        args: [release.contentHash, requester],
+        blockNumber
+      })
+    ]);
+    if (!directoryRuntime || directoryRuntime.toLowerCase() === ZERO_ADDRESS || !sameAddress(directoryRuntime, release.runtimeAddress))
       return fail('RELEASE_IDENTITY_MISMATCH', 'ArtistDirectory no longer maps this artist to the requested runtime.');
-    }
-  } catch {
-    return fail('RPC_UNAVAILABLE', 'Access checks are unavailable: ArtistDirectory lookup failed.');
-  }
-
-  try {
-    const [track] = (await client.readContract({
-      address: release.runtimeAddress,
-      abi: musicRegistryAbi,
-      functionName: 'musicRegGetTrack',
-      args: [release.contentHash]
-    })) as [OnchainTrack, Address];
-
-    const currentKeyVersion = contentKeyVersionForAudioRef(track.audioRef);
+    const [track] = record as [OnchainTrack, Address];
     if (
       !sameAddress(track.artist, release.artistAddress) ||
       track.audioRef !== release.audioRef ||
-      currentKeyVersion !== release.keyVersion ||
+      contentKeyVersionForAudioRef(track.audioRef) !== release.keyVersion ||
       releaseId(release.runtimeAddress, release.contentHash) !== release.releaseId
-    ) {
+    )
       return fail('RELEASE_IDENTITY_MISMATCH', 'Runtime release data no longer matches the canonical catalog release.');
-    }
-
     if (!track.active) return fail('RELEASE_INACTIVE', 'This release is inactive and cannot receive new key grants.');
-    return { allowed: true, release };
+    if (!canAccess) {
+      if (purpose === 'public') return fail('NOT_FREE', 'This track is not free; its access policy requires payment or verification.');
+      return purpose === 'room_host'
+        ? fail('HOST_ACCESS_REQUIRED', "The room host does not satisfy this track's access policy.")
+        : fail('LISTENER_ACCESS_REQUIRED', "This listener does not satisfy this track's access policy.");
+    }
+    return { allowed: true, runtime: release.runtimeAddress, release, keyScope: keyScopeForRelease(release, chainId) };
   } catch {
-    return fail('RPC_UNAVAILABLE', 'Access checks are unavailable: target runtime release lookup failed.');
+    return fail('RPC_UNAVAILABLE', 'Access checks are unavailable: chain verification failed.');
   }
 }
 
@@ -346,21 +353,74 @@ export function createChainAccessService(options: ChainAccessServiceOptions = {}
   const getDirectoryAddress = options.getDirectoryAddress ?? (() => config.DOTIFY_DIRECTORY_ADDRESS as Address | undefined);
   const getChainId = options.getChainId ?? (() => config.DOTIFY_CHAIN_ID);
   const catalog = options.catalog ?? defaultCatalogReadModel;
+  const now = options.now ?? Date.now;
+  // Verdicts, never keys. Bounded per process; restart only makes access cold.
+  const verdicts = new Map<string, { result: TrackAccessResult; until: number }>();
+  const pending = new Map<string, Promise<TrackAccessResult>>();
+  let headRequest: { client: ChainReadClient; promise: ReturnType<ChainReadClient['getBlock']> } | undefined;
+  function observedHead(client: ChainReadClient) {
+    if (headRequest?.client === client) return headRequest.promise;
+    const promise = client.getBlock({ blockTag: 'latest', includeTransactions: false });
+    headRequest = { client, promise };
+    void promise
+      .finally(() => {
+        if (headRequest?.promise === promise) headRequest = undefined;
+      })
+      .catch(() => {});
+    return promise;
+  }
 
-  async function resolveAndValidateRelease(
+  async function checkRelease(
     contentHash: string,
+    requester: Address,
+    purpose: 'individual' | 'room_host' | 'public',
     provided?: ReleaseKeyIdentity
-  ): Promise<TrackAccessResult | { allowed: true; release: CanonicalRelease }> {
+  ): Promise<TrackAccessResult> {
     const client = getServiceClient();
     const directoryAddress = getDirectoryAddress();
-    if (!client || !directoryAddress) {
-      return fail('RPC_UNAVAILABLE', 'Access checks are unavailable: chain RPC or directory is not configured.');
-    }
-
+    if (!client || !directoryAddress) return fail('RPC_UNAVAILABLE', 'Access checks are unavailable: chain RPC or directory is not configured.');
     const chainId = getChainId();
-    const catalogResolution = resolveCatalogRelease({ contentHash, provided, catalog, chainId, directoryAddress });
-    if (!catalogResolution.allowed) return catalogResolution;
-    return validateReleaseOnChain(client, directoryAddress, catalogResolution.release);
+    // Canonical identity/freshness is checked even on a warm verdict.
+    const canonical = resolveCatalogRelease({ contentHash, provided, catalog, chainId, directoryAddress });
+    if (!canonical.allowed) return canonical;
+    const started = now();
+    let head;
+    try {
+      head = await observedHead(client);
+      if (typeof head.number !== 'bigint' || !head.hash) throw new Error('No observed block');
+    } catch {
+      return fail('RPC_UNAVAILABLE', 'Access checks are unavailable: current block could not be verified.');
+    }
+    const key = JSON.stringify([
+      chainId,
+      directoryAddress.toLowerCase(),
+      requester.toLowerCase(),
+      purpose,
+      canonical.release,
+      head.number.toString(),
+      head.hash
+    ]);
+    const cached = verdicts.get(key);
+    if (cached && cached.until > now()) return cached.result;
+    const existing = pending.get(key);
+    if (existing) return existing;
+    const request = readReleaseVerdict(client, directoryAddress, canonical.release, requester, purpose, head.number, chainId);
+    pending.set(key, request);
+    try {
+      const raw = await request;
+      if (started + 30_000 <= now()) return fail('RPC_UNAVAILABLE', 'Access verification took too long. Please try again.');
+      const result = raw.allowed ? { ...raw, validUntil: started + 30_000 } : raw;
+      // Transient RPC failures are not cached policy denials.
+      if ((result.allowed || result.code !== 'RPC_UNAVAILABLE') && started + 30_000 > now()) {
+        for (const [id, entry] of verdicts) if (entry.until <= now()) verdicts.delete(id);
+        verdicts.delete(key);
+        verdicts.set(key, { result, until: started + 30_000 });
+        while (verdicts.size > 512) verdicts.delete(verdicts.keys().next().value!);
+      }
+      return result;
+    } finally {
+      if (pending.get(key) === request) pending.delete(key);
+    }
   }
 
   return {
@@ -387,74 +447,16 @@ export function createChainAccessService(options: ChainAccessServiceOptions = {}
       }
     },
 
-    async checkTrackAccess(request: TrackAccessRequest): Promise<TrackAccessResult> {
-      const client = getServiceClient();
-      const directoryAddress = getDirectoryAddress();
-      if (!client || !directoryAddress) {
-        return fail('RPC_UNAVAILABLE', 'Access checks are unavailable: chain RPC or directory is not configured.');
-      }
-
-      const release = await resolveAndValidateRelease(request.contentHash, request.release);
-      if (!release.allowed) return release;
-
-      try {
-        const canAccess = (await client.readContract({
-          address: release.release.runtimeAddress,
-          abi: musicAccessAbi,
-          functionName: 'musicAccCanAccess',
-          args: [release.release.contentHash, request.requester as Address]
-        })) as boolean;
-
-        if (!canAccess) {
-          return request.purpose === 'room_host'
-            ? fail('HOST_ACCESS_REQUIRED', "The room host does not satisfy this track's access policy.")
-            : fail('LISTENER_ACCESS_REQUIRED', "This listener does not satisfy this track's access policy.");
-        }
-
-        return {
-          allowed: true,
-          runtime: release.release.runtimeAddress,
-          release: release.release,
-          keyScope: keyScopeForRelease(release.release, getChainId())
-        };
-      } catch {
-        return fail('RPC_UNAVAILABLE', 'Access checks are unavailable: target runtime policy lookup failed.');
-      }
+    checkTrackAccess(request: TrackAccessRequest): Promise<TrackAccessResult> {
+      return checkRelease(request.contentHash, request.requester as Address, request.purpose, request.release);
     },
-
-    async checkPublicAccess(request: string | PublicTrackAccessRequest): Promise<TrackAccessResult> {
-      const contentHash = typeof request === 'string' ? request : request.contentHash;
-      const provided = typeof request === 'string' ? undefined : request.release;
-      const client = getServiceClient();
-      const directoryAddress = getDirectoryAddress();
-      if (!client || !directoryAddress) {
-        return fail('RPC_UNAVAILABLE', 'Access checks are unavailable: chain RPC or directory is not configured.');
-      }
-
-      const release = await resolveAndValidateRelease(contentHash, provided);
-      if (!release.allowed) return release;
-
-      try {
-        const publiclyListenable = (await client.readContract({
-          address: release.release.runtimeAddress,
-          abi: musicAccessAbi,
-          functionName: 'musicAccCanAccess',
-          args: [release.release.contentHash, ZERO_ADDRESS as Address]
-        })) as boolean;
-
-        if (!publiclyListenable) {
-          return fail('NOT_FREE', 'This track is not free; its access policy requires payment or verification.');
-        }
-
-        return {
-          allowed: true,
-          runtime: release.release.runtimeAddress,
-          release: release.release,
-          keyScope: keyScopeForRelease(release.release, getChainId())
-        };
-      } catch {
-        return fail('RPC_UNAVAILABLE', 'Access checks are unavailable: target runtime public policy lookup failed.');
-      }
+    checkPublicAccess(request: string | PublicTrackAccessRequest): Promise<TrackAccessResult> {
+      return checkRelease(
+        typeof request === 'string' ? request : request.contentHash,
+        ZERO_ADDRESS,
+        'public',
+        typeof request === 'string' ? undefined : request.release
+      );
     }
   };
 }
