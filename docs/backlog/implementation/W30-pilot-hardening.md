@@ -1,5 +1,15 @@
 # W30 - Harden the hosted services for the 42-person trusted pilot
 
+## Current reconciliation, 2026-10-23
+
+#296/#316 are merged. The 2026-10-22 rollout records the completed same-volume
+backup/ownership change, identical persisted bytes, actual UID/GID 1000,
+unchanged custody/session epoch and live session/revocation continuity.
+See [the rollout](evidence/product-0.1.58-rollout-2026-10-22.md).
+#285 closes; the older non-root remainder below is historical. Physical
+relay/network, capacity and pilot acceptance remain #89/#158. Never reapply
+the old three-file maintenance utility to the new streaming custody subtree.
+
 Copy this entire file into an agent working in the Dotify repository, or use the launcher in README.md.
 
 ## Agent assignment
@@ -27,19 +37,19 @@ The API and signaling service identify real clients behind the Fly proxy, stop b
 
 ## Findings this sequence resolves
 
-| # | Finding | Location at audit |
-| --- | --- | --- |
-| 1 | Every host `player:state` (about 1 Hz) calls `emitRooms()`, which sends an always-empty `rooms:updated` list to every connected socket. | `web/server/signaling.mjs:798`, 12 call sites of `emitRooms` |
-| 2 | `presence:solo` has no rate limit and triggers a global `io.emit` per change. | `web/server/signaling.mjs:463-475` |
-| 3 | Fastify has no `trustProxy`; behind Fly the 100/min rate limit is likely keyed on the proxy address and therefore shared by every user. | `services/api/src/app.ts:55,68` |
-| 4 | Signaling `clientKey` trusts the first `X-Forwarded-For` entry, which a client controls. `SIGNAL_TRUST_PROXY` is not set in the Fly config, so network limits may also be shared. | `web/server/signaling-utils.mjs:163-168`, `web/fly.signal.toml` |
-| 5 | Room codes use `Math.random()`. Since rooms are link-only, the code is the only secret. | `web/server/signaling-utils.mjs:8` |
-| 6 | `room:create` has no limiter and the room map has no cap; each creation can trigger RPC reads. | `web/server/signaling.mjs:490` |
-| 7 | The catalog snapshot defaults to `.data/catalog.json`, outside the mounted volume, so a redeploy reindexes cold and key delivery fails closed meanwhile. | `services/api/src/config.ts:91`, `services/api/fly.toml` |
-| 8 | The session epoch is random per process, so every redeploy signs everyone out (root cause of the stale host-tip session handled by #283). | `services/api/src/services/sessionTokens.ts:70` |
-| 9 | Key responses carry no `Cache-Control: no-store`. | `services/api/src/routes/keys.ts:194,269,309` |
-| 10 | The access-check viem transport uses library defaults (10 s timeout, 3 retries) in front of first sound. | `services/api/src/services/chainAccess.ts:177` |
-| 11 | Both images run as root and start through `npm`, so SIGTERM is not forwarded for a graceful stop. | `services/api/Dockerfile`, `web/Dockerfile.signal` |
+| #   | Finding                                                                                                                                                                           | Location at audit                                               |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| 1   | Every host `player:state` (about 1 Hz) calls `emitRooms()`, which sends an always-empty `rooms:updated` list to every connected socket.                                           | `web/server/signaling.mjs:798`, 12 call sites of `emitRooms`    |
+| 2   | `presence:solo` has no rate limit and triggers a global `io.emit` per change.                                                                                                     | `web/server/signaling.mjs:463-475`                              |
+| 3   | Fastify has no `trustProxy`; behind Fly the 100/min rate limit is likely keyed on the proxy address and therefore shared by every user.                                           | `services/api/src/app.ts:55,68`                                 |
+| 4   | Signaling `clientKey` trusts the first `X-Forwarded-For` entry, which a client controls. `SIGNAL_TRUST_PROXY` is not set in the Fly config, so network limits may also be shared. | `web/server/signaling-utils.mjs:163-168`, `web/fly.signal.toml` |
+| 5   | Room codes use `Math.random()`. Since rooms are link-only, the code is the only secret.                                                                                           | `web/server/signaling-utils.mjs:8`                              |
+| 6   | `room:create` has no limiter and the room map has no cap; each creation can trigger RPC reads.                                                                                    | `web/server/signaling.mjs:490`                                  |
+| 7   | The catalog snapshot defaults to `.data/catalog.json`, outside the mounted volume, so a redeploy reindexes cold and key delivery fails closed meanwhile.                          | `services/api/src/config.ts:91`, `services/api/fly.toml`        |
+| 8   | The session epoch is random per process, so every redeploy signs everyone out (root cause of the stale host-tip session handled by #283).                                         | `services/api/src/services/sessionTokens.ts:70`                 |
+| 9   | Key responses carry no `Cache-Control: no-store`.                                                                                                                                 | `services/api/src/routes/keys.ts:194,269,309`                   |
+| 10  | The access-check viem transport uses library defaults (10 s timeout, 3 retries) in front of first sound.                                                                          | `services/api/src/services/chainAccess.ts:177`                  |
+| 11  | Both images run as root and start through `npm`, so SIGTERM is not forwarded for a graceful stop.                                                                                 | `services/api/Dockerfile`, `web/Dockerfile.signal`              |
 
 ## Work sequence
 

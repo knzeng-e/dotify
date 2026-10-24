@@ -1,5 +1,13 @@
 # Room life and artist visits
 
+## Current reconciliation, 2026-10-23
+
+Implementation delivered by #258 (stacked into #256), #261/#263 and later
+#300/#304. The owner reported a successful Web/EVM announced visit on
+2026-10-11. #257 closes as an implementation record; exact physical Host
+signing, social lifecycle and audio checks remain #85/#89/#158 acceptance.
+No private room identity or guest source-key boundary is relaxed.
+
 Owner-requested continuation of the room clarity work, 2026-10-10.
 
 ## Outcome
@@ -63,7 +71,6 @@ structured `dotify.track.v2` publication fields and the story-first in-app
 release sheet for the next test-data reset. It deliberately adds no migration
 for earlier development manifests. Installed Product gesture checks and the
 broader pilot reliability evidence remain open after this change.
-
 
 ## Live activity privacy amendment — 2026-10-17
 
