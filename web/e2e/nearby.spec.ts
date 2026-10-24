@@ -271,6 +271,10 @@ test('cover galaxies show exact live people and distinguish my room from an iden
     await expect(own.locator('.radar-room-artist')).toBeVisible();
     await expect(own.getByRole('tooltip', { includeHidden: true })).toBeHidden();
     await expect(own).toHaveAccessibleDescription(/Radar host.*2 listening.*Worldwide/);
+    // Leave room for the popup before moving the pointer. Otherwise hover's
+    // automatic scroll can move the marker away from the pointer and dismiss
+    // the popup before the second hover action reaches its metadata.
+    await own.evaluate(element => element.scrollIntoView({ block: 'center', inline: 'center', behavior: 'instant' }));
     await own.hover();
     const details = own.getByRole('tooltip');
     await expect(details).toContainText('2 listening');
@@ -311,7 +315,26 @@ test('cover galaxies show exact live people and distinguish my room from an iden
     await expect.poll(async () => (await planetVisuals(own)).size).toBe((await planetVisuals(other)).size);
     await expect.poll(async () => (await planetVisuals(own)).glow).toBe((await planetVisuals(other)).glow);
   } finally {
-    await Promise.allSettled([hostContext.close(), otherContext.close(), guestContext.close()]);
+    try {
+      // A tab close now means reconnectable disconnect. Explicitly close these
+      // rooms so grace-period invitations cannot contaminate the next case.
+      for (const context of [hostContext, otherContext]) {
+        const page = context.pages()[0];
+        if (!page) continue;
+        await page.keyboard.press('Escape');
+        const dock = page.getByRole('button', { name: 'Room live', exact: true });
+        if (await dock.isVisible()) await dock.click();
+        const close = page.getByRole('button', { name: 'Close room', exact: true });
+        if (!(await close.isVisible())) continue;
+        await close.click();
+        const confirm = page.getByRole('button', { name: 'Close for everyone', exact: true });
+        await expect.poll(async () => !(await page.getByTestId('room-code').count()) || (await confirm.isVisible())).toBe(true);
+        if (await confirm.isVisible()) await confirm.click();
+        await expect(page.getByTestId('room-code')).toHaveCount(0);
+      }
+    } finally {
+      await Promise.allSettled([hostContext.close(), otherContext.close(), guestContext.close()]);
+    }
   }
 });
 

@@ -5,7 +5,7 @@ export default defineConfig({
   ...base,
   // Each audience gets a fresh server through test:nearby. Independent browser
   // scenarios share the bounded loopback network budget.
-  testMatch: ['**/nearby.spec.ts'],
+  testMatch: ['**/nearby.spec.ts', '**/worldwide-report.spec.ts'],
   testIgnore: [],
   workers: 1
 });
