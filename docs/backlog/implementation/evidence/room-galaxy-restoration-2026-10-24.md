@@ -70,3 +70,20 @@ initially reduced-motion cases.
 All four 3D scenarios and the independent operational-off scenario pass after the
 fix. Touched-file lint/format checks and the Web build pass. These checks extend
 the evidence above; they do not add physical-device certification.
+
+## CI follow-up: explicit audio measurement output
+
+The review follow-up CI run
+[`40116055095`](https://github.com/knzeng-e/dotify/actions/runs/40116055095)
+passed 260 core browser cases but failed the existing real Web Audio pause test
+on its first positive RMS assertion (zero measured samples). Six local repeats
+did not reproduce that intermittent failure.
+
+The test's separate analyser graph now connects through a zero-gain node to its
+context destination, following the existing room-continuity test pattern. This
+keeps an explicit rendering path without duplicating audible output. The test
+also verifies that its measurement context is running before sampling. Production
+audio code, RMS thresholds, pause checks, stream identity checks and timeouts are
+unchanged. Both room-sync scenarios pass four times each with two workers; lint
+and formatting pass. The complete GitHub workflow must validate the correction
+on the Linux runner before treating the CI failure as cleared.
