@@ -1,5 +1,14 @@
 # Deploy Dotify To Product DevNet
 
+## Product 0.1.62 staged; API/Web W34 deployed, 2026-10-25
+
+Clean packaging `781f1c598885714288bdec02df488fd03d7f2602`, based on tested
+merged dev `c71947a` (#333), advances the executable to `[0,1,62]` while retaining
+the current native profile and permissions. Local guards/build and exact-SHA
+signer-free candidate CI pass. API release 32 and Web already serve W34.
+DotNS signing and finalized/public artifact verification are still pending;
+0.1.61 remains the last verified Product publication. See the [rollout record](../backlog/implementation/evidence/product-0.1.62-rollout-2026-10-25.md).
+
 ## Product 0.1.61 scoped 3D published, 2026-10-24
 
 Published from clean packaging `c294e21651ab007725d7fafa18be5c6de8e03419`, based on
