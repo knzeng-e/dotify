@@ -45,8 +45,14 @@ const signedBaseBodySchema = z.object({
 
 const releaseIdentityBodySchema = z.object({
   releaseId: z.string().min(1).max(256).optional(),
-  runtimeAddress: z.string().regex(/^0x[0-9a-fA-F]{40}$/, 'Invalid runtime address').optional(),
-  artistAddress: z.string().regex(/^0x[0-9a-fA-F]{40}$/, 'Invalid artist address').optional(),
+  runtimeAddress: z
+    .string()
+    .regex(/^0x[0-9a-fA-F]{40}$/, 'Invalid runtime address')
+    .optional(),
+  artistAddress: z
+    .string()
+    .regex(/^0x[0-9a-fA-F]{40}$/, 'Invalid artist address')
+    .optional(),
   audioRef: z.string().min(1).max(2048).optional(),
   keyVersion: z.string().min(1).max(80).optional()
 });
@@ -56,28 +62,36 @@ const keyRequestPurposeSchema = z.object({
   purpose: z.enum(['individual', 'room_host'])
 });
 
-const eip191KeyRequestBodySchema = signedBaseBodySchema.merge(keyRequestPurposeSchema).merge(releaseIdentityBodySchema).extend({
-  signatureScheme: z.literal(EIP191_SIGNATURE_SCHEME).optional(),
-  signature: z.string().regex(/^0x[0-9a-fA-F]+$/, 'Invalid signature')
-});
+const eip191KeyRequestBodySchema = signedBaseBodySchema
+  .merge(keyRequestPurposeSchema)
+  .merge(releaseIdentityBodySchema)
+  .extend({
+    signatureScheme: z.literal(EIP191_SIGNATURE_SCHEME).optional(),
+    signature: z.string().regex(/^0x[0-9a-fA-F]+$/, 'Invalid signature')
+  });
 
 // 128 hex = bare 64-byte sr25519; 130 hex = MultiSignature-tagged 65-byte
 // value. The tag itself is validated in verifySignedRequest, not here.
-const productSr25519KeyRequestBodySchema = signedBaseBodySchema.merge(keyRequestPurposeSchema).merge(releaseIdentityBodySchema).extend({
-  signatureScheme: z.literal(PRODUCT_SR25519_SIGNATURE_SCHEME),
-  signature: z.string().regex(/^0x([0-9a-fA-F]{128}|[0-9a-fA-F]{130})$/, 'Invalid Product sr25519 signature'),
-  productPublicKey: z.string().regex(/^0x[0-9a-fA-F]{64}$/, 'Invalid Product account public key')
-});
+const productSr25519KeyRequestBodySchema = signedBaseBodySchema
+  .merge(keyRequestPurposeSchema)
+  .merge(releaseIdentityBodySchema)
+  .extend({
+    signatureScheme: z.literal(PRODUCT_SR25519_SIGNATURE_SCHEME),
+    signature: z.string().regex(/^0x([0-9a-fA-F]{128}|[0-9a-fA-F]{130})$/, 'Invalid Product sr25519 signature'),
+    productPublicKey: z.string().regex(/^0x[0-9a-fA-F]{64}$/, 'Invalid Product account public key')
+  });
 
 const keyRequestBodySchema = z.union([productSr25519KeyRequestBodySchema, eip191KeyRequestBodySchema]);
 
 // Session path (ticket 24 P2): after the one-per-session sign-in, a key
 // request carries the bearer token instead of a fresh wallet signature. The
-// on-chain access check still runs on every request.
-const sessionKeyRequestBodySchema = z.object({
-  sessionToken: z.string().min(16),
-  purpose: z.enum(['individual', 'room_host'])
-}).merge(releaseIdentityBodySchema);
+// session is verified per request; chain verdicts are block-bound and short-lived.
+const sessionKeyRequestBodySchema = z
+  .object({
+    sessionToken: z.string().min(16),
+    purpose: z.enum(['individual', 'room_host'])
+  })
+  .merge(releaseIdentityBodySchema);
 
 export type KeyRouteDeps = {
   verifySignedRequest: (request: KeySignatureRequest) => Promise<SignatureVerification>;
@@ -154,6 +168,49 @@ export function createKeyRoutes(deps: KeyRouteDeps = defaultDeps) {
     // Keys, denials and errors must never be stored by a browser or proxy cache.
     app.addHook('onSend', async (_request, reply) => {
       reply.header('Cache-Control', 'no-store');
+    });
+
+    app.post('/keys/prepare', { config: { rateLimit: { max: 12, timeWindow: '1 minute' } } }, async (request, reply) => {
+      const body = z
+        .object({
+          sessionToken: z.string().min(16).max(4096),
+          purpose: z.enum(['individual', 'room_host']),
+          tracks: z.array(paramsSchema.merge(releaseIdentityBodySchema.required()).strict()).min(1).max(5)
+        })
+        .strict()
+        .safeParse(request.body);
+      if (!body.success) return validationError(reply, 'Invalid queue key preparation', body.error.issues);
+      const session = deps.verifySessionToken(body.data.sessionToken);
+      if (!session.valid) return reply.status(401).send({ error: session.reason, code: session.code });
+      const domain = checkDotifyChainId(session.chainId);
+      if (!domain.ok) return reply.status(401).send({ error: domain.reason, code: domain.code });
+      const expiresAt = new Date(Date.now() + 30_000).toISOString();
+      const results = await Promise.all(
+        body.data.tracks.map(async track => ({
+          track,
+          access: await deps.checkTrackAccess({
+            contentHash: track.contentHash,
+            requester: session.address,
+            purpose: body.data.purpose,
+            release: track
+          })
+        }))
+      );
+      // Logout/expiry during reads wins over a prepared grant.
+      const current = deps.verifySessionToken(body.data.sessionToken);
+      if (!current.valid) return reply.status(401).send({ error: current.reason, code: current.code });
+      const tracks = results.map(({ track, access }) => {
+        const identity = { contentHash: track.contentHash, releaseId: track.releaseId };
+        if (!access.allowed) return { ...identity, ...deniedResponse(access, body.data.purpose) };
+        const key = deps.deriveContentKey(access.keyScope);
+        if (!key.ok) return { ...identity, access: 'denied' as const, reason: key.code, message: key.reason, hostAction: { type: 'none', label: '' } };
+        return { ...identity, access: 'allowed' as const, playbackMode: 'full' as const, contentKey: key.contentKey, runtime: access.runtime };
+      });
+      const until = Math.min(
+        Date.parse(expiresAt),
+        ...results.flatMap(({ access }) => (access.allowed && access.validUntil !== undefined ? [access.validUntil] : []))
+      );
+      return { expiresAt: new Date(until).toISOString(), tracks };
     });
 
     app.post('/:contentHash/key-request', async (request: FastifyRequest, reply: FastifyReply) => {
@@ -284,9 +341,9 @@ export function createKeyRoutes(deps: KeyRouteDeps = defaultDeps) {
     // grants access to everyone (musicAccCanAccess with the zero address) and
     // only then releases the key. Free must feel free - but the check is
     // still chain-authoritative and fail-closed, so a track flipped back to
-    // paid stops being served here on the next request. Covered by the
-    // API-wide rate limit.
-    app.post('/:contentHash/free-key', async (request: FastifyRequest, reply: FastifyReply) => {
+    // paid stops being served after a new observed block or verdict expiry.
+    // This route has its own per-client budget.
+    app.post('/:contentHash/free-key', { config: { rateLimit: { max: 30, timeWindow: '1 minute' } } }, async (request: FastifyRequest, reply: FastifyReply) => {
       const params = paramsSchema.safeParse(request.params);
       if (!params.success) {
         return validationError(reply, 'Invalid key request path', params.error.issues);

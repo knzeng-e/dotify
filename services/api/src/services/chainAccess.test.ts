@@ -127,6 +127,11 @@ class FakeCatalog {
 }
 
 class FakeClient {
+  blockNumber = 102n;
+  blockHash = `0x${'66'.repeat(32)}`;
+  async getBlock() {
+    return { number: this.blockNumber, hash: this.blockHash };
+  }
   readonly calls: Array<{ address: string; functionName: string; args: readonly unknown[] }> = [];
   runtimeOf = new Map<string, string>([
     [ARTIST_A, RUNTIME_A],
@@ -296,7 +301,7 @@ describe('canonical release access', () => {
     if (!result.allowed) assert.equal(result.code, 'RELEASE_IDENTITY_MISMATCH');
     assert.equal(
       client.calls.some(call => call.functionName === 'musicAccCanAccess'),
-      false
+      true
     );
   });
 
@@ -320,7 +325,7 @@ describe('canonical release access', () => {
     if (!result.allowed) assert.equal(result.code, 'RELEASE_IDENTITY_MISMATCH');
     assert.equal(
       client.calls.some(call => call.functionName === 'musicAccCanAccess'),
-      false
+      true
     );
   });
 
@@ -347,6 +352,7 @@ describe('v3 publication access stays canonical', () => {
     const allowed = await access.checkTrackAccess({ contentHash: HASH, requester: REQUESTER, purpose: 'individual', release: canonical });
     assert.equal(allowed.allowed, true);
     client.access.set(`${RUNTIME_A}:${HASH}:${REQUESTER}`.toLowerCase(), false);
+    client.blockNumber++;
     const denied = await access.checkTrackAccess({ contentHash: HASH, requester: REQUESTER, purpose: 'individual', release: canonical });
     assert.equal(denied.allowed, false);
     if (!denied.allowed) assert.equal('contentKey' in denied, false);
@@ -358,5 +364,156 @@ describe('v3 publication access stays canonical', () => {
         .allowed,
       true
     );
+  });
+});
+
+describe('W34 block-bound verdicts', () => {
+  function fixture() {
+    const candidate = release();
+    const client = new FakeClient([candidate]);
+    let clock = 1000;
+    const snap = snapshot([candidate]);
+    const meta = metadata();
+    const access = createChainAccessService({
+      getClient: () => client as never,
+      getDirectoryAddress: () => DIRECTORY,
+      getChainId: () => CHAIN_ID,
+      catalog: new FakeCatalog(snap, meta),
+      now: () => clock
+    });
+    const input = { contentHash: HASH, requester: REQUESTER, purpose: 'individual' as const, release: identity(candidate) };
+    return {
+      client,
+      access,
+      input,
+      meta,
+      advance: (ms: number) => {
+        clock += ms;
+      }
+    };
+  }
+  it('reuses allow and deny only within 30 seconds at the same observed block', async () => {
+    const f = fixture();
+    assert.equal((await f.access.checkTrackAccess(f.input)).allowed, true);
+    assert.equal(f.client.calls.length, 3);
+    assert.equal((await f.access.checkTrackAccess(f.input)).allowed, true);
+    assert.equal(f.client.calls.length, 3);
+    f.client.access.clear();
+    f.advance(30_000);
+    assert.equal((await f.access.checkTrackAccess(f.input)).allowed, false);
+    assert.equal(f.client.calls.length, 6);
+    assert.equal((await f.access.checkTrackAccess(f.input)).allowed, false);
+    assert.equal(f.client.calls.length, 6);
+    f.client.blockNumber++;
+    f.client.access.set(`${RUNTIME_A}:${HASH}:${REQUESTER}`.toLowerCase(), true);
+    assert.equal((await f.access.checkTrackAccess(f.input)).allowed, true);
+    assert.equal(f.client.calls.length, 9);
+  });
+  it('rechecks on same-height reorg and fails closed on a failed head despite a warm allow', async () => {
+    const f = fixture();
+    await f.access.checkTrackAccess(f.input);
+    f.client.blockHash = `0x${'77'.repeat(32)}`;
+    f.client.access.clear();
+    assert.equal((await f.access.checkTrackAccess(f.input)).allowed, false);
+    f.client.getBlock = async () => {
+      throw new Error('offline');
+    };
+    const denied = await f.access.checkTrackAccess(f.input);
+    assert.equal(denied.allowed, false);
+    if (!denied.allowed) assert.equal(denied.code, 'RPC_UNAVAILABLE');
+  });
+  it('cannot reuse a verdict across requester, purpose or stale canonical evidence', async () => {
+    const f = fixture();
+    await f.access.checkTrackAccess(f.input);
+    assert.equal((await f.access.checkTrackAccess({ ...f.input, requester: ARTIST_B })).allowed, false);
+    const denied = await f.access.checkTrackAccess({ ...f.input, purpose: 'room_host', requester: ARTIST_B });
+    if (!denied.allowed) assert.equal(denied.code, 'HOST_ACCESS_REQUIRED');
+    f.meta.state = 'stale-cache';
+    const stale = await f.access.checkTrackAccess(f.input);
+    if (!stale.allowed) assert.equal(stale.code, 'CATALOG_UNAVAILABLE');
+    else assert.fail('stale snapshot granted access');
+  });
+  it('runs all reads concurrently at one block and does not cache RPC failure', async () => {
+    const f = fixture();
+    const original = f.client.readContract.bind(f.client);
+    let releaseReads!: () => void;
+    const gate = new Promise<void>(resolve => {
+      releaseReads = resolve;
+    });
+    const started: string[] = [];
+    f.client.readContract = async input => {
+      const pinned = input as typeof input & { blockHash: string; requireCanonical: boolean };
+      assert.equal(pinned.requireCanonical, true);
+      started.push(pinned.blockHash);
+      await gate;
+      return original(input);
+    };
+    const pending = f.access.checkTrackAccess(f.input);
+    await new Promise(resolve => setImmediate(resolve));
+    assert.deepEqual(started, [f.client.blockHash, f.client.blockHash, f.client.blockHash]);
+    releaseReads();
+    assert.equal((await pending).allowed, true);
+    f.client.blockNumber++;
+    f.client.readContract = async () => {
+      throw new Error('RPC');
+    };
+    assert.equal((await f.access.checkTrackAccess(f.input)).allowed, false);
+    f.client.readContract = original;
+    assert.equal((await f.access.checkTrackAccess(f.input)).allowed, true);
+  });
+  it('free verdict expires and observes a policy change rather than granting from the catalog', async () => {
+    const f = fixture();
+    f.client.access.set(`${RUNTIME_A}:${HASH}:${ZERO_ADDRESS}`.toLowerCase(), true);
+    const input = { contentHash: HASH, release: f.input.release };
+    assert.equal((await f.access.checkPublicAccess(input)).allowed, true);
+    f.client.access.clear();
+    f.advance(30_000);
+    const denied = await f.access.checkPublicAccess(input);
+    assert.equal(denied.allowed, false);
+    if (!denied.allowed) assert.equal(denied.code, 'NOT_FREE');
+  });
+  it('coalesced callers keep the same expiry and both deny if verification outlasts the window', async () => {
+    const f = fixture();
+    const results = await Promise.all([f.access.checkTrackAccess(f.input), f.access.checkTrackAccess(f.input)]);
+    assert.equal(f.client.calls.length, 3);
+    for (const result of results) {
+      assert.equal(result.allowed, true);
+      if (result.allowed) assert.equal(result.validUntil, 31_000);
+    }
+    const slow = fixture();
+    const original = slow.client.readContract.bind(slow.client);
+    let settle!: () => void;
+    const gate = new Promise<void>(resolve => {
+      settle = resolve;
+    });
+    slow.client.readContract = async input => {
+      await gate;
+      return original(input);
+    };
+    const first = slow.access.checkTrackAccess(slow.input);
+    const second = slow.access.checkTrackAccess(slow.input);
+    await new Promise(resolve => setImmediate(resolve));
+    slow.advance(30_000);
+    settle();
+    for (const result of await Promise.all([first, second])) {
+      assert.equal(result.allowed, false);
+      if (!result.allowed) assert.equal(result.code, 'RPC_UNAVAILABLE');
+    }
+  });
+  it('inactive runtime and wrong catalog chain cannot receive keys', async () => {
+    const f = fixture();
+    f.client.releases.get(`${RUNTIME_A}:${HASH}`)!.active = false;
+    const result = await f.access.checkTrackAccess(f.input);
+    if (!result.allowed) assert.equal(result.code, 'RELEASE_INACTIVE');
+    else assert.fail('inactive release allowed');
+    const other = createChainAccessService({
+      getClient: () => f.client as never,
+      getDirectoryAddress: () => DIRECTORY,
+      getChainId: () => 1,
+      catalog: new FakeCatalog(snapshot([release()]))
+    });
+    const wrong = await other.checkTrackAccess(f.input);
+    if (!wrong.allowed) assert.equal(wrong.code, 'CATALOG_UNAVAILABLE');
+    else assert.fail('wrong chain allowed');
   });
 });

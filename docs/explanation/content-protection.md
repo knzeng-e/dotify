@@ -2,6 +2,13 @@
 
 > **Reading level:** Plain-language explanation first, then technical mechanics.
 
+Current streaming-only reset note: new publications use authenticated v3 AAC
+renditions, and retired DAV1/DAV2 audio is no longer playable. W34 adds
+[short-lived, session-bound access preparation](fast-access-preparation.md).
+The older container/decryption diagrams below describe historical formats;
+use that design note and [ADR 0033](../adr/0033-streaming-only-internal-reset.md)
+for current key delivery and reset boundaries.
+
 ---
 
 ## What content protection means for artists

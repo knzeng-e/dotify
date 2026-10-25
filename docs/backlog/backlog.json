@@ -611,7 +611,7 @@
       "priority": "P1",
       "track": "Production spine",
       "phase": "Next",
-      "note": "Batched access reads, short fail-closed verdict cache, queue key preparation for signed-in listeners, in-memory client keys."
+      "note": "W34 implementation: parallel block-bound reads, <=30s verdicts, five-track session preparation and memory-only scoped keys. Evidence: docs/backlog/implementation/evidence/W34.md; physical listening remains a release gate."
     },
     {
       "id": "W35",

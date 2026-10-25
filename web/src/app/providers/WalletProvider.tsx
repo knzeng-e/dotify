@@ -8,11 +8,11 @@
 // universally known mnemonic and must never become a hidden fallback signer
 // outside local development, so devBulletinFallback is gated on import.meta.env.DEV.
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { zeroAddress } from 'viem';
 import type { PolkadotSigner } from 'polkadot-api';
 
-import { onSessionRevocationPending, retryPendingSessionRevocations, signOutOfDotifySession } from '../../services/keyService';
+import { clearPreparedContentKeys, onSessionRevocationPending, retryPendingSessionRevocations, signOutOfDotifySession } from '../../services/keyService';
 import { useWallet, type ConnectedWallet, type WalletState } from '../../hooks/useWallet';
 import { devAccounts, type DevAccount } from '../../hooks/useDevAccounts';
 import { getDefaultEthRpcUrl } from '../../shared/config/network';
@@ -79,6 +79,13 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   // P2): revoke the server-side token and forget the stored one, so a shared
   // machine does not keep listening rights after the wallet leaves.
   const connectedAddress = canRequestProtectedPlayback(connectedWallet) ? connectedWallet?.evmAddress : undefined;
+  const keyIdentity = connectedWallet?.keyRequestSigner;
+  const keyIdentityPublicKey = keyIdentity?.signatureScheme === 'product-sr25519-v1' ? keyIdentity.productPublicKey : null;
+  useLayoutEffect(() => {
+    clearPreparedContentKeys();
+    return clearPreparedContentKeys;
+  }, [connectedAddress, connectedWallet?.chainId, expectedChainId, keyIdentity?.signatureScheme, keyIdentityPublicKey]);
+
   const lastConnectedAddressRef = useRef<`0x${string}` | null>(null);
   const logoutWarningShown = useRef(false);
   useEffect(() => {

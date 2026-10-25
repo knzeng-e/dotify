@@ -204,8 +204,10 @@ encrypted tracks it includes the canonical release identity:
 - content-key version.
 
 The key service resolves that identity against the fresh confirmed catalog
-snapshot, checks `ArtistDirectory.runtimeOf(artist)`, then re-reads the target
-runtime's current `musicRegGetTrack(contentHash)` before deriving a key. It
+snapshot, then checks the directory mapping, track state and runtime policy
+concurrently at one observed canonical block hash before deriving a key. W34 uses a bounded,
+block-bound verdict cache and session-only queue preparation; see
+[fast access boundaries](fast-access-preparation.md). It
 does not trust frontend runtime allowlists or scan unrelated runtimes for modern
 requests.
 
@@ -218,10 +220,8 @@ After canonical release resolution:
 - Room listeners never request keys. Only the host asks for a `room_host` key;
   listeners receive the WebRTC stream.
 
-Legacy hash-only requests remain available only when the fresh catalog snapshot
-contains exactly one encrypted release for the hash. If multiple runtimes claim
-the same legacy v1 hash, Dotify refuses to deliver the key because v1 derivation
-is content-hash based and cannot distinguish duplicate releases.
+The streaming-only internal reset requires full v3 release identity. Retired
+hash-only and DAV1/DAV2 audio do not receive new key grants.
 
 Audio is encrypted (see [content-protection.md](./content-protection.md)), so
 the raw IPFS file cannot be played directly even if the URL is discovered.

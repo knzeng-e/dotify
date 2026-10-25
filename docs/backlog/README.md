@@ -20,8 +20,9 @@ activation blocker. Neither the old DAV2 catalog nor its migration is active wor
 Since that audit, [#329's Galaxy 3D correction](room-galaxy-restoration.md) merged
 through #330 and was published in Product 0.1.61 (#331). The owner confirmed the
 installed experience works. This does not certify the full physical-device matrix.
-The next selected verification is [W31's Worldwide Report follow-up](implementation/W31-discovery-follow-ups.md)
-(#286), not another discovery redesign.
+The dedicated [W31 Worldwide Report verification](implementation/evidence/W31-worldwide-report-2026-10-25.md)
+merged through #332. The next implementation is [W34 fast access](implementation/W34-fast-access-path.md)
+(#289): prepare access for queued tracks without adding wallet prompts or room guest keys.
 
 ## Status contract
 
