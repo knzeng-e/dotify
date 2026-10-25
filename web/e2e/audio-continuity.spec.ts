@@ -155,12 +155,18 @@ test('failure before metadata settles pending and permits a new selection', asyn
   await page.getByRole('button', { name: 'Select b', exact: true }).click();
   await playing(page);
 });
-test('a temporary key failure can be retried without refreshing the application', async ({ page }) => {
+test('a temporary key failure recovers without refresh and anonymous reselect checks access again', async ({ page }) => {
   const probe = await setup(page, 'key-retry');
-  await expect(page.getByTestId('state')).toHaveAttribute('data-pending', 'false');
-  await page.getByRole('button', { name: 'Select a', exact: true }).click();
+  // One transient failure, then the existing quiet retry starts real audio.
   await playing(page);
+  await expect(page.getByTestId('state')).toHaveAttribute('data-pending', 'false');
   expect(probe.keyRequests()).toBe(2);
+  // This visitor has no signed session/prepared grant. A new selection must
+  // recheck Free access instead of reusing the retired indefinite key map.
+  await page.getByRole('button', { name: 'Select a', exact: true }).click();
+  await expect(page.getByTestId('state')).toHaveAttribute('data-generation', '2');
+  await playing(page);
+  expect(probe.keyRequests()).toBe(3);
 });
 test('hosts without MSE retry ciphertext objects and play the same authenticated AAC rendition', async ({ page }) => {
   const probe = await setup(page, 'retry', true);
