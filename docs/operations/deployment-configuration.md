@@ -1,12 +1,15 @@
 # Deployment Configuration Runbook
 
-## W34 API/Web deployed; Product 0.1.62 staged, 2026-10-25
+## W34 API/Web and Product 0.1.62 published, 2026-10-25
 
 API release 32 serves clean packaging source `781f1c5`, based on tested merged
 `dev` `c71947a` (#333). Netlify deploy `6add7a9dc6222369213efa6d` serves the
 merged dev SHA; its temporary production-branch selection was restored to
-`main`. Product 0.1.62 is built and CI-validated but awaits local DotNS signing;
-0.1.61 remains its last verified publication. See the [rollout record](../backlog/implementation/evidence/product-0.1.62-rollout-2026-10-25.md)
+`main`. Product 0.1.62 is published from clean packaging `781f1c5` at root/app
+CID `bafybeiaxgf3x4s6c6cwmxd3wm4gsllwl6gxuedqrejb3gmepo62ux2dto4`.
+Finalized manifest/version readback and all 135 public CAR hashes plus exact
+entry/graphics bytes pass. The local signer is removed. Product 0.1.61 remains
+the client rollback artifact. See the [rollout record](../backlog/implementation/evidence/product-0.1.62-rollout-2026-10-25.md)
 for exact identities, the transient RPC denial/rollback/recheck, Web build-clean
 limitation and physical-device acceptance. Preserve the existing single API
 writer, UID 1000, secrets and volume. Signaling/encoder/contracts are unchanged.
