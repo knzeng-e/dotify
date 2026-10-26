@@ -2197,6 +2197,27 @@ documentation only. The original shared-presence pass added no location
 permission. See
 [shared-presence pass](../design/dotify-shared-presence-pass.md).
 
+## Product unsigned access-approval recovery, 2026-10-26 (prepared)
+
+New Classic access payments fence the exact Product signer for the lifetime
+of one SDK submission attempt. Only a typed SDK timeout, or the Host's
+`createTransaction` timeout, before any real signed transaction returns and
+before any SDK signed/submission evidence can become **Try payment again**.
+The signer is closed before releasing that attempt's reservation; a late Host
+reply cannot enter broadcast. Mock/dry-run signing is not approval evidence.
+Generic RPC errors, returned signatures, hashes and old unresolved journals
+retain read-only recovery. Fresh entitlement checks still precede a new request.
+No existing journal, epoch, key or receipt is cleared by installation.
+
+Deploy matching Web/Product clients after review; API, signaling, encoder,
+contracts, SDK dependencies, permissions and deployment variables are unchanged.
+On physical Desktop/mobile, leave an approval unopened until it expires, retry
+explicitly, and also test a timeout after signing. Only the former may offer a
+new request. Preserve old uncertain attempts and compare account activity;
+local fixtures do not prove that a historical attempt was never submitted.
+See [payment recovery](../how-to/recover-a-payment.md). This is prepared code,
+not evidence of a deployed correction or a new funded transaction.
+
 ## Product artist-support validation profile
 
 `npm --prefix web run build:product-devnet:support` selects the existing explicit

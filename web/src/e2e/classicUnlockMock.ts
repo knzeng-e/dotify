@@ -120,6 +120,9 @@ export function classicSupportE2ePorts(reader: RuntimeReadPort, writer: RuntimeW
             })
           );
         }
+        if (new URLSearchParams(location.search).get('e2eClassic') === 'approval-expired' && state.paymentAttempts === 1) {
+          throw new SupportNotSubmittedError(new Error('Unsigned Product approval expired'), 'approval-expired');
+        }
         state.paid = true;
         return E2E_CLASSIC_TX_HASH;
       },

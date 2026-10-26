@@ -86,10 +86,10 @@ export async function verifyRuntimeAccessPayment(input: {
 
 export function runtimeAccessPaymentReadbackError(readback: RuntimeAccessPaymentReadback): string | null {
   if (!readback.hasPaid && !readback.canAccess) {
-    return 'The runtime did not confirm paid access for this account after the payment transaction was included.';
+    return 'The runtime did not confirm paid access for this account. This check does not establish whether a payment was submitted.';
   }
   if (!readback.hasPaid) {
-    return 'The runtime reports access, but not a paid Classic grant, after the payment transaction was included.';
+    return 'The runtime reports access, but not a paid Classic grant for this account.';
   }
   if (!readback.canAccess) {
     return 'The runtime recorded the payment, but still denies playable access for this account. The release may be inactive or no longer using a policy that grants this wallet access.';
