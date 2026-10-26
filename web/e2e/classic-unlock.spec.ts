@@ -308,3 +308,20 @@ test('a rejected support signature allows an explicit fresh attempt', async ({ p
   await expect(page.getByTestId('unlock-transaction-status')).toContainText('Access verified');
   expect((await readClassicUnlockState(page))?.paymentAttempts).toBe(2);
 });
+
+test('an expired unsigned confirmation offers a direct retry without paying automatically', async ({ page }) => {
+  await page.goto('/?e2eClassic=approval-expired');
+  await page.getByTestId('track-card-open').click();
+  await openClassicSupport(page);
+  await page.getByTestId('classic-unlock-button').click();
+  const receipt = page.getByTestId('unlock-transaction-status');
+  await expect(receipt).toContainText('Confirmation request expired');
+  await expect(receipt).toContainText('No payment was sent');
+  await expect(receipt.getByRole('button', { name: 'Check access again' })).toHaveCount(0);
+  expect((await readClassicUnlockState(page))?.paymentAttempts).toBe(1);
+  expect((await readClassicUnlockState(page))?.fullKeyRequests).toBe(0);
+  await receipt.getByRole('button', { name: 'Try payment again' }).click();
+  await expect(receipt).toContainText('Access verified');
+  await expect(page.getByTestId('full-playback-state')).toBeVisible();
+  expect((await readClassicUnlockState(page))?.paymentAttempts).toBe(2);
+});

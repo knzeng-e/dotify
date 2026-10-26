@@ -69,7 +69,9 @@ describe('support payment recovery', () => {
     f.writer.payForAccess.mockRejectedValue(new Error('Host disconnected after broadcasting'));
     await expect(f.flow.run(f.input)).resolves.toMatchObject({ status: 'uncertain' });
     const reloaded = createSupportPaymentFlow(() => f.storage);
-    await expect(reloaded.run(f.input)).resolves.toMatchObject({ status: 'uncertain' });
+    const checked = await reloaded.run(f.input);
+    expect(checked).toMatchObject({ status: 'uncertain' });
+    expect(checked.errorDetail).not.toContain('transaction was included');
     expect(f.writer.payForAccess).toHaveBeenCalledTimes(1);
     f.reader.hasPaid.mockResolvedValue(true);
     f.reader.canAccess.mockResolvedValue(true);
@@ -83,6 +85,20 @@ describe('support payment recovery', () => {
     await expect(f.flow.run(f.input)).resolves.toMatchObject({ status: 'canceled' });
     expect(f.items.size).toBe(0);
     await expect(f.flow.run(f.input)).resolves.toMatchObject({ status: 'verified' });
+    expect(f.writer.payForAccess).toHaveBeenCalledTimes(2);
+  });
+  it('offers only an explicit new attempt after a guarded unsigned expiry, including after reload', async () => {
+    const f = fixture();
+    f.writer.payForAccess.mockRejectedValueOnce(new SupportNotSubmittedError(new Error('Approval timed out'), 'approval-expired'));
+    await expect(f.flow.run(f.input)).resolves.toMatchObject({
+      status: 'failed',
+      failureKind: 'approval-expired',
+      message: expect.stringContaining('No payment was sent')
+    });
+    expect(f.items.size).toBe(0);
+    expect(f.writer.payForAccess).toHaveBeenCalledTimes(1);
+    const reloaded = createSupportPaymentFlow(() => f.storage);
+    await expect(reloaded.run(f.input)).resolves.toMatchObject({ status: 'verified' });
     expect(f.writer.payForAccess).toHaveBeenCalledTimes(2);
   });
   it('can retry writer setup failure, which provably precedes a submission', async () => {
