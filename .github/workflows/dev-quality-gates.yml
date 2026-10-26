@@ -363,3 +363,12 @@ jobs:
       - name: Verify incomplete sign-out recovery
         working-directory: web
         run: npx playwright test --config playwright.session-logout.config.ts --project=chromium --workers=2
+
+      - name: Preserve browser failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-failures-${{ github.run_attempt }}
+          path: web/test-results/
+          if-no-files-found: ignore
+          retention-days: 7

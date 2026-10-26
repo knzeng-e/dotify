@@ -59,6 +59,12 @@ for (const capture of ['standard', 'without-native-api']) {
       const code = host.getByTestId('room-code');
       await expect(code).toHaveText(/[A-Z0-9]{4,}/);
       const roomId = (await code.textContent())!.trim();
+      // This fixture explicitly autoplays. Wait for the actual media element,
+      // rather than toggling from a UI label that can lag the playing event.
+      // A toggle during that gap can pause the tone we are about to measure.
+      const hostAudio = host.locator('audio.native-player-source').first();
+      await expect(hostAudio).toHaveJSProperty('paused', false);
+      await expect.poll(() => hostAudio.evaluate(audio => (audio as HTMLAudioElement).currentTime)).toBeGreaterThan(0);
       await guest.goto(`/#/rooms/${roomId}`);
       await guest.getByLabel('Your name or nickname').fill('Continuous listener');
       await guest.getByRole('button', { name: 'Join and listen', exact: true }).click();
@@ -86,28 +92,7 @@ for (const capture of ['standard', 'without-native-api']) {
         });
       });
       const tone = () => guest.evaluate(() => Reflect.get(window, '__continuityTone')() as number);
-      const playing = host.locator('.transport-play');
-      if ((await playing.getAttribute('aria-label')) === 'Play') await playing.click();
-      await expect.poll(tone).toBeGreaterThan(400);
-      const offers = await host.evaluate(() => window.__DOTIFY_E2E_ROOM_JOIN__?.offers);
-      expect(await host.evaluate(() => window.__DOTIFY_E2E_ROOM_JOIN__?.webAudioCaptures)).toBe(1);
-      for (const [action, title, frequency] of [
-        ['Next track', 'Second room track', 660],
-        ['Previous track', 'E2E Public Room Track', 440],
-        ['Next track', 'Second room track', 660]
-      ] as const) {
-        await host.getByRole('button', { name: action, exact: true }).click();
-        if (title === 'Second room track') {
-          // The compact desktop room hides the cover status visually, but the
-          // same state remains in the DOM and drives the disabled transport.
-          await expect(host.locator('.remote-state')).toHaveText('Preparing audio');
-          await expect(host.locator('.transport-progress > span').first()).toHaveText('0:00');
-          await expect(host.getByRole('button', { name: 'Play', exact: true })).toBeDisabled();
-          await expect(host.getByRole('button', { name: 'Next track', exact: true })).toBeEnabled();
-          await expect(host.getByRole('button', { name: 'Previous track', exact: true })).toBeEnabled();
-        }
-        await expect(guest.locator('.track-copy h2')).toHaveText(title);
-        await expect(host.locator('audio').first()).toHaveJSProperty('paused', false);
+      async function expectTone(frequency: number, phase: string) {
         try {
           await expect.poll(async () => Math.abs((await tone()) - frequency), { timeout: 12_000 }).toBeLessThan(25);
         } catch (error) {
@@ -132,13 +117,37 @@ for (const capture of ['standard', 'without-native-api']) {
                 metrics: window.__DOTIFY_E2E_ROOM_JOIN__
               };
             });
-            await testInfo.attach(page === host ? 'host-continuity' : 'guest-continuity', {
+            await testInfo.attach(`${phase}-${page === host ? 'host' : 'guest'}-continuity`, {
               body: JSON.stringify(diagnostics),
               contentType: 'application/json'
             });
           }
           throw error;
         }
+      }
+      // A synchronized room clock is not proof that decoded RTP audio has
+      // arrived. Use the same bounded frequency check as track transitions.
+      await expectTone(440, 'startup');
+      const offers = await host.evaluate(() => window.__DOTIFY_E2E_ROOM_JOIN__?.offers);
+      expect(await host.evaluate(() => window.__DOTIFY_E2E_ROOM_JOIN__?.webAudioCaptures)).toBe(1);
+      for (const [action, title, frequency] of [
+        ['Next track', 'Second room track', 660],
+        ['Previous track', 'E2E Public Room Track', 440],
+        ['Next track', 'Second room track', 660]
+      ] as const) {
+        await host.getByRole('button', { name: action, exact: true }).click();
+        if (title === 'Second room track') {
+          // The compact desktop room hides the cover status visually, but the
+          // same state remains in the DOM and drives the disabled transport.
+          await expect(host.locator('.remote-state')).toHaveText('Preparing audio');
+          await expect(host.locator('.transport-progress > span').first()).toHaveText('0:00');
+          await expect(host.getByRole('button', { name: 'Play', exact: true })).toBeDisabled();
+          await expect(host.getByRole('button', { name: 'Next track', exact: true })).toBeEnabled();
+          await expect(host.getByRole('button', { name: 'Previous track', exact: true })).toBeEnabled();
+        }
+        await expect(guest.locator('.track-copy h2')).toHaveText(title);
+        await expect(host.locator('audio').first()).toHaveJSProperty('paused', false);
+        await expectTone(frequency, action);
         expect(
           await guest.evaluate(() => Reflect.get(window, '__continuityStream') === document.querySelectorAll<HTMLAudioElement>('audio')[1].srcObject)
         ).toBe(true);
