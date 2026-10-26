@@ -234,6 +234,7 @@ export type UseArtistConsoleDeps = {
   activeSubstrateSigner: PolkadotSigner | null;
   artistTracks: CatalogTrack[];
   transactionFeedback?: TransactionFeedback | null;
+  onReleasePublished?: (account: `0x${string}`) => void;
   setTransactionFeedback: (feedback: TransactionFeedback | null) => void;
   refreshCatalogFromRegistry: (hash?: `0x${string}`, options?: { fresh?: boolean }) => Promise<CatalogTrack[]>;
   setAudioCID: (cid: string) => void;
@@ -301,7 +302,8 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
     refresh: refreshCatalogFromRegistry,
     setFeedback: setTransactionFeedback,
     setStatus: setRightsStatus,
-    activeFeedback: transactionFeedback
+    activeFeedback: transactionFeedback,
+    onPublished: deps.onReleasePublished
   });
 
   // Earnings use public EVM events, including in Product builds. This reader
@@ -1073,6 +1075,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
           txHash: E2E_ARTIST_RELEASE_TX_HASH
         });
         publication.confirm({
+          account: activeEvmAddress,
           runtime: targetRuntimeAddress,
           hash: fileHash,
           feedback: {
@@ -1236,6 +1239,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
         steps: buildReleasePublicationRoadmap(publicationStage, txHash)
       });
       publication.confirm({
+        account: activeEvmAddress,
         runtime: targetRuntimeAddress,
         hash: fileHash,
         feedback: {

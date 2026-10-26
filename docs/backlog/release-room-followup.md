@@ -83,3 +83,15 @@ See [the candidate-bound rollout record](implementation/evidence/product-0.1.48-
 for exact SHA/CID, backend images, receipt-service authentication, finalized
 DotNS read-back and the remaining owner-approved metadata activation and physical
 checks. Issue #269 remains open; publication alone does not activate the editor.
+
+## Publication completion follow-up, 2026-10-26
+
+Once the catalog confirms the approved release's exact runtime and content hash,
+the artist workspace automatically returns from the publication editor to My
+releases. The existing success confirmation remains available. Upload completion
+or approval alone does not navigate: a delayed or mismatched catalog entry keeps
+the read-only recovery flow, and failed publication preserves the editor.
+Completion never submits another release. A late confirmation does not change
+another account's workspace or a different studio task already selected by the
+artist. This is frontend behavior shared by Web and Product; physical Host
+acceptance follows deployment.
