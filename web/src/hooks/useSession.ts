@@ -217,6 +217,7 @@ export function useSession(deps: UseSessionDeps) {
   const [joinCode, setJoinCode] = useState(() => getInitialRoomCode());
   const [displayName, setDisplayName] = useState('Listener');
   const [localStreamReady, setLocalStreamReady] = useState(false);
+  const pendingJoinRef = useRef<AbortController | null>(null);
   const [isRefreshingRooms, setIsRefreshingRooms] = useState(false);
   // `preview` is retained only for backward-compatible signaling payloads.
   // Access model v2 creates and updates current rooms in `full` mode; a host
@@ -520,6 +521,8 @@ export function useSession(deps: UseSessionDeps) {
   }
 
   function clearRoomState(status: string, errorMessage: string | null, options: { closePeers?: boolean } = {}) {
+    pendingJoinRef.current?.abort();
+    pendingJoinRef.current = null;
     if (roomCreationRef.current.cancel()) socketRef.current?.emit('room:leave');
     if (options.closePeers !== false) {
       closeAllPeers();
@@ -1579,6 +1582,8 @@ export function useSession(deps: UseSessionDeps) {
   }
 
   function beginRoomCreation() {
+    pendingJoinRef.current?.abort();
+    pendingJoinRef.current = null;
     cancelRoomCreation();
     const signal = roomCreationRef.current.begin();
     setSessionAction('creating');
@@ -1690,6 +1695,9 @@ export function useSession(deps: UseSessionDeps) {
       navigateToView('player');
       return;
     }
+    pendingJoinRef.current?.abort();
+    const joinController = new AbortController();
+    pendingJoinRef.current = joinController;
     const joinDisplayName = options.displayName ?? displayName;
 
     // Persist the chosen name on a real join (not on every keystroke). No-ops
@@ -1756,7 +1764,8 @@ export function useSession(deps: UseSessionDeps) {
       },
       () => {
         clearRoomState('Error', 'Room service unavailable.', { closePeers: false });
-      }
+      },
+      joinController.signal
     );
   }
 
@@ -2033,6 +2042,8 @@ export function useSession(deps: UseSessionDeps) {
   }
 
   function destroySession() {
+    pendingJoinRef.current?.abort();
+    pendingJoinRef.current = null;
     roomCreationRef.current.cancel();
     socketRef.current?.emit('room:leave');
     socketRef.current?.disconnect();

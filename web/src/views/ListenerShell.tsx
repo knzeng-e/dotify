@@ -11,8 +11,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 
 import { emptyCatalogJourney } from '../components/CatalogBrowser';
 import { AuraBackground } from '../components/AuraBackground';
-import { PersistentAudio } from '../components/PersistentAudio';
-import { PlayerDock } from '../components/PlayerDock';
+import { PlayerDockSurface } from '../components/PlayerDockSurface';
 import { CreateRoomModal } from '../components/CreateRoomModal';
 import type { RoomVisibilityChoice } from '../components/NearbyVisibility';
 import { JoinRoomModal } from '../components/JoinRoomModal';
@@ -59,7 +58,7 @@ const apiConfigured = Boolean((import.meta.env.VITE_DOTIFY_API_URL as string | u
 export function ListenerShell() {
   const catalog = useCatalogContext();
   const session = useSessionContext();
-  const { playback, openTrack, prepareLocalStream } = usePlaybackContext();
+  const { playback, openTrack, prepareLocalStream, requestRoomExit } = usePlaybackContext();
   const { activeView, publicArtistName, setPublicArtistName, navigateToView, openArtistStudio } = useNavigation();
   const {
     walletState,
@@ -271,15 +270,6 @@ export function ListenerShell() {
 
   return (
     <>
-      <PersistentAudio
-        audioSource={catalog.audioSource}
-        audioSourceGeneration={catalog.audioSourceGeneration}
-        localAudioRef={catalog.localAudioRef}
-        remoteAudioRef={session.remoteAudioRef}
-        playback={playback}
-        onPrepareLocalStream={prepareLocalStream}
-        onEmitPlayerState={session.emitPlayerState}
-      />
       <div className='app-shell' ref={roomShellRef} data-room-focus={roomFocused} data-player-focus={activeView === 'player' && !roomId && !publicArtistName}>
         <AuraBackground />
         <a className='skip-link' href='#main-content'>
@@ -298,7 +288,7 @@ export function ListenerShell() {
             onLeaveAndOpen={() => {
               pendingSoloTrackRef.current = inspectedRoomTrack;
               setInspectedRoomTrack(null);
-              session.leaveSession();
+              requestRoomExit();
             }}
           />
         )}
@@ -450,25 +440,7 @@ export function ListenerShell() {
           </main>
         </div>
 
-        {(activeView !== 'player' || publicArtistName) && (catalog.trackInfo || session.roomId) && (
-          <PlayerDock
-            track={selectedTrack}
-            trackInfo={catalog.trackInfo}
-            playback={playback}
-            mode={session.mode}
-            roomId={session.roomId}
-            hostName={session.hostName}
-            listenerCount={session.listenerCount}
-            listeners={session.listeners}
-            socketStatus={session.socketStatus}
-            locked={Boolean(
-              !isRoomGuest && selectedTrack && selectedTrack.accessMode === 'classic' && catalog.catalogAccessByTrackId[selectedTrack.id] !== true
-            )}
-            audioStartupStatus={catalog.audioStartupStatus}
-            onOpenPlayer={() => navigateToView('player')}
-            onStartRoom={() => showCreateRoom()}
-          />
-        )}
+        <PlayerDockSurface onStartRoom={() => showCreateRoom()} />
 
         {createRoomOpen && (
           <CreateRoomModal
@@ -503,7 +475,10 @@ export function ListenerShell() {
               session.joinRoom(code);
             }}
             onRetry={() => session.requestOpenRooms(true)}
-            onClose={() => setJoinRoomOpen(false)}
+            onClose={() => {
+              setJoinRoomOpen(false);
+              if (!session.roomId && getInitialRoomCode()) navigateToView('listen', { replace: true, clearRoomLink: true });
+            }}
           />
         )}
 

@@ -100,7 +100,7 @@ export function ArtistConsole() {
   const catalog = useCatalogContext();
   const session = useSessionContext();
   const { artistConsole, totalRoyaltyWei } = useArtistStudio();
-  const { openTrack } = usePlaybackContext();
+  const { openTrack, requestRoomExit } = usePlaybackContext();
 
   const factoryAddress = deployments.factory;
   const directoryAddress = deployments.directory;
@@ -198,6 +198,7 @@ export function ArtistConsole() {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    catalog.cancelPlaybackPreparation();
     setAssetAction('audio');
     artistConsole.setRightsStatus(uploadStatusMessage('audio', 'preparing'));
     catalog.setAudioCID('');
@@ -414,7 +415,16 @@ export function ArtistConsole() {
           />
         )}
 
-        {artistTab === 'new' && (
+        {artistTab === 'new' && session.roomId && (
+          <section className='doc-panel' role='status'>
+            <h2>Your room is still live</h2>
+            <p>Leave your room before preparing a new release. Your draft will stay here.</p>
+            <button className='secondary-action' type='button' onClick={requestRoomExit}>
+              Leave room
+            </button>
+          </section>
+        )}
+        {artistTab === 'new' && !session.roomId && (
           <NewReleaseTab
             releaseStep={releaseStep}
             artistStudioLocked={artistStudioLocked}

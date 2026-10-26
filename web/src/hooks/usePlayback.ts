@@ -34,6 +34,7 @@ type UsePlaybackDeps = {
   remoteAudioRef: RefObject<HTMLAudioElement | null>;
   audioSource: string | null;
   audioSourceGeneration: number;
+  previewOnly?: boolean;
   audioContinuation?: AudioContinuation | null;
   audioRecovery?: 'recovering' | 'failed' | null;
   audioStartupAttemptId: string | null;
@@ -83,6 +84,7 @@ export function usePlayback(deps: UsePlaybackDeps) {
     remoteAudioRef,
     audioSource,
     audioSourceGeneration,
+    previewOnly = false,
     audioContinuation,
     audioRecovery,
     audioStartupAttemptId,
@@ -230,6 +232,18 @@ export function usePlayback(deps: UsePlaybackDeps) {
     autoplayIntentRef.current = true;
   }, []);
 
+  // Explicit dismissal must win over metadata, recovery and late play promises.
+  // Pause both elements so leaving a room cannot revive an old solo selection.
+  const stop = useCallback(() => {
+    userPausedRef.current = true;
+    autoplayIntentRef.current = false;
+    setRemotePausedByUser(true);
+    if (localAudioRef.current) pauseHostAudio(localAudioRef.current);
+    remoteAudioRef.current?.pause();
+    setTransport(previous => ({ ...previous, playing: false }));
+    setStatus('ready');
+  }, [localAudioRef, remoteAudioRef]);
+
   // Install the source owner before native metadata events can arrive. Source
   // readiness must respect the last explicit transport command.
   useLayoutEffect(() => {
@@ -255,6 +269,7 @@ export function usePlayback(deps: UsePlaybackDeps) {
       elapsedMs: 0,
       timestamp: Date.now()
     });
+    if (previewOnly) userPausedRef.current = true;
     autoplayIntentRef.current = !userPausedRef.current;
     if (audioContinuation?.source === audioSource) {
       setTransport({
@@ -265,7 +280,7 @@ export function usePlayback(deps: UsePlaybackDeps) {
       });
     }
     setStatus(audioContinuation?.source === audioSource ? 'recovering' : 'preparing');
-  }, [audioSource, audioSourceGeneration, audioContinuation, mode]);
+  }, [audioSource, audioSourceGeneration, audioContinuation, mode, previewOnly]);
 
   useEffect(() => {
     setRemotePausedByUser(false);
@@ -736,6 +751,7 @@ export function usePlayback(deps: UsePlaybackDeps) {
     handleHostWaiting,
     handleHostError,
     requestAutoplay,
+    stop,
     markNoAudio
   };
 }

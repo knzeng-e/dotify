@@ -92,6 +92,7 @@ async function completeReleaseDraft(page: Page, options: { royaltySharePercent?:
   await page.getByRole('button', { name: 'New release', exact: true }).click();
   await page.getByTestId('artist-audio-input').setInputFiles(audioFixture);
   await expect(page.getByText('Audio ready', { exact: true })).toBeVisible();
+  await expect(page.locator('audio.native-player-source').first()).toHaveJSProperty('paused', true);
   await page.getByTestId('artist-cover-input').setInputFiles(coverFixture);
   await expect(page.getByText('Cover ready', { exact: true })).toBeVisible();
 

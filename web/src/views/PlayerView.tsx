@@ -57,7 +57,7 @@ type PlayerViewProps = {
 export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewProps) {
   const catalog = useCatalogContext();
   const session = useSessionContext();
-  const { playback, openTrack } = usePlaybackContext();
+  const { requestRoomExit, playback, openTrack } = usePlaybackContext();
   const { openWalletModal } = useUiFeedback();
   const { navigateToView, setPublicArtistName } = useNavigation();
   const { title, artistName, accessMode, priceDot } = useReleaseForm();
@@ -109,7 +109,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
   const streamArtist = currentTrack?.artist || (mode === 'listener' ? '' : artistName);
   const selectedTrackHasAccess = selectedTrack ? trackHasAccess(selectedTrack, catalog.catalogAccessByTrackId) : false;
 
-  const onLeaveSession = session.leaveSession;
+  const onLeaveSession = requestRoomExit;
   const onSetDisplayName = session.setDisplayName;
   const onUpdateDisplayName = session.updateDisplayName;
   const onRetryRoomAudio = session.requestRoomAudio;
@@ -135,14 +135,12 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
   const [shareOpen, setShareOpen] = useState(false);
   const [detailsTrack, setDetailsTrack] = useState<CatalogTrack | null>(null);
   const [queueOpen, setQueueOpen] = useState(false);
-  const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
   const [roomPanel, setRoomPanel] = useState<'chat' | 'queue' | 'people'>('chat');
   const [chatUnread, setChatUnread] = useState(0);
   const [chatMentions, setChatMentions] = useState(0);
   useEffect(() => {
     setRoomPanel('chat');
     setShareOpen(false);
-    setConfirmCloseOpen(false);
     setChatUnread(0);
     setChatMentions(0);
   }, [roomId]);
@@ -219,11 +217,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
     if (tab && tab.getClientRects().length > 0) setRoomPanel('people');
     else document.getElementById('room-panel-people')?.scrollIntoView({ block: 'nearest' });
   };
-  // Closing ends the room for everyone, so a host with guests confirms first.
-  const onExitRoom = () => {
-    if (mode === 'host' && activeListeners.length > 0) setConfirmCloseOpen(true);
-    else onLeaveSession();
-  };
+  const onExitRoom = onLeaveSession;
   const passiveSignalFailure = !roomId && sessionAction === 'idle' && sessionStatus === 'Ready' && session.socketStatus !== 'online';
   const soloRoomRecoveryIsJoin = mode === 'listener' || /room closed|expired|host left/i.test(`${sessionStatus} ${error ?? ''}`);
 
@@ -935,37 +929,6 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
         />
       )}
       {queueOpen && !roomId && <PlayerQueueDialog onClose={() => setQueueOpen(false)} />}
-      {confirmCloseOpen && roomId && mode === 'host' && (
-        <Dialog
-          className='room-close-dialog'
-          size='compact'
-          labelledBy='room-close-title'
-          describedBy='room-close-copy'
-          onClose={() => setConfirmCloseOpen(false)}
-        >
-          <div className='modal-copy'>
-            <h2 id='room-close-title'>Close this room?</h2>
-            <p id='room-close-copy'>
-              {activeListeners.length === 1 ? '1 person is' : `${activeListeners.length} people are`} listening with you. Closing ends the room for everyone.
-            </p>
-          </div>
-          <div className='modal-actions'>
-            <button
-              className='primary-action'
-              type='button'
-              onClick={() => {
-                setConfirmCloseOpen(false);
-                onLeaveSession();
-              }}
-            >
-              Close for everyone
-            </button>
-            <button className='secondary-action' type='button' onClick={() => setConfirmCloseOpen(false)}>
-              Keep listening
-            </button>
-          </div>
-        </Dialog>
-      )}
     </section>
   );
 }

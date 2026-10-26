@@ -6,7 +6,7 @@
 // nothing else in the stack. Fail closed: the accessor throws outside the provider.
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react';
-import { historyStateObject, initialView, isArtistPortalPath, viewFromHistoryState } from '../routing';
+import { historyStateObject, initialView, isArtistPortalPath, viewFromHistoryState, withoutRoomInvitation, type NavigationOptions } from '../routing';
 import { getInitialRoomCode } from '../../features/rooms/roomState';
 import type { View } from '../../shared/types';
 
@@ -23,8 +23,9 @@ type NavigationValue = {
   setPublicArtistName: Dispatch<SetStateAction<string | null>>;
   railCollapsed: boolean;
   setRailCollapsed: Dispatch<SetStateAction<boolean>>;
-  navigateToView: (nextView: View, options?: { replace?: boolean }) => void;
+  navigateToView: (nextView: View, options?: NavigationOptions) => void;
   openArtistStudio: () => void;
+  clearRoomLink: () => void;
 };
 
 const NavigationContext = createContext<NavigationValue | null>(null);
@@ -36,13 +37,13 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
   const [railCollapsed, setRailCollapsed] = useState(false);
 
   const navigateToView = useCallback(
-    (nextView: View, options: { replace?: boolean } = {}) => {
+    (nextView: View, options: NavigationOptions = {}) => {
       const leavingArtistPortal = isArtistPortal || isArtistPortalPath(window.location.pathname);
       setPublicArtistName(null);
       setActiveView(nextView);
       if (leavingArtistPortal) setIsArtistPortal(false);
       const nextState = { ...historyStateObject(window.history.state), dotifyView: nextView };
-      const nextUrl = leavingArtistPortal ? '/' : window.location.href;
+      const nextUrl = leavingArtistPortal ? '/' : options.clearRoomLink ? withoutRoomInvitation(window.location.href) : window.location.href;
       if (options.replace || (!leavingArtistPortal && activeView === nextView)) {
         window.history.replaceState(nextState, '', nextUrl);
         return;
@@ -51,6 +52,10 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
     },
     [activeView, isArtistPortal]
   );
+
+  const clearRoomLink = useCallback(() => {
+    window.history.replaceState(historyStateObject(window.history.state), '', withoutRoomInvitation(window.location.href));
+  }, []);
 
   const openArtistStudio = useCallback(() => {
     setPublicArtistName(null);
@@ -87,9 +92,10 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
       railCollapsed,
       setRailCollapsed,
       navigateToView,
-      openArtistStudio
+      openArtistStudio,
+      clearRoomLink
     }),
-    [activeView, isArtistPortal, publicArtistName, railCollapsed, navigateToView, openArtistStudio]
+    [activeView, isArtistPortal, publicArtistName, railCollapsed, navigateToView, openArtistStudio, clearRoomLink]
   );
 
   return <NavigationContext.Provider value={value}>{children}</NavigationContext.Provider>;

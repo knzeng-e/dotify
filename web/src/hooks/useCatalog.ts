@@ -506,6 +506,15 @@ export function useCatalog(deps: UseCatalogDeps) {
     setTrackSelectionPending(false);
   }
 
+  function cancelPlaybackPreparation() {
+    if (!activeTrackSelectionRef.current?.pending || (localAudioRef.current?.readyState ?? 0) >= 3) return;
+    abortActiveTrackSelection();
+    setResolvedAudioSource(null);
+    setAudioRecovery(null);
+    setAudioStartupStatus(null);
+    setPlaybackFailure(null);
+  }
+
   function settleTrackSelectionMedia(source: string | null, terminal = false, attemptId: string | null = null) {
     if (!source) return;
     // `canplay` makes transport usable, but it is not terminal evidence: the
@@ -1553,6 +1562,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     prepareStreamingAudio,
     refreshCatalogFromRegistry,
     fetchRuntimeCatalog,
-    clearObjectUrls
+    clearObjectUrls,
+    cancelPlaybackPreparation
   };
 }
