@@ -12,10 +12,20 @@ Implement **W13** only. Read `AGENTS.md`, `docs/backlog/implementation/common.md
 - Existing issue: #158. Reuse this release gate; do not create a duplicate pilot issue.
 - Product purpose: effortless shared listening, meaningful artist control, transparent value, and a coherent poetic interface. Product DevNet is a first-class target alongside ordinary web.
 
-## Candidate and prerequisite correction, 2026-10-23
+## Candidate and prerequisite correction, 2026-10-26
+
+The [latest recorded rollout](evidence/product-0.1.62-rollout-2026-10-25.md)
+is API release 32 plus Web and Product 0.1.62 with W34 access preparation.
+[#335](https://github.com/knzeng-e/dotify/pull/335) payment recovery and
+[#336](https://github.com/knzeng-e/dotify/pull/336) publication return are merged
+into `dev` but require a subsequent client release. #337 navigation/mini-player
+exits remain under review. Include these recovery/exit paths in candidate-bound
+physical Web/Product checks; browser fixtures do not close the pilot gate.
+W31/#286 and scoped 3D/#329 are delivered, not fresh implementation tasks.
+See the [reconciliation](evidence/backlog-reconciliation-2026-10-26.md).
 
 W30's non-root cutover and the new streaming services are deployed in the
-[0.1.58 reset](evidence/product-0.1.58-rollout-2026-10-22.md). The latest Product
+[0.1.58 reset](evidence/product-0.1.58-rollout-2026-10-22.md). The historical Product
 compatibility publication is 0.1.60 ([#327](https://github.com/knzeng-e/dotify/pull/327)),
 but API/signaling/Web are not thereby redeployed to the same source. Select and
 record a coherent candidate before a pilot claim. Historical 0.1.25/0.1.26

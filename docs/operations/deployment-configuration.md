@@ -1,5 +1,23 @@
 # Deployment Configuration Runbook
 
+## Pending client corrections, 2026-10-26
+
+The last recorded publication remains 0.1.62 below. Payment approval-expiry
+recovery (#335) and automatic return to artist releases (#336) are merged into
+`dev`; room exits and mini-player dismissal (#337) remain under review. They
+are not already installed through the 0.1.62 publication. No new environment
+variable, permission, server restart, contract or secret is required for these
+client corrections.
+
+Before publishing a reviewed candidate, verify missed approval recovery without
+a duplicate payment, confirmed publication returning to releases, and room exit
+returning home. On physical Product mobile/Desktop, verify the mini-player
+confirmation/cancel paths, stopped audio after dismissal, no late-source revival,
+cleared room invitations after refresh and continuity when entering the studio.
+Preparing an artist release must not replace a live room's source. Preserve
+existing unresolved payment journals; browser CI is not native signing evidence.
+See [current scope and evidence](../backlog/implementation/evidence/backlog-reconciliation-2026-10-26.md).
+
 ## W34 API/Web and Product 0.1.62 published, 2026-10-25
 
 API release 32 serves clean packaging source `781f1c5`, based on tested merged

@@ -21,8 +21,16 @@ Since that audit, [#329's Galaxy 3D correction](room-galaxy-restoration.md) merg
 through #330 and was published in Product 0.1.61 (#331). The owner confirmed the
 installed experience works. This does not certify the full physical-device matrix.
 The dedicated [W31 Worldwide Report verification](implementation/evidence/W31-worldwide-report-2026-10-25.md)
-merged through #332. The next implementation is [W34 fast access](implementation/W34-fast-access-path.md)
-(#289): prepare access for queued tracks without adding wallet prompts or room guest keys.
+merged through #332. [W34 fast access](implementation/W34-fast-access-path.md) (#289) merged through
+#333 and was deployed on API/Web and Product 0.1.62 through #334. W31 (#286),
+W34 (#289) and the scoped 3D correction (#329) are delivered records; their
+remaining physical-device checks belong to the existing release gates.
+
+[The October 26 reconciliation](implementation/evidence/backlog-reconciliation-2026-10-26.md)
+records these closures. Payment approval recovery (#335) and publication return
+(#336) are merged into `dev` but not published in 0.1.62. Navigation and
+mini-player exits (#337) remain under review. W35 (#290) is the next eligible
+streaming implementation after that correction is reviewed.
 
 ## Status contract
 
@@ -181,16 +189,16 @@ W29 reverses one earlier record: catalog cards show a short access cue again
 
 ## Remaining execution map
 
-The [2026-10-23 audit](implementation/evidence/backlog-reconciliation-2026-10-23.md)
-supersedes older deployment remainders. W30 is deployed, including non-root
-same-volume maintenance. W31 retains one missing report test. W32/current-format
-streaming is deployed; W33 is prepared but its dedicated origin returns 401.
-W34-W37 remain future implementation and W38-W39 remain Later. Project 5 owns
-workflow status; this table describes remaining scope without reopening delivered work.
+The [2026-10-26 reconciliation](implementation/evidence/backlog-reconciliation-2026-10-26.md)
+supersedes older implementation/deployment remainders. W30 and W34 are deployed;
+W31's remaining report test is merged. W32/current-format streaming is deployed;
+W33 retains its recorded gateway-access and measured activation gate, not a new
+implementation request. W35-W37 remain future implementation and W38-W39 remain
+Later. Project 5 owns workflow status; this table describes remaining scope
+without reopening delivered work.
 
 | Priority | GitHub issue | Phase                    | Remaining outcome                                                                                                                                               |
 | -------- | ------------ | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| P1       | #286 / W31   | Now (pilot polish)       | Add/verify the dedicated Worldwide-report E2E missing from the original evidence. Discovery controls and lazy studio are already delivered.                     |
 | P0       | #158 / W13   | Now                      | Bind Product payment/access, room, first-sound, rollback, release-profile, and consented pilot evidence to one accepted candidate.                              |
 | P1       | #317         | Now (cutover acceptance) | Record current-catalog real publication/pinning, same-runtime native recovery and current-format access/audio/value acceptance; the cutover itself is deployed. |
 | P1       | #269         | Now (release follow-up)  | Verify the new runtime's metadata-edit capability and correction/read-back; coordinate room-tip continuity with #229 without upgrading retired runtimes.        |
@@ -203,7 +211,6 @@ workflow status; this table describes remaining scope without reopening delivere
 | P1       | #274 / W19   | Device acceptance        | Verify merged Nearby behavior and subsequent discovery follow-ups on physical Product/mobile devices; retain host opt-in, both radii and wallet-free joining.   |
 | P1       | #287 / W32   | Next (streaming)         | Validate deployed current-format publication, pinning, native playback, walletless room audio and prolonged listening; preserve permanent nonce custody.        |
 | P1       | #288 / W33   | Next (streaming)         | Resolve dedicated gateway 401, activate reviewed ciphertext-only delivery, and measure cold/warm audible startup in three regions.                              |
-| P1       | #289 / W34   | Next (streaming)         | Batch access reads and prepare queued keys with bounded fail-closed verdicts; keep client keys in memory.                                                       |
 | P1       | #290 / W35   | Next (streaming)         | Add gapless/adaptive playback, next-track preparation, system controls and measured continuity after W32/W34.                                                   |
 | P1       | #291 / W36   | Next (scaling)           | Share replay protection, revocations, quotas and catalog state before allowing two API instances.                                                               |
 | P2       | #292 / W37   | Next (scaling)           | Bound indexer work, resume large block gaps and maintain reusable catalog lookup indexes.                                                                       |

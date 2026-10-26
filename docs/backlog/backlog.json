@@ -28,11 +28,11 @@
       "id": "room-galaxy-restoration",
       "doc": "docs/backlog/room-galaxy-restoration.md",
       "issue": 329,
-      "kind": "work",
+      "kind": "record",
       "priority": "P1",
       "track": "Room reliability",
-      "phase": "Now",
-      "note": "Owner-requested regression after #328: reconnect optional 3D to the same scoped Radar/List discovery and common inspection, with lazy graphics, mobile/accessibility fallback and unchanged audio/privacy."
+      "phase": "Record",
+      "note": "Delivered by #330 and published in Product 0.1.61 (#331); owner confirmed installed behavior. Physical Host graphics/location/media acceptance remains #274/#85/#89/#158."
     },
     {
       "id": "streaming-only-reset",
@@ -577,11 +577,11 @@
       "id": "W31",
       "doc": "docs/backlog/implementation/W31-discovery-follow-ups.md",
       "issue": 286,
-      "kind": "work",
+      "kind": "record",
       "priority": "P1",
       "track": "Room reliability",
-      "phase": "Now",
-      "note": "#297 is merged and deployed from 0.1.52. The selected W31 follow-up adds dedicated Worldwide Report browser coverage for Web and a Product Host fixture, with real anonymous count acceptance, minimal payload, reversible local hiding and other-client access. Native reliability remains separate device/pilot acceptance."
+      "phase": "Record",
+      "note": "Delivered by #297 plus merged #332 Worldwide Report verification on Web and Product Host fixtures. Physical location/media/pilot acceptance remains #274/#85/#89/#158."
     },
     {
       "id": "W32",
@@ -607,11 +607,11 @@
       "id": "W34",
       "doc": "docs/backlog/implementation/W34-fast-access-path.md",
       "issue": 289,
-      "kind": "work",
+      "kind": "record",
       "priority": "P1",
       "track": "Production spine",
-      "phase": "Next",
-      "note": "W34 implementation: parallel block-bound reads, <=30s verdicts, five-track session preparation and memory-only scoped keys. Evidence: docs/backlog/implementation/evidence/W34.md; physical listening remains a release gate."
+      "phase": "Record",
+      "note": "Delivered by #333 and API/Web/Product 0.1.62 rollout #334. Parallel block-bound reads, bounded verdicts, session preparation and memory-only keys are verified. Physical first sound remains #88/#287/#317/#158."
     },
     {
       "id": "W35",
