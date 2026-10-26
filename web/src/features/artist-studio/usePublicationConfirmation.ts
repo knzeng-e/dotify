@@ -3,7 +3,7 @@ import type { CatalogTrack, TransactionFeedback } from '../../shared/types';
 import { runtimeAddressFromTrackId } from '../catalog/trackModel';
 import { buildReleasePublicationRoadmap } from './releaseForm';
 
-type PendingPublication = { runtime: `0x${string}`; hash: `0x${string}`; feedback: TransactionFeedback };
+type PendingPublication = { runtime: `0x${string}`; hash: `0x${string}`; account: `0x${string}`; feedback: TransactionFeedback };
 export const publicationIsVisible = (tracks: CatalogTrack[], pending: Pick<PendingPublication, 'runtime' | 'hash'>) =>
   tracks.some(
     track =>
@@ -19,21 +19,28 @@ export function usePublicationConfirmation({
   refresh,
   setFeedback,
   setStatus,
-  activeFeedback
+  activeFeedback,
+  onPublished
 }: {
   tracks: CatalogTrack[];
   refresh: (hash?: `0x${string}`, options?: { fresh?: boolean }) => Promise<CatalogTrack[]>;
   setFeedback: (feedback: TransactionFeedback | null) => void;
   setStatus: (status: string) => void;
   activeFeedback?: TransactionFeedback | null;
+  onPublished?: (account: `0x${string}`) => void;
 }) {
   const [pending, setPending] = useState<PendingPublication | null>(null);
-  const latest = useRef({ refresh, setFeedback, setStatus, activeFeedback });
+  const latest = useRef({ refresh, setFeedback, setStatus, activeFeedback, onPublished });
   useLayoutEffect(() => {
-    latest.current = { refresh, setFeedback, setStatus, activeFeedback };
+    latest.current = { refresh, setFeedback, setStatus, activeFeedback, onPublished };
   });
   const generation = useRef(0);
+  const completedOperation = useRef<string | null>(null);
   const complete = useCallback((item: PendingPublication) => {
+    // Catalog updates and the fresh read can observe the same release together.
+    // Deliver completion once so a later observation cannot reopen the list.
+    if (completedOperation.current === item.feedback.operationId) return;
+    completedOperation.current = item.feedback.operationId ?? null;
     setPending(null);
     latest.current.setStatus('Release published');
     if (latest.current.activeFeedback && latest.current.activeFeedback.operationId !== item.feedback.operationId) return;
@@ -45,6 +52,7 @@ export function usePublicationConfirmation({
       recoveryAction: undefined,
       steps: buildReleasePublicationRoadmap('complete', item.feedback.txHash)
     });
+    latest.current.onPublished?.(item.account);
   }, []);
   // The approved runtime/hash belongs to the operation, not the current
   // wallet. Public, read-only reconciliation survives account changes; keep
@@ -97,6 +105,7 @@ export function usePublicationConfirmation({
     pending: Boolean(pending),
     confirm: (item: PendingPublication) => {
       item = { ...item, feedback: { ...item.feedback, operationId: `publication:${item.runtime}:${item.hash}` } };
+      completedOperation.current = null;
       setPending(item);
       setStatus('Making your release visible');
       setFeedback({

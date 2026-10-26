@@ -283,7 +283,10 @@ test('artist can create a runtime, publish a release, and see it in the listener
   expect(publishState?.devAccountFallbackUsed).toBe(false);
 
   await page.getByRole('button', { name: 'Close', exact: true }).click();
-  await page.getByRole('tab', { name: 'Releases', exact: true }).click();
+  // Confirmation itself leaves the editor. No manual tab change or refresh.
+  await expect(page.locator('[data-task="releases"]')).toBeVisible();
+  await expect(page.locator('[data-task="releases"]')).toContainText('E2E Published Signal');
+  await expect(page.getByTestId('publish-release-button')).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Save access', exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: 'Manage rights', exact: true }).click();
   await expect(page.getByRole('tab', { name: 'Rights & support', exact: true })).toHaveAttribute('aria-selected', 'true');
@@ -383,6 +386,21 @@ test('artist profile creation rejects a mismatched wallet network', async ({ pag
   expect(state?.registerArtistTransactions ?? 0).toBe(0);
 });
 
+test('mobile publication returns directly to My releases after confirmation', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await createArtistProfile(page);
+  await completeReleaseDraft(page);
+  await page.getByTestId('publish-release-button').click();
+  await expect(page.getByRole('dialog')).toContainText('Release published');
+  await page.getByRole('button', { name: 'Close', exact: true }).click();
+  const releases = page.locator('[data-task="releases"]');
+  await expect(releases).toBeVisible();
+  await expect(releases.getByText('My releases', { exact: true })).toBeVisible();
+  await expect(releases).toContainText('E2E Published Signal');
+  await expect(page.getByTestId('publish-release-button')).toHaveCount(0);
+  expect((await readArtistPublishState(page))?.registerTrackTransactions).toBe(1);
+});
+
 test('upload failure surfaces an error and halts registration', async ({ page }) => {
   await createArtistProfile(page, 'upload-failure');
   await completeReleaseDraft(page);
@@ -390,6 +408,8 @@ test('upload failure surfaces an error and halts registration', async ({ page })
 
   await expect(page.getByRole('dialog')).toContainText('Publication needs attention');
   await expect(page.getByRole('dialog')).toContainText('No release was published');
+  await expect(page.getByTestId('publish-release-button')).toBeAttached();
+  await expect(page.locator('[data-task="releases"]')).toHaveCount(0);
   await expect(page.getByRole('dialog')).toContainText('E2E metadata upload failed.');
 
   const state = await readArtistPublishState(page);
@@ -407,6 +427,8 @@ test('artist publish surfaces transaction failure after successful uploads', asy
 
   await expect(page.getByRole('dialog')).toContainText('Publication needs attention');
   await expect(page.getByRole('dialog')).toContainText('No release was published');
+  await expect(page.getByTestId('publish-release-button')).toBeAttached();
+  await expect(page.locator('[data-task="releases"]')).toHaveCount(0);
   await expect(page.getByRole('dialog')).toContainText('E2E registration transaction rejected.');
 
   const state = await readArtistPublishState(page);
@@ -455,6 +477,8 @@ test('artist publish remains recoverable while catalog read-back is delayed', as
   const dialog = page.getByRole('dialog');
   await expect(dialog).toContainText('Making your release visible');
   await expect(dialog).toContainText('no further approval is needed');
+  await expect(page.getByTestId('publish-release-button')).toBeAttached();
+  await expect(page.locator('[data-task="releases"]')).toHaveCount(0);
   await expect(dialog).toContainText('Visible in Dotify');
 
   const state = await readArtistPublishState(page);
@@ -464,6 +488,8 @@ test('artist publish remains recoverable while catalog read-back is delayed', as
   await expect(dialog).toContainText('Release published', { timeout: 15000 });
   expect((await readArtistPublishState(page))?.registerTrackTransactions).toBe(1);
   await dialog.getByRole('button', { name: 'Close', exact: true }).click();
+  await expect(page.locator('[data-task="releases"]')).toBeVisible();
+  await expect(page.getByTestId('publish-release-button')).toHaveCount(0);
   await page.evaluate(() => {
     (window as unknown as { navigationMarker: string }).navigationMarker = 'same-document';
   });
@@ -474,6 +500,23 @@ test('artist publish remains recoverable while catalog read-back is delayed', as
   await page.getByRole('link', { name: 'Dotify home', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Open a room', exact: true })).toBeVisible();
   expect(await page.evaluate(() => (window as unknown as { navigationMarker?: string }).navigationMarker)).toBe('same-document');
+});
+
+test('delayed publication does not pull an artist back from another task', async ({ page }) => {
+  await page.clock.install();
+  await createArtistProfile(page, 'catalog-delay');
+  await completeReleaseDraft(page);
+  await page.getByTestId('publish-release-button').click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toContainText('Making your release visible');
+  await dialog.getByRole('button', { name: 'Close', exact: true }).click();
+  await page.getByRole('tab', { name: 'Earnings', exact: true }).click();
+  await page.clock.runFor(6000);
+  await expect(page.getByRole('tab', { name: 'Earnings', exact: true })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.locator('[data-task="releases"]')).toHaveCount(0);
+  await page.getByRole('button', { name: 'View payment status: Release published', exact: true }).click();
+  await expect(page.getByRole('dialog')).toContainText('Release published');
+  expect((await readArtistPublishState(page))?.registerTrackTransactions).toBe(1);
 });
 
 test('approved publication keeps read-only recovery after the artist disconnects', async ({ page }) => {
@@ -501,6 +544,8 @@ test('artist publish does not accept a same-hash track from another runtime as v
   const dialog = page.getByRole('dialog');
   await expect(dialog).toContainText('Making your release visible');
   await expect(dialog).not.toContainText('Release published');
+  await expect(page.getByTestId('publish-release-button')).toBeAttached();
+  await expect(page.locator('[data-task="releases"]')).toHaveCount(0);
 
   const state = await readArtistPublishState(page);
   expect(state?.registerTrackTransactions).toBe(1);

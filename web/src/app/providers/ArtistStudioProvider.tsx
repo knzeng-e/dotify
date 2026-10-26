@@ -43,7 +43,8 @@ export function ArtistStudioProvider({ children }: { children: ReactNode }) {
     royaltyBps,
     additionalRoyaltySplits,
     coverFile,
-    uploadToBulletinEnabled
+    uploadToBulletinEnabled,
+    setArtistTab
   } = useReleaseForm();
   const catalog = useCatalogContext();
 
@@ -75,6 +76,12 @@ export function ArtistStudioProvider({ children }: { children: ReactNode }) {
     artistTracks: catalog.allCatalogTracks,
     setTransactionFeedback,
     transactionFeedback,
+    onReleasePublished: account => {
+      // Public confirmation can finish after a disconnect or account switch.
+      // Only leave this account's editor, never another artist's current task.
+      if (!connectedWallet || account.toLowerCase() !== activeEvmAddress.toLowerCase()) return;
+      setArtistTab(current => (current === 'new' ? 'releases' : current));
+    },
     refreshCatalogFromRegistry: catalog.refreshCatalogFromRegistry,
     setAudioCID: catalog.setAudioCID,
     setCoverCID: catalog.setCoverCID,
