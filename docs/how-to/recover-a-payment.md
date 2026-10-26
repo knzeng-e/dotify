@@ -41,6 +41,19 @@ access/status check. A confirmed transaction does not by itself open the audio:
 the current runtime must confirm paid access and permission to play that release.
 Inactive releases or changed access rules can still prevent playback.
 
+If a new Product confirmation expires before a signed transaction reaches
+Dotify, the receipt says **Confirmation request expired** and offers
+**Try payment again**. A late response to that old request is blocked from
+submission. Trying again is an explicit action, and Dotify checks access again
+before requesting a fresh approval; it never resends automatically.
+
+An ordinary transaction timeout is different: if a signature was already
+returned, submission was observed, or the previous attempt predates this
+protection, Dotify keeps **Check access again**. No transaction reference and
+no paid access visible yet do not prove that a payment cannot still complete.
+A status check must not claim inclusion without a confirmed reference. Keep
+unknown older references for reconciliation rather than clearing app storage.
+
 Classic payment references are scoped to the network/adapter, account, artist
 runtime and track. The browser records an intent before requesting approval.
 An uncertain attempt remains recoverable without asking for another payment;

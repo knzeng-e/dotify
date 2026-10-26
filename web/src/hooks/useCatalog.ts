@@ -1217,18 +1217,21 @@ export function useCatalog(deps: UseCatalogDeps) {
       return;
     }
     const recoverable = result.status === 'unverified' || result.status === 'uncertain';
+    const retryApproval = result.failureKind === 'approval-expired';
     showPaymentFeedback({
       tone: 'error',
       title:
         result.status === 'canceled'
           ? 'Access payment canceled'
-          : result.failureKind === 'funding-required'
-            ? `Add ${receiptAsset.symbol} to continue`
-            : result.status === 'unverified'
-              ? 'Listening access not verified'
-              : result.status === 'uncertain'
-                ? 'Payment status needs checking'
-                : 'Access payment could not start',
+          : retryApproval
+            ? 'Confirmation request expired'
+            : result.failureKind === 'funding-required'
+              ? `Add ${receiptAsset.symbol} to continue`
+              : result.status === 'unverified'
+                ? 'Listening access not verified'
+                : result.status === 'uncertain'
+                  ? 'Payment status needs checking'
+                  : 'Access payment could not start',
       message:
         result.status === 'uncertain'
           ? 'Confirmation was interrupted. Your payment may still complete. Check access here and your account activity in Polkadot App or your wallet before paying again.'
@@ -1240,22 +1243,23 @@ export function useCatalog(deps: UseCatalogDeps) {
         ...buildSupportTechnicalFacts(receiptTrack, receiptAsset, recoverable ? 'included-unverified' : result.status === 'canceled' ? 'canceled' : 'failed'),
         ...(result.errorDetail ? [{ label: 'Payment error', value: result.errorDetail }] : [])
       ],
-      recoveryAction: recoverable
-        ? {
-            label: 'Check access again',
-            run: () => {
-              if (!currentAccount()) {
-                setTransactionFeedback({
-                  tone: 'error',
-                  title: 'Account changed',
-                  message: 'Reconnect the account used for this payment before checking its access.'
-                });
-                return;
+      recoveryAction:
+        recoverable || retryApproval
+          ? {
+              label: retryApproval ? 'Try payment again' : 'Check access again',
+              run: () => {
+                if (!currentAccount()) {
+                  setTransactionFeedback({
+                    tone: 'error',
+                    title: 'Account changed',
+                    message: 'Reconnect the account used for this payment before checking its access.'
+                  });
+                  return;
+                }
+                void payForTrackAccess(track, socketEmit, setLocalStreamReady, closeHostPeers, !retryApproval);
               }
-              void payForTrackAccess(track, socketEmit, setLocalStreamReady, closeHostPeers, true);
             }
-          }
-        : undefined
+          : undefined
     });
   }
 

@@ -1,6 +1,18 @@
 # Deployment Configuration Runbook
 
-## W34 fast access rollout (prepared, not deployed)
+## W34 API/Web and Product 0.1.62 published, 2026-10-25
+
+API release 32 serves clean packaging source `781f1c5`, based on tested merged
+`dev` `c71947a` (#333). Netlify deploy `6add7a9dc6222369213efa6d` serves the
+merged dev SHA; its temporary production-branch selection was restored to
+`main`. Product 0.1.62 is published from clean packaging `781f1c5` at root/app
+CID `bafybeiaxgf3x4s6c6cwmxd3wm4gsllwl6gxuedqrejb3gmepo62ux2dto4`.
+Finalized manifest/version readback and all 135 public CAR hashes plus exact
+entry/graphics bytes pass. The local signer is removed. Product 0.1.61 remains
+the client rollback artifact. See the [rollout record](../backlog/implementation/evidence/product-0.1.62-rollout-2026-10-25.md)
+for exact identities, the transient RPC denial/rollback/recheck, Web build-clean
+limitation and physical-device acceptance. Preserve the existing single API
+writer, UID 1000, secrets and volume. Signaling/encoder/contracts are unchanged.
 
 Deploy the W34 API before its Web/Product clients. No config variable, permission,
 contract or secret changes are required. `/api/tracks/keys/prepare` accepts at most
@@ -2184,6 +2196,27 @@ configuration and validation gates documented below before release. Community me
 documentation only. The original shared-presence pass added no location
 permission. See
 [shared-presence pass](../design/dotify-shared-presence-pass.md).
+
+## Product unsigned access-approval recovery, 2026-10-26 (prepared)
+
+New Classic access payments fence the exact Product signer for the lifetime
+of one SDK submission attempt. Only a typed SDK timeout, or the Host's
+`createTransaction` timeout, before any real signed transaction returns and
+before any SDK signed/submission evidence can become **Try payment again**.
+The signer is closed before releasing that attempt's reservation; a late Host
+reply cannot enter broadcast. Mock/dry-run signing is not approval evidence.
+Generic RPC errors, returned signatures, hashes and old unresolved journals
+retain read-only recovery. Fresh entitlement checks still precede a new request.
+No existing journal, epoch, key or receipt is cleared by installation.
+
+Deploy matching Web/Product clients after review; API, signaling, encoder,
+contracts, SDK dependencies, permissions and deployment variables are unchanged.
+On physical Desktop/mobile, leave an approval unopened until it expires, retry
+explicitly, and also test a timeout after signing. Only the former may offer a
+new request. Preserve old uncertain attempts and compare account activity;
+local fixtures do not prove that a historical attempt was never submitted.
+See [payment recovery](../how-to/recover-a-payment.md). This is prepared code,
+not evidence of a deployed correction or a new funded transaction.
 
 ## Product artist-support validation profile
 
