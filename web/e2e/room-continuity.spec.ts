@@ -135,6 +135,13 @@ for (const capture of ['standard', 'without-native-api']) {
         ['Previous track', 'E2E Public Room Track', 440],
         ['Next track', 'Second room track', 660]
       ] as const) {
+        if (action === 'Previous track') {
+          // Previous intentionally restarts a track after its opening seconds.
+          // This scenario checks history navigation, not that restart policy;
+          // reset through the real transport so runner speed cannot change it.
+          await host.getByRole('slider', { name: 'Seek', exact: true }).press('Home');
+          await expect.poll(() => hostAudio.evaluate(audio => (audio as HTMLAudioElement).currentTime)).toBeLessThan(1);
+        }
         await host.getByRole('button', { name: action, exact: true }).click();
         if (title === 'Second room track') {
           // The compact desktop room hides the cover status visually, but the
