@@ -26,9 +26,8 @@ checkpoints and live cards are reconciled together.
   their releases after authoritative publication confirmation and repairs the
   audio-continuity CI fixtures.
 - **Open review:** #337 coordinates room exits, mini-player dismissal, studio
-  media continuity and canceled joins. An automated review finding about replay
-  after dismissal remains a code-review follow-up; this documentation audit
-  does not claim that finding is resolved.
+  media continuity and canceled joins. The replay-after-dismissal finding was
+  open at this checkpoint; its October 27 correction is recorded below.
 
 ## Navigation documentation and evidence
 
@@ -67,3 +66,19 @@ links in the changed documentation resolve. The pilot plan's contract addresses
 and SDK versions match `deployments.json` and `web/package.json`. All 13 pilot
 readiness tests pass; whitespace checks pass. Application code is unchanged by
 this documentation follow-up; its browser evidence remains bound to `99ec55c`.
+
+
+## Review follow-up, 2026-10-27
+
+The loaded-source replay path now explicitly clears the mini-player dismissal.
+Pausing a deliberately replayed track therefore retains its controls; another
+Close still pauses and hides them. This change stays in the user-action handler,
+not an effect driven by media events, so a late source cannot undo dismissal.
+It reuses the existing loaded source and preserves catalog access checks.
+
+Both 320px and 1440px regressions first failed at the paused dock visibility
+assertion, then passed after correction. All 13 exit/dock Chromium scenarios and
+1,014 unit tests pass; lint/formatting and the Web build pass with existing
+warnings. One browser run crossed a long machine interruption and is not counted
+as acceptance; the clean complete rerun passed without relaxed assertions.
+Native acceptance and deployment remain separate gates.

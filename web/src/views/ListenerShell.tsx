@@ -58,7 +58,7 @@ const apiConfigured = Boolean((import.meta.env.VITE_DOTIFY_API_URL as string | u
 export function ListenerShell() {
   const catalog = useCatalogContext();
   const session = useSessionContext();
-  const { playback, openTrack, prepareLocalStream, requestRoomExit } = usePlaybackContext();
+  const { playback, openTrack, prepareLocalStream, requestRoomExit, reopenPlayer } = usePlaybackContext();
   const { activeView, publicArtistName, setPublicArtistName, navigateToView, openArtistStudio } = useNavigation();
   const {
     walletState,
@@ -151,6 +151,8 @@ export function ListenerShell() {
       // Resume an already loaded source without reselecting (which pauses it).
       // New sources continue through the catalog's authoritative access check.
       if (session.mode !== 'listener' && track.id === catalog.selectedTrackId && catalog.audioSource && !catalog.accessGate) {
+        // This deliberate replay reopens the retained player even after Pause.
+        reopenPlayer();
         setPublicArtistName(null);
         navigateToView('player');
         if (!playback.transport.playing) void playback.togglePlay();
@@ -158,7 +160,7 @@ export function ListenerShell() {
       }
       openTrack(track);
     },
-    [session.mode, catalog, playback, setPublicArtistName, navigateToView, openTrack]
+    [session.mode, catalog, playback, setPublicArtistName, navigateToView, openTrack, reopenPlayer]
   );
 
   function handleInspectTrack(track: CatalogTrack) {

@@ -27,6 +27,7 @@ type PlaybackValue = {
   prepareLocalStream: () => void;
   playerDismissed: boolean;
   closePlayer: () => void;
+  reopenPlayer: () => void;
   requestRoomExit: () => void;
 };
 
@@ -155,6 +156,7 @@ export function PlaybackProvider({ children }: { children: ReactNode }) {
       playback,
       playerDismissed,
       closePlayer,
+      reopenPlayer: () => setPlayerDismissed(false),
       requestRoomExit: () => requestExit(),
       openTrack: track => {
         playback.requestAutoplay();

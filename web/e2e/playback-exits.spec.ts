@@ -64,6 +64,18 @@ for (const width of [320, 1440]) {
     await expect(audio).toHaveJSProperty('paused', false);
     await browse(page, width);
     await expect(close).toBeVisible();
+    // Replaying the retained source is a new intent, not a temporary override
+    // of dismissal while playing. Pausing must keep the controls available.
+    const dock = page.locator('.player-dock');
+    await dock.getByRole('button', { name: 'Pause', exact: true }).click();
+    await expect(audio).toHaveJSProperty('paused', true);
+    await expect(close).toBeVisible();
+    await dock.getByRole('button', { name: 'Play', exact: true }).click();
+    await expect(audio).toHaveJSProperty('paused', false);
+    await expect(close).toBeVisible();
+    await close.click();
+    await expect(dock).toHaveCount(0);
+    await expect(audio).toHaveJSProperty('paused', true);
   });
 }
 
