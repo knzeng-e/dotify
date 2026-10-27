@@ -9,6 +9,39 @@ pre-W36 local-state image after shared writes. Session auth now requires its
 own `SESSION_SECRET`; the older 24-hour/local-state notes below describe
 historical deployed generations.
 
+## W37 catalog candidate, 2026-10-27
+
+[Bounded indexing and recovery](../adr/0036-bounded-catalog-indexing.md) changes
+API indexing only. It is not deployed and introduces no frontend permission,
+secret, contract upgrade or SQL schema migration. W36's activation migration
+and custody-volume requirements remain mandatory.
+
+| API setting | Default | Bounds and purpose |
+| --- | --- | --- |
+| `CATALOG_READ_CONCURRENCY` | `8` | 1-32 outstanding catalog RPC reads, including nested hash/split enumeration |
+| `CATALOG_LOG_BLOCK_RANGE` | `1000` | 1-10,000 blocks per committed replay range; lower for stricter RPC limits |
+| `CATALOG_LOG_ADDRESS_BATCH` | `100` | 1-1,000 runtime addresses per event filter |
+
+Retain both `CATALOG_SNAPSHOT_PATH` and its `.checkpoint` sidecar in local-mode
+backups. Shared mode uses `catalog-v1` plus `catalog-checkpoint-v1` in the same
+PostgreSQL namespace, written on the elected connection. Existing schema-1 bases
+load without a sidecar; missing or mismatched progress replays from that base.
+Do not remove or fabricate a checkpoint to claim freshness. Intermediate catch-up
+is explicitly stale and cannot grant keys.
+
+Validation: run the API tests (including the 1,000-artist/10,000-release synthetic
+fixture), then `test:shared-state` against an isolated loopback database. At
+activation record catalog state, block lag and RPC response time/429s through a
+restart and an outage longer than the configured range. Check both ordinary
+Web and Product catalog/key flows; synthetic tests do not prove provider quotas
+or first sound. For RPCs without historical state, use the operator's explicit
+`catalog:reindex` command rather than skipping failed ranges automatically.
+
+Rollback within W37 preserves both records. An older API ignores the compact
+checkpoint: quiesce the elected writer, force a full reindex with the rollback
+binary and verify fresh canonical evidence before reopening key delivery.
+W36's prohibition on reverting shared auth/custody to local state still applies.
+
 ## W35 client candidate, 2026-10-27
 
 W35 adds no secret, Host permission, server API, contract or persistent server

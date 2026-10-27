@@ -1,4 +1,5 @@
 import { createPublicClient, formatEther, http, parseAbiItem, type Address, type Hash, type PublicClient } from 'viem';
+import { concurrencyGate, mapConcurrent } from './concurrency.js';
 import type { CatalogChainGateway, CatalogChange, CatalogChangeSet, CatalogRelease, DirectoryArtist } from './types.js';
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
@@ -152,8 +153,26 @@ function asBlockNumber(value: bigint | null): number {
 export class ViemCatalogChainGateway implements CatalogChainGateway {
   readonly identity;
   private readonly client: PublicClient;
+  private readonly rpc;
+  private readonly concurrency;
+  private readonly logBlockRange;
+  private readonly addressBatchSize;
 
-  constructor(options: { rpcUrl: string; chainId: number; directoryAddress: `0x${string}`; client?: PublicClient }) {
+  constructor(options: {
+    rpcUrl: string;
+    chainId: number;
+    directoryAddress: `0x${string}`;
+    client?: PublicClient;
+    concurrency?: number;
+    logBlockRange?: number;
+    addressBatchSize?: number;
+  }) {
+    this.concurrency = options.concurrency ?? 8;
+    this.logBlockRange = options.logBlockRange ?? 1000;
+    this.addressBatchSize = options.addressBatchSize ?? 100;
+    if (!Number.isInteger(this.logBlockRange) || this.logBlockRange < 1 || !Number.isInteger(this.addressBatchSize) || this.addressBatchSize < 1)
+      throw new Error('Invalid catalog log batch size');
+    this.rpc = concurrencyGate(this.concurrency);
     this.identity = {
       chainId: options.chainId,
       directoryAddress: options.directoryAddress
@@ -162,32 +181,38 @@ export class ViemCatalogChainGateway implements CatalogChainGateway {
   }
 
   async getHeadBlock(): Promise<number> {
-    return asBlockNumber(await this.client.getBlockNumber());
+    return asBlockNumber(await this.rpc(() => this.client.getBlockNumber({ cacheTime: 0 })));
   }
 
   async getBlockHash(blockNumber: number): Promise<`0x${string}`> {
-    const block = await this.client.getBlock({ blockNumber: BigInt(blockNumber) });
+    const block = await this.rpc(() => this.client.getBlock({ blockNumber: BigInt(blockNumber) }));
     if (!block.hash) throw new Error(`Block ${blockNumber} has no canonical hash`);
     return block.hash;
   }
 
-  async listArtists(): Promise<DirectoryArtist[]> {
+  async listArtists(blockNumber?: number): Promise<DirectoryArtist[]> {
     const directory = this.identity.directoryAddress;
-    const total = (await this.client.readContract({
-      address: directory,
-      abi: artistDirectoryAbi,
-      functionName: 'artistCount'
-    })) as bigint;
+    const total = (await this.rpc(() =>
+      this.client.readContract({
+        blockNumber: blockNumber === undefined ? undefined : BigInt(blockNumber),
+        address: directory,
+        abi: artistDirectoryAbi,
+        functionName: 'artistCount'
+      })
+    )) as bigint;
 
     const entries: DirectoryArtist[] = [];
     for (let offset = 0n; offset < total; offset += DIRECTORY_PAGE_SIZE) {
       const limit = total - offset > DIRECTORY_PAGE_SIZE ? DIRECTORY_PAGE_SIZE : total - offset;
-      const [artists, runtimes] = (await this.client.readContract({
-        address: directory,
-        abi: artistDirectoryAbi,
-        functionName: 'artistsPage',
-        args: [offset, limit]
-      })) as [Address[], Address[]];
+      const [artists, runtimes] = (await this.rpc(() =>
+        this.client.readContract({
+          blockNumber: blockNumber === undefined ? undefined : BigInt(blockNumber),
+          address: directory,
+          abi: artistDirectoryAbi,
+          functionName: 'artistsPage',
+          args: [offset, limit]
+        })
+      )) as [Address[], Address[]];
 
       for (let index = 0; index < artists.length; index += 1) {
         const artistAddress = artists[index];
@@ -199,55 +224,80 @@ export class ViemCatalogChainGateway implements CatalogChainGateway {
     return entries;
   }
 
-  async listTrackHashes(runtimeAddress: `0x${string}`): Promise<`0x${string}`[]> {
-    const count = (await this.client.readContract({
-      address: runtimeAddress,
-      abi: musicRegistryAbi,
-      functionName: 'musicRegTrackCount'
-    })) as bigint;
-
-    return Promise.all(
-      Array.from({ length: Number(count) }, async (_, index) => {
-        return (await this.client.readContract({
-          address: runtimeAddress,
-          abi: musicRegistryAbi,
-          functionName: 'musicRegTrackHashAtIndex',
-          args: [BigInt(index)]
-        })) as Hash;
+  async listTrackHashes(runtimeAddress: `0x${string}`, blockNumber?: number): Promise<`0x${string}`[]> {
+    const count = (await this.rpc(() =>
+      this.client.readContract({
+        blockNumber: blockNumber === undefined ? undefined : BigInt(blockNumber),
+        address: runtimeAddress,
+        abi: musicRegistryAbi,
+        functionName: 'musicRegTrackCount'
       })
+    )) as bigint;
+
+    return mapConcurrent(
+      Array.from({ length: Number(count) }, (_, index) => index),
+      this.concurrency,
+      async index => {
+        return (await this.rpc(() =>
+          this.client.readContract({
+            blockNumber: blockNumber === undefined ? undefined : BigInt(blockNumber),
+            address: runtimeAddress,
+            abi: musicRegistryAbi,
+            functionName: 'musicRegTrackHashAtIndex',
+            args: [BigInt(index)]
+          })
+        )) as Hash;
+      }
     );
   }
 
-  async readRelease(artistAddress: `0x${string}`, runtimeAddress: `0x${string}`, contentHash: `0x${string}`): Promise<CatalogRelease> {
-    const [[track], splitCount] = (await Promise.all([
-      this.client.readContract({
-        address: runtimeAddress,
-        abi: musicRegistryAbi,
-        functionName: 'musicRegGetTrack',
-        args: [contentHash]
-      }),
-      this.client.readContract({
-        address: runtimeAddress,
-        abi: musicRoyaltiesAbi,
-        functionName: 'musicRoySplitCount',
-        args: [contentHash]
-      })
-    ])) as [[OnchainTrack, Address], bigint];
+  async readRelease(artistAddress: `0x${string}`, runtimeAddress: `0x${string}`, contentHash: `0x${string}`, blockNumber?: number): Promise<CatalogRelease> {
+    const [[track], splitCount] = (await mapConcurrent<() => Promise<unknown>, unknown>(
+      [
+        () =>
+          this.rpc(() =>
+            this.client.readContract({
+              blockNumber: blockNumber === undefined ? undefined : BigInt(blockNumber),
+              address: runtimeAddress,
+              abi: musicRegistryAbi,
+              functionName: 'musicRegGetTrack',
+              args: [contentHash]
+            })
+          ),
+        () =>
+          this.rpc(() =>
+            this.client.readContract({
+              blockNumber: blockNumber === undefined ? undefined : BigInt(blockNumber),
+              address: runtimeAddress,
+              abi: musicRoyaltiesAbi,
+              functionName: 'musicRoySplitCount',
+              args: [contentHash]
+            })
+          )
+      ],
+      2,
+      call => call()
+    )) as [[OnchainTrack, Address], bigint];
 
-    const royaltySplits = await Promise.all(
-      Array.from({ length: Number(splitCount) }, async (_, index) => {
-        const [recipient, bps] = (await this.client.readContract({
-          address: runtimeAddress,
-          abi: musicRoyaltiesAbi,
-          functionName: 'musicRoySplitAt',
-          args: [contentHash, BigInt(index)]
-        })) as [Address, number];
+    const royaltySplits = await mapConcurrent(
+      Array.from({ length: Number(splitCount) }, (_, index) => index),
+      this.concurrency,
+      async index => {
+        const [recipient, bps] = (await this.rpc(() =>
+          this.client.readContract({
+            blockNumber: blockNumber === undefined ? undefined : BigInt(blockNumber),
+            address: runtimeAddress,
+            abi: musicRoyaltiesAbi,
+            functionName: 'musicRoySplitAt',
+            args: [contentHash, BigInt(index)]
+          })
+        )) as [Address, number];
         return {
           label: index === 0 ? 'Primary recipient' : `Split ${index + 1}`,
           recipient,
           bps: Number(bps)
         };
-      })
+      }
     );
 
     const registeredAtBlock = Number(track.registeredAtBlock);
@@ -280,77 +330,39 @@ export class ViemCatalogChainGateway implements CatalogChainGateway {
   }
 
   async getChanges(fromBlock: number, toBlock: number, runtimeAddresses: `0x${string}`[]): Promise<CatalogChangeSet> {
-    if (fromBlock > toBlock) return { directoryChanged: false, releases: [] };
-
-    const directoryLogsPromise = this.client.getLogs({
-      address: this.identity.directoryAddress,
-      event: artistRegisteredEvent,
-      fromBlock: BigInt(fromBlock),
-      toBlock: BigInt(toBlock),
-      strict: true
-    });
-
-    if (runtimeAddresses.length === 0) {
-      const directoryLogs = await directoryLogsPromise;
-      return { directoryChanged: directoryLogs.length > 0, releases: [] };
-    }
-
-    const eventLogs = await Promise.all([
-      this.client.getLogs({
-        address: runtimeAddresses,
-        event: trackRegisteredEvent,
-        fromBlock: BigInt(fromBlock),
-        toBlock: BigInt(toBlock),
-        strict: true
-      }),
-      this.client.getLogs({
-        address: runtimeAddresses,
-        event: trackDeactivatedEvent,
-        fromBlock: BigInt(fromBlock),
-        toBlock: BigInt(toBlock),
-        strict: true
-      }),
-      this.client.getLogs({
-        address: runtimeAddresses,
-        event: trackReactivatedEvent,
-        fromBlock: BigInt(fromBlock),
-        toBlock: BigInt(toBlock),
-        strict: true
-      }),
-      this.client.getLogs({
-        address: runtimeAddresses,
-        event: trackMetadataUpdatedEvent,
-        fromBlock: BigInt(fromBlock),
-        toBlock: BigInt(toBlock),
-        strict: true
-      }),
-      this.client.getLogs({
-        address: runtimeAddresses,
-        event: trackAccessModeChangedEvent,
-        fromBlock: BigInt(fromBlock),
-        toBlock: BigInt(toBlock),
-        strict: true
-      })
-    ]);
-    const directoryLogs = await directoryLogsPromise;
-
     const byRelease = new Map<string, CatalogChange>();
-    for (const log of eventLogs.flat()) {
-      const contentHash = log.args.contentHash;
-      if (!contentHash) continue;
-      const change = {
-        runtimeAddress: log.address,
-        contentHash,
-        sourceBlock: asBlockNumber(log.blockNumber)
-      };
-      const key = `${change.runtimeAddress.toLowerCase()}:${change.contentHash.toLowerCase()}`;
-      const previous = byRelease.get(key);
-      if (!previous || change.sourceBlock >= previous.sourceBlock) byRelease.set(key, change);
+    let directoryChanged = false;
+    const events = [trackRegisteredEvent, trackDeactivatedEvent, trackReactivatedEvent, trackMetadataUpdatedEvent, trackAccessModeChangedEvent];
+    // The read model commits after each range. This second bound protects callers
+    // that ask the gateway directly for a large gap as well.
+    for (let from = fromBlock; from <= toBlock; from += this.logBlockRange) {
+      const to = Math.min(toBlock, from + this.logBlockRange - 1);
+      const directoryLogs = await this.rpc(() =>
+        this.client.getLogs({
+          address: this.identity.directoryAddress,
+          event: artistRegisteredEvent,
+          fromBlock: BigInt(from),
+          toBlock: BigInt(to),
+          strict: true
+        })
+      );
+      directoryChanged ||= directoryLogs.length > 0;
+      for (let offset = 0; offset < runtimeAddresses.length; offset += this.addressBatchSize) {
+        const address = runtimeAddresses.slice(offset, offset + this.addressBatchSize);
+        const groups = await mapConcurrent(events, this.concurrency, event =>
+          this.rpc(() => this.client.getLogs({ address, event, fromBlock: BigInt(from), toBlock: BigInt(to), strict: true }))
+        );
+        for (const logs of groups)
+          for (const log of logs) {
+            const contentHash = log.args.contentHash;
+            if (!contentHash) continue;
+            const change = { runtimeAddress: log.address, contentHash, sourceBlock: asBlockNumber(log.blockNumber) };
+            const key = `${change.runtimeAddress.toLowerCase()}:${change.contentHash.toLowerCase()}`;
+            const previous = byRelease.get(key);
+            if (!previous || change.sourceBlock >= previous.sourceBlock) byRelease.set(key, change);
+          }
+      }
     }
-
-    return {
-      directoryChanged: directoryLogs.length > 0,
-      releases: [...byRelease.values()]
-    };
+    return { directoryChanged, releases: [...byRelease.values()] };
   }
 }

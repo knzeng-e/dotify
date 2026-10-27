@@ -24,8 +24,9 @@ Catalog election uses a PostgreSQL session advisory lock. The elected writer
 saves through that exact connection, so a disconnected old writer cannot save
 through a fresh pool connection after another process takes over. Catalog HTTP
 reads refresh the committed checkpoint; public stale data may survive a store
-outage with an outage status. It cannot grant key access. Full-snapshot reads
-and one indexing writer remain deliberate limits until W37.
+outage with an outage status. It cannot grant key access. One elected indexing writer remains deliberate. [W37](0036-bounded-catalog-indexing.md)
+adds bounded reads/replay and separate content/progress records; unchanged shared
+HTTP reads reuse parsed content rather than transferring the full snapshot.
 
 Sessions use a dedicated 32-byte `SESSION_SECRET`, independently domain-derived
 from upload capabilities and unrelated to content-key masters. Two-hour

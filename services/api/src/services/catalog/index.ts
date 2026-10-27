@@ -12,6 +12,9 @@ const gateway =
   config.PASEO_ASSET_HUB_RPC && config.DOTIFY_DIRECTORY_ADDRESS
     ? new ViemCatalogChainGateway({
         rpcUrl: config.PASEO_ASSET_HUB_RPC,
+        concurrency: config.CATALOG_READ_CONCURRENCY,
+        logBlockRange: config.CATALOG_LOG_BLOCK_RANGE,
+        addressBatchSize: config.CATALOG_LOG_ADDRESS_BATCH,
         chainId: config.DOTIFY_CHAIN_ID,
         directoryAddress: config.DOTIFY_DIRECTORY_ADDRESS as `0x${string}`
       })
@@ -24,6 +27,8 @@ export const catalogReadModel = new CatalogReadModel({
   reconcileIntervalMs: config.CATALOG_RECONCILE_INTERVAL_MS,
   staleAfterMs: config.CATALOG_STALE_AFTER_MS,
   confirmations: config.CATALOG_CONFIRMATIONS,
+  readConcurrency: config.CATALOG_READ_CONCURRENCY,
+  logBlockRange: config.CATALOG_LOG_BLOCK_RANGE,
   onSnapshot: snapshot => mediaPrewarmer?.observe(snapshot)
 });
 

@@ -73,7 +73,11 @@ Wallet-gated onboarding, runtime creation, upload, encryption, IPFS publication,
   stay checked so drift does not return.
 - Production catalog browsing is one backend request when
   `VITE_DOTIFY_API_URL` is set. The current snapshot store is single-writer
-  JSON, not a horizontally shared database.
+  JSON in the deployed generation. W36/#339 adds an elected PostgreSQL shared
+  store with a mandatory activation migration. W37 separates catalog content
+  from compact progress, bounds RPC reads/replay ranges, and reuses lookup
+  indexes; see [ADR 0036](../adr/0036-bounded-catalog-indexing.md). Neither
+  candidate is evidence of an activated shared deployment.
 - Product SDK / Playground / Humanity integration is a progressive enhancement
   track. The current verified Product SDK snapshot is prototype/reference/
   unaudited, Host APIs require a compatible container, contracts target

@@ -310,6 +310,94 @@ describe('W36 real PostgreSQL / independent API processes', () => {
       assert.equal((await model.sync()).lastIndexedBlock, 11);
     });
   });
+  it('commits compact catalog progress without rewriting content; readers reuse arrays and reject stale sidecars', async () => {
+    const x = new PostgresCatalogSnapshotStore(a),
+      y = new PostgresCatalogSnapshotStore(b);
+    await x.asWriter(async () => x.save(snapshot));
+    const initial = await y.load();
+    const raw = (await a.pool.query("SELECT value FROM dotify_state_documents WHERE namespace=$1 AND name='catalog-v1'", [namespace])).rows[0].value;
+    const next = { ...snapshot, lastIndexedBlock: 20, lastIndexedBlockHash: `0x${'44'.repeat(32)}`, chainHeadBlock: 40, catchingUp: true };
+    await x.asWriter(async () => {
+      await x.load();
+      await x.saveProgress(next);
+    });
+    const loaded = await y.load();
+    assert.equal(loaded?.lastIndexedBlock, 20);
+    assert.equal(loaded?.catchingUp, true);
+    const reader = new CatalogReadModel({
+      gateway: { identity: { chainId: identity.chainId, directoryAddress: identity.directory } } as any,
+      store: y,
+      pollIntervalMs: 1000,
+      reconcileIntervalMs: 10000,
+      staleAfterMs: 60000,
+      confirmations: 2
+    });
+    await reader.refresh();
+    assert.equal(reader.getMetadata().state, 'stale-cache');
+    assert.strictEqual(loaded?.releases, initial?.releases);
+    assert.strictEqual(loaded?.artists, initial?.artists);
+    assert.deepEqual((await a.pool.query("SELECT value FROM dotify_state_documents WHERE namespace=$1 AND name='catalog-v1'", [namespace])).rows[0].value, raw);
+    await assert.rejects(() => y.saveProgress(next), /election/);
+    // A pre-W37 writer/rollback can replace catalog-v1 without touching sidecar.
+    const legacy = { ...snapshot, indexedAt: '2026-10-01T00:00:00.000Z' };
+    await a.pool.query("UPDATE dotify_state_documents SET value=$2 WHERE namespace=$1 AND name='catalog-v1'", [namespace, JSON.stringify(legacy)]);
+    assert.deepEqual(await y.load(), legacy);
+    await x.asWriter(async () => x.save(snapshot));
+  });
+  it('does not combine an older header with newer arrays when concurrent catalog reads finish out of order', async () => {
+    const x = new PostgresCatalogSnapshotStore(a),
+      y = new PostgresCatalogSnapshotStore(b);
+    await x.asWriter(async () => x.save(snapshot));
+    const initial = await y.load();
+    const query = b.pool.query.bind(b.pool);
+    let release!: () => void,
+      ready!: () => void,
+      pause = true;
+    const gate = new Promise<void>(resolve => {
+      release = resolve;
+    });
+    const started = new Promise<void>(resolve => {
+      ready = resolve;
+    });
+    b.pool.query = (async (...args: any[]) => {
+      const delay = pause;
+      pause = false;
+      const result = await (query as any)(...args);
+      if (delay) {
+        ready();
+        await gate;
+      }
+      return result;
+    }) as any;
+    try {
+      const oldRead = y.load();
+      await started;
+      const newer = {
+        ...snapshot,
+        artists: [
+          {
+            artistAddress: identity.directory,
+            runtimeAddress: identity.directory,
+            name: 'New artist',
+            releaseCount: 0,
+            activeReleaseCount: 0,
+            latestReleaseBlock: 0
+          }
+        ]
+      };
+      await x.asWriter(async () => x.save(newer));
+      const newRead = await y.load();
+      assert.equal(newRead?.artists.length, 1);
+      release();
+      const old = await oldRead;
+      assert.strictEqual(old?.artists, initial?.artists);
+      assert.equal(old?.artists.length, 0);
+      assert.strictEqual((await y.load())?.artists, newRead?.artists);
+    } finally {
+      release();
+      b.pool.query = query as any;
+    }
+  });
   it('fences a disconnected catalog writer when another connection takes over', async () => {
     const oldStore = new PostgresCatalogSnapshotStore(a),
       replacement = new PostgresCatalogSnapshotStore(b);
@@ -321,9 +409,11 @@ describe('W36 real PostgreSQL / independent API processes', () => {
       elected = resolve;
     });
     const stale = oldStore.asWriter(async () => {
+      const loaded = await oldStore.load();
+      assert.ok(loaded);
       elected();
       await gate;
-      await oldStore.save({ ...snapshot, lastIndexedBlock: 123 });
+      await oldStore.saveProgress({ ...loaded, lastIndexedBlock: 123 });
     });
     const rejected = assert.rejects(() => stale, SharedStateUnavailableError);
     await ready;
