@@ -134,9 +134,57 @@ jobs:
       - name: Run signaling tests
         run: npm run test:signal
 
+  shared-api-state:
+    name: W36 / Shared API state and recovery
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: dotify_test
+          POSTGRES_PASSWORD: local-ci-fixture
+          POSTGRES_DB: dotify_w36_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U dotify_test -d dotify_w36_test"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    defaults:
+      run:
+        working-directory: services/api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: services/api/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Use matching PostgreSQL 16 backup tools
+        run: |
+          tool_dir="$RUNNER_TEMP/dotify-pg-tools"
+          mkdir -p "$tool_dir" "$RUNNER_TEMP/dotify-w36"
+          for tool in pg_dump pg_restore; do
+            cat > "$tool_dir/$tool" <<'SCRIPT'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          exec docker run --rm --network host --user "$(id -u):$(id -g)"             --volume "$RUNNER_TEMP/dotify-w36:$RUNNER_TEMP/dotify-w36"             postgres:16 "$(basename "$0")" "$@"
+          SCRIPT
+            chmod +x "$tool_dir/$tool"
+          done
+          echo "$tool_dir" >> "$GITHUB_PATH"
+      - name: Two API processes, outages, migration and backup restore
+        env:
+          TEST_DATABASE_URL: postgresql://dotify_test:local-ci-fixture@127.0.0.1:5432/dotify_w36_test
+          TMPDIR: ${{ runner.temp }}/dotify-w36
+        run: npm run test:shared-state
+
   api:
     name: W01 / API tests and typecheck
-    runs-on: ubuntu-latest
+    # Keep codec-fixture tooling reproducible across ubuntu-latest migrations.
+    # The 26.04 image stalled for 10+ minutes downloading ffmpeg from Azure.
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: services/api
@@ -310,7 +358,8 @@ jobs:
 
   playwright:
     name: W01 / Playwright core flows
-    runs-on: ubuntu-latest
+    # Match the stable codec runner for browser system dependency installation.
+    runs-on: ubuntu-24.04
     needs: api
     defaults:
       run:

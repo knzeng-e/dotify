@@ -1763,8 +1763,9 @@
                 A trusted pilot of at most 42 people remains subject to device, listening and payment acceptance.
                 The remaining streaming work aims at first sound within a second:
                 faster delivery of the deployed streaming renditions with unchanged encryption/access, encrypted media served through a cache that cannot read it,
-                short-lived access prepared ahead for signed-in listeners, and gapless playback with system controls. W35 continuous listening is being implemented with authorized prepared transitions, measured adaptive quality, system controls and an explicit local resume offer. It is not yet published; physical background and audible-continuity checks remain release gates. The
+                short-lived access prepared ahead for signed-in listeners, and gapless playback with system controls. W35 continuous listening is merged on dev with authorized prepared transitions, measured adaptive quality, system controls and an explicit local resume offer. It is not yet published; physical background and audible-continuity checks remain release gates. The
                 <a href="explanation/fast-access-preparation.md">W34 access preparation implementation</a> is merged and deployed on the API, Web and Product 0.1.62, with verified public artifact identity. Physical first-sound evidence remains separate.
+                <a href="adr/0035-shared-api-trust-state.md">W36 shared API state</a> adds PostgreSQL-backed replay protection, sign-out, upload budgets and an elected catalog writer, with independent renewable sessions. Public API replicas keep one private publication-custody service for encrypted jobs and verified receipts. This implementation needs an explicit storage migration and live two-instance acceptance before activation; it does not change artist access policy or room signaling.
                 Room guests still join from a link and never receive a key. Sub-second first sound is a measurement target, not a claim about the current release.
               </p>
             </li>

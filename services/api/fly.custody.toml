@@ -1,0 +1,71 @@
+app = "dotify-custody"
+primary_region = "ams"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  STATE_STORE = "postgres"
+  STATE_NAMESPACE = "dotify"
+  API_ROLE = "custody"
+  # Fresh attested Paseo deployment. Keep aligned with deployments.json and
+  # web/src/shared/config/deploymentSafety.ts so API diagnostics and access
+  # checks target the owner-guarded factory/directory pair.
+  API_PORT = "8790"
+  NODE_ENV = "production"
+  # Exact frontend origins reach this API: Netlify, the public DotNS gateway,
+  # observed Product host HTTPS execution origins, and the native host custom
+  # scheme.
+  # Keep this in step with SIGNAL_ORIGINS in web/fly.signal.toml.
+  #
+  # `polkadot:` is a non-special scheme, so `new URL(...).origin` is opaque and
+  # a browser may send `Origin: null` instead of the literal value below. If a
+  # host request is still refused, read the actual Origin header off the Fly log
+  # before widening this list - never add a bare `null`, which would admit every
+  # sandboxed iframe and file:// page on the web to authenticated upload and
+  # content-key routes.
+  API_ORIGINS = "https://muzinga.netlify.app,https://dotify-test01.dev-dot.li,https://dotify-test01.app.dev-dot.li,https://dotify-test01.app.dot.li,https://dotify-test01.dot,polkadot://dotify-test01.dot,polkadot://app.dotify-test01.dot"
+  PASEO_ASSET_HUB_RPC = "https://eth-rpc-testnet.polkadot.io/"
+  # Archive reads for finalized native receipts; never used for signing.
+  PASEO_ASSET_HUB_NATIVE_RPC = "https://asset-hub-paseo-rpc.n.dwellir.com"
+  NATIVE_CONTRIBUTION_SNAPSHOT_PATH = "/data/contributions/receipts.json"
+  # The catalog snapshot and session revocations live on the same volume so a
+  # redeploy neither reindexes cold (key delivery waits for a fresh catalog)
+  # nor resurrects signed-out sessions. SESSION_EPOCH is a Fly secret; set it
+  # to keep sessions across redeploys and rotate it to sign everyone out.
+  CATALOG_SNAPSHOT_PATH = "/data/contributions/catalog.json"
+  SESSION_REVOCATIONS_PATH = "/data/contributions/session-revocations.json"
+  # Fly forwards every request from its proxy; key rate limits on Fly-Client-IP.
+  API_TRUST_PROXY = "fly"
+  DOTIFY_FACTORY_ADDRESS = "0x708d35eee7c1416f6d332344068be9d714aec24c"
+  DOTIFY_DIRECTORY_ADDRESS = "0x8e611ef60169f8ed93019de4a3034a504ae2ad29"
+  DOTIFY_CHAIN_ID = "420420417"
+  # New publications use the isolated private encoder after explicit custody
+  # provisioning. STREAMING_WORKER_TOKEN is a dedicated Fly secret, never the
+  # content-key master or a frontend variable.
+  STREAMING_WORKER_URL = "http://dotify-encoder.internal:8791"
+  STREAMING_STATE_PATH = "/data/contributions/streaming"
+  UPLOAD_GLOBAL_CONCURRENCY = "2"
+  # TURN_CAPABILITY_SECRET is a Fly secret shared with the signaling app as
+  # SIGNAL_TURN_CAPABILITY_SECRET. Never track its value here.
+
+# No public HTTP service or public IP. Only authenticated API edges connect
+# over Fly's private network. Keep exactly ONE machine with this owned volume.
+[checks.live]
+  type = "http"
+  port = 8790
+  method = "GET"
+  path = "/health"
+  interval = "30s"
+  timeout = "5s"
+  grace_period = "20s"
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory = "1024mb"
+
+# One API writer owns the shared verified-contribution ledger.
+[[mounts]]
+  source = "contribution_data"
+  destination = "/data/contributions"

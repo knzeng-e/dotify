@@ -36,7 +36,7 @@ function bytesToHex(bytes: Uint8Array): string {
 }
 
 async function signedPayload(overrides: Partial<SignedRequestPayload> = {}) {
-  const challenge = createWalletNonceChallenge({ address: signer.address, chainId: CHAIN_ID });
+  const challenge = await createWalletNonceChallenge({ address: signer.address, chainId: CHAIN_ID });
   const payload: SignedRequestPayload = {
     action: 'REQUEST_CONTENT_KEY',
     purpose: 'individual',
@@ -80,7 +80,7 @@ async function productSignedPayload(
   options: { envelope?: ProductEnvelope; shape?: ProductSignatureShape } = {}
 ) {
   const requester = overrides.requester ?? deriveProductAccountH160(productPublicKey);
-  const challenge = createWalletNonceChallenge({ address: requester, chainId: CHAIN_ID });
+  const challenge = await createWalletNonceChallenge({ address: requester, chainId: CHAIN_ID });
   const payload: SignedRequestPayload = {
     action: 'REQUEST_CONTENT_KEY',
     purpose: 'individual',
@@ -302,7 +302,7 @@ describe('verifySignedRequest', () => {
 
   it('rejects a signature from a different wallet claiming the requester address', async () => {
     const other = privateKeyToAccount(`0x${'11'.repeat(32)}`);
-    const challenge = createWalletNonceChallenge({ address: signer.address, chainId: CHAIN_ID });
+    const challenge = await createWalletNonceChallenge({ address: signer.address, chainId: CHAIN_ID });
     const payload: SignedRequestPayload = {
       action: 'REQUEST_CONTENT_KEY',
       purpose: 'individual',
@@ -341,7 +341,7 @@ describe('verifySignedRequest', () => {
   });
 
   it('rejects a correctly signed sign-in for a different chain', async () => {
-    const challenge = createWalletNonceChallenge({ address: signer.address, chainId: CHAIN_ID });
+    const challenge = await createWalletNonceChallenge({ address: signer.address, chainId: CHAIN_ID });
     const payload: SignInPayload = {
       requester: signer.address,
       chainId: CHAIN_ID + 1,
@@ -357,7 +357,7 @@ describe('verifySignedRequest', () => {
 
   it('accepts a Product sr25519 sign-in bound to the derived H160 requester', async () => {
     const requester = deriveProductAccountH160(productPublicKey);
-    const challenge = createWalletNonceChallenge({ address: requester, chainId: CHAIN_ID });
+    const challenge = await createWalletNonceChallenge({ address: requester, chainId: CHAIN_ID });
     const payload: SignInPayload = {
       requester,
       chainId: CHAIN_ID,

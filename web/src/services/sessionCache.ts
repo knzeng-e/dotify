@@ -1,4 +1,4 @@
-export type StoredSession = { token: string; expiresAt: string };
+export type StoredSession = { token: string; expiresAt: string; revocableUntil?: string };
 export type SessionScope = { address: string; chainId: number; identity: string };
 
 const REFRESH_MARGIN_MS = 60_000;
@@ -67,6 +67,7 @@ export function createSessionCache(apiUrl: string, isInactive: (token: string) =
 
   return {
     keyFor,
+    readRenewable: (scope: SessionScope) => readKey(keyFor(scope), false),
     read: (scope: SessionScope) => readKey(keyFor(scope), true),
     store(scope: SessionScope, session: StoredSession) {
       if (!valid(session, true)) throw new Error('The server returned an invalid listening session. Please reconnect.');

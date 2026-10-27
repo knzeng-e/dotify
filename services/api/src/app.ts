@@ -1,3 +1,6 @@
+import { sharedState, assertSharedState } from './services/sharedState/index.js';
+import { SharedStateUnavailableError } from './services/sharedState/postgres.js';
+import { custodyTokenMatches, registerCustodyProxy } from './services/sharedState/custodyProxy.js';
 import { StreamingJobs } from './services/streamingJobs.js';
 import { createStreamingWorkerClient } from './services/streamingWorkerClient.js';
 import { deriveContentKeyBytes } from './services/keyVault.js';
@@ -72,11 +75,13 @@ export type BuildAppOptions = {
 };
 
 export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyInstance> {
+  await assertSharedState();
   const serverOptions: FastifyServerOptions = {
     logger: options.logging === false ? false : fastifyLoggerOptions,
     genReqId
   };
   const app = Fastify(serverOptions);
+  let streaming: StreamingJobs | undefined;
   // Five trusted-header samples per process, with no IP, token, wallet, room
   // or location attached. Use the same resolver as rate limiting, not a second
   // interpretation of the proxy headers. Direct/health probes consume no samples.
@@ -99,7 +104,9 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   });
 
   // Multipart — required by upload routes. Register before routes.
-  await app.register(multipart);
+  // Edge proxy scopes must receive the raw multipart stream. Inheriting the
+  // specific multipart parser would consume it before the proxy's '*' parser.
+  if (config.API_ROLE !== 'edge') await app.register(multipart);
 
   // Rate limiting per client. Behind Fly every connection comes from the
   // proxy, so without API_TRUST_PROXY=fly all users would share one budget.
@@ -108,6 +115,20 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     timeWindow: '1 minute',
     keyGenerator: request => rateLimitKey(request, options.trustProxy ?? config.API_TRUST_PROXY)
   });
+
+  if (sharedState) {
+    if (!config.CUSTODY_SERVICE_TOKEN || (config.API_ROLE === 'edge' && !config.CUSTODY_SERVICE_URL))
+      throw new Error('Shared mode requires a private authenticated custody service');
+    if (config.API_ROLE === 'edge' && (config.STREAMING_WORKER_URL || config.STREAMING_WORKER_TOKEN))
+      throw new Error('Only the custody role may run the streaming queue');
+    app.addHook('onRequest', async (request, reply) => {
+      const pathname = request.url.split('?')[0];
+      const custodyRoute = pathname.startsWith('/api/uploads') || pathname.startsWith('/api/contributions');
+      if (config.API_ROLE === 'custody' && custodyRoute && !custodyTokenMatches(request.headers['x-dotify-custody'], config.CUSTODY_SERVICE_TOKEN!))
+        return reply.code(403).send({ code: 'PRIVATE_SERVICE', error: 'Use the Dotify application to continue.' });
+      if (custodyRoute || pathname.startsWith('/api/tracks') || pathname.startsWith('/api/auth') || pathname === '/health/ready') await assertSharedState();
+    });
+  }
 
   app.addHook('onSend', async (request, reply) => {
     reply.header('x-request-id', request.id);
@@ -122,6 +143,13 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   });
 
   app.setErrorHandler((error: FastifyError, request, reply) => {
+    if (error instanceof SharedStateUnavailableError) {
+      request.log.warn({ code: error.code }, 'Shared state unavailable');
+      return reply
+        .code(503)
+        .header('Retry-After', '3')
+        .send({ code: error.code, error: error.message, requestId: String(request.id) });
+    }
     // Respect framework errors that carry a status (rate limit 429, malformed
     // body 400, payload too large 413); everything else is a 500 with the
     // internals kept out of the response body.
@@ -141,52 +169,73 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
 
   // Routes.
   await app.register(healthRoutes);
-  const nativeReceipts = createNativeReceiptService({ rpcUrl: config.PASEO_ASSET_HUB_NATIVE_RPC, chainId: config.DOTIFY_CHAIN_ID });
-  const contributionLedger = new NativeContributionLedger(config.NATIVE_CONTRIBUTION_SNAPSHOT_PATH);
-  await app.register(
-    createNativeReceiptRoutes({
-      serviceToken: config.NATIVE_RECEIPT_SERVICE_TOKEN,
-      read: async input => {
-        const receipt = await nativeReceipts.read(input);
-        await contributionLedger.record(receipt);
-        return receipt;
-      }
-    })
-  );
-  await app.register(createContributionHistoryRoutes(contributionLedger, Boolean(config.PASEO_ASSET_HUB_NATIVE_RPC) && config.DOTIFY_CHAIN_ID === 420420417));
-  await app.register(authRoutes, { prefix: '/api/auth' });
-  await app.register(turnRoutes, { prefix: '/api/turn' });
-  await app.register(keyRoutes, { prefix: '/api/tracks' });
-  let streaming: StreamingJobs | undefined;
-  if (Boolean(config.STREAMING_WORKER_URL) !== Boolean(config.STREAMING_WORKER_TOKEN))
-    throw new Error('Configure both the isolated streaming worker URL and token');
-  if (config.STREAMING_WORKER_URL && config.STREAMING_WORKER_TOKEN) {
-    if (config.NODE_ENV === 'production' && process.getuid?.() !== 1000)
-      throw new Error('Streaming activation requires the reviewed non-root UID 1000 API image');
-    if (config.UPLOAD_GLOBAL_CONCURRENCY > 2) throw new Error('Streaming publication requires UPLOAD_GLOBAL_CONCURRENCY at most 2');
-    streaming = new StreamingJobs({
-      directory: config.STREAMING_STATE_PATH,
-      deriveKey: deriveContentKeyBytes,
-      authority: async (owner, runtime, chainId) => {
-        if (chainId !== config.DOTIFY_CHAIN_ID) return false;
-        const result = await checkArtistAuthority(owner);
-        return result.allowed && result.runtime.toLowerCase() === runtime;
-      },
-      transcode: createStreamingWorkerClient(config.STREAMING_WORKER_URL, config.STREAMING_WORKER_TOKEN),
-      pin: (files, name, signal) => pinFilesToPinata(files, name, { app: 'dotify', type: 'streaming-audio' }, signal)
+  if (config.API_ROLE === 'edge') {
+    await registerCustodyProxy(app, {
+      origin: config.CUSTODY_SERVICE_URL!,
+      token: config.CUSTODY_SERVICE_TOKEN!,
+      production: config.NODE_ENV === 'production',
+      clientIp: request => clientIdentity(request, options.trustProxy ?? config.API_TRUST_PROXY).key
     });
-    await streaming.start();
-    app.addHook('onClose', async () => streaming!.stop());
+  } else {
+    const nativeReceipts = createNativeReceiptService({ rpcUrl: config.PASEO_ASSET_HUB_NATIVE_RPC, chainId: config.DOTIFY_CHAIN_ID });
+    const contributionLedger = new NativeContributionLedger(config.NATIVE_CONTRIBUTION_SNAPSHOT_PATH);
+    await app.register(
+      createNativeReceiptRoutes({
+        serviceToken: config.NATIVE_RECEIPT_SERVICE_TOKEN,
+        read: async input => {
+          const receipt = await nativeReceipts.read(input);
+          await contributionLedger.record(receipt);
+          return receipt;
+        }
+      })
+    );
+    await app.register(createContributionHistoryRoutes(contributionLedger, Boolean(config.PASEO_ASSET_HUB_NATIVE_RPC) && config.DOTIFY_CHAIN_ID === 420420417));
   }
-  await app.register(createUploadRoutes(undefined, streaming), { prefix: '/api/uploads' });
-  const catalog = options.catalog ?? defaultCatalogReadModel;
-  await catalog.start();
-  app.addHook('onClose', async () => {
-    catalog.stop();
-    if (catalog === defaultCatalogReadModel) mediaPrewarmer?.close();
-  });
-  await app.register(createCatalogRoutes({ catalog }));
-  await app.register(createMediaRoutes({ catalog }));
-
+  if (config.API_ROLE !== 'custody') {
+    await app.register(authRoutes, { prefix: '/api/auth' });
+    await app.register(turnRoutes, { prefix: '/api/turn' });
+    await app.register(keyRoutes, { prefix: '/api/tracks' });
+  }
+  if (config.API_ROLE !== 'edge') {
+    if (sharedState) {
+      const release = await sharedState.holdExclusive('custody-owner', () => {
+        app.log.error({ code: 'CUSTODY_LEASE_LOST' }, 'Custody store connection lost; closing admission and encoder');
+        void streaming?.stop();
+        void app.close();
+      });
+      app.addHook('onClose', release);
+    }
+    if (Boolean(config.STREAMING_WORKER_URL) !== Boolean(config.STREAMING_WORKER_TOKEN))
+      throw new Error('Configure both the isolated streaming worker URL and token');
+    if (config.STREAMING_WORKER_URL && config.STREAMING_WORKER_TOKEN) {
+      if (config.NODE_ENV === 'production' && process.getuid?.() !== 1000)
+        throw new Error('Streaming activation requires the reviewed non-root UID 1000 API image');
+      if (config.UPLOAD_GLOBAL_CONCURRENCY > 2) throw new Error('Streaming publication requires UPLOAD_GLOBAL_CONCURRENCY at most 2');
+      streaming = new StreamingJobs({
+        directory: config.STREAMING_STATE_PATH,
+        deriveKey: deriveContentKeyBytes,
+        authority: async (owner, runtime, chainId) => {
+          if (chainId !== config.DOTIFY_CHAIN_ID) return false;
+          const result = await checkArtistAuthority(owner);
+          return result.allowed && result.runtime.toLowerCase() === runtime;
+        },
+        transcode: createStreamingWorkerClient(config.STREAMING_WORKER_URL, config.STREAMING_WORKER_TOKEN),
+        pin: (files, name, signal) => pinFilesToPinata(files, name, { app: 'dotify', type: 'streaming-audio' }, signal)
+      });
+      await streaming.start();
+      app.addHook('onClose', async () => streaming!.stop());
+    }
+    await app.register(createUploadRoutes(undefined, streaming), { prefix: '/api/uploads' });
+  }
+  if (config.API_ROLE !== 'custody') {
+    const catalog = options.catalog ?? defaultCatalogReadModel;
+    await catalog.start();
+    app.addHook('onClose', async () => {
+      catalog.stop();
+      if (catalog === defaultCatalogReadModel) mediaPrewarmer?.close();
+    });
+    await app.register(createCatalogRoutes({ catalog }));
+    await app.register(createMediaRoutes({ catalog }));
+  }
   return app;
 }

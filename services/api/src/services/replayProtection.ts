@@ -9,6 +9,8 @@
 // deployment needs a shared store (Redis or similar) before horizontal
 // scaling. Both limitations fail closed: an unknown nonce is always rejected.
 
+import { sharedState } from './sharedState/index.js';
+import { PostgresNonces } from './sharedState/nonces.js';
 import { randomBytes } from 'node:crypto';
 
 export const NONCE_TTL_MS = 5 * 60 * 1000;
@@ -46,6 +48,7 @@ export function issueNonce(address: string, chainId: number): IssuedNonce {
   const now = Date.now();
   sweepExpired(now);
 
+  if (nonces.size >= 4096) throw new Error('Nonce capacity reached. Try again shortly.');
   const nonce = randomBytes(24).toString('hex');
   const expiresAtMs = now + NONCE_TTL_MS;
   nonces.set(nonce, {
@@ -92,3 +95,9 @@ export function consumeNonce(nonce: string, address: string, chainId: number): N
 export function resetNonceStore(): void {
   nonces.clear();
 }
+
+const persistentNonces = sharedState ? new PostgresNonces(sharedState) : undefined;
+export const issueWalletNonce = (address: string, chainId: number) =>
+  persistentNonces ? persistentNonces.issue(address, chainId) : issueNonce(address, chainId);
+export const consumeWalletNonce = (nonce: string, address: string, chainId: number) =>
+  persistentNonces ? persistentNonces.consume(nonce, address, chainId) : consumeNonce(nonce, address, chainId);

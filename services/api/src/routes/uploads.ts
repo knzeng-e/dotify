@@ -124,7 +124,7 @@ type PinFiles = (files: PinataFile[], name: string, keyvalues?: Record<string, s
 type PinJson = (json: unknown, name: string, keyvalues?: Record<string, string>, signal?: AbortSignal) => Promise<string>;
 
 export type UploadRouteDeps = {
-  verifySessionToken: (token: string) => SessionVerification;
+  verifySessionToken: (token: string) => SessionVerification | Promise<SessionVerification>;
   checkArtistAuthority: (requester: string) => Promise<ArtistAuthorityResult>;
   authorizations: UploadAuthorizationService;
   getActiveContentKeyVersion: () => ContentKeyVersion;
@@ -183,18 +183,18 @@ function handleUploadError(error: unknown, reply: FastifyReply) {
   throw error;
 }
 
-function beginAuthorizedUpload(
+async function beginAuthorizedUpload(
   request: FastifyRequest,
   reply: FastifyReply,
   purpose: UploadPurpose,
   authorizations: UploadAuthorizationService
-): UploadLease | null {
+): Promise<UploadLease | null> {
   const token = bearerToken(request);
   if (!token) {
     reply.status(401).send({ error: 'A scoped upload authorization is required.', code: 'UPLOAD_AUTH_REQUIRED' });
     return null;
   }
-  const result = authorizations.begin(token, purpose);
+  const result = await authorizations.begin(token, purpose);
   if (!result.ok) {
     authorizationError(reply, result.code, result.reason);
     return null;
@@ -219,10 +219,10 @@ function multipartLimitError(error: unknown): boolean {
 
 export function createUploadRoutes(deps: UploadRouteDeps = defaultDeps, jobs?: StreamingJobs) {
   return async function uploadRoutes(app: FastifyInstance): Promise<void> {
-    const sessionForJob = (request: FastifyRequest, reply: FastifyReply) => {
+    const sessionForJob = async (request: FastifyRequest, reply: FastifyReply) => {
       reply.header('Cache-Control', 'no-store');
       const token = bearerToken(request);
-      const session = token ? deps.verifySessionToken(token) : null;
+      const session = token ? await deps.verifySessionToken(token) : null;
       if (!session?.valid) {
         reply.status(401).send({ error: 'Sign in to continue preparing your music.', code: 'SESSION_REQUIRED' });
         return null;
@@ -234,7 +234,7 @@ export function createUploadRoutes(deps: UploadRouteDeps = defaultDeps, jobs?: S
       return session;
     };
     app.get<{ Params: { id: string } }>('/audio/jobs/:id', async (request, reply) => {
-      const session = sessionForJob(request, reply);
+      const session = await sessionForJob(request, reply);
       if (!session) return;
       try {
         const job = jobs!.get(request.params.id, session.address, session.chainId);
@@ -247,7 +247,7 @@ export function createUploadRoutes(deps: UploadRouteDeps = defaultDeps, jobs?: S
       }
     });
     app.post<{ Params: { id: string } }>('/audio/jobs/:id/discard', async (request, reply) => {
-      const session = sessionForJob(request, reply);
+      const session = await sessionForJob(request, reply);
       if (!session) return;
       try {
         await jobs!.discard(request.params.id, session.address, session.chainId);
@@ -259,7 +259,7 @@ export function createUploadRoutes(deps: UploadRouteDeps = defaultDeps, jobs?: S
       }
     });
     app.post<{ Params: { id: string } }>('/audio/jobs/:id/retry', async (request, reply) => {
-      const session = sessionForJob(request, reply);
+      const session = await sessionForJob(request, reply);
       if (!session) return;
       try {
         return reply.send(await jobs!.retry(request.params.id, session.address, session.chainId));
@@ -273,7 +273,7 @@ export function createUploadRoutes(deps: UploadRouteDeps = defaultDeps, jobs?: S
       const token = bearerToken(request);
       if (!token) return reply.status(401).send({ error: 'Sign in before requesting upload capacity.', code: 'SESSION_REQUIRED' });
 
-      const session = deps.verifySessionToken(token);
+      const session = await deps.verifySessionToken(token);
       if (!session.valid) return reply.status(401).send({ error: session.reason, code: session.code });
 
       const parsed = authorizationRequestSchema.safeParse(request.body);
@@ -298,7 +298,7 @@ export function createUploadRoutes(deps: UploadRouteDeps = defaultDeps, jobs?: S
         return reply.status(status).send({ error: authority.reason, code: authority.code });
       }
 
-      const issued = deps.authorizations.issue({
+      const issued = await deps.authorizations.issue({
         address: session.address,
         runtimeAddress: authority.runtime,
         chainId: session.chainId,
@@ -316,7 +316,7 @@ export function createUploadRoutes(deps: UploadRouteDeps = defaultDeps, jobs?: S
 
     app.post('/audio', async (request: FastifyRequest, reply: FastifyReply) => {
       if (!jobs) return reply.code(503).send({ code: 'STREAMING_UNAVAILABLE', error: 'Audio preparation is unavailable. Please try again later.' });
-      const lease = beginAuthorizedUpload(request, reply, 'audio', deps.authorizations);
+      const lease = await beginAuthorizedUpload(request, reply, 'audio', deps.authorizations);
       if (!lease) return;
       const abort = requestAbortController(request);
       let completed = false;
@@ -377,7 +377,7 @@ export function createUploadRoutes(deps: UploadRouteDeps = defaultDeps, jobs?: S
             scope: { chainId: lease.payload.chainId, runtimeAddress: lease.payload.runtimeAddress.toLowerCase(), contentHash: normalizedHash, keyVersion },
             master: fileBuffer
           });
-          completed = lease.complete(fileBuffer.length);
+          completed = await lease.complete(fileBuffer.length);
           if (!completed) return reply.status(500).send({ error: 'Upload quota accounting failed.', code: 'UPLOAD_ACCOUNTING_FAILED' });
           return reply.header('Cache-Control', 'no-store').status(202).send(job);
         } catch (error) {
@@ -390,12 +390,12 @@ export function createUploadRoutes(deps: UploadRouteDeps = defaultDeps, jobs?: S
         }
       } finally {
         abort.detach();
-        if (!completed) lease.abort();
+        if (!completed) await lease.abort();
       }
     });
 
     app.post('/cover', async (request: FastifyRequest, reply: FastifyReply) => {
-      const lease = beginAuthorizedUpload(request, reply, 'cover', deps.authorizations);
+      const lease = await beginAuthorizedUpload(request, reply, 'cover', deps.authorizations);
       if (!lease) return;
       const abort = requestAbortController(request);
       let completed = false;
@@ -446,7 +446,7 @@ export function createUploadRoutes(deps: UploadRouteDeps = defaultDeps, jobs?: S
           return handleUploadError(error, reply);
         }
 
-        completed = lease.complete(fileBuffer.length);
+        completed = await lease.complete(fileBuffer.length);
         if (!completed) return reply.status(500).send({ error: 'Upload quota accounting failed.', code: 'UPLOAD_ACCOUNTING_FAILED' });
         return reply.status(200).send({
           ref: `ipfs://${cid}/${cover.primaryPath}`,
@@ -460,12 +460,12 @@ export function createUploadRoutes(deps: UploadRouteDeps = defaultDeps, jobs?: S
         });
       } finally {
         abort.detach();
-        if (!completed) lease.abort();
+        if (!completed) await lease.abort();
       }
     });
 
     app.post('/metadata', { bodyLimit: META_MAX_BYTES }, async (request: FastifyRequest, reply: FastifyReply) => {
-      const lease = beginAuthorizedUpload(request, reply, 'metadata', deps.authorizations);
+      const lease = await beginAuthorizedUpload(request, reply, 'metadata', deps.authorizations);
       if (!lease) return;
       const abort = requestAbortController(request);
       let completed = false;
@@ -505,12 +505,12 @@ export function createUploadRoutes(deps: UploadRouteDeps = defaultDeps, jobs?: S
           return handleUploadError(error, reply);
         }
 
-        completed = lease.complete(actualBytes);
+        completed = await lease.complete(actualBytes);
         if (!completed) return reply.status(500).send({ error: 'Upload quota accounting failed.', code: 'UPLOAD_ACCOUNTING_FAILED' });
         return reply.status(200).send({ ref: `ipfs://${cid}` });
       } finally {
         abort.detach();
-        if (!completed) lease.abort();
+        if (!completed) await lease.abort();
       }
     });
   };

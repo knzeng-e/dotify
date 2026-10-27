@@ -123,6 +123,79 @@ afterEach(() => {
 });
 
 describe('keyService sessions', () => {
+  it('silently renews a near-expiry Host session once for concurrent callers', async () => {
+    const scopeKey = `dotify:session:v2:${encodeURIComponent('https://api.test')}:${ADDRESS}:420420417:product-sr25519-v1:${PRODUCT_PUBLIC_KEY}`;
+    installLocalStorage([[scopeKey, JSON.stringify({ token: 'old-session-token', expiresAt: new Date(Date.now() + 30_000).toISOString() })]]);
+    const sign = vi.fn(async () => PRODUCT_SIGNATURE);
+    const fetchMock = vi.fn(async () =>
+      jsonResponse({
+        sessionToken: 'renewed-session-token',
+        expiresAt: new Date(Date.now() + 7_200_000).toISOString(),
+        revocableUntil: new Date(Date.now() + 86_400_000).toISOString()
+      })
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    const service = await loadKeyService();
+    expect(
+      await Promise.all([
+        service.ensureDotifySessionForSigner(productSigner(sign), 420420417),
+        service.ensureDotifySessionForSigner(productSigner(sign), 420420417)
+      ])
+    ).toEqual(['renewed-session-token', 'renewed-session-token']);
+    expect(sign).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://api.test/api/auth/renew',
+      expect.objectContaining({ body: JSON.stringify({ sessionToken: 'old-session-token' }) })
+    );
+    expect(service.existingDotifySession(productSigner(sign), 420420417)).toBe('renewed-session-token');
+  });
+
+  it('does not turn a renewal outage into a new wallet prompt', async () => {
+    const scopeKey = `dotify:session:v2:${encodeURIComponent('https://api.test')}:${ADDRESS}:420420417:eip191`;
+    installLocalStorage([[scopeKey, JSON.stringify({ token: 'near-expiry-token', expiresAt: new Date(Date.now() + 30_000).toISOString() })]]);
+    const fetchMock = vi.fn(async () => jsonResponse({ error: 'Please try again shortly.', code: 'SHARED_STATE_UNAVAILABLE' }, 503));
+    vi.stubGlobal('fetch', fetchMock);
+    const sign = vi.fn(async () => PRODUCT_SIGNATURE);
+    const service = await loadKeyService();
+    await expect(service.ensureDotifySessionForSigner({ address: ADDRESS, signMessage: sign }, 420420417)).rejects.toMatchObject({
+      code: 'SHARED_STATE_UNAVAILABLE'
+    });
+    expect(sign).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('revokes a renewal response arriving after disconnect instead of restoring it', async () => {
+    const scopeKey = `dotify:session:v2:${encodeURIComponent('https://api.test')}:${ADDRESS}:420420417:eip191`;
+    installLocalStorage([[scopeKey, JSON.stringify({ token: 'disconnect-parent', expiresAt: new Date(Date.now() + 30_000).toISOString() })]]);
+    let resolveRenewal!: (response: Response) => void;
+    const fetchMock = vi.fn(async (url: string) =>
+      url.endsWith('/renew')
+        ? new Promise<Response>(resolve => {
+            resolveRenewal = resolve;
+          })
+        : jsonResponse({ ok: true })
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    const service = await loadKeyService();
+    const renewal = service.ensureDotifySessionForSigner({ address: ADDRESS, signMessage: vi.fn() }, 420420417);
+    const cancelled = expect(renewal).rejects.toMatchObject({ code: 'SESSION_CANCELLED' });
+    await service.signOutOfDotifySession(ADDRESS);
+    resolveRenewal(
+      jsonResponse({
+        sessionToken: 'disconnect-child',
+        expiresAt: new Date(Date.now() + 7_200_000).toISOString(),
+        revocableUntil: new Date(Date.now() + 86_400_000).toISOString()
+      })
+    );
+    await cancelled;
+    expect(service.existingDotifySession({ address: ADDRESS }, 420420417)).toBeNull();
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://api.test/api/auth/logout',
+      expect.objectContaining({ body: JSON.stringify({ sessionToken: 'disconnect-child' }) })
+    );
+  });
+
   it.each([200, 503])('covers same-tick queued tokens for coalesced callers without looping HTTP %s', async status => {
     const scopeKey = `dotify:session:v2:${encodeURIComponent('https://api.test')}:${ADDRESS}:420420417:eip191`;
     installLocalStorage([[scopeKey, JSON.stringify({ token: 'same-tick-logout', expiresAt: new Date(Date.now() + 3_600_000).toISOString() })]]);

@@ -122,6 +122,24 @@ const envSchema = z.object({
       }, 'MEDIA_IPFS_GATEWAY must be a dedicated HTTPS mypinata.cloud origin')
       .optional()
   ),
+  STATE_STORE: z.enum(['local', 'postgres']).default('local'),
+  DATABASE_URL: optionalNonEmptyString,
+  STATE_NAMESPACE: z
+    .string()
+    .regex(/^[a-z0-9_-]{3,64}$/)
+    .default('dotify'),
+  API_ROLE: z.enum(['combined', 'edge', 'custody']).default('combined'),
+  CUSTODY_SERVICE_URL: z.string().url().optional(),
+  CUSTODY_SERVICE_TOKEN: z.string().min(32).max(256).optional(),
+  SESSION_SECRET: z
+    .string()
+    .regex(/^[0-9a-fA-F]{64}$/, 'SESSION_SECRET must contain 32 random bytes encoded as hex')
+    .optional(),
+  SESSION_PREVIOUS_SECRET: z
+    .string()
+    .regex(/^(0x)?(?:[0-9a-fA-F]{2}){32,}$/, 'SESSION_PREVIOUS_SECRET must contain 32+ bytes encoded as hex')
+    .optional(),
+  SESSION_PREVIOUS_SECRET_UNTIL: z.string().datetime().optional(),
   API_PORT: z.coerce.number().int().min(1).max(65535).default(8790),
   API_ORIGIN: z.string().url().default('http://localhost:5273'),
   API_ORIGINS: optionalOriginList,
@@ -178,8 +196,8 @@ const envSchema = z.object({
   // Pinata JWT — must stay server-side only. Never expose in frontend env.
   PINATA_JWT: optionalNonEmptyString,
   // Upload authorizations are short-lived, single-use capabilities. Byte
-  // quotas are rolling, in-memory counters for the enforced single API
-  // instance; a process restart invalidates every outstanding capability.
+  // quotas are rolling counters shared by PostgreSQL in shared mode.
+  // Local mode remains single-instance and loses capabilities on restart.
   UPLOAD_AUTH_TTL_SECONDS: z.coerce
     .number()
     .int()

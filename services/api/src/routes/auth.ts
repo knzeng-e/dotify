@@ -20,6 +20,7 @@ import {
   issueSessionToken as defaultIssueSessionToken,
   revokeSessionToken as defaultRevokeSessionToken,
   verifySessionToken,
+  renewSessionToken,
   SessionRevocationStorageError,
   type IssuedSession
 } from '../services/sessionTokens.js';
@@ -52,15 +53,15 @@ const productSr25519SessionRequestSchema = sessionBaseRequestSchema.extend({
 const sessionRequestSchema = z.union([productSr25519SessionRequestSchema, eip191SessionRequestSchema]);
 
 const logoutRequestSchema = z.object({
-  sessionToken: z.string().min(16, 'Session token is required')
+  sessionToken: z.string().min(16, 'Session token is required').max(4096)
 });
 
 export type AuthRouteDeps = {
   verifySessionToken?: typeof verifySessionToken;
   verifySignInRequest: (request: SignInRequest) => Promise<SignatureVerification>;
   isSessionAuthConfigured: () => boolean;
-  issueSessionToken: (address: `0x${string}`, chainId: number) => IssuedSession;
-  revokeSessionToken: (token: string) => boolean;
+  issueSessionToken: (address: `0x${string}`, chainId: number) => IssuedSession | Promise<IssuedSession>;
+  revokeSessionToken: (token: string) => boolean | Promise<boolean>;
 };
 
 const defaultDeps: AuthRouteDeps = {
@@ -82,10 +83,13 @@ function validationError(reply: FastifyReply, error: string, issues: z.ZodIssue[
 
 export function createAuthRoutes(deps: AuthRouteDeps = defaultDeps) {
   return async function authRoutes(app: FastifyInstance): Promise<void> {
+    app.addHook('onSend', async (_request, reply) => {
+      reply.header('Cache-Control', 'no-store');
+    });
     app.get('/identity', async (request, reply) => {
       reply.header('Cache-Control', 'no-store');
       const token = request.headers.authorization?.replace(/^Bearer /, '') ?? '';
-      const result = (deps.verifySessionToken ?? verifySessionToken)(token);
+      const result = await (deps.verifySessionToken ?? verifySessionToken)(token);
       if (!result.valid) return reply.status(401).send({ error: result.reason });
       return { address: result.address, chainId: result.chainId };
     });
@@ -109,7 +113,7 @@ export function createAuthRoutes(deps: AuthRouteDeps = defaultDeps) {
       if (!deps.isSessionAuthConfigured()) {
         return reply.status(503).send({
           available: false,
-          error: 'Session auth is unavailable: the key service master secret is not configured.',
+          error: 'Session auth is unavailable: the session service is not configured.',
           code: 'SESSION_NOT_CONFIGURED'
         });
       }
@@ -154,7 +158,7 @@ export function createAuthRoutes(deps: AuthRouteDeps = defaultDeps) {
         return reply.status(401).send({ error: verification.reason, code: verification.code });
       }
 
-      const session = deps.issueSessionToken(parsed.data.address as `0x${string}`, parsed.data.chainId);
+      const session = await deps.issueSessionToken(parsed.data.address as `0x${string}`, parsed.data.chainId);
       if (!session.ok) {
         return reply.status(503).send({ error: session.reason, code: session.code });
       }
@@ -162,8 +166,20 @@ export function createAuthRoutes(deps: AuthRouteDeps = defaultDeps) {
       return reply.status(200).send({
         sessionToken: session.token,
         expiresAt: session.expiresAt,
+        revocableUntil: session.revocableUntil,
         address: parsed.data.address.toLowerCase()
       });
+    });
+
+    app.post('/renew', async (request, reply) => {
+      reply.header('Cache-Control', 'no-store');
+      const parsed = logoutRequestSchema.safeParse(request.body);
+      if (!parsed.success) return validationError(reply, 'Invalid renewal request', parsed.error.issues);
+      const result = await renewSessionToken(parsed.data.sessionToken);
+      if (!('ok' in result) || !result.ok) {
+        return reply.code(401).send({ code: 'SESSION_EXPIRED', error: 'Reconnect your account to continue.' });
+      }
+      return { sessionToken: result.token, expiresAt: result.expiresAt, revocableUntil: result.revocableUntil };
     });
 
     // Sign out: revoke the session server-side. Returns ok even when the
@@ -175,7 +191,7 @@ export function createAuthRoutes(deps: AuthRouteDeps = defaultDeps) {
       }
       reply.header('Cache-Control', 'no-store');
       try {
-        deps.revokeSessionToken(parsed.data.sessionToken);
+        await deps.revokeSessionToken(parsed.data.sessionToken);
       } catch (error) {
         if (!(error instanceof SessionRevocationStorageError)) throw error;
         return reply.status(503).send({

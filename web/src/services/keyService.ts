@@ -115,7 +115,7 @@ export type ContentKeyReleaseIdentity = {
 // ---------------------------------------------------------------------------
 // Session: sign once, listen freely (ticket 24 P2).
 //
-// One SIWE-style signature opens a ~24h session; the token (identity only,
+// One wallet signature opens a two-hour session, renewable for up to 24h; the token (identity only,
 // never access) then rides every key request instead of a fresh signature.
 // The backend checks a short-lived, block-bound policy verdict per track.
 // ---------------------------------------------------------------------------
@@ -293,7 +293,34 @@ async function openDotifySessionForSigner(signer: KeyRequestSigner, chainId: num
   };
   const scope = sessionScope(signer, chainId);
   const stored = sessionCache.read(scope);
-  if (stored) return stored.token;
+  // Renew during ordinary track changes before expiry, not only during the
+  // final minute (which a typical song can easily span).
+  if (stored && Date.parse(stored.expiresAt) > Date.now() + 15 * 60_000) return stored.token;
+  const renewable = sessionCache.readRenewable(scope);
+  if (renewable && Date.parse(renewable.expiresAt) > Date.now()) {
+    const response = await fetch(`${API_URL}/api/auth/renew`, {
+      method: 'POST',
+      signal: keyServiceTimeout(),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionToken: renewable.token })
+    });
+    if (response.ok) {
+      const renewed = (await response.json()) as { sessionToken: string; expiresAt: string; revocableUntil?: string };
+      if (!isCurrent()) {
+        sessionRevocations.add(signer.address, { token: renewed.sessionToken, expiresAt: renewed.expiresAt, revocableUntil: renewed.revocableUntil });
+        await retryPendingSessionRevocations().catch(() => {});
+        assertCurrent();
+      }
+      sessionCache.store(scope, { token: renewed.sessionToken, expiresAt: renewed.expiresAt, revocableUntil: renewed.revocableUntil });
+      return renewed.sessionToken;
+    }
+    // A store outage never becomes an unexpected wallet prompt.
+    if (response.status !== 401) {
+      const failure = await parseError(response, 'Your listening session could not be checked. Please try again.');
+      throw new KeyServiceError(failure.message, failure.code);
+    }
+    sessionCache.clear(signer.address, renewable.token);
+  }
   try {
     if (!(await isDotifySessionAvailable())) {
       keyRequestSmokeFields(signer, chainId, { phase: 'session-unavailable', path: 'session' });
@@ -348,14 +375,14 @@ async function openDotifySessionForSigner(signer: KeyRequestSigner, chainId: num
       throw new KeyServiceError(message, code);
     }
 
-    const body = (await res.json()) as { sessionToken: string; expiresAt: string };
+    const body = (await res.json()) as { sessionToken: string; expiresAt: string; revocableUntil?: string };
     if (!isCurrent()) {
-      sessionRevocations.add(signer.address, { token: body.sessionToken, expiresAt: body.expiresAt });
+      sessionRevocations.add(signer.address, { token: body.sessionToken, expiresAt: body.expiresAt, revocableUntil: body.revocableUntil });
       // Disconnect stays authoritative even if durable revocation must retry.
       await retryPendingSessionRevocations().catch(() => {});
       assertCurrent();
     }
-    sessionCache.store(scope, { token: body.sessionToken, expiresAt: body.expiresAt });
+    sessionCache.store(scope, { token: body.sessionToken, expiresAt: body.expiresAt, revocableUntil: body.revocableUntil });
     interruptedSignIns.delete(sessionCache.keyFor(scope));
     keyRequestSmokeFields(signer, chainId, { phase: 'session-created', path: 'session' });
     return body.sessionToken;

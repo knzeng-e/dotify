@@ -7,12 +7,7 @@ import { config } from './config.js';
 export const fastifyLoggerOptions = {
   level: config.NODE_ENV === 'production' ? 'info' : 'debug',
   redact: {
-    paths: [
-      'req.headers.authorization',
-      'req.headers.cookie',
-      'req.body.sessionToken',
-      'req.body.signature',
-    ],
-    censor: '[redacted]',
-  },
+    paths: ['req.headers.authorization', 'req.headers.cookie', 'req.headers.x-dotify-custody', 'req.body.sessionToken', 'req.body.signature'],
+    censor: '[redacted]'
+  }
 };

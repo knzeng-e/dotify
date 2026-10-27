@@ -95,7 +95,7 @@ const sessionKeyRequestBodySchema = z
 
 export type KeyRouteDeps = {
   verifySignedRequest: (request: KeySignatureRequest) => Promise<SignatureVerification>;
-  verifySessionToken: (token: string) => SessionVerification;
+  verifySessionToken: (token: string) => SessionVerification | Promise<SessionVerification>;
   checkTrackAccess: (request: TrackAccessRequest) => Promise<TrackAccessResult>;
   checkPublicAccess: (request: PublicTrackAccessRequest) => Promise<TrackAccessResult>;
   deriveContentKey: (input: ContentKeyDerivationInput) => ContentKeyResult;
@@ -180,7 +180,7 @@ export function createKeyRoutes(deps: KeyRouteDeps = defaultDeps) {
         .strict()
         .safeParse(request.body);
       if (!body.success) return validationError(reply, 'Invalid queue key preparation', body.error.issues);
-      const session = deps.verifySessionToken(body.data.sessionToken);
+      const session = await deps.verifySessionToken(body.data.sessionToken);
       if (!session.valid) return reply.status(401).send({ error: session.reason, code: session.code });
       const domain = checkDotifyChainId(session.chainId);
       if (!domain.ok) return reply.status(401).send({ error: domain.reason, code: domain.code });
@@ -197,7 +197,7 @@ export function createKeyRoutes(deps: KeyRouteDeps = defaultDeps) {
         }))
       );
       // Logout/expiry during reads wins over a prepared grant.
-      const current = deps.verifySessionToken(body.data.sessionToken);
+      const current = await deps.verifySessionToken(body.data.sessionToken);
       if (!current.valid) return reply.status(401).send({ error: current.reason, code: current.code });
       const tracks = results.map(({ track, access }) => {
         const identity = { contentHash: track.contentHash, releaseId: track.releaseId };
@@ -228,7 +228,7 @@ export function createKeyRoutes(deps: KeyRouteDeps = defaultDeps) {
           return validationError(reply, 'Invalid release identity', release.issues);
         }
 
-        const session = deps.verifySessionToken(sessionBody.data.sessionToken);
+        const session = await deps.verifySessionToken(sessionBody.data.sessionToken);
         if (!session.valid) {
           return reply.status(401).send({ error: session.reason, code: session.code });
         }

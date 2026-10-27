@@ -6,6 +6,11 @@ This folder contains the execution backlog for moving Dotify from prototype to p
 
 The backlog is organized as engineering sprints. Each ticket has a dedicated Markdown instruction file intended for Claude Code, Codex, or a senior engineer working inside the repository.
 
+W36/#291 is being implemented after merged W35/#338. The shared API and private
+publication-custody topology require an explicit migration before any scaling.
+See [W36 evidence](implementation/evidence/W36.md). W35 and the newer API changes
+remain part of the requested combined test deployment, not published evidence.
+
 ## Current reconciliation, 2026-10-23
 
 [The 31-open-issue audit](implementation/evidence/backlog-reconciliation-2026-10-23.md)
@@ -216,8 +221,7 @@ without reopening delivered work.
 | P1       | #274 / W19   | Device acceptance        | Verify merged Nearby behavior and subsequent discovery follow-ups on physical Product/mobile devices; retain host opt-in, both radii and wallet-free joining.   |
 | P1       | #287 / W32   | Next (streaming)         | Validate deployed current-format publication, pinning, native playback, walletless room audio and prolonged listening; preserve permanent nonce custody.        |
 | P1       | #288 / W33   | Next (streaming)         | Resolve dedicated gateway 401, activate reviewed ciphertext-only delivery, and measure cold/warm audible startup in three regions.                              |
-| P1       | #290 / W35   | Next (streaming)         | Add gapless/adaptive playback, next-track preparation, system controls and measured continuity after W32/W34.                                                   |
-| P1       | #291 / W36   | Next (scaling)           | Share replay protection, revocations, quotas and catalog state before allowing two API instances.                                                               |
+| P1       | #291 / W36   | Next (scaling)           | W36 implementation: PostgreSQL nonces/revocations/quotas/catalog, independent renewable sessions and private custody. Activation and live two-instance evidence remain.                                                               |
 | P2       | #292 / W37   | Next (scaling)           | Bound indexer work, resume large block gaps and maintain reusable catalog lookup indexes.                                                                       |
 | P2       | #293 / W38   | Later                    | Bound contract strings/splits and add paged views through artist-approved runtime upgrades after W37.                                                           |
 | P2       | #294 / W39   | Later                    | Measure horizontal signaling and an SFU prototype while preserving anonymous entry and the no-guest-key boundary.                                               |

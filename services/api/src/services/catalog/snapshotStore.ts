@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { catalogSnapshotSchema, type CatalogSnapshot } from './types.js';
 
 export interface CatalogSnapshotStore {
+  asWriter?<T>(work: () => Promise<T>): Promise<{ elected: true; value: T } | { elected: false }>;
   load(): Promise<CatalogSnapshot | null>;
   save(snapshot: CatalogSnapshot): Promise<void>;
 }
