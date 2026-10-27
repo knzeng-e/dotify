@@ -394,6 +394,15 @@ jobs:
       - name: Install three browser engines
         run: npx playwright install --with-deps chromium webkit firefox
 
+      - name: Start a real audio service with a headless output
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y pulseaudio
+          pulseaudio --start --exit-idle-time=-1
+          pactl load-module module-null-sink sink_name=dotify_ci_audio
+          pactl set-default-sink dotify_ci_audio
+          pactl info
+
       - name: Fetch synthetic codec fixture from this commit
         uses: actions/download-artifact@v4
         with:

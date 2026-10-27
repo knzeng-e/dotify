@@ -23,6 +23,11 @@ export keeps schema 6 with optional local aggregate continuity metrics.
 See [design and boundaries](../explanation/continuous-listening.md) and
 [actual verification](../backlog/implementation/evidence/W35.md).
 
+The dedicated W35 browser CI job needs a running audio service: it starts
+PulseAudio with an explicit null sink on the hosted Linux runner. This keeps
+AAC/MSE and native-error assertions enabled; it is test infrastructure only and
+does not prove physical sound or require a deployed server/Host setting.
+
 ## Pending client corrections, 2026-10-26
 
 The last recorded publication remains 0.1.62 below. Payment approval-expiry
