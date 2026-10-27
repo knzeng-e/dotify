@@ -13,6 +13,12 @@ while a successor is prepared. Guests must retain zero source-key calls and the
 same WebRTC transport. Test lock-screen actions and phone/desktop backgrounding
 on exact Host builds, recording unsupported capabilities explicitly.
 
+Include denied Classic/personhood access and an unavailable runtime read for
+non-encrypted policy-managed sources: neither preparation nor selection may
+start a media request before permission. A previously ready local candidate
+must not bypass a newly applied artist policy; an allowed selection still plays
+through its ordinary access check.
+
 Resume stores one bounded account/network-scoped checkpoint in browser storage
 (`dotify:listening-checkpoint:v1`), never keys, source URLs or room membership.
 It is optional when storage is blocked. Dismiss saved listening or close the

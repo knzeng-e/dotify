@@ -20,6 +20,14 @@ creates a new identity session. It authenticates the manifest and media under
 the full release scope before loading a detached, paused native audio element.
 Only the first two segments are prepared while that element is detached.
 
+Policy coverage is independent of encryption. A non-encrypted artist-runtime
+source is not speculatively loaded and cannot use a ready player or key-cache
+entry to skip its ordinary runtime access check on selection. A denied or
+unavailable check leaves it stopped. Non-policy-managed local/demo sources keep
+their existing preparation path. This client guard cannot make an already
+public, unencrypted URL confidential; protected distribution still requires
+the authenticated encrypted format.
+
 `StandbyAudio` holds one candidate for at most a 30-second adoption window. A
 protected handoff additionally needs a currently valid W34 grant. The candidate
 must match the current account/network, purpose and release identity, be ready,
