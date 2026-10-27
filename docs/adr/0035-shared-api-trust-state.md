@@ -58,6 +58,10 @@ replicas**. Keep exactly one custody machine and one authoritative volume.
 The custody service is still a publication/history availability bottleneck;
 ordinary catalog/key API replicas remain independent of it.
 
+Upload accounting is initialized only by the offline namespace migration. A
+missing or malformed upload document fails closed rather than starting an empty
+budget. The integration suite verifies both failure cases.
+
 ## Why PostgreSQL
 
 Transactions, uniqueness, expiry indexes, durable checkpoints and backups fit
@@ -103,7 +107,3 @@ the epoch explicitly, accept sign-out and reconcile quotas before reopening.
 - [node-postgres transaction connection requirements](https://node-postgres.com/features/transactions)
 - [node-postgres bounded pools](https://node-postgres.com/apis/pool)
 - [Fastify proxy streaming and hooks](https://github.com/fastify/fastify-http-proxy)
-
-Upload accounting is initialized only by the offline namespace migration. A
-missing or malformed upload document fails closed rather than starting an empty
-budget. The integration suite verifies both failure cases.
