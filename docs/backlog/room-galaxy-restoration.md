@@ -1,6 +1,9 @@
 # Restore the scoped 3D room galaxy
 
-Issue #329. Priority P1; Track Room reliability; Phase Now; Type Work.
+Issue #329. Priority P1; Track Room reliability; Phase Record; Type Record.
+Delivered through #330 and published in Product 0.1.61 through #331. The owner
+confirmed the installed experience works. Full physical graphics, location and
+media acceptance remains #274/#85/#89/#158; this record does not certify it.
 Owner-requested correction, started 2026-10-23 after merged #328.
 
 ## Outcome

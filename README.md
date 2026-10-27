@@ -21,7 +21,7 @@ DevNet are delivery targets; a deployed build is not an accepted public pilot.
 Current device, reliability and payment checks live in the
 [pilot release plan](docs/operations/pilot-release-plan.md).
 
-Internal testing now targets a fresh artist directory and one authenticated streaming format. Artists recreate their space and republish; old test audio is not migrated. See the [reset decision](docs/adr/0033-streaming-only-internal-reset.md) and [deployment procedure](docs/operations/streaming-publication.md). This preparation is not a claim of live deployment or native-device acceptance.
+Internal testing now targets a fresh artist directory and one authenticated streaming format. Artists recreate their space and republish; old test audio is not migrated. See the [reset decision](docs/adr/0033-streaming-only-internal-reset.md) and [deployment procedure](docs/operations/streaming-publication.md). The reset was deployed in Product 0.1.58; [Product 0.1.62 and the API/Web rollout](docs/backlog/implementation/evidence/product-0.1.62-rollout-2026-10-25.md) record the latest publication. Physical-device and public-pilot acceptance remain separate gates.
 
 ## Listen together
 

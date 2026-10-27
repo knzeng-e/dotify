@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { historyStateObject, initialView, isArtistPortalPath, isDotifyView, viewFromHistoryState } from './routing';
+import { historyStateObject, initialView, isArtistPortalPath, isDotifyView, viewFromHistoryState, withoutRoomInvitation } from './routing';
 
 describe('isDotifyView', () => {
   it('accepts the four views and rejects anything else', () => {
@@ -40,5 +40,15 @@ describe('viewFromHistoryState', () => {
     expect(viewFromHistoryState({ dotifyView: 'you' }, 'listen')).toBe('you');
     expect(viewFromHistoryState({ dotifyView: 'artists' }, 'listen')).toBe('listen');
     expect(viewFromHistoryState(null, 'rooms')).toBe('rooms');
+  });
+});
+
+describe('withoutRoomInvitation', () => {
+  it('clears current and legacy room invitations while preserving deployment paths and query values', () => {
+    expect(withoutRoomInvitation('https://example.test/ipfs/build/index.html?theme=night#/rooms/ABC123')).toBe(
+      'https://example.test/ipfs/build/index.html?theme=night'
+    );
+    expect(withoutRoomInvitation('https://example.test/?theme=night#/?room=ABC123')).toBe('https://example.test/?theme=night');
+    expect(withoutRoomInvitation('https://example.test/#artist-main')).toBe('https://example.test/#artist-main');
   });
 });

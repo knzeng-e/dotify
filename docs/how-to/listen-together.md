@@ -57,7 +57,19 @@ contribute to private artist activity totals without exposing their identity.
 
 Chat, react, or request a track for the host to consider. Guests can mute or
 pause their own audio; the host controls the shared track. Browsing Music or
-Rooms keeps the session available through the compact player.
+Rooms keeps the session available through the compact player. The same player
+stays available in the artist studio.
+
+**Leave** returns to the home screen and stops your room audio. **Close room**
+ends a hosted room; when others are listening, the host confirms first. If the
+host closes the room, guests return home with a short explanation.
+
+Use the mini-player's **Close mini-player** button to stop listening and hide
+it. In a room, a confirmation explains whether you are leaving as a guest or
+closing the room as its host. Cancel keeps the room and audio intact. Choosing
+music again reopens playback. Browsing or opening the artist studio by itself
+does not close the room. To prepare a new artist release, leave the live room
+first; the release draft is preserved and uploaded drafts do not autoplay.
 
 **Hide** affects your own discovery view during this visit. Restore it through
 **Hidden rooms** then **Show again**, if it is still available. **Report** also

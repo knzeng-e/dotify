@@ -11,9 +11,16 @@ small consented community is counted as served.
 - Issue: #158.
 - Original consolidation base: `dev` at
   `f4d2d49721a85169c5f9c37d36ac2ef315396d57`.
-- Current published Product candidate: 0.1.48, source SHA
-  `fc7faf5a49e6d5b3392285bab2ee957d325b4cb6`, `product-cdm` on `devnet`,
-  executable CID `bafybeicqj4ekyiz7pmbt7ry2ixpwvpa24v5liialmhe3zwonjslt47wvna`.
+- Last recorded published Product candidate: 0.1.62, clean packaging SHA
+  `781f1c598885714288bdec02df488fd03d7f2602`, based on tested merged dev
+  `c71947a294907bdaf0a92ea0c544876fa39309d4`, `product-cdm` on `devnet`,
+  executable CID `bafybeiaxgf3x4s6c6cwmxd3wm4gsllwl6gxuedqrejb3gmepo62ux2dto4`.
+  [Rollout evidence](../backlog/implementation/evidence/product-0.1.62-rollout-2026-10-25.md)
+  records API 32 and the separate Web identity.
+- #335 payment recovery and #336 publication return are merged but unpublished;
+  #337 navigation/mini-player exits remain under review. Select a new coherent
+  candidate after those corrections are reviewed; do not call latest dev the
+  installed 0.1.62 executable.
 - Readiness command:
 
 ```bash
@@ -37,29 +44,24 @@ recapture every live input. Product payment, room, rollback and pilot evidence
 must identify the same published CDM executable CID. The historical
 [0.1.29 live evidence](../backlog/implementation/evidence/W13-candidate-0-1-29-live-2026-09-28.md)
 record used a separate 0.1.29 validation CID
-`bafybeihawlfqhqgipiwg2dj5iamchz22e3d6z6t7t5snc4iv3333bdavom` and
-and a distinct default-`viem` release CID
+`bafybeihawlfqhqgipiwg2dj5iamchz22e3d6z6t7t5snc4iv3333bdavom` and a distinct default-`viem` release CID
 `bafybeihe4oty4sdifkbajty76kgj5gasvoqqpv5bnssmg65mcdhduqwpkm`.
 
 ## Environment And Config Diff
 
-The original tracked W13 package did not change hosted secrets, origins,
-contract addresses, Fly scaling, Product permissions, or DotNS ownership.
-During live 0.1.29 validation, the missing shared TURN capability secret was
-installed on the API and signal services, and those services were redeployed;
-their origin allowlists and contract addresses were not changed. The 0.1.29
-release profile differed from its CDM validation bundle. The current 0.1.48
-release uses CDM on DevNet. Its coordinated backend rollout added matching
-server-only native-receipt credentials on API/signaling; no origin, storage or
-scaling change was introduced. Editorial corrections require a separate
-owner-approved additive metadata selector on each artist runtime; publication
-alone does not activate it.
+The October 22 streaming-only reset deployed fresh contracts, CDM version 2,
+non-root storage and the private encoding pipeline. Product 0.1.62 then deployed
+W34 on the API before its clients, without a contract, permission or secret
+change. The API remains a single writer. Use the dated
+[deployment configuration](deployment-configuration.md) and exact rollout record
+for environment/persistence differences; older 0.1.29/0.1.48 observations are
+historical and do not validate the current reset catalog.
 
 | Surface | Current tracked value | W13 action |
 | --- | --- | --- |
 | Product name | `dotify-test01.dot` | Keep |
 | Public Product URL | `https://dotify-test01.dev-dot.li` | Keep |
-| Product appVersion | `[0, 1, 48]` | Published from the source SHA and CID above. Installed-host payment, v2 metadata publication/read-back, room, device matrix, matching rollback, and aggregate pilot evidence remain open. |
+| Product appVersion | `[0, 1, 62]` | Published from the packaging SHA and CID above. Candidate-bound native payment, publication, room, rollback and aggregate pilot evidence remain open. |
 | Runtime write adapter | `product-cdm` on `devnet` | Match the published Product profile; ordinary web uses viem. |
 | API | `https://dotify-api.fly.dev` | Keep |
 | Signaling | `https://dotify-signal.fly.dev` | Keep |
@@ -78,94 +80,60 @@ Current Product DevNet contract inventory from `deployments.json`:
 
 | Contract | Address |
 | --- | --- |
-| ArtistRuntimeFactory | `0x835a626a9a6965b197d079ae56b1ec94033c2699` |
-| ArtistDirectory | `0x4e883827d61e573094c7b777bae323070ea9f954` |
-| Initializer | `0x2fbc3f13b31c3401b3f48c4353388a106e3ad04e` |
-| DiamondCut facet | `0xc0c5bb476e0b23739363c1b6b6fd39b562c560f7` |
-| DiamondLoupe facet | `0xfb4a566fa568d9381c8043c2df3a5bf5d0c9716e` |
-| Ownership facet | `0x518e0b757f540b99aa8c900075e4f31063e372fa` |
-| Registry facet | `0xe28c5214ac05399feaf1ce59b681579323faa9b0` |
-| NFT facet | `0x6d43a4edad97f3f93ec5ee5a9b4e7d9f81ea9f0b` |
-| Royalties facet | `0x504ad3fef36e2e7f9865cbd9c8eea8e44358b71a` |
-| Access facet | `0xcf52a77b429693f83218863737966c1867f5133c` |
+| ArtistRuntimeFactory | `0x708d35eee7c1416f6d332344068be9d714aec24c` |
+| ArtistDirectory | `0x8e611ef60169f8ed93019de4a3034a504ae2ad29` |
+| Initializer | `0x47c0d0319f1235e3820e3a5291644ec94a53c105` |
+| DiamondCut facet | `0xae55a2bd754dad2592e929ee70c9961b3ab88c17` |
+| DiamondLoupe facet | `0x5ce28a06ab007cb36e6da098061374a5997851de` |
+| Ownership facet | `0x8da0b360546567bcdc4b8bf96e9f2703cc3b81b3` |
+| Registry facet | `0x726eee6e4aa000b9b8185164ee56b1fe90650b31` |
+| NFT facet | `0x7078d237b0be431c9ee98900f7db296595e041ec` |
+| Royalties facet | `0x8262a1ac59ba8afca9c2f8dbde038fb68df21821` |
+| Access facet | `0x1e2cbc630420b037597539f1a00664de50c3ef6b` |
 
 Product/CDM anchors:
 
 | Item | Value |
 | --- | --- |
-| Product DevNet CDM `ContractRegistry` | `0x05662b3dbd5dd9f2ff92d67630477e84b0b37c1f` |
-| Retired registry to avoid | `0x59b0245778917af55224e5f8fb55f7f8d452619f` |
-| Product SDK | `@parity/product-sdk@0.27.0` (0.1.45 recovery candidate) |
-| Product host SDK | `@parity/product-sdk-host@0.19.1`, TruAPI `0.13.1` / codec 1 |
-| Statement Store SDK | `@parity/product-sdk-statement-store@0.6.9` |
+| Product DevNet CDM | Directory/factory version 2 in `web/src/generated/contracts/cdm.json`; verify the selected Host environment through the deployment preflight |
+| Product SDK | `@parity/product-sdk@0.39.0` |
+| Product host SDK | `@parity/product-sdk-host@0.28.0`, TrUAPI `0.25.0` |
+| Statement Store SDK | `@parity/product-sdk-statement-store@0.7.3` |
 | Product deploy CLI | `@parity/polkadot-app-deploy@0.20.0` plus the host-profile preflight |
 
 The earlier 0.1.29 gate had separate CDM validation and default-viem release
-CIDs. For the current 0.1.48 gate, supply the published CDM executable CID
+CIDs. For the recorded 0.1.62 gate, supply the published CDM executable CID
 through `--pilot-release-cid`. The readiness script requires matching Product
 payment/key, room, rollback and pilot candidate identities. Do not repeat a
 paid transaction to populate another evidence file.
 
 ## Rollback
 
-Rollback is static and reversible:
+Use a compatible **current-format** artifact and preserve the current server
+state. Product 0.1.61 is the recorded client rollback artifact for 0.1.62;
+[the rollout record](../backlog/implementation/evidence/product-0.1.62-rollout-2026-10-25.md)
+and [deployment runbook](deployment-configuration.md) bind its exact identity.
+The September 0.1.25/0.1.29 rehearsal is historical evidence, not a safe target
+for the reset catalog.
 
-Historical 0.1.29 evidence: an owner-approved temporary rollback/restore was
-rehearsed on 2026-09-29. This does not satisfy the rollback gate for 0.1.48.
-The rebuilt 0.1.25 CDM/debug CAR was published at
-`bafybeicew7wtqc6s6kq37nnv3yzsfg2tq4dalaxbamrvs443z4ikhunrsa`;
-Product Desktop loaded its 12-track catalog and reopened an already-paid
-protected track with audible playback, without another payment. The exact
-prior 0.1.29 default-`viem` release CID
-`bafybeihe4oty4sdifkbajty76kgj5gasvoqqpv5bnssmg65mcdhduqwpkm`
-was then restored on both DotNS names, and the same catalog/key/playback
-check passed after a cache clear. The old rebuilt CID is **not** proven
-byte-identical to the historical 0.1.25 room-proven CID. A 0.1.26 or
-default-`viem` reconstruction is not a substitute for that target.
+1. Bind the candidate and compatible rollback to exact SHA, CID, appVersion,
+   Host profile and retained CAR/config. Do not rebuild a historical artifact
+   and call it byte-identical. Client rollback precedes any API rollback.
+2. Retain the latest keys, catalog, receipts, revocations, session epoch and
+   permanent nonce reservations. Never overwrite later writes with a pre-reset
+   snapshot. Keep current-format key custody and the existing single writer.
+3. Follow the [Product publication procedure](product-devnet-deployment.md),
+   including Host-profile preflight, local signer and guarded root/app updates.
+   Verify finalized contenthashes, executable manifest/appVersion and public
+   artifact bytes. Keep the signer local and remove it after publication.
+4. Check existing entitlement/key delivery and walletless room sound without
+   another payment. Then restore the exact candidate artifact and repeat those
+   checks, including any consented Host-cache reset actually needed.
+5. Record old/new identities, finalized references, preserved custody/state,
+   session interruption and actual results in candidate-bound W13 evidence.
 
-The historical rehearsal used `--no-manifest` to avoid `pad --input-car` independently
-uploading the executable path from a config with different bytes. It changed
-both contenthashes but left manifest text records unchanged. This is adequate
-evidence for the observed single-account content/access recovery, **not** a
-complete long-lived rollback procedure with consistent Product metadata.
-Product Desktop also mixed JavaScript from adjacent CIDs until its cache was
-cleared with owner consent on each switch. Prefer an isolated alias for future
-rehearsals; on a public test name, warn that active sessions may reload. Never
-store or paste the DotNS phrase into the repo or chat. The steps below record
-the 0.1.29 rehearsal; for 0.1.48, use the exact published 0.1.47 artifact as
-the rollback target and restore the exact 0.1.48 CID before claiming its
-rollback gate.
-
-1. Identify the selected old commit, build flags, Product appVersion, and
-   observed CID. Preserve the exact current release CAR and config before
-   switching; verify the CAR's storage CID equals the currently published CID.
-   Do not rebuild the release from a documentation branch for restoration.
-2. In a clean checkout at the selected old SHA, run `npm ci`,
-   `npm run smoke:production-env`, `npm run smoke:devnet`, and
-   `npm run smoke:product-journey`. Build with the selected Product profile,
-   then verify the embedded SHA and appVersion. A static journey with missing
-   live JSON remains blocked, not passed.
-3. With explicit owner approval for the exact candidate CID and a locally
-   entered DotNS mnemonic, verify the signer owns both names, then publish
-   the selected old CAR using `pad` 0.20.0 `--input-car --no-manifest`.
-   Verify the finalized CID against the offline preflight and link the
-   executable subname to that exact CID with owner/current-CID guards. Do not
-   let config-driven manifest publishing upload a different `dist-product`.
-4. Confirm Product loads that CID, the current catalog still resolves, and an
-   already-entitled protected track releases its key without another payment.
-   Then restore both names to the preserved exact 0.1.48 release CID shown
-   above (or re-upload its preserved CAR if necessary), verify both finalized
-   on-chain contenthashes, clear a stale Product host cache with owner consent
-   if needed, and repeat the catalog/key check. For a lasting rollback, update
-   and verify root/executable manifest text records and appVersion too.
-5. Keep Fly API and signaling origin allowlists unchanged while public Product
-   or Netlify clients may still call them.
-6. Record both finalized DotNS transactions/CIDs, commit identities, observed
-   catalog/key results, session interruption, and any failure in W13 evidence.
-
-Catalog and key compatibility is additive: older `dotify:enc:v2:key-vN` refs
-remain readable only while their matching backend key-version secret is retained.
-Do not rotate or remove legacy key versions during W13.
+An artifact rollback/readback is not a physical payment/audio acceptance claim.
+Do not infer a completed rehearsal or pilot from static readiness checks.
 
 ## Monitoring
 
@@ -194,22 +162,21 @@ listening history as pilot evidence.
 | --- | --- |
 | Standalone desktop browser | Candidate for pilot after local and hosted smoke |
 | Standalone mobile browser | Candidate for pilot after real-device Free/playback/room smoke |
-| Product Desktop | CDM validation CID: existing paid access, full key release, audible protected playback, and hosted room to walletless Firefox guest observed. Desktop mobile-signing attempt was canceled; default-`viem` release first-sound confirmation remains open. |
-| Product Web gateway | CDM validation CID: new 4.2 PAS native payment, entitlement read-back, full key release, and audible protected playback observed. Owner reloaded the default-`viem` release and reopened existing paid access; release audio and a separate Web-hosted room capture remain open. |
-| Product iOS | Only external-browser continuation can be claimed until in-app WebRTC is proven |
+| Product Desktop | Requires exact installed Host/build signing, current-format playback, room and recovery evidence. Historical CDM observations do not certify 0.1.62 or later candidates. |
+| Product Web gateway | Public artifact verification exists for 0.1.62; candidate-bound audible access, signing and room acceptance remains separate. |
+| Product mobile | Requires physical in-app permission/location, signing, WebRTC audio, background/reopen and form checks on the selected Host build. Browser viewport/Host fixtures are insufficient. |
 
 Unsupported surfaces must stay visible in the readiness report rather than being
 inferred from Chromium or static Product builds.
 
 ## Pilot Protocol
 
-The proposed pilot size is intentionally small:
-
-| Role | Target | Owner action |
-| --- | --- | --- |
-| Artists | 3 | Owner recruits and obtains consent |
-| Hosts | 5 | Owner recruits and schedules rooms |
-| Listeners | 20 | Owner recruits, with no unsolicited outreach by agents |
+The owner's October 17 amendment caps the consented pilot at **42 participants
+across several continents**. The earlier 3 artists / 5 hosts / 20 listeners
+proposal is superseded. The owner chooses the role mix, recruits and obtains
+consent; agents do not send unsolicited invitations. Retain aggregate region
+and outcome counts only. W13 targets at least 20 observed supported-device
+joins, with actual success and uncertainty reported against the 95% target.
 
 Pilot tasks:
 
@@ -236,14 +203,15 @@ Collect aggregate facts only:
 | Understanding | Aggregate yes/no counts for artist control and value flow |
 
 The `--pilot-json` artifact must use pilot schema v2 and bind the aggregate
-decision to the exact candidate build being evaluated:
+decision to the exact candidate build being evaluated. This example is synthetic;
+replace every count, timestamp and result with observed candidate-bound evidence:
 
 ```json
 {
   "schemaVersion": 2,
   "candidate": {
     "gitSha": "<40-character-git-sha>",
-    "productAppVersion": "[0, 1, 48]",
+    "productAppVersion": "[0, 1, 62]",
     "runtimeAdapterKind": "product-cdm",
     "productChain": "devnet",
     "deployedCid": "<published-product-cdm-cid>",

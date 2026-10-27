@@ -6,6 +6,8 @@
 import type { ReactNode } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { TopBar } from '../components/TopBar';
+import { ToastRegion } from '../components/ToastRegion';
+import { PlayerDockSurface } from '../components/PlayerDockSurface';
 import { AccountWalletModal } from '../components/AccountWalletModal';
 import { TransactionModal } from '../components/TransactionModal';
 import { useNavigation } from '../app/providers/NavigationProvider';
@@ -42,6 +44,8 @@ export function ArtistPortalView({ children }: { children: ReactNode }) {
         </main>
 
         <TransactionModal />
+        <PlayerDockSurface />
+        <ToastRegion />
       </div>
     </>
   );

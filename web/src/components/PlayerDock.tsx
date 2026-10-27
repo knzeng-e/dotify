@@ -3,7 +3,7 @@
 // draggable seek bar, and mute all act in place and never navigate. Only the
 // artwork/title and the explicit "Player" affordance open the full player view.
 
-import { LockKeyhole, Maximize2, Pause, Play, Radio, Repeat1, Shuffle, SkipBack, SkipForward, Volume2, VolumeX } from 'lucide-react';
+import { LockKeyhole, Maximize2, Pause, Play, Radio, Repeat1, Shuffle, SkipBack, SkipForward, Volume2, VolumeX, X } from 'lucide-react';
 import type { CSSProperties } from 'react';
 import { CoverImage } from './CoverImage';
 import { AvatarStack } from './Presence';
@@ -26,7 +26,8 @@ type PlayerDockProps = {
   socketStatus: SocketStatus;
   audioStartupStatus?: string | null;
   onOpenPlayer: () => void;
-  onStartRoom: () => void;
+  onStartRoom?: () => void;
+  onClose: () => void;
 };
 
 function formatClock(seconds: number) {
@@ -48,7 +49,8 @@ export function PlayerDock({
   socketStatus,
   audioStartupStatus,
   onOpenPlayer,
-  onStartRoom
+  onStartRoom,
+  onClose
 }: PlayerDockProps) {
   const currentTrack = playbackTrack(mode, trackInfo, track);
   const title = currentTrack?.title || (roomId ? 'Waiting for the host’s track' : '');
@@ -241,13 +243,18 @@ export function PlayerDock({
                 <Maximize2 size={15} />
                 Player
               </button>
-              <button className='player-dock-cta' type='button' onClick={onStartRoom}>
-                <Radio size={15} />
-                Listen together
-              </button>
+              {onStartRoom && (
+                <button className='player-dock-cta' type='button' onClick={onStartRoom}>
+                  <Radio size={15} />
+                  Listen together
+                </button>
+              )}
             </>
           )}
         </div>
+        <button className='player-dock-close' type='button' onClick={onClose} aria-label='Close mini-player' title='Close mini-player'>
+          <X size={18} aria-hidden='true' />
+        </button>
       </div>
       {isBusy && <span className='player-dock-status'>{playbackStatusLabel(status, mode, startupDetail)}</span>}
     </div>

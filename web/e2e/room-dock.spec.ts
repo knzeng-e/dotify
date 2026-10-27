@@ -80,7 +80,9 @@ for (const width of [320, 390, 430, 1440]) {
       await expect(guest.locator('.track-copy h2')).toHaveText('E2E Public Room Track');
       if (width <= 768) await guest.getByRole('tab', { name: /People/ }).click();
       await guest.getByRole('button', { name: 'Leave', exact: true }).click();
-      await expect(guest.locator('.track-copy h2')).toHaveText('Second room track');
+      await expect(guest.getByRole('heading', { name: 'Listen together.', exact: true })).toBeVisible();
+      await expect(guest.locator('.player-dock-title')).toHaveText('Second room track');
+      await expect(guest.locator('audio').first()).toHaveJSProperty('paused', true);
       await navigate(host, 'Music', 1440);
       await expect(host.locator('.player-dock-count')).toHaveText('1 here');
       await navigate(guest, 'Music', width);

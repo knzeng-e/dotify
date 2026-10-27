@@ -5,6 +5,16 @@
 // testable without a DOM; App.tsx passes the window values in.
 
 import type { View } from '../shared/types';
+import { getInitialRoomCode } from '../features/rooms/roomState';
+
+/** Leave the invitation behind without breaking a static/IPFS base path. */
+export function withoutRoomInvitation(href: string): string {
+  const url = new URL(href);
+  if (getInitialRoomCode(url.hash)) url.hash = '';
+  return url.toString();
+}
+
+export type NavigationOptions = { replace?: boolean; clearRoomLink?: boolean };
 
 export const SHEET_HISTORY_KEY = 'dotifySheet';
 

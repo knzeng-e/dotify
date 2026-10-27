@@ -541,8 +541,9 @@ test('host explicitly closes: the room is removed and the listener sees a clear 
     await expect(host.getByRole('dialog', { name: 'Close this room?' })).toContainText('1 person is listening with you');
     await host.getByRole('button', { name: 'Close for everyone', exact: true }).click();
 
-    await expect(listener.getByTestId('session-error')).toContainText(/host left|room closed|expired/i, { timeout: 20_000 });
-    await expect(listener.getByRole('button', { name: 'Try another room', exact: true })).toBeVisible();
+    await expect(listener.getByRole('heading', { name: 'Listen together.', exact: true })).toBeVisible({ timeout: 20_000 });
+    await expect(listener.getByRole('region', { name: 'Status messages' })).toContainText('Room ended');
+    await expect(listener.locator('.topbar').getByRole('button', { name: 'Rooms', exact: true })).toBeVisible();
     // The room is gone from the listener UI (no lingering room code).
     await expect(listener.getByTestId('room-code')).toHaveCount(0);
 

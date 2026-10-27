@@ -1,5 +1,12 @@
 # Dotify product memory
 
+## Delivery checkpoint, 2026-10-26
+
+Use the [current backlog reconciliation](../backlog/implementation/evidence/backlog-reconciliation-2026-10-26.md)
+and [candidate plan](../operations/pilot-release-plan.md) before acting on older
+snapshots below. They distinguish delivered work, Product 0.1.62 publication,
+pending client corrections and the remaining physical/pilot acceptance gates.
+
 ## Product identity
 
 Dotify is a decentralized cultural social hub for real-time shared listening.

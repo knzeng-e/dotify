@@ -1,5 +1,12 @@
 # W31 - Discovery follow-ups and lighter first load for the trusted pilot
 
+## Delivered checkpoint, 2026-10-26
+
+Issue #286 is a delivered record: #297 implemented the behavior and #332 merged
+the remaining Worldwide Report verification. [Evidence](evidence/W31-worldwide-report-2026-10-25.md)
+covers ordinary Web and a Product Host fixture. Physical Host location/media
+acceptance remains #274/#85/#89/#158. The prompt below is historical.
+
 ## Selected verification follow-up, 2026-10-25
 
 The original W31 implementation (#297) is merged and deployed. After #331's

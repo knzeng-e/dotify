@@ -769,7 +769,7 @@ input[type='range']::-moz-range-thumb {
   display: grid;
   width: min(100%, calc(var(--container) + (var(--content-pad) * 2)));
   min-height: var(--dock-height);
-  grid-template-columns: minmax(13rem, 0.85fr) minmax(19rem, 1.25fr) minmax(13rem, 0.85fr);
+  grid-template-columns: minmax(11rem, 0.85fr) minmax(17rem, 1.25fr) minmax(11rem, 0.85fr) auto;
   align-items: center;
   gap: 1rem;
   margin: 0 auto;
@@ -950,4 +950,22 @@ button.player-dock-chip:hover,
   color: var(--canvas);
   font-size: var(--text-xs);
   padding: 0.35rem 0.65rem;
+}
+
+.player-dock-close {
+  display: inline-flex;
+  width: 2.75rem;
+  height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink-soft);
+}
+.player-dock-close:hover {
+  border-color: var(--line-strong);
+  background: var(--surface);
+  color: var(--ink);
 }

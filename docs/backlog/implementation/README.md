@@ -11,8 +11,13 @@ W32/current-format jobs, encoder and playback are deployed, with native/live
 acceptance retained in #287/#317/#158. W33 code is merged but gateway access and
 measured activation remain blocked. W19's remaining scope is exact-Host location
 and lifecycle validation; do not restore manual scans/city exploration. W31's
-specific Worldwide-report verification subsequently merged through #332. W34 (#289)
-is the selected implementation, using the current v3 format; W35-W39 remain later steps.
+specific Worldwide-report verification subsequently merged through #332.
+The [October 26 reconciliation](evidence/backlog-reconciliation-2026-10-26.md)
+records W31/#286, W34/#289 and scoped 3D/#329 as delivered. W34 merged through
+#333 and is deployed with API/Web and Product 0.1.62 (#334). Payment recovery
+#335 and publication return #336 are merged but not yet published; navigation
+and mini-player exits #337 remain under review. W35/#290 is the next eligible
+streaming implementation; W13/device/first-sound gates remain open.
 
 ## Owner priority update: trusted pilot and streaming track, 2026-10-16
 
