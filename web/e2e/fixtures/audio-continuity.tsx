@@ -32,7 +32,8 @@ const tracks: CatalogTrack[] = ['a', 'b'].map(id => ({
 
 function Harness() {
   const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
-  const plainPolicy = Reflect.get(window, '__plainPolicy') as 'classic' | 'human-free' | undefined;
+  const plainPolicy = Reflect.get(window, '__plainPolicy') as 'classic' | 'human-free' | 'free' | undefined;
+  const encryptedOnPolicy = Boolean(Reflect.get(window, '__encryptedOnPolicy'));
   const [policyApplied, setPolicyApplied] = useState(!Reflect.get(window, '__plainSeedCandidate'));
   const [preparations, setPreparations] = useState(0);
   const playbackTracks = tracks.map(track =>
@@ -41,8 +42,8 @@ function Harness() {
           ...track,
           source: policyApplied ? ('artist' as const) : ('seed' as const),
           accessMode: plainPolicy,
-          encrypted: false,
-          audioRef: 'http://media.audio.test/unencrypted-policy.wav',
+          encrypted: encryptedOnPolicy && policyApplied,
+          audioRef: encryptedOnPolicy ? track.audioRef : 'http://media.audio.test/unencrypted-policy.wav',
           localUrl: 'http://media.audio.test/unencrypted-policy.wav'
         }
       : track

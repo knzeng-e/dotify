@@ -1529,7 +1529,18 @@ export function useCatalog(deps: UseCatalogDeps) {
   }
 
   function standbyIdentity(track: CatalogTrack) {
-    return JSON.stringify([preparationIdentityRef.current, keyRequestPurposeRef.current, track.id, track.hash, track.audioRef, track.accessMode]);
+    return JSON.stringify([
+      preparationIdentityRef.current,
+      keyRequestPurposeRef.current,
+      track.source,
+      track.encrypted,
+      track.id,
+      track.hash,
+      track.artistAddress?.toLowerCase(),
+      track.audioRef,
+      track.localUrl,
+      track.accessMode
+    ]);
   }
 
   async function prepareNextPlayback(track: CatalogTrack, signal: AbortSignal) {

@@ -14,7 +14,7 @@ async function setup(
   fault: Fault = 'none',
   blob = false,
   continuous = false,
-  plainPolicy?: { mode: 'classic' | 'human-free'; initiallySeed?: boolean }
+  plainPolicy?: { mode: 'classic' | 'human-free' | 'free'; initiallySeed?: boolean; encryptedOnPolicy?: boolean }
 ) {
   const requests: string[] = [];
   let attempts = 0,
@@ -31,6 +31,7 @@ async function setup(
       Reflect.set(window, '__STREAMING_SCOPE__', scope);
       Reflect.set(window, '__plainPolicy', plainPolicy?.mode);
       Reflect.set(window, '__plainSeedCandidate', plainPolicy?.initiallySeed ?? false);
+      Reflect.set(window, '__encryptedOnPolicy', plainPolicy?.encryptedOnPolicy ?? false);
       if (blob) Object.defineProperty(window, 'MediaSource', { value: undefined });
     },
     { scope: fixture.scope, blob, plainPolicy }
@@ -314,32 +315,33 @@ for (const scenario of [
   });
 }
 
-test('a ready local candidate cannot bypass a newly applied artist policy', async ({ page }) => {
-  await installAudioProbe(page);
-  const probe = await setup(page, 'none', false, true, { mode: 'classic', initiallySeed: true });
-  await playing(page);
-  probe.setAccess(false);
-  await audio(page).evaluate(element => {
-    element.currentTime = 11;
-  });
-  await expect
-    .poll(() =>
-      page.evaluate(() =>
-        (Reflect.get(window, '__createdAudio') as HTMLAudioElement[]).some(
-          element => !element.isConnected && element.src.includes('unencrypted-policy.wav') && element.readyState >= 3
+for (const encryptedOnPolicy of [false, true])
+  test(`a ready local candidate cannot bypass a newly applied artist policy (encrypted=${encryptedOnPolicy})`, async ({ page }) => {
+    await installAudioProbe(page);
+    const probe = await setup(page, 'none', false, true, { mode: encryptedOnPolicy ? 'free' : 'classic', initiallySeed: true, encryptedOnPolicy });
+    await playing(page);
+    probe.setAccess(false);
+    await audio(page).evaluate(element => {
+      element.currentTime = 11;
+    });
+    await expect
+      .poll(() =>
+        page.evaluate(() =>
+          (Reflect.get(window, '__createdAudio') as HTMLAudioElement[]).some(
+            element => !element.isConnected && element.src.includes('unencrypted-policy.wav') && element.readyState >= 3
+          )
         )
       )
-    )
-    .toBe(true);
-  const readsBeforeSelection = probe.accessReads();
-  await page.getByRole('button', { name: 'Apply artist policy to b', exact: true }).click();
-  await page.getByRole('button', { name: 'Select b', exact: true }).click();
-  await expect(page.getByTestId('state')).toHaveAttribute('data-track', /:b$/);
-  await expect(page.getByTestId('state')).toHaveAttribute('data-pending', 'false');
-  await expect(page.getByTestId('state')).toHaveAttribute('data-access', 'false');
-  expect(probe.accessReads()).toBeGreaterThan(readsBeforeSelection);
-  await expect(audio(page)).toHaveJSProperty('paused', true);
-  expect(
-    await page.evaluate(() => (Reflect.get(window, '__createdAudio') as HTMLAudioElement[]).some(element => element.src.includes('unencrypted-policy.wav')))
-  ).toBe(false);
-});
+      .toBe(true);
+    const readsBeforeSelection = probe.accessReads();
+    await page.getByRole('button', { name: 'Apply artist policy to b', exact: true }).click();
+    await page.getByRole('button', { name: 'Select b', exact: true }).click();
+    await expect(page.getByTestId('state')).toHaveAttribute('data-track', /:b$/);
+    await expect(page.getByTestId('state')).toHaveAttribute('data-pending', 'false');
+    await expect(page.getByTestId('state')).toHaveAttribute('data-access', 'false');
+    expect(probe.accessReads()).toBeGreaterThan(readsBeforeSelection);
+    await expect(audio(page)).toHaveJSProperty('paused', true);
+    expect(
+      await page.evaluate(() => (Reflect.get(window, '__createdAudio') as HTMLAudioElement[]).some(element => element.src.includes('unencrypted-policy.wav')))
+    ).toBe(false);
+  });
