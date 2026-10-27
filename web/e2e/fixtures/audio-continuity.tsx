@@ -72,6 +72,7 @@ function Harness() {
     selectedTrackId: catalog.selectedTrackId,
     lineup: [],
     onLineupChange: noop,
+    onPrepareNext: new URLSearchParams(location.search).has('continuous') ? catalog.prepareNextPlayback : undefined,
     onOpenTrack: track => void catalog.selectTrack(track),
     onEmitPlayerState: noop
   });
@@ -100,6 +101,7 @@ function Harness() {
         data-playing={playback.transport.playing}
       />
       <PersistentAudio
+        adoptPreparedAudio={catalog.adoptPreparedAudio}
         audioSource={catalog.audioSource}
         audioSourceGeneration={catalog.audioSourceGeneration}
         localAudioRef={catalog.localAudioRef}

@@ -1,3 +1,4 @@
+import { ResumeListening } from '../components/ResumeListening';
 import { ArrowRight, Radio } from 'lucide-react';
 import type { MutableRefObject } from 'react';
 
@@ -129,6 +130,7 @@ export function ListenView({
         </button>
       </header>
 
+      <ResumeListening />
       {/* Live rooms lead in the document, not only visually, when people are listening. */}
       {openRooms.length > 0 && liveSection}
 

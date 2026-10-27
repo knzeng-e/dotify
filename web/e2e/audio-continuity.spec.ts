@@ -8,7 +8,7 @@ const fixture = JSON.parse(readFileSync(process.env.DOTIFY_STREAMING_FIXTURE_PAT
   files: Record<string, string>;
 };
 type Fault = 'none' | 'relay' | 'retry' | 'truncated' | 'slow' | 'held' | 'corrupt' | 'failed' | 'failed-startup' | 'denied' | 'key-retry';
-async function setup(page: Page, fault: Fault = 'none', blob = false) {
+async function setup(page: Page, fault: Fault = 'none', blob = false, continuous = false) {
   const requests: string[] = [];
   let attempts = 0,
     keyRequests = 0;
@@ -49,7 +49,7 @@ async function setup(page: Page, fault: Fault = 'none', blob = false) {
       const value = object === 'manifest.json' ? fixture.manifest : fixture.files[object];
       if (!value) return route.fulfill({ status: 404 });
       if (fault === 'relay' && !url.includes('/api/media/')) return route.fulfill({ status: 503 });
-      if (name === 'a' && object === '160/segment-001.bin') {
+      if (name === 'a' && object === '96/segment-001.bin') {
         attempts++;
         if (fault === 'held') await gate;
         if (fault === 'slow') await new Promise(resolve => setTimeout(resolve, 6000));
@@ -57,15 +57,15 @@ async function setup(page: Page, fault: Fault = 'none', blob = false) {
       }
       if (name === 'a' && fault === 'failed-startup' && object === 'manifest.json') return route.fulfill({ status: 503 });
       const body = Buffer.from(value, 'base64');
-      if (name === 'a' && fault === 'corrupt' && object === '160/segment-001.bin') body[0] ^= 1;
-      if (name === 'a' && fault === 'truncated' && object === '160/segment-001.bin' && attempts === 1)
+      if (name === 'a' && fault === 'corrupt' && object === '96/segment-001.bin') body[0] ^= 1;
+      if (name === 'a' && fault === 'truncated' && object === '96/segment-001.bin' && attempts === 1)
         return route.fulfill({ body: body.subarray(0, body.length - 10), headers: { 'access-control-allow-origin': '*' } });
       return route.fulfill({ body, headers: { 'content-type': 'application/octet-stream', 'access-control-allow-origin': '*' } });
     }
     if (url.startsWith('http://127.0.0.1:5286') || url.startsWith('blob:')) return route.continue();
     return route.fulfill({ status: 503, body: 'No live network in synthetic regression tests' });
   });
-  await page.goto('/e2e/fixtures/audio-continuity.html');
+  await page.goto('/e2e/fixtures/audio-continuity.html' + (continuous ? '?continuous=1' : ''));
   await page.getByRole('button', { name: 'Select a', exact: true }).click();
   return { requests, attempts: () => attempts, keyRequests: () => keyRequests, release };
 }
@@ -82,7 +82,7 @@ for (const fault of ['retry', 'truncated', 'relay'] as const)
     if (fault !== 'relay') await expect.poll(probe.attempts).toBe(2);
     await expect(page.getByTestId('state')).toHaveAttribute('data-generation', '1');
     expect(probe.keyRequests()).toBe(1);
-    expect(probe.requests.every(item => /manifest.json|160\//.test(item))).toBe(true);
+    expect(probe.requests.every(item => /manifest.json|(?:96|160|320)\//.test(item))).toBe(true);
   });
 test('pause during an outstanding segment stays paused when transport resumes', async ({ page }) => {
   const probe = await setup(page, 'held');
@@ -173,4 +173,64 @@ test('hosts without MSE retry ciphertext objects and play the same authenticated
   await playing(page);
   expect(probe.attempts()).toBe(2);
   await expect(page.getByTestId('state')).toHaveAttribute('data-generation', '1');
+});
+
+test('an authorized silent next source is adopted at the boundary without another key or download', async ({ page }) => {
+  await page.addInitScript(() => {
+    const created: HTMLAudioElement[] = [];
+    Reflect.set(window, '__createdAudio', created);
+    window.Audio = new Proxy(Audio, {
+      construct(target, args) {
+        const audio = Reflect.construct(target, args) as HTMLAudioElement;
+        created.push(audio);
+        return audio;
+      }
+    });
+  });
+  const probe = await setup(page, 'none', false, true);
+  await playing(page);
+  await audio(page).evaluate(element => {
+    element.currentTime = 11;
+  });
+  await expect.poll(() => probe.requests.some(path => path === 'b:96/segment-001.bin')).toBe(true);
+  await expect.poll(probe.keyRequests).toBe(2);
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const prepared = (Reflect.get(window, '__createdAudio') as HTMLAudioElement[]).find(audio => !audio.isConnected && audio.src && audio.readyState >= 3);
+        Reflect.set(window, '__expectedWarmAudio', prepared);
+        return Boolean(prepared);
+      })
+    )
+    .toBe(true);
+  await page.evaluate(() => {
+    const sample = { ended: 0, playing: 0 };
+    Reflect.set(window, '__warmBoundary', sample);
+    document.querySelector('audio')!.addEventListener(
+      'ended',
+      () => {
+        sample.ended = performance.now();
+      },
+      { once: true }
+    );
+    document.addEventListener(
+      'playing',
+      event => {
+        if (sample.ended && event.target === document.querySelector('audio')) sample.playing = performance.now();
+      },
+      true
+    );
+  });
+  await expect(page.getByTestId('state')).toHaveAttribute('data-track', /:b$/, { timeout: 20000 });
+  await expect(audio(page)).toHaveJSProperty('paused', false);
+  await expect.poll(() => page.evaluate(() => (Reflect.get(window, '__warmBoundary') as { playing: number }).playing)).toBeGreaterThan(0);
+  const gap = await page.evaluate(() => {
+    const value = Reflect.get(window, '__warmBoundary') as { ended: number; playing: number };
+    return value.playing - value.ended;
+  });
+  expect(gap).toBeGreaterThanOrEqual(0);
+  expect(gap).toBeLessThan(300);
+  expect(await page.evaluate(() => document.querySelector('audio') === Reflect.get(window, '__expectedWarmAudio'))).toBe(true);
+  expect(probe.keyRequests()).toBe(2);
+  await expect(audio(page)).toHaveJSProperty('error', null);
 });

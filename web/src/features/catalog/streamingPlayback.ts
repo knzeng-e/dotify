@@ -1,3 +1,4 @@
+import { AdaptiveStreaming } from './adaptiveStreaming';
 import { readStreamingManifest, decryptStreamingMedia, type StreamingScope } from './streamingFormat';
 import { readAudioBody } from './readAudioBody';
 import { getAudioGatewayUrls } from '../../services/pinata';
@@ -6,7 +7,17 @@ import { streamingObjectUrls } from './streamingTransport';
 import type { StreamingStartupMetric } from './audioStartupTelemetry';
 type ReaderMetric = Pick<
   StreamingStartupMetric,
-  'phase' | 'objectPath' | 'objectBytes' | 'segmentIndex' | 'gatewayUrl' | 'gatewayRecovered' | 'fromCache' | 'errorKind'
+  | 'phase'
+  | 'objectPath'
+  | 'objectBytes'
+  | 'segmentIndex'
+  | 'gatewayUrl'
+  | 'gatewayRecovered'
+  | 'fromCache'
+  | 'errorKind'
+  | 'bitrateKbps'
+  | 'bufferedSeconds'
+  | 'throughputKbps'
 >;
 type TransportObservation = Pick<ReaderMetric, 'gatewayUrl' | 'gatewayRecovered' | 'fromCache'>;
 const api = (import.meta.env.VITE_DOTIFY_API_URL as string | undefined)?.replace(/\/$/, '').replace(/\/api$/, '');
@@ -68,7 +79,7 @@ export async function fetchStreamingObject(
         }
         const bytes = await readAudioBody(response, AbortSignal.any([signal, controller.signal]), 12_000, maxBytes);
         if (exactLength && path !== 'manifest.json' && bytes.length !== maxBytes) throw new Error('Incomplete streaming object');
-        if (path === 'manifest.json' || path === '160/init.bin') storeWarmObject(cacheKey, bytes);
+        storeWarmObject(cacheKey, bytes);
         observe?.({ gatewayUrl: url, gatewayRecovered: attempt > 0 || index > 0, fromCache: false });
         return bytes;
       } catch {
@@ -136,6 +147,7 @@ export async function createStreamingPlayback(input: {
   signal: AbortSignal;
   audio: () => HTMLAudioElement | null;
   onError: (error: unknown) => void;
+  bufferAheadSeconds?: () => number;
   fetchObject?: typeof fetchStreamingObject;
   onMetric?: (metric: ReaderMetric) => void;
 }): Promise<{ url: string; gainDb: number; progressive: boolean }> {
@@ -148,11 +160,12 @@ export async function createStreamingPlayback(input: {
     reportedErrors.add(error);
     emit({ phase: 'error', errorKind: authentication ? 'authentication' : 'transport' });
   };
-  const get = async (cid: string, path: string, maxBytes: number, signal: AbortSignal) => {
-    const bytes = await (input.fetchObject ?? fetchStreamingObject)(cid, path, maxBytes, signal, metric =>
-      emit({ phase: 'gateway-selected', objectPath: path, ...metric })
-    );
-    if (path === '160/segment-000.bin') emit({ phase: 'first-object-ready', objectPath: path, objectBytes: bytes.length, segmentIndex: 0 });
+  const get = async (cid: string, path: string, maxBytes: number, signal: AbortSignal, observe?: (metric: TransportObservation) => void) => {
+    const bytes = await (input.fetchObject ?? fetchStreamingObject)(cid, path, maxBytes, signal, metric => {
+      emit({ phase: 'gateway-selected', objectPath: path, ...metric });
+      observe?.(metric);
+    });
+    if (path.endsWith('/segment-000.bin')) emit({ phase: 'first-object-ready', objectPath: path, objectBytes: bytes.length, segmentIndex: 0 });
     return bytes;
   };
   let context;
@@ -170,9 +183,15 @@ export async function createStreamingPlayback(input: {
     throw error;
   }
   input.signal.throwIfAborted();
-  const rendition = context.manifest.renditions[1]; // Fixed 160 kb/s first activation; ABR is W35.
+  const rendition = context.manifest.renditions[0];
+  const adaptive = new AdaptiveStreaming();
   const read = async (object: typeof rendition.init, signal: AbortSignal) => {
-    const bytes = await get(input.cid, object.path, object.encryptedLength, signal);
+    const start = performance.now();
+    let cached = true;
+    const bytes = await get(input.cid, object.path, object.encryptedLength, signal, metric => {
+      cached = metric.fromCache !== false;
+    });
+    if (object.kind === 'media') adaptive.observe(bytes.length, performance.now() - start, cached);
     let clear;
     try {
       clear = await decryptStreamingMedia(context, object, bytes);
@@ -220,15 +239,33 @@ export async function createStreamingPlayback(input: {
       source.duration = context.manifest.durationSeconds;
       const buffer = source.addSourceBuffer(MIME);
       await append(buffer, await read(rendition.init, input.signal), input.signal);
+      let appendedBitrate = rendition.bitrateKbps;
+      // W32 segments share codec and nominal boundaries. Inconsistent counts
+      // cannot be switched safely; retain the authenticated lowest rendition.
+      const aligned = context.manifest.renditions.every(item => item.segments.length === rendition.segments.length);
       await pumpStreamingReadAhead({
         chunks: rendition.segments,
         signal: input.signal,
         readAheadChunks: 1,
-        prepareChunk: (object, signal) => read(object, signal),
-        appendChunk: async (object, bytes, signal) => {
-          // Keep network work close to playback while paused/slow; total media is
-          // bounded to 15 minutes and remains seekable backwards in this slice.
-          while (object.index * 4 > (input.audio()?.currentTime ?? 0) + 24) await pause(150, signal);
+        prepareChunk: async (object, signal) => {
+          while (object.index * 4 > (input.audio()?.currentTime ?? 0) + (input.bufferAheadSeconds?.() ?? 30)) await pause(150, signal);
+          const audio = input.audio();
+          const end = audio?.buffered.length ? audio.buffered.end(audio.buffered.length - 1) : 0;
+          const headroom = Math.max(0, end - (audio?.currentTime ?? 0));
+          const connection = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
+          const bitrate = aligned ? adaptive.choose(object.index, headroom, connection?.saveData) : 96;
+          const chosen = context.manifest.renditions.find(item => item.bitrateKbps === bitrate)!;
+          const bytes = await read(chosen.segments[object.index], signal);
+          return { chosen, bytes };
+        },
+        appendChunk: async (object, { chosen, bytes }, signal) => {
+          if (chosen.bitrateKbps !== appendedBitrate) {
+            // A new authenticated initialization segment precedes its media.
+            // The codec is unchanged; no unverified path or alternate key is used.
+            await append(buffer, await read(chosen.init, signal), signal);
+            appendedBitrate = chosen.bitrateKbps;
+          }
+          emit({ phase: 'rendition-selected', bitrateKbps: appendedBitrate, throughputKbps: adaptive.throughputKbps ?? undefined, segmentIndex: object.index });
           await append(buffer, bytes, signal);
           if (object.index === 0) emit({ phase: 'first-segment-appended', segmentIndex: 0 });
         }

@@ -1,3 +1,7 @@
+import { useListeningCheckpoint } from '../../features/player/useListeningCheckpoint';
+import { useSystemMediaSession } from '../../features/player/useSystemMediaSession';
+import { useWalletContext } from './WalletProvider';
+import type { ListeningCheckpoint } from '../../features/player/listeningCheckpoint';
 // Playback provider - wraps the usePlayback hook (media elements + transport
 // state that survives tab changes) and owns the three cross-domain handlers it
 // and PersistentAudio need: open a track (catalog select/open + route to the
@@ -29,6 +33,9 @@ type PlaybackValue = {
   closePlayer: () => void;
   reopenPlayer: () => void;
   requestRoomExit: () => void;
+  resumeOffer: (ListeningCheckpoint & { title: string; artist: string }) | null;
+  resumeListening: () => void;
+  dismissResume: () => void;
 };
 
 const PlaybackContext = createContext<PlaybackValue | null>(null);
@@ -43,6 +50,7 @@ export function PlaybackProvider({ children }: { children: ReactNode }) {
   const previousView = useRef(activeView);
   const catalog = useCatalogContext();
   const session = useSessionContext();
+  const wallet = useWalletContext();
 
   function handlePrepareLocalStream() {
     void session.prepareLocalStream(catalog.audioSource, catalog.trackInfo);
@@ -51,6 +59,7 @@ export function PlaybackProvider({ children }: { children: ReactNode }) {
   function handleOpenTrack(track: CatalogTrack) {
     const showAccessGateOnDenied = session.mode === 'host' && Boolean(session.roomId);
     setPlayerDismissed(false);
+    checkpoint.clear();
     void catalog.openTrack(track, session.socketEmit, session.setLocalStreamReady, session.closeHostPeers, showAccessGateOnDenied);
   }
 
@@ -77,10 +86,33 @@ export function PlaybackProvider({ children }: { children: ReactNode }) {
     onLineupChange: session.updateRoomLineup,
     onOpenTrack: handleOpenTrack,
     onPrepareKeys: catalog.prepareQueuedContentKeys,
+    onPrepareNext: catalog.prepareNextPlayback,
     onEmitPlayerState: session.emitPlayerState
   });
 
+  const selectedTrack = catalog.catalogTracks.find(track => track.id === catalog.selectedTrackId);
+  const checkpoint = useListeningCheckpoint(
+    playback,
+    catalog.audioSource ? selectedTrack : undefined,
+    !session.roomId && !playerDismissed,
+    `${wallet.connectedWallet?.evmAddress?.toLowerCase() ?? 'anonymous'}:${wallet.expectedChainId ?? ''}`
+  );
+  const resumeTrack = checkpoint.offer
+    ? catalog.catalogTracks.find(track => track.id === checkpoint.offer!.trackId && track.hash === checkpoint.offer!.hash && track.active !== false)
+    : null;
+  useSystemMediaSession(playback, catalog.trackInfo, Boolean(catalog.trackInfo) && (!playerDismissed || Boolean(session.roomId)));
+
+  function resumeListening() {
+    if (!resumeTrack || !checkpoint.offer || session.roomId) return;
+    playback.restoreListening(resumeTrack.id, checkpoint.offer.position, checkpoint.offer.queue);
+    checkpoint.clear();
+    setPlayerDismissed(false);
+    playback.requestAutoplay();
+    handleOpenTrack(resumeTrack);
+  }
+
   function stopPlayback() {
+    catalog.cancelNextPlayback();
     playback.stop();
     catalog.cancelPlaybackPreparation();
   }
@@ -96,7 +128,10 @@ export function PlaybackProvider({ children }: { children: ReactNode }) {
     previousRoom.current = '';
     setPendingExit(null);
     stopPlayback();
-    if (dismissPlayer) setPlayerDismissed(true);
+    if (dismissPlayer) {
+      setPlayerDismissed(true);
+      checkpoint.clear();
+    }
     if (session.mode === 'listener') restoreSoloMetadata();
     session.leaveSession();
     navigateToView('listen', { replace: true, clearRoomLink: true });
@@ -117,6 +152,7 @@ export function PlaybackProvider({ children }: { children: ReactNode }) {
       return;
     }
     stopPlayback();
+    checkpoint.clear();
     setPlayerDismissed(true);
   }
 
@@ -156,6 +192,12 @@ export function PlaybackProvider({ children }: { children: ReactNode }) {
       playback,
       playerDismissed,
       closePlayer,
+      resumeOffer:
+        !catalog.audioSource && !session.roomId && resumeTrack && checkpoint.offer
+          ? { ...checkpoint.offer, title: resumeTrack.title, artist: resumeTrack.artist }
+          : null,
+      resumeListening,
+      dismissResume: checkpoint.clear,
       reopenPlayer: () => setPlayerDismissed(false),
       requestRoomExit: () => requestExit(),
       openTrack: track => {
@@ -168,12 +210,13 @@ export function PlaybackProvider({ children }: { children: ReactNode }) {
     // recreated each render (as they were in App); they read live catalog/session
     // state, so memoizing on `playback` alone keeps the value fresh without churn.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [playback, playerDismissed]
+    [playback, playerDismissed, resumeTrack, checkpoint.offer]
   );
 
   return (
     <PlaybackContext.Provider value={value}>
       <PersistentAudio
+        adoptPreparedAudio={catalog.adoptPreparedAudio}
         audioSource={catalog.audioSource}
         audioSourceGeneration={catalog.audioSourceGeneration}
         localAudioRef={catalog.localAudioRef}

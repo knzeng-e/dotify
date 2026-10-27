@@ -969,3 +969,10 @@ button.player-dock-chip:hover,
   background: var(--surface);
   color: var(--ink);
 }
+
+.resume-listening { display: flex; align-items: center; gap: 1rem; padding: 1rem; margin: 1rem 0; border: 1px solid var(--line); border-radius: 18px; background: var(--surface); }
+.resume-listening > div { min-width: 0; flex: 1; display: grid; gap: .2rem; }
+.resume-listening strong, .resume-listening span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.resume-listening small, .resume-listening span { color: var(--muted); font-size: .8rem; }
+.resume-listening > button { flex-shrink: 0; min-width: 44px; min-height: 44px; }
+@media (max-width: 480px) { .resume-listening { gap: .5rem; padding: .75rem; flex-wrap: wrap; } .resume-listening > div { flex-basis: calc(100% - 60px); } }

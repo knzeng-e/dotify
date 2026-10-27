@@ -11,11 +11,11 @@ it('warms ciphertext without a key, then enforces the authenticated object lengt
   });
   await prefetchStreamingAudio(`dotify:enc:v3:key-v2:ipfs://${cid}`);
   expect(calls).toHaveLength(2);
-  expect(calls.every(url => /manifest.json|160\/init.bin/.test(url))).toBe(true);
+  expect(calls.every(url => /manifest.json|96\/init.bin/.test(url))).toBe(true);
   fetcher.mockImplementation(async () => new Response(new Uint8Array([1, 2, 3, 4])));
   // Speculative bytes are not trusted: an incompatible authenticated size must
   // cause a new transport read, never return a truncated cached object.
-  expect(await fetchStreamingObject(cid, '160/init.bin', 4, new AbortController().signal)).toEqual(new Uint8Array([1, 2, 3, 4]));
+  expect(await fetchStreamingObject(cid, '96/init.bin', 4, new AbortController().signal)).toEqual(new Uint8Array([1, 2, 3, 4]));
   expect(fetcher).toHaveBeenCalledTimes(3);
 });
 it('does not turn retired or malformed references into speculative requests', async () => {

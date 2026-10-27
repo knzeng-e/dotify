@@ -621,7 +621,7 @@
       "priority": "P1",
       "track": "Production spine",
       "phase": "Next",
-      "note": "Gapless, adaptive bitrate, next-track preparation, Media Session, local resume, background playback evidence, playback metrics."
+      "note": "W35 implementation from merged #337: authorized alternating-player preparation/adoption, measured ABR, optional system controls, scoped local resume and aggregate continuity evidence. docs/backlog/implementation/evidence/W35.md retains physical/background acceptance and publication boundaries."
     },
     {
       "id": "W36",

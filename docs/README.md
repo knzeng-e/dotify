@@ -4,6 +4,11 @@ Start with the task you want to complete. Dotify is a shared-listening hub with
 artist-owned runtimes; its [project overview](../README.md) explains the purpose
 and shows the current interface.
 
+Continuous listening implementation: [adaptive delivery, prepared transitions,
+system controls and local resume](explanation/continuous-listening.md). Its
+[W35 evidence](backlog/implementation/evidence/W35.md) separates browser checks
+from physical Product acceptance and publication.
+
 ## Use Dotify
 
 | I want to…                                        | Start here                                                                |

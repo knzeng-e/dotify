@@ -32,6 +32,11 @@ records these closures. Payment approval recovery (#335) and publication return
 mini-player exits (#337) remain under review. W35 (#290) is the next eligible
 streaming implementation after that correction is reviewed.
 
+October 27: #337 is merged. [W35/#290](implementation/W35-continuous-player.md)
+is now being implemented from that dev source, without a separate deployment;
+the owner will test the client corrections together. Its browser evidence does
+not close the physical-device or pilot gates.
+
 ## Status contract
 
 GitHub Project 5 owns live workflow status. This document records scope,
