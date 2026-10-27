@@ -358,7 +358,8 @@ jobs:
 
   playwright:
     name: W01 / Playwright core flows
-    runs-on: ubuntu-latest
+    # Match the stable codec runner for browser system dependency installation.
+    runs-on: ubuntu-24.04
     needs: api
     defaults:
       run:
