@@ -224,6 +224,7 @@ export function usePlayback(deps: UsePlaybackDeps) {
       // A MediaStream's currentTime is time since reception, not song position.
       // Neither its events nor a leftover solo element may own the room clock.
       if (!audio || mode !== 'host' || audio !== localAudioRef.current) return;
+      if (audio.paused) playbackContinuity.nativePause();
       setTransport(previous => ({
         // Keep play intent while buffering so the transport still offers Pause.
         playing: !audio.paused,
@@ -242,6 +243,7 @@ export function usePlayback(deps: UsePlaybackDeps) {
 
   // Mark intent to start playback as soon as the active source is ready.
   const requestAutoplay = useCallback(() => {
+    playbackContinuity.clearIntent();
     userPausedRef.current = false;
     autoplayIntentRef.current = true;
   }, []);
@@ -300,7 +302,8 @@ export function usePlayback(deps: UsePlaybackDeps) {
 
   useEffect(() => {
     setRemotePausedByUser(false);
-  }, [roomId]);
+    if (mode === 'listener') playbackContinuity.event('paused');
+  }, [roomId, mode]);
 
   // Consume the live stream continuously, but disable/mute output during host
   // pause or local listening pause. No seeks, stops or peer rebuilds are needed.
@@ -350,6 +353,7 @@ export function usePlayback(deps: UsePlaybackDeps) {
 
   const beginLoadedSourcePlaybackAttempt = useCallback((): HostAudioStartup | null => {
     if (!audioSource) return null;
+    playbackContinuity.clearIntent();
     const startedAt = nowMs();
     const attemptId = `loaded:${Date.now()}:${Math.random().toString(36).slice(2)}`;
     const startup: HostAudioStartup = {
@@ -709,8 +713,9 @@ export function usePlayback(deps: UsePlaybackDeps) {
 
   const handleHostWaiting = useCallback(
     (audio: HTMLAudioElement) => {
-      if (!startupForAudio(audio) || audio.paused) return;
-      playbackContinuity.event('waiting');
+      const startup = startupForAudio(audio);
+      if (!startup || audio.paused) return;
+      if (startup.mediaPlayingReported) playbackContinuity.event('waiting');
       syncFromAudio(audio);
       setStatus('buffering');
     },
@@ -766,6 +771,7 @@ export function usePlayback(deps: UsePlaybackDeps) {
     (audio: HTMLAudioElement): boolean => {
       const startup = startupForAudio(audio);
       if (!startup || !reportHostPlaybackError(startup, 'media-error')) return false;
+      playbackContinuity.event('paused');
       onHostMediaSettled(startup.source, true, startup.attemptId);
       return true;
     },

@@ -11,7 +11,13 @@ export class PlaybackContinuity {
     this.event('paused');
     this.intent = this.now();
   }
-  event(next: 'playing' | 'waiting' | 'paused') {
+  clearIntent() {
+    this.intent = null;
+  }
+  nativePause() {
+    this.event('paused', true);
+  }
+  event(next: 'playing' | 'waiting' | 'paused', preserveIntent = false) {
     const now = this.now();
     if (this.since !== null) {
       const elapsed = Math.max(0, now - this.since);
@@ -24,7 +30,7 @@ export class PlaybackContinuity {
       this.nextMs = [...this.nextMs.slice(-39), Math.max(0, now - this.intent)];
       this.intent = null;
     }
-    if (next === 'paused') this.intent = null;
+    if (next === 'paused' && !preserveIntent) this.intent = null;
   }
   reset() {
     this.playingMs = 0;

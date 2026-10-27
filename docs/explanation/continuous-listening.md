@@ -78,9 +78,10 @@ checkpoint. A new explicit music choice replaces the old intent.
 ## Evidence boundaries
 
 The first-sound export retains schema 6 and adds optional session aggregates:
-up to 40 Next-to-`playing` latencies, native playing/waiting time and rebuffer
+up to 40 host/solo Next-to-`playing` latencies, native playing/post-start waiting time and rebuffer
 ratio. These contain no account, room or release identifiers. Intentional pause
-is excluded. They are media-event observations, not proof of audible output or
+and native paused time are excluded; guest transport is outside this measurement.
+They are media-event observations, not proof of audible output or
 background execution. Rendition diagnostics remain in the existing bounded,
 local startup observer; no analytics endpoint is added.
 
