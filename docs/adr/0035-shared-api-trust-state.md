@@ -101,7 +101,9 @@ backup with appropriate revocation/epoch handling. Returning to the pre-W36
 local-state binary can resurrect signed-out sessions or reset budgets and is
 not a safe rollback. A backup older than acknowledged security writes cannot
 be served with the same epoch without replaying those writes; otherwise rotate
-the epoch explicitly, accept sign-out and reconcile quotas before reopening.
+the epoch explicitly, invalidate the namespace's wallet nonce rows (wallet
+signatures do not contain that epoch), accept sign-out and reconcile quotas
+before reopening. Never purge permanent streaming encryption nonce reservations.
 
 ## References
 

@@ -396,6 +396,23 @@ describe('W36 real PostgreSQL / independent API processes', () => {
       assert.equal((await new PostgresNonces(restored).consume(issued.nonce, address, identity.chainId)).ok, false);
       assert.equal((await new PostgresSessions(restored, tokens()).verify(session.token)).valid, false);
       assert.deepEqual(await new PostgresCatalogSnapshotStore(restored).load(), await new PostgresCatalogSnapshotStore(a).load());
+      // A stale backup can forget both consumption and logout. Epoch rotation
+      // alone cannot invalidate wallet-signed nonce challenges (no epoch claim).
+      await restored.pool.query('UPDATE dotify_state_nonces SET used=false WHERE namespace=$1', [namespace]);
+      await restored.pool.query('DELETE FROM dotify_state_revocations WHERE namespace=$1', [namespace]);
+      const recoveredIdentity = { ...identity, sessionEpoch: 'w36-after-stale-restore' };
+      await restored.transaction(async client => {
+        await client.query('UPDATE dotify_state_identity SET identity=$2 WHERE namespace=$1', [namespace, JSON.stringify(recoveredIdentity)]);
+        await client.query('DELETE FROM dotify_state_nonces WHERE namespace=$1', [namespace]);
+      });
+      await restored.assertIdentity(recoveredIdentity);
+      const recoveredSessions = new PostgresSessions(
+        restored,
+        createSessionTokenService({ epoch: recoveredIdentity.sessionEpoch, masterSecret: () => secret })
+      );
+      assert.equal((await recoveredSessions.verify(session.token)).valid, false);
+      const challenge = await new PostgresNonces(restored).consume(issued.nonce, address, identity.chainId);
+      assert.ok(!challenge.ok && challenge.code === 'NONCE_UNKNOWN');
     } finally {
       await restored.close();
       await a.pool.query(`DROP DATABASE ${database}`);

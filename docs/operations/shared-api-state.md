@@ -152,7 +152,12 @@ isolated restore with matching client/server versions. Local W36 tests restore
 used nonces, revoked families and the catalog into a second database. A stale
 backup that omits later acknowledged revocations/nonces/usage is **not** safe
 with the old epoch. Replay the missing writes from an authoritative log or
-rotate the epoch and hold uploads closed until quota reconciliation/expiry.
+rotate the epoch in both namespace identity and process configuration **and
+purge all wallet challenges in `dotify_state_nonces` for that namespace in the
+same offline transaction**. Wallet-signature messages do not contain a session
+epoch, so epoch rotation alone cannot invalidate a stale restored challenge.
+Hold uploads closed until quota reconciliation/expiry. This purge never touches
+the separate permanent streaming encryption nonce ledger, which must be preserved.
 Preserve the custody volume and every permanent encryption nonce reservation
 independently; DB restore does not restore those files or content-key secrets.
 
