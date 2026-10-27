@@ -182,7 +182,9 @@ jobs:
 
   api:
     name: W01 / API tests and typecheck
-    runs-on: ubuntu-latest
+    # Keep codec-fixture tooling reproducible across ubuntu-latest migrations.
+    # The 26.04 image stalled for 10+ minutes downloading ffmpeg from Azure.
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: services/api
