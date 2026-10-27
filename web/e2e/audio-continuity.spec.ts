@@ -175,62 +175,71 @@ test('hosts without MSE retry ciphertext objects and play the same authenticated
   await expect(page.getByTestId('state')).toHaveAttribute('data-generation', '1');
 });
 
-test('an authorized silent next source is adopted at the boundary without another key or download', async ({ page }) => {
-  await page.addInitScript(() => {
-    const created: HTMLAudioElement[] = [];
-    Reflect.set(window, '__createdAudio', created);
-    window.Audio = new Proxy(Audio, {
-      construct(target, args) {
-        const audio = Reflect.construct(target, args) as HTMLAudioElement;
-        created.push(audio);
-        return audio;
-      }
-    });
-  });
-  const probe = await setup(page, 'none', false, true);
-  await playing(page);
-  await audio(page).evaluate(element => {
-    element.currentTime = 11;
-  });
-  await expect.poll(() => probe.requests.some(path => path === 'b:96/segment-001.bin')).toBe(true);
-  await expect.poll(probe.keyRequests).toBe(2);
-  await expect
-    .poll(() =>
-      page.evaluate(() => {
-        const prepared = (Reflect.get(window, '__createdAudio') as HTMLAudioElement[]).find(audio => !audio.isConnected && audio.src && audio.readyState >= 3);
-        Reflect.set(window, '__expectedWarmAudio', prepared);
-        return Boolean(prepared);
-      })
-    )
-    .toBe(true);
-  await page.evaluate(() => {
-    const sample = { ended: 0, playing: 0 };
-    Reflect.set(window, '__warmBoundary', sample);
-    document.querySelector('audio')!.addEventListener(
-      'ended',
-      () => {
-        sample.ended = performance.now();
-      },
-      { once: true }
-    );
-    document.addEventListener(
-      'playing',
-      event => {
-        if (sample.ended && event.target === document.querySelector('audio')) sample.playing = performance.now();
-      },
-      true
-    );
-  });
-  await expect(page.getByTestId('state')).toHaveAttribute('data-track', /:b$/, { timeout: 20000 });
-  await expect(audio(page)).toHaveJSProperty('paused', false);
-  await expect.poll(() => page.evaluate(() => (Reflect.get(window, '__warmBoundary') as { playing: number }).playing)).toBeGreaterThan(0);
-  const gap = await page.evaluate(() => {
-    const value = Reflect.get(window, '__warmBoundary') as { ended: number; playing: number };
-    return value.playing - value.ended;
-  });
-  expect(gap).toBeGreaterThanOrEqual(0);
-  expect(gap).toBeLessThan(300);
-  expect(await page.evaluate(() => document.querySelector('audio') === Reflect.get(window, '__expectedWarmAudio'))).toBe(true);
-  expect(probe.keyRequests()).toBe(2);
-  await expect(audio(page)).toHaveJSProperty('error', null);
-});
+for (const changePurpose of [false, true])
+  test(
+    changePurpose
+      ? 'a changed playback purpose rejects the prepared source and authorizes again'
+      : 'an authorized silent next source is adopted at the boundary without another key or download',
+    async ({ page }) => {
+      await page.addInitScript(() => {
+        const created: HTMLAudioElement[] = [];
+        Reflect.set(window, '__createdAudio', created);
+        window.Audio = new Proxy(Audio, {
+          construct(target, args) {
+            const audio = Reflect.construct(target, args) as HTMLAudioElement;
+            created.push(audio);
+            return audio;
+          }
+        });
+      });
+      const probe = await setup(page, 'none', false, true);
+      await playing(page);
+      await audio(page).evaluate(element => {
+        element.currentTime = 11;
+      });
+      await expect.poll(() => probe.requests.some(path => path === 'b:96/segment-001.bin')).toBe(true);
+      await expect.poll(probe.keyRequests).toBe(2);
+      await expect
+        .poll(() =>
+          page.evaluate(() => {
+            const prepared = (Reflect.get(window, '__createdAudio') as HTMLAudioElement[]).find(
+              audio => !audio.isConnected && audio.src && audio.readyState >= 3
+            );
+            Reflect.set(window, '__expectedWarmAudio', prepared);
+            return Boolean(prepared);
+          })
+        )
+        .toBe(true);
+      if (changePurpose) await page.evaluate(() => Reflect.set(window, '__selectForRoom', true));
+      await page.evaluate(() => {
+        const sample = { ended: 0, playing: 0 };
+        Reflect.set(window, '__warmBoundary', sample);
+        document.querySelector('audio')!.addEventListener(
+          'ended',
+          () => {
+            sample.ended = performance.now();
+          },
+          { once: true }
+        );
+        document.addEventListener(
+          'playing',
+          event => {
+            if (sample.ended && event.target === document.querySelector('audio')) sample.playing = performance.now();
+          },
+          true
+        );
+      });
+      await expect(page.getByTestId('state')).toHaveAttribute('data-track', /:b$/, { timeout: 20000 });
+      await expect(audio(page)).toHaveJSProperty('paused', false);
+      await expect.poll(() => page.evaluate(() => (Reflect.get(window, '__warmBoundary') as { playing: number }).playing)).toBeGreaterThan(0);
+      const gap = await page.evaluate(() => {
+        const value = Reflect.get(window, '__warmBoundary') as { ended: number; playing: number };
+        return value.playing - value.ended;
+      });
+      expect(gap).toBeGreaterThanOrEqual(0);
+      if (!changePurpose) expect(gap).toBeLessThan(300);
+      expect(await page.evaluate(() => document.querySelector('audio') === Reflect.get(window, '__expectedWarmAudio'))).toBe(!changePurpose);
+      expect(probe.keyRequests()).toBe(changePurpose ? 3 : 2);
+      await expect(audio(page)).toHaveJSProperty('error', null);
+    }
+  );

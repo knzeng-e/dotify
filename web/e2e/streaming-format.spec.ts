@@ -277,7 +277,16 @@ test('the reader starts at 96, upgrades on measured headroom and downshifts afte
     };
   }, fixture);
   await page.getByRole('button', { name: 'Play', exact: true }).click();
-  await expect.poll(() => page.evaluate(() => Reflect.get(window, '__abrBitrates'))).toContain(320);
+  await expect
+    .poll(() =>
+      page.evaluate(() => ({
+        bitrates: Reflect.get(window, '__abrBitrates'),
+        error: Reflect.get(window, '__abrError') ?? null,
+        mediaError: document.querySelector('audio')!.error?.message ?? null,
+        paused: document.querySelector('audio')!.paused
+      }))
+    )
+    .toMatchObject({ bitrates: expect.arrayContaining([320]), error: null, mediaError: null, paused: false });
   await expect
     .poll(() =>
       page.evaluate(() => {

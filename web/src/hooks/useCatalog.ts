@@ -857,6 +857,9 @@ export function useCatalog(deps: UseCatalogDeps) {
   ): Promise<TrackSelectionResult> {
     const selectionStartedAt = nowMs();
     const selection = beginTrackSelection(track.id, selectionStartedAt);
+    // Resolve the destination purpose before comparing a prepared identity.
+    // A solo candidate cannot be adopted for a room-host request (or vice versa).
+    keyRequestPurposeRef.current = socketEmit ? 'room_host' : 'individual';
     // Transfer ownership before pausing the outgoing element triggers speculative
     // cancellation. A protected candidate still requires a live W34 grant.
     const canAdopt =
@@ -923,10 +926,6 @@ export function useCatalog(deps: UseCatalogDeps) {
       setAccessGate(null);
       setPlaybackFailure(null);
       setAudioStartupStatus(track.encrypted ? 'Checking your access…' : null);
-      // A socketEmit callback means this selection streams into a room: the
-      // signer is the host, and only the host needs to satisfy the policy.
-      keyRequestPurposeRef.current = socketEmit ? 'room_host' : 'individual';
-
       // Access model v2: access is binary. An authorized listener plays the full
       // track; an unauthorized one gets the access gate and no audio at all. The
       // 42% preview is retired.

@@ -73,7 +73,7 @@ function Harness() {
     lineup: [],
     onLineupChange: noop,
     onPrepareNext: new URLSearchParams(location.search).has('continuous') ? catalog.prepareNextPlayback : undefined,
-    onOpenTrack: track => void catalog.selectTrack(track),
+    onOpenTrack: track => void catalog.selectTrack(track, Reflect.get(window, '__selectForRoom') ? noop : undefined),
     onEmitPlayerState: noop
   });
   return (
