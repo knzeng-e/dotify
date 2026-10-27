@@ -30,7 +30,8 @@ the authenticated encrypted format.
 
 `StandbyAudio` holds one candidate for at most a 30-second adoption window. A
 protected handoff additionally needs a currently valid W34 grant. The candidate
-must match the current account/network, purpose and release identity, be ready,
+must match the current account/network, purpose and release identity (including
+source/encryption classification, artist and local URL), be ready,
 and have no native error. A miss, expired grant or denial takes the ordinary
 authoritative selection path. No key, source URL or decrypted media is persisted.
 Already delivered material cannot be cryptographically recalled.
