@@ -224,12 +224,13 @@ export class CatalogReadModel {
     }
     this.snapshot = next;
     this.failure = null;
-    if (changed)
-      try {
-        this.onSnapshot?.(next);
-      } catch {
-        /* best-effort acceleration */
-      }
+    // Repeated observations replenish bounded warming and propagation retries,
+    // including after restart. Persisting unchanged content still stays cheap.
+    try {
+      this.onSnapshot?.(next);
+    } catch {
+      /* best-effort acceleration */
+    }
     return next;
   }
 

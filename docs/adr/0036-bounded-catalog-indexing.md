@@ -56,7 +56,11 @@ compact updates. Disconnection cannot move a stale writer onto a fresh connectio
 
 No failed write advances the in-memory checkpoint, even in local mode. Otherwise
 an unsuccessful content save could be followed by progress-only writes that
-permanently skipped the missing release. Started concurrent work drains on error
+permanently skipped the missing release. Observers still receive each successful
+persisted synchronization, even when only progress changes: the bounded media
+prewarmer needs repeated observations for its admission window and propagation
+retries, including after restart. Observer failures remain best-effort and do
+not change the committed checkpoint. Started concurrent work drains on error
 before writer election is released.
 
 ## Alternatives, limits and operations
