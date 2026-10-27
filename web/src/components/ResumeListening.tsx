@@ -14,7 +14,7 @@ export function ResumeListening() {
       <button type='button' className='primary-action' onClick={resumeListening}>
         <Play size={16} /> Resume
       </button>
-      <button type='button' className='icon-btn' aria-label='Dismiss saved listening' onClick={dismissResume}>
+      <button type='button' className='resume-listening-dismiss' aria-label='Dismiss saved listening' onClick={dismissResume}>
         <X size={18} />
       </button>
     </section>

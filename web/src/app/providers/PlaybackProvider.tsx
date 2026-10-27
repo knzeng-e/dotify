@@ -95,7 +95,7 @@ export function PlaybackProvider({ children }: { children: ReactNode }) {
     playback,
     catalog.audioSource ? selectedTrack : undefined,
     !session.roomId && !playerDismissed,
-    `${wallet.connectedWallet?.evmAddress?.toLowerCase() ?? 'anonymous'}:${wallet.expectedChainId ?? ''}`
+    `${wallet.connectedWallet?.evmAddress?.toLowerCase() ?? 'anonymous'}:${wallet.connectedWallet?.chainId ?? wallet.expectedChainId ?? ''}`
   );
   const resumeTrack = checkpoint.offer
     ? catalog.catalogTracks.find(track => track.id === checkpoint.offer!.trackId && track.hash === checkpoint.offer!.hash && track.active !== false)

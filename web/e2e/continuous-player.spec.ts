@@ -1,4 +1,4 @@
-import { readFile } from 'node:fs/promises';
+import { syntheticWav } from './fixtures/syntheticWav';
 import { expect, test, type Page } from '@playwright/test';
 
 const fixture = '/?e2eRoom=public&e2eSync=on&e2eCatalog=sequence&e2eAutoplay=on';
@@ -7,6 +7,15 @@ async function play(page: Page) {
   await page.goto(fixture);
   await page.getByRole('button', { name: /^Play E2E Public Room Track by/ }).click();
   await expect(source(page)).toHaveJSProperty('paused', false);
+}
+async function browseMusic(page: Page, width: number) {
+  const back = page.getByRole('button', { name: 'Back to Music', exact: true });
+  if (await back.isVisible()) await back.click();
+  else
+    await page
+      .locator(width <= 768 ? '.bottom-nav' : '.topbar')
+      .getByRole('button', { name: 'Music', exact: true })
+      .click();
 }
 
 async function installSystemProbe(page: Page) {
@@ -74,10 +83,7 @@ for (const width of [320, 1440])
     await offer.getByRole('button', { name: 'Resume', exact: true }).click();
     await expect(source(page)).toHaveJSProperty('paused', false);
     await expect.poll(() => source(page).evaluate(audio => audio.currentTime)).toBeGreaterThanOrEqual(17);
-    await page
-      .locator(width <= 768 ? '.bottom-nav' : '.topbar')
-      .getByRole('button', { name: 'Music', exact: true })
-      .click();
+    await browseMusic(page, width);
     await page.getByRole('button', { name: 'Close mini-player', exact: true }).click();
     await page.reload();
     await expect(offer).toHaveCount(0);
@@ -90,14 +96,14 @@ test('a system Pause during source preparation prevents deferred autoplay', asyn
   const held = new Promise<void>(resolve => {
     release = resolve;
   });
-  const wav = await readFile(new URL('./fixtures/artist-release.wav', import.meta.url));
+  const wav = syntheticWav();
   await page.route('**/__dotify_e2e__/room-sequence.wav', async route => {
     await held;
     await route.fulfill({ body: wav, contentType: 'audio/wav' });
   });
   await page.goto(fixture + '&e2eTrackDelay=on');
   await page.getByRole('button', { name: /^Play Second room track by/ }).click();
-  await expect.poll(() => page.evaluate(() => (Reflect.get(window, '__systemHandlers') as Map<string, unknown>).has('pause'))).toBe(true);
+  await expect.poll(() => page.evaluate(() => typeof (Reflect.get(window, '__systemHandlers') as Map<string, unknown>).get('pause') === 'function')).toBe(true);
   await page.evaluate(() => (Reflect.get(window, '__systemHandlers') as Map<string, MediaSessionActionHandler>).get('pause')!({ action: 'pause' }));
   release();
   await expect.poll(() => source(page).evaluate(audio => audio.readyState)).toBeGreaterThanOrEqual(3);
