@@ -100,6 +100,13 @@ fail even when the HTTP process is alive. Refer to
 [deployment configuration](../operations/deployment-configuration.md) before
 changing origins, key versions, persistent storage or service scaling.
 
+The test deployment separates two public API replicas from one private
+publication-custody writer. PostgreSQL shares sessions, replay protection,
+upload budgets and the elected catalog checkpoint; the private volume retains
+encrypted jobs, permanent encryption nonce reservations and verified receipts.
+The [activation record](../backlog/implementation/evidence/product-0.1.63-rollout-2026-10-28.md)
+distinguishes the verified topology from physical-device and pilot acceptance.
+
 ### Artist-owned runtimes
 
 The factory creates a SmartRuntime for an artist and the directory indexes the

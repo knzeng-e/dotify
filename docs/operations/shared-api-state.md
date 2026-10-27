@@ -1,7 +1,9 @@
 # Activate shared API state (W36)
 
-This is a **planned migration**, not a record of deployed infrastructure.
-Implementation alone does not activate scaling. Local evidence is in
+The October 28 [activation record](../backlog/implementation/evidence/product-0.1.63-rollout-2026-10-28.md)
+records the deployed topology, approvals, complete transfer, backup/restore and
+remaining device checks. This is the reusable procedure; implementation alone
+does not activate another deployment. Original local evidence is in
 [W36](../backlog/implementation/evidence/W36.md), design in
 [ADR 0035](../adr/0035-shared-api-trust-state.md).
 
@@ -65,6 +67,18 @@ none of them.
    Preserve the stable epoch and serve no old-instance auth/logout writes
    after the final revocation-file export. Any requested old nonce simply
    needs a fresh challenge after migration; unknown nonces fail closed.
+   For an explicitly reviewed cutover that restores listening sooner, a
+   conservative alternative is to initialize the entire old global byte limit
+   as temporary usage **in the same transaction as namespace import**, expiring
+   one complete old quota window after database time at import. First verify
+   the old limits and drain all active uploads. Use a metadata-only sentinel
+   address, never a signer/payee, and keep reservations empty. The old unknown
+   usage cannot exceed this saturated global budget, so every new publication
+   stays denied until expiry while keys/auth can reopen. Never shorten or
+   manually erase the hold. The October 28 rollout verified this on real
+   PostgreSQL before applying 2 GiB / one hour; this is not an empty-budget
+   shortcut or a deletion of permanent encryption reservations.
+
 3. Quiesce **all** old API writers, export the final catalog/revocation JSON
    and make a consistent final volume backup. Import requires both files.
    If no revocation file was ever written, explicitly verify that fact before
@@ -97,7 +111,10 @@ none of them.
    these boundaries with a real runtime connection in an isolated database,
    then verify backup/restore before enabling traffic.
 6. Transfer the entire quiesced owned volume to the new custody service's volume
-   using a verified offline backup/restore. Fly volumes belong to their app;
+   using a verified offline backup/restore that preserves **empty directories**
+   as well as file bytes, ownership and permissions. Plain SFTP recursion may
+   omit empty streaming directories; compare the source directory inventory
+   explicitly. Fly volumes belong to their app;
    reusing the same volume **name** in a new app does not transfer the data.
    Check ownership UID/GID 1000, hashes and the W30 read/write preflight before
    starting custody. Do not call `streaming:initialize` on restored state.
