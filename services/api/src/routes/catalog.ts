@@ -30,6 +30,7 @@ export type CatalogRouteDeps = {
 
 export function createCatalogRoutes(deps: CatalogRouteDeps) {
   return async function catalogRoutes(app: FastifyInstance): Promise<void> {
+    app.addHook('onRequest', async () => deps.catalog.refresh());
     app.get('/api/catalog', async (request, reply) => {
       const parsed = listQuerySchema.safeParse(request.query);
       if (!parsed.success) {

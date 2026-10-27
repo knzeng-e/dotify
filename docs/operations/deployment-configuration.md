@@ -1,5 +1,14 @@
 # Deployment Configuration Runbook
 
+W36 planned topology: the next API profiles use PostgreSQL trust/catalog state
+and two public edges, with one private publication/receipt custody service.
+This is **not deployed**. Read [the mandatory migration, rotation and rollback
+procedure](shared-api-state.md) before using the changed `services/api/fly.toml`.
+Never deploy the new profile against an empty database/volume or revert to a
+pre-W36 local-state image after shared writes. Session auth now requires its
+own `SESSION_SECRET`; the older 24-hour/local-state notes below describe
+historical deployed generations.
+
 ## W35 client candidate, 2026-10-27
 
 W35 adds no secret, Host permission, server API, contract or persistent server

@@ -7,10 +7,11 @@ export function createMediaRoutes({
   catalog,
   reader = createEncryptedMediaReader(fetch, config.MEDIA_IPFS_GATEWAY)
 }: {
-  catalog: Pick<CatalogReadModel, 'getSnapshot'>;
+  catalog: Pick<CatalogReadModel, 'getSnapshot'> & Partial<Pick<CatalogReadModel, 'refresh'>>;
   reader?: ReturnType<typeof createEncryptedMediaReader>;
 }) {
   return async function mediaRoutes(app: FastifyInstance) {
+    app.addHook('onRequest', async () => catalog.refresh?.());
     let sendingBytes = 0;
     app.addHook('onClose', async () => reader.clear());
     app.get<{ Params: { cid: string; '*': string } }>(

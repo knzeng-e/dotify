@@ -17,10 +17,13 @@
     "test:streaming": "node --import tsx --test src/services/streamingFormat.test.ts src/services/streamingEncoder.test.ts",
     "test": "node --import tsx --test src/config.media.test.ts src/services/mediaPrewarm.test.ts src/services/storagePreflight.test.ts src/services/streamingJobs.test.ts src/services/coverVariants.test.ts src/services/pinata.test.ts src/services/replayProtection.test.ts src/services/signatures.test.ts src/services/sessionTokens.test.ts src/services/uploadAuthorizations.test.ts src/services/keyVault.test.ts src/services/chainAccess.test.ts src/services/catalog/readModel.test.ts src/services/catalog/chain.test.ts src/routes/keys.test.ts src/routes/uploads.test.ts src/routes/auth.test.ts src/routes/turn.test.ts src/routes/health.test.ts src/routes/catalog.test.ts src/routes/media.test.ts src/routes/nativeReceipts.test.ts src/services/nativeContributionProof.test.ts src/services/nativeReceipts.test.ts src/services/nativeContributionLedger.test.ts src/app.test.ts src/cors.test.ts",
     "streaming:initialize": "node dist/scripts/initializeStreamingJobs.js",
-    "streaming:rehearse": "node scripts/rehearse-streaming-publication.mjs"
+    "streaming:rehearse": "node scripts/rehearse-streaming-publication.mjs",
+    "state:initialize": "tsx src/scripts/initializeSharedState.ts",
+    "test:shared-state": "node --import tsx --test src/services/sharedState/sharedState.integration.test.ts"
   },
   "dependencies": {
     "@fastify/cors": "^11.2.0",
+    "@fastify/http-proxy": "^11.6.5",
     "@fastify/multipart": "^10.0.0",
     "@fastify/rate-limit": "^10.3.0",
     "@noble/hashes": "1.8.0",
@@ -28,12 +31,14 @@
     "@polkadot-api/substrate-bindings": "0.17.0",
     "@scure/sr25519": "1.0.0",
     "fastify": "^5.8.5",
+    "pg": "^8.23.1",
     "sharp": "^0.35.4",
     "viem": "^2.52.2",
     "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "@types/pg": "^8.23.1",
     "tsx": "^4.19.2",
     "typescript": "~5.6.2"
   }

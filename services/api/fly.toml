@@ -5,6 +5,12 @@ primary_region = "ams"
   dockerfile = "Dockerfile"
 
 [env]
+  # Activation requires the W36 offline import and private custody service.
+  # See docs/operations/shared-api-state.md; no automatic state initialization.
+  STATE_STORE = "postgres"
+  STATE_NAMESPACE = "dotify"
+  API_ROLE = "edge"
+  CUSTODY_SERVICE_URL = "http://dotify-custody.internal:8790"
   # Fresh attested Paseo deployment. Keep aligned with deployments.json and
   # web/src/shared/config/deploymentSafety.ts so API diagnostics and access
   # checks target the owner-guarded factory/directory pair.
@@ -25,13 +31,6 @@ primary_region = "ams"
   PASEO_ASSET_HUB_RPC = "https://eth-rpc-testnet.polkadot.io/"
   # Archive reads for finalized native receipts; never used for signing.
   PASEO_ASSET_HUB_NATIVE_RPC = "https://asset-hub-paseo-rpc.n.dwellir.com"
-  NATIVE_CONTRIBUTION_SNAPSHOT_PATH = "/data/contributions/receipts.json"
-  # The catalog snapshot and session revocations live on the same volume so a
-  # redeploy neither reindexes cold (key delivery waits for a fresh catalog)
-  # nor resurrects signed-out sessions. SESSION_EPOCH is a Fly secret; set it
-  # to keep sessions across redeploys and rotate it to sign everyone out.
-  CATALOG_SNAPSHOT_PATH = "/data/contributions/catalog.json"
-  SESSION_REVOCATIONS_PATH = "/data/contributions/session-revocations.json"
   # Fly forwards every request from its proxy; key rate limits on Fly-Client-IP.
   API_TRUST_PROXY = "fly"
   DOTIFY_FACTORY_ADDRESS = "0x708d35eee7c1416f6d332344068be9d714aec24c"
@@ -40,9 +39,6 @@ primary_region = "ams"
   # New publications use the isolated private encoder after explicit custody
   # provisioning. STREAMING_WORKER_TOKEN is a dedicated Fly secret, never the
   # content-key master or a frontend variable.
-  STREAMING_WORKER_URL = "http://dotify-encoder.internal:8791"
-  STREAMING_STATE_PATH = "/data/contributions/streaming"
-  UPLOAD_GLOBAL_CONCURRENCY = "2"
   # TURN_CAPABILITY_SECRET is a Fly secret shared with the signaling app as
   # SIGNAL_TURN_CAPABILITY_SECRET. Never track its value here.
 
@@ -56,18 +52,12 @@ primary_region = "ams"
   # measured 8.2s to /health cold against 0.11s warm. Scaling to zero saves
   # nothing a listener would trade eight silent seconds for.
   min_machines_running = 1
-  # Session revocation and upload quota state are process-local. W02 binds all
-  # session/capability tokens to the process epoch and enforces one API machine
-  # until a shared transactional store replaces these counters.
-  max_machines_running = 1
+  # Public replicas share trust/catalog state. Encrypted publication files and
+  # verified receipt writes remain on the private single-writer custody service.
+  max_machines_running = 2
   processes = ["app"]
 
 [[vm]]
   cpu_kind = "shared"
   cpus = 1
   memory = "1024mb"
-
-# One API writer owns the shared verified-contribution ledger.
-[[mounts]]
-  source = "contribution_data"
-  destination = "/data/contributions"

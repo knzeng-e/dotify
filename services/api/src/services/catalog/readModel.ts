@@ -78,11 +78,24 @@ export class CatalogReadModel {
     }
     if (this.syncInFlight) return this.syncInFlight;
 
-    const operation = this.performSync(options.forceReindex === true).finally(() => {
+    const operation = this.synchronize(options.forceReindex === true).finally(() => {
       if (this.syncInFlight === operation) this.syncInFlight = null;
     });
     this.syncInFlight = operation;
     return operation;
+  }
+
+  /** Shared catalog HTTP reads use the committed checkpoint on every replica.
+   * During an outage a previous public snapshot may remain readable, explicitly
+   * marked stale/unavailable. It never grants content-key authority. */
+  async refresh(): Promise<void> {
+    if (!this.store.asWriter) return;
+    try {
+      const loaded = await this.store.load();
+      if (loaded && this.matchesGateway(loaded)) this.snapshot = loaded;
+    } catch {
+      this.recordFailure('indexer');
+    }
   }
 
   getSnapshot(): CatalogSnapshot | null {
@@ -124,6 +137,28 @@ export class CatalogReadModel {
     };
   }
 
+  private async synchronize(forceReindex: boolean): Promise<CatalogSnapshot> {
+    if (!this.store.asWriter) return this.performSync(forceReindex);
+    let indexing = false;
+    try {
+      const elected = await this.store.asWriter(async () => {
+        const loaded = await this.store.load();
+        if (loaded && this.matchesGateway(loaded)) this.snapshot = loaded;
+        indexing = true;
+        return this.performSync(forceReindex);
+      });
+      if (elected.elected) return elected.value;
+      const loaded = await this.store.load();
+      if (!loaded || !this.matchesGateway(loaded)) throw new Error('Catalog checkpoint not yet available');
+      this.snapshot = loaded;
+      this.failure = null;
+      return loaded;
+    } catch (error) {
+      if (!indexing || this.failure?.kind !== 'rpc') this.recordFailure('indexer');
+      throw error;
+    }
+  }
+
   private async performSync(forceReindex: boolean): Promise<CatalogSnapshot> {
     const gateway = this.gateway;
     if (!gateway) throw new Error('Catalog gateway unavailable');
@@ -152,7 +187,8 @@ export class CatalogReadModel {
     try {
       await this.store.save(nextSnapshot);
     } catch (error) {
-      this.snapshot = nextSnapshot;
+      // Never expose an uncommitted shared checkpoint as indexed.
+      if (!this.store.asWriter) this.snapshot = nextSnapshot;
       this.recordFailure('indexer');
       throw error;
     }

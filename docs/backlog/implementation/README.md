@@ -16,11 +16,15 @@ The [October 26 reconciliation](evidence/backlog-reconciliation-2026-10-26.md)
 records W31/#286, W34/#289 and scoped 3D/#329 as delivered. W34 merged through
 #333 and is deployed with API/Web and Product 0.1.62 (#334). Payment recovery
 #335 and publication return #336 are merged but not yet published; navigation
-and mini-player exits #337 remain under review. W35/#290 is the next eligible
-streaming implementation; W13/device/first-sound gates remain open.
-October 27: #337 is merged and W35 is now in implementation; the owner requested
-one combined test deployment. Use [W35 evidence](evidence/W35.md) for its bounded
-claims and the physical checks still to record.
+and mini-player exits #337 are merged, alongside W35/#338; W13/device/first-sound gates remain open.
+October 27: #337 and W35/#338 are merged on `dev`; the owner requested
+one combined test deployment. [W35 evidence](evidence/W35.md) retains physical
+background/audible-continuity acceptance. W36/#291 is the active implementation:
+PostgreSQL trust/catalog state, bounded session renewal and separate private
+publication custody. See [W36 evidence](evidence/W36.md) and the
+[activation runbook](../../operations/shared-api-state.md). It has not been deployed;
+its two-instance Fly acceptance remains open. W37/#292 is the next catalog scope.
+
 
 ## Owner priority update: trusted pilot and streaming track, 2026-10-16
 

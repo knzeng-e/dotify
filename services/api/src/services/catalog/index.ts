@@ -1,3 +1,5 @@
+import { sharedState } from '../sharedState/index.js';
+import { PostgresCatalogSnapshotStore } from '../sharedState/catalog.js';
 import { config } from '../../config.js';
 import { ViemCatalogChainGateway } from './chain.js';
 import { CatalogReadModel } from './readModel.js';
@@ -17,7 +19,7 @@ const gateway =
 
 export const catalogReadModel = new CatalogReadModel({
   gateway,
-  store: new JsonCatalogSnapshotStore(config.CATALOG_SNAPSHOT_PATH),
+  store: sharedState ? new PostgresCatalogSnapshotStore(sharedState) : new JsonCatalogSnapshotStore(config.CATALOG_SNAPSHOT_PATH),
   pollIntervalMs: config.CATALOG_POLL_INTERVAL_MS,
   reconcileIntervalMs: config.CATALOG_RECONCILE_INTERVAL_MS,
   staleAfterMs: config.CATALOG_STALE_AFTER_MS,

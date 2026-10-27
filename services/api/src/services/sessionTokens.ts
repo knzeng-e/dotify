@@ -1,24 +1,18 @@
-// Session tokens prove a signed-in identity, never track access. Every key or
-// upload authorization route performs its own authoritative policy check.
-//
-// Tokens are bound to an epoch. Without SESSION_EPOCH it is random per
-// process, so a restart invalidates every session. With a stable SESSION_EPOCH
-// sessions survive a redeploy, and revoked session IDs are persisted on the
-// single API instance's volume so a signed-out token cannot come back after a
-// restart. An unreadable revocation file falls back to a random epoch (fail
-// closed). Rotating SESSION_EPOCH signs everyone out. Horizontal scaling still
-// requires a shared session/revocation store first (W36).
-
+// Sessions prove identity, never access. PostgreSQL is authoritative in shared
+// mode; local file persistence is reserved for an explicitly single-node API.
+// Two-hour tokens can renew within the original 24-hour wallet sign-in window.
 import { createHmac, hkdfSync, randomUUID, timingSafeEqual } from 'node:crypto';
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { config } from '../config.js';
 import { checkDotifyChainId } from './chainDomain.js';
-import { getActiveContentKeyMasterSecret } from './keyVault.js';
+import { sharedState } from './sharedState/index.js';
+import { PostgresSessions } from './sharedState/sessions.js';
 
 const HKDF_INFO = 'dotify-session-token-v1';
 const MIN_MASTER_SECRET_BYTES = 32;
-export const SESSION_TTL_MS = 24 * 60 * 60 * 1000;
+export const SESSION_TTL_MS = 2 * 60 * 60 * 1000;
+export const SESSION_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
 export type SessionTokenPayload = {
   address: `0x${string}`;
@@ -27,10 +21,11 @@ export type SessionTokenPayload = {
   epoch: string;
   iat: number;
   exp: number;
+  startedAt?: number;
 };
 
 export type IssuedSession =
-  | { ok: true; token: string; expiresAt: string }
+  | { ok: true; token: string; expiresAt: string; revocableUntil?: string }
   | { ok: false; code: 'SESSION_NOT_CONFIGURED' | 'CHAIN_ID_MISMATCH'; reason: string };
 
 export type SessionVerification =
@@ -53,6 +48,8 @@ export type SessionTokenServiceOptions = {
   epoch?: string;
   masterSecret?: () => string | undefined;
   randomId?: () => string;
+  previousSecret?: () => string | undefined;
+  revoked?: Map<string, number>;
   // Used only with a stable epoch: a random epoch already ends old sessions.
   revocationPath?: string;
   onStorageError?: (message: string) => void;
@@ -96,7 +93,9 @@ export type SessionTokenService = {
   isConfigured: () => boolean;
   issue: (address: `0x${string}`, chainId: number, now?: number) => IssuedSession;
   verify: (token: string, now?: number) => SessionVerification;
+  verifyRevocable: (token: string, now?: number) => SessionVerification;
   revoke: (token: string, now?: number) => boolean;
+  renew: (token: string, now?: number) => IssuedSession | SessionVerification;
 };
 
 function deriveHmacKey(secretValue: string | undefined): Buffer | null {
@@ -117,12 +116,12 @@ function sign(payloadB64: string, key: Buffer): string {
 }
 
 export function createSessionTokenService(options: SessionTokenServiceOptions = {}): SessionTokenService {
-  const masterSecret = options.masterSecret ?? getActiveContentKeyMasterSecret;
+  const masterSecret = options.masterSecret ?? (() => config.SESSION_SECRET);
   const randomId = options.randomId ?? randomUUID;
   const reportStorageError = options.onStorageError ?? (message => console.error(`[dotify-api] ${message}`));
   let epoch = options.epoch ?? randomUUID();
   let revocationPath = options.epoch ? options.revocationPath : undefined;
-  let revokedJtis = new Map<string, number>();
+  let revokedJtis = options.revoked ?? new Map<string, number>();
   if (revocationPath) {
     const loaded = loadRevocations(revocationPath, epoch, Date.now());
     if (loaded) {
@@ -157,20 +156,26 @@ export function createSessionTokenService(options: SessionTokenServiceOptions = 
     }
   }
 
-  function verify(token: string, now = Date.now()): SessionVerification {
+  function verify(token: string, now = Date.now(), revocationOnly = false): SessionVerification {
     const key = tokenHmacKey();
     if (!key) {
       return { valid: false, code: 'SESSION_NOT_CONFIGURED', reason: 'Session auth is unavailable: the key service master secret is not configured.' };
     }
 
+    if (token.length > 4096) return { valid: false, code: 'SESSION_INVALID', reason: 'Invalid session token.' };
     const parts = token.split('.');
     if (parts.length !== 2 || !parts[0] || !parts[1]) {
       return { valid: false, code: 'SESSION_INVALID', reason: 'Malformed session token.' };
     }
 
-    const expected = Buffer.from(sign(parts[0], key), 'utf8');
     const provided = Buffer.from(parts[1], 'utf8');
-    if (expected.length !== provided.length || !timingSafeEqual(expected, provided)) {
+    const keys = [key, deriveHmacKey(options.previousSecret?.())].filter((value): value is Buffer => value !== null);
+    if (
+      !keys.some(candidate => {
+        const expected = Buffer.from(sign(parts[0], candidate), 'utf8');
+        return expected.length === provided.length && timingSafeEqual(expected, provided);
+      })
+    ) {
       return { valid: false, code: 'SESSION_INVALID', reason: 'Session token signature does not verify.' };
     }
 
@@ -186,16 +191,25 @@ export function createSessionTokenService(options: SessionTokenServiceOptions = 
       !/^0x[0-9a-f]{40}$/.test(payload.address) ||
       typeof payload.chainId !== 'number' ||
       typeof payload.jti !== 'string' ||
+      payload.jti.length > 128 ||
+      !payload.jti ||
       typeof payload.epoch !== 'string' ||
       typeof payload.iat !== 'number' ||
-      typeof payload.exp !== 'number'
+      !Number.isSafeInteger(payload.exp) ||
+      !Number.isSafeInteger(payload.iat) ||
+      payload.exp <= payload.iat ||
+      payload.exp - payload.iat > SESSION_MAX_AGE_MS ||
+      payload.iat > now + 30_000 ||
+      (payload.startedAt !== undefined &&
+        (!Number.isSafeInteger(payload.startedAt) || payload.startedAt > payload.iat || payload.exp > payload.startedAt + SESSION_MAX_AGE_MS))
     ) {
       return { valid: false, code: 'SESSION_INVALID', reason: 'Session token payload is missing required claims.' };
     }
 
     const domain = checkDotifyChainId(payload.chainId);
     if (!domain.ok) return { valid: false, code: domain.code, reason: domain.reason };
-    if (payload.exp <= now) return { valid: false, code: 'SESSION_EXPIRED', reason: 'Session has expired. Sign in again.' };
+    if ((revocationOnly ? (payload.startedAt ?? payload.iat) + SESSION_MAX_AGE_MS : payload.exp) <= now)
+      return { valid: false, code: 'SESSION_EXPIRED', reason: 'Session has expired. Sign in again.' };
     if (payload.epoch !== epoch) {
       return { valid: false, code: 'SESSION_RESTARTED', reason: 'The API restarted and invalidated earlier sessions. Sign in again.' };
     }
@@ -219,14 +233,37 @@ export function createSessionTokenService(options: SessionTokenServiceOptions = 
         jti: randomId(),
         epoch,
         iat: now,
-        exp: now + SESSION_TTL_MS
+        exp: now + SESSION_TTL_MS,
+        startedAt: now
       };
       const payloadB64 = b64url(JSON.stringify(payload));
-      return { ok: true, token: `${payloadB64}.${sign(payloadB64, key)}`, expiresAt: new Date(payload.exp).toISOString() };
+      return {
+        ok: true,
+        token: `${payloadB64}.${sign(payloadB64, key)}`,
+        expiresAt: new Date(payload.exp).toISOString(),
+        revocableUntil: new Date(now + SESSION_MAX_AGE_MS).toISOString()
+      };
     },
     verify,
+    verifyRevocable: (token, now) => verify(token, now, true),
+    renew(token, now = Date.now()) {
+      const valid = verify(token, now);
+      if (!valid.valid) return valid;
+      const old = JSON.parse(Buffer.from(token.split('.')[0], 'base64url').toString('utf8')) as SessionTokenPayload;
+      const startedAt = old.startedAt ?? old.iat;
+      const exp = Math.min(now + SESSION_TTL_MS, startedAt + SESSION_MAX_AGE_MS);
+      if (exp <= now + 60_000) return { valid: false, code: 'SESSION_EXPIRED', reason: 'Reconnect your account to continue.' };
+      const payload = { ...old, iat: now, exp, startedAt };
+      const encoded = b64url(JSON.stringify(payload));
+      return {
+        ok: true,
+        token: `${encoded}.${sign(encoded, tokenHmacKey()!)}`,
+        expiresAt: new Date(exp).toISOString(),
+        revocableUntil: new Date(startedAt + SESSION_MAX_AGE_MS).toISOString()
+      };
+    },
     revoke(token, now = Date.now()) {
-      const verified = verify(token, now);
+      const verified = verify(token, now, true);
       if (!verified.valid) {
         // A failed write already revoked this token in memory. Retrying must
         // flush that pending revocation, never turn the first 503 into a false 200.
@@ -235,7 +272,7 @@ export function createSessionTokenService(options: SessionTokenServiceOptions = 
       }
       pruneRevoked(now);
       const payload = JSON.parse(Buffer.from(token.split('.')[0], 'base64url').toString('utf8')) as SessionTokenPayload;
-      revokedJtis.set(verified.jti, payload.exp);
+      revokedJtis.set(verified.jti, (payload.startedAt ?? payload.iat) + SESSION_MAX_AGE_MS);
       revocationsDirty = true;
       persistRevocations();
       return true;
@@ -245,21 +282,28 @@ export function createSessionTokenService(options: SessionTokenServiceOptions = 
 
 const sessionTokenService = createSessionTokenService({
   epoch: config.SESSION_EPOCH,
-  revocationPath: config.SESSION_REVOCATIONS_PATH
+  revocationPath: sharedState ? undefined : config.SESSION_REVOCATIONS_PATH,
+  previousSecret: previousSessionSecret
 });
 
-export function isSessionAuthConfigured(): boolean {
-  return sessionTokenService.isConfigured();
+function previousSessionSecret(): string | undefined {
+  return config.SESSION_PREVIOUS_SECRET_UNTIL && Date.now() < Date.parse(config.SESSION_PREVIOUS_SECRET_UNTIL) ? config.SESSION_PREVIOUS_SECRET : undefined;
 }
-
-export function issueSessionToken(address: `0x${string}`, chainId: number, now = Date.now()): IssuedSession {
-  return sessionTokenService.issue(address, chainId, now);
-}
-
-export function verifySessionToken(token: string, now = Date.now()): SessionVerification {
-  return sessionTokenService.verify(token, now);
-}
-
-export function revokeSessionToken(token: string, now = Date.now()): boolean {
-  return sessionTokenService.revoke(token, now);
-}
+const persistentSessions = sharedState
+  ? new PostgresSessions(
+      sharedState,
+      createSessionTokenService({
+        epoch: config.SESSION_EPOCH,
+        previousSecret: previousSessionSecret
+      })
+    )
+  : undefined;
+export const isSessionAuthConfigured = () => sessionTokenService.isConfigured();
+export const issueSessionToken = (address: `0x${string}`, chainId: number, now = Date.now()) =>
+  persistentSessions ? persistentSessions.issue(address, chainId) : sessionTokenService.issue(address, chainId, now);
+export const verifySessionToken = (token: string, now = Date.now()) =>
+  persistentSessions ? persistentSessions.verify(token) : sessionTokenService.verify(token, now);
+export const revokeSessionToken = (token: string, now = Date.now()) =>
+  persistentSessions ? persistentSessions.revoke(token) : sessionTokenService.revoke(token, now);
+export const renewSessionToken = (token: string, now = Date.now()) =>
+  persistentSessions ? persistentSessions.renew(token) : sessionTokenService.renew(token, now);

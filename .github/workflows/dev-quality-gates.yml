@@ -134,6 +134,43 @@ jobs:
       - name: Run signaling tests
         run: npm run test:signal
 
+  shared-api-state:
+    name: W36 / Shared API state and recovery
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: dotify_test
+          POSTGRES_PASSWORD: local-ci-fixture
+          POSTGRES_DB: dotify_w36_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U dotify_test -d dotify_w36_test"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    defaults:
+      run:
+        working-directory: services/api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: services/api/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Install PostgreSQL 16 backup tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y postgresql-client-16
+          echo "/usr/lib/postgresql/16/bin" >> "$GITHUB_PATH"
+      - name: Two API processes, outages, migration and backup restore
+        env:
+          TEST_DATABASE_URL: postgresql://dotify_test:local-ci-fixture@127.0.0.1:5432/dotify_w36_test
+        run: npm run test:shared-state
+
   api:
     name: W01 / API tests and typecheck
     runs-on: ubuntu-latest

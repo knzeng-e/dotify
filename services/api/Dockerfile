@@ -18,6 +18,7 @@ ENV NODE_ENV=production
 COPY --from=build /app/package*.json ./
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
+COPY migrations ./migrations
 
 # Application code stays root-owned/read-only to node. Only local default state
 # is writable; mounted Fly storage requires explicit offline preparation.

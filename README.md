@@ -147,3 +147,9 @@ second list here. The Product publication process is
 [documented separately](docs/operations/product-devnet-deployment.md).
 
 [GPL-3.0 license](LICENSE) · [Project presentation](docs/presentation/dotify-showcase-2026.pdf)
+
+API scaling work is tracked in [W36](docs/backlog/implementation/evidence/W36.md):
+shared PostgreSQL trust/catalog state and a private publication-custody service.
+The [migration runbook](docs/operations/shared-api-state.md) is required before
+activating the two-edge deployment profile. This does not change artist access
+rules or anonymous room entry.
