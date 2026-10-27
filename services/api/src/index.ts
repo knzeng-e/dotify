@@ -18,9 +18,6 @@ const { sharedState } = await import('./services/sharedState/index.js');
 const { buildApp } = await import('./app.js');
 
 const app = await buildApp();
-app.addHook('onClose', async () => {
-  await sharedState?.close();
-});
 await app.listen({ port: config.API_PORT, host: '0.0.0.0' });
 
 // Fly stops machines with SIGTERM: finish in-flight requests, then exit.
@@ -28,6 +25,14 @@ for (const signal of ['SIGTERM', 'SIGINT'] as const) {
   process.once(signal, () => {
     const forceExit = setTimeout(() => process.exit(1), 10_000);
     forceExit.unref();
-    void app.close().finally(() => process.exit(0));
+    // Close the server/worker/election hooks before ending the pool: a custody
+    // hook still owns a checked-out lock connection until app.close resolves.
+    void app
+      .close()
+      .then(() => sharedState?.close())
+      .then(
+        () => process.exit(0),
+        () => process.exit(1)
+      );
   });
 }
