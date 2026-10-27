@@ -102,8 +102,9 @@ none of them.
     fail closed with understandable 503s; no wallet-prompt cascade or automatic
     upload replay. Liveness may stay 200; readiness must fail when DB is absent.
     Public cached catalog data can remain visible with outage metadata.
-11. Publish matching Web/Product clients for silent renewal. Remove the bounded
-    previous-secret configuration after its deadline. Record regional latency,
+11. Publish matching Web/Product clients for silent renewal. After its authentication deadline, retain the previous secret for delayed
+    logout until every family it signed has reached its original 24h deadline;
+    it is then removed with the deadline field. Record regional latency,
     DB connection usage, backup age and actual physical Host observations.
 
 ## Session-secret rotation without sign-out
@@ -115,9 +116,13 @@ For normal rotation old/new secrets are independent session secrets:
    short deadline. All processes can now verify both, while still signing A.
 2. Roll signing secret to B, previous to A, keeping both sides within the overlap
    deadline. Tokens/capabilities issued by either generation remain verifiable.
-3. Keep overlap until all A-issued tokens have expired (2h for a normal session,
-   24h for the initial legacy-session migration), then remove previous fields.
-   Set the deadline up front to fit that window; never extend it indefinitely.
+3. Authentication overlap ends at the configured deadline (at least 2h after
+   the last A token for normal rotation; 24h for legacy-session migration).
+   Retain the previous secret and its **expired deadline** until the last
+   A-signed family reaches its original 24h deadline: it then verifies delayed
+   logout only, never authentication/renewal/upload capabilities. Remove both
+   fields after that retention window. Do not start another rotation before
+   retiring this previous secret. Never extend authentication overlap indefinitely.
 
 Do not rotate a signing key while peers still accept only the other key. Old
 and renewed credentials keep the same family ID, so an old credential can

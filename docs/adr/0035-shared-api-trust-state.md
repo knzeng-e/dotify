@@ -36,7 +36,9 @@ expired. Renewal and revocation serialize on that family. The client renews
 only an identity-scoped session supplied by a connected wallet flow; anonymous
 playback/speculation never opens a wallet or renews a session. Rotation has an
 explicit previous-secret deadline, at most 24 hours, and a staged rollout so
-old and new API instances verify each other's credentials.
+old and new API instances verify each other's credentials. After auth overlap
+ends, the retained previous secret verifies delayed logout only, until the last
+family it signed reaches its original 24h deadline; then it is removed.
 
 ## Publication and receipt custody
 

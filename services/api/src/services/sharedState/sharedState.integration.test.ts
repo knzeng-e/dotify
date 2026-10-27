@@ -259,6 +259,27 @@ describe('W36 real PostgreSQL / independent API processes', () => {
     assert.equal((await x.verify(next.token)).valid, true);
     assert.equal(await x.revoke(old.token), true);
     assert.equal((await x.verify(next.token)).valid, false);
+    // After authentication overlap ends, retained A can verify delayed logout
+    // only. It cannot authenticate/renew A tokens or sign new B sessions.
+    let overlapping = true;
+    const rotating = new PostgresSessions(
+      b,
+      createSessionTokenService({
+        epoch: identity.sessionEpoch,
+        masterSecret: () => rotatedSecret,
+        previousSecret: () => (overlapping ? secret : undefined),
+        previousRevocationSecret: () => secret
+      })
+    );
+    const parent = await x.issue(address, identity.chainId);
+    assert.ok(parent.ok);
+    const child = await rotating.renew(parent.token);
+    assert.ok('ok' in child && child.ok);
+    overlapping = false;
+    assert.equal((await rotating.verify(parent.token)).valid, false);
+    assert.equal((await rotating.verify(child.token)).valid, true);
+    assert.equal(await rotating.revoke(parent.token), true);
+    assert.equal((await rotating.verify(child.token)).valid, false);
     const ancient = tokens().issue(address, identity.chainId, now - SESSION_MAX_AGE_MS - 1);
     assert.ok(ancient.ok);
     assert.equal(await x.revoke(ancient.token), false);

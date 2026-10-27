@@ -49,6 +49,8 @@ export type SessionTokenServiceOptions = {
   masterSecret?: () => string | undefined;
   randomId?: () => string;
   previousSecret?: () => string | undefined;
+  // Retain verification for delayed logout after the auth-overlap deadline.
+  previousRevocationSecret?: () => string | undefined;
   revoked?: Map<string, number>;
   // Used only with a stable epoch: a random epoch already ends old sessions.
   revocationPath?: string;
@@ -169,7 +171,9 @@ export function createSessionTokenService(options: SessionTokenServiceOptions = 
     }
 
     const provided = Buffer.from(parts[1], 'utf8');
-    const keys = [key, deriveHmacKey(options.previousSecret?.())].filter((value): value is Buffer => value !== null);
+    const keys = [key, deriveHmacKey(revocationOnly ? (options.previousRevocationSecret ?? options.previousSecret)?.() : options.previousSecret?.())].filter(
+      (value): value is Buffer => value !== null
+    );
     if (
       !keys.some(candidate => {
         const expected = Buffer.from(sign(parts[0], candidate), 'utf8');
@@ -283,7 +287,8 @@ export function createSessionTokenService(options: SessionTokenServiceOptions = 
 const sessionTokenService = createSessionTokenService({
   epoch: config.SESSION_EPOCH,
   revocationPath: sharedState ? undefined : config.SESSION_REVOCATIONS_PATH,
-  previousSecret: previousSessionSecret
+  previousSecret: previousSessionSecret,
+  previousRevocationSecret: () => config.SESSION_PREVIOUS_SECRET
 });
 
 function previousSessionSecret(): string | undefined {
@@ -294,7 +299,8 @@ const persistentSessions = sharedState
       sharedState,
       createSessionTokenService({
         epoch: config.SESSION_EPOCH,
-        previousSecret: previousSessionSecret
+        previousSecret: previousSessionSecret,
+        previousRevocationSecret: () => config.SESSION_PREVIOUS_SECRET
       })
     )
   : undefined;
