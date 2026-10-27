@@ -8,7 +8,7 @@ import { attachAudioNormalization } from '../features/player/audioNormalization'
 // All transport state lives in usePlayback; this component only forwards DOM
 // media events into that shared state and the host streaming callbacks.
 
-import { useCallback, type MutableRefObject, type RefObject } from 'react';
+import { useLayoutEffect, useRef, type MutableRefObject, type RefObject } from 'react';
 import type { PlaybackControls } from '../hooks/usePlayback';
 import { retireHostAudio } from '../features/player/hostAudioOutput';
 
@@ -18,97 +18,105 @@ type PersistentAudioProps = {
   localAudioRef: MutableRefObject<HTMLAudioElement | null>;
   remoteAudioRef: RefObject<HTMLAudioElement | null>;
   playback: PlaybackControls;
+  adoptPreparedAudio?: (url: string | null) => HTMLAudioElement | null;
   onPrepareLocalStream: () => void;
   onEmitPlayerState: (force: boolean) => void;
 };
 
-export function PersistentAudio({
-  audioSource,
-  audioSourceGeneration,
-  localAudioRef,
-  remoteAudioRef,
-  playback,
-  onPrepareLocalStream,
-  onEmitPlayerState
-}: PersistentAudioProps) {
-  const attachHostAudio = useCallback(
-    (audio: HTMLAudioElement | null) => {
-      const previous = localAudioRef.current;
-      localAudioRef.current = audio;
-      if (previous && previous !== audio) retireHostAudio(previous);
-      if (audio) {
-        attachAudioNormalization(audio);
-      }
-    },
-    [localAudioRef]
-  );
+function LocalAudio(props: PersistentAudioProps) {
+  const mount = useRef<HTMLSpanElement>(null);
+  const latest = useRef(props);
+  useLayoutEffect(() => {
+    latest.current = props;
+  }, [props]);
+  useLayoutEffect(() => {
+    const { localAudioRef, audioSource, adoptPreparedAudio } = latest.current;
+    const audio = adoptPreparedAudio?.(audioSource) ?? new Audio();
+    audio.className = 'native-player-source';
+    audio.crossOrigin = 'anonymous';
+    audio.setAttribute('playsinline', '');
+    if (audioSource && audio.getAttribute('src') !== audioSource) audio.src = audioSource;
+    localAudioRef.current = audio;
+    attachAudioNormalization(audio);
+    mount.current?.replaceChildren(audio);
+    const on = (name: string, action: (props: PersistentAudioProps) => void) => {
+      const listener = () => {
+        if (audio === localAudioRef.current) action(latest.current);
+      };
+      audio.addEventListener(name, listener);
+      return () => audio.removeEventListener(name, listener);
+    };
+    const removers = [
+      on('loadedmetadata', p => {
+        p.playback.handleHostLoadedMetadata(audio);
+        p.onEmitPlayerState(true);
+        void p.onPrepareLocalStream();
+      }),
+      on('canplay', p => p.playback.handleHostCanPlay(audio)),
+      on('play', p => {
+        p.playback.syncFromAudio(audio);
+        void p.onPrepareLocalStream();
+        p.onEmitPlayerState(true);
+      }),
+      on('playing', p => {
+        p.playback.handleHostPlaying(audio);
+        p.onEmitPlayerState(true);
+        void p.onPrepareLocalStream();
+      }),
+      on('pause', p => {
+        p.playback.syncFromAudio(audio);
+        p.onEmitPlayerState(true);
+      }),
+      on('waiting', p => {
+        p.playback.handleHostWaiting(audio);
+        p.onEmitPlayerState(true);
+      }),
+      on('seeking', p => p.onEmitPlayerState(true)),
+      on('seeked', p => {
+        p.playback.syncFromAudio(audio);
+        p.onEmitPlayerState(true);
+      }),
+      on('timeupdate', p => {
+        p.playback.syncFromAudio(audio);
+        p.onEmitPlayerState(false);
+      }),
+      on('ended', p => {
+        p.onEmitPlayerState(true);
+        p.playback.handleEnded(audio);
+      }),
+      on('error', p => {
+        if (p.playback.handleHostError(audio) && p.audioSource) p.playback.markNoAudio();
+      })
+    ];
+    // A warmed node already fired metadata/canplay while silent. Replay those
+    // callbacks only after all source-owner layout effects have committed.
+    queueMicrotask(() => {
+      if (localAudioRef.current !== audio) return;
+      if (audio.readyState >= 1) latest.current.playback.handleHostLoadedMetadata(audio);
+      if (audio.readyState >= 3) latest.current.playback.handleHostCanPlay(audio);
+    });
+    return () => {
+      for (const remove of removers) remove();
+      if (localAudioRef.current === audio) localAudioRef.current = null;
+      retireHostAudio(audio);
+      audio.remove();
+    };
+  }, [props.audioSourceGeneration, props.audioSource]);
+  useLayoutEffect(() => {
+    const audio = props.localAudioRef.current;
+    if (audio) {
+      audio.muted = props.playback.muted;
+      audio.loop = props.playback.repeatEnabled;
+    }
+  }, [props.localAudioRef, props.audioSourceGeneration, props.playback.muted, props.playback.repeatEnabled]);
+  return <span ref={mount} />;
+}
 
+export function PersistentAudio(props: PersistentAudioProps) {
+  const { playback, remoteAudioRef } = props;
   return (
     <div className='persistent-audio' aria-hidden='true'>
-      {/* Host source: drives local playback and the WebRTC capture. */}
-      <audio
-        key={audioSourceGeneration}
-        className='native-player-source'
-        ref={attachHostAudio}
-        src={audioSource ?? undefined}
-        crossOrigin='anonymous'
-        muted={playback.muted}
-        loop={playback.repeatEnabled}
-        playsInline
-        onLoadedMetadata={event => {
-          if (event.currentTarget !== localAudioRef.current) return;
-          playback.handleHostLoadedMetadata(event.currentTarget);
-          onEmitPlayerState(true);
-          void onPrepareLocalStream();
-        }}
-        onCanPlay={event => playback.handleHostCanPlay(event.currentTarget)}
-        onPlay={event => {
-          if (event.currentTarget !== localAudioRef.current) return;
-          playback.syncFromAudio(event.currentTarget);
-          // Re-run capture now that audio is actually flowing: a captureStream()
-          // taken at loadedmetadata can have no live track yet. This is a cheap
-          // no-op once the current source is already streaming (guarded in
-          // prepareLocalStream), so it only does work when the room would
-          // otherwise be left with a silent or stale stream.
-          void onPrepareLocalStream();
-          onEmitPlayerState(true);
-        }}
-        onPlaying={event => {
-          if (event.currentTarget !== localAudioRef.current) return;
-          playback.handleHostPlaying(event.currentTarget);
-          onEmitPlayerState(true);
-          // Some browsers expose a track at `play` before media frames are
-          // actually flowing. Re-check at `playing`; prepareLocalStream keeps
-          // this cheap when the current capture is already valid.
-          void onPrepareLocalStream();
-        }}
-        onPause={event => {
-          if (event.currentTarget !== localAudioRef.current) return;
-          playback.syncFromAudio(event.currentTarget);
-          onEmitPlayerState(true);
-        }}
-        onSeeking={() => onEmitPlayerState(true)}
-        onWaiting={event => {
-          if (event.currentTarget !== localAudioRef.current) return;
-          playback.handleHostWaiting(event.currentTarget);
-          onEmitPlayerState(true);
-        }}
-        onSeeked={() => {
-          playback.syncFromAudio(localAudioRef.current);
-          onEmitPlayerState(true);
-        }}
-        onTimeUpdate={() => {
-          playback.syncFromAudio(localAudioRef.current);
-          onEmitPlayerState(false);
-        }}
-        onEnded={event => {
-          onEmitPlayerState(true);
-          playback.handleEnded(event.currentTarget);
-        }}
-        onError={event => {
-          if (playback.handleHostError(event.currentTarget) && audioSource) playback.markNoAudio();
-        }}
-      />
+      <LocalAudio {...props} />
 
       {/* Room listener: live stream attached to srcObject by the session hook. */}
       <audio

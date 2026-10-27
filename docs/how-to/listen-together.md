@@ -83,6 +83,20 @@ Confirmation can take time: a pending result is not a reason to send it again.
 Keep the contribution reference and use its status-check action instead.
 See [Check a pending payment](recover-a-payment.md) for recovery steps.
 
+## Continue a solo listen
+
+On returning to Dotify, **Resume** on Music offers the last saved solo track,
+position and upcoming queue for this account and network. Nothing plays until
+you choose it. Access is checked again; a saved position never unlocks a track.
+Saved listening stays on this device for up to seven days, without keys or audio.
+Use **Dismiss saved listening** to remove it. Closing the mini-player also clears
+it. Room links and room membership are never restored by this offer.
+
+Where the browser or Product Host supports system media controls, the lock
+screen or headset can play/pause. Hosts and solo listeners can also skip or seek;
+guests retain local pause/resume. Device background behavior must be tested on
+the actual Host version. See [how continuous listening works](../explanation/continuous-listening.md).
+
 ## If something interrupts
 
 - **No nearby results:** wait for the location status, check device permission

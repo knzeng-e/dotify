@@ -1,3 +1,4 @@
+import { StandbyAudio } from '../features/player/standbyAudio';
 import { publishStreamingStartupMetric, type StreamingStartupMetric } from '../features/catalog/audioStartupTelemetry';
 import { createStreamingPlayback } from '../features/catalog/streamingPlayback';
 import { registerAudioGain, forgetAudioGain } from '../features/player/audioNormalization';
@@ -153,7 +154,7 @@ function buildProductCdmPaymentSmokeMetric(input: {
     attempts: input.verification.attempts,
     ok: input.verification.ok,
     error: input.verification.error,
-    timestamp: Date.now()
+    timestamp: wallTimestamp()
   };
 }
 
@@ -285,6 +286,14 @@ export type UseCatalogDeps = {
   setTitle: (title: string) => void;
 };
 
+// Imperative event clocks/IDs, never evaluated by the render path.
+function wallTimestamp() {
+  return Date.now();
+}
+function newOperationId() {
+  return typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
+}
+
 export function useCatalog(deps: UseCatalogDeps) {
   const {
     ethRpcUrl,
@@ -359,6 +368,7 @@ export function useCatalog(deps: UseCatalogDeps) {
   const [nativeRuntimePaymentAsset, setNativeRuntimePaymentAsset] = useState(() =>
     runtimeAdapterConfig.kind === 'product-cdm' ? DOTIFY_PRODUCT_DEVNET_NATIVE_RUNTIME_ASSET : DOTIFY_FALLBACK_NATIVE_RUNTIME_ASSET
   );
+  const [standbyAudio] = useState(() => new StandbyAudio());
   const [audioSource, setAudioSource] = useState<string | null>(null);
   const [audioSourceGeneration, setAudioSourceGeneration] = useState(0);
   const [audioContinuation, setAudioContinuation] = useState<AudioContinuation | null>(null);
@@ -465,7 +475,7 @@ export function useCatalog(deps: UseCatalogDeps) {
         attemptId: activeSelection.attemptId,
         source: activeSelection.source,
         elapsedMs: Number((nowMs() - activeSelection.startedAt).toFixed(1)),
-        timestamp: Date.now(),
+        timestamp: wallTimestamp(),
         terminalReason: 'selection-interrupted'
       });
     }
@@ -748,7 +758,8 @@ export function useCatalog(deps: UseCatalogDeps) {
     accessMode: AccessMode,
     release: ContentKeyReleaseIdentity | undefined,
     signal?: AbortSignal,
-    isCurrent: () => boolean = () => true
+    isCurrent: () => boolean = () => true,
+    options?: { key: Uint8Array; audio: () => HTMLAudioElement; speculative: true }
   ): Promise<string> {
     throwIfAborted(signal);
     if (isClassicUnlockE2e && contentHash.toLowerCase() === E2E_CLASSIC_HASH.toLowerCase()) {
@@ -768,7 +779,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     const cacheKey = audioRef;
     const cached = resolvedAudioSourcesRef.current.get(cacheKey);
     if (cached) {
-      setAudioStartupStatus('Starting audio');
+      if (!options?.speculative) setAudioStartupStatus('Starting audio');
       return cached;
     }
 
@@ -777,20 +788,21 @@ export function useCatalog(deps: UseCatalogDeps) {
       const controllerSignal = signal ?? new AbortController().signal;
       const startedAt = performance.now();
       const metric = (detail: Omit<StreamingStartupMetric, 'audioRef' | 'cid' | 'elapsedMs' | 'timestamp'>) => {
-        if (isCurrent() && !controllerSignal.aborted)
+        if (!options?.speculative && isCurrent() && !controllerSignal.aborted)
           publishStreamingStartupMetric({
             ...detail,
             audioRef,
             cid: encryptedRefToCID(audioRef),
             elapsedMs: performance.now() - startedAt,
-            timestamp: Date.now()
+            timestamp: wallTimestamp()
           });
       };
-      const key = accessMode === 'free' ? await resolveFreeContentKey(contentHash, release) : await resolveServerContentKey(contentHash, release);
+      const key =
+        options?.key ?? (accessMode === 'free' ? await resolveFreeContentKey(contentHash, release) : await resolveServerContentKey(contentHash, release));
       controllerSignal.throwIfAborted();
       if (!key) throw new Error('The audio access check could not be completed.');
       metric({ phase: 'key-authorized' });
-      setAudioStartupStatus('Preparing audio');
+      if (!options?.speculative) setAudioStartupStatus('Preparing audio');
       const prepared = await createStreamingPlayback({
         cid: encryptedRefToCID(audioRef),
         key,
@@ -802,9 +814,10 @@ export function useCatalog(deps: UseCatalogDeps) {
         },
         signal: controllerSignal,
         onMetric: metric,
-        audio: () => localAudioRef.current,
+        audio: options?.audio ?? (() => localAudioRef.current),
+        bufferAheadSeconds: options ? () => (options.audio().isConnected ? 30 : 4) : undefined,
         onError: () => {
-          if (isCurrent()) {
+          if ((!options?.speculative || options.audio().isConnected) && isCurrent()) {
             setAudioRecovery('failed');
             setAudioStartupStatus('Audio connection interrupted');
           }
@@ -844,13 +857,34 @@ export function useCatalog(deps: UseCatalogDeps) {
   ): Promise<TrackSelectionResult> {
     const selectionStartedAt = nowMs();
     const selection = beginTrackSelection(track.id, selectionStartedAt);
+    // Resolve the destination purpose before comparing a prepared identity.
+    // A solo candidate cannot be adopted for a room-host request (or vice versa).
+    keyRequestPurposeRef.current = socketEmit ? 'room_host' : 'individual';
+    // Transfer ownership before pausing the outgoing element triggers speculative
+    // cancellation. A protected candidate still requires a live W34 grant.
+    const canAdopt =
+      track.active !== false &&
+      (!isPolicyManagedTrack(track) ||
+        (track.encrypted &&
+          (track.accessMode === 'free' ||
+            readPreparedContentKey(track.hash, releaseIdentityFromTrack(track), keyRequestPurposeRef.current)?.access === 'allowed')));
+    const warmSource = canAdopt ? standbyAudio.take(standbyIdentity(track), selection.controller.signal) : null;
+    if (!canAdopt) standbyAudio.clear();
     publishHostAudioStartupMetric({
       phase: 'playback-intent',
       attemptId: selection.attemptId,
       source: track.id,
       elapsedMs: 0,
-      timestamp: Date.now()
+      timestamp: wallTimestamp()
     });
+    if (warmSource && isEncryptedAudioV3Ref(track.audioRef))
+      publishStreamingStartupMetric({
+        phase: 'prepared-source-adopted',
+        audioRef: track.audioRef,
+        cid: encryptedRefToCID(track.audioRef),
+        elapsedMs: 0,
+        timestamp: wallTimestamp()
+      });
     let selectionFailureReported = false;
     const reportSelectionFailure = (terminalReason: HostAudioTerminalReason) => {
       if (selectionFailureReported || !isTrackSelectionCurrent(selection)) return;
@@ -861,7 +895,7 @@ export function useCatalog(deps: UseCatalogDeps) {
         attemptId: selection.attemptId,
         source: track.id,
         elapsedMs: Number((nowMs() - selectionStartedAt).toFixed(1)),
-        timestamp: Date.now(),
+        timestamp: wallTimestamp(),
         terminalReason
       });
     };
@@ -893,18 +927,16 @@ export function useCatalog(deps: UseCatalogDeps) {
       setAccessGate(null);
       setPlaybackFailure(null);
       setAudioStartupStatus(track.encrypted ? 'Checking your access…' : null);
-      // A socketEmit callback means this selection streams into a room: the
-      // signer is the host, and only the host needs to satisfy the policy.
-      keyRequestPurposeRef.current = socketEmit ? 'room_host' : 'individual';
-
       // Access model v2: access is binary. An authorized listener plays the full
       // track; an unauthorized one gets the access gate and no audio at all. The
       // 42% preview is retired.
       let audioUrl: string | null = null;
       let hasAccess = true;
 
-      const preparedGrant = readPreparedContentKey(track.hash, releaseIdentityFromTrack(track), keyRequestPurposeRef.current);
-      if (isPolicyManagedTrack(track) && !preparedGrant) {
+      const preparedGrant = track.encrypted ? readPreparedContentKey(track.hash, releaseIdentityFromTrack(track), keyRequestPurposeRef.current) : null;
+      // Readiness is not authorization. Non-encrypted policy-managed sources
+      // have no key grant and must always take the ordinary runtime check.
+      if (isPolicyManagedTrack(track) && (!track.encrypted || (!preparedGrant && !warmSource))) {
         hasAccess = await checkTrackAccess(track, listenerEvmAddress);
         if (!isTrackSelectionCurrent(selection)) return { playbackMode: 'full', audioSource: audioSourceRef.current };
         const smokeRuntime = runtimeAddressFromTrackId(track);
@@ -941,7 +973,8 @@ export function useCatalog(deps: UseCatalogDeps) {
 
       if (hasAccess && track.localUrl) {
         let failureKind: ProtectedPlaybackFailureKind | null = null;
-        if (track.encrypted) {
+        if (warmSource) audioUrl = warmSource;
+        else if (track.encrypted) {
           // Transient failures (service out of reach, access not propagated
           // yet, slow gateway) retry quietly. Failed key requests repeat
           // authorization; transport retries reuse an already authorized key.
@@ -1063,7 +1096,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     closeHostPeers?: () => void,
     readOnly = false
   ) {
-    const operationId = typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
+    const operationId = newOperationId();
     const showPaymentFeedback = (feedback: TransactionFeedback) => setTransactionFeedback({ ...feedback, operationId });
     const unlockStartedTrackId = track.id;
     const unlockStartedView = activeViewRef.current;
@@ -1458,10 +1491,14 @@ export function useCatalog(deps: UseCatalogDeps) {
   const preparationIdentityRef = useRef(preparationIdentity);
   useLayoutEffect(() => {
     preparationIdentityRef.current = preparationIdentity;
+    standbyAudio.clear();
     const lifetime = new AbortController();
     preparationLifetime.current = lifetime;
-    return () => lifetime.abort();
-  }, [preparationIdentity]);
+    return () => {
+      lifetime.abort();
+      standbyAudio.clear();
+    };
+  }, [preparationIdentity, standbyAudio]);
 
   async function prepareQueuedContentKeys(tracks: CatalogTrack[], signal: AbortSignal) {
     if (
@@ -1491,7 +1528,57 @@ export function useCatalog(deps: UseCatalogDeps) {
     });
   }
 
+  function standbyIdentity(track: CatalogTrack) {
+    return JSON.stringify([
+      preparationIdentityRef.current,
+      keyRequestPurposeRef.current,
+      track.source,
+      track.encrypted,
+      track.id,
+      track.hash,
+      track.artistAddress?.toLowerCase(),
+      track.audioRef,
+      track.localUrl,
+      track.accessMode
+    ]);
+  }
+
+  async function prepareNextPlayback(track: CatalogTrack, signal: AbortSignal) {
+    const identity = standbyIdentity(track);
+    const current = () => !signal.aborted && standbyIdentity(track) === identity;
+    if (!current() || track.active === false || !track.localUrl) return;
+    // Do not expose even a paused media URL before its runtime policy passes.
+    // These sources use the authoritative check on explicit selection instead.
+    if (!track.encrypted && isPolicyManagedTrack(track)) return;
+    if (track.encrypted && (typeof MediaSource === 'undefined' || !MediaSource.isTypeSupported('audio/mp4; codecs="mp4a.40.2"'))) return;
+    const expires = Date.now() + 30_000;
+    let key: Uint8Array | null = null;
+    if (track.encrypted) {
+      if (track.accessMode === 'free') key = await resolveFreeContentKey(track.hash, releaseIdentityFromTrack(track));
+      else {
+        await prepareQueuedContentKeys([track], signal);
+        const grant = readPreparedContentKey(track.hash, releaseIdentityFromTrack(track), keyRequestPurposeRef.current);
+        if (grant?.access === 'allowed') key = hexToBytes(grant.contentKey);
+      }
+      if (!key || !current()) return;
+    }
+    await standbyAudio.prepare(identity, expires, signal, (owner, audio) =>
+      track.encrypted
+        ? prepareStreamingAudio(
+            track.audioRef,
+            track.hash,
+            track.accessMode,
+            releaseIdentityFromTrack(track),
+            owner,
+            () => !owner.aborted && standbyIdentity(track) === identity,
+            { key: key!, audio: () => audio, speculative: true }
+          )
+        : Promise.resolve(track.localUrl!)
+    );
+  }
+
   function clearObjectUrls() {
+    standbyAudio.clear();
     abortActiveTrackSelection();
     for (const url of objectUrlsRef.current.values()) {
       forgetAudioGain(url);
@@ -1508,6 +1595,9 @@ export function useCatalog(deps: UseCatalogDeps) {
         ? Promise.resolve({ name: track.artist, recipient: E2E_CLASSIC_TRACK.artistAddress!, releaseTitle: track.title })
         : resolveDonationArtist(track, runtimeReader),
     prepareQueuedContentKeys,
+    prepareNextPlayback,
+    cancelNextPlayback: () => standbyAudio.clear(),
+    adoptPreparedAudio: (url: string | null) => standbyAudio.adopt(url),
     // State
     catalogTracks,
     allCatalogTracks,

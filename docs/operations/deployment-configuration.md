@@ -1,5 +1,39 @@
 # Deployment Configuration Runbook
 
+## W35 client candidate, 2026-10-27
+
+W35 adds no secret, Host permission, server API, contract or persistent server
+migration. Deploy reviewed Web/Product clients together after the owner's
+combined test preparation; do not increment/publicize a release in this change.
+#335-#337 are merged into dev but are absent from the recorded 0.1.62 executable.
+
+Verify adaptive 96/160/320 AAC playback on variable networks, an authorized
+queued-track handoff, pause/seek/skip/repeat/dismiss cancellation and room entry
+while a successor is prepared. Guests must retain zero source-key calls and the
+same WebRTC transport. Test lock-screen actions and phone/desktop backgrounding
+on exact Host builds, recording unsupported capabilities explicitly.
+
+Include denied Classic/personhood access and an unavailable runtime read for
+non-encrypted policy-managed sources: neither preparation nor selection may
+start a media request before permission. A previously ready local candidate
+must not bypass a newly applied artist policy; an allowed selection still plays
+through its ordinary access check.
+
+Resume stores one bounded account/network-scoped checkpoint in browser storage
+(`dotify:listening-checkpoint:v1`), never keys, source URLs or room membership.
+It is optional when storage is blocked. Dismiss saved listening or close the
+mini-player to remove it; old clients ignore the versioned key on rollback.
+No custody, nonce, session, receipt or catalog files change. Existing W34 routes
+remain the prerequisite; W33's gateway activation is independent. The first-sound
+export keeps schema 6 with optional local aggregate continuity metrics.
+See [design and boundaries](../explanation/continuous-listening.md) and
+[actual verification](../backlog/implementation/evidence/W35.md).
+
+The dedicated W35 browser CI job needs a running audio service: it starts
+PulseAudio with an explicit null sink on the hosted Linux runner. This keeps
+AAC/MSE and native-error assertions enabled; it is test infrastructure only and
+does not prove physical sound or require a deployed server/Host setting.
+
 ## Pending client corrections, 2026-10-26
 
 The last recorded publication remains 0.1.62 below. Payment approval-expiry

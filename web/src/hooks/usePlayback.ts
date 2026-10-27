@@ -1,3 +1,5 @@
+import { useNextTrackPreparation } from '../features/player/useNextTrackPreparation';
+import { playbackContinuity } from '../features/player/playbackContinuity';
 // ── Persistent playback layer ───────────────────────────────────────────────
 // Single owner of the media elements and transport state for the whole app.
 //
@@ -48,6 +50,7 @@ type UsePlaybackDeps = {
   selectedTrackId: string;
   lineup: RoomLineupItem[];
   onLineupChange: (lineup: RoomLineupItem[]) => void;
+  onPrepareNext?: (track: CatalogTrack, signal: AbortSignal) => Promise<void>;
   onPrepareKeys?: (tracks: CatalogTrack[], signal: AbortSignal) => Promise<void>;
   onOpenTrack: (track: CatalogTrack) => void;
   onEmitPlayerState: (force: boolean) => void;
@@ -96,7 +99,7 @@ export function usePlayback(deps: UsePlaybackDeps) {
     playerState,
     catalogTracks,
     selectedTrackId,
-    lineup,
+    lineup: roomLineup,
     onLineupChange,
     onOpenTrack,
     onEmitPlayerState
@@ -110,6 +113,9 @@ export function usePlayback(deps: UsePlaybackDeps) {
   const [recentTrackIds, setRecentTrackIds] = useState<string[]>([]);
   const clearRecentPlays = useCallback(() => setRecentTrackIds([]), []);
   const [remotePausedByUser, setRemotePausedByUser] = useState(false);
+  const [soloLineup, setSoloLineup] = useState<RoomLineupItem[]>([]);
+  const lineup = roomId ? roomLineup : soloLineup;
+  const resumePosition = useRef<{ trackId: string; position: number } | null>(null);
 
   const roomClock = useRoomClock(playerState, mode === 'listener' && remoteReady);
   const transport =
@@ -205,11 +211,20 @@ export function usePlayback(deps: UsePlaybackDeps) {
     }
   );
 
+  useNextTrackPreparation(
+    localAudioRef,
+    mode === 'host' && !roomId && !previewOnly && !repeatEnabled && !trackSelectionPending && Boolean(audioSource),
+    audioSourceGeneration,
+    queuedTracks[0] ?? catalogTracks.find(track => track.id === neighbors.nextId),
+    deps.onPrepareNext
+  );
+
   const syncFromAudio = useCallback(
     (audio: HTMLAudioElement | null = getControllingAudio()) => {
       // A MediaStream's currentTime is time since reception, not song position.
       // Neither its events nor a leftover solo element may own the room clock.
       if (!audio || mode !== 'host' || audio !== localAudioRef.current) return;
+      if (audio.paused) playbackContinuity.nativePause();
       setTransport(previous => ({
         // Keep play intent while buffering so the transport still offers Pause.
         playing: !audio.paused,
@@ -228,6 +243,7 @@ export function usePlayback(deps: UsePlaybackDeps) {
 
   // Mark intent to start playback as soon as the active source is ready.
   const requestAutoplay = useCallback(() => {
+    playbackContinuity.clearIntent();
     userPausedRef.current = false;
     autoplayIntentRef.current = true;
   }, []);
@@ -238,6 +254,7 @@ export function usePlayback(deps: UsePlaybackDeps) {
     userPausedRef.current = true;
     autoplayIntentRef.current = false;
     setRemotePausedByUser(true);
+    playbackContinuity.event('paused');
     if (localAudioRef.current) pauseHostAudio(localAudioRef.current);
     remoteAudioRef.current?.pause();
     setTransport(previous => ({ ...previous, playing: false }));
@@ -254,6 +271,7 @@ export function usePlayback(deps: UsePlaybackDeps) {
       return;
     }
     const startedAt = nowMs();
+    if (resumePosition.current?.trackId !== selectedTrackIdRef.current) resumePosition.current = null;
     hostStartupRef.current = {
       attemptId: audioStartupAttemptIdRef.current ?? `source:${Date.now()}`,
       source: audioSource,
@@ -284,7 +302,8 @@ export function usePlayback(deps: UsePlaybackDeps) {
 
   useEffect(() => {
     setRemotePausedByUser(false);
-  }, [roomId]);
+    if (mode === 'listener') playbackContinuity.event('paused');
+  }, [roomId, mode]);
 
   // Consume the live stream continuously, but disable/mute output during host
   // pause or local listening pause. No seeks, stops or peer rebuilds are needed.
@@ -334,6 +353,7 @@ export function usePlayback(deps: UsePlaybackDeps) {
 
   const beginLoadedSourcePlaybackAttempt = useCallback((): HostAudioStartup | null => {
     if (!audioSource) return null;
+    playbackContinuity.clearIntent();
     const startedAt = nowMs();
     const attemptId = `loaded:${Date.now()}:${Math.random().toString(36).slice(2)}`;
     const startup: HostAudioStartup = {
@@ -413,6 +433,7 @@ export function usePlayback(deps: UsePlaybackDeps) {
       userPausedRef.current = true;
       autoplayIntentRef.current = false;
       pauseHostAudio(audio);
+      playbackContinuity.event('paused');
       setStatus('ready');
     }
     syncFromAudio(audio);
@@ -430,6 +451,37 @@ export function usePlayback(deps: UsePlaybackDeps) {
     syncFromAudio,
     onEmitPlayerState
   ]);
+
+  const setPlaying = useCallback(
+    (playing: boolean) => {
+      const audio = getControllingAudio();
+      if (!playing) {
+        if (mode === 'listener') setRemotePausedByUser(true);
+        else {
+          userPausedRef.current = true;
+          autoplayIntentRef.current = false;
+          if (audio) pauseHostAudio(audio);
+          playbackContinuity.event('paused');
+          syncFromAudio(audio);
+        }
+        return;
+      }
+      if (!audio || !canUseTransport) return;
+      if (mode === 'listener') {
+        setRemotePausedByUser(false);
+        void audio.play().catch(() => setStatus('autoplay-blocked'));
+        return;
+      }
+      userPausedRef.current = false;
+      autoplayIntentRef.current = true;
+      if (!audio.paused) return;
+      beginLoadedSourcePlaybackAttempt();
+      void Promise.all([resumeHostAudioOutput(audio), audio.play()]).catch(() => {
+        if (!userPausedRef.current && audio === localAudioRef.current) setStatus('autoplay-blocked');
+      });
+    },
+    [getControllingAudio, canUseTransport, mode, beginLoadedSourcePlaybackAttempt, localAudioRef, syncFromAudio]
+  );
 
   const seekToProgress = useCallback(
     (progressPercent: number) => {
@@ -461,9 +513,10 @@ export function usePlayback(deps: UsePlaybackDeps) {
       // commands can arrive before React commits the server echo; the second
       // command must already see the remaining entry.
       queuedTracksRef.current = playableLineupTracks(bounded, catalogTracks);
-      onLineupChangeRef.current(bounded);
+      if (roomId) onLineupChangeRef.current(bounded);
+      else setSoloLineup(bounded);
     },
-    [catalogTracks]
+    [catalogTracks, roomId]
   );
 
   const consumeLineupTrack = useCallback(
@@ -483,6 +536,7 @@ export function usePlayback(deps: UsePlaybackDeps) {
         track.id,
         shuffleEnabled
       );
+      playbackContinuity.transition();
       onOpenTrackRef.current(track);
     },
     [catalogTracks, consumeLineupTrack, shuffleEnabled]
@@ -602,6 +656,21 @@ export function usePlayback(deps: UsePlaybackDeps) {
           return;
         }
       }
+      const resume = resumePosition.current;
+      if (resume?.trackId === selectedTrackIdRef.current) {
+        try {
+          audio.currentTime = Math.min(resume.position, Math.max(0, audio.duration - 0.1));
+          resumePosition.current = null;
+        } catch {
+          resumePosition.current = null;
+          userPausedRef.current = true;
+          autoplayIntentRef.current = false;
+          reportHostPlaybackError(startup, 'media-error');
+          onHostMediaSettled(startup.source, true, startup.attemptId);
+          setStatus('no-audio');
+          return;
+        }
+      }
       syncFromAudio(audio);
       if (!startup.metadataReported) {
         startup.metadataReported = true;
@@ -644,7 +713,9 @@ export function usePlayback(deps: UsePlaybackDeps) {
 
   const handleHostWaiting = useCallback(
     (audio: HTMLAudioElement) => {
-      if (!startupForAudio(audio) || audio.paused) return;
+      const startup = startupForAudio(audio);
+      if (!startup || audio.paused) return;
+      if (startup.mediaPlayingReported) playbackContinuity.event('waiting');
       syncFromAudio(audio);
       setStatus('buffering');
     },
@@ -669,6 +740,7 @@ export function usePlayback(deps: UsePlaybackDeps) {
   const handleHostPlaying = useCallback(
     (audio: HTMLAudioElement) => {
       const startup = startupForAudio(audio);
+      if (startup && !audio.paused) playbackContinuity.event('playing');
       // Discovery history means actual media playback, not selection/readiness.
       // It stays in memory and never changes previous/next transport history.
       if (startup && !startup.errorReported && !audio.paused) setRecentTrackIds(history => rememberRecentPlay(history, selectedTrackIdRef.current));
@@ -699,6 +771,7 @@ export function usePlayback(deps: UsePlaybackDeps) {
     (audio: HTMLAudioElement): boolean => {
       const startup = startupForAudio(audio);
       if (!startup || !reportHostPlaybackError(startup, 'media-error')) return false;
+      playbackContinuity.event('paused');
       onHostMediaSettled(startup.source, true, startup.attemptId);
       return true;
     },
@@ -731,6 +804,18 @@ export function usePlayback(deps: UsePlaybackDeps) {
     canShuffle,
     // controls
     togglePlay,
+    setPlaying,
+    restoreListening: (trackId: string, position: number, queue: string[]) => {
+      resumePosition.current = { trackId, position };
+      setSoloLineup(
+        queue
+          .flatMap(id => {
+            const track = catalogTracks.find(item => item.id === id && item.active !== false);
+            return track ? [lineupItemFromTrack(track)] : [];
+          })
+          .slice(0, ROOM_LINEUP_LIMIT)
+      );
+    },
     seekToProgress,
     toggleMute,
     skip,

@@ -34,3 +34,17 @@ No offline downloads (separate decision; it must not be presented as DRM). No ch
 ## Handoff
 
 Write `docs/backlog/implementation/evidence/W35.md` using `evidence-template.md`.
+
+## Implementation checkpoint, 2026-10-27
+
+The [continuous-listening design](../../explanation/continuous-listening.md)
+uses one silent authorized successor and adopts that exact native element.
+It does not concatenate distinct track timelines or alter room transport.
+Encrypted standby requires AAC MSE; the compatibility reader remains available
+for explicit playback. Native event handoff latency is measured separately from
+sample-accurate audible continuity, which still requires physical listening.
+
+The implementation also covers measured rendition selection, Media Session,
+account/network-scoped local position/queue resume and identifier-free continuity
+aggregates in first-sound exports. See [evidence and remaining gates](evidence/W35.md).
+This checkpoint is not a deployment or a physical Host background claim.

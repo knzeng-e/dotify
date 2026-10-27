@@ -47,6 +47,7 @@ describe('audio startup telemetry', () => {
     recordHostAudioStartupMetric(hostMetric);
 
     expect(getAudioStartupTelemetrySnapshot()).toEqual({
+      continuity: { nextLatencyMs: [], playingMs: 0, waitingMs: 0, rebufferRatio: 0 },
       streaming: [streamingMetric],
       host: [hostMetric],
       latestMediaPlayingMs: 820.2
@@ -62,6 +63,7 @@ describe('audio startup telemetry', () => {
     target.dispatchEvent(new CustomEvent('dotify:streaming-startup', { detail: { phase: 'bad' } }));
 
     expect(target.__DOTIFY_AUDIO_STARTUP__?.snapshot()).toEqual({
+      continuity: { nextLatencyMs: [], playingMs: 0, waitingMs: 0, rebufferRatio: 0 },
       streaming: [streamingMetric],
       host: [hostMetric],
       latestMediaPlayingMs: 820.2

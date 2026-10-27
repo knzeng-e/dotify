@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { readFile } from 'node:fs/promises';
+import { syntheticWav } from './fixtures/syntheticWav';
 
 const fixture = '/?e2eRoom=public&e2eSync=on&e2eCatalog=sequence&e2eAutoplay=on&e2eCapture=web-audio';
 const home = (page: Page) => page.getByRole('heading', { name: 'Listen together.', exact: true });
@@ -163,7 +163,7 @@ test('closing a preparing track prevents a late source from restarting audio', a
     await new Promise<void>(resolve => {
       releaseSource = resolve;
     });
-    const body = await readFile(new URL('./fixtures/artist-release.wav', import.meta.url));
+    const body = syntheticWav();
     await route.fulfill({ contentType: 'audio/wav', body }).catch(() => undefined);
     responseFinished = true;
   });

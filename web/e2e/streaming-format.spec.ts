@@ -171,11 +171,11 @@ test('publication player reads authenticated segments and shares normalized audi
   expect(result.capturedTracks).toBe(1);
   expect(result.duration).toBeGreaterThan(8);
   expect(edgeRequests.some(url => url.endsWith('/manifest.json'))).toBe(true);
-  expect(edgeRequests.some(url => url.endsWith('/160/segment-000.bin'))).toBe(true);
+  expect(edgeRequests.some(url => url.endsWith('/96/segment-000.bin'))).toBe(true);
   expect(requests).toContain('manifest.json');
-  expect(requests).toContain('160/init.bin');
-  expect(requests).toContain('160/segment-000.bin');
-  expect(requests.some(path => path.startsWith('archive/') || path.startsWith('96/') || path.startsWith('320/'))).toBe(false);
+  expect(requests).toContain('96/init.bin');
+  expect(requests).toContain('96/segment-000.bin');
+  expect(requests.some(path => path.startsWith('archive/'))).toBe(false);
 });
 
 test('publication player refuses a bad key before reading any media or archive', async ({ page }) => {
@@ -241,4 +241,64 @@ test('publication compatibility playback uses authenticated AAC when standard MS
   expect(result.paths.some(path => path.startsWith('archive/'))).toBe(false);
   await page.click('button');
   await expect.poll(() => page.evaluate(() => document.querySelector('audio')!.currentTime)).toBeGreaterThan(0.2);
+});
+
+test('the reader starts at 96, upgrades on measured headroom and downshifts after congestion', async ({ page }) => {
+  await page.route('**/w35-adaptive', route => route.fulfill({ contentType: 'text/html', body: '<button>Play</button><audio></audio>' }));
+  await page.goto('/w35-adaptive');
+  await page.evaluate(async fixture => {
+    const path = '/src/features/catalog/streamingPlayback.ts';
+    const { createStreamingPlayback } = (await import(path)) as typeof import('../src/features/catalog/streamingPlayback');
+    const audio = document.querySelector('audio')!;
+    const metrics: number[] = [];
+    Reflect.set(window, '__abrBitrates', metrics);
+    const prepared = await createStreamingPlayback({
+      cid: 'Qm' + 'e'.repeat(44),
+      key: Uint8Array.from(fixture.keyHex.match(/../g)!, pair => parseInt(pair, 16)),
+      scope: fixture.scope,
+      signal: new AbortController().signal,
+      audio: () => audio,
+      onError: error => {
+        Reflect.set(window, '__abrError', String(error));
+      },
+      onMetric: event => {
+        if (event.phase === 'rendition-selected') metrics.push(event.bitrateKbps!);
+      },
+      fetchObject: async (_cid, name, _maximum, signal, observe) => {
+        await new Promise(resolve => setTimeout(resolve, name.endsWith('segment-004.bin') ? 2500 : 30));
+        signal.throwIfAborted();
+        observe?.({ fromCache: false });
+        return Uint8Array.from(atob(name === 'manifest.json' ? fixture.manifest : fixture.files[name]), character => character.charCodeAt(0));
+      }
+    });
+    audio.src = prepared.url;
+    document.querySelector('button')!.onclick = () => {
+      void audio.play();
+    };
+  }, fixture);
+  await page.getByRole('button', { name: 'Play', exact: true }).click();
+  await expect
+    .poll(() =>
+      page.evaluate(() => ({
+        bitrates: Reflect.get(window, '__abrBitrates'),
+        error: Reflect.get(window, '__abrError') ?? null,
+        mediaError: document.querySelector('audio')!.error?.message ?? null,
+        paused: document.querySelector('audio')!.paused
+      }))
+    )
+    .toMatchObject({ bitrates: expect.arrayContaining([320]), error: null, mediaError: null, paused: false });
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const values = Reflect.get(window, '__abrBitrates') as number[];
+        return values.length >= 7 && values[0] === 96 && values.at(-1)! < 320;
+      })
+    )
+    .toBe(true);
+  await expect(page.locator('audio')).toHaveJSProperty('error', null);
+  expect(await page.evaluate(() => Reflect.get(window, '__abrError'))).toBeUndefined();
+  await page.locator('audio').evaluate(audio => {
+    audio.currentTime = 14;
+  });
+  await expect.poll(() => page.locator('audio').evaluate(audio => audio.currentTime)).toBeGreaterThan(14.1);
 });

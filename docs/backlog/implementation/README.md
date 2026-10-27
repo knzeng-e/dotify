@@ -18,6 +18,9 @@ records W31/#286, W34/#289 and scoped 3D/#329 as delivered. W34 merged through
 #335 and publication return #336 are merged but not yet published; navigation
 and mini-player exits #337 remain under review. W35/#290 is the next eligible
 streaming implementation; W13/device/first-sound gates remain open.
+October 27: #337 is merged and W35 is now in implementation; the owner requested
+one combined test deployment. Use [W35 evidence](evidence/W35.md) for its bounded
+claims and the physical checks still to record.
 
 ## Owner priority update: trusted pilot and streaming track, 2026-10-16
 

@@ -6,7 +6,7 @@ export async function prefetchStreamingAudio(ref: string, signal = AbortSignal.t
   if (!isEncryptedAudioV3Ref(ref)) return;
   const cid = encryptedRefToCID(ref);
   await fetchStreamingObject(cid, 'manifest.json', 256 * 1024, signal, undefined, false);
-  await fetchStreamingObject(cid, '160/init.bin', 1024 * 1024 + 16, signal, undefined, false);
+  await fetchStreamingObject(cid, '96/init.bin', 1024 * 1024 + 16, signal, undefined, false);
 }
 export function startStreamingNeighborPrefetch(refs: readonly string[]): () => void {
   const controller = new AbortController();

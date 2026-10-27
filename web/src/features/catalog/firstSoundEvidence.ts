@@ -1,3 +1,4 @@
+import { playbackContinuity } from '../player/playbackContinuity';
 import type { AudioStartupTelemetrySnapshot, HostAudioTerminalReason } from './audioStartupTelemetry';
 import { normalizeIpfsCid } from '../../shared/utils/ipfsCid';
 
@@ -105,6 +106,7 @@ export type FirstSoundEvidenceDraft = {
 };
 
 export type FirstSoundEvidence = {
+  continuity?: ReturnType<typeof playbackContinuity.snapshot>;
   schemaVersion: 6;
   candidate: FirstSoundCandidate;
   profile: FirstSoundTestProfile;
@@ -458,6 +460,7 @@ export function buildFirstSoundEvidence(draft: FirstSoundEvidenceDraft, now = Da
     candidate: draft.candidate,
     profile: draft.profile,
     capturedAt: new Date(now).toISOString(),
+    continuity: playbackContinuity.snapshot(),
     samples: [...draft.samples],
     privacy: {
       walletAddressesCollected: false,

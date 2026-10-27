@@ -1,4 +1,7 @@
+import { playbackContinuity } from '../player/playbackContinuity';
 export type StreamingStartupPhase =
+  | 'prepared-source-adopted'
+  | 'rendition-selected'
   | 'key-authorized'
   | 'gateway-selected'
   | 'manifest-ready'
@@ -24,6 +27,9 @@ export type StreamingStartupMetric = {
   gatewayRecovered?: boolean;
   fromCache?: boolean;
   errorKind?: StreamingStartupErrorKind;
+  bitrateKbps?: number;
+  bufferedSeconds?: number;
+  throughputKbps?: number;
   detail?: string;
 };
 
@@ -38,6 +44,7 @@ export type HostAudioStartupMetric = {
 };
 
 export type AudioStartupTelemetrySnapshot = {
+  continuity?: ReturnType<typeof playbackContinuity.snapshot>;
   streaming: StreamingStartupMetric[];
   host: HostAudioStartupMetric[];
   latestMediaPlayingMs: number | null;
@@ -62,6 +69,8 @@ declare global {
 
 const MAX_AUDIO_STARTUP_EVENTS = 160;
 const streamingPhases = new Set<StreamingStartupPhase>([
+  'prepared-source-adopted',
+  'rendition-selected',
   'key-authorized',
   'gateway-selected',
   'manifest-ready',
@@ -120,6 +129,9 @@ function isStreamingStartupMetric(value: unknown): value is StreamingStartupMetr
     optionalBoolean(value.gatewayRecovered) &&
     optionalBoolean(value.fromCache) &&
     (value.errorKind === undefined || streamingErrorKinds.has(value.errorKind as StreamingStartupErrorKind)) &&
+    optionalNumber(value.bitrateKbps) &&
+    optionalNumber(value.bufferedSeconds) &&
+    optionalNumber(value.throughputKbps) &&
     optionalString(value.detail)
   );
 }
@@ -144,6 +156,7 @@ function pushBounded<T>(items: T[], item: T): T[] {
 }
 
 export function clearAudioStartupTelemetry(): void {
+  playbackContinuity.reset();
   streamingMetrics = [];
   hostMetrics = [];
 }
@@ -171,6 +184,7 @@ export function publishHostAudioStartupMetric(detail: HostAudioStartupMetric): v
 export function getAudioStartupTelemetrySnapshot(): AudioStartupTelemetrySnapshot {
   const latestMediaPlaying = [...hostMetrics].reverse().find(metric => metric.phase === 'media-playing');
   return {
+    continuity: playbackContinuity.snapshot(),
     streaming: [...streamingMetrics],
     host: [...hostMetrics],
     latestMediaPlayingMs: latestMediaPlaying?.elapsedMs ?? null
@@ -181,6 +195,8 @@ export function streamingStartupPhaseLabel(metric: Pick<StreamingStartupMetric, 
   switch (metric.phase) {
     case 'key-authorized':
       return 'Loading your track…';
+    case 'rendition-selected':
+    case 'prepared-source-adopted':
     case 'gateway-selected':
     case 'manifest-ready':
     case 'first-object-ready':

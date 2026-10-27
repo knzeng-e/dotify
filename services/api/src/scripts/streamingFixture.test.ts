@@ -10,7 +10,8 @@ const output = process.argv[2];
 if (!output) throw new Error('Provide an explicit synthetic fixture output path');
 const directory = await mkdtemp(path.join(os.tmpdir(), 'dotify-browser-codec-'));
 try {
-  const frames = Math.floor(48_000 * 8.2);
+  // Long enough to observe both an ABR upgrade and a congested downshift.
+  const frames = Math.floor(48_000 * 24.2);
   const master = Buffer.alloc(44 + frames * 2);
   master.write('RIFF', 0);
   master.writeUInt32LE(master.length - 8, 4);
