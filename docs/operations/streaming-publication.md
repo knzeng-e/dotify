@@ -39,7 +39,7 @@ still approves on-chain registration separately, after a ready reference exists.
 Recheck runtime authority at execution and before publishing to storage.
 
 The browser verifies the canonical release and manifest before reading media.
-The first activation selects 160 kb/s; adaptive selection is W35. Supported standard MSE appends authenticated segments with a small read-ahead window.
+The recorded first activation selected 160 kb/s. The [W35 client candidate](../explanation/continuous-listening.md) starts at 96 kb/s, adapts from measured throughput and maintains about 30 seconds of active read-ahead; it is not yet published. Supported standard MSE appends authenticated segments.
 ManagedMediaSource eviction/refill is not assumed from browser identity. Without standard AAC MSE, playback assembles the same authenticated AAC rendition into a
 bounded Blob; it never selects the archival master. Bad authentication is terminal,
 not a gateway/key fallback. Transport may retry bounded ciphertext reads only.
