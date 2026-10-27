@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
+import { syntheticWav } from './fixtures/syntheticWav';
 const fixture = JSON.parse(readFileSync(process.env.DOTIFY_STREAMING_FIXTURE_PATH ?? path.join(process.cwd(), '.data/streaming-fixture.json'), 'utf8')) as {
   keyHex: string;
   scope: { chainId: number; runtimeAddress: string; contentHash: string; keyVersion: string };
@@ -8,24 +9,39 @@ const fixture = JSON.parse(readFileSync(process.env.DOTIFY_STREAMING_FIXTURE_PAT
   files: Record<string, string>;
 };
 type Fault = 'none' | 'relay' | 'retry' | 'truncated' | 'slow' | 'held' | 'corrupt' | 'failed' | 'failed-startup' | 'denied' | 'key-retry';
-async function setup(page: Page, fault: Fault = 'none', blob = false, continuous = false) {
+async function setup(
+  page: Page,
+  fault: Fault = 'none',
+  blob = false,
+  continuous = false,
+  plainPolicy?: { mode: 'classic' | 'human-free'; initiallySeed?: boolean }
+) {
   const requests: string[] = [];
   let attempts = 0,
     keyRequests = 0;
+  let access: boolean | 'unavailable' = true,
+    accessReads = 0,
+    plainRequests = 0;
   let release = () => {};
   const gate = new Promise<void>(resolve => {
     release = resolve;
   });
   await page.addInitScript(
-    ({ scope, blob }) => {
+    ({ scope, blob, plainPolicy }) => {
       Reflect.set(window, '__STREAMING_SCOPE__', scope);
+      Reflect.set(window, '__plainPolicy', plainPolicy?.mode);
+      Reflect.set(window, '__plainSeedCandidate', plainPolicy?.initiallySeed ?? false);
       if (blob) Object.defineProperty(window, 'MediaSource', { value: undefined });
     },
-    { scope: fixture.scope, blob }
+    { scope: fixture.scope, blob, plainPolicy }
   );
   await page.route('**/*', async route => {
     const request = route.request(),
       url = request.url();
+    if (url === 'http://media.audio.test/unencrypted-policy.wav') {
+      plainRequests++;
+      return route.fulfill({ body: syntheticWav(), contentType: 'audio/wav', headers: { 'access-control-allow-origin': '*' } });
+    }
     if (url.endsWith('/free-key')) {
       keyRequests++;
       if (fault === 'key-retry' && keyRequests === 1) return route.fulfill({ status: 503, json: { error: 'Temporarily unavailable' } });
@@ -38,7 +54,11 @@ async function setup(page: Page, fault: Fault = 'none', blob = false, continuous
     }
     if (url.startsWith('http://rpc.audio.test')) {
       const rpc = request.postDataJSON();
-      return route.fulfill({ json: { jsonrpc: '2.0', id: rpc.id, result: rpc.method === 'eth_call' ? `0x${'0'.repeat(63)}1` : '0x190f1b41' } });
+      if (rpc.method === 'eth_call') {
+        accessReads++;
+        if (access === 'unavailable') return route.fulfill({ json: { jsonrpc: '2.0', id: rpc.id, error: { code: -32000, message: 'Runtime unavailable' } } });
+      }
+      return route.fulfill({ json: { jsonrpc: '2.0', id: rpc.id, result: rpc.method === 'eth_call' ? `0x${'0'.repeat(63)}${access ? 1 : 0}` : '0x190f1b41' } });
     }
     const match = /\/(?:ipfs|api\/media)\/Qm([ab])\1{43}\/(?:stream\/)?(.+)$/.exec(url);
     if (match) {
@@ -67,10 +87,33 @@ async function setup(page: Page, fault: Fault = 'none', blob = false, continuous
   });
   await page.goto('/e2e/fixtures/audio-continuity.html' + (continuous ? '?continuous=1' : ''));
   await page.getByRole('button', { name: 'Select a', exact: true }).click();
-  return { requests, attempts: () => attempts, keyRequests: () => keyRequests, release };
+  return {
+    requests,
+    attempts: () => attempts,
+    keyRequests: () => keyRequests,
+    release,
+    accessReads: () => accessReads,
+    plainRequests: () => plainRequests,
+    setAccess: (value: boolean | 'unavailable') => {
+      access = value;
+    }
+  };
 }
 const audio = (page: Page) => page.locator('audio').first();
 const time = (page: Page) => audio(page).evaluate(element => element.currentTime);
+async function installAudioProbe(page: Page) {
+  await page.addInitScript(() => {
+    const created: HTMLAudioElement[] = [];
+    Reflect.set(window, '__createdAudio', created);
+    window.Audio = new Proxy(Audio, {
+      construct(target, args) {
+        const audio = Reflect.construct(target, args) as HTMLAudioElement;
+        created.push(audio);
+        return audio;
+      }
+    });
+  });
+}
 async function playing(page: Page, minimum = 0.2) {
   await expect.poll(() => time(page)).toBeGreaterThan(minimum);
   await expect(audio(page)).toHaveJSProperty('paused', false);
@@ -181,17 +224,7 @@ for (const changePurpose of [false, true])
       ? 'a changed playback purpose rejects the prepared source and authorizes again'
       : 'an authorized silent next source is adopted at the boundary without another key or download',
     async ({ page }) => {
-      await page.addInitScript(() => {
-        const created: HTMLAudioElement[] = [];
-        Reflect.set(window, '__createdAudio', created);
-        window.Audio = new Proxy(Audio, {
-          construct(target, args) {
-            const audio = Reflect.construct(target, args) as HTMLAudioElement;
-            created.push(audio);
-            return audio;
-          }
-        });
-      });
+      await installAudioProbe(page);
       const probe = await setup(page, 'none', false, true);
       await playing(page);
       await audio(page).evaluate(element => {
@@ -243,3 +276,70 @@ for (const changePurpose of [false, true])
       await expect(audio(page)).toHaveJSProperty('error', null);
     }
   );
+
+for (const scenario of [
+  { mode: 'classic', access: false },
+  { mode: 'human-free', access: false },
+  { mode: 'classic', access: true },
+  { mode: 'classic', access: 'unavailable' }
+] as const) {
+  test(`unencrypted ${scenario.mode} keeps policy checks when access is ${scenario.access}`, async ({ page }) => {
+    await installAudioProbe(page);
+    const probe = await setup(page, 'none', false, true, { mode: scenario.mode });
+    await playing(page);
+    probe.setAccess(scenario.access);
+    await audio(page).evaluate(element => {
+      element.currentTime = 11;
+    });
+    await expect(page.getByTestId('state')).toHaveAttribute('data-preparations', '1');
+    // Preparation must not attach even a paused source for a policy-managed URL.
+    expect(
+      await page.evaluate(() => (Reflect.get(window, '__createdAudio') as HTMLAudioElement[]).some(element => element.src.includes('unencrypted-policy.wav')))
+    ).toBe(false);
+    expect(probe.plainRequests()).toBe(0);
+    const readsBeforeSelection = probe.accessReads();
+    await page.getByRole('button', { name: 'Select b', exact: true }).click();
+    await expect(page.getByTestId('state')).toHaveAttribute('data-track', /:b$/);
+    await expect(page.getByTestId('state')).toHaveAttribute('data-pending', 'false');
+    await expect(page.getByTestId('state')).toHaveAttribute('data-access', String(scenario.access === true));
+    expect(probe.accessReads()).toBeGreaterThan(readsBeforeSelection);
+    if (scenario.access === true) {
+      await playing(page);
+      expect(probe.plainRequests()).toBeGreaterThan(0);
+    } else {
+      await expect(audio(page)).toHaveJSProperty('paused', true);
+      expect(probe.plainRequests()).toBe(0);
+    }
+    expect(probe.keyRequests()).toBe(1);
+  });
+}
+
+test('a ready local candidate cannot bypass a newly applied artist policy', async ({ page }) => {
+  await installAudioProbe(page);
+  const probe = await setup(page, 'none', false, true, { mode: 'classic', initiallySeed: true });
+  await playing(page);
+  probe.setAccess(false);
+  await audio(page).evaluate(element => {
+    element.currentTime = 11;
+  });
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        (Reflect.get(window, '__createdAudio') as HTMLAudioElement[]).some(
+          element => !element.isConnected && element.src.includes('unencrypted-policy.wav') && element.readyState >= 3
+        )
+      )
+    )
+    .toBe(true);
+  const readsBeforeSelection = probe.accessReads();
+  await page.getByRole('button', { name: 'Apply artist policy to b', exact: true }).click();
+  await page.getByRole('button', { name: 'Select b', exact: true }).click();
+  await expect(page.getByTestId('state')).toHaveAttribute('data-track', /:b$/);
+  await expect(page.getByTestId('state')).toHaveAttribute('data-pending', 'false');
+  await expect(page.getByTestId('state')).toHaveAttribute('data-access', 'false');
+  expect(probe.accessReads()).toBeGreaterThan(readsBeforeSelection);
+  await expect(audio(page)).toHaveJSProperty('paused', true);
+  expect(
+    await page.evaluate(() => (Reflect.get(window, '__createdAudio') as HTMLAudioElement[]).some(element => element.src.includes('unencrypted-policy.wav')))
+  ).toBe(false);
+});

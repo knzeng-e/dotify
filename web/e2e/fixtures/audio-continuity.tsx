@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { useCatalog } from '../../src/hooks/useCatalog';
 import { usePlayback } from '../../src/hooks/usePlayback';
@@ -32,6 +32,21 @@ const tracks: CatalogTrack[] = ['a', 'b'].map(id => ({
 
 function Harness() {
   const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
+  const plainPolicy = Reflect.get(window, '__plainPolicy') as 'classic' | 'human-free' | undefined;
+  const [policyApplied, setPolicyApplied] = useState(!Reflect.get(window, '__plainSeedCandidate'));
+  const [preparations, setPreparations] = useState(0);
+  const playbackTracks = tracks.map(track =>
+    plainPolicy && track.id.endsWith(':b')
+      ? {
+          ...track,
+          source: policyApplied ? ('artist' as const) : ('seed' as const),
+          accessMode: plainPolicy,
+          encrypted: false,
+          audioRef: 'http://media.audio.test/unencrypted-policy.wav',
+          localUrl: 'http://media.audio.test/unencrypted-policy.wav'
+        }
+      : track
+  );
   const catalog = useCatalog({
     ethRpcUrl: 'http://rpc.audio.test',
     listenerEvmAddress: null,
@@ -68,17 +83,22 @@ function Harness() {
     remoteStreamVersion: 0,
     localStreamReady: false,
     playerState: null,
-    catalogTracks: tracks,
+    catalogTracks: playbackTracks,
     selectedTrackId: catalog.selectedTrackId,
     lineup: [],
     onLineupChange: noop,
-    onPrepareNext: new URLSearchParams(location.search).has('continuous') ? catalog.prepareNextPlayback : undefined,
+    onPrepareNext: new URLSearchParams(location.search).has('continuous')
+      ? async (track, signal) => {
+          await catalog.prepareNextPlayback(track, signal);
+          setPreparations(count => count + 1);
+        }
+      : undefined,
     onOpenTrack: track => void catalog.selectTrack(track, Reflect.get(window, '__selectForRoom') ? noop : undefined),
     onEmitPlayerState: noop
   });
   return (
     <>
-      {tracks.map(track => (
+      {playbackTracks.map(track => (
         <button
           key={track.id}
           onClick={() => {
@@ -90,6 +110,7 @@ function Harness() {
         </button>
       ))}
       <button onClick={() => void playback.togglePlay()}>Toggle playback</button>
+      {plainPolicy && <button onClick={() => setPolicyApplied(true)}>Apply artist policy to b</button>}
       <output
         data-testid='state'
         data-generation={catalog.audioSourceGeneration}
@@ -99,6 +120,8 @@ function Harness() {
         data-failure={catalog.playbackFailure?.kind ?? ''}
         data-time={playback.transport.currentTime}
         data-playing={playback.transport.playing}
+        data-access={String(catalog.catalogAccessByTrackId[catalog.selectedTrackId])}
+        data-preparations={preparations}
       />
       <PersistentAudio
         adoptPreparedAudio={catalog.adoptPreparedAudio}

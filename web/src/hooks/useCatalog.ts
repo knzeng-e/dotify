@@ -864,9 +864,10 @@ export function useCatalog(deps: UseCatalogDeps) {
     // cancellation. A protected candidate still requires a live W34 grant.
     const canAdopt =
       track.active !== false &&
-      (track.accessMode === 'free' ||
-        !track.encrypted ||
-        readPreparedContentKey(track.hash, releaseIdentityFromTrack(track), keyRequestPurposeRef.current)?.access === 'allowed');
+      (!isPolicyManagedTrack(track) ||
+        (track.encrypted &&
+          (track.accessMode === 'free' ||
+            readPreparedContentKey(track.hash, releaseIdentityFromTrack(track), keyRequestPurposeRef.current)?.access === 'allowed')));
     const warmSource = canAdopt ? standbyAudio.take(standbyIdentity(track), selection.controller.signal) : null;
     if (!canAdopt) standbyAudio.clear();
     publishHostAudioStartupMetric({
@@ -932,8 +933,10 @@ export function useCatalog(deps: UseCatalogDeps) {
       let audioUrl: string | null = null;
       let hasAccess = true;
 
-      const preparedGrant = readPreparedContentKey(track.hash, releaseIdentityFromTrack(track), keyRequestPurposeRef.current);
-      if (isPolicyManagedTrack(track) && !preparedGrant && !warmSource) {
+      const preparedGrant = track.encrypted ? readPreparedContentKey(track.hash, releaseIdentityFromTrack(track), keyRequestPurposeRef.current) : null;
+      // Readiness is not authorization. Non-encrypted policy-managed sources
+      // have no key grant and must always take the ordinary runtime check.
+      if (isPolicyManagedTrack(track) && (!track.encrypted || (!preparedGrant && !warmSource))) {
         hasAccess = await checkTrackAccess(track, listenerEvmAddress);
         if (!isTrackSelectionCurrent(selection)) return { playbackMode: 'full', audioSource: audioSourceRef.current };
         const smokeRuntime = runtimeAddressFromTrackId(track);
@@ -1533,6 +1536,9 @@ export function useCatalog(deps: UseCatalogDeps) {
     const identity = standbyIdentity(track);
     const current = () => !signal.aborted && standbyIdentity(track) === identity;
     if (!current() || track.active === false || !track.localUrl) return;
+    // Do not expose even a paused media URL before its runtime policy passes.
+    // These sources use the authoritative check on explicit selection instead.
+    if (!track.encrypted && isPolicyManagedTrack(track)) return;
     if (track.encrypted && (typeof MediaSource === 'undefined' || !MediaSource.isTypeSupported('audio/mp4; codecs="mp4a.40.2"'))) return;
     const expires = Date.now() + 30_000;
     let key: Uint8Array | null = null;
