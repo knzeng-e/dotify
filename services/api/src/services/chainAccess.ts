@@ -1,3 +1,4 @@
+import { catalogContent } from './catalog/content.js';
 // On-chain access checks for content-key delivery.
 //
 // The backend never trusts frontend-provided access booleans or runtime
@@ -266,12 +267,11 @@ function resolveCatalogRelease(input: {
     return fail('CATALOG_UNAVAILABLE', 'Canonical release evidence is unavailable or stale; retry after the catalog catches up.');
   }
 
-  const normalizedHash = input.contentHash.toLowerCase();
-  const sameHash = snapshot.releases.filter(candidate => candidate.hash.toLowerCase() === normalizedHash);
+  const index = catalogContent(snapshot);
 
   if (input.provided) {
     const expectedId = releaseId(input.provided.runtimeAddress, input.contentHash);
-    const candidate = sameHash.find(release => release.id.toLowerCase() === expectedId);
+    const candidate = index.byId.get(expectedId);
     if (!candidate) return fail('TRACK_NOT_FOUND', 'Release is not present in the confirmed catalog.');
 
     const version = resolveKeyVersion(candidate.audioRef);

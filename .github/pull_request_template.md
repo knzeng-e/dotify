@@ -1,3 +1,7 @@
+<!-- Respect reader attention: result first, short paragraphs, one review path.
+Keep material risks visible. Link detailed design/evidence and use <details>
+for optional depth rather than repeating it in every section. -->
+
 ## Outcome
 
 <!-- In 2-3 sentences: before -> after, who benefits, and why now. Link the

@@ -1,3 +1,4 @@
+import { catalogContent } from '../services/catalog/content.js';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import type { CatalogReadModel } from '../services/catalog/readModel.js';
@@ -68,7 +69,7 @@ export function createCatalogRoutes(deps: CatalogRouteDeps) {
         offset = cursor.offset;
       }
 
-      const releases = parsed.data.includeInactive ? snapshot.releases : snapshot.releases.filter(release => release.active);
+      const releases = parsed.data.includeInactive ? snapshot.releases : catalogContent(snapshot).active;
       const items = releases.slice(offset, offset + parsed.data.limit);
       const nextOffset = offset + items.length;
       const nextCursor = nextOffset < releases.length ? encodeCursor({ revision, offset: nextOffset }) : null;
@@ -101,10 +102,10 @@ export function createCatalogRoutes(deps: CatalogRouteDeps) {
       }
 
       const normalizedAddress = parsed.data.artistAddress.toLowerCase();
-      const artist = snapshot.artists.find(candidate => candidate.artistAddress.toLowerCase() === normalizedAddress);
+      const artist = catalogContent(snapshot).byArtist.get(normalizedAddress);
       if (!artist) return sendError(request, reply, 404, 'Artist not found', 'ARTIST_NOT_FOUND');
 
-      const releases = snapshot.releases.filter(release => release.runtimeAddress.toLowerCase() === artist.runtimeAddress.toLowerCase());
+      const releases = catalogContent(snapshot).byRuntime.get(artist.runtimeAddress.toLowerCase()) ?? [];
       return reply.send({ artist, releases, meta });
     });
 
@@ -124,7 +125,7 @@ export function createCatalogRoutes(deps: CatalogRouteDeps) {
       }
 
       const normalizedHash = parsed.data.contentHash.toLowerCase();
-      const matches = snapshot.releases.filter(candidate => candidate.hash.toLowerCase() === normalizedHash);
+      const matches = catalogContent(snapshot).byHash.get(normalizedHash) ?? [];
       if (matches.length === 0) return sendError(request, reply, 404, 'Release not found', 'RELEASE_NOT_FOUND');
       if (matches.length > 1) {
         return sendError(request, reply, 409, 'Release hash is claimed by multiple runtimes', 'AMBIGUOUS_RELEASE');

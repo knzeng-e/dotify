@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
+import { createMediaPrewarmer } from '../mediaPrewarm.js';
 import { CatalogReadModel } from './readModel.js';
 import type { CatalogChainGateway, CatalogChangeSet, CatalogRelease, CatalogSnapshot, DirectoryArtist } from './types.js';
 import type { CatalogSnapshotStore } from './snapshotStore.js';
@@ -45,6 +46,8 @@ function release(overrides: Partial<CatalogRelease> = {}): CatalogRelease {
 class MemoryStore implements CatalogSnapshotStore {
   snapshot: CatalogSnapshot | null = null;
   failSave = false;
+  writes = 0;
+  progressWrites = 0;
 
   async load(): Promise<CatalogSnapshot | null> {
     return this.snapshot;
@@ -52,6 +55,13 @@ class MemoryStore implements CatalogSnapshotStore {
 
   async save(snapshot: CatalogSnapshot): Promise<void> {
     if (this.failSave) throw new Error('disk unavailable');
+    this.writes++;
+    this.snapshot = structuredClone(snapshot);
+  }
+
+  async saveProgress(snapshot: CatalogSnapshot): Promise<void> {
+    if (this.failSave) throw new Error('disk unavailable');
+    this.progressWrites++;
     this.snapshot = structuredClone(snapshot);
   }
 }
@@ -128,6 +138,80 @@ describe('CatalogReadModel', () => {
     store.failSave = true;
     await assert.rejects(catalog.sync(), /disk unavailable/);
     assert.equal(calls, 1);
+  });
+  it('continues bounded warming and propagation retries on unchanged polls after restart', async () => {
+    const hashes = Array.from({ length: 9 }, (_, i) => `0x${(i + 1).toString(16).padStart(64, '0')}` as const);
+    const cids = [...'abcdefghj'].map(letter => `Qm${letter.repeat(44)}`);
+    const gateway: CatalogChainGateway = {
+      identity: { chainId: 420420417, directoryAddress: ARTIST },
+      getHeadBlock: async () => 12,
+      getBlockHash: async block => blockHash(block),
+      listArtists: async () => [{ artistAddress: ARTIST, runtimeAddress: RUNTIME }],
+      listTrackHashes: async () => hashes,
+      readRelease: async (_artist, _runtime, hash) =>
+        release({ id: `${RUNTIME}:${hash}`, hash, audioRef: `dotify:enc:v3:key-v2:ipfs://${cids[hashes.indexOf(hash)]}` }),
+      getChanges: async () => ({ directoryChanged: false, releases: [] })
+    };
+    const store = new MemoryStore();
+    await model(gateway, store).sync(); // Persisted catalog from the previous process.
+    let clock = 0,
+      observations = 0;
+    const manifests = new Map<string, number>();
+    const prewarmer = createMediaPrewarmer(
+      'https://media.example',
+      async url => {
+        const [, cid, object] = new URL(String(url)).pathname.split('/').slice(1);
+        if (object === 'manifest.json') {
+          const attempt = (manifests.get(cid!) ?? 0) + 1;
+          manifests.set(cid!, attempt);
+          if (cid === cids[0] && attempt === 1) throw new Error('Content still propagating');
+        }
+        return new Response(new Uint8Array([1]));
+      },
+      () => clock
+    );
+    const catalog = new CatalogReadModel({
+      gateway,
+      store,
+      pollIntervalMs: 60000,
+      reconcileIntervalMs: 300000,
+      staleAfterMs: 60000,
+      confirmations: 2,
+      now: () => new Date(Date.parse('2026-07-23T12:00:00.000Z') + clock),
+      onSnapshot: snapshot => {
+        observations++;
+        prewarmer.observe(snapshot);
+      }
+    });
+    const settle = () => new Promise<void>(resolve => setImmediate(resolve));
+    try {
+      await catalog.start();
+      await catalog.sync();
+      await settle();
+      assert.equal(observations, 1);
+      assert.equal(manifests.size, 8); // Ninth release waits for the next admission window.
+      assert.equal(manifests.get(cids[0]!), 1);
+      clock = 10000;
+      await catalog.sync();
+      await settle();
+      assert.equal(manifests.size, 8);
+      assert.equal(manifests.get(cids[0]!), 1); // No premature retry/admission.
+      clock = 60000;
+      await catalog.sync();
+      await settle();
+      assert.equal(manifests.get(cids[0]!), 2);
+      assert.equal(manifests.get(cids[8]!), 1);
+      assert.equal(manifests.size, 9);
+      assert.equal(store.writes, 1); // Observing did not rewrite unchanged content.
+      assert.equal(store.progressWrites, 3);
+      assert.equal(observations, 3);
+      store.failSave = true;
+      await assert.rejects(catalog.sync(), /disk unavailable/);
+      assert.equal(observations, 3); // A failed checkpoint cannot trigger warming.
+    } finally {
+      catalog.stop();
+      prewarmer.close();
+    }
   });
   it('builds and persists a deterministic chain snapshot', async () => {
     const gateway = new FakeGateway();

@@ -19,11 +19,13 @@ records W31/#286, W34/#289 and scoped 3D/#329 as delivered. W34 merged through
 and mini-player exits #337 are merged, alongside W35/#338; W13/device/first-sound gates remain open.
 October 27: #337 and W35/#338 are merged on `dev`; the owner requested
 one combined test deployment. [W35 evidence](evidence/W35.md) retains physical
-background/audible-continuity acceptance. W36/#291 is the active implementation:
+background/audible-continuity acceptance. W36/#291 merged through #339:
 PostgreSQL trust/catalog state, bounded session renewal and separate private
 publication custody. See [W36 evidence](evidence/W36.md) and the
 [activation runbook](../../operations/shared-api-state.md). It has not been deployed;
-its two-instance Fly acceptance remains open. W37/#292 is the next catalog scope.
+its two-instance Fly acceptance remains open. [W37/#292 evidence](evidence/W37.md)
+records bounded, resumable catalog indexing and synthetic load verification.
+W38 contract bounds are the next dependent implementation after W37 review.
 
 
 ## Owner priority update: trusted pilot and streaming track, 2026-10-16

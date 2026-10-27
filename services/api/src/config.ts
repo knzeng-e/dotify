@@ -173,6 +173,9 @@ const envSchema = z.object({
     z.string().min(16, 'SESSION_EPOCH must contain at least 16 characters').max(128).optional()
   ),
   SESSION_REVOCATIONS_PATH: z.string().default('.data/session-revocations.json'),
+  CATALOG_READ_CONCURRENCY: z.coerce.number().int().min(1).max(32).default(8),
+  CATALOG_LOG_BLOCK_RANGE: z.coerce.number().int().min(1).max(10_000).default(1000),
+  CATALOG_LOG_ADDRESS_BATCH: z.coerce.number().int().min(1).max(1000).default(100),
   CATALOG_POLL_INTERVAL_MS: z.coerce.number().int().min(1_000).default(10_000),
   CATALOG_RECONCILE_INTERVAL_MS: z.coerce.number().int().min(10_000).default(300_000),
   CATALOG_STALE_AFTER_MS: z.coerce.number().int().min(1_000).default(60_000),

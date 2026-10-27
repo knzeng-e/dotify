@@ -6,9 +6,11 @@ This folder contains the execution backlog for moving Dotify from prototype to p
 
 The backlog is organized as engineering sprints. Each ticket has a dedicated Markdown instruction file intended for Claude Code, Codex, or a senior engineer working inside the repository.
 
-W36/#291 is being implemented after merged W35/#338. The shared API and private
+W36/#291 merged through #339 after W35/#338. The shared API and private
 publication-custody topology require an explicit migration before any scaling.
-See [W36 evidence](implementation/evidence/W36.md). W35 and the newer API changes
+See [W36 evidence](implementation/evidence/W36.md). W37/#292 follows with
+[bounded catalog indexing](implementation/evidence/W37.md), resumable checkpoints
+and reusable lookup indexes. W35 and the newer API changes
 remain part of the requested combined test deployment, not published evidence.
 
 ## Current reconciliation, 2026-10-23
