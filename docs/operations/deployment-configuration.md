@@ -1,8 +1,16 @@
 # Deployment Configuration Runbook
 
-W36 planned topology: the next API profiles use PostgreSQL trust/catalog state
+W36 activation is in progress for the October 27 combined test deployment.
+The selected profile keeps two public API replicas warm and uses the explicit
+IPv4/IPv6 listener required by Fly's private service network. Fly MPG runtime
+permissions use the owner-approved row-policy alternative in
+`services/api/migrations/002-managed-runtime-policies.sql`; the operator retains
+DDL authority. Record final identities and live acceptance in the rollout record
+before calling the migration complete.
+
+W36 topology: the API profiles use PostgreSQL trust/catalog state
 and two public edges, with one private publication/receipt custody service.
-This is **not deployed**. Read [the mandatory migration, rotation and rollback
+Read [the mandatory migration, rotation and rollback
 procedure](shared-api-state.md) before using the changed `services/api/fly.toml`.
 Never deploy the new profile against an empty database/volume or revert to a
 pre-W36 local-state image after shared writes. Session auth now requires its
@@ -16,11 +24,11 @@ API indexing only. It is not deployed and introduces no frontend permission,
 secret, contract upgrade or SQL schema migration. W36's activation migration
 and custody-volume requirements remain mandatory.
 
-| API setting | Default | Bounds and purpose |
-| --- | --- | --- |
-| `CATALOG_READ_CONCURRENCY` | `8` | 1-32 outstanding catalog RPC reads, including nested hash/split enumeration |
-| `CATALOG_LOG_BLOCK_RANGE` | `1000` | 1-10,000 blocks per committed replay range; lower for stricter RPC limits |
-| `CATALOG_LOG_ADDRESS_BATCH` | `100` | 1-1,000 runtime addresses per event filter |
+| API setting                 | Default | Bounds and purpose                                                          |
+| --------------------------- | ------- | --------------------------------------------------------------------------- |
+| `CATALOG_READ_CONCURRENCY`  | `8`     | 1-32 outstanding catalog RPC reads, including nested hash/split enumeration |
+| `CATALOG_LOG_BLOCK_RANGE`   | `1000`  | 1-10,000 blocks per committed replay range; lower for stricter RPC limits   |
+| `CATALOG_LOG_ADDRESS_BATCH` | `100`   | 1-1,000 runtime addresses per event filter                                  |
 
 Retain both `CATALOG_SNAPSHOT_PATH` and its `.checkpoint` sidecar in local-mode
 backups. Shared mode uses `catalog-v1` plus `catalog-checkpoint-v1` in the same

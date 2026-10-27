@@ -1,5 +1,6 @@
 import { config } from './config.js';
 import { verifyApiStorage } from './services/storagePreflight.js';
+import { listenApi } from './httpListener.js';
 
 // Verify permissions before importing the session/catalog singletons. A bad
 // volume must not silently discard revocations or start with a cold catalog.
@@ -18,7 +19,7 @@ const { sharedState } = await import('./services/sharedState/index.js');
 const { buildApp } = await import('./app.js');
 
 const app = await buildApp();
-await app.listen({ port: config.API_PORT, host: '0.0.0.0' });
+await listenApi(app, config.API_PORT);
 
 // Fly stops machines with SIGTERM: finish in-flight requests, then exit.
 for (const signal of ['SIGTERM', 'SIGINT'] as const) {

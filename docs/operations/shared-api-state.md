@@ -15,23 +15,29 @@ public IP. Provision it without public IPs and keep exactly one machine.
 Do not deploy either profile until the import and volume transfer are verified.
 A database lock also prevents a second custody writer from starting.
 
-| Variable | Where | Contract |
-| --- | --- | --- |
-| `STATE_STORE=postgres` | Both | No local fallback; schema/namespace must exist. Default `local` is explicitly single-node development. |
-| `DATABASE_URL` | Server secret, both | Same database; PostgreSQL URL; verified TLS for public transports, private network otherwise. Never `VITE_*`. |
-| `STATE_NAMESPACE=dotify` | Both | Same stable 3-64 character identifier. Distinct namespace/database per environment. |
-| `SESSION_EPOCH` | Server secret, both | Preserve the existing stable value and imported revocations. Rotation intentionally signs out everyone. |
-| `SESSION_SECRET` | Server secret, both | New independent 32 random bytes in hex. Do not change content-key secrets. Required also for local session auth. |
-| `SESSION_PREVIOUS_SECRET` | Server secret, temporary | Explicit previous signing input for staged rotation/import. No automatic content-master fallback. |
-| `SESSION_PREVIOUS_SECRET_UNTIL` | Both, temporary | Absolute UTC deadline, at most 24h ahead when a process starts. Both previous fields must be set together. |
-| `API_ROLE` | Both | `edge` or `custody` in shared mode. `combined` is only for single-node local mode. |
-| `CUSTODY_SERVICE_URL` | Edge | Private origin, e.g. `http://dotify-custody.internal:8790`; loopback only in local tests. No path/query/userinfo. |
-| `CUSTODY_SERVICE_TOKEN` | Server secret, both | Dedicated 32-256 character transport token; never reuse the encoder/native-receipt/session secrets. |
-| Content-key version secrets | Both | Preserve exact values/versions. Edge derives keys after chain access; custody encrypts publications. |
-| `STREAMING_WORKER_URL/TOKEN` | Custody only | Existing isolated encoder. An edge rejects these settings. |
-| `PINATA_JWT` | Custody only | Existing upload authority. Never put it in the edge/browser bundle. |
-| `NATIVE_RECEIPT_SERVICE_TOKEN` | Custody | Preserve the signaling verifier's existing token; private forwarding does not replace receipt verification. |
-| Existing upload limits | Custody | Same byte/window/concurrency values on every custody deployment. Database accounting survives replacement. |
+| Variable                        | Where                    | Contract                                                                                                          |
+| ------------------------------- | ------------------------ | ----------------------------------------------------------------------------------------------------------------- |
+| `STATE_STORE=postgres`          | Both                     | No local fallback; schema/namespace must exist. Default `local` is explicitly single-node development.            |
+| `DATABASE_URL`                  | Server secret, both      | Same database; PostgreSQL URL; verified TLS for public transports, private network otherwise. Never `VITE_*`.     |
+| `STATE_NAMESPACE=dotify`        | Both                     | Same stable 3-64 character identifier. Distinct namespace/database per environment.                               |
+| `SESSION_EPOCH`                 | Server secret, both      | Preserve the existing stable value and imported revocations. Rotation intentionally signs out everyone.           |
+| `SESSION_SECRET`                | Server secret, both      | New independent 32 random bytes in hex. Do not change content-key secrets. Required also for local session auth.  |
+| `SESSION_PREVIOUS_SECRET`       | Server secret, temporary | Explicit previous signing input for staged rotation/import. No automatic content-master fallback.                 |
+| `SESSION_PREVIOUS_SECRET_UNTIL` | Both, temporary          | Absolute UTC deadline, at most 24h ahead when a process starts. Both previous fields must be set together.        |
+| `API_ROLE`                      | Both                     | `edge` or `custody` in shared mode. `combined` is only for single-node local mode.                                |
+| `CUSTODY_SERVICE_URL`           | Edge                     | Private origin, e.g. `http://dotify-custody.internal:8790`; loopback only in local tests. No path/query/userinfo. |
+| `CUSTODY_SERVICE_TOKEN`         | Server secret, both      | Dedicated 32-256 character transport token; never reuse the encoder/native-receipt/session secrets.               |
+| Content-key version secrets     | Both                     | Preserve exact values/versions. Edge derives keys after chain access; custody encrypts publications.              |
+| `STREAMING_WORKER_URL/TOKEN`    | Custody only             | Existing isolated encoder. An edge rejects these settings.                                                        |
+| `PINATA_JWT`                    | Custody only             | Existing upload authority. Never put it in the edge/browser bundle.                                               |
+| `NATIVE_RECEIPT_SERVICE_TOKEN`  | Custody                  | Preserve the signaling verifier's existing token; private forwarding does not replace receipt verification.       |
+| Existing upload limits          | Custody                  | Same byte/window/concurrency values on every custody deployment. Database accounting survives replacement.        |
+
+Fly's private `.internal` service network uses IPv6. The API listener binds
+`::` with `ipv6Only: false`, accepting private IPv6 and public IPv4 ingress on
+the same port. A localhost IPv4 health check alone cannot verify custody
+reachability: check an actual edge-to-custody request too. The real HTTP
+`httpListener.test.ts` exercises both loopback address families.
 
 Reserve at most six DB connections per edge/custody process, plus operator headroom.
 Pool acquisition is bounded at 3s, SQL at 3s, lock waits at 1s and client queries
@@ -76,10 +82,20 @@ none of them.
    reinitialization refuses to overwrite state. `--fresh` is exclusively for a
    genuinely new empty deployment, never a recovery shortcut. In the built
    image, use `node dist/scripts/initializeSharedState.js` with the same flags.
+
 5. Grant the application role SELECT on `dotify_state_identity` and
    SELECT/INSERT/UPDATE/DELETE on the nonce, revocation and document tables.
    Keep DDL/schema administration with the operator. No sequence privileges
-   are needed. Verify backup/restore with this schema before enabling traffic.
+   are needed. Fly MPG protects its built-in roles against custom grants. For
+   that provider, the explicitly approved alternative is its managed `writer`
+   role plus `migrations/002-managed-runtime-policies.sql`, applied in one
+   operator transaction **before** enabling the role. It grants runtime SELECT
+   only on the deployment identity and scopes all other state operations to
+   `dotify`; the role cannot own/alter/truncate these tables or bypass row
+   policies. The script checks these prerequisites and does not run at API
+   startup. Adapt the role/namespace explicitly for another deployment. Verify
+   these boundaries with a real runtime connection in an isolated database,
+   then verify backup/restore before enabling traffic.
 6. Transfer the entire quiesced owned volume to the new custody service's volume
    using a verified offline backup/restore. Fly volumes belong to their app;
    reusing the same volume **name** in a new app does not transfer the data.
