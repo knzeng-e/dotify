@@ -1,5 +1,27 @@
 # Deployment Configuration Runbook
 
+## Managed mobile reader, pending publication
+
+The client now uses AAC ManagedMediaSource when standard AAC MSE is unavailable.
+There is no new environment variable, server, key, format, migration or paid
+service. Publish reviewed Web/Product artifacts; do not describe the existing
+0.1.64 executable as containing this reader. About identifies the chosen audio
+capability and build. This is not a measured first-sound guarantee.
+
+The managed reader disables URL-based remote playback only on its own audio
+element, before attaching its source. No public clear-media alternative is
+provided. Native AAC decoding passes on local desktop WebKit; Product mobile
+still requires cold Free, paid-authorized and denied playback, seek/repeat,
+next-track adoption, background/resume, room-host capture and actual audible
+output checks. Keep the room guest key boundary unchanged. Record exact client
+SHA/CID/version, Host/OS, network, sample count and first-sound export; compare
+like-for-like cold/warm samples. If native capability is absent, About must say
+Compatibility AAC, not pretend this optimization is active.
+
+Rollback is the previously reviewed client artifact; backend trust state and
+custody remain unchanged. Do not roll back W36 storage. See the
+[implementation evidence](../backlog/implementation/evidence/managed-mobile-audio-2026-10-28.md).
+
 ## Free first-sound correction, pending publication
 
 The client removes the redundant runtime read before an encrypted v3 Free-key

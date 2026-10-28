@@ -115,7 +115,11 @@ The [activation record](../backlog/implementation/evidence/product-0.1.63-rollou
 distinguishes the verified topology from physical-device and pilot acceptance.
 The [October 28 first-sound audit](../backlog/implementation/evidence/mobile-first-sound-audit-2026-10-28.md)
 separates these availability gains from unproven cold-start gains, current
-operator dependencies, and simplification candidates.
+operator dependencies, and simplification candidates. The
+[managed mobile reader](../backlog/implementation/evidence/managed-mobile-audio-2026-10-28.md)
+shortens the supported mobile playback path to early authenticated segments,
+using native demand and buffer-recovery events. It changes the client reader,
+not custody or hosting; physical Product first-sound measurements remain open.
 
 ### Artist-owned runtimes
 

@@ -331,7 +331,7 @@
       "priority": "P0",
       "track": "Production spine",
       "phase": "Next",
-      "note": "Historical id retained; DAV1/DAV2 readers and old first-sound exports are retired by #321/ADR 0033. Measure current authenticated v3 AAC startup with schema-6 evidence on exact Web/Product builds. The 2026-10-28 mobile-first-sound audit records a redundant Free access wait, cached-media reauthorization and About build identification; physical mobile playback and compatibility-reader latency remain open. Coordinate W32/W33/W13 without restoring legacy range/worker paths."
+      "note": "Historical id retained; DAV1/DAV2 readers and old first-sound exports are retired by #321/ADR 0033. Measure current authenticated v3 AAC startup with schema-6 evidence on exact Web/Product builds. The 2026-10-28 mobile-first-sound audit records a redundant Free access wait, cached-media reauthorization and About build identification; A managed AAC reader now supports early-segment startup, native demand and eviction recovery without new infrastructure. Physical Product playback, cold-start latency and publication remain open. Coordinate W32/W33/W13 without restoring legacy range/worker paths."
     },
     {
       "id": "turn-sfu-resilience",
