@@ -1,5 +1,26 @@
 # Deployment Configuration Runbook
 
+## Free first-sound correction, pending publication
+
+The client removes the redundant runtime read before an encrypted v3 Free-key
+request. The existing API remains authoritative; no secret, environment setting,
+CORS change, infrastructure scaling or migration is introduced. Product 0.1.64
+is the preceding published candidate, not evidence that this follow-up is live.
+
+The same client adds **You → About Dotify**, available without an account.
+Product version comes from the embedded Product manifest version; Web identifies
+itself by build SHA. Copying uses only allowlisted build/media capability fields,
+not account/session data. The Host application version is not inferred. Older
+published clients do not gain this entry until they are updated.
+
+Before calling mobile startup resolved, bind a new Product CID/version and test
+on the affected physical mobile Host: cold Free playback, a denied key, replay
+of a cached track after denial, cancellation and retry. Record the visible
+startup phase, installed Host/OS version and whether audio is actually heard.
+Separate key wait, ciphertext download and native readiness. Desktop playback
+and browser fixtures do not establish that mobile uses progressive AAC.
+See the [audit and evidence](../backlog/implementation/evidence/mobile-first-sound-audit-2026-10-28.md).
+
 ## Product 0.1.63 and W36 activated, 2026-10-28
 
 The combined test deployment now includes W35, W36, W37 and #335-#337.

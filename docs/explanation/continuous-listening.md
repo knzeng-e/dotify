@@ -52,6 +52,22 @@ playback retains the bounded authenticated compatibility reader.
 
 ## Explicit mobile startup
 
+Encrypted v3 Free selections with a configured key service use its canonical
+release/on-chain check directly. They do not wait for an additional client
+runtime read. The existing 15-second key-request timeout and bounded retries
+apply before the media budget. Other access paths keep their identity and
+runtime checks. Cached compatibility Blobs are returned only after the same
+authorization path succeeds (including an eligible prepared grant); a new
+denial leaves the player stopped. Access UI remains unconfirmed while the Free
+request is unresolved.
+
+This removes one reproducible pre-media stall. It does not establish the cause
+of the reported physical mobile failure. The compatibility reader still waits
+for all authenticated 96 kb/s segments before playback. Supporting iPhone
+ManagedMediaSource requires a separate capability and lifecycle implementation;
+a successful desktop WebKit test is insufficient. See the
+[first-sound audit](../backlog/implementation/evidence/mobile-first-sound-audit-2026-10-28.md).
+
 Authorization/source preparation and native media readiness are separate states.
 A fresh element receives its listeners before `src`, `preload="auto"` and an
 explicit `load()`. An adopted standby element is never reloaded. Once an
