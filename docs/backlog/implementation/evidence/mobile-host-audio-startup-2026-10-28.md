@@ -66,3 +66,26 @@ already-authorized protected and room-host playback on the exact installed
 Polkadot App version. Confirm actual audible output, foreground/background and
 resume behavior. Do not pool Web or synthetic results as physical Host evidence.
 No contract, API, database, secret or permission changes are required.
+
+## PR #342 review follow-up
+
+[The pending-playback comment](https://github.com/knzeng-e/dotify/pull/342#discussion_r4395634454)
+identified that the enabled control still forced `playing: false` until
+`canplay`. A Play request could therefore leave an apparent Play button whose
+next click actually paused the element.
+
+Implementation `3dc0736f45915e7ab8d0040661e02cc0da6a211b` preserves native
+play/pause intent in the pending transport shared by PlayerTransport and
+PlayerDock. Displayed time/duration stay zero and seeking stays disabled until
+readiness. New source generations reset the preceding track's play state.
+
+The regression mounts the real PlayerTransport, uses a gesture-required native
+element and holds its first authenticated media segment before `canplay`. It
+failed in Chromium and WebKit before the correction. It now verifies Play to
+Pause, cancellation before readiness, a paused late buffer, manual restart and
+reset when replacing a playing source. No production session or media is used.
+
+Review validation: `test:audio-continuity` passes **56 cases** in Chromium and
+WebKit (2.1 minutes); Web build/typecheck pass; lint has zero errors and the same
+two existing App.tsx warnings. Offline backlog/diff checks pass. This follow-up
+is still not a physical Host or deployed-client acceptance claim.

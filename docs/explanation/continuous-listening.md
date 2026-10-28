@@ -59,6 +59,11 @@ approved source exists, Play is available even before metadata: some Host
 engines need that gesture to begin resource selection. An outstanding autoplay
 intent must not make that first Play behave as Pause.
 
+While readiness is pending, both transport controls retain native play/pause
+intent, so a requested start displays Pause. Time/duration remain zero and
+seeking stays disabled. Each fresh source resets the preceding track's play
+state before its own native events arrive.
+
 One 60-second startup budget starts after key authorization and spans transport
 retries, compatibility download and native readiness. It ends on readiness,
 terminal playback, replacement or cancellation. Expiry cancels the old source
