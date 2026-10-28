@@ -47,8 +47,10 @@ This avoids waiting for a key, network fetch and decoder startup at the boundary
 It is an alternating-player implementation, not a sample-clock scheduling
 guarantee. Browser event latency and actual audible gaps are different measures;
 albums, continuous mixes and physical Hosts still need listening evidence.
-Encrypted standby preparation is disabled when AAC MSE is unavailable; explicit
-playback retains the bounded authenticated compatibility reader.
+Encrypted standby preparation requires standard or managed AAC streaming. If
+neither reader is supported, explicit playback retains the bounded authenticated
+compatibility reader. A managed Host can decline silent preload; an unready
+successor expires normally and cannot block the current track.
 
 ## Explicit mobile startup
 
@@ -62,11 +64,28 @@ denial leaves the player stopped. Access UI remains unconfirmed while the Free
 request is unresolved.
 
 This removes one reproducible pre-media stall. It does not establish the cause
-of the reported physical mobile failure. The compatibility reader still waits
-for all authenticated 96 kb/s segments before playback. Supporting iPhone
-ManagedMediaSource requires a separate capability and lifecycle implementation;
-a successful desktop WebKit test is insufficient. See the
-[first-sound audit](../backlog/implementation/evidence/mobile-first-sound-audit-2026-10-28.md).
+of the reported physical mobile failure. The follow-up now selects standard AAC
+MSE where available, then `ManagedMediaSource` with AAC support, then the bounded
+whole-rendition compatibility reader. This is capability detection, not an OS
+or Host-version assumption. See the [managed mobile reader evidence](../backlog/implementation/evidence/managed-mobile-audio-2026-10-28.md).
+
+The managed reader starts at 96 kb/s with authenticated init and early segments.
+It follows native streaming demand, cancels outstanding reads when demand stops
+or seeking changes the target, and appends one segment at a time. It keeps at
+most about 30 seconds ahead (4 seconds for a silent successor), not a clear-file
+cache. Native buffer removal invalidates segment presence; a backwards seek or
+eviction re-reads and authenticates the required segments. Frame replacement is
+not mistaken for eviction. Repeated eviction is bounded, absent initial demand
+fails after 20 seconds, and idle readers wait for events rather than polling.
+A failure remains terminal for that source; it does not switch keys or download
+the archival master.
+
+Managed URLs require `disableRemotePlayback` before assigning `src` or calling
+`load`. This applies only to those sources, including silent successors. No
+clear AirPlay URL is introduced; URL-based AirPlay is unavailable for this path.
+Ordinary sources and room guest streams keep their existing configuration.
+About reports the selected capability; native mobile playback and real first
+sound must still be verified in the installed Product Host.
 
 Authorization/source preparation and native media readiness are separate states.
 A fresh element receives its listeners before `src`, `preload="auto"` and an
@@ -89,7 +108,9 @@ See [the mobile startup correction and evidence](../backlog/implementation/evide
 
 ## Adaptive delivery
 
-Each playback starts at 96 kb/s. Only measured network reads contribute to a
+Standard MSE playback starts at 96 kb/s. The managed mobile reader remains at
+96 kb/s in this first slice; adaptive managed playback requires separate native
+acceptance. Only measured network reads contribute to a
 per-playback throughput estimate; ciphertext-cache hits do not masquerade as
 bandwidth. Selection uses a 55% safety budget, drops promptly after congestion,
 and requires eight seconds of buffer and two segments between upgrades.

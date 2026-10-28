@@ -47,7 +47,10 @@ async function setup(
       Reflect.set(window, '__plainPolicy', plainPolicy?.mode);
       Reflect.set(window, '__plainSeedCandidate', plainPolicy?.initiallySeed ?? false);
       Reflect.set(window, '__encryptedOnPolicy', plainPolicy?.encryptedOnPolicy ?? false);
-      if (blob) Object.defineProperty(window, 'MediaSource', { value: undefined });
+      if (blob) {
+        Object.defineProperty(window, 'MediaSource', { value: undefined });
+        Object.defineProperty(window, 'ManagedMediaSource', { value: undefined });
+      }
     },
     { scope: fixture.scope, blob, plainPolicy }
   );
@@ -532,3 +535,181 @@ for (const encryptedOnPolicy of [false, true])
       await page.evaluate(() => (Reflect.get(window, '__createdAudio') as HTMLAudioElement[]).some(element => element.src.includes('unencrypted-policy.wav')))
     ).toBe(false);
   });
+
+// Real native AAC decoding with controlled MMS demand/eviction. This does not
+// replace physical Product/iPhone acceptance.
+async function installManagedReader(page: Page, automaticDemand = true) {
+  await page.addInitScript(
+    ({ automaticDemand }) => {
+      const Native = window.MediaSource;
+      const sources: MediaSource[] = [];
+      Reflect.set(window, '__managedSources', sources);
+      const urls = new Set<string>();
+      const create = URL.createObjectURL.bind(URL);
+      URL.createObjectURL = object => {
+        const url = create(object);
+        if (sources.includes(object as MediaSource)) urls.add(url);
+        return url;
+      };
+      const src = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'src')!;
+      Object.defineProperty(HTMLMediaElement.prototype, 'src', {
+        ...src,
+        set(value: string) {
+          if (urls.has(value) && !(this as HTMLAudioElement).disableRemotePlayback) throw new Error('Managed attachment configured too late');
+          src.set!.call(this, value);
+        }
+      });
+      class ManagedReader extends Native {
+        streaming = false;
+        constructor() {
+          super();
+          sources.push(this);
+          this.addEventListener('sourceopen', () => {
+            if (automaticDemand) this.demand(true);
+          });
+        }
+        demand(value: boolean) {
+          this.streaming = value;
+          this.dispatchEvent(new Event(value ? 'startstreaming' : 'endstreaming'));
+        }
+      }
+      Reflect.set(window, 'ManagedMediaSource', ManagedReader);
+      Object.defineProperty(window, 'MediaSource', { value: undefined, configurable: true });
+    },
+    { automaticDemand }
+  );
+}
+
+test('managed AAC starts before the rest of the encrypted track arrives', async ({ page }) => {
+  await installManagedReader(page);
+  const probe = await setup(page, 'held');
+  await playing(page);
+  expect(probe.attempts()).toBe(1);
+  await expect(audio(page)).toHaveJSProperty('disableRemotePlayback', true);
+  expect(probe.keyRequests()).toBe(1);
+  probe.release();
+  await playing(page, 4.2);
+});
+
+test('managed AAC respects demand before requesting media and resumes after eviction', async ({ page }) => {
+  await installManagedReader(page, false);
+  const probe = await setup(page);
+  await expect.poll(() => page.evaluate(() => Reflect.get(window, '__managedSources').length)).toBe(1);
+  await page.waitForTimeout(300);
+  expect(probe.requests.some(item => /segment-001/.test(item))).toBe(false);
+  await page.evaluate(() => Reflect.get(window, '__managedSources')[0].demand(true));
+  await playing(page);
+  await expect.poll(() => page.evaluate(() => Reflect.get(window, '__managedSources')[0].readyState)).toBe('ended');
+  await page.getByRole('button', { name: 'Toggle playback' }).click();
+  await page.evaluate(async () => {
+    const source = Reflect.get(window, '__managedSources')[0];
+    const buffer: SourceBuffer = source.sourceBuffers[0];
+    source.demand(false);
+    await new Promise<void>(resolve => {
+      buffer.addEventListener('updateend', () => resolve(), { once: true });
+      buffer.remove(0, 4);
+    });
+    buffer.dispatchEvent(Object.assign(new Event('bufferedchange'), { removedRanges: { length: 1, start: () => 0, end: () => 4 } }));
+    document.querySelector('audio')!.currentTime = 0.5;
+    source.demand(true);
+  });
+  await expect.poll(() => audio(page).evaluate(a => (a.buffered.length ? a.buffered.start(0) : 99))).toBeLessThan(0.1);
+  await expect(audio(page)).toHaveJSProperty('paused', true);
+  await page.getByRole('button', { name: 'Toggle playback' }).click();
+  await playing(page, 0.8);
+  expect(probe.keyRequests()).toBe(1);
+});
+
+test('managed AAC does not download or play denied audio', async ({ page }) => {
+  await installManagedReader(page);
+  const probe = await setup(page, 'denied');
+  await expect(page.getByTestId('state')).toHaveAttribute('data-pending', 'false');
+  expect(probe.requests.some(item => /segment-001/.test(item))).toBe(false);
+  expect(await page.evaluate(() => Reflect.get(window, '__managedSources').length)).toBe(0);
+  expect(await time(page)).toBe(0);
+});
+
+test('managed AAC fails closed on authenticated segment corruption', async ({ page }) => {
+  await installManagedReader(page);
+  const probe = await setup(page, 'corrupt');
+  await expect(page.getByTestId('state')).toHaveAttribute('data-status', 'no-audio');
+  expect(probe.keyRequests()).toBe(1);
+  expect(probe.attempts()).toBe(1);
+  expect(probe.requests.some(item => /archive/.test(item))).toBe(false);
+});
+
+test('managed AAC cancellation cannot replace the next selected track', async ({ page }) => {
+  await installManagedReader(page);
+  const probe = await setup(page, 'held-startup');
+  await expect.poll(() => probe.requests.includes('a:96/segment-000.bin')).toBe(true);
+  await page.getByRole('button', { name: 'Select b', exact: true }).click();
+  await playing(page);
+  probe.release();
+  await page.waitForTimeout(300);
+  await expect(page.getByTestId('state')).toHaveAttribute('data-track', /:b$/);
+  await expect(page.getByTestId('state')).toHaveAttribute('data-generation', '2');
+});
+
+test('managed AAC adopts an authorized silent next source without replaying authorization', async ({ page }) => {
+  await installManagedReader(page);
+  await installAudioProbe(page);
+  const probe = await setup(page, 'none', false, true);
+  await playing(page);
+  await audio(page).evaluate(a => {
+    a.currentTime = 11;
+  });
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const prepared = (Reflect.get(window, '__createdAudio') as HTMLAudioElement[]).find(a => !a.isConnected && a.src && a.readyState >= 3);
+        Reflect.set(window, '__expectedWarmAudio', prepared);
+        return Boolean(prepared);
+      })
+    )
+    .toBe(true);
+  await page.getByRole('button', { name: 'Select b', exact: true }).click();
+  await playing(page);
+  expect(await page.evaluate(() => document.querySelector('audio') === Reflect.get(window, '__expectedWarmAudio'))).toBe(true);
+  expect(probe.keyRequests()).toBe(2);
+  await expect(audio(page)).toHaveJSProperty('disableRemotePlayback', true);
+});
+
+test('native WebKit managed AAC starts while a later segment is still unavailable', async ({ page, browserName }) => {
+  test.skip(browserName !== 'webkit', 'Native ManagedMediaSource requires a supporting WebKit build.');
+  const supported = await page.evaluate(() => Boolean(Reflect.get(window, 'ManagedMediaSource')?.isTypeSupported('audio/mp4; codecs="mp4a.40.2"')));
+  test.skip(!supported, 'This platform WebKit build does not expose native managed AAC.');
+  await page.addInitScript(() => {
+    const Native = Reflect.get(window, 'ManagedMediaSource');
+    Reflect.set(
+      window,
+      'ManagedMediaSource',
+      new Proxy(Native, {
+        construct(target, args) {
+          const source = Reflect.construct(target, args);
+          Reflect.set(window, '__nativeManagedSource', source);
+          return source;
+        }
+      })
+    );
+    Object.defineProperty(window, 'MediaSource', { value: undefined });
+  });
+  const probe = await setup(page, 'held');
+  await playing(page);
+  await expect(audio(page)).toHaveJSProperty('disableRemotePlayback', true);
+  probe.release();
+  await playing(page, 4.2);
+  await page.getByRole('button', { name: 'Toggle playback' }).click();
+  await page.evaluate(async () => {
+    const buffer: SourceBuffer = Reflect.get(window, '__nativeManagedSource').sourceBuffers[0];
+    if (buffer.updating) await new Promise<void>(resolve => buffer.addEventListener('updateend', () => resolve(), { once: true }));
+    await new Promise<void>(resolve => {
+      buffer.addEventListener('updateend', () => resolve(), { once: true });
+      buffer.remove(0, 3);
+    });
+    // Native bufferedchange and demand events, with no manual event injection.
+    document.querySelector('audio')!.currentTime = 0.5;
+  });
+  await page.getByRole('button', { name: 'Toggle playback' }).click();
+  await playing(page, 1);
+  expect(probe.keyRequests()).toBe(1);
+});

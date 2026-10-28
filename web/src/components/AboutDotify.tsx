@@ -1,8 +1,7 @@
+import { streamingMediaSource } from '../features/catalog/streamingMediaSource';
 import { Check, Copy, Info, X } from 'lucide-react';
 import { useState } from 'react';
 import { Dialog } from './Dialog';
-
-const AAC_TYPE = 'audio/mp4; codecs="mp4a.40.2"';
 
 function productVersion(): string | null {
   try {
@@ -15,7 +14,8 @@ function productVersion(): string | null {
 
 function audioMode() {
   try {
-    return typeof MediaSource !== 'undefined' && MediaSource.isTypeSupported(AAC_TYPE) ? 'Progressive AAC' : 'Compatibility AAC';
+    const capability = streamingMediaSource();
+    return capability?.kind === 'managed' ? 'Progressive AAC (managed)' : capability ? 'Progressive AAC' : 'Compatibility AAC';
   } catch {
     return 'Not available';
   }
@@ -32,7 +32,16 @@ export function AboutDotify() {
     ['Build', build],
     ['Source', clean ? 'Clean build' : 'Local or unverified changes'],
     ['Audio path', audioMode()],
-    ['ManagedMediaSource', typeof window !== 'undefined' && 'ManagedMediaSource' in window ? 'Exposed, not used by this build' : 'Not exposed']
+    [
+      'ManagedMediaSource',
+      typeof window !== 'undefined' && typeof Reflect.get(window, 'ManagedMediaSource') === 'function'
+        ? streamingMediaSource()?.kind === 'managed'
+          ? 'Selected for AAC playback'
+          : streamingMediaSource()?.kind === 'standard'
+            ? 'Exposed, standard reader preferred'
+            : 'Exposed, AAC unavailable'
+        : 'Not exposed'
+    ]
   ];
   // Only public build identifiers and media capabilities. Never serialize the
   // environment, wallet, URL, listening history or diagnostic event buffers.

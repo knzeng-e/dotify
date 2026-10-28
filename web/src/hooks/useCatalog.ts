@@ -1,3 +1,4 @@
+import { streamingMediaSource } from '../features/catalog/streamingMediaSource';
 import { StandbyAudio } from '../features/player/standbyAudio';
 import { publishStreamingStartupMetric, type StreamingStartupMetric } from '../features/catalog/audioStartupTelemetry';
 import { createStreamingPlayback } from '../features/catalog/streamingPlayback';
@@ -1601,7 +1602,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     // Do not expose even a paused media URL before its runtime policy passes.
     // These sources use the authoritative check on explicit selection instead.
     if (!track.encrypted && isPolicyManagedTrack(track)) return;
-    if (track.encrypted && (typeof MediaSource === 'undefined' || !MediaSource.isTypeSupported('audio/mp4; codecs="mp4a.40.2"'))) return;
+    if (track.encrypted && !streamingMediaSource()) return;
     const expires = Date.now() + 30_000;
     let key: Uint8Array | null = null;
     if (track.encrypted) {

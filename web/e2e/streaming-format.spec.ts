@@ -207,13 +207,15 @@ test('publication player refuses a bad key before reading any media or archive',
   expect(result).toEqual({ denied: true, paths: ['manifest.json'] });
 });
 
-test('publication compatibility playback uses authenticated AAC when standard MSE is absent', async ({ page }) => {
+test('publication compatibility playback uses authenticated AAC when both streaming APIs are absent', async ({ page }) => {
   await page.route('**/publication-compatibility', route =>
     route.fulfill({ contentType: 'text/html', body: '<!doctype html><button>Play</button><audio></audio>' })
   );
   await page.goto('/publication-compatibility');
   const result = await page.evaluate(async fixture => {
+    // The complete-rendition fallback requires both progressive readers to be unavailable.
     Object.defineProperty(window, 'MediaSource', { value: undefined, configurable: true });
+    Object.defineProperty(window, 'ManagedMediaSource', { value: undefined, configurable: true });
     const modulePath = '/src/features/catalog/streamingPlayback.ts';
     const player = (await import(modulePath)) as typeof import('../src/features/catalog/streamingPlayback');
     const paths: string[] = [];
