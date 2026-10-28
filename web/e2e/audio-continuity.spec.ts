@@ -8,7 +8,20 @@ const fixture = JSON.parse(readFileSync(process.env.DOTIFY_STREAMING_FIXTURE_PAT
   manifest: string;
   files: Record<string, string>;
 };
-type Fault = 'none' | 'relay' | 'retry' | 'truncated' | 'slow' | 'held' | 'corrupt' | 'failed' | 'failed-startup' | 'denied' | 'key-retry';
+type Fault =
+  | 'none'
+  | 'relay'
+  | 'retry'
+  | 'truncated'
+  | 'slow'
+  | 'held'
+  | 'corrupt'
+  | 'failed'
+  | 'failed-startup'
+  | 'denied'
+  | 'key-retry'
+  | 'held-startup'
+  | 'held-next-startup';
 async function setup(
   page: Page,
   fault: Fault = 'none',
@@ -70,6 +83,7 @@ async function setup(
       const value = object === 'manifest.json' ? fixture.manifest : fixture.files[object];
       if (!value) return route.fulfill({ status: 404 });
       if (fault === 'relay' && !url.includes('/api/media/')) return route.fulfill({ status: 503 });
+      if (((fault === 'held-startup' && name === 'a') || (fault === 'held-next-startup' && name === 'b')) && object === '96/segment-000.bin') await gate;
       if (name === 'a' && object === '96/segment-001.bin') {
         attempts++;
         if (fault === 'held') await gate;
@@ -212,6 +226,139 @@ test('a temporary key failure recovers without refresh and anonymous reselect ch
   await playing(page);
   expect(probe.keyRequests()).toBe(3);
 });
+test('a fresh mobile source explicitly starts loading instead of relying on implicit preload', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.Audio = new Proxy(Audio, {
+      construct(target, args) {
+        const element = Reflect.construct(target, args) as HTMLAudioElement;
+        element.preload = 'none';
+        return element;
+      }
+    });
+  });
+  await setup(page, 'none', true);
+  await playing(page);
+});
+
+async function requireNativePlayGesture(page: Page, releaseOnPlay: boolean) {
+  await page.addInitScript(releaseOnPlay => {
+    Reflect.set(window, '__holdNativeLoad', true);
+    window.Audio = new Proxy(Audio, {
+      construct(target, args) {
+        const element = Reflect.construct(target, args) as HTMLAudioElement;
+        if (Reflect.get(window, '__holdNativeLoad')) {
+          // Chromium may ignore preload=none for Blobs. Defer actual resource
+          // selection too, so this Host restriction is deterministic in either
+          // engine while playback/decoding after the gesture remain native.
+          const src = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'src')!;
+          const play = element.play.bind(element);
+          let pendingSource = '';
+          Object.defineProperty(element, 'src', {
+            get: () => pendingSource,
+            set: (value: string) => {
+              pendingSource = value;
+            }
+          });
+          element.load = () => {};
+          element.play = () => {
+            if (!releaseOnPlay) return new Promise(() => {});
+            if (src.get!.call(element) !== pendingSource) src.set!.call(element, pendingSource);
+            return play();
+          };
+        }
+        return element;
+      }
+    });
+  }, releaseOnPlay);
+}
+
+test('a mobile engine that requires Play before metadata does not trap the transport', async ({ page }) => {
+  await requireNativePlayGesture(page, true);
+  await setup(page, 'none', true);
+  await expect(page.getByTestId('state')).toHaveAttribute('data-generation', '1');
+  await expect(page.getByTestId('state')).toHaveAttribute('data-pending', 'true');
+  await page.getByRole('button', { name: 'Toggle playback' }).click();
+  await playing(page);
+  await expect(page.getByTestId('state')).toHaveAttribute('data-pending', 'false');
+});
+
+test('pending native Play displays Pause and can be cancelled before canplay', async ({ page }) => {
+  await requireNativePlayGesture(page, true);
+  const probe = await setup(page, 'held-startup');
+  try {
+    await expect(page.getByTestId('state')).toHaveAttribute('data-generation', '1');
+    await expect(page.getByRole('button', { name: 'Play', exact: true })).toBeEnabled();
+    await page.getByRole('button', { name: 'Play', exact: true }).click();
+    await expect(audio(page)).toHaveJSProperty('paused', false);
+    await expect.poll(() => probe.requests.includes('a:96/segment-000.bin')).toBe(true);
+    await expect(page.getByTestId('state')).toHaveAttribute('data-pending', 'true');
+    await expect(page.getByRole('button', { name: 'Pause', exact: true })).toBeEnabled();
+    await expect(page.getByTestId('state')).toHaveAttribute('data-time', '0');
+    await expect(page.getByRole('slider', { name: 'Seek', exact: true })).toBeDisabled();
+    await page.getByRole('button', { name: 'Pause', exact: true }).click();
+    await expect(audio(page)).toHaveJSProperty('paused', true);
+    await expect(page.getByRole('button', { name: 'Play', exact: true })).toBeEnabled();
+    probe.release();
+    await expect(page.getByTestId('state')).toHaveAttribute('data-pending', 'false');
+    await expect(audio(page)).toHaveJSProperty('paused', true);
+    await page.getByRole('button', { name: 'Play', exact: true }).click();
+    await playing(page);
+  } finally {
+    probe.release();
+  }
+});
+
+test('a new pending source does not inherit Pause from the previously playing track', async ({ page }) => {
+  await requireNativePlayGesture(page, true);
+  const probe = await setup(page, 'held-next-startup');
+  try {
+    await page.getByRole('button', { name: 'Play', exact: true }).click();
+    await playing(page);
+    await page.getByRole('button', { name: 'Select b', exact: true }).click();
+    await expect(page.getByTestId('state')).toHaveAttribute('data-generation', '2');
+    await expect(page.getByTestId('state')).toHaveAttribute('data-pending', 'true');
+    await expect(audio(page)).toHaveJSProperty('paused', true);
+    await expect(page.getByRole('button', { name: 'Play', exact: true })).toBeEnabled();
+    await expect(page.getByRole('slider', { name: 'Seek', exact: true })).toBeDisabled();
+    await page.getByRole('button', { name: 'Play', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Pause', exact: true })).toBeEnabled();
+    probe.release();
+    await playing(page);
+  } finally {
+    probe.release();
+  }
+});
+
+test('a silent native startup expires with retry and cannot revive after its deadline', async ({ page }) => {
+  await page.clock.install();
+  await requireNativePlayGesture(page, false);
+  await setup(page, 'none', true);
+  await expect(page.getByTestId('state')).toHaveAttribute('data-generation', '1');
+  await page.clock.fastForward(60_001);
+  await expect(page.getByTestId('state')).toHaveAttribute('data-pending', 'false');
+  await expect(page.getByTestId('state')).toHaveAttribute('data-failure', 'audio-unavailable');
+  expect(await audio(page).getAttribute('src')).toBeNull();
+  await page.evaluate(() => Reflect.set(window, '__holdNativeLoad', false));
+  await page.getByRole('button', { name: 'Select a', exact: true }).click();
+  await playing(page);
+  await expect(page.getByTestId('state')).toHaveAttribute('data-failure', '');
+});
+
+test('an expired startup deadline cannot clear a newer paused selection', async ({ page }) => {
+  await page.clock.install();
+  await setup(page, 'none', true);
+  await playing(page);
+  await page.getByRole('button', { name: 'Select b', exact: true }).click();
+  await playing(page);
+  await page.getByRole('button', { name: 'Toggle playback' }).click();
+  await expect(audio(page)).toHaveJSProperty('paused', true);
+  await page.clock.fastForward(60_001);
+  await expect(page.getByTestId('state')).toHaveAttribute('data-track', /:b$/);
+  await expect(page.getByTestId('state')).toHaveAttribute('data-failure', '');
+  await expect(audio(page)).toHaveJSProperty('paused', true);
+  expect(await audio(page).getAttribute('src')).toMatch(/^blob:/);
+});
+
 test('hosts without MSE retry ciphertext objects and play the same authenticated AAC rendition', async ({ page }) => {
   const probe = await setup(page, 'retry', true);
   await playing(page);

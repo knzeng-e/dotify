@@ -145,10 +145,11 @@ for (const capture of ['standard', 'without-native-api']) {
         await host.getByRole('button', { name: action, exact: true }).click();
         if (title === 'Second room track') {
           // The compact desktop room hides the cover status visually, but the
-          // same state remains in the DOM and drives the disabled transport.
+          // same state remains in the DOM. A resolved, permitted source must
+          // still accept Play before metadata on gesture-gated mobile engines.
           await expect(host.locator('.remote-state')).toHaveText('Preparing audio');
           await expect(host.locator('.transport-progress > span').first()).toHaveText('0:00');
-          await expect(host.getByRole('button', { name: 'Play', exact: true })).toBeDisabled();
+          await expect(host.getByRole('button', { name: 'Play', exact: true })).toBeEnabled();
           await expect(host.getByRole('button', { name: 'Next track', exact: true })).toBeEnabled();
           await expect(host.getByRole('button', { name: 'Previous track', exact: true })).toBeEnabled();
         }

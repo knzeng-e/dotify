@@ -100,6 +100,7 @@ import type {
 import type { ConnectedWallet } from './useWallet';
 
 const zeroAddress = '0x0000000000000000000000000000000000000000' as const;
+const AUDIO_STARTUP_TIMEOUT_MS = 60_000;
 
 export type TrackSelectionResult = {
   playbackMode: RoomPlaybackMode;
@@ -114,6 +115,7 @@ type ActiveTrackSelection = {
   startedAt: number;
   pending: boolean;
   terminalReported: boolean;
+  startupDeadline?: ReturnType<typeof setTimeout>;
 };
 
 function nowMs(): number {
@@ -375,6 +377,7 @@ export function useCatalog(deps: UseCatalogDeps) {
   const [audioRecovery, setAudioRecovery] = useState<'recovering' | 'failed' | null>(null);
   const [audioStartupAttemptId, setAudioStartupAttemptId] = useState<string | null>(null);
   const [trackSelectionPending, setTrackSelectionPending] = useState(false);
+  const [audioSourcePending, setAudioSourcePending] = useState(false);
   const [trackInfo, setTrackInfo] = useState<TrackInfo | null>(null);
   const [playerState, setPlayerState] = useState<PlayerState | null>(null);
   const [accessGate, setAccessGate] = useState<AccessGate | null>(null);
@@ -479,6 +482,7 @@ export function useCatalog(deps: UseCatalogDeps) {
         terminalReason: 'selection-interrupted'
       });
     }
+    clearTimeout(activeSelection?.startupDeadline);
     activeSelection?.controller.abort();
     activeTrackSelectionRef.current = null;
     pendingTrackMediaSourceRef.current = null;
@@ -492,6 +496,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     setAudioRecovery(null);
     setAudioContinuation(null);
     setTrackSelectionPending(true);
+    setAudioSourcePending(true);
     const id = (nextTrackSelectionIdRef.current += 1);
     const selection: ActiveTrackSelection = {
       id,
@@ -507,12 +512,40 @@ export function useCatalog(deps: UseCatalogDeps) {
     return selection;
   }
 
+  function armAudioStartupDeadline(selection: ActiveTrackSelection) {
+    if (!isTrackSelectionCurrent(selection) || selection.startupDeadline !== undefined) return;
+    // Start after authorization, so waiting for a wallet signature consumes no
+    // media budget. Bound retries, compatibility downloads and native readiness
+    // together; a transport that keeps dribbling bytes must not trap the UI.
+    selection.startupDeadline = setTimeout(() => {
+      if (!isTrackSelectionCurrent(selection) || !selection.pending) return;
+      selection.terminalReported = true;
+      publishHostAudioStartupMetric({
+        phase: 'error',
+        attemptId: selection.attemptId,
+        source: selection.source,
+        elapsedMs: Number((nowMs() - selection.startedAt).toFixed(1)),
+        timestamp: wallTimestamp(),
+        terminalReason: 'selection-failed'
+      });
+      retireActiveTrackSelection(false);
+      if (localAudioRef.current) retireHostAudio(localAudioRef.current);
+      setResolvedAudioSource(null);
+      setAudioSourcePending(false);
+      setTrackSelectionPending(false);
+      setAudioRecovery(null);
+      setAudioStartupStatus(null);
+      setPlaybackFailure({ trackId: selection.source, kind: 'audio-unavailable' });
+    }, AUDIO_STARTUP_TIMEOUT_MS);
+  }
+
   function isTrackSelectionCurrent(selection: ActiveTrackSelection): boolean {
     return activeTrackSelectionRef.current?.id === selection.id && !selection.controller.signal.aborted;
   }
 
   function abortActiveTrackSelection() {
     retireActiveTrackSelection(true);
+    setAudioSourcePending(false);
     setTrackSelectionPending(false);
   }
 
@@ -535,6 +568,7 @@ export function useCatalog(deps: UseCatalogDeps) {
       activeTrackSelectionRef.current.pending = false;
     }
     if (pendingTrackMediaSourceRef.current !== source) return;
+    clearTimeout(activeTrackSelectionRef.current?.startupDeadline);
     pendingTrackMediaSourceRef.current = null;
     setTrackSelectionPending(false);
   }
@@ -759,7 +793,8 @@ export function useCatalog(deps: UseCatalogDeps) {
     release: ContentKeyReleaseIdentity | undefined,
     signal?: AbortSignal,
     isCurrent: () => boolean = () => true,
-    options?: { key: Uint8Array; audio: () => HTMLAudioElement; speculative: true }
+    options?: { key: Uint8Array; audio: () => HTMLAudioElement; speculative: true },
+    onAuthorized?: () => void
   ): Promise<string> {
     throwIfAborted(signal);
     if (isClassicUnlockE2e && contentHash.toLowerCase() === E2E_CLASSIC_HASH.toLowerCase()) {
@@ -801,6 +836,7 @@ export function useCatalog(deps: UseCatalogDeps) {
         options?.key ?? (accessMode === 'free' ? await resolveFreeContentKey(contentHash, release) : await resolveServerContentKey(contentHash, release));
       controllerSignal.throwIfAborted();
       if (!key) throw new Error('The audio access check could not be completed.');
+      onAuthorized?.();
       metric({ phase: 'key-authorized' });
       if (!options?.speculative) setAudioStartupStatus('Preparing audio');
       const prepared = await createStreamingPlayback({
@@ -986,7 +1022,9 @@ export function useCatalog(deps: UseCatalogDeps) {
                 track.accessMode,
                 releaseIdentityFromTrack(track),
                 selection.controller.signal,
-                () => isTrackSelectionCurrent(selection)
+                () => isTrackSelectionCurrent(selection),
+                undefined,
+                () => armAudioStartupDeadline(selection)
               );
               failureKind = null;
               break;
@@ -1021,6 +1059,8 @@ export function useCatalog(deps: UseCatalogDeps) {
       pendingTrackMediaSourceRef.current = sourceAlreadyReady ? null : audioUrl;
       waitsForMediaReadiness = Boolean(audioUrl && !sourceAlreadyReady);
       setResolvedAudioSource(audioUrl);
+      setAudioSourcePending(false);
+      if (audioUrl) armAudioStartupDeadline(selection);
       if (!audioUrl) setAudioStartupStatus(null);
 
       if (!audioUrl) {
@@ -1039,7 +1079,9 @@ export function useCatalog(deps: UseCatalogDeps) {
       reportSelectionFailure('selection-failed');
       throw error;
     } finally {
+      if (isTrackSelectionCurrent(selection)) setAudioSourcePending(false);
       if (isTrackSelectionCurrent(selection) && !waitsForMediaReadiness) {
+        clearTimeout(selection.startupDeadline);
         selection.pending = false;
         pendingTrackMediaSourceRef.current = null;
         setTrackSelectionPending(false);
@@ -1617,6 +1659,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     audioRecovery,
     audioStartupAttemptId,
     trackSelectionPending,
+    audioSourcePending,
     settleTrackSelectionMedia,
     setAudioSource: (source: string | null) => setResolvedAudioSource(source, true),
     audioStartupStatus,

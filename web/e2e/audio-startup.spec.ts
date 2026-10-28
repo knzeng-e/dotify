@@ -310,7 +310,9 @@ test('Previous stays available during a slow Next and the final direction wins',
     for (let attempt = 0; attempt < 2; attempt++) {
       await page.getByRole('button', { name: 'Next track', exact: true }).click();
       await expect(page.getByRole('heading', { name: 'Second room track', exact: true })).toBeVisible();
-      await expect(page.getByRole('button', { name: 'Play', exact: true })).toBeDisabled();
+      // The permitted URL is resolved; Play must remain usable even while the
+      // engine is waiting for metadata. Previous must still cancel this source.
+      await expect(page.getByRole('button', { name: 'Play', exact: true })).toBeEnabled();
       await page.getByRole('button', { name: 'Previous track', exact: true }).click();
       await expect(page.getByRole('heading', { name: 'E2E Public Room Track', exact: true })).toBeVisible();
       await expect(audio).toHaveJSProperty('paused', false);

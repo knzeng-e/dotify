@@ -50,6 +50,27 @@ albums, continuous mixes and physical Hosts still need listening evidence.
 Encrypted standby preparation is disabled when AAC MSE is unavailable; explicit
 playback retains the bounded authenticated compatibility reader.
 
+## Explicit mobile startup
+
+Authorization/source preparation and native media readiness are separate states.
+A fresh element receives its listeners before `src`, `preload="auto"` and an
+explicit `load()`. An adopted standby element is never reloaded. Once an
+approved source exists, Play is available even before metadata: some Host
+engines need that gesture to begin resource selection. An outstanding autoplay
+intent must not make that first Play behave as Pause.
+
+While readiness is pending, both transport controls retain native play/pause
+intent, so a requested start displays Pause. Time/duration remain zero and
+seeking stays disabled. Each fresh source resets the preceding track's play
+state before its own native events arrive.
+
+One 60-second startup budget starts after key authorization and spans transport
+retries, compatibility download and native readiness. It ends on readiness,
+terminal playback, replacement or cancellation. Expiry cancels the old source
+and presents the existing in-place retry; it never grants access, submits a
+payment or changes the key. Wallet approval time is outside that media budget.
+See [the mobile startup correction and evidence](../backlog/implementation/evidence/mobile-host-audio-startup-2026-10-28.md).
+
 ## Adaptive delivery
 
 Each playback starts at 96 kb/s. Only measured network reads contribute to a

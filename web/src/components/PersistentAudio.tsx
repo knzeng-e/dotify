@@ -31,13 +31,13 @@ function LocalAudio(props: PersistentAudioProps) {
   }, [props]);
   useLayoutEffect(() => {
     const { localAudioRef, audioSource, adoptPreparedAudio } = latest.current;
-    const audio = adoptPreparedAudio?.(audioSource) ?? new Audio();
+    const preparedAudio = adoptPreparedAudio?.(audioSource);
+    const audio = preparedAudio ?? new Audio();
     audio.className = 'native-player-source';
     audio.crossOrigin = 'anonymous';
+    audio.preload = 'auto';
     audio.setAttribute('playsinline', '');
-    if (audioSource && audio.getAttribute('src') !== audioSource) audio.src = audioSource;
     localAudioRef.current = audio;
-    attachAudioNormalization(audio);
     mount.current?.replaceChildren(audio);
     const on = (name: string, action: (props: PersistentAudioProps) => void) => {
       const listener = () => {
@@ -88,6 +88,13 @@ function LocalAudio(props: PersistentAudioProps) {
         if (p.playback.handleHostError(audio) && p.audioSource) p.playback.markNoAudio();
       })
     ];
+    // Native mobile shells may defer implicit preload. Attach listeners first,
+    // then explicitly start resource selection. Never reload an adopted buffer.
+    if (audioSource && !preparedAudio) {
+      audio.src = audioSource;
+      attachAudioNormalization(audio);
+      audio.load();
+    } else if (preparedAudio) attachAudioNormalization(audio);
     // A warmed node already fired metadata/canplay while silent. Replay those
     // callbacks only after all source-owner layout effects have committed.
     queueMicrotask(() => {
