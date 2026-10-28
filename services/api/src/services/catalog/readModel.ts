@@ -201,7 +201,15 @@ export class CatalogReadModel {
         next = await commit({ ...(await this.applyEvents(next, to, chainHeadBlock)), catchingUp: to < safeHeadBlock });
       }
       if (this.now().getTime() - Date.parse(next.reconciledAt) >= this.reconcileIntervalMs) {
-        const empty = new Set(next.artists.filter(artist => artist.releaseCount === 0).map(artist => artist.runtimeAddress.toLowerCase()));
+        // releaseCount covers accepted releases only. An entirely excluded
+        // runtime still needs reconciliation to retain diagnostics and discover
+        // corrections made without a recognized release event.
+        const excludedRuntimes = new Set((next.excludedReleases ?? []).map(release => release.id.split(':', 1)[0].toLowerCase()));
+        const empty = new Set(
+          next.artists
+            .filter(artist => artist.releaseCount === 0 && !excludedRuntimes.has(artist.runtimeAddress.toLowerCase()))
+            .map(artist => artist.runtimeAddress.toLowerCase())
+        );
         next = await commit(await this.reindex(safeHeadBlock, chainHeadBlock, empty));
       } else if (next === current) {
         next = await commit({ ...current, chainHeadBlock, indexedAt: this.now().toISOString() });
