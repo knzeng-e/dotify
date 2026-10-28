@@ -106,6 +106,11 @@ preceding reviewed client artifact; W36 trust state/custody must not be reverted
   corrected to assert terminal playback and one key/one corrupted read. The
   older Blob fixture also needed to disable both streaming APIs explicitly.
   These were test setup/assertion corrections, not relaxed access checks.
+- The three-engine publication compatibility fixture also disables both
+  `MediaSource` and `ManagedMediaSource`. Disabling only the standard API left
+  WebKit correctly selecting managed streaming, contradicting the fixture
+  assertion that complete-rendition playback was selected. Authentication and
+  archive-denial assertions remain enforced.
 
 No physical first-sound percentile or cost reduction is claimed. The relevant
 native test exercises decoded playback-clock progress, not human-heard output.
