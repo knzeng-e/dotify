@@ -1,5 +1,17 @@
 # Deploy Dotify To Product DevNet
 
+## Product 0.1.65 published with managed mobile AAC, 2026-10-28
+
+Clean packaging `a553cc6a65a2f506ebcfaac2d66ce97451291d10`, based on merged `dev` `bd813f7e`
+(#344/#345), publishes executable `[0,1,65]` at root/app CID
+`bafybeicv4u5od4iqqhwoq5abhm3w3taof3di5euj3qvjo7ftkrldxnqu6y`. Independent finalized DotNS/version and all
+136 public CAR hashes pass; index, entry and graphics bytes match the clean
+build. The local signer is removed. Supporting mobile engines can stream early
+AAC segments; About exposes the installed build/reader. Physical mobile listening
+and cold-start measurements remain open. No service restart, migration or new
+infrastructure was needed; Product 0.1.64 is the compatible client rollback.
+See the [0.1.65 rollout](../backlog/implementation/evidence/product-0.1.65-rollout-2026-10-28.md).
+
 ## Product 0.1.64 published with mobile audio startup correction, 2026-10-28
 
 Clean packaging `982d3da4b6fb92af706641dc2ff10589b6f5a73f`, based on merged
