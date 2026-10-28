@@ -23,8 +23,9 @@ Current device, reliability and payment checks live in the
 
 Internal testing uses one authenticated streaming format. The [streaming-only
 reset](docs/adr/0033-streaming-only-internal-reset.md) was deployed in Product
-0.1.58; the latest [Product 0.1.63 and API/Web rollout](docs/backlog/implementation/evidence/product-0.1.63-rollout-2026-10-28.md)
-preserves the current catalog while activating shared API state. Physical-device
+0.1.58. The [0.1.63 API/Web rollout](docs/backlog/implementation/evidence/product-0.1.63-rollout-2026-10-28.md)
+activated shared API state; [Product 0.1.64](docs/backlog/implementation/evidence/product-0.1.64-rollout-2026-10-28.md)
+adds the mobile audio startup correction while preserving that state and catalog. Physical-device
 and public-pilot acceptance remain separate gates.
 
 ## Listen together
