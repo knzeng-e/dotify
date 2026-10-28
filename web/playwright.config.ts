@@ -13,7 +13,6 @@ export default defineConfig({
     '**/nearby.spec.ts',
     '**/nearby-product.spec.ts',
     '**/nearby-off.spec.ts',
-    '**/room-galaxy-off.spec.ts',
     '**/streaming-format.spec.ts'
   ],
   timeout: 30_000,

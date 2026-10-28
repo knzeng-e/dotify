@@ -21,7 +21,7 @@ function getFocusableElements(dialog: HTMLDivElement | null) {
   if (!dialog) return [] as HTMLElement[];
   return Array.from(
     dialog.querySelectorAll<HTMLElement>(
-      'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), details > summary:first-of-type, [tabindex]:not([tabindex="-1"])'
     )
   ).filter(element => element.getClientRects().length > 0 || element === document.activeElement);
 }

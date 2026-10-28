@@ -13,7 +13,9 @@ measured activation remain blocked. W19's remaining scope is exact-Host location
 and lifecycle validation; do not restore manual scans/city exploration. W31's
 specific Worldwide-report verification subsequently merged through #332.
 The [October 26 reconciliation](evidence/backlog-reconciliation-2026-10-26.md)
-records W31/#286, W34/#289 and scoped 3D/#329 as delivered. W34 merged through
+records W31/#286 and W34/#289 as delivered. The scoped 3D/#329 implementation
+was delivered historically; the owner retired that view on 2026-10-28 in favor
+of Radar/List. See [the presentation update](evidence/room-radar-simplification-2026-10-28.md). W34 merged through
 #333 and is deployed with API/Web and Product 0.1.62 (#334). Payment recovery
 #335 and publication return #336 are merged but not yet published; navigation
 and mini-player exits #337 are merged, alongside W35/#338; W13/device/first-sound gates remain open.
