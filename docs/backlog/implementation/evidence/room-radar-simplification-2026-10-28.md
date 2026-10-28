@@ -13,6 +13,20 @@ transitive packages, graphics-only layout, CSS, flag and dedicated tests/config
 are removed. Radar and List consume the existing discovery session. Historical
 W14/3D evidence is retained; immersive metaverse work is deferred.
 
+## Release reading experience
+
+The owner also requested a simpler release sheet. Price is shown as a coin icon
+and the original native amount/symbol, without “to unlock” or a fee sentence.
+Free and human-verification access conditions remain explicit. Network fees are
+identified as additional in the approval flow; no new platform commission or
+currency conversion is introduced.
+
+Artist descriptions use the existing editorial typeface and comfortable line
+spacing. Album facts and credits become unboxed text; release type and year are
+shown once beside the cover. Listening/support terms and technical provenance
+remain available in separate disclosures. The dialog focus loop now includes
+native summary controls, preserving keyboard access to those disclosures.
+
 ## Evidence
 
 - Production Web build passes, without a Three.js or RoomGalaxyScene chunk.
@@ -22,6 +36,10 @@ W14/3D evidence is retained; immersive metaverse work is deferred.
   discovery, joining, denial/retry, lifecycle, Hide/restore and room identity.
 - Desktop hover and 390px mobile sheet screenshots inspected. The room invitation
   precedes host/music, and the touch action remains accessible.
+- Release browsing tests pass at 320px, including keyboard disclosure, dismissal,
+  focus restoration, no audio/key/payment request and keeping the selected track.
+  The full artist-publish/catalog test passes with a rich release sheet at desktop
+  and 390px, plus additional-fee disclosure before approval. Both captures inspected.
 - Lint passes with two existing App.tsx hook warnings. Build retains unrelated
   large-chunk and stale Browserslist warnings.
 - No deployment in this change. Physical Host visual acceptance remains after release.

@@ -350,6 +350,12 @@ test('artist can create a runtime, publish a release, and see it in the listener
   await expect(releaseDialog).toContainText('Soul · Electronic');
   await expect(releaseDialog).toContainText('Producer');
   await page.screenshot({ path: info.outputPath('release-details.png'), animations: 'disabled', fullPage: true });
+  const originalViewport = page.viewportSize();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(releaseDialog.locator('.release-access-summary')).toContainText(`0.75 ${E2E_NATIVE_PAYMENT_SYMBOL}`);
+  expect(await releaseDialog.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
+  await page.screenshot({ path: info.outputPath('release-details-mobile.png'), animations: 'disabled' });
+  if (originalViewport) await page.setViewportSize(originalViewport);
   await page.getByRole('button', { name: 'Close release details' }).click();
   await expect(release.getByRole('button', { name: /Open E2E Published Signal by E2E Artist/ })).toHaveAccessibleName(
     new RegExp(`0.75 ${E2E_NATIVE_PAYMENT_SYMBOL}`)
@@ -357,6 +363,7 @@ test('artist can create a runtime, publish a release, and see it in the listener
   await release.getByRole('button', { name: /Open E2E Published Signal by E2E Artist/ }).click();
   await page.getByRole('button', { name: 'Unlock listening', exact: true }).click();
   await expect(page.getByTestId('access-warning')).toContainText(`0.75 ${E2E_NATIVE_PAYMENT_SYMBOL}`);
+  await expect(page.getByTestId('access-warning')).toContainText('Additional, shown before you approve');
 });
 
 test('artist onboarding handles a missing wallet without enabling profile creation', async ({ page }) => {
