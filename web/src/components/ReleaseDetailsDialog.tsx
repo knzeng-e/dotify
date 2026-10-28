@@ -1,4 +1,4 @@
-import { CalendarDays, Disc3, Languages, MapPin, ShieldCheck, UsersRound, X } from 'lucide-react';
+import { Coins, ShieldCheck, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Dialog } from './Dialog';
 import { CoverImage } from './CoverImage';
@@ -23,7 +23,7 @@ export function ReleaseDetailsDialog({ track, nativePaymentSymbol, onClose }: { 
     track.active === false
       ? 'Release unavailable'
       : track.accessMode === 'classic'
-        ? `${nativeRuntimeAmountLabel(track.priceDot, { symbol: nativePaymentSymbol })} to unlock, plus network fees`
+        ? nativeRuntimeAmountLabel(track.priceDot, { symbol: nativePaymentSymbol })
         : track.accessMode === 'free'
           ? 'Free for everyone'
           : track.personhoodLevel === 'DIM2'
@@ -52,18 +52,16 @@ export function ReleaseDetailsDialog({ track, nativePaymentSymbol, onClose }: { 
 
   const releaseFacts = editorial
     ? ([
-        { icon: Disc3, label: 'Release', value: releaseKindLabel(editorial.releaseKind) },
-        editorial.projectTitle ? { icon: Disc3, label: editorial.releaseKind === 'ep-track' ? 'EP' : 'Album / project', value: editorial.projectTitle } : null,
-        editorial.releaseDate ? { icon: CalendarDays, label: 'Original release', value: releaseDateLabel(editorial.releaseDate) } : null,
-        editorial.genres.length ? { icon: Disc3, label: 'Genres', value: editorial.genres.join(' · ') } : null,
-        editorial.languages.length ? { icon: Languages, label: 'Languages', value: editorial.languages.join(' · ') } : null,
-        editorial.version ? { icon: Disc3, label: 'Version', value: editorial.version } : null,
-        editorial.label ? { icon: ShieldCheck, label: 'Label', value: editorial.label } : null,
-        editorial.productionLocation ? { icon: MapPin, label: 'Recorded / produced in', value: editorial.productionLocation } : null,
-        duration ? { icon: Disc3, label: 'Duration', value: duration } : null
-      ].filter(Boolean) as Array<{ icon: typeof Disc3; label: string; value: string }>)
+        editorial.projectTitle ? { label: editorial.releaseKind === 'ep-track' ? 'EP' : 'Album / project', value: editorial.projectTitle } : null,
+        editorial.genres.length ? { label: 'Genres', value: editorial.genres.join(' · ') } : null,
+        editorial.languages.length ? { label: 'Languages', value: editorial.languages.join(' · ') } : null,
+        editorial.version ? { label: 'Version', value: editorial.version } : null,
+        editorial.label ? { label: 'Label', value: editorial.label } : null,
+        editorial.productionLocation ? { label: 'Recorded / produced in', value: editorial.productionLocation } : null,
+        duration ? { label: 'Duration', value: duration } : null
+      ].filter(Boolean) as Array<{ label: string; value: string }>)
     : duration
-      ? [{ icon: Disc3, label: 'Duration', value: duration }]
+      ? [{ label: 'Duration', value: duration }]
       : [];
 
   return (
@@ -90,18 +88,16 @@ export function ReleaseDetailsDialog({ track, nativePaymentSymbol, onClose }: { 
             {editorial?.releaseDate && <span>{releaseDateLabel(editorial.releaseDate)}</span>}
             {editorial?.explicitContent && <span>Explicit</span>}
           </div>
-          <div className='release-access-summary'>
-            <ShieldCheck size={18} aria-hidden='true' />
-            <div>
-              <strong>Listening access</strong>
-              <span>{access}</span>
-            </div>
-          </div>
+          <p className='release-access-summary'>
+            {track.accessMode === 'classic' && track.active !== false ? <Coins size={18} aria-hidden='true' /> : <ShieldCheck size={18} aria-hidden='true' />}
+            <span className='sr-only'>{track.accessMode === 'classic' ? 'Listening price: ' : 'Listening access: '}</span>
+            <span>{access}</span>
+          </p>
         </div>
       </div>
 
       {track.description && (
-        <section className='release-details-section'>
+        <section className='release-details-section release-story-section'>
           <h3>About this track</h3>
           <p className='release-story'>{track.description}</p>
         </section>
@@ -113,7 +109,6 @@ export function ReleaseDetailsDialog({ track, nativePaymentSymbol, onClose }: { 
           <dl className='release-editorial-facts'>
             {releaseFacts.map(fact => (
               <div key={fact.label}>
-                <fact.icon size={17} aria-hidden='true' />
                 <dt>{fact.label}</dt>
                 <dd>{fact.value}</dd>
               </div>
@@ -131,7 +126,6 @@ export function ReleaseDetailsDialog({ track, nativePaymentSymbol, onClose }: { 
           <ul className='release-credits-list'>
             {editorial.credits.map((credit, index) => (
               <li key={`${credit.name}-${credit.role}-${index}`}>
-                <UsersRound size={17} aria-hidden='true' />
                 <span>{credit.name}</span>
                 <small>{releaseCreditRoleLabel(credit.role)}</small>
               </li>
@@ -159,41 +153,43 @@ export function ReleaseDetailsDialog({ track, nativePaymentSymbol, onClose }: { 
         </p>
       )}
       {metadataState === 'unavailable' && track.metadataRef && (
-        <p className='release-metadata-status'>Additional artist details are unavailable. Listening access below remains authoritative.</p>
+        <p className='release-metadata-status'>Additional release details could not load. The listening price and access conditions are still available.</p>
       )}
 
-      <section className='release-details-section release-listening-section'>
-        <h3>Listening &amp; support</h3>
-        <dl className='transaction-facts'>
-          <div>
-            <dt>Solo listening</dt>
-            <dd>{access}</dd>
-          </div>
-          <div>
-            <dt>In a room</dt>
-            <dd>The host unlocks the track. Guests listen without an account.</dd>
-          </div>
-        </dl>
-        <p>Listening access does not transfer copyright or permission to redistribute the recording.</p>
-        {track.accessMode === 'classic' && (
-          <div>
-            <h4>Where an access payment goes</h4>
-            {track.royaltySplits.length ? (
-              <ul className='release-payment-splits'>
-                {buildClassicAccessReceipt(track, { symbol: nativePaymentSymbol }).recipients.map((recipient, index) => (
-                  <li key={`${recipient.label}-${index}`}>
-                    <span>{recipient.label}</span>
-                    <strong>{recipient.value}</strong>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p>Payment recipients are shown in the confirmed quote before payment.</p>
-            )}
-            <p>Tips are voluntary and do not unlock listening.</p>
-          </div>
-        )}
-      </section>
+      <details className='release-listening-section'>
+        <summary>Listening &amp; support</summary>
+        <div className='release-listening-content'>
+          <dl className='transaction-facts'>
+            <div>
+              <dt>Solo listening</dt>
+              <dd>{access}</dd>
+            </div>
+            <div>
+              <dt>In a room</dt>
+              <dd>The host unlocks the track. Guests listen without an account.</dd>
+            </div>
+          </dl>
+          <p>Listening access does not transfer copyright or permission to redistribute the recording.</p>
+          {track.accessMode === 'classic' && (
+            <div>
+              <h4>Where an access payment goes</h4>
+              {track.royaltySplits.length ? (
+                <ul className='release-payment-splits'>
+                  {buildClassicAccessReceipt(track, { symbol: nativePaymentSymbol }).recipients.map((recipient, index) => (
+                    <li key={`${recipient.label}-${index}`}>
+                      <span>{recipient.label}</span>
+                      <strong>{recipient.value}</strong>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p>Payment recipients are shown in the confirmed quote before payment.</p>
+              )}
+              <p>Tips are voluntary and do not unlock listening.</p>
+            </div>
+          )}
+        </div>
+      </details>
 
       <details className='release-provenance'>
         <summary>Release records</summary>
