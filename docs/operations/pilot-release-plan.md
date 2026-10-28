@@ -11,16 +11,16 @@ small consented community is counted as served.
 - Issue: #158.
 - Original consolidation base: `dev` at
   `f4d2d49721a85169c5f9c37d36ac2ef315396d57`.
-- Last recorded published Product candidate: 0.1.62, clean packaging SHA
-  `781f1c598885714288bdec02df488fd03d7f2602`, based on tested merged dev
-  `c71947a294907bdaf0a92ea0c544876fa39309d4`, `product-cdm` on `devnet`,
-  executable CID `bafybeiaxgf3x4s6c6cwmxd3wm4gsllwl6gxuedqrejb3gmepo62ux2dto4`.
-  [Rollout evidence](../backlog/implementation/evidence/product-0.1.62-rollout-2026-10-25.md)
-  records API 32 and the separate Web identity.
-- #335 payment recovery and #336 publication return are merged but unpublished;
-  #337 navigation/mini-player exits remain under review. Select a new coherent
-  candidate after those corrections are reviewed; do not call latest dev the
-  installed 0.1.62 executable.
+- Last recorded published Product candidate: 0.1.63, clean packaging SHA
+  `5de94989f2e36e6ee8e9e871471233e07d9381f1`, based on tested merged dev
+  `200d6195a99b8565cd572cc55a696d479985023f` plus the deployment IPv6 correction,
+  `product-cdm` on `devnet`, executable CID
+  `bafybeigxlqyghdtxrxvyce6e5axi3milqscwx2vvvgmfnh5ktuyp5juyy4`.
+  [Rollout evidence](../backlog/implementation/evidence/product-0.1.63-rollout-2026-10-28.md)
+  records API 34, private custody 3, PostgreSQL and the separate Web identity.
+- #335-#337 and W35 are published with W36/W37. Installed Host refresh,
+  payment/publication and audible continuity require new candidate-bound
+  observations; prior device evidence does not certify this executable.
 - Readiness command:
 
 ```bash
@@ -52,7 +52,8 @@ record used a separate 0.1.29 validation CID
 The October 22 streaming-only reset deployed fresh contracts, CDM version 2,
 non-root storage and the private encoding pipeline. Product 0.1.62 then deployed
 W34 on the API before its clients, without a contract, permission or secret
-change. The API remains a single writer. Use the dated
+change. Product 0.1.63 then activates W35-W37 with two public API replicas,
+shared PostgreSQL and one private publication-custody writer. Use the dated
 [deployment configuration](deployment-configuration.md) and exact rollout record
 for environment/persistence differences; older 0.1.29/0.1.48 observations are
 historical and do not validate the current reset catalog.
@@ -61,7 +62,7 @@ historical and do not validate the current reset catalog.
 | --- | --- | --- |
 | Product name | `dotify-test01.dot` | Keep |
 | Public Product URL | `https://dotify-test01.dev-dot.li` | Keep |
-| Product appVersion | `[0, 1, 62]` | Published from the packaging SHA and CID above. Candidate-bound native payment, publication, room, rollback and aggregate pilot evidence remain open. |
+| Product appVersion | `[0, 1, 63]` | Published from the packaging SHA and CID above. Candidate-bound native payment, publication, room, rollback and aggregate pilot evidence remain open. |
 | Runtime write adapter | `product-cdm` on `devnet` | Match the published Product profile; ordinary web uses viem. |
 | API | `https://dotify-api.fly.dev` | Keep |
 | Signaling | `https://dotify-signal.fly.dev` | Keep |
@@ -102,7 +103,7 @@ Product/CDM anchors:
 | Product deploy CLI | `@parity/polkadot-app-deploy@0.20.0` plus the host-profile preflight |
 
 The earlier 0.1.29 gate had separate CDM validation and default-viem release
-CIDs. For the recorded 0.1.62 gate, supply the published CDM executable CID
+CIDs. For the recorded 0.1.63 gate, supply the published CDM executable CID
 through `--pilot-release-cid`. The readiness script requires matching Product
 payment/key, room, rollback and pilot candidate identities. Do not repeat a
 paid transaction to populate another evidence file.
@@ -110,8 +111,8 @@ paid transaction to populate another evidence file.
 ## Rollback
 
 Use a compatible **current-format** artifact and preserve the current server
-state. Product 0.1.61 is the recorded client rollback artifact for 0.1.62;
-[the rollout record](../backlog/implementation/evidence/product-0.1.62-rollout-2026-10-25.md)
+state. Product 0.1.62 is the recorded client rollback artifact for 0.1.63;
+[the rollout record](../backlog/implementation/evidence/product-0.1.63-rollout-2026-10-28.md)
 and [deployment runbook](deployment-configuration.md) bind its exact identity.
 The September 0.1.25/0.1.29 rehearsal is historical evidence, not a safe target
 for the reset catalog.
@@ -121,7 +122,8 @@ for the reset catalog.
    and call it byte-identical. Client rollback precedes any API rollback.
 2. Retain the latest keys, catalog, receipts, revocations, session epoch and
    permanent nonce reservations. Never overwrite later writes with a pre-reset
-   snapshot. Keep current-format key custody and the existing single writer.
+   snapshot. Keep current-format key custody, the shared database and the one private
+   custody writer. Do not revert to a local-state API after shared writes.
 3. Follow the [Product publication procedure](product-devnet-deployment.md),
    including Host-profile preflight, local signer and guarded root/app updates.
    Verify finalized contenthashes, executable manifest/appVersion and public
@@ -162,8 +164,8 @@ listening history as pilot evidence.
 | --- | --- |
 | Standalone desktop browser | Candidate for pilot after local and hosted smoke |
 | Standalone mobile browser | Candidate for pilot after real-device Free/playback/room smoke |
-| Product Desktop | Requires exact installed Host/build signing, current-format playback, room and recovery evidence. Historical CDM observations do not certify 0.1.62 or later candidates. |
-| Product Web gateway | Public artifact verification exists for 0.1.62; candidate-bound audible access, signing and room acceptance remains separate. |
+| Product Desktop | Requires exact installed Host/build signing, current-format playback, room and recovery evidence. Historical CDM observations do not certify 0.1.63 or later candidates. |
+| Product Web gateway | Public artifact verification exists for 0.1.63; candidate-bound audible access, signing and room acceptance remains separate. |
 | Product mobile | Requires physical in-app permission/location, signing, WebRTC audio, background/reopen and form checks on the selected Host build. Browser viewport/Host fixtures are insufficient. |
 
 Unsupported surfaces must stay visible in the readiness report rather than being
@@ -211,7 +213,7 @@ replace every count, timestamp and result with observed candidate-bound evidence
   "schemaVersion": 2,
   "candidate": {
     "gitSha": "<40-character-git-sha>",
-    "productAppVersion": "[0, 1, 62]",
+    "productAppVersion": "[0, 1, 63]",
     "runtimeAdapterKind": "product-cdm",
     "productChain": "devnet",
     "deployedCid": "<published-product-cdm-cid>",

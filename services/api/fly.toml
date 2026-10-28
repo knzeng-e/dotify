@@ -47,11 +47,11 @@ primary_region = "ams"
   force_https = true
   auto_stop_machines = "stop"
   auto_start_machines = true
-  # Keep one machine warm. A stopped machine cold-starts on the first content
+  # Keep both shared-state replicas warm. A stopped machine cold-starts on the first content
   # key request, and that request sits directly in front of first sound: a
   # measured 8.2s to /health cold against 0.11s warm. Scaling to zero saves
   # nothing a listener would trade eight silent seconds for.
-  min_machines_running = 1
+  min_machines_running = 2
   # Public replicas share trust/catalog state. Encrypted publication files and
   # verified receipt writes remain on the private single-writer custody service.
   max_machines_running = 2

@@ -22,10 +22,12 @@ one combined test deployment. [W35 evidence](evidence/W35.md) retains physical
 background/audible-continuity acceptance. W36/#291 merged through #339:
 PostgreSQL trust/catalog state, bounded session renewal and separate private
 publication custody. See [W36 evidence](evidence/W36.md) and the
-[activation runbook](../../operations/shared-api-state.md). It has not been deployed;
-its two-instance Fly acceptance remains open. [W37/#292 evidence](evidence/W37.md)
+[activation runbook](../../operations/shared-api-state.md). The [0.1.63 rollout](evidence/product-0.1.63-rollout-2026-10-28.md)
+now records approved Fly infrastructure, migration, two-edge session/restart
+evidence and the private-custody boundary. Physical acceptance remains open. [W37/#292 evidence](evidence/W37.md)
 records bounded, resumable catalog indexing and synthetic load verification.
-W38 contract bounds are the next dependent implementation after W37 review.
+W38 contract bounds remain the next implementation after the owner tests the
+combined deployment; this release does not start W38.
 
 
 ## Owner priority update: trusted pilot and streaming track, 2026-10-16

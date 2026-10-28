@@ -1,26 +1,40 @@
 # Deployment Configuration Runbook
 
-W36 planned topology: the next API profiles use PostgreSQL trust/catalog state
-and two public edges, with one private publication/receipt custody service.
-This is **not deployed**. Read [the mandatory migration, rotation and rollback
-procedure](shared-api-state.md) before using the changed `services/api/fly.toml`.
-Never deploy the new profile against an empty database/volume or revert to a
-pre-W36 local-state image after shared writes. Session auth now requires its
-own `SESSION_SECRET`; the older 24-hour/local-state notes below describe
-historical deployed generations.
+## Product 0.1.63 and W36 activated, 2026-10-28
 
-## W37 catalog candidate, 2026-10-27
+The combined test deployment now includes W35, W36, W37 and #335-#337.
+Product uses clean packaging `5de94989f2e36e6ee8e9e871471233e07d9381f1`;
+API release 34 and custody release 3 use its tested dual-stack image. Two warm
+public replicas share PostgreSQL; one private custody owns encrypted jobs,
+permanent encryption reservations and receipts. Web serves tested dev `200d6195`.
+See the [0.1.63 rollout](../backlog/implementation/evidence/product-0.1.63-rollout-2026-10-28.md) for exact CID, image, backups,
+readback and the separate physical-device acceptance boundary.
+
+Fly MPG uses the owner-approved managed-writer row policies in
+`services/api/migrations/002-managed-runtime-policies.sql`. Operator DDL remains
+separate. Follow the [migration, rotation and rollback procedure](shared-api-state.md);
+never restore a local-state API after shared writes. New publication stays
+closed until 2026-10-27T23:40:05Z (00:40 October 28, Paris) while conservative
+legacy quota usage expires. Existing listening is available. Retire both
+previous-session fields after the recorded family-retention deadline; preserve
+content-key material.
+
+The edge Pinata diagnostic remains role-unaware (`degraded`, readiness 200).
+Custody readiness and actual publication/history proxy paths pass independently.
+Do not put Pinata credentials back on public edges to hide that diagnostic.
+
+## W37 catalog deployment, 2026-10-28
 
 [Bounded indexing and recovery](../adr/0036-bounded-catalog-indexing.md) changes
-API indexing only. It is not deployed and introduces no frontend permission,
+API indexing only. It is deployed in API release 34 and introduces no frontend permission,
 secret, contract upgrade or SQL schema migration. W36's activation migration
 and custody-volume requirements remain mandatory.
 
-| API setting | Default | Bounds and purpose |
-| --- | --- | --- |
-| `CATALOG_READ_CONCURRENCY` | `8` | 1-32 outstanding catalog RPC reads, including nested hash/split enumeration |
-| `CATALOG_LOG_BLOCK_RANGE` | `1000` | 1-10,000 blocks per committed replay range; lower for stricter RPC limits |
-| `CATALOG_LOG_ADDRESS_BATCH` | `100` | 1-1,000 runtime addresses per event filter |
+| API setting                 | Default | Bounds and purpose                                                          |
+| --------------------------- | ------- | --------------------------------------------------------------------------- |
+| `CATALOG_READ_CONCURRENCY`  | `8`     | 1-32 outstanding catalog RPC reads, including nested hash/split enumeration |
+| `CATALOG_LOG_BLOCK_RANGE`   | `1000`  | 1-10,000 blocks per committed replay range; lower for stricter RPC limits   |
+| `CATALOG_LOG_ADDRESS_BATCH` | `100`   | 1-1,000 runtime addresses per event filter                                  |
 
 Retain both `CATALOG_SNAPSHOT_PATH` and its `.checkpoint` sidecar in local-mode
 backups. Shared mode uses `catalog-v1` plus `catalog-checkpoint-v1` in the same
@@ -42,12 +56,11 @@ checkpoint: quiesce the elected writer, force a full reindex with the rollback
 binary and verify fresh canonical evidence before reopening key delivery.
 W36's prohibition on reverting shared auth/custody to local state still applies.
 
-## W35 client candidate, 2026-10-27
+## W35 client deployment, 2026-10-28
 
 W35 adds no secret, Host permission, server API, contract or persistent server
-migration. Deploy reviewed Web/Product clients together after the owner's
-combined test preparation; do not increment/publicize a release in this change.
-#335-#337 are merged into dev but are absent from the recorded 0.1.62 executable.
+migration. The combined Web/Product deployment is recorded above. #335-#337 and W35 are
+published in Product 0.1.63; the earlier 0.1.62 executable did not contain them.
 
 Verify adaptive 96/160/320 AAC playback on variable networks, an authorized
 queued-track handoff, pause/seek/skip/repeat/dismiss cancellation and room entry
@@ -76,12 +89,11 @@ PulseAudio with an explicit null sink on the hosted Linux runner. This keeps
 AAC/MSE and native-error assertions enabled; it is test infrastructure only and
 does not prove physical sound or require a deployed server/Host setting.
 
-## Pending client corrections, 2026-10-26
+## Client corrections published in 0.1.63, 2026-10-28
 
-The last recorded publication remains 0.1.62 below. Payment approval-expiry
-recovery (#335) and automatic return to artist releases (#336) are merged into
-`dev`; room exits and mini-player dismissal (#337) remain under review. They
-are not already installed through the 0.1.62 publication. No new environment
+Product 0.1.63 now publishes payment approval-expiry recovery (#335), automatic
+return to artist releases (#336), room exits and mini-player dismissal (#337).
+The 0.1.62 publication below is historical. No new environment
 variable, permission, server restart, contract or secret is required for these
 client corrections.
 

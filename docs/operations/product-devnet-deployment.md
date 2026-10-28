@@ -1,5 +1,23 @@
 # Deploy Dotify To Product DevNet
 
+## Product 0.1.63 published with shared API state, 2026-10-28
+
+Clean packaging `5de94989f2e36e6ee8e9e871471233e07d9381f1` publishes W35 and
+#335-#337, alongside W36/W37 API activation. Root/app CID is
+`bafybeigxlqyghdtxrxvyce6e5axi3milqscwx2vvvgmfnh5ktuyp5juyy4`, executable
+`[0,1,63]`. Finalized DotNS/version and all 136 public CAR blocks match; the
+local signer is removed. Product 0.1.62 is the client rollback; the API must
+retain shared state. See the [0.1.63 rollout](../backlog/implementation/evidence/product-0.1.63-rollout-2026-10-28.md) for exact
+identities, the publication hold and physical acceptance still to capture.
+
+The first upload attempt found pool account 0 unauthorized. Before loading a
+DotNS signer, read the public Bulletin pool status and verify the selected
+account has unexpired authorization and sufficient bytes/transactions. Account
+1 was verified and selected with `BULLETIN_POOL_ACCOUNT_INDEX=1` for this
+publication. This is a per-release selection, not a guarantee that account 1
+remains authorized. Never try guessed authorizers or reuse the DotNS owner as
+an implicit storage fallback.
+
 ## Product 0.1.62 published with API/Web W34, 2026-10-25
 
 Clean packaging `781f1c598885714288bdec02df488fd03d7f2602`, based on tested

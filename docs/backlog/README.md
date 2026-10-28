@@ -11,7 +11,9 @@ publication-custody topology require an explicit migration before any scaling.
 See [W36 evidence](implementation/evidence/W36.md). W37/#292 follows with
 [bounded catalog indexing](implementation/evidence/W37.md), resumable checkpoints
 and reusable lookup indexes. W35 and the newer API changes
-remain part of the requested combined test deployment, not published evidence.
+are now published in the [combined 0.1.63 rollout](implementation/evidence/product-0.1.63-rollout-2026-10-28.md).
+Physical-device and pilot acceptance remain separate; #341 records the
+activation corrections before another deployment is prepared.
 
 ## Current reconciliation, 2026-10-23
 
