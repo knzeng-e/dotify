@@ -1,5 +1,6 @@
 import { ArrowRight, ExternalLink, Mic2, Music2, Power, Sparkles, Users, Wallet } from 'lucide-react';
 
+import { AboutDotify } from '../components/AboutDotify';
 import { ProductionReadinessPanel, type ProductionReadinessPanelProps } from '../components/ProductionReadinessPanel';
 import type { WalletState } from '../hooks/useWallet';
 import { getBlockscoutAddressUrl } from '../shared/utils/explorer';
@@ -51,7 +52,10 @@ export function YouView({
   return (
     <section className='you-view' aria-labelledby='you-view-title'>
       <header className='you-hero'>
-        <h2 id='you-view-title'>Your music.</h2>
+        <div className='you-hero-heading'>
+          <h2 id='you-view-title'>Your music.</h2>
+          <AboutDotify />
+        </div>
         <p>Your collection and the artists you support.</p>
       </header>
 

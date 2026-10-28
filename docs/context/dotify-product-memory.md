@@ -205,5 +205,10 @@ historical context where their priorities differ.
 - Treating rooms as secondary when they are the social core.
 
 ## Product mantra
-Let the Music connect the dots.
+**Let the music connect the dots**
+
+This is Dotify's official slogan. Keep its wording in the app's About view,
+brand assets, README and public project presentation. Supporting copy must not
+replace it with a new slogan unless the owner explicitly changes the direction.
+
 Make music social again without dispossessing the artist.

@@ -812,12 +812,6 @@ export function useCatalog(deps: UseCatalogDeps) {
     }
 
     const cacheKey = audioRef;
-    const cached = resolvedAudioSourcesRef.current.get(cacheKey);
-    if (cached) {
-      if (!options?.speculative) setAudioStartupStatus('Starting audio');
-      return cached;
-    }
-
     if (isEncryptedAudioV3Ref(audioRef)) {
       if (!release) throw new Error('The release identity is required for streaming playback.');
       const controllerSignal = signal ?? new AbortController().signal;
@@ -838,6 +832,13 @@ export function useCatalog(deps: UseCatalogDeps) {
       if (!key) throw new Error('The audio access check could not be completed.');
       onAuthorized?.();
       metric({ phase: 'key-authorized' });
+      // A decoded Blob is reusable media, not an authorization grant. Recheck
+      // access (or use a still-valid prepared grant) before exposing it again.
+      const cached = resolvedAudioSourcesRef.current.get(cacheKey);
+      if (cached) {
+        if (!options?.speculative) setAudioStartupStatus('Starting audio');
+        return cached;
+      }
       if (!options?.speculative) setAudioStartupStatus('Preparing audio');
       const prepared = await createStreamingPlayback({
         cid: encryptedRefToCID(audioRef),
@@ -969,10 +970,17 @@ export function useCatalog(deps: UseCatalogDeps) {
       let audioUrl: string | null = null;
       let hasAccess = true;
 
+      // The Free-key service checks the canonical release and current on-chain
+      // policy itself. A preliminary Host query adds no authorization and can
+      // stall before the bounded key request even starts.
+      const freeKeyChecksAccess = Boolean(
+        track.encrypted && track.accessMode === 'free' && isEncryptedAudioV3Ref(track.audioRef) && releaseIdentityFromTrack(track) && isKeyServiceConfigured()
+      );
+      if (freeKeyChecksAccess) setCatalogAccessByTrackId(previous => ({ ...previous, [track.id]: false }));
       const preparedGrant = track.encrypted ? readPreparedContentKey(track.hash, releaseIdentityFromTrack(track), keyRequestPurposeRef.current) : null;
       // Readiness is not authorization. Non-encrypted policy-managed sources
       // have no key grant and must always take the ordinary runtime check.
-      if (isPolicyManagedTrack(track) && (!track.encrypted || (!preparedGrant && !warmSource))) {
+      if (!freeKeyChecksAccess && isPolicyManagedTrack(track) && (!track.encrypted || (!preparedGrant && !warmSource))) {
         hasAccess = await checkTrackAccess(track, listenerEvmAddress);
         if (!isTrackSelectionCurrent(selection)) return { playbackMode: 'full', audioSource: audioSourceRef.current };
         const smokeRuntime = runtimeAddressFromTrackId(track);
@@ -1052,6 +1060,7 @@ export function useCatalog(deps: UseCatalogDeps) {
       }
 
       if (!isTrackSelectionCurrent(selection)) return { playbackMode: 'full', audioSource: audioSourceRef.current };
+      if (freeKeyChecksAccess) setCatalogAccessByTrackId(previous => ({ ...previous, [track.id]: Boolean(audioUrl) }));
       if (!audioUrl) reportSelectionFailure(hasAccess ? 'selection-failed' : 'access-denied');
       const sourceAlreadyReady = Boolean(
         audioUrl && audioSourceRef.current === audioUrl && localAudioRef.current && localAudioRef.current.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA

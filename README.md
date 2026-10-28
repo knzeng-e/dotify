@@ -4,7 +4,7 @@
 
 # Dotify
 
-**Music brings us closer.**
+**Let the music connect the dots**
 
 Dotify turns a shared link into a listening room. Discover music through the
 people playing it, join the conversation, and support its creators. Artists
@@ -92,6 +92,14 @@ Room access is different: the **host** must have permission to play the track;
 guests receive a WebRTC audio stream, never its source file or content key.
 [Access policy](docs/explanation/access-control-model.md) ·
 [Content protection and its limits](docs/explanation/content-protection.md)
+
+## Identify your app version
+
+Open **You → About Dotify**, without connecting an account. Product builds show
+Dotify's version; Web builds show their build identifier. **Copy app details**
+includes only public build information and audio capabilities. If copying is
+blocked, open **Technical details** and select the text or take a screenshot.
+Polkadot App's own version is separate and is not inferred from Dotify's version.
 
 ## Develop locally
 

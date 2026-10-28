@@ -39,9 +39,13 @@ Audio, cover and editorial metadata have separate references. Runtime access,
 ownership and payment rules remain separate from descriptive metadata. A
 confirmed transaction and a release visible in the catalog are distinct states.
 
-Existing production-format uploads use the versioned DAV2 container. The W32
-segmented-encoding work remains a separate, incomplete integration; it must not
-be inferred from a build or screenshot of this release.
+Current publications use authenticated v3 manifests and AAC initialization and
+media segments, with 96/160/320 kb/s renditions produced by an isolated encoder.
+The internal reset retired DAV2 playback. Encoding and publication custody are
+not steps in an ordinary listening request. Where standard AAC MediaSource is
+unavailable, the current compatibility reader downloads and authenticates the
+whole lowest-bitrate rendition before exposing a playable Blob. This remains a
+first-sound limitation, not proof of progressive mobile playback.
 
 ## Individual listening
 
@@ -54,7 +58,10 @@ Open catalog -> API snapshot -> choose a track
 ```
 
 Free tracks can request a key without a wallet after the API checks public
-access. Gated tracks require the applicable identity and access. Standalone
+access. Encrypted v3 Free selection goes directly to that authoritative key
+request, without first asking the Host to repeat the same chain check. Reusing
+a decoded Blob still requires authorization; having media in memory is not an
+access grant. Gated tracks require the applicable identity and access. Standalone
 signatures use EIP-191; Product account proofs use the implemented Host adapter
 and API verification scheme. If verification is unavailable or ambiguous, key
 release fails closed.
@@ -106,6 +113,9 @@ upload budgets and the elected catalog checkpoint; the private volume retains
 encrypted jobs, permanent encryption nonce reservations and verified receipts.
 The [activation record](../backlog/implementation/evidence/product-0.1.63-rollout-2026-10-28.md)
 distinguishes the verified topology from physical-device and pilot acceptance.
+The [October 28 first-sound audit](../backlog/implementation/evidence/mobile-first-sound-audit-2026-10-28.md)
+separates these availability gains from unproven cold-start gains, current
+operator dependencies, and simplification candidates.
 
 ### Artist-owned runtimes
 
