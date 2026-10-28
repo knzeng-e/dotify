@@ -11,13 +11,13 @@ small consented community is counted as served.
 - Issue: #158.
 - Original consolidation base: `dev` at
   `f4d2d49721a85169c5f9c37d36ac2ef315396d57`.
-- Last recorded published Product candidate: 0.1.63, clean packaging SHA
-  `5de94989f2e36e6ee8e9e871471233e07d9381f1`, based on tested merged dev
-  `200d6195a99b8565cd572cc55a696d479985023f` plus the deployment IPv6 correction,
-  `product-cdm` on `devnet`, executable CID
-  `bafybeigxlqyghdtxrxvyce6e5axi3milqscwx2vvvgmfnh5ktuyp5juyy4`.
-  [Rollout evidence](../backlog/implementation/evidence/product-0.1.63-rollout-2026-10-28.md)
-  records API 34, private custody 3, PostgreSQL and the separate Web identity.
+- Last recorded published Product candidate: 0.1.64, clean packaging SHA
+  `982d3da4b6fb92af706641dc2ff10589b6f5a73f`, based on tested merged dev
+  `dd8e9cb56651d3cbb3c09d778491e442256fc395` (#342), `product-cdm` on `devnet`,
+  executable CID `bafybeiaxw3ntf7ifsleeipvysih7qotm5lv6nl7ppiijca2bhzhqtzgpau`.
+  [Rollout evidence](../backlog/implementation/evidence/product-0.1.64-rollout-2026-10-28.md)
+  records the client-only audio correction, retained API 34/custody 3/shared
+  state, exact public artifact checks and separate physical-device gate.
 - #335-#337 and W35 are published with W36/W37. Installed Host refresh,
   payment/publication and audible continuity require new candidate-bound
   observations; prior device evidence does not certify this executable.
@@ -52,8 +52,9 @@ record used a separate 0.1.29 validation CID
 The October 22 streaming-only reset deployed fresh contracts, CDM version 2,
 non-root storage and the private encoding pipeline. Product 0.1.62 then deployed
 W34 on the API before its clients, without a contract, permission or secret
-change. Product 0.1.63 then activates W35-W37 with two public API replicas,
-shared PostgreSQL and one private publication-custody writer. Use the dated
+change. Product 0.1.63 then activated W35-W37 with two public API replicas,
+shared PostgreSQL and one private publication-custody writer. Product 0.1.64
+adds the client-only mobile audio startup correction without changing that topology. Use the dated
 [deployment configuration](deployment-configuration.md) and exact rollout record
 for environment/persistence differences; older 0.1.29/0.1.48 observations are
 historical and do not validate the current reset catalog.
@@ -62,7 +63,7 @@ historical and do not validate the current reset catalog.
 | --- | --- | --- |
 | Product name | `dotify-test01.dot` | Keep |
 | Public Product URL | `https://dotify-test01.dev-dot.li` | Keep |
-| Product appVersion | `[0, 1, 63]` | Published from the packaging SHA and CID above. Candidate-bound native payment, publication, room, rollback and aggregate pilot evidence remain open. |
+| Product appVersion | `[0, 1, 64]` | Published from the packaging SHA and CID above. Candidate-bound native payment, publication, room, rollback and aggregate pilot evidence remain open. |
 | Runtime write adapter | `product-cdm` on `devnet` | Match the published Product profile; ordinary web uses viem. |
 | API | `https://dotify-api.fly.dev` | Keep |
 | Signaling | `https://dotify-signal.fly.dev` | Keep |
@@ -103,7 +104,7 @@ Product/CDM anchors:
 | Product deploy CLI | `@parity/polkadot-app-deploy@0.20.0` plus the host-profile preflight |
 
 The earlier 0.1.29 gate had separate CDM validation and default-viem release
-CIDs. For the recorded 0.1.63 gate, supply the published CDM executable CID
+CIDs. For the recorded 0.1.64 gate, supply the published CDM executable CID
 through `--pilot-release-cid`. The readiness script requires matching Product
 payment/key, room, rollback and pilot candidate identities. Do not repeat a
 paid transaction to populate another evidence file.
@@ -111,8 +112,8 @@ paid transaction to populate another evidence file.
 ## Rollback
 
 Use a compatible **current-format** artifact and preserve the current server
-state. Product 0.1.62 is the recorded client rollback artifact for 0.1.63;
-[the rollout record](../backlog/implementation/evidence/product-0.1.63-rollout-2026-10-28.md)
+state. Product 0.1.63 is the recorded client rollback artifact for 0.1.64;
+[the rollout record](../backlog/implementation/evidence/product-0.1.64-rollout-2026-10-28.md)
 and [deployment runbook](deployment-configuration.md) bind its exact identity.
 The September 0.1.25/0.1.29 rehearsal is historical evidence, not a safe target
 for the reset catalog.
