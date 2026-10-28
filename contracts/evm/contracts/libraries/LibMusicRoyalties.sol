@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only WITH Classpath-exception-2.0
 pragma solidity ^0.8.28;
 
+import { LibMusicBounds } from './LibMusicBounds.sol';
+
 /// @title LibMusicRoyalties
 /// @notice Namespaced storage for per-track royalty split configurations.
 ///         Splits are written at registration and are immutable thereafter.
@@ -34,6 +36,7 @@ library LibMusicRoyalties {
   /// @dev Writes splits and returns total bps. Reverts on any validation failure.
   function storeSplits(Storage storage s, bytes32 contentHash, address[] calldata recipients, uint16[] calldata bps) internal returns (uint16 totalBps) {
     uint256 recipientCount = recipients.length;
+    require(recipientCount <= LibMusicBounds.SPLIT_RECIPIENTS, 'MusicRoyalties: too many recipients');
     require(recipientCount > 0, 'MusicRoyalties: no splits');
     require(recipientCount == bps.length, 'MusicRoyalties: length mismatch');
     RoyaltySplit[] storage splits = s.splits[contentHash];

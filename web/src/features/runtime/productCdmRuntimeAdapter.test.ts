@@ -157,7 +157,7 @@ describe('createProductCdmRuntimeReader', () => {
     };
     const runtimeContract: ProductCdmContractHandle = {
       musicRegTrackCount: queryMethod(1n),
-      musicRegTrackHashAtIndex: queryMethod(hash),
+      musicRegTrackHashesPage: queryMethod([hash]),
       musicRegGetTrack: queryMethod([record, runtime]),
       musicRoySplitCount: queryMethod(2n),
       musicRoySplitAt
@@ -179,6 +179,21 @@ describe('createProductCdmRuntimeReader', () => {
     ]);
   });
 
+  it('rejects an incomplete Product hash page before reading track data', async () => {
+    const page = queryMethod([hash]);
+    const record = queryMethod(baseTrackRecord());
+    const reader = createProductCdmRuntimeReader({
+      contracts: {
+        getDirectoryContract: () => ({}),
+        getFactoryContract: () => ({}),
+        getRuntimeContract: () => ({ musicRegTrackCount: queryMethod(2n), musicRegTrackHashesPage: page, musicRegGetTrack: record })
+      }
+    });
+    await expect(reader.listRuntimeTracks(runtime)).rejects.toThrow('incomplete page');
+    expect(page.query).toHaveBeenCalledWith(0n, 2n);
+    expect(record.query).not.toHaveBeenCalled();
+  });
+
   it('verifies a gift recipient from named Product runtime responses', async () => {
     const record = baseTrackRecord();
     const reader = createProductCdmRuntimeReader({
@@ -187,7 +202,7 @@ describe('createProductCdmRuntimeReader', () => {
         getFactoryContract: () => ({}),
         getRuntimeContract: () => ({
           musicRegTrackCount: queryMethod(1n),
-          musicRegTrackHashAtIndex: queryMethod(hash),
+          musicRegTrackHashesPage: queryMethod([hash]),
           musicRegGetTrack: queryMethod({ track: record, tokenOwner: artist }),
           musicRoySplitCount: queryMethod(1n),
           musicRoySplitAt: queryMethod({ recipient: splitRecipient, bps: 2500 })

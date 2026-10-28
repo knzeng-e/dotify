@@ -56,6 +56,7 @@ export const catalogSnapshotSchema = z.object({
   reconciledAt: z.string().datetime(),
   catchingUp: z.boolean().optional(),
   artists: z.array(catalogArtistSchema),
+  excludedReleases: z.array(z.object({ id: z.string(), reason: z.string() })).optional(),
   releases: z.array(catalogReleaseSchema)
 });
 
@@ -74,6 +75,7 @@ export type CatalogMetadata = {
   chainHeadBlock: number | null;
   blockLag: number | null;
   staleAfterMs: number;
+  excludedReleaseCount?: number;
   lastErrorCode: 'CATALOG_INDEXER_UNAVAILABLE' | 'CHAIN_RPC_UNAVAILABLE' | null;
 };
 

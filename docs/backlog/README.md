@@ -207,8 +207,10 @@ The [2026-10-26 reconciliation](implementation/evidence/backlog-reconciliation-2
 supersedes older implementation/deployment remainders. W30 and W34 are deployed;
 W31's remaining report test is merged. W32/current-format streaming is deployed;
 W33 retains its recorded gateway-access and measured activation gate, not a new
-implementation request. W35-W37 remain future implementation and W38-W39 remain
-Later. Project 5 owns workflow status; this table describes remaining scope
+implementation request. The October 28 update records W35-W37 as implemented,
+with W36 activated in Product 0.1.63 and physical acceptance still open. W38 is
+implemented for review against the owner-requested fresh runtime generation;
+W39 remains Later. Project 5 owns workflow status; this table describes remaining scope
 without reopening delivered work.
 
 | Priority | GitHub issue | Phase                    | Remaining outcome                                                                                                                                               |
@@ -225,9 +227,9 @@ without reopening delivered work.
 | P1       | #274 / W19   | Device acceptance        | Verify merged Nearby behavior and subsequent discovery follow-ups on physical Product/mobile devices; retain host opt-in, both radii and wallet-free joining.   |
 | P1       | #287 / W32   | Next (streaming)         | Validate deployed current-format publication, pinning, native playback, walletless room audio and prolonged listening; preserve permanent nonce custody.        |
 | P1       | #288 / W33   | Next (streaming)         | Resolve dedicated gateway 401, activate reviewed ciphertext-only delivery, and measure cold/warm audible startup in three regions.                              |
-| P1       | #291 / W36   | Next (scaling)           | W36 implementation: PostgreSQL nonces/revocations/quotas/catalog, independent renewable sessions and private custody. Activation and live two-instance evidence remain.                                                               |
-| P2       | #292 / W37   | Next (scaling)           | Bound indexer work, resume large block gaps and maintain reusable catalog lookup indexes.                                                                       |
-| P2       | #293 / W38   | Later                    | Bound contract strings/splits and add paged views through artist-approved runtime upgrades after W37.                                                           |
+| P1       | #291 / W36   | Next (scaling)           | Implementation and two-instance rollout are recorded in W36 evidence; finish physical acceptance of the deployed shared state and private custody.                                                               |
+| P2       | #292 / W37   | Next (scaling)           | Implementation and synthetic load checks are recorded in W37 evidence; retain live indexing/load acceptance on the deployed candidate.                                                                       |
+| P2       | #293 / W38   | Review / fresh activation | Review implemented string/split bounds and paged readers, then deploy matching fresh contracts/API/Web/Product and verify native publication and payment.                                                           |
 | P2       | #294 / W39   | Later                    | Measure horizontal signaling and an SFU prototype while preserving anonymous entry and the no-guest-key boundary.                                               |
 | P1       | #275         | Next                     | Design artist-controlled runtime modules, safe owner-approved updates, admin inventory, and a separate artist-admission boundary.                               |
 | P1       | #276         | Next                     | Prove per-artist key export and restore through a second compatible operator without exposing a global master secret.                                           |

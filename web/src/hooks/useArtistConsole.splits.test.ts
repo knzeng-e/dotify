@@ -15,3 +15,9 @@ describe('release registration splits', () => {
     expect(result).toEqual({ recipients: [artist, collaborator], shares: [7_000, 3_000], totalBps: 10_000 });
   });
 });
+
+it('counts the primary artist within the 16-recipient registration limit', () => {
+  const additional = Array.from({ length: 15 }, (_, i) => ({ id: String(i), label: 'Contributor', recipient: collaborator, bps: 100 }));
+  expect(resolveReleaseRoyaltySplits(artist, 'classic', 8500, additional).recipients).toHaveLength(16);
+  expect(() => resolveReleaseRoyaltySplits(artist, 'classic', 8400, [...additional, additional[0]])).toThrow('up to 16 recipients');
+});

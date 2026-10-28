@@ -300,3 +300,41 @@ describe('CatalogReadModel', () => {
     assert.equal(metadata.lastErrorCode, 'CATALOG_INDEXER_UNAVAILABLE');
   });
 });
+
+it('isolates deterministic oversized releases, persists reasons, restores corrections and never swallows RPC errors', async () => {
+  const { CatalogBoundsError } = await import('./bounds.js');
+  const gateway = new FakeGateway(),
+    store = new MemoryStore();
+  const badHash = `0x${'44'.repeat(32)}` as const;
+  let bad = true,
+    unavailable = false;
+  gateway.listTrackHashes = async () => [HASH, badHash];
+  gateway.readRelease = (async (_artist: string, _runtime: string, contentHash: string) => {
+    if (unavailable) throw new Error('RPC timeout');
+    if (contentHash === badHash && bad) throw new CatalogBoundsError('title byte limit');
+    return release({ id: `${RUNTIME}:${contentHash}`, hash: contentHash });
+  }) as typeof gateway.readRelease;
+  const catalog = model(gateway, store);
+  await catalog.sync();
+  assert.equal(catalog.getSnapshot()?.releases.length, 1);
+  assert.equal(store.snapshot?.excludedReleases?.[0]?.reason, 'title byte limit');
+  assert.equal(catalog.getMetadata().excludedReleaseCount, 1);
+  const revision = catalog.getRevision();
+  bad = false;
+  gateway.head++;
+  gateway.changes = { directoryChanged: false, releases: [{ runtimeAddress: RUNTIME, contentHash: badHash, sourceBlock: 11 }] };
+  await catalog.sync();
+  assert.equal(catalog.getSnapshot()?.releases.length, 2);
+  assert.equal(catalog.getSnapshot()?.excludedReleases?.length, 0);
+  assert.notEqual(catalog.getRevision(), revision);
+  bad = true;
+  gateway.head++;
+  await catalog.sync();
+  assert.equal(catalog.getSnapshot()?.releases.length, 1);
+  assert.equal(store.snapshot?.excludedReleases?.length, 1);
+  const checkpoint = catalog.getSnapshot()?.lastIndexedBlock;
+  unavailable = true;
+  gateway.head++;
+  await assert.rejects(catalog.sync(), /RPC timeout/);
+  assert.equal(catalog.getSnapshot()?.lastIndexedBlock, checkpoint);
+});

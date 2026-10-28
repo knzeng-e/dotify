@@ -1,5 +1,24 @@
 # Deployment Configuration Runbook
 
+## W38 fresh runtime generation (implementation, not deployed)
+
+The 2026-10-28 owner decision is a fresh internal contract deployment. API,
+ordinary Web and Product now enumerate through `musicRegTrackHashesPage` and
+require the new factory/runtime generation. There is no old-runtime fallback.
+Do not deploy these readers independently against current runtime addresses.
+On the authorized reset, update the directory/factory addresses, API catalog
+identity, finalized CDM versions, generated manifests and client bootstrap as one
+coordinated release. No new service, paid resource or environment variable is added.
+
+Snapshots may include bounded-release exclusions (`excludedReleases`: ID/reason);
+catalog response metadata includes `excludedReleaseCount` when nonzero. This is
+public metadata, not payment authority. Ordinary transport errors still stop the
+checkpoint. Inspect exclusions and correct the source record rather than silently
+truncating rights. Existing SQL schema is unchanged; shared snapshots already store
+JSON documents. Roll back the matching contract/API/client generation together.
+See [W38 limits, evidence and activation](../backlog/implementation/evidence/W38.md).
+
+
 ## Managed mobile reader, pending publication
 
 The client now uses AAC ManagedMediaSource when standard AAC MSE is unavailable.

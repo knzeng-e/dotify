@@ -162,6 +162,7 @@ function resolveRoyaltySplits(primaryRecipient: `0x${string}`, primaryBps: numbe
     shares.push(bps);
   }
 
+  if (recipients.length > 16) throw new Error('A release can share payments with up to 16 recipients, including the artist.');
   const totalBps = shares.reduce((total, bps) => total + bps, 0);
   if (totalBps <= 0) {
     throw new Error('Royalty split must reserve at least 0.01%.');

@@ -59,8 +59,8 @@ describe('createViemRuntimeReader', () => {
       switch (functionName) {
         case 'musicRegTrackCount':
           return 1n;
-        case 'musicRegTrackHashAtIndex':
-          return hash;
+        case 'musicRegTrackHashesPage':
+          return [hash];
         case 'musicRegGetTrack':
           return [record, runtime];
         case 'musicRoySplitCount':
@@ -85,6 +85,18 @@ describe('createViemRuntimeReader', () => {
     ]);
   });
 
+  it('rejects an incomplete hash page before reading track data', async () => {
+    const readContract = vi.fn(async ({ functionName }: { functionName: string }) => {
+      if (functionName === 'musicRegTrackCount') return 2n;
+      if (functionName === 'musicRegTrackHashesPage') return [hash];
+      throw new Error(`unexpected ${functionName}`);
+    });
+    const reader = createViemRuntimeReader({ ethRpcUrl: 'http://localhost:8545', publicClient: { readContract } as never });
+    await expect(reader.listRuntimeTracks(runtime)).rejects.toThrow('incomplete page');
+    expect(readContract).toHaveBeenCalledTimes(2);
+    expect(readContract).toHaveBeenLastCalledWith(expect.objectContaining({ functionName: 'musicRegTrackHashesPage', args: [0n, 2n] }));
+  });
+
   it('refuses an implausible track count instead of allocating for it', async () => {
     // A hostile or malformed runtime must not reach Array.from({ length: n }).
     const readContract = vi.fn(async ({ functionName }: { functionName: string }) => {
@@ -106,8 +118,8 @@ describe('createViemRuntimeReader', () => {
       switch (functionName) {
         case 'musicRegTrackCount':
           return 1n;
-        case 'musicRegTrackHashAtIndex':
-          return hash;
+        case 'musicRegTrackHashesPage':
+          return [hash];
         case 'musicRegGetTrack':
           return [record, runtime];
         case 'musicRoySplitCount':

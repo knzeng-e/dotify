@@ -1,3 +1,5 @@
+import { CatalogBoundsError } from './bounds.js';
+import { musicRegistryPageAbi } from '../../generated/musicRegistryPage.js';
 import { createPublicClient, formatEther, http, parseAbiItem, type Address, type Hash, type PublicClient } from 'viem';
 import { concurrencyGate, mapConcurrent } from './concurrency.js';
 import type { CatalogChainGateway, CatalogChange, CatalogChangeSet, CatalogRelease, DirectoryArtist } from './types.js';
@@ -34,13 +36,6 @@ const musicRegistryAbi = [
     name: 'musicRegTrackCount',
     inputs: [],
     outputs: [{ name: '', type: 'uint256' }],
-    stateMutability: 'view'
-  },
-  {
-    type: 'function',
-    name: 'musicRegTrackHashAtIndex',
-    inputs: [{ name: 'index', type: 'uint256' }],
-    outputs: [{ name: '', type: 'bytes32' }],
     stateMutability: 'view'
   },
   {
@@ -234,21 +229,24 @@ export class ViemCatalogChainGateway implements CatalogChainGateway {
       })
     )) as bigint;
 
-    return mapConcurrent(
-      Array.from({ length: Number(count) }, (_, index) => index),
-      this.concurrency,
-      async index => {
-        return (await this.rpc(() =>
-          this.client.readContract({
-            blockNumber: blockNumber === undefined ? undefined : BigInt(blockNumber),
-            address: runtimeAddress,
-            abi: musicRegistryAbi,
-            functionName: 'musicRegTrackHashAtIndex',
-            args: [BigInt(index)]
-          })
-        )) as Hash;
-      }
-    );
+    if (count > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error('Catalog track count is not safely representable');
+    if (count === 0n) return [];
+    const hashes: Hash[] = [];
+    for (let offset = 0n; offset < count; offset += 100n) {
+      const limit = count - offset < 100n ? count - offset : 100n;
+      const page = await this.rpc(() =>
+        this.client.readContract({
+          address: runtimeAddress,
+          blockNumber: blockNumber === undefined ? undefined : BigInt(blockNumber),
+          abi: musicRegistryPageAbi,
+          functionName: 'musicRegTrackHashesPage',
+          args: [offset, limit]
+        })
+      );
+      if (page.length !== Number(limit)) throw new Error('Catalog track page has an unexpected length');
+      hashes.push(...page);
+    }
+    return hashes;
   }
 
   async readRelease(artistAddress: `0x${string}`, runtimeAddress: `0x${string}`, contentHash: `0x${string}`, blockNumber?: number): Promise<CatalogRelease> {
@@ -278,6 +276,22 @@ export class ViemCatalogChainGateway implements CatalogChainGateway {
       2,
       call => call()
     )) as [[OnchainTrack, Address], bigint];
+
+    // Bound subsequent RPC work before allocating or walking untrusted splits.
+    // Do not silently truncate rights or metadata from a malformed or artist-modified runtime.
+    if (splitCount > 16n) throw new CatalogBoundsError(`Catalog release ${contentHash} exceeds the 16-recipient limit`);
+    for (const [field, limit] of Object.entries({
+      title: 800,
+      artistName: 800,
+      description: 8000,
+      imageRef: 512,
+      audioRef: 512,
+      metadataRef: 512,
+      artistContractRef: 512
+    })) {
+      if (Buffer.byteLength(track[field as keyof OnchainTrack] as string, 'utf8') > limit)
+        throw new CatalogBoundsError(`Catalog release ${contentHash} exceeds the ${field} byte limit`);
+    }
 
     const royaltySplits = await mapConcurrent(
       Array.from({ length: Number(splitCount) }, (_, index) => index),
