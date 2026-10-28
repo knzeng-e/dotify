@@ -1,5 +1,11 @@
 # Restore the scoped 3D room galaxy
 
+> 2026-10-28 owner decision: retire the optional 3D renderer and Three.js.
+> Radar and List remain the supported discovery views. Historical 3D delivery
+> notes below are evidence, not a request to restore it. Immersive metaverse
+> exploration is deferred, with no implementation commitment.
+
+
 Issue #329. Priority P1; Track Room reliability; Phase Record; Type Record.
 Delivered through #330 and published in Product 0.1.61 through #331. The owner
 confirmed the installed experience works. Full physical graphics, location and

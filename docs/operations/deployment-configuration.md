@@ -1249,10 +1249,8 @@ tooling/CDM registry refresh, the re-pinned Bulletin descriptor, and the viem
 release-registration confirmation hardening for dropped or still-pending wallet
 hashes, plus the W06 removal of passkey-only wallet routes from the public
 Product and standalone account flows, W07 key-versioned protected audio refs,
-and the W14 optional room galaxy renderer behind the 2D/list fallback. The 2D
-renderer remains the default until supported-device performance evidence
-justifies promoting 3D. The normal web and Product builds lazy-load the `three`
-chunk on demand; the Bulletin single-file build inlines it.
+and, historically, the W14 optional 3D renderer. That renderer and its dependency
+are retired in the 2026-10-28 source update; Radar and List remain.
 
 Product Host compatibility candidate, checked 2026-10-23 (not yet published):
 
@@ -2322,19 +2320,16 @@ places in the same PR:
 
 ## Shared-presence room rollout
 
-The #329 correction restores **Room view → Radar / 3D / List** on the current
-scoped discovery. Radar remains the initial view. `VITE_DOTIFY_ROOM_GALAXY`
-defaults available in ordinary Web and Product when unset or exact `on`;
-explicit `off` or an invalid value removes only the 3D option after rebuilding.
-The scene and Three.js load on explicit 3D selection, consume the same scoped
-Nearby/Worldwide cards, and return to Radar on reduced motion, unavailable
-WebGL or context loss. No global room lookup or extra location permission is
-introduced. Physical Host graphics/performance remains unverified; this is a
-source correction, not a new live publication. The room lineup is part of the normal room protocol:
-the host publishes a bounded metadata-only order through signaling and every
-participant receives the same ephemeral snapshot. It needs no frontend flag,
-key, permission, CORS origin, or storage mount. Changing the galaxy flag still
-requires rebuilding; it cannot be enabled by URL or local storage.
+As of the 2026-10-28 source update, **Room view → Radar / List** is the supported
+presentation. The optional Three.js renderer and `VITE_DOTIFY_ROOM_GALAXY` are
+removed. Delete that obsolete setting from hosted dashboards when convenient;
+it has no effect in new builds. Existing releases retain their old behavior.
+This frontend-only cleanup needs no server restart, schema change or permission.
+Both views retain the same scoped Nearby/Worldwide data and joining rules.
+
+The room lineup remains part of the normal room protocol: the host publishes a
+bounded metadata-only order through signaling and participants receive the same
+ephemeral snapshot. It needs no frontend flag, key, CORS origin or storage mount.
 
 For the reliable composer, release the signaling `room:chat` / `room:request`
 acknowledgement support before or together with the frontend. Old clients remain
@@ -2354,8 +2349,7 @@ host. **Enable host tips** is the renamed explicit account binding, not a new
 payment or a change to artist-selected shares. See
 [room conversation controls](../explanation/room-live-conversation.md#quiet-controls-and-role-specific-queue--2026-10-11).
 
-Rollback 3D availability by rebuilding with explicit `VITE_DOTIFY_ROOM_GALAXY=off`. The room
-lineup requires a coordinated frontend/signaling rollback because old signaling
+The room lineup requires a coordinated frontend/signaling rollback because old signaling
 servers ignore its events while the current frontend keeps playback functional.
 Nearby is included by default in new Web and Product builds; use the Nearby
 configuration and validation gates documented below before release. Community memory remains

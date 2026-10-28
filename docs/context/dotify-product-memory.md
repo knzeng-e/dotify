@@ -1,5 +1,11 @@
 # Dotify product memory
 
+> 2026-10-28 owner decision: retire the optional 3D renderer and Three.js.
+> Radar and List remain the supported discovery views. Historical 3D delivery
+> notes below are evidence, not a request to restore it. Immersive metaverse
+> exploration is deferred, with no implementation commitment.
+
+
 ## Delivery checkpoint, 2026-10-26
 
 Use the [current backlog reconciliation](../backlog/implementation/evidence/backlog-reconciliation-2026-10-26.md)

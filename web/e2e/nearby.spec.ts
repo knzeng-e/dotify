@@ -378,12 +378,19 @@ test('room identity and reversible Hide update live without another scan', async
     await settings.getByLabel('A short invitation (optional)', { exact: true }).fill('Découvertes et discussion');
     await settings.getByRole('button', { name: 'Done', exact: true }).click();
     await expect(radar.getByRole('heading', { name: 'Escale à Libreville' })).toBeVisible({ timeout: 3000 });
+    await expect(radar.getByRole('combobox', { name: 'Room view' }).locator('option')).toHaveText(['Radar', 'List']);
+    const dot = radar.getByRole('button', { name: /Inspect Escale à Libreville/ });
+    await dot.hover();
+    const details = radar.getByRole('tooltip');
+    await expect(details).toContainText('Découvertes et discussion');
+    await expect(details).toContainText('Host: Radar host');
+    await observer.screenshot({ path: info.outputPath('room-hover-desktop.png'), fullPage: true, animations: 'disabled' });
     await radar.getByRole('button', { name: 'Escale à Libreville', exact: true }).click();
     await expect(observer.getByRole('dialog')).toContainText('Hosted by Radar host');
     await expect(observer.getByRole('dialog')).toContainText('Découvertes et discussion');
-    await observer.screenshot({ path: info.outputPath('room-preview-desktop.png') });
+    await observer.screenshot({ path: info.outputPath('room-preview-desktop.png'), animations: 'disabled' });
     await observer.setViewportSize({ width: 390, height: 844 });
-    await observer.screenshot({ path: info.outputPath('room-preview-mobile.png') });
+    await observer.screenshot({ path: info.outputPath('room-preview-mobile.png'), animations: 'disabled' });
     await observer.keyboard.press('Escape');
     await radar
       .locator('.nearby-room')
