@@ -125,7 +125,7 @@ export function usePlayback(deps: UsePlaybackDeps) {
     mode === 'listener'
       ? { ...roomClock.state, playing: roomClock.state.playing && remoteReady && !remotePausedByUser }
       : trackSelectionPending
-        ? { playing: false, currentTime: 0, duration: 0, updatedAt: localTransport.updatedAt }
+        ? { playing: !audioSourcePending && localTransport.playing, currentTime: 0, duration: 0, updatedAt: localTransport.updatedAt }
         : localTransport;
   const remoteMuted = muted || mode !== 'listener' || !remoteReady || !playerState?.playing || remotePausedByUser || roomClock.stale;
   const visibleStatus =
@@ -174,7 +174,7 @@ export function usePlayback(deps: UsePlaybackDeps) {
   const getControllingAudio = useCallback(() => (mode === 'host' ? localAudioRef.current : remoteAudioRef.current), [mode, localAudioRef, remoteAudioRef]);
 
   const canUseTransport = !audioSourcePending && (transport.playing || (mode === 'host' ? Boolean(audioSource) : remoteReady));
-  const canSeek = mode === 'host' && canUseTransport && localTransport.duration > 0;
+  const canSeek = mode === 'host' && canUseTransport && !trackSelectionPending && localTransport.duration > 0;
   const canRepeat = mode === 'host';
   // A newer selection aborts the older one in useCatalog. Loading must not trap
   // someone on a slow track or prevent changing direction.
@@ -268,6 +268,11 @@ export function usePlayback(deps: UsePlaybackDeps) {
   // readiness must respect the last explicit transport command.
   useLayoutEffect(() => {
     if (mode !== 'host') return;
+    // A new element must not inherit the preceding track's playing intent.
+    // Its own native play/pause events may update that intent before canplay.
+    if (audioContinuation?.source !== audioSource) {
+      setTransport({ playing: false, currentTime: 0, duration: 0, updatedAt: Date.now() });
+    }
     if (!audioSource) {
       hostStartupRef.current = null;
       setStatus(previous => (previous === 'no-audio' ? previous : 'idle'));
