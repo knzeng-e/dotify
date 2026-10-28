@@ -71,13 +71,17 @@ Wallet-gated onboarding, runtime creation, upload, encryption, IPFS publication,
 - Legacy registry paths should be archived or removed.
 - Frontend contract ABIs are generated from Hardhat artifacts; generation must
   stay checked so drift does not return.
+- The October 28 [0.1.63 rollout](../backlog/implementation/evidence/product-0.1.63-rollout-2026-10-28.md)
+  activates two warm API edges, verified-TLS PostgreSQL with bounded independent
+  sessions, and one private custody writer. Keep the shared namespace and
+  permanent encryption reservations on rollback; pre-W36 local-state images
+  are not compatible rollback targets. Physical/pilot acceptance remains open.
 - Production catalog browsing is one backend request when
-  `VITE_DOTIFY_API_URL` is set. The current snapshot store is single-writer
-  JSON in the deployed generation. W36/#339 adds an elected PostgreSQL shared
-  store with a mandatory activation migration. W37 separates catalog content
+  `VITE_DOTIFY_API_URL` is set. Local mode uses single-writer
+  JSON; the deployed W36 generation uses the migrated PostgreSQL shared store. W37 separates catalog content
   from compact progress, bounds RPC reads/replay ranges, and reuses lookup
-  indexes; see [ADR 0036](../adr/0036-bounded-catalog-indexing.md). Neither
-  candidate is evidence of an activated shared deployment.
+  indexes; see [ADR 0036](../adr/0036-bounded-catalog-indexing.md). The dated rollout above records the activated deployment; synthetic scale
+  tests do not measure real provider capacity.
 - Product SDK / Playground / Humanity integration is a progressive enhancement
   track. The current verified Product SDK snapshot is prototype/reference/
   unaudited, Host APIs require a compatible container, contracts target

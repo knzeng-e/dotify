@@ -21,7 +21,11 @@ DevNet are delivery targets; a deployed build is not an accepted public pilot.
 Current device, reliability and payment checks live in the
 [pilot release plan](docs/operations/pilot-release-plan.md).
 
-Internal testing now targets a fresh artist directory and one authenticated streaming format. Artists recreate their space and republish; old test audio is not migrated. See the [reset decision](docs/adr/0033-streaming-only-internal-reset.md) and [deployment procedure](docs/operations/streaming-publication.md). The reset was deployed in Product 0.1.58; [Product 0.1.62 and the API/Web rollout](docs/backlog/implementation/evidence/product-0.1.62-rollout-2026-10-25.md) record the latest publication. Physical-device and public-pilot acceptance remain separate gates.
+Internal testing uses one authenticated streaming format. The [streaming-only
+reset](docs/adr/0033-streaming-only-internal-reset.md) was deployed in Product
+0.1.58; the latest [Product 0.1.63 and API/Web rollout](docs/backlog/implementation/evidence/product-0.1.63-rollout-2026-10-28.md)
+preserves the current catalog while activating shared API state. Physical-device
+and public-pilot acceptance remain separate gates.
 
 ## Listen together
 
@@ -118,7 +122,8 @@ For deterministic flows without real wallets, keys or uploads, use the existing
 | [Artist runtimes](contracts/README.md)                                 | Artist-owned contracts for catalog, access and value flows on Paseo Asset Hub.               |
 | [Product integration](docs/explanation/product-devnet-architecture.md) | Host account/runtime adapters and Bulletin/DotNS app distribution.                           |
 
-Pinata credentials and master key material stay on the API. Audio travels over
+Master key material stays server-side; Pinata credentials stay with the private
+publication service. Audio travels over
 WebRTC directly or through TURN when needed; signaling does not carry it.
 Protection controls source distribution and key delivery, not recording after
 someone is authorized to hear music.
@@ -148,8 +153,8 @@ second list here. The Product publication process is
 
 [GPL-3.0 license](LICENSE) · [Project presentation](docs/presentation/dotify-showcase-2026.pdf)
 
-API scaling work is tracked in [W36](docs/backlog/implementation/evidence/W36.md):
-shared PostgreSQL trust/catalog state and a private publication-custody service.
-The [migration runbook](docs/operations/shared-api-state.md) is required before
-activating the two-edge deployment profile. This does not change artist access
-rules or anonymous room entry.
+[W36](docs/backlog/implementation/evidence/W36.md) is activated in the test
+deployment: two public APIs share PostgreSQL trust/catalog state and one private
+publication-custody service. The [migration runbook](docs/operations/shared-api-state.md)
+protects preserved data and rollback. Artist access rules and anonymous room
+entry are unchanged.
