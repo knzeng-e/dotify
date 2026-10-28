@@ -93,6 +93,14 @@ guests receive a WebRTC audio stream, never its source file or content key.
 [Access policy](docs/explanation/access-control-model.md) ·
 [Content protection and its limits](docs/explanation/content-protection.md)
 
+## Identify your app version
+
+Open **You → About Dotify**, without connecting an account. Product builds show
+Dotify's version; Web builds show their build identifier. **Copy app details**
+includes only public build information and audio capabilities. If copying is
+blocked, open **Technical details** and select the text or take a screenshot.
+Polkadot App's own version is separate and is not inferred from Dotify's version.
+
 ## Develop locally
 
 Use **Node 22 and npm 10+**. On a fresh checkout, from the repository root:
