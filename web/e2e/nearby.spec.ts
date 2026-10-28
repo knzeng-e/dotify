@@ -80,22 +80,41 @@ test('automatic radar finds a later nearby publication, then joins real guest au
     await expect(guest.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20_000 });
     await expect.poll(() => guest.evaluate(() => window.__DOTIFY_E2E_ROOM_JOIN__?.remotePlaybackCues ?? 0), { timeout: 15_000 }).toBeGreaterThan(0);
     expect(await guest.evaluate(() => window.__DOTIFY_E2E_ROOM_JOIN__?.keyRequests ?? 0)).toBe(0);
-    const energy = await guest.evaluate(async () => {
+    const meter = await guest.evaluateHandle(async () => {
       const audio = [...document.querySelectorAll('audio')].find(item => item.srcObject instanceof MediaStream);
-      if (!audio?.srcObject) return 0;
+      if (!audio?.srcObject) throw new Error('The guest has no received audio stream.');
       const context = new AudioContext();
       await context.resume();
       const source = context.createMediaStreamSource(audio.srcObject as MediaStream);
       const analyser = context.createAnalyser();
       source.connect(analyser);
-      await new Promise(resolve => setTimeout(resolve, 300));
-      const samples = new Uint8Array(analyser.fftSize);
-      analyser.getByteTimeDomainData(samples);
-      source.disconnect();
-      await context.close();
-      return Math.max(...samples) - Math.min(...samples);
+      // Render the measurement graph without duplicating the guest's output.
+      const silentOutput = context.createGain();
+      silentOutput.gain.value = 0;
+      analyser.connect(silentOutput).connect(context.destination);
+      // The fixture transmits a 0.0001-gain tone. Byte samples quantize that
+      // near-silent signal away; float samples retain its actual amplitude.
+      const samples = new Float32Array(analyser.fftSize);
+      return {
+        energy() {
+          analyser.getFloatTimeDomainData(samples);
+          return Math.max(...samples) - Math.min(...samples);
+        },
+        async dispose() {
+          source.disconnect();
+          analyser.disconnect();
+          silentOutput.disconnect();
+          await context.close();
+        }
+      };
     });
-    expect(energy).toBeGreaterThan(0);
+    try {
+      // Signaling cues can arrive before the first decoded WebRTC frames.
+      await expect.poll(() => meter.evaluate(probe => probe.energy()), { timeout: 10_000 }).toBeGreaterThan(0.000001);
+    } finally {
+      await meter.evaluate(probe => probe.dispose());
+      await meter.dispose();
+    }
     expect(packets.join('\n')).not.toMatch(/latitude|longitude|accuracy|0\.392|9\.454|wallet|areaCells/);
     expect(await guest.evaluate(() => JSON.stringify([Object.values(localStorage), Object.values(sessionStorage)]))).not.toMatch(/n2:|0\.395|9\.454/);
     await host.evaluate(() => {
