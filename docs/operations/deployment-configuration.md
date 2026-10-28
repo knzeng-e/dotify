@@ -76,6 +76,20 @@ PulseAudio with an explicit null sink on the hosted Linux runner. This keeps
 AAC/MSE and native-error assertions enabled; it is test infrastructure only and
 does not prove physical sound or require a deployed server/Host setting.
 
+## Mobile audio startup follow-up, 2026-10-28
+
+The [startup correction](../backlog/implementation/evidence/mobile-host-audio-startup-2026-10-28.md)
+is client-only: no server rollout, secret, Host permission, custody migration or
+runtime upgrade is required. Publish the reviewed Web/Product clients before
+accepting device results. On exact mobile Host versions, test a cold Free and
+an authorized protected track, gesture-required Play, in-place retry after a
+stalled startup, track replacement and room entry. A prepared source must leave
+Play usable before metadata, without enabling it before authorization. A new
+source must load explicitly; adopting an already buffered successor must not
+reset it. Verify the 60-second post-authorization timeout offers retry and that
+cancelled or expired work cannot revive playback. WebKit fixtures do not certify
+the installed Polkadot App or its background execution.
+
 ## Pending client corrections, 2026-10-26
 
 The last recorded publication remains 0.1.62 below. Payment approval-expiry
