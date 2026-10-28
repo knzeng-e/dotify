@@ -9,7 +9,9 @@ physical mobile playback or the first-sound target.
 - Base: `dd8e9cb56651d3cbb3c09d778491e442256fc395` (`origin/dev`).
 - Branch: `fix/mobile-first-sound`.
 - Tested implementation: `49b292ef2447a69eedf0911bf335a2670cc2277a`.
-  The following commit records documentation and evidence only.
+  The following commit records documentation and evidence only. A later
+  owner-requested copy correction restores the official slogan; its three About
+  journeys pass again without changing the playback implementation.
 - Owner reports Desktop playback works reasonably well after publication of
   Product 0.1.64, while mobile still loads indefinitely. The installed mobile
   bundle/version and exact blocked phase have not been independently captured.

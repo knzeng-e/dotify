@@ -4,7 +4,7 @@
 
 # Dotify
 
-**Music brings us closer.**
+**Let the music connect the dots**
 
 Dotify turns a shared link into a listening room. Discover music through the
 people playing it, join the conversation, and support its creators. Artists

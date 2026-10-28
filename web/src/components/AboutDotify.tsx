@@ -69,7 +69,7 @@ export function AboutDotify() {
               <X size={18} aria-hidden='true' />
             </button>
           </div>
-          <p className='about-dotify-purpose'>Music brings us together.</p>
+          <p className='about-dotify-purpose'>Let the music connect the dots</p>
           <div className='about-dotify-version'>
             <span>{version ? 'Dotify version' : 'Dotify Web build'}</span>
             <strong>{version ?? (build === 'Unavailable' ? 'Unavailable' : build.slice(0, 8))}</strong>

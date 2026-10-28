@@ -16,6 +16,7 @@ for (const width of [390, 1280]) {
     await trigger.click();
     const dialog = page.getByRole('dialog', { name: 'About Dotify', exact: true });
     await expect(dialog.getByText('0.1.28', { exact: true })).toBeVisible();
+    await expect(dialog.getByText('Let the music connect the dots', { exact: true })).toBeVisible();
     await expect(dialog.getByText(/Polkadot App has its own version/)).toBeVisible();
     await dialog.getByRole('button', { name: 'Copy app details', exact: true }).click();
     await expect(dialog.getByRole('status')).toContainText('App details copied');
