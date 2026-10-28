@@ -61,7 +61,8 @@ suite ran against frozen source without editing/reloading its test server.
 
 ## Release boundary
 
-Not deployed by this PR. Publish the reviewed client, then repeat cold Free,
+Merged in #342 and published in [Product 0.1.64](product-0.1.64-rollout-2026-10-28.md).
+Finalized DotNS and exact public artifact checks pass. Repeat cold Free,
 already-authorized protected and room-host playback on the exact installed
 Polkadot App version. Confirm actual audible output, foreground/background and
 resume behavior. Do not pool Web or synthetic results as physical Host evidence.

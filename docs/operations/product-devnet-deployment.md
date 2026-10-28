@@ -1,5 +1,18 @@
 # Deploy Dotify To Product DevNet
 
+## Product 0.1.64 published with mobile audio startup correction, 2026-10-28
+
+Clean packaging `982d3da4b6fb92af706641dc2ff10589b6f5a73f`, based on merged
+`dev` `dd8e9cb56651d3cbb3c09d778491e442256fc395` (#342), publishes executable
+`[0,1,64]` at root/app CID
+`bafybeiaxw3ntf7ifsleeipvysih7qotm5lv6nl7ppiijca2bhzhqtzgpau`.
+Finalized DotNS/version, all 136 public CAR block hashes and exact index,
+entry and graphics bytes pass. The local signer is removed. The current
+Product/CDM profile, permissions and running services are retained; no server
+restart or migration was performed. Product 0.1.63 is the compatible client
+rollback. See the [0.1.64 rollout](../backlog/implementation/evidence/product-0.1.64-rollout-2026-10-28.md)
+for exact identities and the physical mobile playback checks still required.
+
 ## Product 0.1.63 published with shared API state, 2026-10-28
 
 Clean packaging `5de94989f2e36e6ee8e9e871471233e07d9381f1` publishes W35 and
