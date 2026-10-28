@@ -41,6 +41,7 @@ type UsePlaybackDeps = {
   audioRecovery?: 'recovering' | 'failed' | null;
   audioStartupAttemptId: string | null;
   trackSelectionPending: boolean;
+  audioSourcePending: boolean;
   onHostMediaSettled: (source: string | null, terminal?: boolean, attemptId?: string | null) => void;
   remoteReady: boolean;
   remoteStreamVersion: number;
@@ -63,6 +64,7 @@ type HostAudioStartup = {
   metadataReported: boolean;
   mediaPlayingReported: boolean;
   errorReported: boolean;
+  gestureStarted?: boolean;
 };
 
 function startupOwnsAudio(startup: HostAudioStartup, audio: HTMLAudioElement): boolean {
@@ -92,6 +94,7 @@ export function usePlayback(deps: UsePlaybackDeps) {
     audioRecovery,
     audioStartupAttemptId,
     trackSelectionPending,
+    audioSourcePending,
     onHostMediaSettled,
     remoteReady,
     remoteStreamVersion,
@@ -170,7 +173,7 @@ export function usePlayback(deps: UsePlaybackDeps) {
 
   const getControllingAudio = useCallback(() => (mode === 'host' ? localAudioRef.current : remoteAudioRef.current), [mode, localAudioRef, remoteAudioRef]);
 
-  const canUseTransport = !trackSelectionPending && (transport.playing || (mode === 'host' ? Boolean(audioSource) : remoteReady));
+  const canUseTransport = !audioSourcePending && (transport.playing || (mode === 'host' ? Boolean(audioSource) : remoteReady));
   const canSeek = mode === 'host' && canUseTransport && localTransport.duration > 0;
   const canRepeat = mode === 'host';
   // A newer selection aborts the older one in useCatalog. Loading must not trap
@@ -353,6 +356,14 @@ export function usePlayback(deps: UsePlaybackDeps) {
 
   const beginLoadedSourcePlaybackAttempt = useCallback((): HostAudioStartup | null => {
     if (!audioSource) return null;
+    const current = hostStartupRef.current;
+    // The first explicit gesture can precede metadata on mobile. Keep that
+    // selection's ownership/timing until it plays or fails, rather than orphan
+    // the catalog startup attempt by inventing a separate replay attempt.
+    if (current?.source === audioSource && !current.metadataReported && !current.gestureStarted && !current.errorReported) {
+      current.gestureStarted = true;
+      return current;
+    }
     playbackContinuity.clearIntent();
     const startedAt = nowMs();
     const attemptId = `loaded:${Date.now()}:${Math.random().toString(36).slice(2)}`;
@@ -360,9 +371,10 @@ export function usePlayback(deps: UsePlaybackDeps) {
       attemptId,
       source: audioSource,
       startedAt,
-      metadataReported: true,
+      metadataReported: (localAudioRef.current?.readyState ?? 0) >= HTMLMediaElement.HAVE_METADATA,
       mediaPlayingReported: false,
-      errorReported: false
+      errorReported: false,
+      gestureStarted: true
     };
     hostStartupRef.current = startup;
     publishHostAudioStartupMetric({
@@ -373,7 +385,7 @@ export function usePlayback(deps: UsePlaybackDeps) {
       timestamp: Date.now()
     });
     return startup;
-  }, [audioSource, selectedTrackId]);
+  }, [audioSource, localAudioRef, selectedTrackId]);
 
   const reportHostPlaybackError = useCallback((startup: HostAudioStartup | null, terminalReason: HostAudioTerminalReason): boolean => {
     if (!startup || hostStartupRef.current !== startup || startup.errorReported) return false;
@@ -414,8 +426,9 @@ export function usePlayback(deps: UsePlaybackDeps) {
       }
       return;
     }
-    const awaitingAutoplay = autoplayIntentRef.current && audio.readyState < HTMLMediaElement.HAVE_FUTURE_DATA;
-    if (audio.paused && !awaitingAutoplay) {
+    // A mobile engine may need this gesture before metadata/canplay. Pending
+    // preload is not a playing element and must never turn Play into Pause.
+    if (audio.paused) {
       userPausedRef.current = false;
       // A loaded source can resume without going back through selectTrack.
       // Treat that user gesture as a fresh startup attempt so warm/replay

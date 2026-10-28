@@ -79,6 +79,7 @@ function Harness() {
     audioRecovery: catalog.audioRecovery,
     audioStartupAttemptId: catalog.audioStartupAttemptId,
     trackSelectionPending: catalog.trackSelectionPending,
+    audioSourcePending: catalog.audioSourcePending,
     onHostMediaSettled: catalog.settleTrackSelectionMedia,
     remoteReady: false,
     remoteStreamVersion: 0,
