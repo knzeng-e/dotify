@@ -1,3 +1,5 @@
+import { streamingMediaSource, ownManagedAudioUrl, STREAMING_AAC_MIME, type ManagedAudioSource } from './streamingMediaSource';
+import { pumpManagedAudio } from './managedStreaming';
 import { AdaptiveStreaming } from './adaptiveStreaming';
 import { readStreamingManifest, decryptStreamingMedia, type StreamingScope } from './streamingFormat';
 import { readAudioBody } from './readAudioBody';
@@ -21,8 +23,7 @@ type ReaderMetric = Pick<
 >;
 type TransportObservation = Pick<ReaderMetric, 'gatewayUrl' | 'gatewayRecovered' | 'fromCache'>;
 const api = (import.meta.env.VITE_DOTIFY_API_URL as string | undefined)?.replace(/\/$/, '').replace(/\/api$/, '');
-const MIME = 'audio/mp4; codecs="mp4a.40.2"';
-type MediaSourceCtor = typeof MediaSource;
+const MIME = STREAMING_AAC_MIME;
 // Small, short-lived ciphertext cache shared by intent and actual playback.
 // No key, clear audio, archival master or mutable response is retained here.
 const warmObjects = new Map<string, { bytes: Uint8Array; until: number }>();
@@ -202,8 +203,8 @@ export async function createStreamingPlayback(input: {
     if (object.kind === 'media' && object.index === 0) emit({ phase: 'first-segment-decrypted', segmentIndex: 0 });
     return clear;
   };
-  const ctor: MediaSourceCtor | undefined = typeof MediaSource !== 'undefined' && MediaSource.isTypeSupported(MIME) ? MediaSource : undefined;
-  if (!ctor?.isTypeSupported(MIME)) {
+  const capability = streamingMediaSource();
+  if (!capability) {
     emit({ phase: 'compatibility-reader' });
     // Same authenticated rendition, never the archival master or a different key.
     const parts: Uint8Array[] = [];
@@ -220,9 +221,11 @@ export async function createStreamingPlayback(input: {
     input.signal.throwIfAborted();
     return { url: URL.createObjectURL(new Blob(parts, { type: 'audio/mp4' })), gainDb: context.manifest.gainDb, progressive: false };
   }
-  const source = new ctor();
+  const source = new capability.ctor();
   const url = URL.createObjectURL(source);
+  const releaseManagedUrl = capability.kind === 'managed' ? ownManagedAudioUrl(url, input.signal) : () => {};
   const abort = () => {
+    releaseManagedUrl();
     URL.revokeObjectURL(url);
     if (source.readyState === 'open') {
       try {
@@ -238,6 +241,37 @@ export async function createStreamingPlayback(input: {
     .then(async () => {
       source.duration = context.manifest.durationSeconds;
       const buffer = source.addSourceBuffer(MIME);
+      if (capability.kind === 'managed') {
+        const audio = input.audio();
+        if (!audio) throw new Error('The audio player is unavailable. Please try again.');
+        let init: Uint8Array | undefined;
+        // Keep one small authenticated init for reopening after managed eviction.
+        // Start at 96 kb/s: native mobile acceptance precedes adapting this path.
+        await pumpManagedAudio({
+          source: source as ManagedAudioSource,
+          buffer,
+          audio,
+          segmentCount: rendition.segments.length,
+          duration: context.manifest.durationSeconds,
+          signal: input.signal,
+          bufferAheadSeconds: () => input.bufferAheadSeconds?.() ?? 30,
+          initialize: async signal => {
+            init ??= await read(rendition.init, signal);
+            signal.throwIfAborted();
+            await append(buffer, init, input.signal);
+          },
+          appendSegment: async (index, signal) => {
+            const bytes = await read(rendition.segments[index], signal);
+            signal.throwIfAborted();
+            emit({ phase: 'rendition-selected', bitrateKbps: 96, segmentIndex: index });
+            // A seek/demand change may cancel downloads, never interrupt an
+            // already-started SourceBuffer update and race the next append.
+            await append(buffer, bytes, input.signal);
+            if (index === 0) emit({ phase: 'first-segment-appended', segmentIndex: 0 });
+          }
+        });
+        return;
+      }
       await append(buffer, await read(rendition.init, input.signal), input.signal);
       let appendedBitrate = rendition.bitrateKbps;
       // W32 segments share codec and nominal boundaries. Inconsistent counts
@@ -275,6 +309,7 @@ export async function createStreamingPlayback(input: {
     .catch(error => {
       if (input.signal.aborted) return;
       failure(error);
+      releaseManagedUrl();
       input.onError(error);
       if (source.readyState === 'open') {
         try {

@@ -1,3 +1,4 @@
+import { configureStreamingAudioElement } from '../features/catalog/streamingMediaSource';
 import { attachAudioNormalization } from '../features/player/audioNormalization';
 // ── Persistent audio elements ───────────────────────────────────────────────
 // Rendered once at the App root. Owns the two <audio> nodes so playback survives
@@ -91,6 +92,7 @@ function LocalAudio(props: PersistentAudioProps) {
     // Native mobile shells may defer implicit preload. Attach listeners first,
     // then explicitly start resource selection. Never reload an adopted buffer.
     if (audioSource && !preparedAudio) {
+      configureStreamingAudioElement(audio, audioSource);
       audio.src = audioSource;
       attachAudioNormalization(audio);
       audio.load();

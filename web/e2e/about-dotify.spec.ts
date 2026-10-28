@@ -40,6 +40,7 @@ test('About remains readable when a mobile Host blocks clipboard access', async 
   await page.setViewportSize({ width: 390, height: 700 });
   await page.addInitScript(() => {
     Object.defineProperty(window, 'MediaSource', { value: undefined });
+    Object.defineProperty(window, 'ManagedMediaSource', { value: undefined });
     Object.defineProperty(navigator, 'clipboard', {
       value: {
         writeText: async () => {
@@ -59,4 +60,26 @@ test('About remains readable when a mobile Host blocks clipboard access', async 
   await page.goBack();
   await expect(dialog).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'About Dotify', exact: true })).toBeVisible();
+});
+
+test('About identifies managed AAC selection without exposing account details', async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(window, 'MediaSource', { value: undefined });
+    Reflect.set(
+      window,
+      'ManagedMediaSource',
+      class {
+        static isTypeSupported() {
+          return true;
+        }
+      }
+    );
+  });
+  await page.goto('/?e2eRoom=public');
+  await page.getByRole('button', { name: 'You', exact: true }).click();
+  await page.getByRole('button', { name: 'About Dotify', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'About Dotify', exact: true });
+  await dialog.getByText('Technical details', { exact: true }).click();
+  await expect(dialog.getByText('Progressive AAC (managed)', { exact: true })).toBeVisible();
+  await expect(dialog.getByText('Selected for AAC playback', { exact: true })).toBeVisible();
 });

@@ -1,3 +1,4 @@
+import { configureStreamingAudioElement } from '../catalog/streamingMediaSource';
 import { retireHostAudio } from './hostAudioOutput';
 
 type Candidate = {
@@ -56,6 +57,7 @@ export class StandbyAudio {
       if (this.candidate !== current) return;
       current.url = url;
       // No play/autoplay, normalization graph or room capture before adoption.
+      configureStreamingAudioElement(audio, url);
       audio.src = url;
       audio.addEventListener(
         'canplay',
