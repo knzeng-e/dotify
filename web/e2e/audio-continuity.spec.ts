@@ -21,7 +21,8 @@ type Fault =
   | 'denied'
   | 'key-retry'
   | 'held-startup'
-  | 'held-next-startup';
+  | 'held-next-startup'
+  | 'access-stall';
 async function setup(
   page: Page,
   fault: Fault = 'none',
@@ -35,6 +36,7 @@ async function setup(
   let access: boolean | 'unavailable' = true,
     accessReads = 0,
     plainRequests = 0;
+  let freeAccess = fault !== 'denied';
   let release = () => {};
   const gate = new Promise<void>(resolve => {
     release = resolve;
@@ -60,16 +62,16 @@ async function setup(
       keyRequests++;
       if (fault === 'key-retry' && keyRequests === 1) return route.fulfill({ status: 503, json: { error: 'Temporarily unavailable' } });
       return route.fulfill({
-        json:
-          fault === 'denied'
-            ? { access: 'denied', reason: 'ACCESS_DENIED', message: 'Unavailable', hostAction: { type: 'none', label: '' } }
-            : { access: 'allowed', playbackMode: 'full', contentKey: `0x${fixture.keyHex}`, runtime: fixture.scope.runtimeAddress }
+        json: !freeAccess
+          ? { access: 'denied', reason: 'ACCESS_DENIED', message: 'Unavailable', hostAction: { type: 'none', label: '' } }
+          : { access: 'allowed', playbackMode: 'full', contentKey: `0x${fixture.keyHex}`, runtime: fixture.scope.runtimeAddress }
       });
     }
     if (url.startsWith('http://rpc.audio.test')) {
       const rpc = request.postDataJSON();
       if (rpc.method === 'eth_call') {
         accessReads++;
+        if (fault === 'access-stall') await gate;
         if (access === 'unavailable') return route.fulfill({ json: { jsonrpc: '2.0', id: rpc.id, error: { code: -32000, message: 'Runtime unavailable' } } });
       }
       return route.fulfill({ json: { jsonrpc: '2.0', id: rpc.id, result: rpc.method === 'eth_call' ? `0x${'0'.repeat(63)}${access ? 1 : 0}` : '0x190f1b41' } });
@@ -109,6 +111,9 @@ async function setup(
     release,
     accessReads: () => accessReads,
     plainRequests: () => plainRequests,
+    setFreeAccess: (value: boolean) => {
+      freeAccess = value;
+    },
     setAccess: (value: boolean | 'unavailable') => {
       access = value;
     }
@@ -226,6 +231,39 @@ test('a temporary key failure recovers without refresh and anonymous reselect ch
   await playing(page);
   expect(probe.keyRequests()).toBe(3);
 });
+test('Free playback reaches the authorized key service without waiting for a client chain read', async ({ page }) => {
+  const probe = await setup(page, 'access-stall');
+  try {
+    await expect.poll(probe.keyRequests).toBe(1);
+    await playing(page);
+    expect(probe.accessReads()).toBe(0);
+    await expect(page.getByTestId('state')).toHaveAttribute('data-access', 'true');
+  } finally {
+    probe.release();
+  }
+});
+
+test('cached compatibility audio cannot bypass a new Free-key denial', async ({ page }) => {
+  const probe = await setup(page, 'none', true);
+  await playing(page);
+  const mediaReads = () => probe.requests.filter(request => request.startsWith('a:')).length;
+  const downloaded = mediaReads();
+  probe.setFreeAccess(false);
+  await page.getByRole('button', { name: 'Select a', exact: true }).click();
+  await expect(page.getByTestId('state')).toHaveAttribute('data-pending', 'false');
+  await expect(page.getByTestId('state')).toHaveAttribute('data-access', 'false');
+  await expect(page.getByTestId('state')).toHaveAttribute('data-failure', 'access-not-confirmed');
+  await expect(audio(page)).toHaveJSProperty('paused', true);
+  const deniedRequests = probe.keyRequests();
+  expect(deniedRequests).toBeGreaterThan(1);
+  expect(mediaReads()).toBe(downloaded);
+  probe.setFreeAccess(true);
+  await page.getByRole('button', { name: 'Select a', exact: true }).click();
+  await playing(page);
+  expect(probe.keyRequests()).toBe(deniedRequests + 1);
+  expect(mediaReads()).toBe(downloaded);
+});
+
 test('a fresh mobile source explicitly starts loading instead of relying on implicit preload', async ({ page }) => {
   await page.addInitScript(() => {
     window.Audio = new Proxy(Audio, {
@@ -468,6 +506,7 @@ for (const encryptedOnPolicy of [false, true])
     const probe = await setup(page, 'none', false, true, { mode: encryptedOnPolicy ? 'free' : 'classic', initiallySeed: true, encryptedOnPolicy });
     await playing(page);
     probe.setAccess(false);
+    if (encryptedOnPolicy) probe.setFreeAccess(false);
     await audio(page).evaluate(element => {
       element.currentTime = 11;
     });
@@ -486,7 +525,8 @@ for (const encryptedOnPolicy of [false, true])
     await expect(page.getByTestId('state')).toHaveAttribute('data-track', /:b$/);
     await expect(page.getByTestId('state')).toHaveAttribute('data-pending', 'false');
     await expect(page.getByTestId('state')).toHaveAttribute('data-access', 'false');
-    expect(probe.accessReads()).toBeGreaterThan(readsBeforeSelection);
+    if (encryptedOnPolicy) expect(probe.accessReads()).toBe(readsBeforeSelection);
+    else expect(probe.accessReads()).toBeGreaterThan(readsBeforeSelection);
     await expect(audio(page)).toHaveJSProperty('paused', true);
     expect(
       await page.evaluate(() => (Reflect.get(window, '__createdAudio') as HTMLAudioElement[]).some(element => element.src.includes('unencrypted-policy.wav')))

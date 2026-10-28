@@ -1,0 +1,58 @@
+.you-hero-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+.about-dotify-trigger {
+  min-height: 44px;
+}
+.about-dotify-purpose {
+  color: var(--ink-soft);
+  margin: 0;
+}
+.about-dotify-version {
+  display: grid;
+  gap: 0.4rem;
+  padding-block: 1.25rem;
+}
+.about-dotify-version span,
+.about-dotify-note {
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+  line-height: 1.6;
+}
+.about-dotify-version strong {
+  color: var(--action);
+  font-size: var(--text-display-sm);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: var(--tracking-display);
+  line-height: 1.1;
+}
+.about-dotify-details {
+  margin-block: 1rem;
+}
+.about-dotify-details summary {
+  cursor: pointer;
+  padding-block: 0.75rem;
+}
+.about-dotify-details dl {
+  margin: 0;
+}
+.about-dotify-details dl > div {
+  padding-block: 0.65rem;
+}
+.about-dotify-details dt {
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+}
+.about-dotify-details dd {
+  margin: 0.25rem 0 0;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+.about-dotify > .secondary-action {
+  width: 100%;
+  min-height: 44px;
+}
