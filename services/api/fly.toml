@@ -33,8 +33,8 @@ primary_region = "ams"
   PASEO_ASSET_HUB_NATIVE_RPC = "https://asset-hub-paseo-rpc.n.dwellir.com"
   # Fly forwards every request from its proxy; key rate limits on Fly-Client-IP.
   API_TRUST_PROXY = "fly"
-  DOTIFY_FACTORY_ADDRESS = "0x708d35eee7c1416f6d332344068be9d714aec24c"
-  DOTIFY_DIRECTORY_ADDRESS = "0x8e611ef60169f8ed93019de4a3034a504ae2ad29"
+  DOTIFY_FACTORY_ADDRESS = "0x61dd19a0d4f6bd21c6ffa4a7a9d9e771af95bb13"
+  DOTIFY_DIRECTORY_ADDRESS = "0x79b21cad3848a3019edee17b089142282f4a13a3"
   DOTIFY_CHAIN_ID = "420420417"
   # New publications use the isolated private encoder after explicit custody
   # provisioning. STREAMING_WORKER_TOKEN is a dedicated Fly secret, never the

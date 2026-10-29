@@ -1,12 +1,12 @@
 {
   "dependencies": {
-    "@dotify/artist-directory": 2,
-    "@dotify/artist-runtime-factory": 2
+    "@dotify/artist-directory": 3,
+    "@dotify/artist-runtime-factory": 3
   },
   "contracts": {
     "@dotify/artist-directory": {
-      "version": 2,
-      "address": "0x8e611ef60169f8ed93019de4a3034a504ae2ad29",
+      "version": 3,
+      "address": "0x79b21cad3848a3019edee17b089142282f4a13a3",
       "abi": [
         {
           "inputs": [],
@@ -183,11 +183,11 @@
           "type": "function"
         }
       ],
-      "metadataCid": "bafk2bzacebiynqo7tjvxa3xlvf6pphgq3nzatqjbn3yo2fszrlvxibtsr4ce6"
+      "metadataCid": "bafk2bzacebcem3sk7msybseyhx3rmqybdqo2t2pdypvmnvyn2idaibe6xx4pq"
     },
     "@dotify/artist-runtime-factory": {
-      "version": 2,
-      "address": "0x708d35eee7c1416f6d332344068be9d714aec24c",
+      "version": 3,
+      "address": "0x61dd19a0d4f6bd21c6ffa4a7a9d9e771af95bb13",
       "abi": [
         {
           "inputs": [
@@ -504,7 +504,7 @@
           "type": "function"
         }
       ],
-      "metadataCid": "bafk2bzaceckm27ft3kvt4mjs67hzklylws5fp5d4z4nrvpa34gmzndtqz7lwg"
+      "metadataCid": "bafk2bzaceabgw5kefjrqqazehtdfhz7qepzauovsy7zussxmulmvscihaozra"
     }
   },
   "registry": "0x05662b3dbd5dd9f2ff92d67630477e84b0b37c1f"
