@@ -87,9 +87,13 @@ condition is best-block inclusion. Do not extend that helper for media.
    would recreate the download-before-first-sound delay we just removed.
 
 For a canary, use deterministic synthetic ciphertext, with no artist master,
-user identity or key. Before any network write, choose a dedicated authorized
-storage account and explicit quota budget. The public deployment pool and
-DotNS owner are not media-publishing credentials. Direct artist-owned Cloud
+user identity or key. Before any network write, explicitly select a user-owned
+authorized storage account and quota budget. The owner chose to reuse the DotNS
+account for a bounded manual canary; verify its Bulletin authorization separately
+and keep signing local, without changing the domain record. Never use the public
+deployment pool for media or put the DotNS key in a frontend/backend worker. A
+separate storage account is recommended before unattended production renewal to
+isolate domain control; it is not required for the manual test. Direct artist-owned Cloud
 Storage is a later option, with its own signer/permission and UX study.
 
 The Adapter must record each block's CID, network, finalized block/index and
