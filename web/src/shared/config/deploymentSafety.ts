@@ -2,18 +2,18 @@ import { deployments } from './deployments';
 
 export const registryOwnerGuardAttestation = {
   chainId: 420420417,
-  factory: '0x708d35eee7c1416f6d332344068be9d714aec24c',
-  directory: '0x8e611ef60169f8ed93019de4a3034a504ae2ad29',
-  auditedBlock: 14709581,
-  auditedBlockHash: '0x49339bad43574d98f48c8e87023dc21d7b13e6cf5c8baca5e4721cc9d36e9bfc',
+  factory: '0x61dd19a0d4f6bd21c6ffa4a7a9d9e771af95bb13',
+  directory: '0x79b21cad3848a3019edee17b089142282f4a13a3',
+  auditedBlock: 15040310,
+  auditedBlockHash: '0xc392855f9388a607a139d12ac489e04a03a4bd773a003173cf609de7a3f39f7b',
   factoryDirectoryPairingVerified: true,
   existingRuntimeCoverage: { protected: 0, total: 0 },
   existingTrackAudit: { ownerMatched: 0, total: 0 },
   pendingRuntimeDiscoveryComplete: true,
   pendingRuntimeCount: 0,
   futureFactoryUsesOwnerGuard: true,
-  correctedRegistryCodeHash: '0x59020fa678566611842e12b116e7e83352e89337ba6c5ae51c437c48316cd8d9',
-  futureFactoryRegistryCodeHash: '0x59020fa678566611842e12b116e7e83352e89337ba6c5ae51c437c48316cd8d9',
+  correctedRegistryCodeHash: '0x5c1185f92f443499a94143221e45db2f3c13e5490bc61a5b668b2204f7f7b9f4',
+  futureFactoryRegistryCodeHash: '0x5c1185f92f443499a94143221e45db2f3c13e5490bc61a5b668b2204f7f7b9f4',
   catalogCutoverReady: true
 } as const;
 
