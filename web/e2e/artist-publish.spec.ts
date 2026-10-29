@@ -522,7 +522,7 @@ test('delayed publication does not pull an artist back from another task', async
   await page.clock.runFor(6000);
   await expect(page.getByRole('tab', { name: 'Earnings', exact: true })).toHaveAttribute('aria-selected', 'true');
   await expect(page.locator('[data-task="releases"]')).toHaveCount(0);
-  await page.getByRole('button', { name: 'View payment status: Release published', exact: true }).click();
+  await page.getByRole('button', { name: 'View publication status: Release published', exact: true }).click();
   await expect(page.getByRole('dialog')).toContainText('Release published');
   expect((await readArtistPublishState(page))?.registerTrackTransactions).toBe(1);
 });
@@ -539,7 +539,7 @@ test('approved publication keeps read-only recovery after the artist disconnects
   // Run the delayed catalog insertion and the next read-only poll explicitly;
   // this test checks disconnect recovery, not the browser's timer scheduling.
   await page.clock.runFor(6000);
-  await page.getByRole('button', { name: 'View payment status: Release published', exact: true }).click({ timeout: 15000 });
+  await page.getByRole('button', { name: 'View publication status: Release published', exact: true }).click({ timeout: 15000 });
   await expect(page.getByRole('dialog')).toContainText('Release published', { timeout: 15000 });
   expect((await readArtistPublishState(page))?.registerTrackTransactions).toBe(1);
 });

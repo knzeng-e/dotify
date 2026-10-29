@@ -14,7 +14,7 @@ import {
 import { initializeStreamingNonceLedger, StreamingNonceLedger, STREAM_NONCE_SCHEME } from './streamingNonces.js';
 import { encodeStreamingRelease } from './streamingEncoder.js';
 import type { EncodedStreamingAudio } from './streamingTranscoder.js';
-import type { PinataFile } from './pinata.js';
+import { PinataError, type PinataFile } from './pinata.js';
 const MAX_JOBS = 64,
   MAX_QUEUED = 4,
   MAX_SOURCE_BYTES = 200 * 1024 * 1024,
@@ -28,6 +28,10 @@ const scopeSchema = z
     keyVersion: z.string().regex(/^dotify-content-key-v(?:[2-9]|[1-9][0-9]+)$/)
   })
   .strict();
+type StreamingFailure = {
+  stage: 'authority' | 'key' | 'encoding' | 'encryption' | 'validation' | 'storage' | 'persistence';
+  storageStatus?: number;
+};
 const jobSchema = z
   .object({
     id: z.string().uuid(),
@@ -49,6 +53,7 @@ const jobSchema = z
   .strict();
 export type StreamingJob = z.infer<typeof jobSchema>;
 export type StreamingJobView = Pick<StreamingJob, 'id' | 'state' | 'attempts' | 'updatedAt' | 'reason'> & {
+  failure?: StreamingFailure;
   result?: { ref: string; runtimeAddress: string; contentHash: string; keyVersion: string };
 };
 export class StreamingJobError extends Error {
@@ -102,10 +107,15 @@ export type StreamingJobDeps = {
   authority: (owner: string, runtime: string, chainId: number) => Promise<boolean>;
   transcode: (master: Buffer, signal?: AbortSignal) => Promise<EncodedStreamingAudio>;
   pin: (files: PinataFile[], name: string, signal: AbortSignal) => Promise<string>;
+  /** Allowlisted diagnostics only. Never pass raw errors, source data or keys. */
+  onFailure?: (failure: { jobId: string } & StreamingFailure) => void;
   now?: () => number;
 };
 export class StreamingJobs {
   private jobs: StreamingJob[] = [];
+  // Diagnostics are not custody state: keep the on-disk v1 schema unchanged
+  // so rollback never requires rewriting encrypted jobs or nonce reservations.
+  private failures = new Map<string, StreamingFailure>();
   private serial: Promise<unknown> = Promise.resolve();
   private running: Promise<void> | null = null;
   private timer: ReturnType<typeof setInterval> | null = null;
@@ -216,6 +226,7 @@ export class StreamingJobs {
       attempts: job.attempts,
       updatedAt: job.updatedAt,
       ...(job.reason ? { reason: job.reason } : {}),
+      ...(job.state === 'failed' && this.failures.has(job.id) ? { failure: this.failures.get(job.id) } : {}),
       ...(job.state === 'ready' && job.ref
         ? { result: { ref: job.ref, runtimeAddress: job.scope.runtimeAddress, contentHash: job.scope.contentHash, keyVersion: job.scope.keyVersion } }
         : {})
@@ -289,6 +300,7 @@ export class StreamingJobs {
     if (this.jobs.filter(j => !['ready', 'failed'].includes(j.state)).length >= MAX_QUEUED) throw new StreamingJobError('STREAMING_QUEUE_BUSY', 429);
     job.state = 'queued';
     delete job.reason;
+    this.failures.delete(job.id);
     job.updatedAt = this.now();
     await this.save();
     return this.view(job);
@@ -308,6 +320,7 @@ export class StreamingJobs {
       if (!job) throw new StreamingJobError('STREAMING_JOB_NOT_FOUND', 404);
       if (job.state !== 'failed') throw new StreamingJobError('STREAMING_JOB_ACTIVE', 409);
       job.state = 'expired';
+      this.failures.delete(job.id);
       await this.save();
       await rm(this.folder(id), { recursive: true, force: true });
       this.jobs = this.jobs.filter(j => j !== job);
@@ -320,7 +333,10 @@ export class StreamingJobs {
     // is completed on startup without losing nonce reservations or admitting
     // a metadata entry whose encrypted source has disappeared.
     if (!old.length) return;
-    for (const job of old) job.state = 'expired';
+    for (const job of old) {
+      job.state = 'expired';
+      this.failures.delete(job.id);
+    }
     await this.save();
     for (const job of old) await rm(this.folder(job.id), { recursive: true, force: true });
     this.jobs = this.jobs.filter(job => !old.includes(job));
@@ -356,12 +372,15 @@ export class StreamingJobs {
     });
     if (!job) return;
     const signal = this.abort.signal;
+    let stage: StreamingFailure['stage'] = 'authority';
     let key: Buffer | null = null,
       master: Buffer | undefined;
     try {
       if (!(await this.deps.authority(job.owner, job.scope.runtimeAddress, job.scope.chainId))) throw new Error('Artist authority changed');
+      stage = 'key';
       key = this.deps.deriveKey(job.scope);
       if (!key) throw new Error('Release key unavailable');
+      stage = 'validation';
       const output = path.join(this.folder(job.id), 'output');
       let manifest;
       try {
@@ -386,6 +405,7 @@ export class StreamingJobs {
           plainLength: job.sourceBytes,
           encryptedLength: job.sourceBytes + 16
         });
+        stage = 'encoding';
         const encoded = await encodeStreamingRelease({
           master,
           key,
@@ -394,6 +414,7 @@ export class StreamingJobs {
           signal,
           transcode: async (bytes, cancel) => {
             const result = await this.deps.transcode(bytes, cancel);
+            stage = 'encryption';
             await this.phase(job, 'encrypting');
             return result;
           }
@@ -413,9 +434,12 @@ export class StreamingJobs {
         await syncDir(this.folder(job.id));
         manifest = encoded.manifest;
       }
+      stage = 'validation';
       verifyStreamingManifest(manifest, key, job.scope);
+      stage = 'authority';
       if (!(await this.deps.authority(job.owner, job.scope.runtimeAddress, job.scope.chainId))) throw new Error('Artist authority changed before publication');
       await this.phase(job, 'publishing');
+      stage = 'validation';
       const objects = [manifest.master, ...manifest.renditions.flatMap(r => [r.init, ...r.segments])];
       const files: PinataFile[] = [];
       for (const object of objects) {
@@ -428,22 +452,28 @@ export class StreamingJobs {
       }
       files.push({ path: 'manifest.json', bytes: Buffer.from(JSON.stringify(manifest)) });
       const publishSignal = AbortSignal.any([signal, AbortSignal.timeout(5 * 60_000)]);
+      stage = 'storage';
       const cid = await this.deps.pin(files, `stream-${job.id}`, publishSignal);
       publishSignal.throwIfAborted();
       if (!/^(Qm[1-9A-HJ-NP-Za-km-z]{44}|b[a-z2-7]{20,110})$/.test(cid)) throw new Error('Invalid storage directory');
+      stage = 'persistence';
       const version = job.scope.keyVersion.replace('dotify-content-', '');
       await this.exclusive(async () => {
         job.ref = `dotify:enc:v3:${version}:ipfs://${cid}`;
         job.state = 'ready';
         job.updatedAt = this.now();
         delete job.reason;
+        this.failures.delete(job.id);
         await this.save();
       });
       // Ready metadata was committed first. A crash here is cleaned on restart.
       // Nonce reservations are never removed with job files.
       await rm(this.folder(job.id), { recursive: true, force: true }).catch(() => undefined);
-    } catch {
+    } catch (error) {
+      const failure = { stage, ...(error instanceof PinataError && error.providerStatus ? { storageStatus: error.providerStatus } : {}) };
+      if (!signal.aborted) this.deps.onFailure?.({ jobId: job.id, ...failure });
       await this.exclusive(async () => {
+        this.failures.set(job.id, failure);
         job.state = signal.aborted ? 'queued' : 'failed';
         job.reason = job.attempts >= 3 ? 'RETRY_LIMIT' : 'PREPARATION_FAILED';
         job.updatedAt = this.now();

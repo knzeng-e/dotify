@@ -46,6 +46,11 @@ is now being implemented from that dev source, without a separate deployment;
 the owner will test the client corrections together. Its browser evidence does
 not close the physical-device or pilot gates.
 
+October 29: a [publication reliability correction](implementation/evidence/publication-preparation-recovery-2026-10-29.md)
+addresses the studio's stuck progress modal and explicit retry behavior.
+The observed Pinata HTTP 403 is a separate provider admission blocker; real
+publication/native acceptance remains #287/#317.
+
 ## Status contract
 
 GitHub Project 5 owns live workflow status. This document records scope,

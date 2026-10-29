@@ -72,3 +72,27 @@ it('exposes discard only after a known failed state and waits for explicit actio
   await (failure as AudioPreparationError).discard!();
   expect(discard).toHaveBeenCalledWith(id);
 });
+
+it('distinguishes storage refusal and exhausted attempts without losing the saved job', async () => {
+  const request = vi.fn();
+  const discard = vi.fn();
+  await expect(
+    waitForAudioPreparation({
+      job: { id, state: 'failed', attempts: 2, failure: { stage: 'storage', storageStatus: 403 } },
+      storageKey: 'synthetic',
+      request,
+      discard
+    })
+  ).rejects.toMatchObject({ canRetry: true, message: expect.stringContaining('refusing new uploads') });
+  await expect(
+    waitForAudioPreparation({
+      job: { id, state: 'failed', attempts: 3, failure: { stage: 'storage', storageStatus: 403 } },
+      storageKey: 'synthetic',
+      request,
+      discard,
+      retryFailed: true
+    })
+  ).rejects.toMatchObject({ canRetry: false, message: expect.stringContaining('retry limit') });
+  expect(request).not.toHaveBeenCalled();
+  expect(discard).not.toHaveBeenCalled();
+});

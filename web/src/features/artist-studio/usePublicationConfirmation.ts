@@ -104,7 +104,10 @@ export function usePublicationConfirmation({
   return {
     pending: Boolean(pending),
     confirm: (item: PendingPublication) => {
-      item = { ...item, feedback: { ...item.feedback, operationId: `publication:${item.runtime}:${item.hash}` } };
+      item = {
+        ...item,
+        feedback: { ...item.feedback, operationKind: 'publication', operationId: item.feedback.operationId ?? `publication:${item.runtime}:${item.hash}` }
+      };
       completedOperation.current = null;
       setPending(item);
       setStatus('Making your release visible');

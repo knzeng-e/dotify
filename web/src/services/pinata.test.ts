@@ -373,3 +373,28 @@ describe('backend upload authorization', () => {
     );
   });
 });
+
+it('ends a stalled audio upload with a recoverable message instead of waiting forever', async () => {
+  const { uploadProtectedAudio } = await loadPinataService({ VITE_DOTIFY_API_URL: 'https://api.test/' });
+  sessionMocks.ensureDotifySessionForSigner.mockResolvedValue('artist-session');
+  const deadline = new AbortController();
+  const timeout = vi.spyOn(AbortSignal, 'timeout').mockReturnValue(deadline.signal);
+  const send = vi
+    .spyOn(globalThis, 'fetch')
+    .mockResolvedValueOnce(Response.json({ uploadAuthorization: 'audio-capability' }))
+    .mockImplementationOnce(async (_url, init) => {
+      expect(init?.signal).toBe(deadline.signal);
+      return new Promise<Response>((_resolve, reject) => {
+        init!.signal!.addEventListener('abort', () => reject(deadline.signal.reason), { once: true });
+        queueMicrotask(() => deadline.abort(new DOMException('synthetic stalled connection', 'TimeoutError')));
+      });
+    });
+  await expect(
+    uploadProtectedAudio({ bytes: new Uint8Array([1, 2, 3]), name: 'track.mp3', mime: 'audio/mpeg' }, `0x${'ab'.repeat(32)}`, {
+      chainId: 420420417,
+      signer: { address: `0x${'11'.repeat(20)}`, signMessage: vi.fn() }
+    })
+  ).rejects.toThrow('Your draft is safe');
+  expect(timeout).toHaveBeenCalledWith(5 * 60_000);
+  expect(send).toHaveBeenCalledTimes(2);
+});

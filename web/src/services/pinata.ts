@@ -185,6 +185,7 @@ export async function fetchAssetRef(assetRef: string, options: GatewayReadOption
 // ---------------------------------------------------------------------------
 
 export type BackendUploadErrorBody = {
+  code?: unknown;
   error?: unknown;
   issues?: Array<{
     path?: unknown;
@@ -198,6 +199,18 @@ export type BackendUploadIdentity = {
   walletClient?: WalletClient;
   signer?: KeyRequestSigner;
 };
+
+/** A stalled upload must not leave the publication modal pending forever.
+ * Expiry ends the local wait, not the owned durable job or its ciphertext. */
+async function fetchBackendUpload(url: string, init: RequestInit): Promise<Response> {
+  const signal = AbortSignal.timeout(5 * 60_000);
+  try {
+    return await fetch(url, { ...init, signal });
+  } catch (error) {
+    if (signal.aborted) throw new Error('The upload connection timed out. Your draft is safe. Publish again to check or resume preparation.');
+    throw error;
+  }
+}
 
 type BackendUploadPurpose = 'audio' | 'cover' | 'metadata';
 
@@ -298,10 +311,13 @@ export async function uploadAudioToBackend(rawFile: File, contentHash: string, i
       token = await session();
       if (token) response = await send(token);
     }
-    if (!response.ok)
-      throw Object.assign(new Error(await parseBackendError(response, 'Audio preparation could not be checked. Please try again.')), {
-        status: response.status
+    if (!response.ok) {
+      const body = (await response.json().catch(() => null)) as BackendUploadErrorBody | null;
+      throw Object.assign(new Error(formatBackendUploadError(body, 'Audio preparation could not be checked. Please try again.')), {
+        status: response.status,
+        code: typeof body?.code === 'string' ? body.code : undefined
       });
+    }
     return response.status === 204 ? null : response.json();
   };
   const discard = async (id: string) => {
@@ -344,7 +360,7 @@ export async function uploadAudioToBackend(rawFile: File, contentHash: string, i
   form.append('audio', rawFile, rawFile.name);
   form.append('contentHash', contentHash);
 
-  const res = await fetch(`${API_URL}/api/uploads/audio`, {
+  const res = await fetchBackendUpload(`${API_URL}/api/uploads/audio`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${authorization}` },
     body: form
@@ -389,7 +405,7 @@ export async function uploadCoverToBackend(file: File, identity?: BackendUploadI
   const form = new FormData();
   form.append('cover', file, file.name);
 
-  const res = await fetch(`${API_URL}/api/uploads/cover`, {
+  const res = await fetchBackendUpload(`${API_URL}/api/uploads/cover`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${authorization}` },
     body: form
@@ -415,7 +431,7 @@ export async function uploadMetadataToBackend(manifest: DotifyTrackManifest, ide
   const body = JSON.stringify(manifest);
   const authorization = await requestUploadAuthorization(identity, 'metadata', new TextEncoder().encode(body).byteLength);
 
-  const res = await fetch(`${API_URL}/api/uploads/metadata`, {
+  const res = await fetchBackendUpload(`${API_URL}/api/uploads/metadata`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${authorization}`,

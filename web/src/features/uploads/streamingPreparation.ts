@@ -1,14 +1,21 @@
 export class AudioPreparationError extends Error {
   constructor(
     message: string,
-    readonly discard?: () => Promise<void>
+    readonly discard?: () => Promise<void>,
+    readonly canRetry = true
   ) {
     super(message);
     this.name = 'AudioPreparationError';
   }
 }
 export type AudioPreparationPhase = 'queued' | 'encoding' | 'encrypting' | 'publishing' | 'ready' | 'failed';
-type Job = { id: string; state: AudioPreparationPhase; result?: { ref: string; runtimeAddress: string; contentHash: string; keyVersion: string } };
+type Job = {
+  attempts?: number;
+  failure?: { stage?: string; storageStatus?: number };
+  id: string;
+  state: AudioPreparationPhase;
+  result?: { ref: string; runtimeAddress: string; contentHash: string; keyVersion: string };
+};
 const phases: AudioPreparationPhase[] = ['queued', 'encoding', 'encrypting', 'publishing', 'ready', 'failed'];
 export const AUDIO_PREPARATION_LABELS: Record<AudioPreparationPhase, string> = {
   queued: 'Your music is queued',
@@ -65,21 +72,30 @@ export async function waitForAudioPreparation(input: {
       return job.result;
     }
     if (job.state === 'failed') {
-      if (input.retryFailed) {
+      const canRetry = job.attempts === undefined || job.attempts < 3;
+      if (input.retryFailed && canRetry) {
         input.retryFailed = false;
         try {
           job = (await input.request(id, true)) as Job;
         } catch (error) {
           throw new AudioPreparationError(
             error instanceof Error ? error.message : 'Preparation could not resume.',
-            input.discard ? () => input.discard!(id!) : undefined
+            input.discard ? () => input.discard!(id!) : undefined,
+            (error as { code?: string })?.code !== 'STREAMING_RETRY_LIMIT'
           );
         }
         continue;
       }
       throw new AudioPreparationError(
-        'Audio preparation could not finish. Your upload is saved. Try publishing again to resume.',
-        input.discard ? () => input.discard!(id!) : undefined
+        !canRetry
+          ? 'This preparation has reached its retry limit. Your draft is safe. Remove the failed preparation before trying again.'
+          : job.failure?.stage === 'storage' && job.failure.storageStatus === 403
+            ? 'The storage service is refusing new uploads. Your prepared music is saved. Please try again after the service is restored.'
+            : job.failure?.stage === 'storage'
+              ? 'The storage service could not save your prepared audio. Your upload is saved. Try publishing again to resume.'
+              : 'Audio preparation could not finish. Your upload is saved. Try publishing again to resume.',
+        input.discard ? () => input.discard!(id!) : undefined,
+        canRetry
       );
     }
     if (now() - started > 15 * 60_000) throw new Error('Your music is still being prepared. You can return and resume without uploading it again.');

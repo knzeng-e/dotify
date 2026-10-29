@@ -318,6 +318,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
     Boolean(connectedWallet),
     listKnownRoyaltyRuntimeCandidates(artistTracks, activeEvmAddress, artistRuntimeAddress).map(candidate => candidate.runtimeAddress.toLowerCase())
   ]);
+  const publicationAttemptRef = useRef<object | null>(null);
   const royaltyAttemptRef = useRef<object | null>(null);
   const royaltyRefreshGateRef = useRef<RefreshGate>({ current: null });
   useLayoutEffect(() => {
@@ -842,7 +843,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
   }
 
   async function registerRights() {
-    if (publication.pending) return;
+    if (publication.pending || publicationAttemptRef.current) return;
     if (artistPublicationQuarantined) {
       setRightsStatus('Artist publishing temporarily paused');
       setTransactionFeedback({ tone: 'error', title: 'Artist publishing paused', message: artistPublicationSafety.reason });
@@ -877,9 +878,14 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
       return;
     }
 
+    const attempt = {};
+    publicationAttemptRef.current = attempt;
+    let preparingAssets = true;
+    const operationId = `publication:${crypto.randomUUID()}`;
+    const setPublicationFeedback = (feedback: TransactionFeedback) => setTransactionFeedback({ ...feedback, operationId, operationKind: 'publication' });
     setIsRegistering(true);
     let publicationStage: ReleasePublicationStage = 'assets';
-    setTransactionFeedback({
+    setPublicationFeedback({
       tone: 'pending',
       title: 'Preparing your release',
       message: 'Dotify is checking your music and the choices you reviewed. Nothing is published yet.',
@@ -902,7 +908,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
         setRightsStatus('Checking artist registration');
         const resolvedRuntime = await refreshArtistRuntime();
         if (!resolvedRuntime) {
-          setTransactionFeedback({
+          setPublicationFeedback({
             tone: 'error',
             title: 'Artist space required',
             message: 'Create your artist space first, then return to publish this release.',
@@ -916,7 +922,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
 
       setRightsStatus('Preparing your music…');
       publicationStage = 'assets';
-      setTransactionFeedback({
+      setPublicationFeedback({
         tone: 'pending',
         title: 'Preparing your music',
         message: 'Dotify is protecting the audio and preparing the cover.',
@@ -934,9 +940,13 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
           ? uploadProtectedAudio({ bytes: rawAudioBytes, name: title || 'audio', mime: rawAudioBlob?.type ?? '' }, fileHash, {
               ...uploadIdentity!,
               onAudioPreparation: phase => {
+                // A sibling cover upload can fail while this durable job keeps
+                // running. Late progress must never erase a terminal error or
+                // take ownership of a newer publication attempt.
+                if (!preparingAssets || publicationAttemptRef.current !== attempt) return;
                 const message = AUDIO_PREPARATION_LABELS[phase];
                 setRightsStatus(message);
-                setTransactionFeedback({
+                setPublicationFeedback({
                   tone: 'pending',
                   title: 'Preparing your music',
                   message,
@@ -954,8 +964,9 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
           publicationRuntimeAddress: runtimeAddress,
           canRetry: Boolean(rawAudioBytes),
           onBeforeRetry: () => {
+            if (!preparingAssets || publicationAttemptRef.current !== attempt) return;
             setRightsStatus('Artist space changed; preparing audio again');
-            setTransactionFeedback({
+            setPublicationFeedback({
               tone: 'pending',
               title: 'Refreshing protected audio',
               message: 'The prepared audio belongs to another artist space, so Dotify is preparing it again before publication.',
@@ -970,6 +981,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
         )
       ]);
 
+      preparingAssets = false;
       const resolvedAudioRef = resolvedAudioUpload ? protectedAudioUploadToRef(resolvedAudioUpload) : '';
       if (!resolvedAudioRef.trim()) {
         throw new Error('Audio upload did not complete. Select the audio file again and retry.');
@@ -988,7 +1000,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
 
       setRightsStatus('Saving release details…');
       publicationStage = 'manifest';
-      setTransactionFeedback({
+      setPublicationFeedback({
         tone: 'pending',
         title: 'Saving release details',
         message: 'Dotify is saving the listening and support choices attached to this release.',
@@ -1014,7 +1026,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
           recordArtistPublishTrackRegistration();
           recordArtistPublishTransactionFailure();
           setRightsStatus('Waiting for your approval to confirm');
-          setTransactionFeedback({
+          setPublicationFeedback({
             tone: 'pending',
             title: 'Waiting for confirmation',
             message: 'Your approval was submitted. Dotify is waiting for confirmation.',
@@ -1067,7 +1079,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
         registrationTransactionConfirmed = true;
         publicationStage = 'catalog';
         setRightsStatus('Checking that the release is visible');
-        setTransactionFeedback({
+        setPublicationFeedback({
           tone: 'pending',
           title: 'Checking your release',
           message: 'Your approval is confirmed. Dotify is checking the catalog before calling the release published.',
@@ -1080,6 +1092,8 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
           runtime: targetRuntimeAddress,
           hash: fileHash,
           feedback: {
+            operationId,
+            operationKind: 'publication',
             tone: 'pending',
             title: 'Making your release visible',
             message: '',
@@ -1096,7 +1110,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
           const message =
             'Bulletin archival requires a Substrate signer. Disable the Bulletin archival option unless you are using a local development signer.';
           setRightsStatus(message);
-          setTransactionFeedback({
+          setPublicationFeedback({
             tone: 'error',
             title: 'Bulletin signer missing',
             message,
@@ -1108,7 +1122,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
 
         const manifestPayload = encodeBulletinJson(manifest);
         setRightsStatus('Checking Bulletin authorization for metadata JSON');
-        setTransactionFeedback({
+        setPublicationFeedback({
           tone: 'pending',
           title: 'Authorizing Bulletin upload',
           message: 'Checking whether the selected Bulletin account can publish this manifest.',
@@ -1119,7 +1133,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
         if (!authorized) {
           const message = 'Bulletin account is not authorized';
           setRightsStatus(message);
-          setTransactionFeedback({
+          setPublicationFeedback({
             tone: 'error',
             title: 'Bulletin upload blocked',
             message,
@@ -1130,7 +1144,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
         }
 
         setRightsStatus('Publishing metadata JSON to Bulletin Chain');
-        setTransactionFeedback({
+        setPublicationFeedback({
           tone: 'pending',
           title: 'Publishing manifest',
           message: 'Writing the compact rights manifest to Bulletin Chain.',
@@ -1143,7 +1157,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
 
       if (!factoryAddress || !directoryAddress) {
         setRightsStatus('Rights staged');
-        setTransactionFeedback({
+        setPublicationFeedback({
           tone: 'success',
           title: 'Release prepared',
           message: 'The release draft is ready, but the publishing service must be configured before it can become visible.',
@@ -1154,7 +1168,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
       }
 
       setRightsStatus('Checking the publishing service');
-      setTransactionFeedback({
+      setPublicationFeedback({
         tone: 'pending',
         title: 'Checking publishing service',
         message: 'Dotify is checking that publication is available before asking for approval.',
@@ -1164,7 +1178,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
       const factoryExists = await runtimeReader.ensureContract(factoryAddress);
       if (!factoryExists) {
         setRightsStatus('Publishing service unavailable');
-        setTransactionFeedback({
+        setPublicationFeedback({
           tone: 'error',
           title: 'Publishing service unavailable',
           message: 'Dotify cannot reach the publishing service. Try again later or ask the host operator to check Advanced.',
@@ -1176,7 +1190,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
 
       if (!runtimeAddress) {
         setRightsStatus('Artist space missing');
-        setTransactionFeedback({
+        setPublicationFeedback({
           tone: 'error',
           title: 'Artist space missing',
           message: 'Create your artist space before publishing a release.',
@@ -1193,7 +1207,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
 
       setRightsStatus('Waiting for publication approval');
       publicationStage = 'registry';
-      setTransactionFeedback({
+      setPublicationFeedback({
         tone: 'pending',
         title: 'Approve publication',
         message: 'Review the publication in your account. Dotify will only call the release published after it appears in the catalog.',
@@ -1219,7 +1233,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
       submittedRegistrationTxHash = txHash;
 
       setRightsStatus('Waiting for your approval to confirm');
-      setTransactionFeedback({
+      setPublicationFeedback({
         tone: 'pending',
         title: 'Waiting for confirmation',
         message: 'Your approval was submitted. Dotify is waiting for confirmation.',
@@ -1231,7 +1245,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
       registrationTransactionConfirmed = true;
       publicationStage = 'catalog';
       setRightsStatus('Checking that the release is visible');
-      setTransactionFeedback({
+      setPublicationFeedback({
         tone: 'pending',
         title: 'Checking your release',
         message: 'Your approval is confirmed. Dotify is checking the catalog before calling the release published.',
@@ -1244,6 +1258,8 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
         runtime: targetRuntimeAddress,
         hash: fileHash,
         feedback: {
+          operationId,
+          operationKind: 'publication',
           tone: 'pending',
           title: 'Making your release visible',
           message: '',
@@ -1254,37 +1270,47 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
         }
       });
     } catch (registrationError) {
+      preparingAssets = false;
       const message = registrationError instanceof Error ? registrationError.message : 'Registration failed';
       setRightsStatus(message);
-      setTransactionFeedback({
+      setPublicationFeedback({
         tone: 'error',
         title: 'Publication needs attention',
-        ...(registrationError instanceof AudioPreparationError && registrationError.discard && !submittedRegistrationTxHash
+        ...(registrationError instanceof AudioPreparationError && !submittedRegistrationTxHash && registrationError.canRetry
           ? {
               recoveryAction: {
-                label: 'Discard failed preparation',
+                label: 'Retry preparation',
                 run: () => {
-                  void registrationError.discard!()
-                    .then(() => {
-                      audioUploadRef.current = null;
-                      setRightsStatus('Ready to prepare your music again');
-                      setTransactionFeedback({
-                        tone: 'success',
-                        title: 'Ready to try again',
-                        message: 'Your release draft is unchanged. Publish again to prepare your music.'
-                      });
-                    })
-                    .catch(() =>
-                      setTransactionFeedback({
-                        tone: 'error',
-                        title: 'Preparation is still saved',
-                        message: 'The failed preparation could not be removed. Reconnect your artist account and try again.'
-                      })
-                    );
+                  void registerRights();
                 }
               }
             }
-          : {}),
+          : registrationError instanceof AudioPreparationError && registrationError.discard && !submittedRegistrationTxHash
+            ? {
+                recoveryAction: {
+                  label: 'Discard failed preparation',
+                  run: () => {
+                    void registrationError.discard!()
+                      .then(() => {
+                        audioUploadRef.current = null;
+                        setRightsStatus('Ready to prepare your music again');
+                        setPublicationFeedback({
+                          tone: 'success',
+                          title: 'Ready to try again',
+                          message: 'Your release draft is unchanged. Publish again to prepare your music.'
+                        });
+                      })
+                      .catch(() =>
+                        setPublicationFeedback({
+                          tone: 'error',
+                          title: 'Preparation is still saved',
+                          message: 'The failed preparation could not be removed. Reconnect your artist account and try again.'
+                        })
+                      );
+                  }
+                }
+              }
+            : {}),
         message: buildReleaseRegistrationFailureMessage({
           error: message,
           submittedTxHash: submittedRegistrationTxHash,
@@ -1295,6 +1321,8 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
         steps: buildReleasePublicationRoadmap(registrationTransactionConfirmed ? 'catalog' : publicationStage, submittedRegistrationTxHash)
       });
     } finally {
+      preparingAssets = false;
+      if (publicationAttemptRef.current === attempt) publicationAttemptRef.current = null;
       setIsRegistering(false);
     }
   }
