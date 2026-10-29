@@ -3,6 +3,11 @@
 Refs #288/#287. Follows [the read-only study](https://github.com/knzeng-e/dotify/pull/353).
 Status: isolated implementation, not activated. Production remains on Pinata.
 
+The later [manual network canary](bulletin-network-canary-2026-10-29.md) adds
+finalized live lookup, bounded local signing and raw CID readback. The original
+offline results and limits below describe implementation `e96ff895`; they do not
+claim that its simulated transport itself talks to the network.
+
 ## What is implemented
 
 The [prototype](../../../../research/bulletin-prototype/README.md) builds a real
@@ -52,7 +57,7 @@ No production frontend/API test is claimed to establish native Bulletin support.
 
 ## Boundaries and next gate
 
-All storage, finality, quota and expiry are an **in-memory model**, not a Bulletin
+At the initial offline checkpoint, storage, finality, quota and expiry were an **in-memory model**, not a Bulletin
 node. Test patterns are not valid AAC. Measurements do not establish network
 speed, live authorization behavior, audible first sound, capacity or cost.
 The model does not emulate the complete pallet economics. There are no network

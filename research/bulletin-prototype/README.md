@@ -7,8 +7,9 @@ Pinata, the deployed player and native permissions remain unchanged.
 This implementation builds a real named UnixFS directory with SHA-256/raw and
 DAG-PB blocks. It uses the existing Dotify v3 encryptor, durable nonce reservation,
 manifest validation and AEAD decoder on public synthetic byte patterns. The
-patterns are not AAC and do not contain artist music. A random temporary key
-is used only inside the fixture and wiped at the end; it is never checkpointed.
+patterns are not AAC and do not contain artist music. Offline tests use a random temporary key, wiped at the end and never
+checkpointed. The separate operator canary retains its synthetic key in a
+private local file for later verification; it never uploads that key.
 The directory root is built with this experiment's explicit UnixFS settings.
 Preserving its block CIDs does not prove equality with Pinata's existing import
 settings or migration of an already-published directory.
@@ -69,9 +70,9 @@ submission or renewal requires explicit chain reconciliation. These deliberate
 limits must be resolved before production integration, not inferred from a
 green local test.
 
-## Network canary gate
+## Network canary
 
-The local results provide exact graph bytes/block count for a future canary.
+The local results provide exact graph bytes/block count for the bounded canary.
 Before any live write, explicitly select a user-owned authorized account,
 verify its signer/account and the pinned DevNet genesis, and approve the graph's
 storage plus one-cycle quota budget. The owner has chosen to reuse the DotNS
@@ -81,9 +82,60 @@ key in the frontend or a backend worker, and do not change the DotNS record.
 Do not use the public deployment pool for media. A separate storage account is
 recommended for unattended production renewal so it cannot control the domain;
 it is not a Bulletin requirement for this manual test.
-Build the missing live lookup/authorization/renewal transport against finalized
-state, including pending transaction/request reconciliation; the simulation is
-not that transport.
+`live-transport.mjs` implements finalized authorization/lookup checks with PAPI
+3.3.0 and raw retrieval through the official node's `bitswap_v1_get` RPC. CID
+hash, codec, size and retention must agree with metadata at the same pinned
+finalized head. Reads time out and cannot fall back to uploads. The signer is
+supplied locally through a file descriptor, verified against the selected
+account; no environment secret is read automatically. Tests/CI never run this
+network command. `canary.mjs` adds a cross-process exclusive operator lock and
+persists one immutable synthetic ciphertext graph independently of receipts.
+It refuses to overwrite or re-encrypt an existing fixture.
+
+Prepare and preflight without a signer:
+
+```sh
+npm run canary --prefix research/bulletin-prototype -- prepare /private/tmp/dotify-bulletin-canary
+npm run canary --prefix research/bulletin-prototype -- check /private/tmp/dotify-bulletin-canary
+```
+
+For the reviewed owner-authorized canary only, use a local signer pipe on
+FD 3. Never place the phrase in an argument, tracked file, command output or CI.
+For example, in zsh after the owner has temporarily activated the local signer:
+
+```zsh
+# Keep shell tracing off. Always remove the temporary local signer afterward.
+trap 'launchctl unsetenv MNEMONIC' EXIT
+npm run canary --prefix research/bulletin-prototype -- publish /private/tmp/dotify-bulletin-canary --signer-fd 3 3< <(launchctl getenv MNEMONIC)
+# Same graph, fresh process: should reuse all 19 receipts with no new write.
+npm run canary --prefix research/bulletin-prototype -- publish /private/tmp/dotify-bulletin-canary --signer-fd 3 3< <(launchctl getenv MNEMONIC)
+npm run canary --prefix research/bulletin-prototype -- verify /private/tmp/dotify-bulletin-canary
+npm run canary --prefix research/bulletin-prototype -- renew-now /private/tmp/dotify-bulletin-canary --signer-fd 3 3< <(launchctl getenv MNEMONIC)
+npm run canary --prefix research/bulletin-prototype -- verify /private/tmp/dotify-bulletin-canary
+```
+
+The canary is capped at 1 MiB of stored ciphertext and 40 attempted transactions
+per session; this fixed graph plans 19 stores plus 19 one-off immediate renewals.
+`renew-now` uses `forceRenew`, not `renew` (which only registers a request for the
+retention boundary) or recurring auto-renewal. Every dependency must show a later
+finalized position, extended expiry and readable bytes before retention is
+reported verified. This exercises immediate renewal, not a two-week soak.
+
+The private directory contains `key.bin`, ciphertext, the nonce ledger and public
+receipts. Never commit/upload it; preserve it to resume the exact graph. Abrupt
+termination leaves `operator.lock` and possibly a pending submission. First prove
+the recorded process is stopped, inspect finalized lookup and receipts, then
+remove only the stale lock to resume. Do not erase a pending submission or nonce
+ledger to force a retry. Unknown writes remain blocked unless finalized lookup
+finds the expected block. No automatic stale-lock takeover or uncertain resend
+is implemented. JavaScript buffers are cleared where practical, not guaranteed
+secure memory erasure of SDK-internal or immutable string copies.
+
+The isolated dependency audit currently reports high-severity `deepmerge-ts`
+recursive-merge exhaustion through PAPI's CLI chain, and a moderate esbuild dev
+server advisory through tsx. This tool uses neither that CLI nor a dev server;
+no production dependency is changed. These advisories and the experimental SDK
+still require review before any production integration.
 
 Then verify Web and physical Product raw-CID retrieval, byte/AEAD equality,
 real decodable audio, cold first sound and continuity against the current
