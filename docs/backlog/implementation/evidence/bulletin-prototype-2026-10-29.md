@@ -87,3 +87,11 @@ finalized head observed alongside the query was block 1,419,372. This is an
 eligibility observation, not a failed upload or an authorization grant. The same
 account can be used once authorized with sufficient quota; no new wallet is
 required. No signer was loaded, transaction submitted or DotNS record changed.
+
+After the owner granted authorization through the console, a second read-only
+check at 19:21 UTC on the same pinned genesis observed an active allowance:
+100 transactions and 10,485,760 bytes, all unused, expiring at block 1,621,405
+(finalized head observed: 1,419,818). This covers the local fixture's planned
+19 stores and one modeled 19-request renewal cycle. It clears only the account
+eligibility gate: no content was uploaded and live transport/readback/retention
+acceptance remains outstanding. No signer was loaded for either check.
