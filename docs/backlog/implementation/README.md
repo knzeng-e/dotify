@@ -28,8 +28,10 @@ publication custody. See [W36 evidence](evidence/W36.md) and the
 now records approved Fly infrastructure, migration, two-edge session/restart
 evidence and the private-custody boundary. Physical acceptance remains open. [W37/#292 evidence](evidence/W37.md)
 records bounded, resumable catalog indexing and synthetic load verification.
-W38 contract bounds remain the next implementation after the owner tests the
-combined deployment; this release does not start W38.
+On October 28, the owner selected W38 and confirmed that internal runtimes will
+be redeployed from scratch. [W38 evidence](evidence/W38.md) records the implemented
+bounds and paged readers, ready for review. Activation requires a coordinated
+fresh contract/API/Web/Product generation; no retired-runtime fallback is kept.
 
 
 ## Owner priority update: trusted pilot and streaming track, 2026-10-16

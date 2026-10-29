@@ -62,8 +62,9 @@ it('shares one RPC budget across nested track/split reads and pins every read to
       calls++;
       await new Promise(resolve => setImmediate(resolve));
       active--;
-      if (functionName === 'musicRegTrackCount' || functionName === 'musicRoySplitCount') return 20n;
-      if (functionName === 'musicRegTrackHashAtIndex') return hash;
+      if (functionName === 'musicRegTrackCount') return 20n;
+      if (functionName === 'musicRoySplitCount') return 16n;
+      if (functionName === 'musicRegTrackHashesPage') return Array(20).fill(hash);
       if (functionName === 'musicRoySplitAt') return [runtime, 500];
       if (functionName === 'musicRegGetTrack')
         return [
@@ -96,6 +97,60 @@ it('shares one RPC budget across nested track/split reads and pins every read to
   ]);
   assert.equal(hashes.length, 20);
   assert.equal(releases.length, 8);
-  assert.equal(calls, 197);
+  assert.equal(calls, 146);
   assert.equal(peak, 8);
+});
+
+it('reads 205 hashes in three bounded pages at one checkpoint', async () => {
+  const runtime = '0x0000000000000000000000000000000000000001' as const;
+  const hashes = Array.from({ length: 205 }, (_, i) => `0x${(i + 1).toString(16).padStart(64, '0')}`);
+  const pages: unknown[] = [];
+  const client = {
+    readContract: async ({ functionName, args, blockNumber }: { functionName: string; args: bigint[]; blockNumber: bigint }) => {
+      assert.equal(blockNumber, 100n);
+      if (functionName === 'musicRegTrackCount') return 205n;
+      assert.equal(functionName, 'musicRegTrackHashesPage');
+      pages.push(args);
+      return hashes.slice(Number(args[0]), Number(args[0] + args[1]));
+    }
+  } as unknown as PublicClient;
+  const gateway = new ViemCatalogChainGateway({ rpcUrl: 'https://example.invalid', chainId: 42, directoryAddress: runtime, client });
+  assert.deepEqual(await gateway.listTrackHashes(runtime, 100), hashes);
+  assert.deepEqual(pages, [
+    [0n, 100n],
+    [100n, 100n],
+    [200n, 5n]
+  ]);
+});
+
+it('does not amplify a failing page into legacy per-track requests', async () => {
+  const runtime = '0x0000000000000000000000000000000000000001' as const;
+  for (const failure of ['musicRegTrackHashesPage']) {
+    const client = {
+      readContract: async ({ functionName }: { functionName: string }) => {
+        if (functionName === 'musicRegTrackCount') return 200n;
+        if (functionName === failure) throw new Error('RPC unavailable');
+        assert.fail('No legacy fallback on an ambiguous error');
+      }
+    } as unknown as PublicClient;
+    const gateway = new ViemCatalogChainGateway({ rpcUrl: 'https://example.invalid', chainId: 42, directoryAddress: runtime, client });
+    await assert.rejects(gateway.listTrackHashes(runtime, 100), /RPC unavailable/);
+  }
+});
+
+it('rejects excessive splits and UTF-8 metadata before requesting any split entries', async () => {
+  const runtime = '0x0000000000000000000000000000000000000001' as const;
+  const hash = `0x${'11'.repeat(32)}` as const;
+  for (const excess of ['splits', 'title']) {
+    const client = {
+      readContract: async ({ functionName }: { functionName: string }) => {
+        if (functionName === 'musicRoySplitCount') return excess === 'splits' ? 17n : 1n;
+        if (functionName === 'musicRegGetTrack')
+          return [{ title: 'é'.repeat(401), artistName: 'A', description: '', imageRef: '', audioRef: '', metadataRef: '', artistContractRef: '' }, runtime];
+        assert.fail('No split enumeration for an out-of-bounds release');
+      }
+    } as unknown as PublicClient;
+    const gateway = new ViemCatalogChainGateway({ rpcUrl: 'https://example.invalid', chainId: 42, directoryAddress: runtime, client });
+    await assert.rejects(gateway.readRelease(runtime, runtime, hash, 100), excess === 'splits' ? /16-recipient/ : /title byte/);
+  }
 });

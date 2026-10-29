@@ -300,3 +300,96 @@ describe('CatalogReadModel', () => {
     assert.equal(metadata.lastErrorCode, 'CATALOG_INDEXER_UNAVAILABLE');
   });
 });
+
+it('isolates deterministic oversized releases, persists reasons, restores corrections and never swallows RPC errors', async () => {
+  const { CatalogBoundsError } = await import('./bounds.js');
+  const gateway = new FakeGateway(),
+    store = new MemoryStore();
+  const badHash = `0x${'44'.repeat(32)}` as const;
+  let bad = true,
+    unavailable = false;
+  gateway.listTrackHashes = async () => [HASH, badHash];
+  gateway.readRelease = (async (_artist: string, _runtime: string, contentHash: string) => {
+    if (unavailable) throw new Error('RPC timeout');
+    if (contentHash === badHash && bad) throw new CatalogBoundsError('title byte limit');
+    return release({ id: `${RUNTIME}:${contentHash}`, hash: contentHash });
+  }) as typeof gateway.readRelease;
+  const catalog = model(gateway, store);
+  await catalog.sync();
+  assert.equal(catalog.getSnapshot()?.releases.length, 1);
+  assert.equal(store.snapshot?.excludedReleases?.[0]?.reason, 'title byte limit');
+  assert.equal(catalog.getMetadata().excludedReleaseCount, 1);
+  const revision = catalog.getRevision();
+  bad = false;
+  gateway.head++;
+  gateway.changes = { directoryChanged: false, releases: [{ runtimeAddress: RUNTIME, contentHash: badHash, sourceBlock: 11 }] };
+  await catalog.sync();
+  assert.equal(catalog.getSnapshot()?.releases.length, 2);
+  assert.equal(catalog.getSnapshot()?.excludedReleases?.length, 0);
+  assert.notEqual(catalog.getRevision(), revision);
+  bad = true;
+  gateway.head++;
+  await catalog.sync();
+  assert.equal(catalog.getSnapshot()?.releases.length, 1);
+  assert.equal(store.snapshot?.excludedReleases?.length, 1);
+  const checkpoint = catalog.getSnapshot()?.lastIndexedBlock;
+  unavailable = true;
+  gateway.head++;
+  await assert.rejects(catalog.sync(), /RPC timeout/);
+  assert.equal(catalog.getSnapshot()?.lastIndexedBlock, checkpoint);
+});
+
+it('reconciles an entirely excluded runtime after restart and restores eventless corrections', async t => {
+  const { CatalogBoundsError } = await import('./bounds.js');
+  const gateway = new FakeGateway();
+  const store = new MemoryStore();
+  const emptyRuntime = '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' as const;
+  gateway.artists.push({ artistAddress: ARTIST, runtimeAddress: emptyRuntime });
+  const enumerated: string[] = [];
+  gateway.listTrackHashes = (async (runtime: string) => {
+    enumerated.push(runtime);
+    return runtime === emptyRuntime ? [] : [HASH];
+  }) as typeof gateway.listTrackHashes;
+  let oversized = true;
+  gateway.readRelease = async () => {
+    if (oversized) throw new CatalogBoundsError('title byte limit');
+    return release();
+  };
+  let time = Date.parse('2026-10-29T12:00:00Z');
+  const now = () => new Date(time);
+  const initial = model(gateway, store, now);
+  await initial.sync();
+  assert.equal(
+    initial.getSnapshot()?.artists.every(artist => artist.releaseCount === 0),
+    true
+  );
+  assert.equal(initial.getMetadata().excludedReleaseCount, 1);
+  assert.deepEqual(enumerated.sort(), [RUNTIME, emptyRuntime].sort());
+  const exclusions = structuredClone(store.snapshot!.excludedReleases);
+  const revision = initial.getRevision();
+
+  // Persisted exclusions must survive normal scheduled reconciliation, including
+  // after a process restart. Truly empty runtimes should still avoid extra RPCs.
+  const restarted = model(gateway, store, now);
+  t.after(() => restarted.stop());
+  enumerated.length = 0;
+  time += 300_000;
+  await restarted.start();
+  await restarted.sync();
+  assert.deepEqual(enumerated, [RUNTIME]);
+  assert.deepEqual(store.snapshot?.excludedReleases, exclusions);
+  assert.equal(restarted.getMetadata().excludedReleaseCount, 1);
+  assert.equal(restarted.getRevision(), revision);
+
+  // An artist-owned module can correct its data without a recognized event.
+  // Periodic reconciliation must discover it rather than treating it as empty.
+  oversized = false;
+  enumerated.length = 0;
+  time += 300_000;
+  await restarted.sync();
+  assert.deepEqual(enumerated, [RUNTIME]);
+  assert.equal(store.snapshot?.releases.length, 1);
+  assert.deepEqual(store.snapshot?.excludedReleases, []);
+  assert.equal(restarted.getMetadata().excludedReleaseCount, undefined);
+  assert.notEqual(restarted.getRevision(), revision);
+});

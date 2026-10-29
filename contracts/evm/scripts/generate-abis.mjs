@@ -46,6 +46,12 @@ for (const { exportName, file, artifact } of CONTRACTS) {
   }
   const body = `${HEADER}\n// Source: contracts/evm/artifacts/contracts/${artifact}\n\nexport const ${exportName} = ${JSON.stringify(parsed.abi, null, 2)} as const;\n`;
   writeFileSync(resolve(outDir, `${file}.ts`), body);
+  if (file === 'musicRegistry') {
+    const serverDir = resolve(scriptDir, '../../../services/api/src/generated');
+    mkdirSync(serverDir, { recursive: true });
+    const page = parsed.abi.filter(item => item.name === 'musicRegTrackHashesPage');
+    writeFileSync(resolve(serverDir, 'musicRegistryPage.ts'), `${HEADER}\n\nexport const musicRegistryPageAbi = ${JSON.stringify(page, null, 2)} as const;\n`);
+  }
   if (file === 'musicRoyalties') {
     const serverDir = resolve(scriptDir, '../../../services/api/src/generated');
     mkdirSync(serverDir, { recursive: true });

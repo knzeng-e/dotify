@@ -1,3 +1,4 @@
+import { CatalogBoundsError } from './bounds.js';
 import { createHash } from 'node:crypto';
 import { catalogContent } from './content.js';
 import { mapConcurrent } from './concurrency.js';
@@ -146,6 +147,7 @@ export class CatalogReadModel {
       chainHeadBlock: snapshot?.chainHeadBlock ?? null,
       blockLag,
       staleAfterMs: this.staleAfterMs,
+      ...(snapshot?.excludedReleases?.length ? { excludedReleaseCount: snapshot.excludedReleases.length } : {}),
       lastErrorCode: this.failure?.kind === 'indexer' ? 'CATALOG_INDEXER_UNAVAILABLE' : this.failure?.kind === 'rpc' ? 'CHAIN_RPC_UNAVAILABLE' : null
     };
   }
@@ -199,7 +201,15 @@ export class CatalogReadModel {
         next = await commit({ ...(await this.applyEvents(next, to, chainHeadBlock)), catchingUp: to < safeHeadBlock });
       }
       if (this.now().getTime() - Date.parse(next.reconciledAt) >= this.reconcileIntervalMs) {
-        const empty = new Set(next.artists.filter(artist => artist.releaseCount === 0).map(artist => artist.runtimeAddress.toLowerCase()));
+        // releaseCount covers accepted releases only. An entirely excluded
+        // runtime still needs reconciliation to retain diagnostics and discover
+        // corrections made without a recognized release event.
+        const excludedRuntimes = new Set((next.excludedReleases ?? []).map(release => release.id.split(':', 1)[0].toLowerCase()));
+        const empty = new Set(
+          next.artists
+            .filter(artist => artist.releaseCount === 0 && !excludedRuntimes.has(artist.runtimeAddress.toLowerCase()))
+            .map(artist => artist.runtimeAddress.toLowerCase())
+        );
         next = await commit(await this.reindex(safeHeadBlock, chainHeadBlock, empty));
       } else if (next === current) {
         next = await commit({ ...current, chainHeadBlock, indexedAt: this.now().toISOString() });
@@ -251,11 +261,11 @@ export class CatalogReadModel {
       hashes: knownEmpty.has(artist.runtimeAddress.toLowerCase()) ? [] : await gateway.listTrackHashes(artist.runtimeAddress, safeHeadBlock)
     }));
     const work = hashes.flatMap(({ artist, hashes }) => hashes.map(hash => ({ artist, hash })));
-    const releases = sortReleases(
-      await mapConcurrent(work, this.readConcurrency, ({ artist, hash }) =>
-        gateway.readRelease(artist.artistAddress, artist.runtimeAddress, hash, safeHeadBlock)
-      )
+    const results = await mapConcurrent(work, this.readConcurrency, ({ artist, hash }) =>
+      this.readBoundedRelease(artist.artistAddress, artist.runtimeAddress, hash, safeHeadBlock)
     );
+    const releases = sortReleases(results.flatMap(result => (result.release ? [result.release] : [])));
+    const excludedReleases = results.flatMap(result => (result.excluded ? [result.excluded] : []));
     const checkpointHash = await gateway.getBlockHash(safeHeadBlock);
     if (checkpointHash.toLowerCase() !== expectedHash.toLowerCase()) throw new Error('Catalog checkpoint changed during indexing');
     const indexedAt = this.now().toISOString();
@@ -269,6 +279,7 @@ export class CatalogReadModel {
       chainHeadBlock,
       indexedAt,
       reconciledAt: indexedAt,
+      excludedReleases,
       artists: buildArtists(directoryArtists, releases),
       releases
     };
@@ -293,8 +304,8 @@ export class CatalogReadModel {
     const changedReleases = await mapConcurrent(changes.releases, this.readConcurrency, async change => {
       const artistAddress = artistByRuntime.get(change.runtimeAddress.toLowerCase());
       if (!artistAddress) throw new Error('Catalog change references an unknown runtime');
-      const release = await gateway.readRelease(artistAddress as `0x${string}`, change.runtimeAddress, change.contentHash, safeHeadBlock);
-      return { ...release, sourceBlock: change.sourceBlock };
+      const result = await this.readBoundedRelease(artistAddress as `0x${string}`, change.runtimeAddress, change.contentHash, safeHeadBlock);
+      return { ...result, release: result.release ? { ...result.release, sourceBlock: change.sourceBlock } : undefined };
     });
 
     if (await this.checkpointChanged(current)) throw new Error('Catalog checkpoint changed during event replay');
@@ -309,8 +320,15 @@ export class CatalogReadModel {
         indexedAt: this.now().toISOString()
       };
     const releasesById = new Map(current.releases.map(release => [release.id.toLowerCase(), release]));
-    for (const release of changedReleases) {
-      releasesById.set(release.id.toLowerCase(), release);
+    const excluded = new Map((current.excludedReleases ?? []).map(item => [item.id.toLowerCase(), item]));
+    for (const result of changedReleases) {
+      if (result.release) {
+        releasesById.set(result.release.id.toLowerCase(), result.release);
+        excluded.delete(result.release.id.toLowerCase());
+      } else if (result.excluded) {
+        releasesById.delete(result.excluded.id.toLowerCase());
+        excluded.set(result.excluded.id.toLowerCase(), result.excluded);
+      }
     }
     const releases = sortReleases([...releasesById.values()]);
     const directoryArtists: DirectoryArtist[] = current.artists.map(artist => ({
@@ -322,6 +340,7 @@ export class CatalogReadModel {
 
     return {
       ...current,
+      excludedReleases: [...excluded.values()],
       lastIndexedBlock: safeHeadBlock,
       lastIndexedBlockHash: checkpointHash,
       chainHeadBlock,
@@ -329,6 +348,23 @@ export class CatalogReadModel {
       artists: buildArtists(directoryArtists, releases),
       releases
     };
+  }
+
+  private async readBoundedRelease(
+    artist: `0x${string}`,
+    runtime: `0x${string}`,
+    hash: `0x${string}`,
+    block: number
+  ): Promise<{
+    release?: CatalogRelease;
+    excluded?: { id: string; reason: string };
+  }> {
+    try {
+      return { release: await this.gateway!.readRelease(artist, runtime, hash, block) };
+    } catch (error) {
+      if (!(error instanceof CatalogBoundsError)) throw error;
+      return { excluded: { id: `${runtime}:${hash}`, reason: error.reason } };
+    }
   }
 
   private matchesGateway(snapshot: CatalogSnapshot): boolean {

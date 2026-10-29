@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only WITH Classpath-exception-2.0
 pragma solidity ^0.8.28;
 
+import { LibMusicBounds } from '../libraries/LibMusicBounds.sol';
 import { LibMusicRegistry } from '../libraries/LibMusicRegistry.sol';
 
 /// @notice Artist corrections to an existing work's public presentation.
@@ -19,9 +20,9 @@ contract MusicMetadataPallet {
     LibMusicRegistry.requireExists(rs, contentHash);
     LibMusicRegistry.TrackRecord storage track = rs.tracks[contentHash];
     require(track.artist == msg.sender, 'MusicRegistry: not artist');
-    require(bytes(title).length > 0 && bytes(title).length <= 800, 'MusicRegistry: invalid title');
-    require(bytes(description).length <= 8000, 'MusicRegistry: story too long');
-    require(bytes(metadataRef).length > 0 && bytes(metadataRef).length <= 512, 'MusicRegistry: invalid metadata');
+    require(bytes(title).length > 0 && bytes(title).length <= LibMusicBounds.TITLE_BYTES, 'MusicRegistry: invalid title');
+    require(bytes(description).length <= LibMusicBounds.DESCRIPTION_BYTES, 'MusicRegistry: story too long');
+    require(bytes(metadataRef).length > 0 && bytes(metadataRef).length <= LibMusicBounds.REFERENCE_BYTES, 'MusicRegistry: invalid metadata');
     require(keccak256(bytes(track.metadataRef)) == keccak256(bytes(expectedMetadataRef)), 'MusicRegistry: metadata changed');
     track.title = title;
     track.description = description;

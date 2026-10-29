@@ -233,9 +233,15 @@ export function createProductCdmRuntimeReader(deps: ProductCdmRuntimeAdapterDeps
       const trackCount = toBigInt(await queryContract<bigint | number | string>(runtime, 'musicRegTrackCount'));
       const trackTotal = assertBoundedCount(trackCount, MAX_RUNTIME_TRACKS, `Runtime ${runtimeAddress}`);
 
+      const hashes: Hash[] = [];
+      for (let offset = 0; offset < trackTotal; offset += 100) {
+        const limit = Math.min(100, trackTotal - offset);
+        const page = await queryContract<Hash[]>(runtime, 'musicRegTrackHashesPage', [BigInt(offset), BigInt(limit)]);
+        if (page.length !== limit) throw new Error('The artist catalog returned an incomplete page. Try again.');
+        hashes.push(...page);
+      }
       return Promise.all(
-        Array.from({ length: trackTotal }, async (_, index): Promise<RuntimeTrackSnapshot> => {
-          const hash = await queryContract<Hash>(runtime, 'musicRegTrackHashAtIndex', [BigInt(index)]);
+        hashes.map(async (hash): Promise<RuntimeTrackSnapshot> => {
           const trackResult = await queryContract<OnchainTrackRecord | { track: OnchainTrackRecord; tokenOwner: Address } | [OnchainTrackRecord, Address]>(
             runtime,
             'musicRegGetTrack',

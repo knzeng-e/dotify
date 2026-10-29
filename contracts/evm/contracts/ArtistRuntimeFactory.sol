@@ -221,7 +221,7 @@ contract ArtistRuntimeFactory {
   }
 
   function _musicRegistrySelectors() private pure returns (bytes4[] memory selectors) {
-    selectors = new bytes4[](10);
+    selectors = new bytes4[](11);
     selectors[0] = MusicRegistryPallet.musicRegRegister.selector;
     selectors[1] = MusicRegistryPallet.musicRegDeactivate.selector;
     selectors[2] = MusicRegistryPallet.musicRegGetTrack.selector;
@@ -232,6 +232,7 @@ contract ArtistRuntimeFactory {
     selectors[7] = MusicRegistryPallet.musicRegTrackHashAtIndex.selector;
     selectors[8] = MusicRegistryPallet.musicRegSetAccessMode.selector;
     selectors[9] = MusicRegistryPallet.musicRegReactivate.selector;
+    selectors[10] = MusicRegistryPallet.musicRegTrackHashesPage.selector;
   }
 
   function _musicNFTSelectors() private pure returns (bytes4[] memory selectors) {

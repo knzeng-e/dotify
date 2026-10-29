@@ -66,7 +66,7 @@ export type RuntimeAccessPolicyUpdate = {
  * catalog.
  */
 export const MAX_RUNTIME_TRACKS = 2_000;
-export const MAX_ROYALTY_SPLITS = 128;
+export const MAX_ROYALTY_SPLITS = 16;
 
 export function assertBoundedCount(count: bigint, max: number, label: string): number {
   if (count < 0n || count > BigInt(max)) {
