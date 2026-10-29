@@ -66,8 +66,24 @@ explicit reconciliation. An unattended multi-cycle renewal policy, finalized
 live lookup/authorization transport, pending-request reconciliation, backup and
 operational signer ownership remain implementation/activation gates.
 
-The next network canary needs a dedicated authorized account, verified signer
-identity and explicit byte/transaction budget. Never borrow the DotNS owner or
-the public deployment pool. Then verify actual Web/Host raw-CID retrieval,
+The next network canary needs an explicitly selected user-owned authorized
+account, verified signer identity and explicit byte/transaction budget. The
+owner chose the same DotNS account for a bounded manual test, with local signing
+only and no domain record change. Its Bulletin authorization and quota must be
+checked separately from DotNS ownership. Never use the public deployment pool
+for media or put the DotNS key in a frontend/backend worker. A separate storage
+account is recommended before unattended production renewal, not required for
+the manual canary. Then verify actual Web/Host raw-CID retrieval,
 decodable media, cold first sound, continuity and renewal before considering a
 reviewed storage switch. W32/W33 acceptance remains open.
+
+### Account eligibility check, 2026-10-29
+
+A read-only check at 18:36 UTC on the pinned DevNet genesis returned no Bulletin
+account authorization for the account used for DotNS publication:
+`5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca`.
+`BulletinTransactionStorageApi.account_authorization` returned `null`; the
+finalized head observed alongside the query was block 1,419,372. This is an
+eligibility observation, not a failed upload or an authorization grant. The same
+account can be used once authorized with sufficient quota; no new wallet is
+required. No signer was loaded, transaction submitted or DotNS record changed.

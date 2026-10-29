@@ -72,9 +72,15 @@ green local test.
 ## Network canary gate
 
 The local results provide exact graph bytes/block count for a future canary.
-Before any live write, obtain a dedicated authorized account (not the DotNS
-owner or the public deployment pool), verify its signer/account and the pinned
-DevNet genesis, and approve the graph's storage plus one-cycle quota budget.
+Before any live write, explicitly select a user-owned authorized account,
+verify its signer/account and the pinned DevNet genesis, and approve the graph's
+storage plus one-cycle quota budget. The owner has chosen to reuse the DotNS
+account for this bounded manual canary. DotNS ownership does not itself grant
+Bulletin storage authorization or quota. Keep signing local; never place that
+key in the frontend or a backend worker, and do not change the DotNS record.
+Do not use the public deployment pool for media. A separate storage account is
+recommended for unattended production renewal so it cannot control the domain;
+it is not a Bulletin requirement for this manual test.
 Build the missing live lookup/authorization/renewal transport against finalized
 state, including pending transaction/request reconciliation; the simulation is
 not that transport.
