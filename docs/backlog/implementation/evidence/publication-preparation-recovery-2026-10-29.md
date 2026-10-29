@@ -39,7 +39,14 @@ storage test wrote data; no job, nonce reservation or account setting was change
 - Failed preparations offer **Retry preparation** while attempts remain;
   exhausted jobs offer explicit discard. Neither discard nor repeated encoder
   attempts runs automatically. A pin retry still verifies and reuses the same
-  ciphertext, without spending a new encryption generation.
+  ciphertext, without spending a new encryption generation. Recovery invokes
+  the current publication handler, so draft changes and account disconnects
+  are revalidated rather than using the failed attempt's old render.
+- Starting catalog confirmation always starts read-only reconciliation, but
+  its feedback update checks the current queued operation identity. Another
+  payment or recovery dialog keeps its controls, even when both updates occur
+  in the same React event. Completion still releases the publication lock
+  without navigating away from that other task.
 - Audio, artwork and metadata uploads have five-minute transport deadlines;
   status requests and the overall polling wait retain their existing bounds.
   A local deadline does not delete or cancel an owned durable server job.
@@ -65,9 +72,14 @@ infrastructure, subscription, runtime or contract deployment is introduced.
   cover overlapping pending audio, late progress, an immediate double click
   and explicit retry reuse. Polling tests distinguish storage refusal and exhausted
   attempts. A stalled HTTP upload returns a recoverable deadline message.
-- Browser: 23 tests pass. Publication feedback can reduce/reopen and reveal an error; the
+- Browser: 27 tests pass. Publication feedback can reduce/reopen and reveal an error; the
   artist publication suite covers catalog delay, account disconnect, failed
-  uploads/approval and return to the release list.
+  uploads/approval and return to the release list. Four review regressions
+  mount the real hooks/provider: edit royalty recipients or disconnect during
+  background preparation, then retry; start confirmation behind a payment or
+  recovery dialog, then complete its catalog read without replacing that
+  dialog, losing recovery controls or navigating away. The fixture uses only
+  the explicit E2E mode and a controlled local source read, with no live write.
 - API build/typecheck, Web and frozen Product builds, and lint pass. Two existing App effect-dependency
   warnings and third-party/bundle-size warnings remain.
 

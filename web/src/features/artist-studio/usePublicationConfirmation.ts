@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react';
 import type { CatalogTrack, TransactionFeedback } from '../../shared/types';
 import { runtimeAddressFromTrackId } from '../catalog/trackModel';
 import { buildReleasePublicationRoadmap } from './releaseForm';
@@ -24,7 +24,7 @@ export function usePublicationConfirmation({
 }: {
   tracks: CatalogTrack[];
   refresh: (hash?: `0x${string}`, options?: { fresh?: boolean }) => Promise<CatalogTrack[]>;
-  setFeedback: (feedback: TransactionFeedback | null) => void;
+  setFeedback: Dispatch<SetStateAction<TransactionFeedback | null>>;
   setStatus: (status: string) => void;
   activeFeedback?: TransactionFeedback | null;
   onPublished?: (account: `0x${string}`) => void;
@@ -111,12 +111,19 @@ export function usePublicationConfirmation({
       completedOperation.current = null;
       setPending(item);
       setStatus('Making your release visible');
-      setFeedback({
-        ...item.feedback,
-        tone: 'pending',
-        title: 'Making your release visible',
-        message: 'Your approval is confirmed. Dotify is refreshing the catalog; no further approval is needed.'
-      });
+      // Reconciliation must start even if the artist is using another task.
+      // Check ownership against the queued state, including updates made in
+      // this same render, before displaying catalog progress.
+      setFeedback(previous =>
+        previous && previous.operationId !== item.feedback.operationId
+          ? previous
+          : {
+              ...item.feedback,
+              tone: 'pending',
+              title: 'Making your release visible',
+              message: 'Your approval is confirmed. Dotify is refreshing the catalog; no further approval is needed.'
+            }
+      );
     }
   };
 }

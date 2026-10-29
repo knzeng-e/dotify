@@ -319,6 +319,10 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
     listKnownRoyaltyRuntimeCandidates(artistTracks, activeEvmAddress, artistRuntimeAddress).map(candidate => candidate.runtimeAddress.toLowerCase())
   ]);
   const publicationAttemptRef = useRef<object | null>(null);
+  const latestRegisterRights = useRef(registerRights);
+  useLayoutEffect(() => {
+    latestRegisterRights.current = registerRights;
+  });
   const royaltyAttemptRef = useRef<object | null>(null);
   const royaltyRefreshGateRef = useRef<RefreshGate>({ current: null });
   useLayoutEffect(() => {
@@ -1290,7 +1294,10 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
               recoveryAction: {
                 label: 'Retry preparation',
                 run: () => {
-                  void registerRights();
+                  // The artist may have edited the draft or changed accounts
+                  // while preparation ran in the background. Revalidate the
+                  // current context rather than the failed attempt's closure.
+                  void latestRegisterRights.current();
                 }
               }
             }
