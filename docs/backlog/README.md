@@ -4,6 +4,12 @@ Current reset follow-up: [streaming-only internal reset](streaming-only-reset.md
 
 This folder contains the execution backlog for moving Dotify from prototype to public testnet production readiness.
 
+The owner-requested [Bulletin segmented-media prototype](implementation/evidence/bulletin-prototype-2026-10-29.md)
+tests directory identities, selective encrypted reads and receipt/renewal recovery
+in isolation. Its storage model is simulated; network/native delivery and a
+dedicated authorization arrangement remain gates. It does not activate a Pinata
+replacement or close W32/W33 acceptance.
+
 The backlog is organized as engineering sprints. Each ticket has a dedicated Markdown instruction file intended for Claude Code, Codex, or a senior engineer working inside the repository.
 
 W36/#291 merged through #339 after W35/#338. The shared API and private

@@ -1,0 +1,41 @@
+name: Bulletin segmented storage prototype
+on:
+  pull_request:
+    branches: [dev]
+    paths:
+      - 'research/bulletin-prototype/**'
+      - 'services/api/src/services/streamingFormat.ts'
+      - 'services/api/src/services/streamingNonces.ts'
+      - '.github/workflows/bulletin-prototype.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline:
+    name: Offline directory, recovery and retention proof
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.1
+          cache: npm
+          cache-dependency-path: |
+            services/api/package-lock.json
+            research/bulletin-prototype/package-lock.json
+      - name: Install the unchanged API fixture and isolated prototype
+        run: |
+          npm ci --prefix services/api --ignore-scripts
+          npm ci --prefix research/bulletin-prototype --ignore-scripts
+      - name: Test actual v3 encryption, IPFS paths and simulated recovery
+        run: npm test --prefix research/bulletin-prototype
+      - name: Measure bounded synthetic startup reads and one renewal cycle
+        run: npm run measure --prefix research/bulletin-prototype
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bulletin-offline-prototype
+          path: research/bulletin-prototype/results.json
+          if-no-files-found: ignore
+          retention-days: 7

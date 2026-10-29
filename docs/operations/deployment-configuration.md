@@ -11,6 +11,15 @@ ledger to retry storage. The encoder and signaling were not restarted.
 See the [rollout record and rollback](../backlog/implementation/evidence/product-0.1.67-rollout-2026-10-29.md).
 Bulletin media storage remains an exploration, not a production setting.
 
+## Bulletin segmented-media prototype, not deployed
+
+The [Bulletin media prototype](../../research/bulletin-prototype/README.md) is
+also isolated from deployment. Its synthetic local transport does not create
+a storage account, load a signer, submit transactions or modify Pinata/read
+origins. Production SDK/protocol pins remain unchanged. A future canary requires
+explicit account/quota and finalized live-transport verification; there is no
+production enable flag in this prototype.
+
 ## W39 room scaling research, not deployed
 
 [ADR 0037](../adr/0037-room-scaling-and-sfu.md) and the
