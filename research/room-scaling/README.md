@@ -30,6 +30,8 @@ and checks its pinned SHA-256 before execution. Ports are selected locally; a
 collision fails rather than displacing another process. The harness removes
 only its own randomly named containers, child processes and temporary config.
 It neither inspects nor changes the running Dotify deployment.
+A forced termination can bypass cleanup. If interrupted, inspect local `w39-*`
+containers/processes and remove only the resources belonging to that run.
 
 For Linux x86_64, download `livekit_1.13.11_linux_amd64.tar.gz` from the
 [official release](https://github.com/livekit/livekit/releases/tag/v1.13.11).
