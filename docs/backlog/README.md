@@ -46,6 +46,12 @@ is now being implemented from that dev source, without a separate deployment;
 the owner will test the client corrections together. Its browser evidence does
 not close the physical-device or pilot gates.
 
+October 29: a [publication reliability correction](implementation/evidence/publication-preparation-recovery-2026-10-29.md)
+addresses the studio's stuck progress modal and explicit retry behavior.
+The observed Pinata HTTP 403 was a separate provider admission failure; after
+the owner cleaned obsolete pins, the prepared bundle was accepted. Full
+publication/native acceptance remains #287/#317.
+
 ## Room scaling research, 2026-10-29
 
 [W39 / #294](implementation/W39-horizontal-rooms.md) implements an isolated

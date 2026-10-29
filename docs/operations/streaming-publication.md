@@ -168,3 +168,30 @@ back the same state and worker resumes queued work. Never roll back to a client
 that treats v3 as legacy ciphertext. Old internal releases are retired by the owner decision in ADR 0033; this
 client has no old-directory playback rollback. Retain historical contracts/pins
 and custody safely; do not erase them as part of an application rollback.
+
+## Diagnosing a failed preparation
+
+A storage failure does not imply an encoder failure. On the recovery candidate,
+owned job status may include `failure.stage` and `failure.storageStatus`.
+Custody logs `STREAMING_PREPARATION_FAILED` with only the job ID and those
+allowlisted fields. These details are process-local; after a restart, use the
+service logs rather than expecting a new field in durable custody metadata.
+Never log provider response bodies, JWTs, content keys or decrypted music.
+
+HTTP 403 from Pinata requires checking the configured account's permissions
+and plan usage. In the [October 29 investigation](../backlog/implementation/evidence/publication-preparation-recovery-2026-10-29.md),
+encoding, encryption and authority all passed, while Pinata refused the saved
+bundle. After owner cleanup, the same encrypted bundle was accepted. For
+future refusals, fix provider admission before an explicit studio retry; retry validates
+and reuses the prepared ciphertext. Do not clear nonce custody or discard the
+source merely to diagnose storage. Discard remains owner-only and failed-only;
+it is appropriate for deliberate cleanup or exhausted attempts, not an outage
+recovery timer.
+
+The publication modal can be reduced while keeping the app open. Closing its
+window does not cancel the server job, approve a transaction, or persist the
+raw browser File across a page reload. Upload HTTP waits are capped at five
+minutes; status polling keeps the existing 15-minute local wait and owned job
+resume. No configuration variable, database migration or new service is needed
+for this correction; deploy the matching API and Web/Product client. The queue
+and nonce formats are unchanged, so image rollback needs no data rewrite.

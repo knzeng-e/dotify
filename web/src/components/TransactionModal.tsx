@@ -40,11 +40,14 @@ export function TransactionModal() {
     }
   }
 
-  if (feedback.operationId && dismissedOperation === feedback.operationId) {
+  const isPublication = feedback.operationKind === 'publication';
+  if (feedback.operationId && dismissedOperation === feedback.operationId && (!isPublication || feedback.tone !== 'error')) {
     return (
       <button className='payment-status-resume' type='button' onClick={() => setDismissedOperation(null)}>
         <Icon size={16} />
-        <span>View payment status: {feedback.title}</span>
+        <span>
+          View {isPublication ? 'publication' : 'payment'} status: {feedback.title}
+        </span>
       </button>
     );
   }
@@ -73,7 +76,11 @@ export function TransactionModal() {
         <h2 id='transaction-modal-title'>{feedback.title}</h2>
         <p>{feedback.message}</p>
         {feedback.tone === 'pending' && feedback.operationId && (
-          <p>Closing this window does not cancel the payment. You can return to check access without paying again.</p>
+          <p>
+            {isPublication
+              ? 'You can close this window and keep the app open. Preparation and publication checks will continue.'
+              : 'Closing this window does not cancel the payment. You can return to check access without paying again.'}
+          </p>
         )}
       </div>
       {feedback.facts && feedback.facts.length > 0 && (

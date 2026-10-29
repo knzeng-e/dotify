@@ -59,7 +59,10 @@ describe('useArtistConsole publication guard', () => {
     await artistConsole?.registerRights();
 
     expect(setTransactionFeedback).toHaveBeenCalledTimes(2);
-    expect(setTransactionFeedback.mock.calls.map(([feedback]) => feedback?.title)).toEqual(['Artist publishing paused', 'Artist publishing paused']);
+    expect(setTransactionFeedback.mock.calls.map(([feedback]) => (typeof feedback === 'function' ? feedback(null)?.title : feedback?.title))).toEqual([
+      'Artist publishing paused',
+      'Artist publishing paused'
+    ]);
     expect(refreshCatalogFromRegistry).not.toHaveBeenCalled();
     expect(setAudioCID).not.toHaveBeenCalled();
     expect(setCoverCID).not.toHaveBeenCalled();

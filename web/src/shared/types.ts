@@ -285,8 +285,10 @@ export type CapturableMediaElement = HTMLMediaElement & {
 };
 
 export type TransactionFeedback = {
-  /** Stable identity for dismissible payment tracking, not a settlement proof. */
+  /** Stable identity for background operation tracking, not a settlement proof. */
   operationId?: string;
+  /** Defaults to payment for existing payment flows. */
+  operationKind?: 'payment' | 'publication';
   recoveryAction?: { label: string; run: () => void };
   tone: TransactionFeedbackTone;
   title: string;

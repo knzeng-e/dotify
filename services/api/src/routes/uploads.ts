@@ -265,7 +265,13 @@ export function createUploadRoutes(deps: UploadRouteDeps = defaultDeps, jobs?: S
         return reply.send(await jobs!.retry(request.params.id, session.address, session.chainId));
       } catch (error) {
         if (error instanceof StreamingJobError)
-          return reply.status(error.status).send({ error: 'Audio preparation could not be restarted.', code: error.code });
+          return reply.status(error.status).send({
+            error:
+              error.code === 'STREAMING_RETRY_LIMIT'
+                ? 'This preparation has reached its retry limit. Your draft is safe. Remove the failed preparation before trying again.'
+                : 'Audio preparation could not be restarted. Your upload is still saved.',
+            code: error.code
+          });
         throw error;
       }
     });

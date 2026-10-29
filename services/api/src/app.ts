@@ -220,7 +220,8 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
           return result.allowed && result.runtime.toLowerCase() === runtime;
         },
         transcode: createStreamingWorkerClient(config.STREAMING_WORKER_URL, config.STREAMING_WORKER_TOKEN),
-        pin: (files, name, signal) => pinFilesToPinata(files, name, { app: 'dotify', type: 'streaming-audio' }, signal)
+        pin: (files, name, signal) => pinFilesToPinata(files, name, { app: 'dotify', type: 'streaming-audio' }, signal),
+        onFailure: failure => app.log.warn({ code: 'STREAMING_PREPARATION_FAILED', ...failure }, 'Audio preparation needs attention')
       });
       await streaming.start();
       app.addHook('onClose', async () => streaming!.stop());

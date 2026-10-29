@@ -2859,3 +2859,16 @@ do not reset purchases or pending balances. New runtimes need a separately
 coordinated factory/facet configuration. The earlier signaling/client repair
 works with the existing facet and can be rolled out independently. Local EVM
 gas reductions do not establish native Revive fee or storage-deposit savings.
+
+## Publication recovery candidate, 2026-10-29
+
+The [recovery investigation](../backlog/implementation/evidence/publication-preparation-recovery-2026-10-29.md)
+and [streaming runbook](streaming-publication.md#diagnosing-a-failed-preparation)
+record a provider admission gate: Pinata HTTP 403 can block publication after
+encoding has succeeded. Check plan usage/permissions before retrying a saved
+preparation. The UI correction must ship with the API's allowlisted stage/status
+diagnostics; it cannot remove an external account limit. No secret, environment
+variable, service topology or durable custody-schema change is required. Verify
+one actual new release on Web and Product after rollout; retain the existing
+native/payment acceptance gates. Never delete jobs or permanent nonce
+reservations to make a deployment health check pass.

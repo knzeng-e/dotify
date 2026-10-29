@@ -7,6 +7,7 @@ import { blake2b } from '@noble/hashes/blake2';
 import { initializeStreamingJobs, StreamingJobs, type StreamingJobDeps } from './streamingJobs.js';
 import { decryptStreamingObject, parseStreamingManifest, verifyStreamingManifest } from './streamingFormat.js';
 import { packStreamingBundle, unpackStreamingBundle } from './streamingBundle.js';
+import { PinataError } from './pinata.js';
 import { createStreamingWorkerClient } from './streamingWorkerClient.js';
 const owner = `0x${'12'.repeat(20)}`,
   runtime = `0x${'34'.repeat(20)}`,
@@ -116,15 +117,19 @@ describe('durable streaming publications', () => {
     fixture(async (directory, deps) => {
       let calls = 0;
       const prepared: Buffer[] = [];
+      const failures: unknown[] = [];
       const first = new StreamingJobs({
         ...deps,
         transcode: async () => {
           calls++;
           return encoded;
         },
+        onFailure: failure => {
+          failures.push(failure);
+        },
         pin: async files => {
           prepared.push(Buffer.from(files.find(f => f.path === 'manifest.json')!.bytes));
-          throw new Error('synthetic storage outage');
+          throw new PinataError('synthetic private provider body must not escape', 502, 403);
         }
       });
       await first.start(false);
@@ -132,6 +137,8 @@ describe('durable streaming publications', () => {
       await first.runNext();
       assert.equal(first.get(job.id, owner, scope.chainId)?.state, 'failed');
       await first.stop();
+      assert.deepEqual(failures, [{ jobId: job.id, stage: 'storage', storageStatus: 403 }]);
+      assert.deepEqual(first.get(job.id, owner, scope.chainId)?.failure, { stage: 'storage', storageStatus: 403 });
       const before = await readFile(path.join(directory, 'jobs', job.id, 'output', 'manifest.json'));
       const restored = new StreamingJobs({
         ...deps,
@@ -147,6 +154,7 @@ describe('durable streaming publications', () => {
       await restored.retry(job.id, owner, scope.chainId);
       await restored.runNext();
       assert.equal(restored.get(job.id, owner, scope.chainId)?.state, 'ready');
+      assert.equal(restored.get(job.id, owner, scope.chainId)?.failure, undefined);
       assert.equal(calls, 1);
       assert.deepEqual(before, prepared[0]);
       await restored.stop();
