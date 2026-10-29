@@ -33,7 +33,11 @@ unavailable, as intended.
 
 ## Local verification
 
-All **17 tests pass**, including the two fresh-process resume cases. The
+All **17 tests pass**, including the two fresh-process resume cases. Tested
+implementation: `e96ff895b19b33f49aa68caed28793bfe44004ac`. The dedicated
+[Linux workflow](https://github.com/knzeng-e/dotify/actions/runs/40911625876)
+also passes; its [measurement artifact](bulletin-prototype-linux-2026-10-29.json)
+reproduces the same file/block/byte counts. The
 [synthetic measurement](bulletin-prototype-local-2026-10-29.json) contains 11
 files, 19 blocks and 870,498 graph bytes; the largest block is 262,144 bytes.
 Manifest + one rendition's init/first segment require 28,767 fetched bytes,
