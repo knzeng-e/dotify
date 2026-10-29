@@ -1,5 +1,15 @@
 # Deploy Dotify To Product DevNet
 
+## Product 0.1.67 publication recovery, 2026-10-29
+
+Published clean packaging `89c2595788c96350df40a128aa7bb2a63d20226c` at root/app
+CID `bafybeihiyvg3rce23zdort7fwyvpqtdzo5vvaourwagcdtejwlb72ma4oy`, executable
+`[0,1,67]`. Finalized DotNS/version, all 127 public CAR blocks and exact client
+bytes verify; the local signer is removed. Web serves merged #351, API/custody
+are on releases 36/5. Current contracts, catalog, security state and native
+permissions remain unchanged. Reopen **You → About Dotify → 0.1.67** before
+testing publication recovery. See [identities, checks and compatible rollback](../backlog/implementation/evidence/product-0.1.67-rollout-2026-10-29.md).
+
 ## Product 0.1.66 published with fresh W38 contracts, 2026-10-29
 
 Clean packaging `777be5940fc94c741bb0ca5737277be41f7d23f3` publishes executable

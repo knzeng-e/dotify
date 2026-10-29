@@ -1,5 +1,16 @@
 # Deployment Configuration Runbook
 
+## Publication recovery deployed in Product 0.1.67
+
+Merged #351 is deployed on Web, API/custody releases 36/5 and Product 0.1.67.
+Progress/retry ownership and bounded uploads now preserve actionable errors;
+custody exposes only allowlisted failure categories. Durable job/nonce formats,
+PostgreSQL identity, secrets, Host permissions and contracts are unchanged.
+Keep failed jobs available for explicit artist recovery; never reset the nonce
+ledger to retry storage. The encoder and signaling were not restarted.
+See the [rollout record and rollback](../backlog/implementation/evidence/product-0.1.67-rollout-2026-10-29.md).
+Bulletin media storage remains an exploration, not a production setting.
+
 ## W39 room scaling research, not deployed
 
 [ADR 0037](../adr/0037-room-scaling-and-sfu.md) and the
