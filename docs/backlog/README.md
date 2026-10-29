@@ -52,6 +52,14 @@ The observed Pinata HTTP 403 was a separate provider admission failure; after
 the owner cleaned obsolete pins, the prepared bundle was accepted. Full
 publication/native acceptance remains #287/#317.
 
+## Room scaling research, 2026-10-29
+
+[W39 / #294](implementation/W39-horizontal-rooms.md) implements an isolated
+measurement harness for shared room ownership, recovery and a 25-guest SFU.
+[ADR 0037](../adr/0037-room-scaling-and-sfu.md) keeps the deployed single
+signaling instance and guest cap until the explicit production follow-ups and
+physical evidence are accepted. Research is not a hosting activation.
+
 ## Status contract
 
 GitHub Project 5 owns live workflow status. This document records scope,

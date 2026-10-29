@@ -34,6 +34,15 @@ bounds and paged readers, ready for review. Activation requires a coordinated
 fresh contract/API/Web/Product generation; no retired-runtime fallback is kept.
 
 
+## W39 isolated feasibility, 2026-10-29
+
+The owner requested the next backlog implementation while testing new releases.
+[W39](W39-horizontal-rooms.md) now has an isolated runnable two-process room
+prototype and a 25-guest SFU experiment, documented in [ADR 0037](../../adr/0037-room-scaling-and-sfu.md)
+and [W39 evidence](evidence/W39.md). This research does not activate horizontal
+signaling, add paid infrastructure or change the deployed guest cap. Its explicit
+production follow-ups depend on native room and regional evidence in #89/#158.
+
 ## Owner priority update: trusted pilot and streaming track, 2026-10-16
 
 The [2026-10-20 reconciliation](evidence/backlog-reconciliation-2026-10-20.md)

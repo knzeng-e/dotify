@@ -1,0 +1,53 @@
+name: W39 local room scaling research
+on:
+  pull_request:
+    branches: [dev]
+    paths:
+      - 'research/room-scaling/**'
+      - '.github/workflows/room-scaling-research.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  prototype:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.1
+          cache: npm
+          cache-dependency-path: |
+            web/package-lock.json
+            research/room-scaling/package-lock.json
+      - name: Install production baseline and isolated research dependencies
+        run: |
+          npm ci --prefix web
+          npm ci --prefix research/room-scaling --ignore-scripts
+      - name: Download pinned native SFU
+        env:
+          SFU_SHA256: 1e9ee90ca301e1842b2887fc77cb122759756a9c8aeb4334ee91de3325ec43fb
+        run: |
+          curl --fail --location --silent --show-error --retry 3 \
+            https://github.com/livekit/livekit/releases/download/v1.13.11/livekit_1.13.11_linux_amd64.tar.gz \
+            -o "$RUNNER_TEMP/livekit.tar.gz"
+          echo "$SFU_SHA256  $RUNNER_TEMP/livekit.tar.gz" | sha256sum --check -
+          mkdir "$RUNNER_TEMP/w39-livekit"
+          tar -xzf "$RUNNER_TEMP/livekit.tar.gz" -C "$RUNNER_TEMP/w39-livekit"
+          echo "W39_LIVEKIT_BINARY=$RUNNER_TEMP/w39-livekit/livekit-server" >> "$GITHUB_ENV"
+      - name: Install browser
+        working-directory: research/room-scaling
+        run: npm exec playwright install --with-deps chromium
+      - name: Verify loopback boundary
+        run: npm test --prefix research/room-scaling
+      - name: Measure signaling recovery and 25 SFU listeners
+        working-directory: research/room-scaling
+        run: npm run measure
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: w39-local-measurements
+          path: research/room-scaling/results.json
+          if-no-files-found: ignore
+          retention-days: 7

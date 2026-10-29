@@ -1,14 +1,32 @@
 # Deployment Configuration Runbook
 
-## W38 fresh runtime generation (implementation, not deployed)
+## W39 room scaling research, not deployed
+
+[ADR 0037](../adr/0037-room-scaling-and-sfu.md) and the
+[isolated harness](../../research/room-scaling/README.md) evaluate two-process
+room authority and a 25-guest synthetic SFU. Their dependencies and local
+settings are not frontend/Fly configuration. No production Redis, SFU, region,
+permission, key, secret, storage migration or paid resource is introduced.
+Do not scale `dotify-signal` above one machine or raise `SIGNAL_MAX_LISTENERS`
+from this local experiment. Keep current production origins and room access.
+The reduced prototype is not a deployable server; native media, polling/Fly
+affinity, privacy/discovery and live-authority migration require separate review.
+
+## W38 fresh runtime generation deployed in Product 0.1.66
 
 The 2026-10-28 owner decision is a fresh internal contract deployment. API,
 ordinary Web and Product now enumerate through `musicRegTrackHashesPage` and
 require the new factory/runtime generation. There is no old-runtime fallback.
-Do not deploy these readers independently against current runtime addresses.
-On the authorized reset, update the directory/factory addresses, API catalog
-identity, finalized CDM versions, generated manifests and client bootstrap as one
-coordinated release. No new service, paid resource or environment variable is added.
+Do not mix these readers with the previous runtime generation.
+The authorized 2026-10-29 reset uses factory `0x61dd19a0d4f6bd21c6ffa4a7a9d9e771af95bb13`,
+directory `0x79b21cad3848a3019edee17b089142282f4a13a3`, finalized CDM versions 3
+and an empty client bootstrap. API, custody, signaling, Web and Product are now switched together.
+The PostgreSQL operator changes only `dotify_state_identity.identity.directory`
+for namespace `dotify`, with an exact old-directory guard and unchanged chain,
+version and session epoch. Preserve nonces, revocations, quotas, custody and
+receipts; the catalog rebuilds from the new directory. No schema or role change.
+See the [rollout record](../backlog/implementation/evidence/product-0.1.66-rollout-2026-10-29.md)
+for publication status and rollback boundaries. No new service, paid resource or environment variable is added.
 
 Snapshots may include bounded-release exclusions (`excludedReleases`: ID/reason);
 catalog response metadata includes `excludedReleaseCount` when nonzero. This is

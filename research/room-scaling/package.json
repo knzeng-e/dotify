@@ -1,0 +1,22 @@
+{
+  "name": "dotify-room-scaling-research",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22 <23"
+  },
+  "scripts": {
+    "test": "node --test boundary.test.mjs",
+    "measure": "node measure.mjs"
+  },
+  "dependencies": {
+    "@socket.io/redis-adapter": "8.3.0",
+    "ioredis": "5.8.2",
+    "livekit-client": "2.23.0",
+    "livekit-server-sdk": "2.19.2",
+    "playwright": "1.61.1",
+    "socket.io": "4.8.3",
+    "socket.io-client": "4.8.3"
+  }
+}
