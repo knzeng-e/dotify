@@ -60,6 +60,13 @@ measurement harness for shared room ownership, recovery and a 25-guest SFU.
 signaling instance and guest cap until the explicit production follow-ups and
 physical evidence are accepted. Research is not a hosting activation.
 
+## Bulletin media research, 2026-10-29
+
+The owner-requested [Bulletin media feasibility study](../research/bulletin-media-storage-2026-10-29.md)
+records the existing storage Seam, exact DevNet limits and the remaining
+directory-delivery/renewal proof. It does not activate a storage replacement or
+close W32/W33 acceptance.
+
 ## Status contract
 
 GitHub Project 5 owns live workflow status. This document records scope,
