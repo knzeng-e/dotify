@@ -1,14 +1,14 @@
 # Deployment Configuration Runbook
 
-## W38 fresh runtime generation: Product 0.1.66 candidate
+## W38 fresh runtime generation deployed in Product 0.1.66
 
 The 2026-10-28 owner decision is a fresh internal contract deployment. API,
 ordinary Web and Product now enumerate through `musicRegTrackHashesPage` and
 require the new factory/runtime generation. There is no old-runtime fallback.
-Do not deploy these readers independently against current runtime addresses.
+Do not mix these readers with the previous runtime generation.
 The authorized 2026-10-29 reset uses factory `0x61dd19a0d4f6bd21c6ffa4a7a9d9e771af95bb13`,
 directory `0x79b21cad3848a3019edee17b089142282f4a13a3`, finalized CDM versions 3
-and an empty client bootstrap. Services and clients must be switched together.
+and an empty client bootstrap. API, custody, signaling, Web and Product are now switched together.
 The PostgreSQL operator changes only `dotify_state_identity.identity.directory`
 for namespace `dotify`, with an exact old-directory guard and unchanged chain,
 version and session epoch. Preserve nonces, revocations, quotas, custody and
