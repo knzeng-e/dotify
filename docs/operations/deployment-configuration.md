@@ -1,5 +1,17 @@
 # Deployment Configuration Runbook
 
+## W39 room scaling research, not deployed
+
+[ADR 0037](../adr/0037-room-scaling-and-sfu.md) and the
+[isolated harness](../../research/room-scaling/README.md) evaluate two-process
+room authority and a 25-guest synthetic SFU. Their dependencies and local
+settings are not frontend/Fly configuration. No production Redis, SFU, region,
+permission, key, secret, storage migration or paid resource is introduced.
+Do not scale `dotify-signal` above one machine or raise `SIGNAL_MAX_LISTENERS`
+from this local experiment. Keep current production origins and room access.
+The reduced prototype is not a deployable server; native media, polling/Fly
+affinity, privacy/discovery and live-authority migration require separate review.
+
 ## W38 fresh runtime generation (implementation, not deployed)
 
 The 2026-10-28 owner decision is a fresh internal contract deployment. API,
