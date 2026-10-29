@@ -1,6 +1,6 @@
 # Publication preparation recovery, 2026-10-29
 
-Refs #287 (W32) and #317. This is a publication reliability correction, not
+PR #351. Refs #287 (W32) and #317. This is a publication reliability correction, not
 completion of native streaming or pilot acceptance.
 
 ## Observed failure
@@ -58,9 +58,9 @@ infrastructure, subscription, runtime or contract deployment is introduced.
 - API suite: 235 tests pass outside the restricted socket sandbox. Recovery
   tests verify storage-403 diagnostics omit private response content, restart
   safely and publish exactly the persisted ciphertext without re-encoding.
-- Frontend: 1,041 unit tests pass. The regression overlapping failed cover/pending audio, late progress,
-  immediate double click and explicit retry reuse are exercised through the
-  actual studio hook. Polling tests distinguish storage refusal and exhausted
+- Frontend: 1,041 unit tests pass. The actual studio hook exercises a failed
+  cover overlapping pending audio, late progress, an immediate double click
+  and explicit retry reuse. Polling tests distinguish storage refusal and exhausted
   attempts. A stalled HTTP upload returns a recoverable deadline message.
 - Browser: 23 tests pass. Publication feedback can reduce/reopen and reveal an error; the
   artist publication suite covers catalog delay, account disconnect, failed
