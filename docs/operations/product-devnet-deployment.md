@@ -1,5 +1,21 @@
 # Deploy Dotify To Product DevNet
 
+## Product 0.1.66 published with fresh W38 contracts, 2026-10-29
+
+Clean packaging `777be5940fc94c741bb0ca5737277be41f7d23f3` publishes executable
+`[0,1,66]` at root/app CID
+`bafybeigrozkluvbcngpgqnsetv4ksgma6qjcx6q3o5rgyrmceer6742puq`.
+Web and Product now use the new factory/directory and finalized CDM versions 3;
+the internal catalog is intentionally empty. API release 35, custody release 4
+and signaling release 38 are deployed. The guarded PostgreSQL directory update
+preserves session/security state and custody data. No new paid service is added.
+
+Finalized DotNS/version and all 127 public CAR block hashes verify; the signer
+is removed. Reopen Product and check **You → About Dotify → 0.1.66**, then create
+a new artist space and publish again. Old contracts and pins remain untouched.
+Rollback requires the matching service, database identity and client generation,
+not a client-only downgrade. See the [rollout record](../backlog/implementation/evidence/product-0.1.66-rollout-2026-10-29.md).
+
 ## Product 0.1.65 published with managed mobile AAC, 2026-10-28
 
 Clean packaging `a553cc6a65a2f506ebcfaac2d66ce97451291d10`, based on merged `dev` `bd813f7e`
