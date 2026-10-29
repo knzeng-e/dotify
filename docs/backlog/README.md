@@ -48,7 +48,8 @@ not close the physical-device or pilot gates.
 
 October 29: a [publication reliability correction](implementation/evidence/publication-preparation-recovery-2026-10-29.md)
 addresses the studio's stuck progress modal and explicit retry behavior.
-The observed Pinata HTTP 403 is a separate provider admission blocker; real
+The observed Pinata HTTP 403 was a separate provider admission failure; after
+the owner cleaned obsolete pins, the prepared bundle was accepted. Full
 publication/native acceptance remains #287/#317.
 
 ## Status contract

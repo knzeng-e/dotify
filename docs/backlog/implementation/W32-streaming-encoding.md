@@ -95,6 +95,6 @@ Write `docs/backlog/implementation/evidence/W32.md` using `evidence-template.md`
 The [publication recovery investigation](evidence/publication-preparation-recovery-2026-10-29.md)
 separates a live Pinata HTTP 403 from the studio's late-progress/modal race.
 The candidate preserves encrypted preparations, offers explicit recovery and
-adds bounded, secret-free diagnostics. Restoring provider admission and
-verifying actual Web/Product publication remain acceptance gates; this does
+adds bounded, secret-free diagnostics. Provider admission was restored after owner cleanup; verifying actual
+Web/Product publication remains an acceptance gate; this does
 not close W32 or authorize deletion of pins, ciphertext or nonce custody.

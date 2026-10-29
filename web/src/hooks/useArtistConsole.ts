@@ -1,5 +1,5 @@
 import { AUDIO_PREPARATION_LABELS, AudioPreparationError } from '../features/uploads/streamingPreparation';
-import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from 'react';
 import { getAddress, isAddress } from 'viem';
 import { getPublicClient, getWalletClient, resolveEvmChain } from '../shared/config/contracts';
 import { createViemRuntimeReader } from '../features/runtime/viemRuntimeAdapter';
@@ -236,7 +236,7 @@ export type UseArtistConsoleDeps = {
   artistTracks: CatalogTrack[];
   transactionFeedback?: TransactionFeedback | null;
   onReleasePublished?: (account: `0x${string}`) => void;
-  setTransactionFeedback: (feedback: TransactionFeedback | null) => void;
+  setTransactionFeedback: Dispatch<SetStateAction<TransactionFeedback | null>>;
   refreshCatalogFromRegistry: (hash?: `0x${string}`, options?: { fresh?: boolean }) => Promise<CatalogTrack[]>;
   setAudioCID: (cid: string) => void;
   setCoverCID: (cid: string) => void;
@@ -881,17 +881,26 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
     const attempt = {};
     publicationAttemptRef.current = attempt;
     let preparingAssets = true;
-    const operationId = `publication:${crypto.randomUUID()}`;
-    const setPublicationFeedback = (feedback: TransactionFeedback) => setTransactionFeedback({ ...feedback, operationId, operationKind: 'publication' });
+    const operationId = `publication:${globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`}`;
+    const setPublicationFeedback = (feedback: TransactionFeedback, start = false) =>
+      setTransactionFeedback(previous => {
+        // Reducing this modal lets the artist use other tasks. Background
+        // progress must not replace another task's approval/status dialog.
+        if (!start && previous && previous.operationId !== operationId) return previous;
+        return { ...feedback, operationId, operationKind: 'publication' };
+      });
     setIsRegistering(true);
     let publicationStage: ReleasePublicationStage = 'assets';
-    setPublicationFeedback({
-      tone: 'pending',
-      title: 'Preparing your release',
-      message: 'Dotify is checking your music and the choices you reviewed. Nothing is published yet.',
-      technicalFacts: releasePublicationTechnicalFacts(),
-      steps: buildReleasePublicationRoadmap(publicationStage)
-    });
+    setPublicationFeedback(
+      {
+        tone: 'pending',
+        title: 'Preparing your release',
+        message: 'Dotify is checking your music and the choices you reviewed. Nothing is published yet.',
+        technicalFacts: releasePublicationTechnicalFacts(),
+        steps: buildReleasePublicationRoadmap(publicationStage)
+      },
+      true
+    );
 
     let runtimeAddress = artistRuntimeAddress;
     let submittedRegistrationTxHash: `0x${string}` | undefined;

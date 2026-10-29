@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { useArtistConsole, type UseArtistConsoleDeps } from './useArtistConsole';
 import { createEmptyReleaseMetadata } from '../features/catalog/releaseMetadata';
 
+import type { TransactionFeedback } from '../shared/types';
 import type { BackendUploadIdentity, ProtectedAudioUpload } from '../services/pinata';
 const uploads = vi.hoisted(() => ({ audio: vi.fn(), cover: vi.fn(), metadata: vi.fn() }));
 vi.mock('../services/pinata', async importOriginal => ({
@@ -19,7 +20,10 @@ afterEach(() => vi.clearAllMocks());
 
 describe('publication preparation ownership', () => {
   it('keeps errors terminal despite late progress and reuses durable audio on retry', async () => {
-    const setTransactionFeedback = vi.fn<UseArtistConsoleDeps['setTransactionFeedback']>();
+    const feedbackStates: Array<TransactionFeedback | null> = [];
+    const setTransactionFeedback = vi.fn<UseArtistConsoleDeps['setTransactionFeedback']>(next => {
+      feedbackStates.push(typeof next === 'function' ? next(feedbackStates[feedbackStates.length - 1] ?? null) : next);
+    });
     const refreshCatalogFromRegistry = vi.fn<UseArtistConsoleDeps['refreshCatalogFromRegistry']>(async () => []);
     const setAudioCID = vi.fn<UseArtistConsoleDeps['setAudioCID']>();
     const setCoverCID = vi.fn<UseArtistConsoleDeps['setCoverCID']>();
@@ -80,19 +84,33 @@ describe('publication preparation ownership', () => {
         finish = resolve;
       });
     });
-    uploads.cover.mockRejectedValueOnce(new Error('Cover storage unavailable')).mockResolvedValue('cover-cid');
+    let rejectCover!: (reason: Error) => void;
+    uploads.cover
+      .mockImplementationOnce(
+        () =>
+          new Promise((_resolve, reject) => {
+            rejectCover = reject;
+          })
+      )
+      .mockResolvedValue('cover-cid');
     uploads.metadata.mockResolvedValue('metadata-cid');
     const first = artistConsole!.registerRights();
     await started;
+    const other: TransactionFeedback = { operationId: 'payment:another-task', tone: 'pending', title: 'Approve payment', message: 'Waiting for approval' };
+    setTransactionFeedback(other);
+    progress?.('encoding');
+    expect(feedbackStates[feedbackStates.length - 1]).toBe(other);
+    setTransactionFeedback(null);
+    rejectCover(new Error('Cover storage unavailable'));
     // A second click before React rerenders must not create another attempt.
     await artistConsole!.registerRights();
     await first;
-    const failed = setTransactionFeedback.mock.lastCall![0]!;
+    const failed = feedbackStates[feedbackStates.length - 1]!;
     expect(failed).toMatchObject({ tone: 'error', title: 'Publication needs attention', operationKind: 'publication' });
     expect(failed.message).toContain('Cover storage unavailable');
     progress?.('encoding');
     progress?.('publishing');
-    expect(setTransactionFeedback.mock.lastCall![0]).toBe(failed);
+    expect(feedbackStates[feedbackStates.length - 1]).toBe(failed);
     const retry = artistConsole!.registerRights();
     progress?.('ready');
     finish('dotify:enc:v3:key-v2:ipfs://Qm' + 'a'.repeat(44));
@@ -100,7 +118,7 @@ describe('publication preparation ownership', () => {
     expect(uploads.audio).toHaveBeenCalledTimes(1);
     expect(uploads.cover).toHaveBeenCalledTimes(2);
     expect(uploads.metadata).toHaveBeenCalledTimes(1);
-    expect(setTransactionFeedback.mock.lastCall![0]).toMatchObject({ tone: 'success', title: 'Release prepared' });
-    expect(setTransactionFeedback.mock.lastCall![0]!.operationId).not.toEqual(failed.operationId);
+    expect(feedbackStates[feedbackStates.length - 1]).toMatchObject({ tone: 'success', title: 'Release prepared' });
+    expect(feedbackStates[feedbackStates.length - 1]!.operationId).not.toEqual(failed.operationId);
   });
 });

@@ -21,15 +21,17 @@ The owner explicitly authorized a diagnostic resend of the prepared encrypted
 bundle to the configured Pinata account. Pinata returned HTTP 403. A second
 response inspection emitted only status, JSON field names and fixed diagnostic
 categories, including plan/usage/limit; no response body, credentials, clear
-music or key was emitted. The precise account limit still needs confirmation
-in Pinata. No release was registered on-chain by these diagnostics, and no
-pin, job, reservation or account setting was deleted or changed.
+music or key was emitted. The precise account limit was not confirmed. The owner then removed obsolete
+files in Pinata and requested another test. The same prepared bundle was
+accepted successfully, confirming storage admission was restored. No release
+was registered on-chain by these diagnostics. Only the explicitly authorized
+storage test wrote data; no job, nonce reservation or account setting was changed.
 
 ## Correction and boundaries
 
 - An attempt owns preparation progress until its assets finish or any sibling
-  fails. Late audio progress cannot replace a terminal cover error or a newer
-  attempt. The active attempt is locked before React renders another frame.
+  fails. Late audio progress cannot replace a terminal cover error, a newer
+  attempt or another task's approval dialog. The active attempt is locked before React renders another frame.
 - Publication feedback has its own identity and wording. It can be reduced and
   reopened while the app stays open. An error becomes visible even if progress
   was reduced; successful background completion stays reduced so it does not
@@ -49,7 +51,8 @@ pin, job, reservation or account setting was deleted or changed.
   new attempt supplies diagnostics.
 
 The UI fix cannot lift a provider account quota or permission restriction.
-Restore Pinata admission before retrying the saved job. Do not repeatedly
+Pinata admission was restored for the diagnostic resend; the studio still
+needs a real publication check after deployment. Do not repeatedly
 re-upload the source or switch to unprotected audio as a workaround. No new
 infrastructure, subscription, runtime or contract deployment is introduced.
 
@@ -68,5 +71,5 @@ infrastructure, subscription, runtime or contract deployment is introduced.
 - API build/typecheck, Web and frozen Product builds, and lint pass. Two existing App effect-dependency
   warnings and third-party/bundle-size warnings remain.
 
-Deployment and an actual successful Web/Product Desktop publication after
-Pinata admission is restored remain unverified. Keep #287/#317 open.
+Deployment and an actual successful Web/Product Desktop publication remain
+unverified. The successful storage resend alone is not publication acceptance. Keep #287/#317 open.

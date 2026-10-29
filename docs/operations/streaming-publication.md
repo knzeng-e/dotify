@@ -181,7 +181,8 @@ Never log provider response bodies, JWTs, content keys or decrypted music.
 HTTP 403 from Pinata requires checking the configured account's permissions
 and plan usage. In the [October 29 investigation](../backlog/implementation/evidence/publication-preparation-recovery-2026-10-29.md),
 encoding, encryption and authority all passed, while Pinata refused the saved
-bundle. Fix provider admission before an explicit studio retry; retry validates
+bundle. After owner cleanup, the same encrypted bundle was accepted. For
+future refusals, fix provider admission before an explicit studio retry; retry validates
 and reuses the prepared ciphertext. Do not clear nonce custody or discard the
 source merely to diagnose storage. Discard remains owner-only and failed-only;
 it is appropriate for deliberate cleanup or exhausted attempts, not an outage
