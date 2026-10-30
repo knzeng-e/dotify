@@ -39,10 +39,14 @@ jobs:
           npm ci --prefix research/bulletin-prototype --ignore-scripts
       - name: Test actual v3 encryption, IPFS paths and simulated recovery
         run: npm test --prefix research/bulletin-prototype
+      - name: Verify generated-only mobile packaging and local evidence recovery
+        run: npm run test:mobile --prefix research/bulletin-prototype
       - name: Install the browser codec control
         run: npm exec --prefix web -- playwright install --with-deps chromium
       - name: Verify real AAC playback and local-server boundaries
         run: npm run test:host --prefix research/bulletin-prototype
+      - name: Verify the standalone diagnostic at mobile viewport size
+        run: npm run test:mobile-browser --prefix research/bulletin-prototype
       - name: Measure bounded synthetic startup reads and one renewal cycle
         run: npm run measure --prefix research/bulletin-prototype
       - uses: actions/upload-artifact@v4

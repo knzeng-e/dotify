@@ -59,6 +59,31 @@ ciphertext and permanent nonce ledger remain unchanged. The signer is removed,
 no renewal ran, and 27 transactions remain. These are research-only receipts;
 mobile/cold audible-start evidence and production integration are still open.
 
+## Generated-only Bulletin mobile diagnostic, not deployed
+
+The [standalone diagnostic build](../../research/bulletin-prototype/README.md#standalone-mobile-diagnostic-preparation)
+removes the need to expose the local key server to a phone. It verifies the
+generated eight-second master before embedding its public test key and bounded
+playback-only decoder control. It loads no environment files and changes no
+production origin, secret, access rule or media provider. Native reads have no
+HTTP/control fallback. No service or paid resource is provisioned.
+
+Build only into a new private output directory and retain its
+`diagnostic-build.json` source/root identity. Publication is a separate action:
+choose an explicitly approved diagnostic address, verify the pinned Host/deploy
+profile, confirm the exact upload budget, and use the local signer only for that
+publication. Never overwrite `dotify-test01.dot`, reuse a production key or
+expose the loopback key server. No test domain is pre-authorized by this code.
+
+Reports stay in the diagnostic origin's local storage (last five, explicit
+clear). It stores optional device/network notes, user agent and public CIDs;
+it sends nothing automatically. Reports omit keys/signers/bytes and mark
+unfinished recovered attempts as interrupted. Export/copy important evidence
+before changing origin or clearing Host data. Blocked/full storage falls back to
+page memory with a warning. Removing the test tab stops audio; rollback is to
+stop using the separate diagnostic, not to change Dotify's deployed storage.
+Physical mobile/background/first-sound evidence remains unverified.
+
 ## Bounded Bulletin publication research, not deployed
 
 The [isolated pipeline](../../research/bulletin-prototype/README.md#opt-in-bounded-publication)
