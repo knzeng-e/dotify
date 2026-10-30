@@ -59,7 +59,14 @@ ciphertext and permanent nonce ledger remain unchanged. The signer is removed,
 no renewal ran, and 27 transactions remain. These are research-only receipts;
 mobile/cold audible-start evidence and production integration are still open.
 
-## Generated-only Bulletin mobile diagnostic, not deployed
+<a id="generated-only-bulletin-mobile-diagnostic-not-deployed"></a>
+
+## Generated-only Bulletin mobile diagnostic
+
+The owner-approved [October 30 publication](../backlog/implementation/evidence/bulletin-mobile-publication-2026-10-30.md)
+is available as `dotify-bulletin-lab.dot`, Product `[0,1,0]`. Four new stores and
+an existing icon were verified; the ordinary Dotify Product is unchanged. The
+signer was removed. Physical mobile listening remains unverified.
 
 The [standalone diagnostic build](../../research/bulletin-prototype/README.md#standalone-mobile-diagnostic-preparation)
 removes the need to expose the local key server to a phone. It verifies the

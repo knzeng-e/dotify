@@ -1,7 +1,11 @@
 # Bulletin mobile diagnostic preparation, 2026-10-30
 
-**Outcome: a separate generated-only diagnostic can be built without exposing
-the Desktop loopback key server to a phone. It is not published yet.**
+**Preparation outcome: a separate generated-only diagnostic can be built without
+exposing the Desktop loopback key server to a phone.**
+
+It was subsequently [published as a separate Product](bulletin-mobile-publication-2026-10-30.md).
+The source/artifact and not-published state below describe the earlier preparation
+snapshot; physical mobile acceptance is still open.
 
 Base `dev`: `3ba973c0e2085d7a68203c0409d18843df28d036`, after #355/#356.
 Tested implementation and clean candidate source:

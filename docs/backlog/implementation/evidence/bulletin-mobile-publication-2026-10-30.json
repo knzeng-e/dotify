@@ -1,0 +1,191 @@
+{
+  "schema": "dotify.bulletin.mobile-publication-evidence.v1",
+  "source": "a9199f8d4ae960aa4bf154c9a624baddd7d83f89",
+  "completedAt": "2026-10-30T18:28:59.572Z",
+  "domain": "dotify-bulletin-lab.dot",
+  "appVersion": [
+    0,
+    1,
+    0
+  ],
+  "ownerApproval": {
+    "explicit": true,
+    "maxBulletinStores": 5,
+    "maxBulletinBytes": 1069630,
+    "generatedTestKeyPublic": true,
+    "registrationPaymentCapPas": 11,
+    "additionalNetworkFeesAndContractStorageDeposits": true
+  },
+  "artifact": {
+    "carBytes": 1033527,
+    "carSha256": "6fcabc44e5e93efce476e700dfde8d64012c975d6cd58cfb4c56844ca740fa5a",
+    "directoryCid": "bafybeidpejwj5etmpee6vch6kksm4w7opiakupbsqf2npwxtdymxv7cqnu",
+    "storageCid": "bafybeihjexkdlvkggoswpskkgcxxxeqphtlwid25ghqzv4doi72toazybi",
+    "fixtureRoot": "bafykbzacecbgxu5coifnfzajpkwzuaxv36snvjfd4zqsbvpgfk4mx7mhzhtj4"
+  },
+  "publication": {
+    "owner": "0xe3e3a0916d27c5174313f16E1507a286985a8Ac8",
+    "storageAccount": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+    "finalizedAssetHubBlock": "15112785",
+    "storage": [
+      {
+        "cid": "bafkreicgfuydfn3uhfojnsxgytol7bgx6swdkjuqzfcyu6pqtn3oxvszty",
+        "bytes": 2670,
+        "nonce": 944,
+        "status": "finalized",
+        "receipt": {
+          "block": 1433348,
+          "index": 0
+        },
+        "verified": {
+          "block": 1433348,
+          "index": 0,
+          "expiresAt": 1634948
+        }
+      },
+      {
+        "cid": "bafkreiffkwh4fyrbwyqndw4ehsp3eeukok3gulylqcyi2fsowt4om7ymxa",
+        "bytes": 1025499,
+        "nonce": 945,
+        "status": "finalized",
+        "receipt": {
+          "block": 1433355,
+          "index": 0
+        },
+        "verified": {
+          "block": 1433355,
+          "index": 0,
+          "expiresAt": 1634955
+        }
+      },
+      {
+        "cid": "bafkreib7ivmzxtgh2fjtctishv5yahxn6k7ofzupxmc33pbfrfpdrvlxzi",
+        "bytes": 5358,
+        "nonce": 946,
+        "status": "finalized",
+        "receipt": {
+          "block": 1433361,
+          "index": 0
+        },
+        "verified": {
+          "block": 1433361,
+          "index": 0,
+          "expiresAt": 1634961
+        }
+      },
+      {
+        "cid": "bafybeihjexkdlvkggoswpskkgcxxxeqphtlwid25ghqzv4doi72toazybi",
+        "bytes": 154,
+        "nonce": 947,
+        "status": "finalized",
+        "receipt": {
+          "block": 1433368,
+          "index": 0
+        },
+        "verified": {
+          "block": 1433368,
+          "index": 0,
+          "expiresAt": 1634968
+        }
+      },
+      {
+        "cid": "bafk2bzacebh4rknk6x7zl4pul7t3ff7y2pglpk5x4q2k3nxnql5ebizvgluxk",
+        "bytes": 35949,
+        "alreadyPresent": true,
+        "verified": {
+          "block": 1275659,
+          "index": 0,
+          "expiresAt": 1477259
+        }
+      }
+    ],
+    "newStoreCount": 4,
+    "newStoredBytes": 1033681,
+    "dotnsSignatureRequests": 9,
+    "records": {
+      "root": {
+        "owner": "0xe3e3a0916d27c5174313f16E1507a286985a8Ac8",
+        "resolver": "0x7e75491ecfb04900EB05ee63CABA2B33900aABB5",
+        "contenthash": "0xe30101701220e925d435d54633a567c94a30af7b920f3cd7640f5d31e19af06e47f53703380a",
+        "manifest": "{\"$v\":1,\"displayName\":\"Dotify First note lab\",\"description\":\"Generated eight-second audio diagnostic. No artist music, wallet or payment.\",\"icon\":{\"cid\":\"bafk2bzacebh4rknk6x7zl4pul7t3ff7y2pglpk5x4q2k3nxnql5ebizvgluxk\",\"format\":\"png\"}}"
+      },
+      "app": {
+        "owner": "0xe3e3a0916d27c5174313f16E1507a286985a8Ac8",
+        "resolver": "0x7e75491ecfb04900EB05ee63CABA2B33900aABB5",
+        "contenthash": "0xe30101701220e925d435d54633a567c94a30af7b920f3cd7640f5d31e19af06e47f53703380a",
+        "manifest": "{\"$v\":1,\"kind\":\"app\",\"appVersion\":[0,1,0]}"
+      }
+    },
+    "productionRecordsUnchanged": true,
+    "signerRemoved": true,
+    "quotedPricePas": 10,
+    "bufferedRegistrationPaymentPas": 11
+  },
+  "hostProfile": {
+    "checkedAt": "2026-10-30T18:22:27.903Z",
+    "channel": "paseo"
+  },
+  "readback": {
+    "observedAt": "2026-10-30T18:31:09.530Z",
+    "domain": "dotify-bulletin-lab.dot",
+    "blocks": [
+      {
+        "cid": "bafkreicgfuydfn3uhfojnsxgytol7bgx6swdkjuqzfcyu6pqtn3oxvszty",
+        "bytes": 2670,
+        "cidVerified": true
+      },
+      {
+        "cid": "bafkreiffkwh4fyrbwyqndw4ehsp3eeukok3gulylqcyi2fsowt4om7ymxa",
+        "bytes": 1025499,
+        "cidVerified": true
+      },
+      {
+        "cid": "bafkreib7ivmzxtgh2fjtctishv5yahxn6k7ofzupxmc33pbfrfpdrvlxzi",
+        "bytes": 5358,
+        "cidVerified": true
+      },
+      {
+        "cid": "bafybeihjexkdlvkggoswpskkgcxxxeqphtlwid25ghqzv4doi72toazybi",
+        "bytes": 154,
+        "cidVerified": true
+      },
+      {
+        "cid": "bafk2bzacebh4rknk6x7zl4pul7t3ff7y2pglpk5x4q2k3nxnql5ebizvgluxk",
+        "bytes": 35949,
+        "cidVerified": true
+      }
+    ],
+    "networkWrites": 0,
+    "signerUsed": false,
+    "gateway": {
+      "status": 200,
+      "bytes": 1033527,
+      "sha256": "6fcabc44e5e93efce476e700dfde8d64012c975d6cd58cfb4c56844ca740fa5a"
+    }
+  },
+  "remainingOwnerQuota": {
+    "address": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+    "currentBlock": 1433454,
+    "expiration": 1621405,
+    "transactionsRemaining": 23,
+    "bytesRemaining": "7154766"
+  },
+  "operator": {
+    "deployPackage": "@parity/polkadot-app-deploy@0.20.0",
+    "papiVersion": "2.2.2",
+    "scriptSha256": "95619ef1a454b178366b2df2a73912a6b82b721ed074bf374bd2694b68b9c015",
+    "preSubmissionPapi3Failure": true,
+    "failedAttemptSigned": false,
+    "failedAttemptBroadcast": false,
+    "dotnsNonceContentionRetries": 2
+  },
+  "acceptance": {
+    "standaloneChromiumScenarioPassed": true,
+    "mergedCiChecksPassed": 12,
+    "physicalMobileTested": false,
+    "thisPublishedProductDesktopPlaybackVerified": false,
+    "audibleStartupMeasured": false,
+    "productionStorageActivated": false,
+    "pipelineThroughputVerified": false
+  }
+}
