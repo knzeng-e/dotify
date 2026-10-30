@@ -124,7 +124,7 @@ export function localSigner(fd) {
 
 export async function main(argv) {
   const [command, input, ...options] = argv;
-  assert.ok(['prepare', 'check', 'publish', 'verify', 'renew-now'].includes(command) && input, 'Usage: canary.mjs prepare|check|publish|verify|renew-now PRIVATE_DIRECTORY [--signer-fd N]');
+  assert.ok(['prepare', 'check', 'publish', 'reconcile', 'verify', 'renew-now'].includes(command) && input, 'Usage: canary.mjs prepare|check|publish|reconcile|verify|renew-now PRIVATE_DIRECTORY [--signer-fd N]');
   const writing = ['publish', 'renew-now'].includes(command);
   assert.ok(options.length === 0 || writing && options.length === 2 && options[0] === '--signer-fd', 'Unexpected canary arguments');
   const directory = resolve(input);
@@ -136,7 +136,7 @@ export async function main(argv) {
     const signer = writing ? localSigner(Number(options[1])) : null;
     const client = createClient(getWsProvider(ENDPOINT));
     // Independent wall clock bound; a hard exit leaves the lease for manual reconciliation.
-    const watchdog = setTimeout(() => { console.error('Canary exceeded 12 minutes; reconcile the lease and receipts before retrying.'); process.exit(2); }, 12 * 60_000);
+    const watchdog = setTimeout(() => { console.error('Canary exceeded 30 minutes; reconcile the lease and receipts before retrying.'); process.exit(2); }, 30 * 60_000);
     let key;
     try {
       const sdk = signer ? new AsyncBulletinClient(client.getUnsafeApi(), signer, client.submit) : null;
@@ -149,7 +149,7 @@ export async function main(argv) {
         const a = before.authorization;
         assert.ok(a.remainingTransactions >= fixture.graph.blocks.length * 2 && a.remainingBytes >= BigInt(fixture.graph.bytes) && a.remainingRenewBytes >= BigInt(fixture.graph.bytes), 'Quota does not cover stores plus one renewal');
         result = { readyForBoundedWrite: true, blocks: fixture.graph.blocks.length, bytes: fixture.graph.bytes, budget: CANARY_BUDGET };
-      } else if (command === 'publish') {
+      } else if (command === 'publish' || command === 'reconcile') {
         result = await publish(fixture.graph, transport, checkpoint, CANARY_BUDGET);
       } else if (command === 'renew-now') {
         const requested = await requestRenewal(fixture.graph, transport, checkpoint, CANARY_BUDGET);

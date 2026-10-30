@@ -100,6 +100,18 @@ test('read timeouts release the pinned snapshot and never submit', async () => {
   await assert.rejects(t.status(), /timed out/); assert.equal(f.writes.length, 0);
 });
 
+test('read-only reconciliation never converts a missing graph block into a write intent', async t => {
+  const parent = await mkdtemp(join(tmpdir(), 'dotify-readonly-reconcile-'));
+  t.after(() => rm(parent, { recursive: true, force: true }));
+  const directory = join(parent, 'run'); await prepare(directory);
+  const fixture = await loadFixture(directory);
+  const chain = new SimulatedChain(); chain.writable = false;
+  const checkpoint = join(directory, 'checkpoint');
+  await assert.rejects(publish(fixture.graph, chain, checkpoint, { maxBytes: 1024 * 1024, maxTransactions: 40 }), /Read-only reconciliation/);
+  assert.equal(chain.stores.length, 0);
+  await assert.rejects(readFile(join(checkpoint, 'receipts.json')), /ENOENT/);
+});
+
 test('canary persists ciphertext once, excludes the master from reads, and refuses concurrent operators', async t => {
   const parent = await mkdtemp(join(tmpdir(), 'dotify-live-canary-test-'));
   t.after(() => rm(parent, { recursive: true, force: true }));

@@ -90,6 +90,7 @@ export async function publish(graph, transport, directory, budget) {
       }
     }
     const bytes = missing.reduce((sum, block) => sum + block.bytes.length, 0);
+    assert.ok(transport.writable !== false || missing.length === 0, 'Read-only reconciliation found missing blocks');
     // Reserve one full renewal cycle, including every directory and child.
     const transactions = missing.length + graph.blocks.length;
     assert.ok(bytes <= budget.maxBytes && transactions <= budget.maxTransactions, 'Explicit canary budget exceeded');

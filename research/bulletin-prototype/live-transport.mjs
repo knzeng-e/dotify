@@ -118,7 +118,7 @@ export function liveTransport(client, sdk, account, { timeoutMs = 30_000 } = {})
     if (!renewal) writtenBytes += bytes;
   }
   return {
-    genesis: GENESIS, account, status, lookup, readBlock, reads,
+    genesis: GENESIS, account, writable: Boolean(sdk), status, lookup, readBlock, reads,
     async store(block) {
       try {
         await verifyBlock(block.cid, block.bytes);

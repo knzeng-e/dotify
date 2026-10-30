@@ -110,8 +110,8 @@ descriptor and must only be used for the unsigned commands above.
 cd research/bulletin-prototype
 trap 'launchctl unsetenv MNEMONIC' EXIT
 node --import tsx canary.mjs publish /private/tmp/dotify-bulletin-canary --signer-fd 3 3< <(launchctl getenv MNEMONIC)
-# Same graph, fresh process: should reuse all 19 receipts with no new write.
-node --import tsx canary.mjs publish /private/tmp/dotify-bulletin-canary --signer-fd 3 3< <(launchctl getenv MNEMONIC)
+# Same graph, fresh read-only process: reuse all 19 receipts with no signer/write.
+node --import tsx canary.mjs reconcile /private/tmp/dotify-bulletin-canary
 node --import tsx canary.mjs verify /private/tmp/dotify-bulletin-canary
 node --import tsx canary.mjs renew-now /private/tmp/dotify-bulletin-canary --signer-fd 3 3< <(launchctl getenv MNEMONIC)
 node --import tsx canary.mjs verify /private/tmp/dotify-bulletin-canary
@@ -119,6 +119,10 @@ node --import tsx canary.mjs verify /private/tmp/dotify-bulletin-canary
 
 The canary is capped at 1 MiB of stored ciphertext and 40 attempted transactions
 per session; this fixed graph plans 19 stores plus 19 one-off immediate renewals.
+The wall-clock limit is 30 minutes per command. The initial 12-minute limit
+expired after all 19 stores had finalized but before the root receipt was saved;
+read-only `reconcile` recovered it with no new write. This sequential reference
+writer is not a production throughput design.
 `renew-now` uses `forceRenew`, not `renew` (which only registers a request for the
 retention boundary) or recurring auto-renewal. Every dependency must show a later
 finalized position, extended expiry and readable bytes before retention is
