@@ -1,6 +1,6 @@
 # Bulletin mobile diagnostic publication, 2026-10-30
 
-**Published: `dotify-bulletin-lab.dot`, Product `[0,1,0]`. The owner reports two complete native mobile listens and a completed bundled decoder control, all with sound heard. Cold-start and longer-listening acceptance remain open.**
+**Published: `dotify-bulletin-lab.dot`, Product `[0,1,0]`. The owner reports two complete native mobile listens and two completed bundled decoder controls, all with sound heard. Cold-start and longer-listening acceptance remain open.**
 
 The owner approved this independent diagnostic after #357 merged. Source is clean
 `a9199f8d4ae960aa4bf154c9a624baddd7d83f89`. Refs #288 / #287; neither issue closes with a distribution check.
@@ -88,9 +88,9 @@ Desktop UI automation was inconclusive; no new Desktop playback result is claime
 
 ## Owner-reported mobile result and decoder control
 
-Three reports supplied after publication match the exact clean source and audio
+Four reports supplied after publication match the exact clean source and audio
 root above. Two select `native-preimage` and report running inside the Host;
-the third selects `bundled-decoder-control`. All use the managed progressive
+two select `bundled-decoder-control`. All use the managed progressive
 reader and reach eight seconds / `ended`, with the owner explicitly marking
 audio heard.
 
@@ -98,22 +98,26 @@ audio heard.
 | --- | --- | ---: | --- | --- |
 | 1 | Native Bulletin | 1,195 ms | 8 seconds completed, sound heard | 6 / 99,997 bytes |
 | 2 | Native Bulletin | 117 ms | 8 seconds completed, sound heard | 6 / 99,997 bytes |
-| Control | Bundled decoder control | 112 ms | 8 seconds completed, sound heard | 6 / 99,997 bytes |
+| Control 1 (owner reports Wi-Fi) | Bundled decoder control | 112 ms | 8 seconds completed, sound heard | 6 / 99,997 bytes |
+| Control 2 (owner reports 5G) | Bundled decoder control | 74 ms | 8 seconds completed, sound heard | 6 / 99,997 bytes |
 
-The owner supplies **Polkadot app 0.10.0(18), Wi-Fi** alongside the control.
+The owner supplies **Polkadot app 0.10.0(18)** for both controls, with **Wi-Fi**
+for the first and **5G mobile** for the second.
 The forms' environment/network fields are empty, so the context is an owner
 note, not an automatically captured or independently controlled condition.
 No raw report IDs, exact wall-clock timestamps or user agent are retained.
 
 None contains a further `waiting` event after playback starts. The `pause`
 event occurs at the eight-second endpoint immediately before `ended`; it does
-not establish a manual pause or an interruption. The control's successful
+not establish a manual pause or an interruption. Both controls' successful
 playback supports decoder/managed-reader compatibility on this mobile setup.
-Its object reads come from the bundle and **do not measure network delivery**.
+Their object reads come from the bundle and **do not measure network delivery**.
+The second control therefore does not verify Bulletin over 5G or continuity
+during a network handover; no network-switch event is recorded.
 
-The native repeat and control show similar `playing` times in these samples;
-a five-millisecond difference is not a demonstrated performance advantage or
-statistical equivalence. The first native run is slower, but these observations
+The native repeat and both controls show sub-120-ms `playing` events in these
+individual observations. Their differences do not establish a speed advantage
+for a network or transport. The first native run is slower, but these observations
 cannot isolate network cost from Host caching, initialization or decoding.
 The timer is the browser's first `playing` event, **not measured audible first
 sound or Product download time**. The page cache is empty for each attempt;

@@ -187,13 +187,13 @@
     "audibleStartupMeasured": false,
     "productionStorageActivated": false,
     "pipelineThroughputVerified": false,
-    "physicalMobileEvidenceBasis": "Owner reports two complete native attempts and one complete bundled decoder control, with audio heard; eight-second generated fixture only",
+    "physicalMobileEvidenceBasis": "Owner reports two complete native attempts and two complete bundled decoder controls, all with audio heard; eight-second generated fixture only",
     "pairedMobileControlVerified": true,
     "controlledMobilePerformanceBenchmarkVerified": false
   },
   "physicalMobileObservation": {
     "date": "2026-10-30",
-    "source": "Three owner-supplied reports: two native attempts and one bundled decoder control; not independently observed",
+    "source": "Four owner-supplied reports: two native attempts and two bundled decoder controls; not independently observed",
     "privacy": "Only derived test observations retained; report identifiers, exact timestamps and raw user agent omitted",
     "schema": "dotify.bulletin.host-report.v1",
     "implementation": {
@@ -243,31 +243,67 @@
     "productionAccessTested": false,
     "reportedTestContext": {
       "hostVersion": "0.10.0(18)",
-      "network": "Wi-Fi",
-      "source": "Owner note accompanying the decoder-control report; report environment/network fields were empty",
-      "sameConditionsAcrossAttemptsIndependentlyVerified": false
+      "source": "Owner notes accompanying the decoder controls; report environment/network fields were empty",
+      "nativeNetworkIndependentlyRecorded": false,
+      "sameConditionsAcrossAttemptsIndependentlyVerified": false,
+      "decoderControlNetworks": [
+        "Wi-Fi",
+        "5G mobile"
+      ]
     },
-    "decoderControl": {
-      "transport": "bundled-decoder-control",
-      "reader": "managed",
-      "progressive": true,
-      "implementation": {
-        "sha": "a9199f8d4ae960aa4bf154c9a624baddd7d83f89",
-        "dirty": false
+    "decoderControls": [
+      {
+        "transport": "bundled-decoder-control",
+        "reader": "managed",
+        "progressive": true,
+        "implementation": {
+          "sha": "a9199f8d4ae960aa4bf154c9a624baddd7d83f89",
+          "dirty": false
+        },
+        "root": "bafykbzacecbgxu5coifnfzajpkwzuaxv36snvjfd4zqsbvpgfk4mx7mhzhtj4",
+        "outcome": "ended",
+        "mediaDurationSeconds": 8,
+        "firstPlayingEventMs": 112,
+        "operatorHeardAudio": true,
+        "playbackObjectReadCount": 6,
+        "playbackObjectReadBytes": 99997,
+        "objectSource": "Bundled ciphertext, not network delivery",
+        "waitingEventsAfterPlaying": 0,
+        "terminalPauseAtMediaSeconds": 8,
+        "recoveredAfterReload": false,
+        "audibleFirstSoundMeasured": false,
+        "productionAccessTested": false,
+        "sequence": 1,
+        "reportedHostVersion": "0.10.0(18)",
+        "reportedNetwork": "Wi-Fi",
+        "contextSource": "Owner note; report environment/network fields empty"
       },
-      "root": "bafykbzacecbgxu5coifnfzajpkwzuaxv36snvjfd4zqsbvpgfk4mx7mhzhtj4",
-      "outcome": "ended",
-      "mediaDurationSeconds": 8,
-      "firstPlayingEventMs": 112,
-      "operatorHeardAudio": true,
-      "playbackObjectReadCount": 6,
-      "playbackObjectReadBytes": 99997,
-      "objectSource": "Bundled ciphertext, not network delivery",
-      "waitingEventsAfterPlaying": 0,
-      "terminalPauseAtMediaSeconds": 8,
-      "recoveredAfterReload": false,
-      "audibleFirstSoundMeasured": false,
-      "productionAccessTested": false
-    }
+      {
+        "transport": "bundled-decoder-control",
+        "reader": "managed",
+        "progressive": true,
+        "implementation": {
+          "sha": "a9199f8d4ae960aa4bf154c9a624baddd7d83f89",
+          "dirty": false
+        },
+        "root": "bafykbzacecbgxu5coifnfzajpkwzuaxv36snvjfd4zqsbvpgfk4mx7mhzhtj4",
+        "outcome": "ended",
+        "mediaDurationSeconds": 8,
+        "firstPlayingEventMs": 74,
+        "operatorHeardAudio": true,
+        "playbackObjectReadCount": 6,
+        "playbackObjectReadBytes": 99997,
+        "objectSource": "Bundled ciphertext, not network delivery",
+        "waitingEventsAfterPlaying": 0,
+        "terminalPauseAtMediaSeconds": 8,
+        "recoveredAfterReload": false,
+        "audibleFirstSoundMeasured": false,
+        "productionAccessTested": false,
+        "sequence": 2,
+        "reportedHostVersion": "0.10.0(18)",
+        "reportedNetwork": "5G mobile",
+        "contextSource": "Owner note; report environment/network fields empty"
+      }
+    ]
   }
 }

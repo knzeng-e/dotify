@@ -427,8 +427,9 @@ The owner-approved [October 30 diagnostic publication](../../docs/backlog/implem
 is `dotify-bulletin-lab.dot`, Product `[0,1,0]`. Its current artifact/records are
 verified. Two owner-supplied native mobile reports complete the generated clip
 with audio heard (first `playing`: 1,195 / 117 ms); Host cache state is unknown.
-The owner also reports a completed bundled decoder control at 112 ms, with
-Polkadot app 0.10.0(18) and Wi-Fi noted. That validates this functional control;
+The owner also reports completed bundled decoder controls at 112 ms (Wi-Fi)
+and 74 ms (5G), with Polkadot app 0.10.0(18) for both. Embedded reads do not
+measure Bulletin over 5G. These validate the functional controls;
 controlled cold audible-start and longer-listening evidence remain pending.
 Do not republish or renew
 this candidate implicitly. The research writer's PAPI 3 transaction-creator
