@@ -44,6 +44,14 @@ refused the content RPC; the SHA-256/BLAKE2b compatibility lead is in the eviden
 Mobile distribution and physical native first sound remain unverified;
 no deployed origin, signer, Host permission or production storage is changed.
 
+The next isolated addressing diagnostic uses exactly three public-marker
+blocks / 387 bytes, with SHA-256 and BLAKE2b-256 hashes and one named directory.
+Its separate budget reserves three stores plus three possible renewals, but
+only stores are planned. Follow the [controlled comparison](../../research/bulletin-prototype/README.md#controlled-addressing-comparison);
+its public session has no key and the audio session endpoint returns 404.
+The normal generated-AAC session remains private and loopback-only. A passing
+marker test must not activate production delivery or be presented as AAC proof.
+
 ## W39 room scaling research, not deployed
 
 [ADR 0037](../adr/0037-room-scaling-and-sfu.md) and the

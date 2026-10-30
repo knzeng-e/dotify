@@ -1,6 +1,6 @@
 // Shared Node/Host reader: no Buffer, Node builtins, signer or gateway fallback.
 import { CID } from 'multiformats/cid';
-import { sha256 } from 'multiformats/hashes/sha2';
+import { hashBytes, runtimeHashName } from './hashes.mjs';
 import * as dagPB from '@ipld/dag-pb';
 import { UnixFS } from 'ipfs-unixfs';
 export const MAX_BLOCK_BYTES = 512 * 1024;
@@ -35,9 +35,10 @@ function validPath(path) {
 export async function verifyBlock(cidInput, bytes) {
   const cid = CID.parse(String(cidInput));
   assert.ok(cid.code === 0x55 || cid.code === dagPB.code, 'Only raw/DAG-PB blocks are admitted');
-  assert.equal(cid.multihash.code, sha256.code, 'Only SHA-256 is admitted');
+  runtimeHashName(cid.multihash.code);
+  assert.equal(cid.multihash.digest.length, 32, 'Expected a 256-bit content hash');
   assert.ok(bytes instanceof Uint8Array && bytes.length > 0 && bytes.length <= MAX_BLOCK_BYTES, 'Invalid block byte budget');
-  const expected = CID.create(cid.version, cid.code, await sha256.digest(bytes));
+  const expected = CID.create(cid.version, cid.code, await hashBytes(cid.multihash.code, bytes));
   assert.ok(cid.equals(expected), 'Block CID does not match its bytes');
   return cid;
 }

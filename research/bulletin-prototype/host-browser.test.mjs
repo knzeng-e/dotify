@@ -7,6 +7,7 @@ import { join } from 'node:path';
 import { chromium } from '../../web/node_modules/playwright/index.mjs';
 import { serveFixture, ORIGIN } from './host-server.mjs';
 import { prepare } from './canary.mjs';
+import { addressingFixture } from './addressing.mjs';
 import { encryptedAacFixture } from './aac-fixture.mjs';
 
 test('browser plays authenticated generated AAC, stops cleanly and refuses native fallback', { timeout: 100_000 }, async () => {
@@ -81,4 +82,42 @@ test('browser plays authenticated generated AAC, stops cleanly and refuses nativ
     await server?.close();
     await rm(parent, { recursive: true, force: true });
   }
+});
+
+test('addressing control verifies five cases, exports evidence, and native mode never falls back', { timeout: 40000 }, async () => {
+  const parent = await mkdtemp(join(tmpdir(), 'dotify-marker-browser-'));
+  let server, browser;
+  try {
+    const dir = join(parent, 'marker');
+    await prepare(dir, addressingFixture);
+    server = await serveFixture(dir);
+    browser = await chromium.launch();
+    const page = await browser.newPage();
+    const errors = [], blocks = [];
+    page.on('pageerror', e => errors.push(e.message));
+    page.on('request', r => { if (r.url().includes('/canary/block/')) blocks.push(r.url()); });
+    await page.goto(`${ORIGIN}/addressing.html`);
+    assert.equal((await page.request.get(`${ORIGIN}/canary/session`)).status(), 404);
+    await page.selectOption('#transport', 'local');
+    await page.click('#start');
+    await page.waitForFunction(() => JSON.parse(document.querySelector('#report').textContent || '{}').outcome === 'completed');
+    const report = JSON.parse(await page.locator('#report').textContent());
+    assert.equal(report.cases.length, 5);
+    assert.ok(report.cases.every(c => c.outcome === 'verified'), JSON.stringify(report));
+    assert.equal(blocks.length, 7);
+    const downloading = page.waitForEvent('download');
+    await page.click('#export');
+    const exported = JSON.parse(await readFile(await (await downloading).path(), 'utf8'));
+    assert.deepEqual(exported, report);
+    assert.ok(!JSON.stringify(exported).includes('"key"'));
+    blocks.length = 0;
+    await page.selectOption('#transport', 'native');
+    await page.click('#start');
+    await page.waitForFunction(() => JSON.parse(document.querySelector('#report').textContent || '{}').outcome === 'failed');
+    const native = JSON.parse(await page.locator('#report').textContent());
+    assert.equal(native.insideHost, false);
+    assert.equal(native.cases.length, 0);
+    assert.equal(blocks.length, 0);
+    assert.deepEqual(errors, []);
+  } finally { await browser?.close(); await server?.close(); await rm(parent, { recursive: true, force: true }); }
 });

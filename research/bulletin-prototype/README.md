@@ -191,7 +191,7 @@ reserves a full cycle. Never automatically run a live command in CI.
 
 The server binds **127.0.0.1:5278 only**, with fixed Host/origin checks,
 no CORS and no-store responses. It serves only an explicitly selected private
-generated-AAC fixture; the old non-AAC fixture is rejected. It makes that test
+generated-AAC fixture, or the exact public addressing marker below; the old non-AAC fixture is rejected. It makes that test
 key available to the local page, never in a committed bundle or exported report.
 Do not expose the server by tunnel, LAN binding, reverse proxy or public preview.
 This operator fixture is not a content-key service or an access-control test.
@@ -247,3 +247,40 @@ core expects BLAKE2b preimages. This is a compatibility lead, not a proof that
 the installed binary equals upstream or that BLAKE2b playback already works.
 Keep Pinata active. A new bounded BLAKE2b fixture or a CID-aware Host reader
 needs a separate proof before production integration.
+
+## Controlled addressing comparison
+
+`addressing-fixture.mjs` builds **three blocks / 387 bytes**: identical public
+marker bytes under SHA-256/raw and BLAKE2b-256/raw, plus a BLAKE2b-256 UnixFS
+directory linking both names. There is no content key or artist recording.
+The exact deterministic fixture is checked before load or write; its separate
+budget admits at most 2 KiB and six store-plus-renewal transactions. Only
+three stores are planned. The general canary's account/genesis checks, finalized
+receipts, root-last ordering, operator lease and uncertain-write reconciliation
+remain in force. Both hash algorithms are verified from the CID; all other
+hashes, truncated digests, corruption and oversized blocks are refused.
+
+```sh
+npm run prepare:addressing -- /private/tmp/dotify-addressing-new
+npm run canary -- check /private/tmp/dotify-addressing-new
+# After explicit local signer activation, use the direct Node publish command
+# above on this directory; do not wrap signing in npm. Remove MNEMONIC afterwards.
+npm run canary -- verify /private/tmp/dotify-addressing-new
+npm run host -- /private/tmp/dotify-addressing-new
+```
+
+Open `localhost:5278/addressing.html` in Desktop. Run native preimage mode,
+then export the report before leaving. Five cases distinguish the two raw
+hashes, the raw directory, and each named path. Ten-second per-block bounds
+and a 25-second per-case watchdog prevent indefinite loading. Native mode
+never uses the local reader or an HTTP gateway. A browser local control checks
+validation/export only. The marker server exposes only public proof metadata,
+returns 404 for the audio session endpoint, and retains the existing loopback
+and origin restrictions. Reports include source identity, unknown Host cache
+state, exact CIDs, successful reads and typed failures.
+
+The 2026-10-30 preflight confirmed 46 transactions remaining and the correct
+network/account; it submitted nothing. Local validation: 36 Node tests and five
+Host-harness checks. Installed-Host results are recorded separately after the
+three-block live test. Success here would establish addressing compatibility,
+not AAC playback, audible first sound, mobile support or production readiness.

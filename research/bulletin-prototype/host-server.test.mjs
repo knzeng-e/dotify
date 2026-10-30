@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { admitRequest, fixturePayload } from './host-server.mjs';
+import { addressingFixture } from './addressing.mjs';
 import { prepare } from './canary.mjs';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -28,4 +29,16 @@ test('Host harness refuses the earlier non-AAC fixture', async () => {
   } finally {
     await rm(parent, { recursive: true, force: true });
   }
+});
+
+test('public marker session contains only proof metadata and never an audio key', async t => {
+  const parent = await mkdtemp(join(tmpdir(), 'dotify-marker-host-'));
+  t.after(() => rm(parent, { recursive: true, force: true }));
+  const dir = join(parent, 'marker');
+  await prepare(dir, addressingFixture);
+  const payload = await fixturePayload(dir);
+  assert.equal(payload.session, undefined);
+  assert.equal(payload.addressingSession.schema, 'dotify.bulletin.addressing.v1');
+  assert.equal(payload.blocks.size, 3);
+  assert.ok(!JSON.stringify(payload.addressingSession).includes('"key"'));
 });

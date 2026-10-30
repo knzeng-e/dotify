@@ -29,6 +29,10 @@ export function admitRequest(request) {
 
 export async function fixturePayload(directory) {
   const fixture = await loadFixture(directory);
+  if (fixture.addressingProof) return {
+    blocks: new Map(fixture.graph.blocks.map(b => [b.cid, b.bytes])),
+    addressingSession: { schema: 'dotify.bulletin.addressing.v1', ...fixture.addressingProof, implementation: sourceIdentity() }
+  };
   assert.equal(fixture.audioProof?.kind, 'generated-chord-aac-v1', 'Only the generated AAC canary is allowed; never use artist music');
   const keyFile = join(directory, 'key.bin');
   const info = await lstat(keyFile);
@@ -66,7 +70,7 @@ export async function fixturePayload(directory) {
 }
 
 export async function serveFixture(directory) {
-  const { blocks, session } = await fixturePayload(directory);
+  const { blocks, session, addressingSession } = await fixturePayload(directory);
   const server = await createServer({
     configFile: false,
     envDir: false,
@@ -100,9 +104,11 @@ export async function serveFixture(directory) {
             res.setHeader('X-Content-Type-Options', 'nosniff');
             res.setHeader('Referrer-Policy', 'no-referrer');
             const url = new URL(req.url, ORIGIN);
-            if (url.pathname === '/canary/session') {
+            if (url.pathname === '/addressing/session' || url.pathname === '/canary/session') {
+              const selected = url.pathname === '/addressing/session' ? addressingSession : session;
+              if (!selected) { res.statusCode = 404; res.end(); return; }
               res.setHeader('Content-Type', 'application/json');
-              res.end(req.method === 'HEAD' ? undefined : JSON.stringify({ ...session, implementation: sourceIdentity() }));
+              res.end(req.method === 'HEAD' ? undefined : JSON.stringify({ ...selected, implementation: sourceIdentity() }));
               return;
             }
             if (url.pathname.startsWith('/canary/block/')) {
@@ -127,9 +133,9 @@ export async function serveFixture(directory) {
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   try {
-    assert.equal(process.argv.length, 3, 'Usage: node --import tsx host-server.mjs PRIVATE_AAC_DIRECTORY');
+    assert.equal(process.argv.length, 3, 'Usage: node --import tsx host-server.mjs PRIVATE_FIXTURE_DIRECTORY');
     await serveFixture(resolve(process.argv[2]));
-    console.log(`Generated audio only. Open ${ORIGIN} in Desktop or a browser. No public binding, upload, signer or DotNS change.`);
+    console.log(`Generated audio or public addressing marker only. Open ${ORIGIN} in Desktop or a browser. No public binding, upload, signer or DotNS change.`);
   } catch (error) {
     console.error(String(error.message).slice(0, 500));
     process.exitCode = 1;
