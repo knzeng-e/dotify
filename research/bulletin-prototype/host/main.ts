@@ -1,5 +1,7 @@
 import { queryBytes } from '@parity/product-sdk/cloud-storage';
-import { isInsideContainer } from '@parity/product-sdk/host';
+import { createClient } from 'polkadot-api';
+import { nativeRpcReader, NATIVE_GENESIS, bounded } from '../native-rpc.mjs';
+import { isInsideContainer, getHostProvider } from '@parity/product-sdk/host';
 import { readPath, hostBlockReader } from '../reader.mjs';
 import { createStreamingPlayback } from '../../../web/src/features/catalog/streamingPlayback';
 import { configureStreamingAudioElement, streamingMediaSource } from '../../../web/src/features/catalog/streamingMediaSource';
@@ -14,12 +16,13 @@ const heard = element<HTMLInputElement>('heard');
 let controller: AbortController | undefined;
 let report: Record<string, any> | undefined;
 let mediaUrl: string | undefined;
+let nativeClient: ReturnType<typeof createClient> | undefined;
 function display() { if (report) output.textContent = JSON.stringify(report, null, 2); }
 function cleanup() {
   controller?.abort(); controller = undefined;
   audio.pause(); audio.removeAttribute('src'); audio.load();
   if (mediaUrl) URL.revokeObjectURL(mediaUrl);
-  mediaUrl = undefined; start.disabled = false; stop.disabled = true;
+  mediaUrl = undefined; nativeClient?.destroy(); nativeClient = undefined; start.disabled = false; stop.disabled = true;
 }
 function fail(error: unknown, attempt: Record<string, any>) {
   if (report !== attempt || attempt.outcome === 'failed') return;
@@ -31,7 +34,7 @@ start.onclick = async () => {
   const mode = element<HTMLSelectElement>('transport').value;
   const attempt = report = {
     schema: 'dotify.bulletin.host-report.v1', startedAt: new Date().toISOString(),
-    base: '5b6ddec51ba4dfdc2383d7afbaf17996dfdda1a6', transport: mode === 'native' ? 'native-preimage' : 'local-control',
+    base: '5b6ddec51ba4dfdc2383d7afbaf17996dfdda1a6', transport: mode === 'native' ? 'native-preimage' : mode === 'rpc' ? 'native-chain-rpc' : 'local-control',
     environment: element<HTMLInputElement>('environment').value.slice(0, 240),
     network: element<HTMLInputElement>('network').value.slice(0, 160), userAgent: navigator.userAgent,
     reader: streamingMediaSource()?.kind ?? 'full-rendition-blob', hostCache: 'unknown; not cleared',
@@ -72,18 +75,26 @@ start.onclick = async () => {
     if (session.schema !== 'dotify.bulletin.host-canary.v1' || session.audioProof?.kind !== 'generated-chord-aac-v1') throw new Error('Unexpected test fixture');
     key = Uint8Array.from(session.key);
     attempt.root = session.root; attempt.audioProof = session.audioProof; attempt.implementation = session.implementation;
-    if (mode === 'native') {
+    if (mode !== 'local') {
       attempt.insideHost = await isInsideContainer();
       if (!attempt.insideHost) { key.fill(0); throw new Error('Native mode needs Polkadot Desktop/mobile. Select local control for a browser test.'); }
     }
-    const native = hostBlockReader({ fetchBytes: queryBytes }, { lookupTimeoutMs: attempt.lookupTimeoutMs });
+    let native = hostBlockReader({ fetchBytes: queryBytes }, { lookupTimeoutMs: attempt.lookupTimeoutMs });
+    if (mode === 'rpc') {
+      const provider = await bounded(getHostProvider(NATIVE_GENESIS), control.signal);
+      if (!provider) throw new Error('The Host did not expose the approved Bulletin chain');
+      control.signal.throwIfAborted();
+      nativeClient = createClient(provider);
+      native = await nativeRpcReader(nativeClient, control.signal);
+      attempt.genesisVerified = true;
+    }
     const cache = new Map<string, Uint8Array>();
     const readBlock = async (cid: string) => {
       control.signal.throwIfAborted();
       if (session.archiveRawCids.includes(cid)) throw new Error('Playback tried to fetch the archival master');
       if (cache.has(cid)) return cache.get(cid)!;
       const readStart = performance.now();
-      const bytes = mode === 'native' ? await native(cid) : await (async () => {
+      const bytes = mode !== 'local' ? await native(cid) : await (async () => {
         const r = await fetch(`/canary/block/${cid}`, { signal: control.signal, credentials: 'omit', cache: 'no-store' });
         if (!r.ok) throw new Error('Local control block unavailable');
         return new Uint8Array(await r.arrayBuffer());

@@ -7,7 +7,7 @@
     "node": ">=22 <23"
   },
   "scripts": {
-    "test": "node --import tsx --test prototype.test.mjs live-transport.test.mjs aac-fixture.test.mjs",
+    "test": "node --import tsx --test prototype.test.mjs live-transport.test.mjs aac-fixture.test.mjs native-rpc.test.mjs",
     "measure": "node --import tsx measure.mjs",
     "canary": "node --import tsx canary.mjs",
     "test:host": "node --import tsx --test host-server.test.mjs host-browser.test.mjs",
