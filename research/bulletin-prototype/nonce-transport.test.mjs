@@ -3,6 +3,9 @@ import assert from 'node:assert/strict';
 import { nonceTransport, watchFinalized } from './nonce-transport.mjs';
 import { CANARY_ACCOUNT } from './live-transport.mjs';
 import { GENESIS, buildDirectory } from './graph.mjs';
+const TEST_CREATOR = () => {
+  throw new Error('The fake transport must not invoke signing');
+};
 const stored = index => ({ type: 'TransactionStorage', value: { type: 'Stored', value: { index } } });
 const finalized = index => ({ type: 'finalized', ok: true, block: { number: 100, index: 99 }, events: [stored(index)] });
 function transaction(events) {
@@ -16,7 +19,7 @@ function transaction(events) {
       return unsubscribed;
     },
     createSubmitAndWatch(signer, options) {
-      assert.equal(signer, 'explicit-test-signer');
+      assert.equal(signer, TEST_CREATOR);
       assert.deepEqual(options, { nonce: 17 });
       calls++;
       return {
@@ -38,7 +41,7 @@ test('nonced writer waits for finalized success and uses the Stored index, never
     observer = o;
   });
   let settled = false;
-  const writing = watchFinalized(tx, 'explicit-test-signer', 17).then(r => {
+  const writing = watchFinalized(tx, TEST_CREATOR, 17).then(r => {
     settled = true;
     return r;
   });
@@ -58,13 +61,13 @@ test('dispatch failure, absent/duplicate receipts, stream end, timeout and signe
     { ...finalized(0), events: [stored(-1)] }
   ]) {
     const tx = transaction(o => o.next(event));
-    await assert.rejects(watchFinalized(tx, 'explicit-test-signer', 17));
+    await assert.rejects(watchFinalized(tx, TEST_CREATOR, 17));
     assert.equal(tx.calls, 1);
     assert.equal(tx.unsubscribed, 1);
   }
   for (const events of [o => o.complete(), o => o.error(new Error('Rejected')), o => o.error(null), o => o.error(undefined), () => {}]) {
     const tx = transaction(events);
-    await assert.rejects(watchFinalized(tx, 'explicit-test-signer', 17, { timeoutMs: 5 }));
+    await assert.rejects(watchFinalized(tx, TEST_CREATOR, 17, { timeoutMs: 5 }));
     assert.equal(tx.calls, 1);
     assert.equal(tx.unsubscribed, 1);
   }
@@ -95,7 +98,7 @@ async function fake() {
           calls.push(args);
           return {
             createSubmitAndWatch(signer, options) {
-              assert.equal(signer, 'explicit-test-signer');
+              assert.equal(signer, TEST_CREATOR);
               calls.push(options);
               return {
                 subscribe(o) {
@@ -137,7 +140,7 @@ async function fake() {
 }
 test('nonce reads use a pinned finalized snapshot and direct calls bind data/hash/codec', async () => {
   const f = await fake();
-  const t = nonceTransport(f.client, 'explicit-test-signer', CANARY_ACCOUNT);
+  const t = nonceTransport(f.client, TEST_CREATOR, CANARY_ACCOUNT);
   assert.equal(await t.nextNonce(), 17);
   assert.deepEqual(f.snapshots, [{ at: 'finalized-test' }]);
   assert.equal(f.released, 1);
@@ -155,7 +158,7 @@ test('nonce reads use a pinned finalized snapshot and direct calls bind data/has
 test('concurrent reservations cannot consume the same lagging quota; finalized quota is not double-counted', async () => {
   const f = await fake();
   f.auth = { ...f.auth, bytes_allowance: 4n, transactions_allowance: 1 };
-  const t = nonceTransport(f.client, 'explicit-test-signer', CANARY_ACCOUNT);
+  const t = nonceTransport(f.client, TEST_CREATOR, CANARY_ACCOUNT);
   const writing = t.store(f.graph.blocks[0], { nonce: 17 });
   while (!f.observer) await new Promise(r => setImmediate(r));
   await assert.rejects(t.store(f.graph.blocks[0], { nonce: 18 }), /reserved attempts/);
@@ -176,4 +179,21 @@ test('read-only mode and invalid nonces cannot reach transaction construction', 
   for (const nonce of [undefined, -1, 1.2, 2 ** 32]) await assert.rejects(t.store(f.graph.blocks[0], { nonce }));
   await assert.rejects(t.store(f.graph.blocks[0], { nonce: 17 }), /local signer/);
   assert.equal(f.calls.length, 0);
+});
+
+test('PAPI 2 signer objects and unknown profiles fail before touching RPC or submission', () => {
+  const client = {
+    getUnsafeApi() {
+      assert.fail('Incompatible signer must be rejected before RPC');
+    }
+  };
+  const oldSigner = {
+    publicKey: new Uint8Array(32),
+    signTx() {
+      assert.fail('No signing');
+    }
+  };
+  assert.throws(() => nonceTransport(client, oldSigner, CANARY_ACCOUNT), /PAPI 3/);
+  assert.throws(() => watchFinalized({}, oldSigner, 17), /PAPI 3/);
+  assert.throws(() => nonceTransport(client, null, CANARY_ACCOUNT, { profile: 'unknown' }), /Unknown fixture/);
 });

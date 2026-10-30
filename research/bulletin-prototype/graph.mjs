@@ -9,7 +9,7 @@ import { verifyBlock, MAX_BLOCK_BYTES } from './reader.mjs';
 
 export const GENESIS = '0xe101f0fa4627d29a257645e02be86d80378fea1a2bf8fa6a918d150ebc760a59';
 export { verifyBlock, MAX_BLOCK_BYTES, readPath, hostBlockReader } from './reader.mjs';
-const MAX_GRAPH_BYTES = 4 * 1024 * 1024;
+import { fixtureProfile } from './fixture-profile.mjs';
 const MAX_BLOCKS = 128;
 
 function validPath(path) {
@@ -19,8 +19,9 @@ function validPath(path) {
   assert.ok(path.split('/').every(part => part !== '.' && part !== '..'));
 }
 
-export async function buildDirectory(files) {
-  assert.ok(files.length > 0 && files.length <= 32, 'Invalid fixture file count');
+export async function buildDirectory(files, { profile: profileId = 'short' } = {}) {
+  const profile = fixtureProfile(profileId);
+  assert.ok(files.length > 0 && files.length <= profile.maxFiles, 'Invalid fixture file count');
   const paths = new Set();
   let size = 0;
   for (const file of files) {
@@ -30,7 +31,7 @@ export async function buildDirectory(files) {
     assert.ok(file.bytes instanceof Uint8Array && file.bytes.length > 0);
     size += file.bytes.length;
   }
-  assert.ok(size <= MAX_GRAPH_BYTES, 'Fixture exceeds graph budget');
+  assert.ok(size <= profile.graphMaxBytes, 'Fixture exceeds graph budget');
   const blocks = new Map();
   const store = {
     async put(cid, bytes) {
@@ -70,7 +71,8 @@ export async function buildDirectory(files) {
   return { root: root.toString(), blocks: ordered, bytes: ordered.reduce((sum, block) => sum + block.bytes.length, 0) };
 }
 
-export async function verifyGraph(graph) {
+export async function verifyGraph(graph, { profile: profileId = 'short' } = {}) {
+  const profile = fixtureProfile(profileId);
   assert.ok(Array.isArray(graph.blocks) && graph.blocks.length > 0 && graph.blocks.length <= MAX_BLOCKS, 'Invalid graph block count');
   assert.equal(graph.blocks.at(-1).cid, graph.root, 'Directory root must be published last');
   const byId = new Map();
@@ -85,7 +87,7 @@ export async function verifyGraph(graph) {
     bytes += block.bytes.length;
   }
   assert.equal(bytes, graph.bytes, 'Graph byte accounting mismatch');
-  assert.ok(bytes <= MAX_GRAPH_BYTES + MAX_BLOCK_BYTES, 'Graph exceeds byte budget');
+  assert.ok(bytes <= profile.graphMaxBytes + MAX_BLOCK_BYTES, 'Graph exceeds byte budget');
   const root = dagPB.decode(byId.get(graph.root).bytes);
   assert.equal(UnixFS.unmarshal(root.Data).type, 'directory', 'Graph root is not a directory');
   const reachable = new Set();

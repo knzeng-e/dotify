@@ -8,20 +8,26 @@ import { loadFixture, localSigner, withLease } from './canary.mjs';
 import { planPipeline } from './pipeline-plan.mjs';
 import { publishPipelined, pipelineLimits } from './pipeline.mjs';
 import { nonceTransport } from './nonce-transport.mjs';
+import { fixtureProfile } from './fixture-profile.mjs';
 import { withAccountLease } from './operator-lease.mjs';
-import { ENDPOINT, CANARY_ACCOUNT, CANARY_BUDGET } from './live-transport.mjs';
+import { ENDPOINT, CANARY_ACCOUNT } from './live-transport.mjs';
 export function parseArguments(argv) {
   const [command, input, ...rest] = argv;
   assert.ok(
     ['plan', 'check', 'publish', 'reconcile'].includes(command) && input,
-    'Usage: pipeline-canary.mjs plan|check|publish|reconcile PRIVATE_DIRECTORY [--concurrency 1..4] [--exclusive-account --signer-fd N]'
+    'Usage: pipeline-canary.mjs plan|check|publish|reconcile PRIVATE_DIRECTORY [--profile short|continuity] [--concurrency 1..4] [--exclusive-account --signer-fd N]'
   );
-  const result = { command, directory: resolve(input), concurrency: 2, signerFd: undefined, exclusive: false };
+  const result = { command, directory: resolve(input), concurrency: 2, signerFd: undefined, exclusive: false, profile: 'short' };
   const seen = new Set();
   for (let i = 0; i < rest.length; i++) {
     const flag = rest[i];
     assert.ok(!seen.has(flag), 'Repeated option');
     seen.add(flag);
+    if (flag === '--profile') {
+      assert.ok(rest[i + 1], 'Explicit fixture profile required');
+      result.profile = fixtureProfile(rest[++i]).id;
+      continue;
+    }
     if (flag === '--exclusive-account') {
       result.exclusive = true;
       continue;
@@ -43,7 +49,8 @@ export function parseArguments(argv) {
 }
 export async function main(argv) {
   const args = parseArguments(argv),
-    fixture = await loadFixture(args.directory);
+    profile = fixtureProfile(args.profile),
+    fixture = await loadFixture(args.directory, { profile: profile.id });
   const plan = await planPipeline(fixture.graph, args);
   if (args.command === 'plan') return plan;
   const run = () =>
@@ -55,7 +62,7 @@ export async function main(argv) {
         process.exit(2);
       }, 30 * 60_000);
       try {
-        const transport = nonceTransport(client, signer, CANARY_ACCOUNT);
+        const transport = nonceTransport(client, signer, CANARY_ACCOUNT, { profile: profile.id });
         const before = await transport.status();
         let result;
         if (args.command === 'check') {
@@ -71,9 +78,9 @@ export async function main(argv) {
             pendingOutcomesNotChecked: true,
             plan,
             finalizedAccountNonce: await transport.nextNonce(),
-            budget: CANARY_BUDGET
+            budget: profile.budget
           };
-        } else result = await publishPipelined(fixture.graph, transport, join(args.directory, 'pipeline-checkpoint'), CANARY_BUDGET, args);
+        } else result = await publishPipelined(fixture.graph, transport, join(args.directory, 'pipeline-checkpoint'), profile.budget, args);
         return {
           observedAt: new Date().toISOString(),
           command: args.command,

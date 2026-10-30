@@ -36,8 +36,8 @@ export function receiptFor(block, receipt, status, margin) {
   return receipt;
 }
 
-export async function publicationSession(graph, transport, directory, run, { schema = 'dotify.bulletin.prototype.v1', initial = {} } = {}) {
-  await verifyGraph(graph);
+export async function publicationSession(graph, transport, directory, run, { schema = 'dotify.bulletin.prototype.v1', initial = {}, profile = 'short' } = {}) {
+  await verifyGraph(graph, { profile });
   assert.equal(transport.genesis, GENESIS, 'Wrong Bulletin network');
   assert.ok(typeof transport.account === 'string' && transport.account.length > 0, 'Explicit storage account required');
   directory = resolve(directory);

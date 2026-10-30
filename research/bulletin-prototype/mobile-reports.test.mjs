@@ -76,3 +76,24 @@ test('verbose evidence cannot make the persisted notebook exceed its byte bound'
   assert.ok(new TextEncoder().encode(store.getItem(REPORT_KEY)).byteLength <= MAX_HISTORY_BYTES);
   assert.ok(reportJournal(store).list().length > 0);
 });
+
+test('continuity evidence preserves bounded progress and human network markers without private metadata', () => {
+  const safe = safeReport({
+    ...attempt('continuity'),
+    fixtureProfile: 'continuity',
+    fixtureDurationSeconds: 64,
+    attemptLimitMs: 180000,
+    firstPlayingLimitMs: 45000,
+    events: [
+      { name: 'progress', mediaSeconds: 36, bufferedUntilMediaSeconds: 60, key: 'secret' },
+      { name: 'network-switch-marked', mediaSeconds: 40, networkNote: 'x'.repeat(200), secret: 'secret' }
+    ],
+    reads: [{ cid: 'test', bytes: 48000, elapsedMs: 30, attemptElapsedMs: 36000, mediaSeconds: 35, key: 'secret' }]
+  });
+  assert.equal(safe.fixtureDurationSeconds, 64);
+  assert.equal(safe.events[0].bufferedUntilMediaSeconds, 60);
+  assert.equal(safe.events[1].networkNote.length, 160);
+  assert.equal(safe.reads[0].mediaSeconds, 35);
+  assert.equal(safe.reads[0].attemptElapsedMs, 36000);
+  assert.ok(!JSON.stringify(safe).includes('secret'));
+});

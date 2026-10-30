@@ -462,3 +462,23 @@ sharing. History eviction is disclosed; keep important reports separately.
 Automated browser controls test the built bundle and persistence, not installed
 mobile Host support. Native mobile first sound, paired delivery measurements,
 long listening and production storage activation remain open.
+
+
+## Longer mobile continuity preparation
+
+The explicit `continuity` profile generates 64 seconds with the unchanged real three-rendition encoder, beyond the player's 30-second buffer. It is an isolated test, not a production storage adapter. See the [design, exact local budget and remaining gates](../../docs/backlog/implementation/evidence/bulletin-mobile-continuity-2026-10-30.md).
+
+```sh
+npm run continuity --prefix research/bulletin-prototype -- prepare /private/tmp/NEW-source /private/tmp/NEW-blake
+npm run continuity --prefix research/bulletin-prototype -- plan /private/tmp/NEW-blake
+npm run pipeline --prefix research/bulletin-prototype -- plan /private/tmp/NEW-blake --profile continuity
+npm run continuity --prefix research/bulletin-prototype -- build /private/tmp/NEW-blake /private/tmp/NEW-product --allow-public-generated-key
+npm run test:continuity --prefix research/bulletin-prototype
+npm run test:continuity-browser --prefix research/bulletin-prototype
+```
+
+These commands are local only. The larger profile must be selected explicitly and proves the generated source before admitting its larger limits; the existing short command limits are unchanged. New directories are mandatory, including after a failed nonce reservation. Reports add media-relative reads, progress and a manual network marker without claiming a verified handover or audible-first-sound measurement. Browser controls run at 4x speed and do not establish physical-device continuity.
+
+The separate manual `npm run probe:writer --prefix research/bulletin-prototype` reads the pinned DevNet and builds an invalid fake-signed transaction with real PAPI 3.3.0. It loads no signer and allowlists only read RPCs; CI never calls it. A PAPI 2 signer object is refused by the actual writer before RPC. The repository writer was already PAPI 3-compatible; this guards against mixing operator/dependency versions.
+
+No new Bulletin stores, renewals, account allowance or Product update are authorized by preparation. The candidate needs 66 stores / 5,677,848 bytes plus 66 reserved renewals, with old reserves and independent Product distribution budget added separately. The old sequential renewal command is not a larger-profile renewal mechanism. Obtain a reviewed exact budget before live commands; never treat the fixed 8-MiB/160-transaction ceiling as permission to spend it.

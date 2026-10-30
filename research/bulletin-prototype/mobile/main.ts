@@ -1,8 +1,15 @@
 import payload from 'virtual:generated-fixture';
 import { mountPlayer } from '../host/player';
+import { fixtureProfile } from '../fixture-profile.mjs';
 import { reportJournal } from './reports.mjs';
 import './style.css';
 const element = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
+const profile = fixtureProfile(payload.session.fixtureProfile);
+element('clip-duration').textContent = `${profile.durationSeconds} seconds.`;
+element('duration').textContent = profile.id === 'continuity' ? '01:04' : '00:08';
+element('attempt-limit').textContent = String(profile.attemptLimitMs / 1000);
+element('diagnostic-version').textContent = profile.diagnosticVersion;
+element<HTMLAudioElement>('audio').setAttribute('aria-label', `Generated ${profile.durationSeconds}-second chord`);
 const saved = element<HTMLSelectElement>('saved');
 const savedOutput = element<HTMLTextAreaElement>('saved-output');
 const journal = reportJournal(
@@ -51,6 +58,7 @@ element('source').textContent = `${payload.session.implementation.sha.slice(0, 8
 refresh();
 let currentAttemptId: string | undefined;
 mountPlayer({
+  profile: profile.id,
   loadSession: async signal => {
     signal.throwIfAborted();
     return structuredClone(payload.session);

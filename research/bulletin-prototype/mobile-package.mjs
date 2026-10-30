@@ -8,17 +8,19 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { CID } from 'multiformats/cid';
 import { loadFixture, verifyFiles } from './canary.mjs';
 import { generatedWav } from './aac-fixture.mjs';
+import { fixtureProfile } from './fixture-profile.mjs';
 import { readPath } from './reader.mjs';
 import { BLAKE2B256 } from './hashes.mjs';
 import { parseStreamingManifest, verifyStreamingManifest, decryptStreamingObject } from '../../services/api/src/services/streamingFormat.ts';
 const here = dirname(fileURLToPath(import.meta.url));
 
-export async function mobilePayload(directory, { acknowledgePublicTestKey = false } = {}) {
+export async function mobilePayload(directory, { acknowledgePublicTestKey = false, profile: profileId = 'short' } = {}) {
+  const profile = fixtureProfile(profileId);
   assert.equal(acknowledgePublicTestKey, true, 'Explicit --allow-public-generated-key required: the synthetic key becomes public');
-  const fixture = await loadFixture(directory);
-  assert.equal(fixture.audioProof?.kind, 'generated-chord-aac-v1', 'Only the generated AAC chord is allowed');
-  assert.equal(fixture.audioProof.durationSeconds, 8);
-  const expectedMaster = generatedWav();
+  const fixture = await loadFixture(directory, { profile: profile.id });
+  assert.equal(fixture.audioProof?.kind, profile.kind, 'Only the generated AAC chord is allowed');
+  assert.equal(fixture.audioProof.durationSeconds, profile.durationSeconds);
+  const expectedMaster = generatedWav(profile.durationSeconds);
   assert.equal(fixture.audioProof.sourceSha256, createHash('sha256').update(expectedMaster).digest('hex'), 'Generated source identity changed');
   assert.ok(
     fixture.graph.blocks.every(b => CID.parse(b.cid).multihash.code === BLAKE2B256),
@@ -46,7 +48,8 @@ export async function mobilePayload(directory, { acknowledgePublicTestKey = fals
           return blocks.get(cid);
         },
         fixture.graph.root,
-        manifest.master.path
+        manifest.master.path,
+        { maxBytes: profile.archiveReadBytes }
       )
     ).bytes;
     const master = decryptStreamingObject(masterBytes, key, manifest, manifest.master);
@@ -63,7 +66,7 @@ export async function mobilePayload(directory, { acknowledgePublicTestKey = fals
         return bytes;
       }
     };
-    await verifyFiles(transport, fixture, key);
+    await verifyFiles(transport, fixture, key, { profile: profile.id });
     const archiveRawCids = fixture.graph.blocks.filter(b => b.codec === 0x55 && archive.has(b.cid)).map(b => b.cid);
     assert.ok(
       archiveRawCids.every(cid => !used.has(cid)),
@@ -73,12 +76,13 @@ export async function mobilePayload(directory, { acknowledgePublicTestKey = fals
     return {
       session: {
         schema: 'dotify.bulletin.host-canary.v1',
+        fixtureProfile: profile.id,
         root: fixture.graph.root,
         scope: Object.fromEntries(['chainId', 'runtimeAddress', 'contentHash', 'keyVersion'].map(field => [field, fixture.scope[field]])),
         key: [...key],
         audioProof: {
-          kind: 'generated-chord-aac-v1',
-          durationSeconds: 8,
+          kind: profile.kind,
+          durationSeconds: profile.durationSeconds,
           sourceSha256: fixture.audioProof.sourceSha256
         },
         archiveRawCids,
@@ -144,6 +148,8 @@ export async function buildMobile(directory, output, options) {
     schema: 'dotify.bulletin.mobile-package.v1',
     implementation: payload.session.implementation,
     root: payload.session.root,
+    fixtureProfile: payload.session.fixtureProfile,
+    durationSeconds: payload.session.audioProof.durationSeconds,
     publicGeneratedKey: true,
     requiresSeparateDestinationApproval: true,
     networkWrites: 0,

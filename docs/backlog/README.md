@@ -23,6 +23,15 @@ are now published in the [combined 0.1.63 rollout](implementation/evidence/produ
 Physical-device and pilot acceptance remain separate; #341 records the
 activation corrections before another deployment is prepared.
 
+## Bulletin continuity follow-up, 2026-10-30
+
+After the [eight-second mobile observations](implementation/evidence/bulletin-mobile-publication-2026-10-30.md),
+the [longer diagnostic preparation](implementation/evidence/bulletin-mobile-continuity-2026-10-30.md)
+adds a 64-second generated clip, explicit bounded limits, progress/read timing
+and manual network markers. Local browser controls pass; no longer native run,
+new publication or production storage activation is claimed. W32/W33 remain
+open for measured delivery and retention, with network authorization separate.
+
 ## Current reconciliation, 2026-10-23
 
 [The 31-open-issue audit](implementation/evidence/backlog-reconciliation-2026-10-23.md)

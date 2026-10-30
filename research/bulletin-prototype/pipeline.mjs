@@ -191,6 +191,6 @@ export async function publishPipelined(graph, transport, directory, budget, opti
         peakInFlightBytes
       };
     },
-    { schema: 'dotify.bulletin.pipeline.v1', initial: { pending: {}, nextNonce: null } }
+    { schema: 'dotify.bulletin.pipeline.v1', initial: { pending: {}, nextNonce: null }, profile: options.profile }
   );
 }
