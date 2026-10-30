@@ -1,5 +1,11 @@
 # Bulletin real-AAC reader canary, 2026-10-30
 
+**Follow-up:** the [controlled marker](bulletin-addressing-canary-2026-10-30.md)
+and [BLAKE2b AAC test](bulletin-blake-aac-canary-2026-10-30.md) now isolate the
+hash mismatch and complete an eight-second native Desktop playback. The SHA-256
+failures below remain the original observations; mobile/cold audible start
+and production readiness are still unverified.
+
 **Outcome: real AAC storage/readback works; native SHA-256 CID retrieval is
 blocked on the tested Desktop path.** Pinata and the deployed app are unchanged.
 Refs #288 / #287; base `5b6ddec51ba4dfdc2383d7afbaf17996dfdda1a6` (merged #353/#354).

@@ -243,10 +243,11 @@ records 16 finalized stores, nine decrypted audio objects and a removed signer.
 Native Desktop 0.1.4-rc.3 returns no preimage block at 10 or 30 seconds; the
 separate Host chain provider verifies genesis but rejects `bitswap_v1_get`.
 The pinned SDK strips SHA-256 CIDs to bare digests while the inspected upstream
-core expects BLAKE2b preimages. This is a compatibility lead, not a proof that
-the installed binary equals upstream or that BLAKE2b playback already works.
-Keep Pinata active. A new bounded BLAKE2b fixture or a CID-aware Host reader
-needs a separate proof before production integration.
+core expects BLAKE2b preimages. This initial compatibility lead did not establish the exact installed core
+revision. The controlled marker and native BLAKE2b AAC follow-up below now
+confirm that the alternative addressing works on Desktop. Keep Pinata active:
+mobile delivery, cold audible-start evidence and production integration remain
+separate gates.
 
 ## Controlled addressing comparison
 
@@ -280,7 +281,7 @@ and origin restrictions. Reports include source identity, unknown Host cache
 state, exact CIDs, successful reads and typed failures.
 
 The 2026-10-30 preflight confirmed 46 transactions remaining and the correct
-network/account; it submitted nothing. Local validation: 36 Node tests and five
+network/account; it submitted nothing. Current local validation: 38 Node tests and six
 Host-harness checks. The [installed-Host results](../../docs/backlog/implementation/evidence/bulletin-addressing-canary-2026-10-30.md)
 show BLAKE2b raw/directory/path reads succeed while the identical SHA-256
 payload times out; both paths were independently verified through Node RPC. Success here would establish addressing compatibility,
@@ -306,5 +307,9 @@ npm run host -- /private/tmp/NEW_BLAKE_AAC
 
 The prepared macOS target has 16 blocks / 713,229 bytes (30 more directory bytes
 than SHA-256), with a full 16-renewal reserve checked before its 16 planned
-stores. Local verification authenticates all nine audio objects. Physical
-native AAC playback must be recorded separately; the marker is not that proof.
+stores. Local verification authenticates all nine audio objects. The [native AAC report](../../docs/backlog/implementation/evidence/bulletin-blake-aac-canary-2026-10-30.md)
+now records all 16 stores, nine authenticated readback objects, and actual
+Desktop playback ending at eight seconds. First playing event: 2,052 ms, with
+unknown Host caches and no physical audibility claim. The signer was removed;
+27 transactions remain. Mobile, cold first sound, longer listening and scalable
+publication remain gates. Production storage is unchanged.

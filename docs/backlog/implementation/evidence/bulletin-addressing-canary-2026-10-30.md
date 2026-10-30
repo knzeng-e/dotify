@@ -58,9 +58,10 @@ still does not identify the installed core's exact source revision.
    verifies the harness only. The server's marker session contains no key and
    the audio session endpoint returns 404 for this fixture.
 
-The next isolated step readdresses the previously generated AAC ciphertext and
-UnixFS links in BLAKE2b. It must authenticate all nine audio objects unchanged
-before upload, preserve the original nonce ledger, and test the real player
+The [follow-up native AAC proof](bulletin-blake-aac-canary-2026-10-30.md) now
+plays the generated clip to its end in Desktop. That isolated step readdresses the previously generated AAC ciphertext and
+UnixFS links in BLAKE2b. It authenticates all nine audio objects unchanged
+before upload, preserves the original nonce ledger, and uses the real player
 in the installed Host. It is a fresh experiment with its own write budget;
 marker success must not enable production media delivery.
 

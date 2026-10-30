@@ -52,9 +52,12 @@ its public session has no key and the audio session endpoint returns 404.
 The normal generated-AAC session remains private and loopback-only. The installed Desktop verified BLAKE2b raw/directory/path reads; SHA-256
 timed out. There are 43 transactions left and the signer was removed. This
 marker result must not activate production delivery or be presented as AAC proof.
-The separately prepared generated-AAC BLAKE2b target is 16 blocks / 713,229 bytes;
-its original ciphertext and permanent nonce ledger remain unchanged. A new
-explicit write budget and local signer activation are required for its upload.
+The [generated-AAC BLAKE2b follow-up](../backlog/implementation/evidence/bulletin-blake-aac-canary-2026-10-30.md)
+finalized 16 blocks / 713,229 bytes and completed eight-second native Desktop
+playback (first playing event 2,052 ms; cache state unknown). Its original
+ciphertext and permanent nonce ledger remain unchanged. The signer is removed,
+no renewal ran, and 27 transactions remain. These are research-only receipts;
+mobile/cold audible-start evidence and production integration are still open.
 
 ## W39 room scaling research, not deployed
 
