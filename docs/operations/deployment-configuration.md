@@ -11,6 +11,28 @@ ledger to retry storage. The encoder and signaling were not restarted.
 See the [rollout record and rollback](../backlog/implementation/evidence/product-0.1.67-rollout-2026-10-29.md).
 Bulletin media storage remains an exploration, not a production setting.
 
+## Bulletin segmented-media prototype, not deployed
+
+The [Bulletin media prototype](../../research/bulletin-prototype/README.md) is
+also isolated from deployment. Offline tests/CI use simulated storage and never
+load a signer or submit transactions. The separate local operator command can
+send the explicitly authorized synthetic canary to the pinned Bulletin DevNet:
+19 blocks / 870,498 bytes plus one immediate renewal per block. It uses the
+owner-selected account, a local signer descriptor and finalized metadata/raw CID
+readback; it has no automatic environment signer or public-pool fallback.
+See its [operator and recovery steps](../../research/bulletin-prototype/README.md#network-canary).
+Do not change Pinata/read origins or put the DotNS key in a server. Production
+SDK/protocol pins remain unchanged and there is no production enable flag.
+The operator lock survives abrupt termination for explicit reconciliation;
+keep the private fixture/nonce ledger/receipts, and remove the temporary local
+signer after the run. Recurring renewal, real AAC, physical Host retrieval and
+first sound remain separate acceptance gates.
+The [2026-10-30 canary](../backlog/implementation/evidence/bulletin-network-canary-2026-10-29.md)
+verified 19 stores and 19 immediate renewals, with no additional store during
+read-only timeout recovery. The local signer is removed. This does not activate
+Bulletin media in the app; the sequential prototype's roughly twelve-minute
+publication is an explicit throughput limitation.
+
 ## W39 room scaling research, not deployed
 
 [ADR 0037](../adr/0037-room-scaling-and-sfu.md) and the

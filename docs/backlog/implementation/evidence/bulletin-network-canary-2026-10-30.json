@@ -1,0 +1,559 @@
+{
+  "schema": "dotify.bulletin.canary.evidence.v1",
+  "publicationImplementation": "7d17b272224ec7f76c16f46c557d01f135e29ef9",
+  "reconciliationImplementation": "01ada3a53077bad234c4ddc18a94d60ccfd9270b",
+  "synthetic": true,
+  "validAac": false,
+  "physicalHostVerified": false,
+  "coldAudibleStartupMeasured": false,
+  "preflight": {
+    "observedAt": "2026-10-30T00:14:08.691Z",
+    "endpoint": "wss://bulletin-paseo.tservices.es:8443",
+    "genesis": "0xe101f0fa4627d29a257645e02be86d80378fea1a2bf8fa6a918d150ebc760a59",
+    "account": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+    "root": "bafybeigxn7eqo72r2zjyd7drktzqaoi7nubl74zthst4lf2vej7y2mozua",
+    "before": {
+      "head": 1422647,
+      "hash": "0x6dbbde5573dd94db44180764f87947119c8886ead698aa434250ec35301e2225",
+      "authorization": {
+        "expiresAt": 1621405,
+        "remainingTransactions": 100,
+        "remainingBytes": "10485760",
+        "remainingRenewBytes": "10485760"
+      }
+    },
+    "command": "check",
+    "result": {
+      "readyForBoundedWrite": true,
+      "blocks": 19,
+      "bytes": 870498,
+      "budget": {
+        "maxBytes": 1048576,
+        "maxTransactions": 40
+      }
+    },
+    "after": {
+      "head": 1422647,
+      "hash": "0x6dbbde5573dd94db44180764f87947119c8886ead698aa434250ec35301e2225",
+      "authorization": {
+        "expiresAt": 1621405,
+        "remainingTransactions": 100,
+        "remainingBytes": "10485760",
+        "remainingRenewBytes": "10485760"
+      }
+    },
+    "attemptedTransactions": 0
+  },
+  "postTimeoutFinalizedLookup": {
+    "status": {
+      "head": 1422785,
+      "hash": "0x49fb25f09ccded0e469138692e01f78ec2035c20cc250b601f586805bc592bcd",
+      "authorization": {
+        "expiresAt": 1621405,
+        "remainingTransactions": 81,
+        "remainingBytes": "9615262",
+        "remainingRenewBytes": "10485760"
+      }
+    },
+    "root": "bafybeigxn7eqo72r2zjyd7drktzqaoi7nubl74zthst4lf2vej7y2mozua",
+    "rootReceipt": {
+      "cid": "bafybeigxn7eqo72r2zjyd7drktzqaoi7nubl74zthst4lf2vej7y2mozua",
+      "bytes": 261,
+      "block": 1422766,
+      "index": 0,
+      "expiresAt": 1624366,
+      "finalized": true
+    }
+  },
+  "readOnlyResume": {
+    "observedAt": "2026-10-30T00:30:08.798Z",
+    "endpoint": "wss://bulletin-paseo.tservices.es:8443",
+    "genesis": "0xe101f0fa4627d29a257645e02be86d80378fea1a2bf8fa6a918d150ebc760a59",
+    "account": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+    "root": "bafybeigxn7eqo72r2zjyd7drktzqaoi7nubl74zthst4lf2vej7y2mozua",
+    "before": {
+      "head": 1422801,
+      "hash": "0x8ac389ff9b56aad7431a9d13fd4a0b8e250cd2280e6f105fec2b234e6b15317f",
+      "authorization": {
+        "expiresAt": 1621405,
+        "remainingTransactions": 81,
+        "remainingBytes": "9615262",
+        "remainingRenewBytes": "10485760"
+      }
+    },
+    "command": "reconcile",
+    "result": {
+      "root": "bafybeigxn7eqo72r2zjyd7drktzqaoi7nubl74zthst4lf2vej7y2mozua",
+      "storedBlocks": 0,
+      "reusedBlocks": 19,
+      "reservedRenewalTransactions": 19
+    },
+    "after": {
+      "head": 1422804,
+      "hash": "0xc9799b8bbca4dc4d265850f9c6710f6555f3d381b48d8b027017cab5b391de72",
+      "authorization": {
+        "expiresAt": 1621405,
+        "remainingTransactions": 81,
+        "remainingBytes": "9615262",
+        "remainingRenewBytes": "10485760"
+      }
+    },
+    "attemptedTransactions": 0
+  },
+  "selectiveRead": {
+    "observedAt": "2026-10-30T00:30:24.946Z",
+    "endpoint": "wss://bulletin-paseo.tservices.es:8443",
+    "genesis": "0xe101f0fa4627d29a257645e02be86d80378fea1a2bf8fa6a918d150ebc760a59",
+    "account": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+    "root": "bafybeigxn7eqo72r2zjyd7drktzqaoi7nubl74zthst4lf2vej7y2mozua",
+    "before": {
+      "head": 1422804,
+      "hash": "0xc9799b8bbca4dc4d265850f9c6710f6555f3d381b48d8b027017cab5b391de72",
+      "authorization": {
+        "expiresAt": 1621405,
+        "remainingTransactions": 81,
+        "remainingBytes": "9615262",
+        "remainingRenewBytes": "10485760"
+      }
+    },
+    "command": "verify",
+    "result": {
+      "verifiedObjects": 9,
+      "paths": [
+        "96/init.bin",
+        "96/segment-000.bin",
+        "96/segment-001.bin",
+        "160/init.bin",
+        "160/segment-000.bin",
+        "160/segment-001.bin",
+        "320/init.bin",
+        "320/segment-000.bin",
+        "320/segment-001.bin"
+      ],
+      "masterFetched": false,
+      "startupRawReads": 8,
+      "startupBytes": 28767,
+      "firstAuthenticatedObjectsMs": 424,
+      "totalRawReads": 29,
+      "totalReadBytes": 156887,
+      "audibleStartupMeasured": false,
+      "physicalHostTested": false
+    },
+    "after": {
+      "head": 1422804,
+      "hash": "0xc9799b8bbca4dc4d265850f9c6710f6555f3d381b48d8b027017cab5b391de72",
+      "authorization": {
+        "expiresAt": 1621405,
+        "remainingTransactions": 81,
+        "remainingBytes": "9615262",
+        "remainingRenewBytes": "10485760"
+      }
+    },
+    "attemptedTransactions": 0
+  },
+  "initialReceipts": [
+    {
+      "cid": "bafkreicyorp2xqdubcf7ogycsaqaxgaimu4flnhev6ga3ntvuadjhv3tca",
+      "bytes": 1040,
+      "block": 1422653,
+      "index": 0,
+      "expiresAt": 1624253,
+      "finalized": true
+    },
+    {
+      "cid": "bafkreiepvwfybqqwzymxslqe44wsfhnw72w6zl24iieyfa66ijfoqorvee",
+      "bytes": 24592,
+      "block": 1422658,
+      "index": 0,
+      "expiresAt": 1624258,
+      "finalized": true
+    },
+    {
+      "cid": "bafkreibgxzvpzr44tv7j4f3yj22pzr4toblhwbqx623akpyzheseam7vva",
+      "bytes": 24592,
+      "block": 1422664,
+      "index": 0,
+      "expiresAt": 1624264,
+      "finalized": true
+    },
+    {
+      "cid": "bafybeicotf4izx2uasnlvllpcomgxgut2gwjefd7f5j62wrb5fmvkl2gu4",
+      "bytes": 179,
+      "block": 1422670,
+      "index": 0,
+      "expiresAt": 1624270,
+      "finalized": true
+    },
+    {
+      "cid": "bafkreigliqzandljg4n4oi5vudltrualmm6prys67vj63tbzjlh2gomcs4",
+      "bytes": 1040,
+      "block": 1422675,
+      "index": 0,
+      "expiresAt": 1624275,
+      "finalized": true
+    },
+    {
+      "cid": "bafkreiad57srp2ds7dj42rwxapbhpkuki4sxr6rih77a6n5fm7pz7h3q3m",
+      "bytes": 24592,
+      "block": 1422682,
+      "index": 0,
+      "expiresAt": 1624282,
+      "finalized": true
+    },
+    {
+      "cid": "bafkreihzwt2ml5qwcskho6pmtpwebt5gs6ij4hvnbveofl22odx7kxsaum",
+      "bytes": 24592,
+      "block": 1422689,
+      "index": 0,
+      "expiresAt": 1624289,
+      "finalized": true
+    },
+    {
+      "cid": "bafybeiaqehzbgckqysppp5m7oesax2u573jo37wgevvgdimuqzq6f6jzii",
+      "bytes": 179,
+      "block": 1422695,
+      "index": 0,
+      "expiresAt": 1624295,
+      "finalized": true
+    },
+    {
+      "cid": "bafkreigpygvyi57rb46uvhhtkqhedy4nqvzqjsg42fhoz7y2aj3svi3zua",
+      "bytes": 1040,
+      "block": 1422701,
+      "index": 0,
+      "expiresAt": 1624301,
+      "finalized": true
+    },
+    {
+      "cid": "bafkreihh26ehrtbt3b24ruzjsaiqwx6shytxmjrcl3mbbq4iqzat2usv7q",
+      "bytes": 24592,
+      "block": 1422708,
+      "index": 0,
+      "expiresAt": 1624308,
+      "finalized": true
+    },
+    {
+      "cid": "bafkreifbyztepn2gdv6aldz74lv75f3e3fqj525f55ctvch35t4esv62im",
+      "bytes": 24592,
+      "block": 1422714,
+      "index": 0,
+      "expiresAt": 1624314,
+      "finalized": true
+    },
+    {
+      "cid": "bafybeichjozdypihfumc7n7wmk66jxq34kjsvhljhtnanheexhuuhfgolu",
+      "bytes": 179,
+      "block": 1422720,
+      "index": 0,
+      "expiresAt": 1624320,
+      "finalized": true
+    },
+    {
+      "cid": "bafkreif3syaw4zcrr3dwbszaabfmeqdpptnlhie6oq6rperwfgjsxr2xee",
+      "bytes": 262144,
+      "block": 1422726,
+      "index": 0,
+      "expiresAt": 1624326,
+      "finalized": true
+    },
+    {
+      "cid": "bafkreignbscdk6u5uv3v2gwox6v5vsaba6gvrdc2fibahocuaqb4qgchbq",
+      "bytes": 262144,
+      "block": 1422733,
+      "index": 0,
+      "expiresAt": 1624333,
+      "finalized": true
+    },
+    {
+      "cid": "bafkreidfuescy4zweuoon4ya6jbcp2dx4fyljiu3m46mbrxllrp32emze4",
+      "bytes": 192528,
+      "block": 1422740,
+      "index": 0,
+      "expiresAt": 1624340,
+      "finalized": true
+    },
+    {
+      "cid": "bafybeieurqnp7p7ap4bo3mio5rdocwkmvssvii7wfywtcjutr2fqa2s3xm",
+      "bytes": 158,
+      "block": 1422746,
+      "index": 0,
+      "expiresAt": 1624346,
+      "finalized": true
+    },
+    {
+      "cid": "bafybeibpg2jl77lhotd4p4bew76ppywdhb7bqerxu6yh6qng7o3zqx55wq",
+      "bytes": 60,
+      "block": 1422753,
+      "index": 0,
+      "expiresAt": 1624353,
+      "finalized": true
+    },
+    {
+      "cid": "bafkreihxebwzmsf2fo52sbqmpe2yo3ystv5l56vq4smhfenztnw7plvywy",
+      "bytes": 1994,
+      "block": 1422759,
+      "index": 0,
+      "expiresAt": 1624359,
+      "finalized": true
+    },
+    {
+      "cid": "bafybeigxn7eqo72r2zjyd7drktzqaoi7nubl74zthst4lf2vej7y2mozua",
+      "bytes": 261,
+      "block": 1422766,
+      "index": 0,
+      "expiresAt": 1624366,
+      "finalized": true
+    }
+  ],
+  "renewalVerified": true,
+  "renewalImplementation": "136144c44a40a5bff4574613e9ecc2fadcccc059",
+  "immediateRenewal": {
+    "observedAt": "2026-10-30T00:36:18.226Z",
+    "endpoint": "wss://bulletin-paseo.tservices.es:8443",
+    "genesis": "0xe101f0fa4627d29a257645e02be86d80378fea1a2bf8fa6a918d150ebc760a59",
+    "account": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+    "root": "bafybeigxn7eqo72r2zjyd7drktzqaoi7nubl74zthst4lf2vej7y2mozua",
+    "before": {
+      "head": 1422862,
+      "hash": "0x4bef1164d039e3e8005f5d8b5be033cbe378f67c74f2081a083878d8b0be41be",
+      "authorization": {
+        "expiresAt": 1621405,
+        "remainingTransactions": 81,
+        "remainingBytes": "9615262",
+        "remainingRenewBytes": "10485760"
+      }
+    },
+    "command": "renew-now",
+    "result": {
+      "requested": {
+        "requested": 19,
+        "retained": false
+      },
+      "verified": {
+        "retained": true,
+        "verifiedBlocks": 19
+      }
+    },
+    "after": {
+      "head": 1422984,
+      "hash": "0xff2bbd6b13e95bf058196ba56db06ff676852f322ca102444c5ca195d7dd8f35",
+      "authorization": {
+        "expiresAt": 1621405,
+        "remainingTransactions": 62,
+        "remainingBytes": "9615262",
+        "remainingRenewBytes": "9615262"
+      }
+    },
+    "attemptedTransactions": 19
+  },
+  "postRenewalSelectiveRead": {
+    "observedAt": "2026-10-30T00:48:32.740Z",
+    "endpoint": "wss://bulletin-paseo.tservices.es:8443",
+    "genesis": "0xe101f0fa4627d29a257645e02be86d80378fea1a2bf8fa6a918d150ebc760a59",
+    "account": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+    "root": "bafybeigxn7eqo72r2zjyd7drktzqaoi7nubl74zthst4lf2vej7y2mozua",
+    "before": {
+      "head": 1422984,
+      "hash": "0xff2bbd6b13e95bf058196ba56db06ff676852f322ca102444c5ca195d7dd8f35",
+      "authorization": {
+        "expiresAt": 1621405,
+        "remainingTransactions": 62,
+        "remainingBytes": "9615262",
+        "remainingRenewBytes": "9615262"
+      }
+    },
+    "command": "verify",
+    "result": {
+      "verifiedObjects": 9,
+      "paths": [
+        "96/init.bin",
+        "96/segment-000.bin",
+        "96/segment-001.bin",
+        "160/init.bin",
+        "160/segment-000.bin",
+        "160/segment-001.bin",
+        "320/init.bin",
+        "320/segment-000.bin",
+        "320/segment-001.bin"
+      ],
+      "masterFetched": false,
+      "startupRawReads": 8,
+      "startupBytes": 28767,
+      "firstAuthenticatedObjectsMs": 462,
+      "totalRawReads": 29,
+      "totalReadBytes": 156887,
+      "audibleStartupMeasured": false,
+      "physicalHostTested": false
+    },
+    "after": {
+      "head": 1422984,
+      "hash": "0xff2bbd6b13e95bf058196ba56db06ff676852f322ca102444c5ca195d7dd8f35",
+      "authorization": {
+        "expiresAt": 1621405,
+        "remainingTransactions": 62,
+        "remainingBytes": "9615262",
+        "remainingRenewBytes": "9615262"
+      }
+    },
+    "attemptedTransactions": 0
+  },
+  "renewedReceipts": [
+    {
+      "cid": "bafkreicyorp2xqdubcf7ogycsaqaxgaimu4flnhev6ga3ntvuadjhv3tca",
+      "bytes": 1040,
+      "block": 1422869,
+      "index": 0,
+      "expiresAt": 1624469,
+      "finalized": true
+    },
+    {
+      "cid": "bafkreiepvwfybqqwzymxslqe44wsfhnw72w6zl24iieyfa66ijfoqorvee",
+      "bytes": 24592,
+      "block": 1422875,
+      "index": 0,
+      "expiresAt": 1624475,
+      "finalized": true
+    },
+    {
+      "cid": "bafkreibgxzvpzr44tv7j4f3yj22pzr4toblhwbqx623akpyzheseam7vva",
+      "bytes": 24592,
+      "block": 1422882,
+      "index": 0,
+      "expiresAt": 1624482,
+      "finalized": true
+    },
+    {
+      "cid": "bafybeicotf4izx2uasnlvllpcomgxgut2gwjefd7f5j62wrb5fmvkl2gu4",
+      "bytes": 179,
+      "block": 1422888,
+      "index": 0,
+      "expiresAt": 1624488,
+      "finalized": true
+    },
+    {
+      "cid": "bafkreigliqzandljg4n4oi5vudltrualmm6prys67vj63tbzjlh2gomcs4",
+      "bytes": 1040,
+      "block": 1422894,
+      "index": 0,
+      "expiresAt": 1624494,
+      "finalized": true
+    },
+    {
+      "cid": "bafkreiad57srp2ds7dj42rwxapbhpkuki4sxr6rih77a6n5fm7pz7h3q3m",
+      "bytes": 24592,
+      "block": 1422900,
+      "index": 0,
+      "expiresAt": 1624500,
+      "finalized": true
+    },
+    {
+      "cid": "bafkreihzwt2ml5qwcskho6pmtpwebt5gs6ij4hvnbveofl22odx7kxsaum",
+      "bytes": 24592,
+      "block": 1422906,
+      "index": 0,
+      "expiresAt": 1624506,
+      "finalized": true
+    },
+    {
+      "cid": "bafybeiaqehzbgckqysppp5m7oesax2u573jo37wgevvgdimuqzq6f6jzii",
+      "bytes": 179,
+      "block": 1422913,
+      "index": 0,
+      "expiresAt": 1624513,
+      "finalized": true
+    },
+    {
+      "cid": "bafkreigpygvyi57rb46uvhhtkqhedy4nqvzqjsg42fhoz7y2aj3svi3zua",
+      "bytes": 1040,
+      "block": 1422920,
+      "index": 0,
+      "expiresAt": 1624520,
+      "finalized": true
+    },
+    {
+      "cid": "bafkreihh26ehrtbt3b24ruzjsaiqwx6shytxmjrcl3mbbq4iqzat2usv7q",
+      "bytes": 24592,
+      "block": 1422926,
+      "index": 0,
+      "expiresAt": 1624526,
+      "finalized": true
+    },
+    {
+      "cid": "bafkreifbyztepn2gdv6aldz74lv75f3e3fqj525f55ctvch35t4esv62im",
+      "bytes": 24592,
+      "block": 1422933,
+      "index": 0,
+      "expiresAt": 1624533,
+      "finalized": true
+    },
+    {
+      "cid": "bafybeichjozdypihfumc7n7wmk66jxq34kjsvhljhtnanheexhuuhfgolu",
+      "bytes": 179,
+      "block": 1422939,
+      "index": 0,
+      "expiresAt": 1624539,
+      "finalized": true
+    },
+    {
+      "cid": "bafkreif3syaw4zcrr3dwbszaabfmeqdpptnlhie6oq6rperwfgjsxr2xee",
+      "bytes": 262144,
+      "block": 1422945,
+      "index": 0,
+      "expiresAt": 1624545,
+      "finalized": true
+    },
+    {
+      "cid": "bafkreignbscdk6u5uv3v2gwox6v5vsaba6gvrdc2fibahocuaqb4qgchbq",
+      "bytes": 262144,
+      "block": 1422951,
+      "index": 0,
+      "expiresAt": 1624551,
+      "finalized": true
+    },
+    {
+      "cid": "bafkreidfuescy4zweuoon4ya6jbcp2dx4fyljiu3m46mbrxllrp32emze4",
+      "bytes": 192528,
+      "block": 1422958,
+      "index": 0,
+      "expiresAt": 1624558,
+      "finalized": true
+    },
+    {
+      "cid": "bafybeieurqnp7p7ap4bo3mio5rdocwkmvssvii7wfywtcjutr2fqa2s3xm",
+      "bytes": 158,
+      "block": 1422965,
+      "index": 0,
+      "expiresAt": 1624565,
+      "finalized": true
+    },
+    {
+      "cid": "bafybeibpg2jl77lhotd4p4bew76ppywdhb7bqerxu6yh6qng7o3zqx55wq",
+      "bytes": 60,
+      "block": 1422971,
+      "index": 0,
+      "expiresAt": 1624571,
+      "finalized": true
+    },
+    {
+      "cid": "bafkreihxebwzmsf2fo52sbqmpe2yo3ystv5l56vq4smhfenztnw7plvywy",
+      "bytes": 1994,
+      "block": 1422977,
+      "index": 0,
+      "expiresAt": 1624577,
+      "finalized": true
+    },
+    {
+      "cid": "bafybeigxn7eqo72r2zjyd7drktzqaoi7nubl74zthst4lf2vej7y2mozua",
+      "bytes": 261,
+      "block": 1422983,
+      "index": 0,
+      "expiresAt": 1624583,
+      "finalized": true
+    }
+  ],
+  "renewalMode": "one-off force_renew; no recurring registration; not a retention-window soak",
+  "localSignerRemoved": true,
+  "totalStorageTransactions": 38,
+  "totalStoredBytes": 870498,
+  "minimumExpiryExtensionBlocks": 216
+}
