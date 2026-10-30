@@ -1,0 +1,20 @@
+{
+  "observedAt": "2026-10-29T15:11:47.408Z",
+  "readOnly": true,
+  "method": "HEAD",
+  "note": "Single local HTTP observations of the already-public Product bundle, not media/first-sound benchmarks.",
+  "checks": [
+    {
+      "url": "https://devnet-ipfs.api.polkadotcommunity.foundation/ipfs/bafybeihiyvg3rce23zdort7fwyvpqtdzo5vvaourwagcdtejwlb72ma4oy/index.html",
+      "status": 404,
+      "contentType": "text/plain; charset=utf-8",
+      "cors": "*",
+      "elapsedMs": 1223
+    },
+    {
+      "url": "https://devnet-ipfs.api.polkadotcommunity.foundation/ipfs/bafybeidekbwbyz24l7iynrgqoxhupdj3rxqchxuvwtozimldh3qgt4tryq/index.html",
+      "error": "TimeoutError",
+      "elapsedMs": 20008
+    }
+  ]
+}
