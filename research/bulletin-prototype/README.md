@@ -425,7 +425,10 @@ records the exact source revision/dirty state and root, with no content key.
 The output is not a Dotify app release: **do not deploy it over `dotify-test01.dot`**.
 The owner-approved [October 30 diagnostic publication](../../docs/backlog/implementation/evidence/bulletin-mobile-publication-2026-10-30.md)
 is `dotify-bulletin-lab.dot`, Product `[0,1,0]`. Its current artifact/records are
-verified; physical mobile listening is still pending. Do not republish or renew
+verified. Two owner-supplied native mobile reports complete the generated clip
+with audio heard (first `playing`: 1,195 / 117 ms); Host cache state is unknown.
+The paired decoder control and cold audible-start evidence remain pending.
+Do not republish or renew
 this candidate implicitly. The research writer's PAPI 3 transaction-creator
 integration needs a matching live-adapter check before a throughput trial; this
 manual distribution used the deploy tool's PAPI 2.2.2 adapter.

@@ -98,7 +98,9 @@ After #355/#356 merged, the [standalone generated-only diagnostic](implementatio
 prepares a separate static Product for physical mobile verification. It reuses
 the native reader, adds a bundled decoder control and preserves five local
 reports across reloads without relying on Host downloads. It is now [published as `dotify-bulletin-lab.dot`](implementation/evidence/bulletin-mobile-publication-2026-10-30.md)
-with verified artifact/record readback. It is not a production storage switch.
+with verified artifact/record readback and two owner-reported complete native
+mobile listens. The paired decoder control and known-cache comparison are still
+missing. It is not a production storage switch.
 Physical mobile first sound, real upload throughput,
 long listening and renewal remain separate gates in #288/#287.
 

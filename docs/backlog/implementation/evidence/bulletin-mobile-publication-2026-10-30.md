@@ -1,6 +1,6 @@
 # Bulletin mobile diagnostic publication, 2026-10-30
 
-**Published: `dotify-bulletin-lab.dot`, Product `[0,1,0]`. Physical mobile listening is still unverified.**
+**Published: `dotify-bulletin-lab.dot`, Product `[0,1,0]`. The owner reports two complete native mobile listens with sound heard; paired-control and cold-start acceptance remain open.**
 
 The owner approved this independent diagnostic after #357 merged. Source is clean
 `a9199f8d4ae960aa4bf154c9a624baddd7d83f89`. Refs #288 / #287; neither issue closes with a distribution check.
@@ -85,6 +85,37 @@ scenario passed again: native failure does not load the decoder control; the
 control plays, pauses/seeks/stops and preserves reports across reload. Automated
 browser evidence does not verify this deployed Product in a physical Host.
 Desktop UI automation was inconclusive; no new Desktop playback result is claimed.
+
+## Owner-reported native mobile result
+
+Two reports supplied after publication match the exact clean source and audio
+root above. Both select `native-preimage`, the managed progressive reader, and
+report running inside the Host. Both reach eight seconds / `ended`, with the
+owner explicitly marking audio heard.
+
+| Attempt | First `playing` event | Playback outcome | Raw reads |
+| --- | ---: | --- | --- |
+| 1 | 1,195 ms | 8 seconds completed, sound heard | 6 / 99,997 bytes |
+| 2 | 117 ms | 8 seconds completed, sound heard | 6 / 99,997 bytes |
+
+Neither report contains a further `waiting` event after playback starts. The
+`pause` event occurs at the eight-second endpoint immediately before `ended`;
+this is not evidence of a manual pause or an interruption. This validates the
+reported generated-clip native path on the owner's mobile Host, not prolonged
+listening or production access.
+
+The timer records the browser's first `playing` event, **not measured audible
+first sound or Product download time**. The page cache is empty for each attempt,
+but the Host cache is explicitly unknown and not cleared. The faster second
+attempt may benefit from caching; it is not a verified warm/cold benchmark or
+an independent sample of another transport. Both reports are native Bulletin:
+**the bundled decoder-control report is still missing**. Host version and network
+notes were not filled in, so those conditions remain unknown. Seek/stop and
+background/screen-lock behavior are not established by these reports.
+
+Only the minimal observations are retained in the companion JSON. Exact report
+identifiers, wall-clock timestamps and the raw user agent are omitted. No
+additional publication, account request or storage write was needed.
 
 ## Physical mobile test
 

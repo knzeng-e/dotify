@@ -182,10 +182,63 @@
   "acceptance": {
     "standaloneChromiumScenarioPassed": true,
     "mergedCiChecksPassed": 12,
-    "physicalMobileTested": false,
+    "physicalMobileTested": true,
     "thisPublishedProductDesktopPlaybackVerified": false,
     "audibleStartupMeasured": false,
     "productionStorageActivated": false,
-    "pipelineThroughputVerified": false
+    "pipelineThroughputVerified": false,
+    "physicalMobileEvidenceBasis": "Owner reports two completed native attempts with audio heard; eight-second generated fixture only",
+    "pairedMobileControlVerified": false
+  },
+  "physicalMobileObservation": {
+    "date": "2026-10-30",
+    "source": "Two owner-supplied reports from the published diagnostic; not independently observed",
+    "privacy": "Only derived test observations retained; report identifiers, exact timestamps and raw user agent omitted",
+    "schema": "dotify.bulletin.host-report.v1",
+    "implementation": {
+      "sha": "a9199f8d4ae960aa4bf154c9a624baddd7d83f89",
+      "dirty": false
+    },
+    "root": "bafykbzacecbgxu5coifnfzajpkwzuaxv36snvjfd4zqsbvpgfk4mx7mhzhtj4",
+    "transport": "native-preimage",
+    "reader": "managed",
+    "insideHost": true,
+    "progressive": true,
+    "hostVersion": null,
+    "network": null,
+    "hostCache": "unknown; not cleared",
+    "pageCache": "empty per attempt",
+    "attempts": [
+      {
+        "sequence": 1,
+        "outcome": "ended",
+        "mediaDurationSeconds": 8,
+        "firstPlayingEventMs": 1195,
+        "operatorHeardAudio": true,
+        "rawReadCount": 6,
+        "rawReadBytes": 99997,
+        "waitingEventsAfterPlaying": 0,
+        "terminalPauseAtMediaSeconds": 8,
+        "recoveredAfterReload": false
+      },
+      {
+        "sequence": 2,
+        "outcome": "ended",
+        "mediaDurationSeconds": 8,
+        "firstPlayingEventMs": 117,
+        "operatorHeardAudio": true,
+        "rawReadCount": 6,
+        "rawReadBytes": 99997,
+        "waitingEventsAfterPlaying": 0,
+        "terminalPauseAtMediaSeconds": 8,
+        "recoveredAfterReload": false
+      }
+    ],
+    "bundledDecoderControlProvided": false,
+    "audibleFirstSoundMeasured": false,
+    "coldStartVerified": false,
+    "manualPauseSeekStopVerified": false,
+    "backgroundOrScreenLockVerified": false,
+    "productionAccessTested": false
   }
 }
