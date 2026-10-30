@@ -117,10 +117,20 @@ export async function publishPipelined(graph, transport, directory, budget, opti
           const cids = block.cid === graph.root ? Object.keys(state.receipts) : dependencies.get(block.cid);
           for (const cid of cids) receiptFor(byCid.get(cid), state.receipts[cid], current, margin);
         }
+        // A sibling can fail while a parent waits for its retention check.
+        if (failure) return;
         const nonce = nextNonce++;
         state.pending[block.cid] = { cid: block.cid, nonce };
         state.nextNonce = nextNonce;
         await persist(); // A crash after this point is reconciled, never blindly replayed.
+        if (failure) {
+          // This admission is serialized and store() has never been called for it.
+          // Release only this last reservation, never an uncertain active write.
+          delete state.pending[block.cid];
+          state.nextNonce = nextNonce = nonce;
+          await persist(); // If rollback fails, the durable intent stays conservative.
+          return;
+        }
         started.add(block.cid);
         activeBytes += block.bytes.length;
         peakInFlight = Math.max(peakInFlight, active.size + 1);

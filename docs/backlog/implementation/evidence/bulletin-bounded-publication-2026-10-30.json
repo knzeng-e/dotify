@@ -169,5 +169,18 @@
       "pipelineTests": 19,
       "passed": 57
     }
+  },
+  "reviewCorrection": {
+    "integratedDev": "c8adf64e",
+    "reviewComment": 4424968167,
+    "pipelineTests": 22,
+    "readerCodecTests": 38,
+    "hostHarnessTests": 6,
+    "journalRaceFailedBeforeFix": true,
+    "parentStatusRaceCovered": true,
+    "networkWrites": 0,
+    "signerUsed": false,
+    "productionChanged": false,
+    "physicalHostTested": false
   }
 }

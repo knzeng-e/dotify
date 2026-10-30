@@ -12,6 +12,7 @@ import { AsyncBulletinClient } from '@parity/bulletin-sdk';
 import { sr25519CreateDerive } from '@polkadot-labs/hdkd';
 import { entropyToMiniSecret, mnemonicToEntropy, ss58Address } from '@polkadot-labs/hdkd-helpers';
 import { encryptedFixture } from './fixture.mjs';
+import { ADDRESSING_BUDGET, validateAddressingFixture, verifyAddressing } from './addressing.mjs';
 import { buildDirectory, readPath, verifyGraph } from './graph.mjs';
 import { publish, requestRenewal, verifyRenewal } from './publication.mjs';
 import { ENDPOINT, CANARY_ACCOUNT, CANARY_BUDGET, liveTransport } from './live-transport.mjs';
@@ -20,20 +21,26 @@ import { parseStreamingManifest, verifyStreamingManifest, decryptStreamingObject
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const json = value => JSON.stringify(value, (_, v) => typeof v === 'bigint' ? v.toString() : v, 2);
 
-export async function prepare(directory) {
+export async function prepare(directory, makeFixture = encryptedFixture) {
   await mkdir(directory, { mode: 0o700 }); // Refuse to overwrite an earlier fixture/nonce ledger.
-  const fixture = await encryptedFixture(directory);
+  const fixture = await makeFixture(directory);
   try {
-    const graph = await buildDirectory(fixture.files);
+    const graph = fixture.graph ?? await buildDirectory(fixture.files);
+    if (fixture.addressingProof) await validateAddressingFixture({ ...fixture, graph });
     assert.ok(graph.bytes <= CANARY_BUDGET.maxBytes && graph.blocks.length * 2 <= CANARY_BUDGET.maxTransactions, 'Fixture exceeds the approved canary');
-    await writeFile(join(directory, 'key.bin'), fixture.key, { flag: 'wx', mode: 0o600 });
+    if (fixture.key) await writeFile(join(directory, 'key.bin'), fixture.key, { flag: 'wx', mode: 0o600 });
     await writeFile(join(directory, 'fixture.json'), json({
       schema: 'dotify.bulletin.canary.v1', account: CANARY_ACCOUNT, scope: fixture.scope,
+      ...(fixture.audioProof ? { audioProof: fixture.audioProof } : {}),
+      ...(fixture.addressingProof ? { addressingProof: fixture.addressingProof } : {}),
       originals: Object.fromEntries([...fixture.originals].map(([path, bytes]) => [path, hash(bytes)])),
       graph: { ...graph, blocks: graph.blocks.map(b => ({ ...b, bytes: Buffer.from(b.bytes).toString('base64') })) }
     }), { flag: 'wx', mode: 0o600 });
     return { root: graph.root, blocks: graph.blocks.length, bytes: graph.bytes, prospectiveTransactions: graph.blocks.length * 2 };
-  } finally { fixture.key.fill(0); }
+  } finally {
+    fixture.key?.fill(0);
+    for (const bytes of fixture.originals.values()) bytes.fill(0);
+  }
 }
 
 export async function loadFixture(directory) {
@@ -47,6 +54,7 @@ export async function loadFixture(directory) {
   assert.equal(fixture.account, CANARY_ACCOUNT, 'Canary account changed');
   const graph = { ...fixture.graph, blocks: fixture.graph.blocks.map(b => ({ ...b, bytes: Buffer.from(b.bytes, 'base64') })) };
   await verifyGraph(graph);
+  if (fixture.addressingProof) await validateAddressingFixture({ ...fixture, graph });
   assert.ok(graph.bytes <= CANARY_BUDGET.maxBytes && graph.blocks.length * 2 <= CANARY_BUDGET.maxTransactions, 'Fixture exceeds the approved canary');
   return { ...fixture, graph };
 }
@@ -134,6 +142,7 @@ export async function main(argv) {
     // npm scripts do not preserve arbitrary descriptors. Validate the explicit
     // descriptor/account before even opening a network connection.
     const signer = writing ? localSigner(Number(options[1])) : null;
+    const budget = fixture.addressingProof ? ADDRESSING_BUDGET : CANARY_BUDGET;
     const client = createClient(getWsProvider(ENDPOINT));
     // Independent wall clock bound; a hard exit leaves the lease for manual reconciliation.
     const watchdog = setTimeout(() => { console.error('Canary exceeded 30 minutes; reconcile the lease and receipts before retrying.'); process.exit(2); }, 30 * 60_000);
@@ -148,12 +157,14 @@ export async function main(argv) {
       if (command === 'check') {
         const a = before.authorization;
         assert.ok(a.remainingTransactions >= fixture.graph.blocks.length * 2 && a.remainingBytes >= BigInt(fixture.graph.bytes) && a.remainingRenewBytes >= BigInt(fixture.graph.bytes), 'Quota does not cover stores plus one renewal');
-        result = { readyForBoundedWrite: true, blocks: fixture.graph.blocks.length, bytes: fixture.graph.bytes, budget: CANARY_BUDGET };
+        result = { readyForBoundedWrite: true, blocks: fixture.graph.blocks.length, bytes: fixture.graph.bytes, budget };
       } else if (command === 'publish' || command === 'reconcile') {
-        result = await publish(fixture.graph, transport, checkpoint, CANARY_BUDGET);
+        result = await publish(fixture.graph, transport, checkpoint, budget);
       } else if (command === 'renew-now') {
-        const requested = await requestRenewal(fixture.graph, transport, checkpoint, CANARY_BUDGET);
+        const requested = await requestRenewal(fixture.graph, transport, checkpoint, budget);
         result = { requested, verified: await verifyRenewal(fixture.graph, transport, checkpoint) };
+      } else if (fixture.addressingProof) {
+        result = await verifyAddressing(transport, fixture);
       } else {
         const keyStat = await lstat(join(directory, 'key.bin'));
         assert.ok(keyStat.isFile() && (keyStat.mode & 0o077) === 0 && keyStat.size === 32, 'Content key must be a private regular file');

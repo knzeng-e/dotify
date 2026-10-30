@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Dotify · Bulletin audio test</title>
+  <style>
+    :root {
+      font-family: system-ui, sans-serif;
+      color: #e6f4fa;
+      background: #071321;
+      color-scheme: dark;
+    }
+    body {
+      max-width: 700px;
+      margin: 4vh auto;
+      padding: 24px;
+    }
+    h1 {
+      font-size: 2rem;
+      letter-spacing: -0.04em;
+    }
+    p {
+      line-height: 1.6;
+      color: #a9c1ce;
+    }
+    .eyebrow {
+      color: #69e3d5;
+      font-size: 0.8rem;
+      letter-spacing: 0.12em;
+    }
+    fieldset {
+      border: 1px solid #294352;
+      border-radius: 18px;
+      padding: 20px;
+      margin: 24px 0;
+    }
+    legend {
+      padding: 0 8px;
+    }
+    label {
+      display: block;
+      margin: 12px 0;
+    }
+    input,
+    select,
+    button {
+      font: inherit;
+      border: 1px solid #345768;
+      border-radius: 10px;
+      padding: 12px;
+      background: #102b3b;
+      color: inherit;
+    }
+    input[type='text'] {
+      box-sizing: border-box;
+      width: 100%;
+      margin-top: 8px;
+    }
+    input[type='checkbox'] {
+      width: auto;
+    }
+    button {
+      cursor: pointer;
+      min-height: 46px;
+    }
+    button:disabled {
+      opacity: 0.45;
+      cursor: default;
+    }
+    #play {
+      background: #69e3d5;
+      color: #071321;
+      font-weight: 650;
+    }
+    audio {
+      width: 100%;
+      margin: 16px 0;
+    }
+    pre {
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      font-size: 0.8rem;
+      color: #b7cdd7;
+    }
+    #status {
+      min-height: 3em;
+      color: #69e3d5;
+    }
+    small {
+      color: #a9c1ce;
+    }
+  </style>
+  <main>
+    <p class="eyebrow">DOTIFY · ISOLATED RESEARCH</p>
+    <h1>Can Bulletin deliver the first note?</h1>
+    <p>An eight-second generated chord, encoded and encrypted by Dotify. This test does not publish a release or change the deployed app.</p>
+    <fieldset>
+      <legend>Test conditions</legend>
+      <label
+        >Delivery
+        <select id="transport">
+          <option value="native">Native Host preimage API</option>
+          <option value="rpc">Native Host chain RPC (diagnostic)</option>
+          <option value="local">Local control (not Bulletin)</option>
+        </select></label
+      >
+      <label
+        >Preimage lookup limit
+        <select id="lookup">
+          <option value="10000">10 seconds</option>
+          <option value="30000">30 seconds (diagnostic)</option>
+        </select></label
+      >
+      <label>Device, OS and Host version <input id="environment" type="text" placeholder="e.g. iPhone, iOS version, Polkadot app version" /></label>
+      <label>Network <input id="network" type="text" placeholder="e.g. Wi-Fi, no throttling" /></label>
+      <small>Use the native path to test the Host. It has no gateway fallback. The local control only checks the decoder and player.</small>
+    </fieldset>
+    <button id="play">Start a fresh attempt</button> <button id="stop" disabled>Stop</button>
+    <audio id="audio" controls playsinline></audio>
+    <p id="status" role="status" aria-live="polite">Ready. Start at low volume.</p>
+    <label><input id="heard" type="checkbox" /> I heard the chord on this device.</label>
+    <button id="export" disabled>Download report</button>
+    <p>
+      <small
+        >“Playing” is a media event, not a measured audible first sound. Native Host caches cannot be cleared by this page. No key is included in
+        reports.</small
+      >
+    </p>
+    <pre id="report" aria-label="Test report"></pre>
+  </main>
+  <script type="module" src="./main.ts"></script>
+</html>

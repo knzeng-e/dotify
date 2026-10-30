@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { CID } from 'multiformats/cid';
 import { GENESIS, MAX_BLOCK_BYTES, verifyBlock } from './graph.mjs';
 import { sdkBlockStore } from './sdk-store.mjs';
+import { runtimeHashName } from './hashes.mjs';
 
 export const ENDPOINT = 'wss://bulletin-paseo.tservices.es:8443';
 export const CANARY_ACCOUNT = '5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca';
@@ -73,7 +74,7 @@ export function liveTransport(client, sdk, account, { timeoutMs = 30_000 } = {})
   }
   async function lookup(input) {
     const cid = CID.parse(input);
-    assert.equal(cid.multihash.code, 0x12, 'Only SHA-256 lookup is supported');
+    const hashName = runtimeHashName(cid.multihash.code);
     assert.ok([0x55, 0x70].includes(cid.code), 'Unsupported block codec');
     const digest = hex(cid.multihash.digest);
     const { head, at, release } = await snapshot();
@@ -92,7 +93,7 @@ export function liveTransport(client, sdk, account, { timeoutMs = 30_000 } = {})
       const info = entries?.[index];
       assert.ok(info, 'Storage index has no transaction metadata');
       assert.equal(hex(info.content_hash), digest, 'Storage metadata has a different hash');
-      assert.equal(info.hashing.type, 'Sha2_256', 'Storage metadata has a different hash algorithm');
+      assert.equal(info.hashing.type, hashName, 'Storage metadata has a different hash algorithm');
       assert.equal(BigInt(info.cid_codec), BigInt(cid.code), 'Storage metadata has a different codec');
       const bytes = integer(info.size, 'stored byte count');
       assert.ok(bytes > 0 && bytes <= MAX_BLOCK_BYTES, 'Stored block exceeds canary budget');

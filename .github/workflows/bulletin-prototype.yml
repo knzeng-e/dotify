@@ -6,6 +6,11 @@ on:
       - 'research/bulletin-prototype/**'
       - 'services/api/src/services/streamingFormat.ts'
       - 'services/api/src/services/streamingNonces.ts'
+      - 'services/api/src/services/streamingEncoder.ts'
+      - 'services/api/src/services/streamingTranscoder.ts'
+      - 'web/src/features/catalog/streaming*.ts'
+      - 'web/src/features/catalog/managedStreaming.ts'
+      - 'web/package-lock.json'
       - '.github/workflows/bulletin-prototype.yml'
   workflow_dispatch:
 permissions:
@@ -22,14 +27,22 @@ jobs:
           node-version: 22.13.1
           cache: npm
           cache-dependency-path: |
+            web/package-lock.json
             services/api/package-lock.json
             research/bulletin-prototype/package-lock.json
+      - name: Install FFmpeg for real AAC fixtures
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
       - name: Install the unchanged API fixture and isolated prototype
         run: |
           npm ci --prefix services/api --ignore-scripts
+          npm ci --prefix web --ignore-scripts
           npm ci --prefix research/bulletin-prototype --ignore-scripts
       - name: Test actual v3 encryption, IPFS paths and simulated recovery
         run: npm test --prefix research/bulletin-prototype
+      - name: Install the browser codec control
+        run: npm exec --prefix web -- playwright install --with-deps chromium
+      - name: Verify real AAC playback and local-server boundaries
+        run: npm run test:host --prefix research/bulletin-prototype
       - name: Measure bounded synthetic startup reads and one renewal cycle
         run: npm run measure --prefix research/bulletin-prototype
       - uses: actions/upload-artifact@v4

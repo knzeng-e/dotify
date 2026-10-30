@@ -33,7 +33,7 @@ dependencies are isolated here; the production SDK/protocol pins are unchanged.
    parents; each block is bounded below automatic SDK chunking. Read a path by
    fetching only its dependencies, verifying every block CID, with byte/depth/
    read budgets. Host reads request `noReassemble: true`, which exists in pinned
-   Product SDK 0.39.0. This exercises that interface, not an actual Host.
+   Product SDK 0.39.0. The original mock exercises only that interface; the real Host limitation is recorded below.
 2. `sdk-store.mjs`: the real Bulletin SDK builder preserves codec/hash and waits
    for finalization. Each returned CID/size/storage coordinate must match; an
    unexpectedly chunked result is refused. No signer is constructed here.
@@ -144,20 +144,181 @@ server advisory through tsx. This tool uses neither that CLI nor a dev server;
 no production dependency is changed. These advisories and the experimental SDK
 still require review before any production integration.
 
-Then verify Web and physical Product raw-CID retrieval, byte/AEAD equality,
+Continue verifying Web and physical Product raw-CID retrieval, byte/AEAD equality,
 real decodable audio, cold first sound and continuity against the current
 baseline. Local fixture timings are not network or audible-start measurements.
 The [live canary](../../docs/backlog/implementation/evidence/bulletin-network-canary-2026-10-29.md)
 verified 19 stores, signer-free timeout recovery, selective decryption and 19
-immediate renewals. Native API support and a full retention-window/scheduled
-renewal cycle remain unverified. Sequential storage took roughly twelve minutes
+immediate renewals. Native delivery compatibility and a full retention-window/scheduled
+renewal cycle remain gates. Sequential storage took roughly twelve minutes
 for this small fixture; do not treat this writer as a production throughput design.
+
+## Real AAC and Host reader, 2026-10-30
+
+The next canary uses a reproducible, quiet eight-second generated chord, not an
+artist recording. `aac-fixture.mjs` calls the production encoder directly: EBU
+R128 loudness, FFmpeg AAC-LC at 96/160/320 kb/s, the permanent nonce ledger and
+v3 authenticated encryption. No production format, key route or player is
+changed. Each invocation creates a new private directory/key/nonce reservation;
+never overwrite the earlier live canary or substitute its receipts.
+
+Install the unchanged Web dependencies too (`npm ci --prefix web
+--ignore-scripts` from the repository root). FFmpeg must be installed and on
+PATH. Then, from `research/bulletin-prototype`:
+
+```sh
+npm test                       # Includes real AAC decrypt/decode, all three rates
+npm run test:host               # Chromium control, not physical Host evidence
+npm run prepare:aac -- /private/tmp/dotify-bulletin-aac-new
+npm run canary -- check /private/tmp/dotify-bulletin-aac-new
+npm run host -- /private/tmp/dotify-bulletin-aac-new
+```
+
+The prepared macOS fixture is 713,199 bytes / 16 blocks: 16 stores, with another
+16 transactions and the same renewal byte budget reserved by preflight. FFmpeg
+builds can produce different bytes/block counts; the command prints the exact
+budget and refuses more than 1 MiB / 40 store-plus-renewal transactions. The
+Linux test checks the bound, not equality to a macOS encoding. It verifies
+non-silent full-length PCM decoded from **each** authenticated rendition. These
+checks do not measure physical audibility or first sound.
+
+New live writes still require the explicit local signer descriptor and
+account/genesis/quota validation described above. A successful local prepare
+is not a network upload. Use the existing `publish`, signer-free `reconcile`
+and `verify` commands on this **new** directory after the operator activates
+signing. Renewal is optional for this reader experiment; the preflight still
+reserves a full cycle. Never automatically run a live command in CI.
+
+The server binds **127.0.0.1:5278 only**, with fixed Host/origin checks,
+no CORS and no-store responses. It serves only an explicitly selected private
+generated-AAC fixture, or the exact public addressing marker below; the old non-AAC fixture is rejected. It makes that test
+key available to the local page, never in a committed bundle or exported report.
+Do not expose the server by tunnel, LAN binding, reverse proxy or public preview.
+This operator fixture is not a content-key service or an access-control test.
+
+Open `localhost:5278` in a new Polkadot Desktop tab. The
+[official local-development instructions](https://docs.polkadot.com/apps/build/)
+describe the Desktop localhost route; this does not publish or modify DotNS.
+Choose the delivery explicitly:
+
+- **Native Host preimage API:** pinned Product SDK `queryBytes` with
+  `noReassemble: true` and an explicit ten-second lookup bound (thirty seconds for diagnosis). The shared `reader.mjs`
+  verifies every raw/DAG-PB CID and resolves only the requested path. It never
+  calls the local block endpoint, Pinata, a gateway or Dotify's API.
+- **Native Host chain RPC (diagnostic):** obtains the approved genesis through
+  the Host provider, verifies it with `chainSpec_v1_genesisHash`, then requests
+  only `bitswap_v1_get`. It has a ten-second read bound, verifies every returned
+  block and destroys its client on stop. A missing method is a failure, never a
+  gateway fallback. The installed adapter rejects this content method.
+- **Local control:** reads the same encrypted blocks from loopback, exercising
+  the current Dotify manifest authenticator, media reader and persistent audio
+  attachment. This checks the decoder without attributing local speed to Bulletin.
+
+All modes inject only the ciphertext reader into the existing
+`createStreamingPlayback`; standard MSE, ManagedMediaSource and bounded Blob
+selection remain production code. Playback refuses the archival master's raw
+CIDs. Page memory starts empty per attempt; Host/IPFS caches cannot be cleared
+by this test and their state is recorded as unknown. There is no fallback
+between delivery modes. First-playing and sixty-second whole-clip
+watchdogs make failures visible instead of leaving an indefinite spinner.
+
+Enter device/OS/Host and network conditions, start at low volume, then download
+the report. It records source SHA/dirty state, root, transport, raw reads,
+reader selection, playback events and stall timing. The **playing event is not
+an audible-start measurement**; operator confirmation of hearing the chord is
+separate, unchecked by default. The report excludes keys and signer material.
+Close the test tab and stop the server after use.
+
+A physical mobile run needs a separately reviewed distribution route. This
+localhost-only tool cannot run on a phone by exposing the Mac's port; no public
+preview, domain, Host permission change or mobile result is implied here. The
+remaining gate is native raw retrieval plus actual audible startup/continuity,
+compared with the current storage path on the same device and network. An
+8-second chord cannot establish prolonged listening or production throughput.
+
+### Live and installed-Host outcome
+
+The [real-AAC evidence](../../docs/backlog/implementation/evidence/bulletin-aac-host-canary-2026-10-30.md)
+records 16 finalized stores, nine decrypted audio objects and a removed signer.
+Native Desktop 0.1.4-rc.3 returns no preimage block at 10 or 30 seconds; the
+separate Host chain provider verifies genesis but rejects `bitswap_v1_get`.
+The pinned SDK strips SHA-256 CIDs to bare digests while the inspected upstream
+core expects BLAKE2b preimages. This initial compatibility lead did not establish the exact installed core
+revision. The controlled marker and native BLAKE2b AAC follow-up below now
+confirm that the alternative addressing works on Desktop. Keep Pinata active:
+mobile delivery, cold audible-start evidence and production integration remain
+separate gates.
+
+## Controlled addressing comparison
+
+`addressing-fixture.mjs` builds **three blocks / 387 bytes**: identical public
+marker bytes under SHA-256/raw and BLAKE2b-256/raw, plus a BLAKE2b-256 UnixFS
+directory linking both names. There is no content key or artist recording.
+The exact deterministic fixture is checked before load or write; its separate
+budget admits at most 2 KiB and six store-plus-renewal transactions. Only
+three stores are planned. The general canary's account/genesis checks, finalized
+receipts, root-last ordering, operator lease and uncertain-write reconciliation
+remain in force. Both hash algorithms are verified from the CID; all other
+hashes, truncated digests, corruption and oversized blocks are refused.
+
+```sh
+npm run prepare:addressing -- /private/tmp/dotify-addressing-new
+npm run canary -- check /private/tmp/dotify-addressing-new
+# After explicit local signer activation, use the direct Node publish command
+# above on this directory; do not wrap signing in npm. Remove MNEMONIC afterwards.
+npm run canary -- verify /private/tmp/dotify-addressing-new
+npm run host -- /private/tmp/dotify-addressing-new
+```
+
+Open `localhost:5278/addressing.html` in Desktop. Run native preimage mode,
+then export the report before leaving. Five cases distinguish the two raw
+hashes, the raw directory, and each named path. Ten-second per-block bounds
+and a 25-second per-case watchdog prevent indefinite loading. Native mode
+never uses the local reader or an HTTP gateway. A browser local control checks
+validation/export only. The marker server exposes only public proof metadata,
+returns 404 for the audio session endpoint, and retains the existing loopback
+and origin restrictions. Reports include source identity, unknown Host cache
+state, exact CIDs, successful reads and typed failures.
+
+The 2026-10-30 preflight confirmed 46 transactions remaining and the correct
+network/account; it submitted nothing. Current local validation: 38 Node tests and six
+Host-harness checks. The [installed-Host results](../../docs/backlog/implementation/evidence/bulletin-addressing-canary-2026-10-30.md)
+show BLAKE2b raw/directory/path reads succeed while the identical SHA-256
+payload times out; both paths were independently verified through Node RPC. Success here would establish addressing compatibility,
+not AAC playback, audible first sound, mobile support or production readiness.
+
+### Readdress the generated AAC ciphertext
+
+After the marker succeeds, `readdress-aac.mjs PRIVATE_SOURCE NEW_PRIVATE_TARGET`
+reuses the **generated eight-second chord only**. It verifies the source identity
+and every decrypted audio object, rewrites all block hashes and directory/file
+links to BLAKE2b, and updates cumulative DAG link sizes. Raw ciphertext, manifest,
+AEAD scope and the generated content key stay unchanged. No encryption is run,
+no nonce ledger is copied/reset, and the source fixture is never modified.
+The new target must not exist; retain the original permanent ledger. This tool
+is an isolated comparison, not a production migration or a new publisher.
+
+```sh
+npm run prepare:blake-aac -- /private/tmp/EXISTING_GENERATED_AAC /private/tmp/NEW_BLAKE_AAC
+npm run canary -- check /private/tmp/NEW_BLAKE_AAC
+# Publish only after approval of this separate exact budget and signer activation.
+npm run host -- /private/tmp/NEW_BLAKE_AAC
+```
+
+The prepared macOS target has 16 blocks / 713,229 bytes (30 more directory bytes
+than SHA-256), with a full 16-renewal reserve checked before its 16 planned
+stores. Local verification authenticates all nine audio objects. The [native AAC report](../../docs/backlog/implementation/evidence/bulletin-blake-aac-canary-2026-10-30.md)
+now records all 16 stores, nine authenticated readback objects, and actual
+Desktop playback ending at eight seconds. First playing event: 2,052 ms, with
+unknown Host caches and no physical audibility claim. The signer was removed;
+27 transactions remain. Mobile, cold first sound, longer listening and scalable
+publication remain gates. Production storage is unchanged.
 
 ## Opt-in bounded publication
 
-`pipeline-canary.mjs` is an independent research increment from `dev`; the
-native AAC reader in [#355](https://github.com/knzeng-e/dotify/pull/355) stays
-under separate review. It does not activate an app storage adapter.
+`pipeline-canary.mjs` builds on the native AAC reader merged in
+[#355](https://github.com/knzeng-e/dotify/pull/355). It does not activate an
+app storage adapter.
 
 The pipeline overlaps **two direct transactions by default**, at most four,
 with at most 512 KiB in flight by default (hard ceiling 1 MiB). Each account
@@ -176,7 +337,12 @@ storage signer remains the production direction; this tool never loads an
 environment phrase or selects a fallback signer.
 
 On any uncertain write, stop new admissions, drain already-started writes and
-retain every unresolved CID/nonce intent. Restart rechecks finalized chain
+retain every unresolved CID/nonce intent. Admission checks for sibling failure
+after its retention lookup and journal persistence. If the latest intent was
+persisted but its store was never invoked, only that reservation is removed
+and the nonce cursor is restored durably. If that save fails, the journal may
+conservatively retain the unsent intent; stop for operator reconciliation.
+Restart rechecks finalized chain
 metadata and raw bytes. A missing CID, a rejected nonce or a timeout is **not**
 permission to resend or fill a nonce gap. Even a definitive pre-submission
 error can leave later nonces in flight; this prototype leaves the gap for

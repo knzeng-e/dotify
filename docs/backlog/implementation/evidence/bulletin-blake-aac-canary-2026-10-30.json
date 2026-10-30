@@ -1,0 +1,638 @@
+{
+  "schema": "dotify.bulletin.blake-aac-evidence.v1",
+  "source": {
+    "sha": "69768b88601442a78894a179305211c49b28392e",
+    "dirty": false
+  },
+  "preparation": {
+    "root": "bafykbzacecbgxu5coifnfzajpkwzuaxv36snvjfd4zqsbvpgfk4mx7mhzhtj4",
+    "blocks": 16,
+    "bytes": 713229,
+    "prospectiveTransactions": 32,
+    "verified": {
+      "verifiedObjects": 9,
+      "paths": [
+        "96/init.bin",
+        "96/segment-000.bin",
+        "96/segment-001.bin",
+        "160/init.bin",
+        "160/segment-000.bin",
+        "160/segment-001.bin",
+        "320/init.bin",
+        "320/segment-000.bin",
+        "320/segment-001.bin"
+      ],
+      "masterFetched": false,
+      "startupRawReads": 8,
+      "startupBytes": 52323,
+      "firstAuthenticatedObjectsMs": 5,
+      "totalRawReads": 29,
+      "totalReadBytes": 460656,
+      "audibleStartupMeasured": false,
+      "physicalHostTested": false
+    }
+  },
+  "preflight": {
+    "observedAt": "2026-10-30T12:40:03.594Z",
+    "endpoint": "wss://bulletin-paseo.tservices.es:8443",
+    "genesis": "0xe101f0fa4627d29a257645e02be86d80378fea1a2bf8fa6a918d150ebc760a59",
+    "account": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+    "root": "bafykbzacecbgxu5coifnfzajpkwzuaxv36snvjfd4zqsbvpgfk4mx7mhzhtj4",
+    "before": {
+      "head": 1429954,
+      "hash": "0x6600e5aff570c186e954ec41704dc72b4b48bd7c0064006d1952ab6e1166d8be",
+      "authorization": {
+        "expiresAt": 1621405,
+        "remainingTransactions": 43,
+        "remainingBytes": "8901676",
+        "remainingRenewBytes": "9615262"
+      }
+    },
+    "command": "check",
+    "result": {
+      "readyForBoundedWrite": true,
+      "blocks": 16,
+      "bytes": 713229,
+      "budget": {
+        "maxBytes": 1048576,
+        "maxTransactions": 40
+      }
+    },
+    "after": {
+      "head": 1429955,
+      "hash": "0xb71c6ff03eb6d0b352595d7f08e906522aa4969814378bc7b5d89a38427b06ba",
+      "authorization": {
+        "expiresAt": 1621405,
+        "remainingTransactions": 43,
+        "remainingBytes": "8901676",
+        "remainingRenewBytes": "9615262"
+      }
+    },
+    "attemptedTransactions": 0
+  },
+  "publication": {
+    "observedAt": "2026-10-30T12:43:30.229Z",
+    "endpoint": "wss://bulletin-paseo.tservices.es:8443",
+    "genesis": "0xe101f0fa4627d29a257645e02be86d80378fea1a2bf8fa6a918d150ebc760a59",
+    "account": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+    "root": "bafykbzacecbgxu5coifnfzajpkwzuaxv36snvjfd4zqsbvpgfk4mx7mhzhtj4",
+    "before": {
+      "head": 1429989,
+      "hash": "0x9a05669be8119fdcccf5f20b61c488694dad53eb09dc37a1502f5997a1783c5e",
+      "authorization": {
+        "expiresAt": 1621405,
+        "remainingTransactions": 43,
+        "remainingBytes": "8901676",
+        "remainingRenewBytes": "9615262"
+      }
+    },
+    "command": "publish",
+    "result": {
+      "root": "bafykbzacecbgxu5coifnfzajpkwzuaxv36snvjfd4zqsbvpgfk4mx7mhzhtj4",
+      "storedBlocks": 16,
+      "reusedBlocks": 0,
+      "reservedRenewalTransactions": 16
+    },
+    "after": {
+      "head": 1430079,
+      "hash": "0x689a383eaa20d80139126703c68591fb6ce75aaab3a3a76d9b69809ca150504c",
+      "authorization": {
+        "expiresAt": 1621405,
+        "remainingTransactions": 27,
+        "remainingBytes": "8188447",
+        "remainingRenewBytes": "9615262"
+      }
+    },
+    "attemptedTransactions": 16
+  },
+  "readback": {
+    "observedAt": "2026-10-30T12:53:18.292Z",
+    "endpoint": "wss://bulletin-paseo.tservices.es:8443",
+    "genesis": "0xe101f0fa4627d29a257645e02be86d80378fea1a2bf8fa6a918d150ebc760a59",
+    "account": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+    "root": "bafykbzacecbgxu5coifnfzajpkwzuaxv36snvjfd4zqsbvpgfk4mx7mhzhtj4",
+    "before": {
+      "head": 1430087,
+      "hash": "0xc9dd2cc2e33ec6cf047189ad3f9baca0641cbfc93c15932958536e4d41d7d024",
+      "authorization": {
+        "expiresAt": 1621405,
+        "remainingTransactions": 27,
+        "remainingBytes": "8188447",
+        "remainingRenewBytes": "9615262"
+      }
+    },
+    "command": "verify",
+    "result": {
+      "verifiedObjects": 9,
+      "paths": [
+        "96/init.bin",
+        "96/segment-000.bin",
+        "96/segment-001.bin",
+        "160/init.bin",
+        "160/segment-000.bin",
+        "160/segment-001.bin",
+        "320/init.bin",
+        "320/segment-000.bin",
+        "320/segment-001.bin"
+      ],
+      "masterFetched": false,
+      "startupRawReads": 8,
+      "startupBytes": 52323,
+      "firstAuthenticatedObjectsMs": 2967,
+      "totalRawReads": 29,
+      "totalReadBytes": 460656,
+      "audibleStartupMeasured": false,
+      "physicalHostTested": false
+    },
+    "after": {
+      "head": 1430088,
+      "hash": "0x38a1278b9eca054a18869a1182e615567d02d827244a46e514d3346d1aee9323",
+      "authorization": {
+        "expiresAt": 1621405,
+        "remainingTransactions": 27,
+        "remainingBytes": "8188447",
+        "remainingRenewBytes": "9615262"
+      }
+    },
+    "attemptedTransactions": 0
+  },
+  "receipts": {
+    "schema": "dotify.bulletin.prototype.v1",
+    "genesis": "0xe101f0fa4627d29a257645e02be86d80378fea1a2bf8fa6a918d150ebc760a59",
+    "account": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+    "root": "bafykbzacecbgxu5coifnfzajpkwzuaxv36snvjfd4zqsbvpgfk4mx7mhzhtj4",
+    "blocks": [
+      "bafk2bzacebvogx72ouutwhmwl4unnz2eslp6cwr5vgartcow6gvufxdvlquva",
+      "bafk2bzacebpd6ny4na3yhf6h47ihzfgduhq4wjz6ag3bezhle7ijjgpmkp7gw",
+      "bafk2bzaceargbep2z6ogreshi6irm2mbemghyinvpzk6od4qx2zhde5b3t7tu",
+      "bafykbzacedazw652ftokwskn4dl6aw4clq2lsj4cnszzvohdvydbiughvxmfc",
+      "bafk2bzacedj56gy5dfohhc3o7dftweyvnzbixbfdn3kcmcz3gnbmaky4dws6c",
+      "bafk2bzaceajpkymbzny3gemzdwcdciqfqmwde4clixnpsb6mzcugn7ktxylrk",
+      "bafk2bzaceb2iebc43v2r4vanqh7zriwt2hckfxvl5fvxcww3agu4fkp2hqkyy",
+      "bafykbzacebhbqaxfr6gz6mtknngps7kwcy4yihiyi7jth3c5twbbccdspr6dc",
+      "bafk2bzaceaq6qzkz3bk3w66rhnwcathlmvllaioff6276lbjl44qh33nkj3fk",
+      "bafk2bzaceabx4deg2xjygwxrtsnuvy72pv62pxwzj6fw62ehmwvmot34phzlm",
+      "bafk2bzacecoq4m7e35hpcg3xhry2hfhmkluzflbsn2l263wtcquxvjf2423ps",
+      "bafykbzaced7bpqf2f4bwkxpnwvyswdid3t5urqdkybvsezke3fguqalaxhces",
+      "bafk2bzacebybumvaphjpmqklrop3t5ypgtn34nbfkn6ro5zu73xuyjrcoib2s",
+      "bafykbzacebe6i64545pjwmay342hjsdiofla2h3lpueq5zhc4x77f4qeieses",
+      "bafk2bzaced7xt7u2trvyvdmnnt4p5p6ikudesmb43l3y3w753s64yp4bja44c",
+      "bafykbzacecbgxu5coifnfzajpkwzuaxv36snvjfd4zqsbvpgfk4mx7mhzhtj4"
+    ],
+    "receipts": {
+      "bafk2bzacebvogx72ouutwhmwl4unnz2eslp6cwr5vgartcow6gvufxdvlquva": {
+        "cid": "bafk2bzacebvogx72ouutwhmwl4unnz2eslp6cwr5vgartcow6gvufxdvlquva",
+        "bytes": 780,
+        "block": 1429995,
+        "index": 0,
+        "expiresAt": 1631595,
+        "finalized": true
+      },
+      "bafk2bzacebpd6ny4na3yhf6h47ihzfgduhq4wjz6ag3bezhle7ijjgpmkp7gw": {
+        "cid": "bafk2bzacebpd6ny4na3yhf6h47ihzfgduhq4wjz6ag3bezhle7ijjgpmkp7gw",
+        "bytes": 80208,
+        "block": 1430000,
+        "index": 0,
+        "expiresAt": 1631600,
+        "finalized": true
+      },
+      "bafk2bzaceargbep2z6ogreshi6irm2mbemghyinvpzk6od4qx2zhde5b3t7tu": {
+        "cid": "bafk2bzaceargbep2z6ogreshi6irm2mbemghyinvpzk6od4qx2zhde5b3t7tu",
+        "bytes": 81140,
+        "block": 1430005,
+        "index": 0,
+        "expiresAt": 1631605,
+        "finalized": true
+      },
+      "bafykbzacedazw652ftokwskn4dl6aw4clq2lsj4cnszzvohdvydbiughvxmfc": {
+        "cid": "bafykbzacedazw652ftokwskn4dl6aw4clq2lsj4cnszzvohdvydbiughvxmfc",
+        "bytes": 185,
+        "block": 1430011,
+        "index": 0,
+        "expiresAt": 1631611,
+        "finalized": true
+      },
+      "bafk2bzacedj56gy5dfohhc3o7dftweyvnzbixbfdn3kcmcz3gnbmaky4dws6c": {
+        "cid": "bafk2bzacedj56gy5dfohhc3o7dftweyvnzbixbfdn3kcmcz3gnbmaky4dws6c",
+        "bytes": 780,
+        "block": 1430017,
+        "index": 0,
+        "expiresAt": 1631617,
+        "finalized": true
+      },
+      "bafk2bzaceajpkymbzny3gemzdwcdciqfqmwde4clixnpsb6mzcugn7ktxylrk": {
+        "cid": "bafk2bzaceajpkymbzny3gemzdwcdciqfqmwde4clixnpsb6mzcugn7ktxylrk",
+        "bytes": 96918,
+        "block": 1430023,
+        "index": 0,
+        "expiresAt": 1631623,
+        "finalized": true
+      },
+      "bafk2bzaceb2iebc43v2r4vanqh7zriwt2hckfxvl5fvxcww3agu4fkp2hqkyy": {
+        "cid": "bafk2bzaceb2iebc43v2r4vanqh7zriwt2hckfxvl5fvxcww3agu4fkp2hqkyy",
+        "bytes": 96914,
+        "block": 1430028,
+        "index": 0,
+        "expiresAt": 1631628,
+        "finalized": true
+      },
+      "bafykbzacebhbqaxfr6gz6mtknngps7kwcy4yihiyi7jth3c5twbbccdspr6dc": {
+        "cid": "bafykbzacebhbqaxfr6gz6mtknngps7kwcy4yihiyi7jth3c5twbbccdspr6dc",
+        "bytes": 185,
+        "block": 1430034,
+        "index": 0,
+        "expiresAt": 1631634,
+        "finalized": true
+      },
+      "bafk2bzaceaq6qzkz3bk3w66rhnwcathlmvllaioff6276lbjl44qh33nkj3fk": {
+        "cid": "bafk2bzaceaq6qzkz3bk3w66rhnwcathlmvllaioff6276lbjl44qh33nkj3fk",
+        "bytes": 780,
+        "block": 1430040,
+        "index": 0,
+        "expiresAt": 1631640,
+        "finalized": true
+      },
+      "bafk2bzaceabx4deg2xjygwxrtsnuvy72pv62pxwzj6fw62ehmwvmot34phzlm": {
+        "cid": "bafk2bzaceabx4deg2xjygwxrtsnuvy72pv62pxwzj6fw62ehmwvmot34phzlm",
+        "bytes": 48370,
+        "block": 1430046,
+        "index": 0,
+        "expiresAt": 1631646,
+        "finalized": true
+      },
+      "bafk2bzacecoq4m7e35hpcg3xhry2hfhmkluzflbsn2l263wtcquxvjf2423ps": {
+        "cid": "bafk2bzacecoq4m7e35hpcg3xhry2hfhmkluzflbsn2l263wtcquxvjf2423ps",
+        "bytes": 48401,
+        "block": 1430052,
+        "index": 0,
+        "expiresAt": 1631652,
+        "finalized": true
+      },
+      "bafykbzaced7bpqf2f4bwkxpnwvyswdid3t5urqdkybvsezke3fguqalaxhces": {
+        "cid": "bafykbzaced7bpqf2f4bwkxpnwvyswdid3t5urqdkybvsezke3fguqalaxhces",
+        "bytes": 185,
+        "block": 1430057,
+        "index": 0,
+        "expiresAt": 1631657,
+        "finalized": true
+      },
+      "bafk2bzacebybumvaphjpmqklrop3t5ypgtn34nbfkn6ro5zu73xuyjrcoib2s": {
+        "cid": "bafk2bzacebybumvaphjpmqklrop3t5ypgtn34nbfkn6ro5zu73xuyjrcoib2s",
+        "bytes": 256060,
+        "block": 1430062,
+        "index": 0,
+        "expiresAt": 1631662,
+        "finalized": true
+      },
+      "bafykbzacebe6i64545pjwmay342hjsdiofla2h3lpueq5zhc4x77f4qeieses": {
+        "cid": "bafykbzacebe6i64545pjwmay342hjsdiofla2h3lpueq5zhc4x77f4qeieses",
+        "bytes": 62,
+        "block": 1430068,
+        "index": 0,
+        "expiresAt": 1631668,
+        "finalized": true
+      },
+      "bafk2bzaced7xt7u2trvyvdmnnt4p5p6ikudesmb43l3y3w753s64yp4bja44c": {
+        "cid": "bafk2bzaced7xt7u2trvyvdmnnt4p5p6ikudesmb43l3y3w753s64yp4bja44c",
+        "bytes": 1990,
+        "block": 1430074,
+        "index": 0,
+        "expiresAt": 1631674,
+        "finalized": true
+      },
+      "bafykbzacecbgxu5coifnfzajpkwzuaxv36snvjfd4zqsbvpgfk4mx7mhzhtj4": {
+        "cid": "bafykbzacecbgxu5coifnfzajpkwzuaxv36snvjfd4zqsbvpgfk4mx7mhzhtj4",
+        "bytes": 271,
+        "block": 1430079,
+        "index": 0,
+        "expiresAt": 1631679,
+        "finalized": true
+      }
+    },
+    "pending": null,
+    "renewals": {}
+  },
+  "readdressedFrom": {
+    "root": "bafybeia7ddqnsd3kuq7gigaqoppzu7pyjxcib5ijrh6n6pnwlfwrrks3pu",
+    "hash": "SHA-256",
+    "targetHash": "BLAKE2b-256",
+    "ciphertextUnchanged": true,
+    "newEncryptionPerformed": false
+  },
+  "localControl": {
+    "schema": "dotify.bulletin.host-report.v1",
+    "startedAt": "2026-10-30T12:50:54.439Z",
+    "base": "5b6ddec51ba4dfdc2383d7afbaf17996dfdda1a6",
+    "transport": "local-control",
+    "environment": "Polkadot Desktop Dev 0.1.4-rc.3; macOS 27.0.1",
+    "network": "Loopback control, not Bulletin",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) polkadot-desktop/0.1.4-rc.3 Chrome/152.0.7977.130 Electron/44.4.3 Safari/537.36",
+    "reader": "standard",
+    "hostCache": "unknown; not cleared",
+    "pageCache": "empty per attempt",
+    "audibleFirstSoundMeasured": false,
+    "operatorHeardAudio": false,
+    "lookupTimeoutMs": null,
+    "productionAccessTested": false,
+    "outcome": "ended",
+    "reads": [
+      {
+        "cid": "bafykbzacecbgxu5coifnfzajpkwzuaxv36snvjfd4zqsbvpgfk4mx7mhzhtj4",
+        "bytes": 271,
+        "elapsedMs": 3
+      },
+      {
+        "cid": "bafk2bzaced7xt7u2trvyvdmnnt4p5p6ikudesmb43l3y3w753s64yp4bja44c",
+        "bytes": 1990,
+        "elapsedMs": 2
+      },
+      {
+        "cid": "bafykbzaced7bpqf2f4bwkxpnwvyswdid3t5urqdkybvsezke3fguqalaxhces",
+        "bytes": 185,
+        "elapsedMs": 4
+      },
+      {
+        "cid": "bafk2bzaceaq6qzkz3bk3w66rhnwcathlmvllaioff6276lbjl44qh33nkj3fk",
+        "bytes": 780,
+        "elapsedMs": 15
+      },
+      {
+        "cid": "bafk2bzaceabx4deg2xjygwxrtsnuvy72pv62pxwzj6fw62ehmwvmot34phzlm",
+        "bytes": 48370,
+        "elapsedMs": 16
+      },
+      {
+        "cid": "bafk2bzacecoq4m7e35hpcg3xhry2hfhmkluzflbsn2l263wtcquxvjf2423ps",
+        "bytes": 48401,
+        "elapsedMs": 21
+      }
+    ],
+    "events": [
+      {
+        "name": "waiting",
+        "elapsedMs": 279,
+        "mediaSeconds": 0
+      },
+      {
+        "name": "playing",
+        "elapsedMs": 678,
+        "mediaSeconds": 0
+      },
+      {
+        "name": "ended",
+        "elapsedMs": 9002,
+        "mediaSeconds": 7.999999
+      }
+    ],
+    "metrics": [
+      {
+        "phase": "gateway-selected",
+        "objectPath": "manifest.json",
+        "fromCache": false,
+        "elapsedMs": 264
+      },
+      {
+        "phase": "manifest-ready",
+        "objectPath": "manifest.json",
+        "objectBytes": 1990,
+        "elapsedMs": 266
+      },
+      {
+        "phase": "gateway-selected",
+        "objectPath": "96/init.bin",
+        "fromCache": false,
+        "elapsedMs": 301
+      },
+      {
+        "phase": "gateway-selected",
+        "objectPath": "96/segment-000.bin",
+        "fromCache": false,
+        "elapsedMs": 324
+      },
+      {
+        "phase": "first-object-ready",
+        "objectPath": "96/segment-000.bin",
+        "objectBytes": 48370,
+        "segmentIndex": 0,
+        "elapsedMs": 324
+      },
+      {
+        "phase": "first-segment-decrypted",
+        "segmentIndex": 0,
+        "elapsedMs": 324
+      },
+      {
+        "phase": "rendition-selected",
+        "bitrateKbps": 96,
+        "throughputKbps": 18252.830147624398,
+        "segmentIndex": 0,
+        "elapsedMs": 324
+      },
+      {
+        "phase": "first-segment-appended",
+        "segmentIndex": 0,
+        "elapsedMs": 325
+      },
+      {
+        "phase": "gateway-selected",
+        "objectPath": "96/segment-001.bin",
+        "fromCache": false,
+        "elapsedMs": 326
+      },
+      {
+        "phase": "rendition-selected",
+        "bitrateKbps": 96,
+        "throughputKbps": 16762.25115145337,
+        "segmentIndex": 1,
+        "elapsedMs": 326
+      }
+    ],
+    "root": "bafykbzacecbgxu5coifnfzajpkwzuaxv36snvjfd4zqsbvpgfk4mx7mhzhtj4",
+    "audioProof": {
+      "kind": "generated-chord-aac-v1",
+      "durationSeconds": 8,
+      "sourceSha256": "9049f781cb98e534bea2d112d2fe94a81b8302a53792bd4c96c68df6a90b93ac",
+      "encoder": "services/api/src/services/streamingEncoder.ts",
+      "renditions": [
+        {
+          "bitrateKbps": 96,
+          "segments": 2
+        },
+        {
+          "bitrateKbps": 160,
+          "segments": 2
+        },
+        {
+          "bitrateKbps": 320,
+          "segments": 2
+        }
+      ]
+    },
+    "implementation": {
+      "sha": "69768b88601442a78894a179305211c49b28392e",
+      "dirty": false
+    },
+    "progressive": true,
+    "firstPlayingEventMs": 678
+  },
+  "nativeDesktop": {
+    "schema": "dotify.bulletin.host-report.v1",
+    "startedAt": "2026-10-30T12:54:07.107Z",
+    "base": "5b6ddec51ba4dfdc2383d7afbaf17996dfdda1a6",
+    "transport": "native-preimage",
+    "environment": "Polkadot Desktop Dev 0.1.4-rc.3; macOS 27.0.1",
+    "network": "Existing network; no throttling; native Bulletin preimage API",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) polkadot-desktop/0.1.4-rc.3 Chrome/152.0.7977.130 Electron/44.4.3 Safari/537.36",
+    "reader": "standard",
+    "hostCache": "unknown; not cleared",
+    "pageCache": "empty per attempt",
+    "audibleFirstSoundMeasured": false,
+    "operatorHeardAudio": false,
+    "lookupTimeoutMs": 10000,
+    "productionAccessTested": false,
+    "outcome": "ended",
+    "reads": [
+      {
+        "cid": "bafykbzacecbgxu5coifnfzajpkwzuaxv36snvjfd4zqsbvpgfk4mx7mhzhtj4",
+        "bytes": 271,
+        "elapsedMs": 612
+      },
+      {
+        "cid": "bafk2bzaced7xt7u2trvyvdmnnt4p5p6ikudesmb43l3y3w753s64yp4bja44c",
+        "bytes": 1990,
+        "elapsedMs": 251
+      },
+      {
+        "cid": "bafykbzaced7bpqf2f4bwkxpnwvyswdid3t5urqdkybvsezke3fguqalaxhces",
+        "bytes": 185,
+        "elapsedMs": 146
+      },
+      {
+        "cid": "bafk2bzaceaq6qzkz3bk3w66rhnwcathlmvllaioff6276lbjl44qh33nkj3fk",
+        "bytes": 780,
+        "elapsedMs": 149
+      },
+      {
+        "cid": "bafk2bzaceabx4deg2xjygwxrtsnuvy72pv62pxwzj6fw62ehmwvmot34phzlm",
+        "bytes": 48370,
+        "elapsedMs": 749
+      },
+      {
+        "cid": "bafk2bzacecoq4m7e35hpcg3xhry2hfhmkluzflbsn2l263wtcquxvjf2423ps",
+        "bytes": 48401,
+        "elapsedMs": 960
+      }
+    ],
+    "events": [
+      {
+        "name": "waiting",
+        "elapsedMs": 992,
+        "mediaSeconds": 0
+      },
+      {
+        "name": "playing",
+        "elapsedMs": 2052,
+        "mediaSeconds": 0
+      },
+      {
+        "name": "ended",
+        "elapsedMs": 10129,
+        "mediaSeconds": 7.999999
+      }
+    ],
+    "metrics": [
+      {
+        "phase": "gateway-selected",
+        "objectPath": "manifest.json",
+        "fromCache": false,
+        "elapsedMs": 987
+      },
+      {
+        "phase": "manifest-ready",
+        "objectPath": "manifest.json",
+        "objectBytes": 1990,
+        "elapsedMs": 988
+      },
+      {
+        "phase": "gateway-selected",
+        "objectPath": "96/init.bin",
+        "fromCache": false,
+        "elapsedMs": 1288
+      },
+      {
+        "phase": "gateway-selected",
+        "objectPath": "96/segment-000.bin",
+        "fromCache": false,
+        "elapsedMs": 2045
+      },
+      {
+        "phase": "first-object-ready",
+        "objectPath": "96/segment-000.bin",
+        "objectBytes": 48370,
+        "segmentIndex": 0,
+        "elapsedMs": 2046
+      },
+      {
+        "phase": "first-segment-decrypted",
+        "segmentIndex": 0,
+        "elapsedMs": 2046
+      },
+      {
+        "phase": "rendition-selected",
+        "bitrateKbps": 96,
+        "throughputKbps": 514.4376495286755,
+        "segmentIndex": 0,
+        "elapsedMs": 2046
+      },
+      {
+        "phase": "first-segment-appended",
+        "segmentIndex": 0,
+        "elapsedMs": 2050
+      },
+      {
+        "phase": "gateway-selected",
+        "objectPath": "96/segment-001.bin",
+        "fromCache": false,
+        "elapsedMs": 2254
+      },
+      {
+        "phase": "rendition-selected",
+        "bitrateKbps": 96,
+        "throughputKbps": 402.79621348091837,
+        "segmentIndex": 1,
+        "elapsedMs": 2255
+      }
+    ],
+    "root": "bafykbzacecbgxu5coifnfzajpkwzuaxv36snvjfd4zqsbvpgfk4mx7mhzhtj4",
+    "audioProof": {
+      "kind": "generated-chord-aac-v1",
+      "durationSeconds": 8,
+      "sourceSha256": "9049f781cb98e534bea2d112d2fe94a81b8302a53792bd4c96c68df6a90b93ac",
+      "encoder": "services/api/src/services/streamingEncoder.ts",
+      "renditions": [
+        {
+          "bitrateKbps": 96,
+          "segments": 2
+        },
+        {
+          "bitrateKbps": 160,
+          "segments": 2
+        },
+        {
+          "bitrateKbps": 320,
+          "segments": 2
+        }
+      ]
+    },
+    "implementation": {
+      "sha": "69768b88601442a78894a179305211c49b28392e",
+      "dirty": false
+    },
+    "insideHost": true,
+    "progressive": true,
+    "firstPlayingEventMs": 2052
+  },
+  "signerRemoved": true,
+  "renewalPerformed": false,
+  "productionChanged": false
+}

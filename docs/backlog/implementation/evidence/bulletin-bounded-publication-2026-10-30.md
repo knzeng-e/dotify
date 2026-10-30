@@ -1,10 +1,10 @@
 # Bounded Bulletin publication, 2026-10-30
 
 **Outcome: an opt-in direct-transaction pipeline can overlap verified uploads
-without changing the deployed app or #355.** Base `dev`:
-`5b6ddec51ba4dfdc2383d7afbaf17996dfdda1a6`. This is an independent publication
-increment while [#355](https://github.com/knzeng-e/dotify/pull/355)'s native
-AAC/addressing experiment is reviewed. No storage transaction is sent by this
+without changing the deployed app.** Original base `dev`:
+`5b6ddec51ba4dfdc2383d7afbaf17996dfdda1a6`. The branch now incorporates
+`dev` at `c8adf64e` after [#355](https://github.com/knzeng-e/dotify/pull/355)
+merged its native AAC/addressing experiment. No storage transaction is sent by this
 implementation's tests or capability inspection.
 
 ## Decision and state flow
@@ -87,11 +87,31 @@ pipeline with a peak of two in-flight operations. Its key is not loaded and
 no network write or physical playback is performed by this compatibility run.
 This is combined-source evidence, not a merged release build or live speed test.
 
+## Review correction after #355 merged
+
+A sibling failure could become known while another admission awaited its
+journal write. That admission previously continued into `store`, despite the
+failure. Admission now checks after both asynchronous steps: the parent
+retention lookup and intent persistence. The serialized last reservation is
+released only if its store has never been invoked; its removal and restored
+nonce cursor are persisted together. Earlier uncertain writes remain pending.
+If rollback persistence fails, disk may conservatively retain an unsent intent;
+the operator must reconcile it rather than erase the journal.
+
+Three deterministic regressions pause the actual journal write or parent
+lookup. They cover an unknown submission, a successful write with a lost
+response, and a failure before parent reservation. Both journal-window cases
+failed against the previous code because a second store started. The corrected
+branch passes **22 pipeline tests plus 38 reader/codec tests**, with **six
+browser/server checks**. These checks send no storage transaction and make no
+physical-device or performance claim. Earlier overlay evidence above is kept
+as a historical observation, rather than relabeled as a merged-branch run.
+
 ## Mobile and long-listening handoff
 
-Mobile delivery uses the separately reviewed #355 reader. Do not duplicate
+Mobile delivery builds on the #355 reader now merged into `dev`. Do not duplicate
 that reader here, bind its local key server to the LAN, tunnel it, or expose a
-production content-key endpoint. After #355 merges, prepare a **standalone
+production content-key endpoint. Prepare a **standalone
 generated-only diagnostic Product** at a separately approved test address.
 Bundle only the public generated fixture's test key/manifest reference; never
 an artist key, production session or operator signer. The known synthetic key

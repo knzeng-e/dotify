@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import fsPromises, { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { syncBuiltinESMExports } from 'node:module';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import * as dagPB from '@ipld/dag-pb';
@@ -292,4 +293,128 @@ test('a null rejection cannot erase an uncertain nonce intent', async t => {
   const state = JSON.parse(await readFile(join(c.checkpoint, 'receipts.json'), 'utf8'));
   assert.ok(Object.keys(state.pending).length > 0);
   await assert.rejects(publishPipelined(c.graph, c.chain, c.checkpoint, budget), /Submission unresolved/);
+});
+
+// Pause an actual atomic journal write, rather than relying on disk timing.
+for (const storedBeforeFailure of [false, true]) {
+  test(`failure during admission persistence cancels only the unsent intent (stored=${storedBeforeFailure})`, async t => {
+    const c = await context(t),
+      paused = deferred(),
+      release = deferred(),
+      fail = deferred(),
+      failed = deferred();
+    const originalOpen = fsPromises.open,
+      store = c.chain.store;
+    let pausedOnce = false,
+      calls = 0;
+    const openMock = t.mock.method(fsPromises, 'open', async (...args) => {
+      const handle = await originalOpen(...args);
+      if (String(args[0]).startsWith(c.checkpoint) && String(args[0]).endsWith('.tmp')) {
+        const write = handle.writeFile.bind(handle);
+        handle.writeFile = async data => {
+          await write(data);
+          const state = JSON.parse(data);
+          if (!pausedOnce && Object.values(state.pending).some(intent => intent.nonce === 11)) {
+            pausedOnce = true;
+            paused.resolve();
+            await release.promise;
+          }
+        };
+      }
+      return handle;
+    });
+    syncBuiltinESMExports();
+    c.chain.store = async (block, options) => {
+      if (++calls === 1) {
+        await fail.promise;
+        if (storedBeforeFailure) await store(block, options);
+        failed.resolve();
+        throw new Error('Interrupted first submission');
+      }
+      return store(block, options);
+    };
+    try {
+      const writing = publishPipelined(c.graph, c.chain, c.checkpoint, budget);
+      const rejected = assert.rejects(writing, /Interrupted first submission/);
+      await paused.promise;
+      fail.resolve();
+      await failed.promise;
+      await new Promise(resolve => setImmediate(resolve));
+      release.resolve();
+      await rejected;
+      assert.equal(calls, 1, 'No second submission after the first failure is known');
+      const state = JSON.parse(await readFile(join(c.checkpoint, 'receipts.json'), 'utf8'));
+      assert.deepEqual(
+        Object.values(state.pending).map(intent => intent.nonce),
+        [10]
+      );
+      assert.equal(state.nextNonce, 11, 'The never-submitted reservation is released');
+      assert.ok(!c.chain.blocks.has(c.graph.root));
+      c.chain.store = store;
+      if (storedBeforeFailure) {
+        assert.equal((await publishPipelined(c.graph, c.chain, c.checkpoint, budget)).reusedBlocks, 1);
+        assert.deepEqual(
+          c.nonces,
+          c.graph.blocks.map((_, i) => 10 + i)
+        );
+      } else {
+        await assert.rejects(publishPipelined(c.graph, c.chain, c.checkpoint, budget), /Submission unresolved/);
+        assert.equal(c.entered.length, 0);
+      }
+    } finally {
+      release.resolve();
+      fail.resolve();
+      openMock.mock.restore();
+      syncBuiltinESMExports();
+    }
+  });
+}
+
+test('a sibling failure during parent retention lookup prevents reservation and submission', async t => {
+  const c = await context(t),
+    paused = deferred(),
+    release = deferred(),
+    fail = deferred();
+  const status = c.chain.status.bind(c.chain),
+    store = c.chain.store;
+  let calls = 0,
+    pausedOnce = false;
+  // Separate subdirectories let one verified leaf unlock a parent while a sibling is active.
+  c.graph = await buildDirectory([
+    { path: 'a/x', bytes: Buffer.alloc(100, 1) },
+    { path: 'b/y', bytes: Buffer.alloc(100, 2) }
+  ]);
+  c.chain.store = async (block, options) => {
+    if (++calls === 2) {
+      await fail.promise;
+      throw new Error('Sibling failed during retention lookup');
+    }
+    return store(block, options);
+  };
+  c.chain.status = async () => {
+    const snapshot = await status();
+    if (!pausedOnce && calls === 2) {
+      const state = JSON.parse(await readFile(join(c.checkpoint, 'receipts.json'), 'utf8'));
+      if (Object.keys(state.receipts).length === 1) {
+        pausedOnce = true;
+        paused.resolve();
+        await release.promise;
+      }
+    }
+    return snapshot;
+  };
+  const rejected = assert.rejects(publishPipelined(c.graph, c.chain, c.checkpoint, budget), /Sibling failed during retention lookup/);
+  await paused.promise;
+  fail.resolve();
+  await new Promise(resolve => setImmediate(resolve));
+  release.resolve();
+  await rejected;
+  const state = JSON.parse(await readFile(join(c.checkpoint, 'receipts.json'), 'utf8'));
+  assert.equal(calls, 2);
+  assert.equal(state.nextNonce, 12, 'No parent nonce was reserved');
+  assert.deepEqual(
+    Object.values(state.pending).map(intent => intent.nonce),
+    [11]
+  );
+  assert.equal(Object.keys(state.receipts).length, 1);
 });

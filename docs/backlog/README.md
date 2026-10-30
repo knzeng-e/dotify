@@ -72,15 +72,23 @@ physical evidence are accepted. Research is not a hosting activation.
 
 The owner-requested [Bulletin media feasibility study](../research/bulletin-media-storage-2026-10-29.md)
 records the existing storage Seam, exact DevNet limits and the remaining
-directory-delivery/renewal proof. It does not activate a storage replacement or
-close W32/W33 acceptance.
+directory-delivery/renewal proof. The [real-AAC reader canary](implementation/evidence/bulletin-aac-host-canary-2026-10-30.md)
+adds a real codec/browser control and finalized AAC storage/readback, while
+installed Desktop retrieval exposes a Host compatibility blocker. A
+[controlled addressing comparison](implementation/evidence/bulletin-addressing-canary-2026-10-30.md)
+now verifies native BLAKE2b raw/directory/path reads while identical SHA-256
+bytes time out. The [BLAKE2b AAC follow-up](implementation/evidence/bulletin-blake-aac-canary-2026-10-30.md)
+then completes eight-second native Desktop playback. Mobile delivery, cold
+audible startup and scalable
+publication remain gates; this does not activate a storage replacement or close
+W32/W33 acceptance.
 
 ## Bulletin publication follow-up, 2026-10-30
 
 The [bounded direct writer](implementation/evidence/bulletin-bounded-publication-2026-10-30.md)
 adds an opt-in nonce journal, dependency-aware overlap and fail-closed recovery.
-It is independent of [#355](https://github.com/knzeng-e/dotify/pull/355), which
-remains under review for native AAC delivery. The scheduling model is not a
+It builds on the native AAC reader merged in [#355](https://github.com/knzeng-e/dotify/pull/355);
+mobile delivery remains a separate gate. The scheduling model is not a
 network latency claim. Mobile distribution, actual throughput, longer listening
 and renewal remain separate evidence gates; no app storage switch is activated.
 

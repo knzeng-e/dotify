@@ -7,9 +7,14 @@
     "node": ">=22 <23"
   },
   "scripts": {
-    "test": "node --import tsx --test prototype.test.mjs live-transport.test.mjs",
+    "test": "node --import tsx --test prototype.test.mjs live-transport.test.mjs aac-fixture.test.mjs native-rpc.test.mjs addressing.test.mjs readdress-aac.test.mjs",
     "measure": "node --import tsx measure.mjs",
     "canary": "node --import tsx canary.mjs",
+    "test:host": "node --import tsx --test host-server.test.mjs host-browser.test.mjs",
+    "prepare:aac": "node --import tsx aac-fixture.mjs",
+    "host": "node --import tsx host-server.mjs",
+    "prepare:addressing": "node --import tsx addressing-fixture.mjs",
+    "prepare:blake-aac": "node --import tsx readdress-aac.mjs",
     "pipeline": "node --import tsx pipeline-canary.mjs",
     "test:pipeline": "node --import tsx --test pipeline.test.mjs nonce-transport.test.mjs pipeline-cli.test.mjs",
     "measure:pipeline": "node --import tsx measure-pipeline.mjs",
@@ -24,6 +29,7 @@
     "ipfs-unixfs-importer": "16.1.5",
     "multiformats": "14.0.5",
     "polkadot-api": "3.3.0",
-    "tsx": "4.19.2"
+    "tsx": "4.19.2",
+    "@noble/hashes": "2.4.0"
   }
 }
