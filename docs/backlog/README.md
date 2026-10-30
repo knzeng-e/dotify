@@ -99,8 +99,9 @@ prepares a separate static Product for physical mobile verification. It reuses
 the native reader, adds a bundled decoder control and preserves five local
 reports across reloads without relying on Host downloads. It is now [published as `dotify-bulletin-lab.dot`](implementation/evidence/bulletin-mobile-publication-2026-10-30.md)
 with verified artifact/record readback and two owner-reported complete native
-mobile listens. The paired decoder control and known-cache comparison are still
-missing. It is not a production storage switch.
+mobile listens plus a completed bundled decoder control (Polkadot app
+0.10.0(18), Wi-Fi, as reported by the owner). A known-cache performance comparison
+is still missing. It is not a production storage switch.
 Physical mobile first sound, real upload throughput,
 long listening and renewal remain separate gates in #288/#287.
 

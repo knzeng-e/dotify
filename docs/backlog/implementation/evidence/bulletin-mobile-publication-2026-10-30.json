@@ -187,12 +187,13 @@
     "audibleStartupMeasured": false,
     "productionStorageActivated": false,
     "pipelineThroughputVerified": false,
-    "physicalMobileEvidenceBasis": "Owner reports two completed native attempts with audio heard; eight-second generated fixture only",
-    "pairedMobileControlVerified": false
+    "physicalMobileEvidenceBasis": "Owner reports two complete native attempts and one complete bundled decoder control, with audio heard; eight-second generated fixture only",
+    "pairedMobileControlVerified": true,
+    "controlledMobilePerformanceBenchmarkVerified": false
   },
   "physicalMobileObservation": {
     "date": "2026-10-30",
-    "source": "Two owner-supplied reports from the published diagnostic; not independently observed",
+    "source": "Three owner-supplied reports: two native attempts and one bundled decoder control; not independently observed",
     "privacy": "Only derived test observations retained; report identifiers, exact timestamps and raw user agent omitted",
     "schema": "dotify.bulletin.host-report.v1",
     "implementation": {
@@ -234,11 +235,39 @@
         "recoveredAfterReload": false
       }
     ],
-    "bundledDecoderControlProvided": false,
+    "bundledDecoderControlProvided": true,
     "audibleFirstSoundMeasured": false,
     "coldStartVerified": false,
     "manualPauseSeekStopVerified": false,
     "backgroundOrScreenLockVerified": false,
-    "productionAccessTested": false
+    "productionAccessTested": false,
+    "reportedTestContext": {
+      "hostVersion": "0.10.0(18)",
+      "network": "Wi-Fi",
+      "source": "Owner note accompanying the decoder-control report; report environment/network fields were empty",
+      "sameConditionsAcrossAttemptsIndependentlyVerified": false
+    },
+    "decoderControl": {
+      "transport": "bundled-decoder-control",
+      "reader": "managed",
+      "progressive": true,
+      "implementation": {
+        "sha": "a9199f8d4ae960aa4bf154c9a624baddd7d83f89",
+        "dirty": false
+      },
+      "root": "bafykbzacecbgxu5coifnfzajpkwzuaxv36snvjfd4zqsbvpgfk4mx7mhzhtj4",
+      "outcome": "ended",
+      "mediaDurationSeconds": 8,
+      "firstPlayingEventMs": 112,
+      "operatorHeardAudio": true,
+      "playbackObjectReadCount": 6,
+      "playbackObjectReadBytes": 99997,
+      "objectSource": "Bundled ciphertext, not network delivery",
+      "waitingEventsAfterPlaying": 0,
+      "terminalPauseAtMediaSeconds": 8,
+      "recoveredAfterReload": false,
+      "audibleFirstSoundMeasured": false,
+      "productionAccessTested": false
+    }
   }
 }

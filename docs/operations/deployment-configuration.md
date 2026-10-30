@@ -68,8 +68,9 @@ is available as `dotify-bulletin-lab.dot`, Product `[0,1,0]`. Four new stores an
 an existing icon were verified; the ordinary Dotify Product is unchanged. The
 signer was removed. The owner subsequently supplied two completed native mobile
 reports with audio heard (first `playing`: 1,195 / 117 ms). Host cache state is
-unknown; paired decoder-control, cold audible-start and longer listening remain
-unverified.
+unknown. The owner also supplied a completed bundled decoder control at 112 ms
+(Polkadot app 0.10.0(18), Wi-Fi). These are functional observations; controlled
+cold audible-start and longer-listening acceptance remain unverified.
 
 The [standalone diagnostic build](../../research/bulletin-prototype/README.md#standalone-mobile-diagnostic-preparation)
 removes the need to expose the local key server to a phone. It verifies the
@@ -92,8 +93,9 @@ unfinished recovered attempts as interrupted. Export/copy important evidence
 before changing origin or clearing Host data. Blocked/full storage falls back to
 page memory with a warning. Removing the test tab stops audio; rollback is to
 stop using the separate diagnostic, not to change Dotify's deployed storage.
-Two owner-reported native eight-second listens are recorded above; the paired
-mobile control, background and measured first-sound gates remain unverified.
+Two owner-reported native eight-second listens and a completed decoder control
+are recorded above; background, longer listening and measured first-sound gates
+remain unverified.
 
 ## Bounded Bulletin publication research, not deployed
 
