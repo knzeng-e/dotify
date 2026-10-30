@@ -98,4 +98,3 @@ export async function verifyGraph(graph) {
   visit(graph.root);
   assert.equal(reachable.size, graph.blocks.length, 'Graph contains unreachable blocks');
 }
-
