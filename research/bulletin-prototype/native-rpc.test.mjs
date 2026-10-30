@@ -10,15 +10,15 @@ test('native RPC binds genesis and verifies exact raw bytes without another tran
   const calls=[];
   const client={async _request(method,args) {
     calls.push([method,args]);
-    return method==='chain_getBlockHash' ? GENESIS : `0x${Buffer.from(block.bytes).toString('hex')}`;
+    return method==='chainSpec_v1_genesisHash' ? GENESIS : `0x${Buffer.from(block.bytes).toString('hex')}`;
   }};
   const read=await nativeRpcReader(client,new AbortController().signal);
   assert.deepEqual(await read(block.cid),new Uint8Array(block.bytes));
-  assert.deepEqual(calls.map(c=>c[0]),['chain_getBlockHash','bitswap_v1_get']);
+  assert.deepEqual(calls.map(c=>c[0]),['chainSpec_v1_genesisHash','bitswap_v1_get']);
   await assert.rejects(nativeRpcReader({_request:async()=> 'wrong'},new AbortController().signal),/approved Bulletin/);
-  const bad=await nativeRpcReader({_request:async method=>method==='chain_getBlockHash'?GENESIS:'0x00'},new AbortController().signal);
+  const bad=await nativeRpcReader({_request:async method=>method==='chainSpec_v1_genesisHash'?GENESIS:'0x00'},new AbortController().signal);
   await assert.rejects(bad(block.cid),/does not match/);
-  const unsupported=await nativeRpcReader({_request:async method=> {if(method==='chain_getBlockHash')return GENESIS;throw new Error('Method not available in Host');}},new AbortController().signal);
+  const unsupported=await nativeRpcReader({_request:async method=> {if(method==='chainSpec_v1_genesisHash')return GENESIS;throw new Error('Method not available in Host');}},new AbortController().signal);
   await assert.rejects(unsupported(block.cid),/not available/);
 });
 

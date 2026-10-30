@@ -15,7 +15,7 @@ export async function bounded(promise, signal, ms = 10_000) {
 }
 
 export async function nativeRpcReader(client, signal) {
-  const actual = await bounded(client._request('chain_getBlockHash', [0]), signal);
+  const actual = await bounded(client._request('chainSpec_v1_genesisHash', []), signal);
   if (actual !== NATIVE_GENESIS) throw new Error('Native chain RPC is not the approved Bulletin DevNet');
   return async cid => {
     const hex = await bounded(client._request('bitswap_v1_get', [cid]), signal);
