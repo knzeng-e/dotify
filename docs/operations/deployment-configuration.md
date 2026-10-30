@@ -27,6 +27,11 @@ The operator lock survives abrupt termination for explicit reconciliation;
 keep the private fixture/nonce ledger/receipts, and remove the temporary local
 signer after the run. Recurring renewal, real AAC, physical Host retrieval and
 first sound remain separate acceptance gates.
+The [2026-10-30 canary](../backlog/implementation/evidence/bulletin-network-canary-2026-10-29.md)
+verified 19 stores and 19 immediate renewals, with no additional store during
+read-only timeout recovery. The local signer is removed. This does not activate
+Bulletin media in the app; the sequential prototype's roughly twelve-minute
+publication is an explicit throughput limitation.
 
 ## W39 room scaling research, not deployed
 

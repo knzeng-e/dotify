@@ -96,11 +96,42 @@ startup or physical Host evidence, and is not a performance comparison to Pinata
 
 The CLI now offers signer-free `reconcile`, refuses to create write intents for
 missing blocks on a read-only transport, and uses a bounded 30-minute command
-deadline. Immediate renewal and its post-renewal readback remain outstanding.
+deadline. Immediate renewal and its post-renewal readback completed below.
 The reconciliation ran on implementation `01ada3a53077bad234c4ddc18a94d60ccfd9270b`;
 all 27 offline tests pass. The [public run artifact](bulletin-network-canary-2026-10-30.json)
 contains exact finalized receipts, before/after quota and selective read results,
 without ciphertext, content keys, mnemonic material or private fixture files.
+
+### Immediate renewal and post-renewal readback, 2026-10-30
+
+Implementation `136144c4` completed 19 signed, finalized `force_renew` calls.
+All 19 dependencies were then observed at later finalized storage positions,
+with unchanged CIDs/sizes and later expiration blocks (minimum extension: 216
+blocks). The complete graph was read back and all nine streaming objects again
+authenticated/decrypted without reading the archival master. The second startup
+object check fetched the same 28,767 bytes in 462 ms through the same node; the
+same non-cold/non-audible limitations apply. An early immediate renewal resets
+retention from its new position; it is not an extra full window beyond the old
+expiry or a test of scheduled renewal at the retention boundary.
+
+The final allowance is 62 transactions, 9,615,262 store bytes and 9,615,262
+renewal bytes remaining. Total consumption was exactly **38 transactions**,
+**870,498 stored bytes** and **870,498 renewed bytes**. Reads/reconciliation used
+zero additional transactions. No recurring renewal was registered. The temporary
+local signer is verified removed; the private synthetic fixture and permanent
+nonce ledger are retained for reproducibility. The artifact includes original
+and renewed receipts, exact quota snapshots and both selective read checks.
+
+### Application CI boundary
+
+The [27-test Linux prototype workflow](https://github.com/knzeng-e/dotify/actions/runs/40980623190)
+passes on `136144c4`. A separate [full application run](https://github.com/knzeng-e/dotify/actions/runs/40980623441)
+passed 284 core browser tests but failed the existing Web Audio room-sync case
+(`web/e2e/room-sync.spec.ts:126`, received RMS 0 after a six-second poll). No
+`web/`, `services/` or `contracts/` application file differs from the tested dev
+base in this PR. Record that failure rather than attributing it to Bulletin or
+claiming full CI is green. The final evidence push starts a fresh validation run;
+current check status belongs to GitHub, not this historical observation.
 
 The fixture is synthetic byte patterns, not decodable AAC. RPC reads through
 one node are not Web/physical Product light-client playback, a cold first-sound

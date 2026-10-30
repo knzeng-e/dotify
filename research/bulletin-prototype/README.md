@@ -147,4 +147,8 @@ still require review before any production integration.
 Then verify Web and physical Product raw-CID retrieval, byte/AEAD equality,
 real decodable audio, cold first sound and continuity against the current
 baseline. Local fixture timings are not network or audible-start measurements.
-Native API support and a full live retention/renewal cycle remain unverified.
+The [live canary](../../docs/backlog/implementation/evidence/bulletin-network-canary-2026-10-29.md)
+verified 19 stores, signer-free timeout recovery, selective decryption and 19
+immediate renewals. Native API support and a full retention-window/scheduled
+renewal cycle remain unverified. Sequential storage took roughly twelve minutes
+for this small fixture; do not treat this writer as a production throughput design.

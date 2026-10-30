@@ -7,7 +7,8 @@ This folder contains the execution backlog for moving Dotify from prototype to p
 The owner-requested [Bulletin segmented-media prototype](implementation/evidence/bulletin-prototype-2026-10-29.md)
 tests directory identities, selective encrypted reads and receipt/renewal recovery
 in isolation. A bounded manual DevNet adapter now adds finalized metadata checks,
-raw CID reads and immediate one-off renewal; physical Host/audible delivery and
+raw CID reads and immediate one-off renewal, now verified for 19 synthetic blocks.
+Physical Host/audible delivery, publication throughput and
 production ownership remain gates. It does not activate a Pinata
 replacement or close W32/W33 acceptance.
 
