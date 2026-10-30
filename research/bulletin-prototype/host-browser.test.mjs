@@ -7,15 +7,18 @@ import { join } from 'node:path';
 import { chromium } from '../../web/node_modules/playwright/index.mjs';
 import { serveFixture, ORIGIN } from './host-server.mjs';
 import { prepare } from './canary.mjs';
+import { prepareReaddressedAac } from './readdress-aac.mjs';
 import { addressingFixture } from './addressing.mjs';
 import { encryptedAacFixture } from './aac-fixture.mjs';
 
-test('browser plays authenticated generated AAC, stops cleanly and refuses native fallback', { timeout: 100_000 }, async () => {
+for (const hash of ['SHA-256', 'BLAKE2b-256']) test(`browser plays ${hash} authenticated generated AAC, stops cleanly and refuses native fallback`, { timeout: 100_000 }, async () => {
   const parent = await mkdtemp(join(tmpdir(), 'dotify-host-browser-'));
   let server, browser;
   try {
-    const dir = join(parent, 'aac');
-    await prepare(dir, encryptedAacFixture);
+    const source = join(parent, 'aac');
+    await prepare(source, encryptedAacFixture);
+    const dir = hash === 'SHA-256' ? source : join(parent, 'blake-aac');
+    if (hash !== 'SHA-256') await prepareReaddressedAac(source, dir);
     server = await serveFixture(dir);
     browser = await chromium.launch();
     const page = await browser.newPage();

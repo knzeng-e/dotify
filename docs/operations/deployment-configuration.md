@@ -44,13 +44,17 @@ refused the content RPC; the SHA-256/BLAKE2b compatibility lead is in the eviden
 Mobile distribution and physical native first sound remain unverified;
 no deployed origin, signer, Host permission or production storage is changed.
 
-The next isolated addressing diagnostic uses exactly three public-marker
+The [addressing diagnostic](../backlog/implementation/evidence/bulletin-addressing-canary-2026-10-30.md) finalized exactly three public-marker
 blocks / 387 bytes, with SHA-256 and BLAKE2b-256 hashes and one named directory.
 Its separate budget reserves three stores plus three possible renewals, but
 only stores are planned. Follow the [controlled comparison](../../research/bulletin-prototype/README.md#controlled-addressing-comparison);
 its public session has no key and the audio session endpoint returns 404.
-The normal generated-AAC session remains private and loopback-only. A passing
-marker test must not activate production delivery or be presented as AAC proof.
+The normal generated-AAC session remains private and loopback-only. The installed Desktop verified BLAKE2b raw/directory/path reads; SHA-256
+timed out. There are 43 transactions left and the signer was removed. This
+marker result must not activate production delivery or be presented as AAC proof.
+The separately prepared generated-AAC BLAKE2b target is 16 blocks / 713,229 bytes;
+its original ciphertext and permanent nonce ledger remain unchanged. A new
+explicit write budget and local signer activation are required for its upload.
 
 ## W39 room scaling research, not deployed
 

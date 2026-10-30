@@ -1,0 +1,271 @@
+{
+  "schema": "dotify.bulletin.addressing-evidence.v1",
+  "source": {
+    "sha": "19f71ab9cdaddacf8d59b3514ef0d17999d1248d",
+    "dirty": false
+  },
+  "preflight": {
+    "observedAt": "2026-10-30T12:27:12.499Z",
+    "endpoint": "wss://bulletin-paseo.tservices.es:8443",
+    "genesis": "0xe101f0fa4627d29a257645e02be86d80378fea1a2bf8fa6a918d150ebc760a59",
+    "account": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+    "root": "bafykbzacedgoz74o2gqwave7yj56rlkozrkcus4vdtntun6bc7yp64nmvslla",
+    "before": {
+      "head": 1429826,
+      "hash": "0x975fcf0df3c4855b96b5b55f282fd4aaa1c24a0ceb03a1eb0b93349044adc648",
+      "authorization": {
+        "expiresAt": 1621405,
+        "remainingTransactions": 46,
+        "remainingBytes": "8902063",
+        "remainingRenewBytes": "9615262"
+      }
+    },
+    "command": "check",
+    "result": {
+      "readyForBoundedWrite": true,
+      "blocks": 3,
+      "bytes": 387,
+      "budget": {
+        "maxBytes": 2048,
+        "maxTransactions": 6
+      }
+    },
+    "after": {
+      "head": 1429826,
+      "hash": "0x975fcf0df3c4855b96b5b55f282fd4aaa1c24a0ceb03a1eb0b93349044adc648",
+      "authorization": {
+        "expiresAt": 1621405,
+        "remainingTransactions": 46,
+        "remainingBytes": "8902063",
+        "remainingRenewBytes": "9615262"
+      }
+    },
+    "attemptedTransactions": 0
+  },
+  "publication": {
+    "observedAt": "2026-10-30T12:30:24.812Z",
+    "endpoint": "wss://bulletin-paseo.tservices.es:8443",
+    "genesis": "0xe101f0fa4627d29a257645e02be86d80378fea1a2bf8fa6a918d150ebc760a59",
+    "account": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+    "root": "bafykbzacedgoz74o2gqwave7yj56rlkozrkcus4vdtntun6bc7yp64nmvslla",
+    "before": {
+      "head": 1429857,
+      "hash": "0x4e1983b1d0f3cb0358277e1c961a83c5276ce646959f4449c4f90625b3fb9fdf",
+      "authorization": {
+        "expiresAt": 1621405,
+        "remainingTransactions": 46,
+        "remainingBytes": "8902063",
+        "remainingRenewBytes": "9615262"
+      }
+    },
+    "command": "publish",
+    "result": {
+      "root": "bafykbzacedgoz74o2gqwave7yj56rlkozrkcus4vdtntun6bc7yp64nmvslla",
+      "storedBlocks": 3,
+      "reusedBlocks": 0,
+      "reservedRenewalTransactions": 3
+    },
+    "after": {
+      "head": 1429874,
+      "hash": "0xd8207e70eacb5e0554ae0a18b18fd74a91529aa8a50e53ebb3a9c12bd1db15b0",
+      "authorization": {
+        "expiresAt": 1621405,
+        "remainingTransactions": 43,
+        "remainingBytes": "8901676",
+        "remainingRenewBytes": "9615262"
+      }
+    },
+    "attemptedTransactions": 3
+  },
+  "readback": {
+    "observedAt": "2026-10-30T12:33:03.423Z",
+    "endpoint": "wss://bulletin-paseo.tservices.es:8443",
+    "genesis": "0xe101f0fa4627d29a257645e02be86d80378fea1a2bf8fa6a918d150ebc760a59",
+    "account": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+    "root": "bafykbzacedgoz74o2gqwave7yj56rlkozrkcus4vdtntun6bc7yp64nmvslla",
+    "before": {
+      "head": 1429884,
+      "hash": "0xcab092cb8f920c948a0c32321acccd495ee8c01ca5affde890246625a0a95752",
+      "authorization": {
+        "expiresAt": 1621405,
+        "remainingTransactions": 43,
+        "remainingBytes": "8901676",
+        "remainingRenewBytes": "9615262"
+      }
+    },
+    "command": "verify",
+    "result": {
+      "kind": "public-addressing-marker-v1",
+      "verifiedPaths": [
+        "sha256.txt",
+        "blake2b.txt"
+      ],
+      "rawReads": 4,
+      "readBytes": 504,
+      "physicalHostTested": false
+    },
+    "after": {
+      "head": 1429885,
+      "hash": "0x9f78d5df3bd275da0edae72fdfcbe00bdd12c123de0ca436baf01f01e442fb6f",
+      "authorization": {
+        "expiresAt": 1621405,
+        "remainingTransactions": 43,
+        "remainingBytes": "8901676",
+        "remainingRenewBytes": "9615262"
+      }
+    },
+    "attemptedTransactions": 0
+  },
+  "receipts": {
+    "schema": "dotify.bulletin.prototype.v1",
+    "genesis": "0xe101f0fa4627d29a257645e02be86d80378fea1a2bf8fa6a918d150ebc760a59",
+    "account": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+    "root": "bafykbzacedgoz74o2gqwave7yj56rlkozrkcus4vdtntun6bc7yp64nmvslla",
+    "blocks": [
+      "bafkreiem7q3ijokwrjxywuxwtygsvm5m3twsrr6ufir6qbopa77kysqejm",
+      "bafk2bzacec63x2h2uyheg6k7nczfxcb5p7o7juuccnwr6s24cfjydgkosnpkk",
+      "bafykbzacedgoz74o2gqwave7yj56rlkozrkcus4vdtntun6bc7yp64nmvslla"
+    ],
+    "receipts": {
+      "bafkreiem7q3ijokwrjxywuxwtygsvm5m3twsrr6ufir6qbopa77kysqejm": {
+        "cid": "bafkreiem7q3ijokwrjxywuxwtygsvm5m3twsrr6ufir6qbopa77kysqejm",
+        "bytes": 135,
+        "block": 1429864,
+        "index": 0,
+        "expiresAt": 1631464,
+        "finalized": true
+      },
+      "bafk2bzacec63x2h2uyheg6k7nczfxcb5p7o7juuccnwr6s24cfjydgkosnpkk": {
+        "cid": "bafk2bzacec63x2h2uyheg6k7nczfxcb5p7o7juuccnwr6s24cfjydgkosnpkk",
+        "bytes": 135,
+        "block": 1429869,
+        "index": 0,
+        "expiresAt": 1631469,
+        "finalized": true
+      },
+      "bafykbzacedgoz74o2gqwave7yj56rlkozrkcus4vdtntun6bc7yp64nmvslla": {
+        "cid": "bafykbzacedgoz74o2gqwave7yj56rlkozrkcus4vdtntun6bc7yp64nmvslla",
+        "bytes": 117,
+        "block": 1429874,
+        "index": 0,
+        "expiresAt": 1631474,
+        "finalized": true
+      }
+    },
+    "pending": null,
+    "renewals": {}
+  },
+  "installedDesktop": {
+    "schema": "dotify.bulletin.addressing-report.v1",
+    "startedAt": "2026-10-30T12:33:20.123Z",
+    "transport": "native-preimage",
+    "environment": "Polkadot Desktop Dev 0.1.4-rc.3; macOS 27.0.1; existing network, no throttling",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) polkadot-desktop/0.1.4-rc.3 Chrome/152.0.7977.130 Electron/44.4.3 Safari/537.36",
+    "lookupTimeoutMs": 10000,
+    "hostCache": "unknown; not cleared",
+    "pageCache": "no application cache",
+    "productionAccessTested": false,
+    "outcome": "completed",
+    "cases": [
+      {
+        "name": "SHA-256 raw",
+        "cid": "bafkreiem7q3ijokwrjxywuxwtygsvm5m3twsrr6ufir6qbopa77kysqejm",
+        "payload": true,
+        "outcome": "failed",
+        "reads": [],
+        "errorName": "CloudStorageLookupTimeoutError",
+        "error": "Host could not retrieve the requested block: Host preimage lookup timed out after 10000ms for CID: bafkreiem7q3ijokwrjxywuxwtygsvm5m3twsrr6ufir6qbopa77kysqejm",
+        "elapsedMs": 10008
+      },
+      {
+        "name": "BLAKE2b-256 raw",
+        "cid": "bafk2bzacec63x2h2uyheg6k7nczfxcb5p7o7juuccnwr6s24cfjydgkosnpkk",
+        "payload": true,
+        "outcome": "verified",
+        "reads": [
+          {
+            "cid": "bafk2bzacec63x2h2uyheg6k7nczfxcb5p7o7juuccnwr6s24cfjydgkosnpkk",
+            "bytes": 135,
+            "elapsedMs": 158
+          }
+        ],
+        "verifiedBytes": 135,
+        "elapsedMs": 160
+      },
+      {
+        "name": "BLAKE2b-256 directory",
+        "cid": "bafykbzacedgoz74o2gqwave7yj56rlkozrkcus4vdtntun6bc7yp64nmvslla",
+        "payload": false,
+        "outcome": "verified",
+        "reads": [
+          {
+            "cid": "bafykbzacedgoz74o2gqwave7yj56rlkozrkcus4vdtntun6bc7yp64nmvslla",
+            "bytes": 117,
+            "elapsedMs": 171
+          }
+        ],
+        "verifiedBytes": 117,
+        "elapsedMs": 171
+      },
+      {
+        "name": "BLAKE2b-256 directory to BLAKE2b-256 leaf",
+        "cid": "bafykbzacedgoz74o2gqwave7yj56rlkozrkcus4vdtntun6bc7yp64nmvslla",
+        "path": "blake2b.txt",
+        "payload": true,
+        "outcome": "verified",
+        "reads": [
+          {
+            "cid": "bafykbzacedgoz74o2gqwave7yj56rlkozrkcus4vdtntun6bc7yp64nmvslla",
+            "bytes": 117,
+            "elapsedMs": 15
+          },
+          {
+            "cid": "bafk2bzacec63x2h2uyheg6k7nczfxcb5p7o7juuccnwr6s24cfjydgkosnpkk",
+            "bytes": 135,
+            "elapsedMs": 15
+          }
+        ],
+        "verifiedBytes": 135,
+        "elapsedMs": 32
+      },
+      {
+        "name": "BLAKE2b-256 directory to SHA-256 leaf",
+        "cid": "bafykbzacedgoz74o2gqwave7yj56rlkozrkcus4vdtntun6bc7yp64nmvslla",
+        "path": "sha256.txt",
+        "payload": true,
+        "outcome": "failed",
+        "reads": [
+          {
+            "cid": "bafykbzacedgoz74o2gqwave7yj56rlkozrkcus4vdtntun6bc7yp64nmvslla",
+            "bytes": 117,
+            "elapsedMs": 7
+          }
+        ],
+        "errorName": "CloudStorageLookupTimeoutError",
+        "error": "Host could not retrieve the requested block: Host preimage lookup timed out after 10000ms for CID: bafkreiem7q3ijokwrjxywuxwtygsvm5m3twsrr6ufir6qbopa77kysqejm",
+        "elapsedMs": 10011
+      }
+    ],
+    "implementation": {
+      "sha": "19f71ab9cdaddacf8d59b3514ef0d17999d1248d",
+      "dirty": false
+    },
+    "fixture": {
+      "schema": "dotify.bulletin.addressing.v1",
+      "kind": "public-addressing-marker-v1",
+      "payloadBytes": 135,
+      "payloadSha256": "8cfc3684b9568a6f8b52f69e0d2ab3acdced28c7d42a23e805cf07feac4a044b",
+      "sha256RawCid": "bafkreiem7q3ijokwrjxywuxwtygsvm5m3twsrr6ufir6qbopa77kysqejm",
+      "blake2bRawCid": "bafk2bzacec63x2h2uyheg6k7nczfxcb5p7o7juuccnwr6s24cfjydgkosnpkk",
+      "directoryCid": "bafykbzacedgoz74o2gqwave7yj56rlkozrkcus4vdtntun6bc7yp64nmvslla",
+      "implementation": {
+        "sha": "19f71ab9cdaddacf8d59b3514ef0d17999d1248d",
+        "dirty": false
+      }
+    },
+    "insideHost": true
+  },
+  "signerRemoved": true,
+  "renewalPerformed": false,
+  "productionChanged": false
+}

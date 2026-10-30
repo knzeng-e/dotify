@@ -281,6 +281,30 @@ state, exact CIDs, successful reads and typed failures.
 
 The 2026-10-30 preflight confirmed 46 transactions remaining and the correct
 network/account; it submitted nothing. Local validation: 36 Node tests and five
-Host-harness checks. Installed-Host results are recorded separately after the
-three-block live test. Success here would establish addressing compatibility,
+Host-harness checks. The [installed-Host results](../../docs/backlog/implementation/evidence/bulletin-addressing-canary-2026-10-30.md)
+show BLAKE2b raw/directory/path reads succeed while the identical SHA-256
+payload times out; both paths were independently verified through Node RPC. Success here would establish addressing compatibility,
 not AAC playback, audible first sound, mobile support or production readiness.
+
+### Readdress the generated AAC ciphertext
+
+After the marker succeeds, `readdress-aac.mjs PRIVATE_SOURCE NEW_PRIVATE_TARGET`
+reuses the **generated eight-second chord only**. It verifies the source identity
+and every decrypted audio object, rewrites all block hashes and directory/file
+links to BLAKE2b, and updates cumulative DAG link sizes. Raw ciphertext, manifest,
+AEAD scope and the generated content key stay unchanged. No encryption is run,
+no nonce ledger is copied/reset, and the source fixture is never modified.
+The new target must not exist; retain the original permanent ledger. This tool
+is an isolated comparison, not a production migration or a new publisher.
+
+```sh
+npm run prepare:blake-aac -- /private/tmp/EXISTING_GENERATED_AAC /private/tmp/NEW_BLAKE_AAC
+npm run canary -- check /private/tmp/NEW_BLAKE_AAC
+# Publish only after approval of this separate exact budget and signer activation.
+npm run host -- /private/tmp/NEW_BLAKE_AAC
+```
+
+The prepared macOS target has 16 blocks / 713,229 bytes (30 more directory bytes
+than SHA-256), with a full 16-renewal reserve checked before its 16 planned
+stores. Local verification authenticates all nine audio objects. Physical
+native AAC playback must be recorded separately; the marker is not that proof.

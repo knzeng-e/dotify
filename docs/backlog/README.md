@@ -74,8 +74,10 @@ The owner-requested [Bulletin media feasibility study](../research/bulletin-medi
 records the existing storage Seam, exact DevNet limits and the remaining
 directory-delivery/renewal proof. The [real-AAC reader canary](implementation/evidence/bulletin-aac-host-canary-2026-10-30.md)
 adds a real codec/browser control and finalized AAC storage/readback, while
-installed Desktop retrieval exposes a Host compatibility blocker. Native
-retrieval, audible startup and scalable
+installed Desktop retrieval exposes a Host compatibility blocker. A
+[controlled addressing comparison](implementation/evidence/bulletin-addressing-canary-2026-10-30.md)
+now verifies native BLAKE2b raw/directory/path reads while identical SHA-256
+bytes time out. Native audio delivery, audible startup and scalable
 publication remain gates; this does not activate a storage replacement or close
 W32/W33 acceptance.
 
