@@ -30,9 +30,11 @@ the [64-second diagnostic is now published](implementation/evidence/bulletin-con
 as `dotify-bulletin-lab.dot` 0.2.0. All audio and Product data, exact CAR and
 DotNS records were verified; the local signer is removed. The 74 new stores
 stay within the owner-approved budget, with 82 renewal transactions reserved.
-The first owner-supplied native mobile Wi-Fi report reaches 64 seconds with
-sound heard and first `playing` at 1,388 ms, but the owner heard one cut.
-Uninterrupted listening is not accepted; a paired bundled control is next.
+The native mobile report and paired bundled control both reach 64 seconds
+with sound heard, but both have an owner-reported cut near 46 seconds. First
+`playing` is 1,388 ms native and 94 ms embedded; this is not audible first sound
+or a cold-cache comparison. Continuity is not accepted. The next experiment
+isolates final append/end-of-stream timing in the shared managed reader.
 Cold audible startup and production retention remain open. This changes no
 deployed Dotify storage provider or production record.
 

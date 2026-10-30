@@ -24,10 +24,11 @@
     "endedEventMs": 65779,
     "operatorHeardAudio": true,
     "ownerReportedAudibleCuts": 1,
-    "audibleCutLocationSeconds": null,
+    "audibleCutLocationSeconds": 46,
     "audibleFirstSoundMeasured": false,
     "productionAccessTested": false,
-    "uninterruptedContinuityAccepted": false
+    "uninterruptedContinuityAccepted": false,
+    "audibleCutLocationPrecision": "Approximate retrospective owner clarification supplied with the paired control."
   },
   "events": {
     "initialWaitingMs": 678,
@@ -289,6 +290,6 @@
     "Completion and sound heard are established by the supplied report; uninterrupted listening is not.",
     "No post-start waiting/stalled event was reported. Refills completed while sampled buffered audio remained ahead; this does not locate the audible cut or rule out a transport/player interaction.",
     "The fixed chord has no designed mid-track pause. Offline decoded audio has no silent 100 ms interior window; shorter artifacts and physical iOS behavior are not excluded.",
-    "Next: paired 64-second bundled decoder control on the same phone/Wi-Fi, with a subjective cut observation and approximate time if remembered."
+    "Paired embedded control also completes with a cut near 46 seconds. See bulletin-continuity-control-wifi-2026-10-31.json; next isolate final-append/endOfStream timing in the common managed reader."
   ]
 }

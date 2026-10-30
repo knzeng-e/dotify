@@ -43,7 +43,26 @@ The supplied timeline has no post-start `waiting`, `stalled` or error event. Its
 
 An offline check authenticates and decrypts the local 96 kb/s fixture, concatenates its init and 16 segments, and decodes it with FFmpeg. The 2,999 packet-duration transitions checked after AAC priming contain no timestamp gap; no silent 100 ms window occurs in the interior, excluding one second at each end. The generated chord has no designed mid-track pause. This check does not reproduce iOS playback or exclude shorter artifacts. The derived JSON retains the timing samples and method, omitting the report UUID, exact start time and raw user agent.
 
-Next, run **Bundled decoder control (not Bulletin)** for the same 64 seconds on the same phone/Wi-Fi and note any cut and its approximate position. This holds the player and clip constant while removing native Bulletin reads; embedded control timings are not network benchmarks. Only after addressing or explaining the cut should continuity testing progress to pause/seek, a brief background interval and an actual Wi-Fi/mobile transition. Copy important reports before the five-attempt history evicts them.
+The owner then supplied the requested [64-second bundled decoder control](bulletin-continuity-control-wifi-2026-10-31.json). It completes with sound heard and first `playing` at 94 ms, but **also has an audible cut near 46 seconds**. The owner retrospectively places the native cut near the same point. Both use the same clean source/root and managed reader. Embedded reads do not use Bulletin and are not network benchmarks; native delivery is therefore not necessary to reproduce this symptom. The exact shared media-path cause is still unproven.
+
+| Same generated clip / managed reader | Native Bulletin | Embedded control |
+| --- | --- | --- |
+| First `playing` event | 1,388 ms | 94 ms |
+| Outcome / heard audio | 64 s ended / yes | 64 s ended / yes |
+| Heard cut, approximate media time | ~46 s, retrospective | ~46 s |
+| Post-start `waiting` / `stalled` | 0 / 0 | 0 / 0 |
+| Final raw read, media time | 46.879 s | 46.441 s |
+| Wall advance minus media advance, ~44-48 s samples | 266.208 ms | 265.963 ms |
+
+The sampled clock lag is a correlation, not a measurement of audible-gap duration. Sparse/coalesced events and approximate human timing cannot establish causation. The code appends the last two segments during that refill and calls `endOfStream()` after the final append. This call changes the media-source state and can update duration under the [MSE end-of-stream algorithm](https://www.w3.org/TR/2026/WD-media-source-2-20260807/#end-of-stream-algorithm); the supplied reports do not record its call time or native buffer lifecycle. There is no confirmed browser defect or validated app fix yet.
+
+### Next controlled experiment
+
+1. Record final-append start/completion, the exact `endOfStream()` call, source open/ended and managed start/end demand, duration changes and buffered ranges. Preserve these bounded diagnostics in the notebook without keys or audio bytes. Record a human cut marker separately; events cannot assert audibility.
+2. Compare the unchanged immediate finalization with a diagnostic-only variant that defers finalization until near the playback end. Keep authenticated bytes, reader, fixture, device and volume constant. Preserve natural `ended`, cancellation, backwards seek and eviction recovery; never use a missing end signal as a workaround. Test embedded data first, then native only if needed.
+3. If the cut moves/disappears with finalization timing, investigate that transition before proposing a production change. If it persists, isolate final append/decoder behavior instead. A local candidate must pass regressions and a reviewed distribution budget before another lab publication; this evidence PR changes no player code or live records.
+
+After addressing or explaining the cut, continue to pause/seek, a brief background interval and an actual Wi-Fi/mobile transition. Copy important reports before the five-attempt history evicts them.
 
 The installed Desktop 0.1.4-rc.3 version was verified in its About dialogue. UI automation could not navigate from the dashboard to the diagnostic, so a new native Desktop playback result is not claimed. The prior eight-second mobile observations remain [separate evidence](bulletin-mobile-publication-2026-10-30.md).
 

@@ -469,10 +469,11 @@ long listening and production storage activation remain open.
 The [reviewed diagnostic is published](../../docs/backlog/implementation/evidence/bulletin-continuity-publication-2026-10-31.md)
 as `dotify-bulletin-lab.dot` 0.2.0. Its 74 new stores and exact data/record
 readback are verified; no renewal or production storage switch was performed.
-The 82 reserved renewal transactions remain available. The first native mobile
-Wi-Fi report completes 64 seconds with sound heard, but the owner heard one cut.
-Continuity is not accepted; a paired 64-second bundled control is next. The
-commands below still prepare only local data.
+The 82 reserved renewal transactions remain available. Native mobile and its
+paired embedded control both complete 64 seconds with audio heard, but both
+have an owner-reported cut near 46 seconds. Continuity is not accepted; the next
+experiment isolates final append/end-of-stream timing in their shared managed
+reader. The commands below still prepare only local data.
 
 The explicit `continuity` profile generates 64 seconds with the unchanged real three-rendition encoder, beyond the player's 30-second buffer. It is an isolated test, not a production storage adapter. See the [design, exact local budget and remaining gates](../../docs/backlog/implementation/evidence/bulletin-mobile-continuity-2026-10-30.md).
 

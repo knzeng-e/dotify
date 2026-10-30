@@ -115,11 +115,14 @@ its absence checked without displaying or saving a value.
 reserves. No renewal was sent or scheduled; retain all private nonce/checkpoint
 state. Recheck the earlier-expiring reused icon and all dependencies before a
 delayed test. Rollback is an explicitly reviewed lab-record change to a still
-retrievable previous root; it is not a production rollback. The first native
-mobile Wi-Fi report completes 64 seconds with first `playing` at 1,388 ms and
-sound heard, but the owner heard one cut. Continuity is not accepted; the next
-check is the paired bundled decoder control on the same phone/Wi-Fi. No
-post-start waiting/stalled event was reported, so the cut remains unexplained.
+retrievable previous root; it is not a production rollback. Native mobile and
+its paired embedded control complete 64 seconds with audio heard, but both
+have an owner-reported cut near 46 seconds. First `playing` is 1,388 ms native
+and 94 ms embedded; the control does not measure network delivery. Neither
+reports post-start waiting/stalled. Continuity is not accepted; the next
+controlled experiment instruments final append/end-of-stream in the shared
+managed reader. No player change or further lab publication is part of this
+operational evidence update.
 Background/network recovery and cold audible startup remain open. Desktop
 navigation automation was inconclusive before playback.
 

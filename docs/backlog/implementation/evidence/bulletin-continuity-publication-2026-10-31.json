@@ -1176,7 +1176,18 @@
     "outcome": "ended",
     "operatorHeardAudio": true,
     "ownerReportedAudibleCuts": 1,
-    "uninterruptedContinuityAccepted": false
+    "uninterruptedContinuityAccepted": false,
+    "pairedControl": {
+      "evidence": "bulletin-continuity-control-wifi-2026-10-31.json",
+      "transport": "bundled-decoder-control",
+      "firstPlayingEventMs": 94,
+      "outcome": "ended",
+      "operatorHeardAudio": true,
+      "ownerReportedAudibleCuts": 1,
+      "approximateCutMediaSeconds": 46,
+      "uninterruptedContinuityAccepted": false
+    },
+    "approximateNativeCutMediaSeconds": 46
   },
   "limitations": [
     "One mixed publication, no controlled serial/parallel throughput comparison",

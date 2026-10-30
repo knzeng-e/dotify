@@ -22,12 +22,14 @@ startup, real network/background recovery and production retention remain open.
 The next network run requires an exact reviewed allowance/distribution budget. The subsequent
 [owner-approved publication](evidence/bulletin-continuity-publication-2026-10-31.md)
 is now complete: 74 new stores, verified records/data and signer removal.
-The first native mobile Wi-Fi report completes 64 seconds with sound heard,
-but the owner heard one cut. The 1,388 ms first `playing` event is not measured
-audible startup. No post-start waiting/stalled event was reported; continuity
-is not accepted. A paired 64-second bundled control on the same phone/Wi-Fi is
-next. Other physical and production gates remain open; no production storage
-switch occurred.
+The native mobile Wi-Fi run and paired 64-second embedded control both
+complete with audio heard, but both have an owner-reported cut near 46 seconds.
+First `playing` is 1,388 ms native and 94 ms embedded, not measured audible
+startup or a cold-cache comparison. Neither reports post-start waiting/stalled;
+continuity is not accepted. Native delivery is not necessary to reproduce the
+cut. The next controlled experiment instruments final append/end-of-stream
+in the shared managed reader before varying its timing. Other physical and
+production gates remain open; no production storage switch occurred.
 
 ## Agent assignment
 
