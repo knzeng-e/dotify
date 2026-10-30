@@ -120,6 +120,8 @@ heard.onchange = () => { if (report) report.operatorHeardAudio = heard.checked; 
 download.onclick = () => {
   if (!report) return;
   const url = URL.createObjectURL(new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' }));
-  const link = document.createElement('a'); link.href = url; link.download = `bulletin-audio-${Date.now()}.json`; link.click(); URL.revokeObjectURL(url);
+  const link = document.createElement('a'); link.href = url; link.download = `bulletin-audio-${Date.now()}.json`; link.click();
+  // Native save dialogs may open asynchronously; keep their Blob alive.
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
 };
 window.addEventListener('pagehide', cleanup);

@@ -11,6 +11,13 @@ const here = dirname(fileURLToPath(import.meta.url));
 const sdkDist = resolve(here, '../../web/node_modules/@parity/product-sdk/dist');
 export const ORIGIN = 'http://localhost:5278';
 
+function sourceIdentity() {
+  return {
+    sha: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: here, encoding: 'utf8' }).trim(),
+    dirty: Boolean(execFileSync('git', ['status', '--porcelain'], { cwd: here, encoding: 'utf8' }).trim())
+  };
+}
+
 export function admitRequest(request) {
   return ['GET', 'HEAD'].includes(request.method) &&
     ['localhost:5278', '127.0.0.1:5278'].includes(request.headers.host) &&
@@ -38,10 +45,7 @@ export async function fixturePayload(directory) {
         archiveRawCids: fixture.graph.blocks.filter(b => b.codec === 0x55 && archive.has(b.cid)).map(b => b.cid),
         // This is a locally generated test key, not an access entitlement.
         productionAccessTested: false,
-        implementation: {
-          sha: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: here, encoding: 'utf8' }).trim(),
-          dirty: Boolean(execFileSync('git', ['status', '--porcelain'], { cwd: here, encoding: 'utf8' }).trim())
-        }
+        implementation: sourceIdentity()
       }
     };
   } finally { key.fill(0); }
@@ -69,7 +73,7 @@ export async function serveFixture(directory) {
         const url = new URL(req.url, ORIGIN);
         if (url.pathname === '/canary/session') {
           res.setHeader('Content-Type', 'application/json');
-          res.end(req.method === 'HEAD' ? undefined : JSON.stringify(session)); return;
+          res.end(req.method === 'HEAD' ? undefined : JSON.stringify({ ...session, implementation: sourceIdentity() })); return;
         }
         if (url.pathname.startsWith('/canary/block/')) {
           const bytes = blocks.get(url.pathname.slice('/canary/block/'.length));

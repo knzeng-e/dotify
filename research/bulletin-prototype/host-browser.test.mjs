@@ -1,7 +1,7 @@
 // Real browser codec/control evidence only. Never a substitute for installed Hosts.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, rm, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { chromium } from '../../web/node_modules/playwright/index.mjs';
@@ -38,6 +38,14 @@ test('browser plays authenticated generated AAC, stops cleanly and refuses nativ
     assert.ok(report.reads.length > 0);
     assert.ok(!JSON.stringify(report).includes('"key"'));
     assert.ok(objectPaths.length > 0);
+    const downloading = page.waitForEvent('download');
+    await page.click('#export');
+    const saved = await downloading;
+    const exported = JSON.parse(await readFile(await saved.path(), 'utf8'));
+    assert.equal(exported.root, report.root);
+    assert.equal(exported.outcome, 'ended');
+    assert.ok(!JSON.stringify(exported).includes('\"key\"'));
+    assert.equal(typeof exported.implementation.sha, 'string');
     assert.ok(!await page.locator('#audio').getAttribute('src'), 'Ended playback must release its source');
     // Start and explicitly stop before the end: the miniature-player contract.
     await page.click('#play');
