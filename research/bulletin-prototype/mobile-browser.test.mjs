@@ -82,7 +82,7 @@ test('standalone mobile build plays bundled control, retains evidence on reload 
     assert.deepEqual(external, []);
     assert.deepEqual(errors, []);
     assert.equal(JSON.parse(await readFile(join(out, 'diagnostic-build.json'), 'utf8')).requiresSeparateDestinationApproval, true);
-    await page.screenshot({ path: '/private/tmp/dotify-mobile-diagnostic-preview.png', fullPage: true });
+    await page.screenshot({ path: join(tmpdir(), 'dotify-mobile-diagnostic-preview.png'), fullPage: true });
   } finally {
     await browser?.close();
     await new Promise(resolve => (server ? server.httpServer.close(resolve) : resolve()));

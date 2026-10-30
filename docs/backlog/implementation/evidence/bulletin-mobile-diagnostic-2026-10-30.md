@@ -79,6 +79,10 @@ server-side evidence archive or a verified background-playback claim.
   first-authenticated-object timing is a Node transport observation, not first
   sound, native mobile performance or a paired benchmark.
 
+The first Linux CI run completed the browser assertions but could not save its
+final screenshot at a macOS-specific path. The test now uses `os.tmpdir()`;
+no playback, report or candidate runtime code changes for that correction.
+
 The candidate root is
 `bafykbzacecbgxu5coifnfzajpkwzuaxv36snvjfd4zqsbvpgfk4mx7mhzhtj4`.
 The clean local build contains a 375,287-byte entry script and a separately
