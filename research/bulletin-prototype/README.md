@@ -152,3 +152,81 @@ verified 19 stores, signer-free timeout recovery, selective decryption and 19
 immediate renewals. Native API support and a full retention-window/scheduled
 renewal cycle remain unverified. Sequential storage took roughly twelve minutes
 for this small fixture; do not treat this writer as a production throughput design.
+
+## Real AAC and Host reader, 2026-10-30
+
+The next canary uses a reproducible, quiet eight-second generated chord, not an
+artist recording. `aac-fixture.mjs` calls the production encoder directly: EBU
+R128 loudness, FFmpeg AAC-LC at 96/160/320 kb/s, the permanent nonce ledger and
+v3 authenticated encryption. No production format, key route or player is
+changed. Each invocation creates a new private directory/key/nonce reservation;
+never overwrite the earlier live canary or substitute its receipts.
+
+Install the unchanged Web dependencies too (`npm ci --prefix web
+--ignore-scripts` from the repository root). FFmpeg must be installed and on
+PATH. Then, from `research/bulletin-prototype`:
+
+```sh
+npm test                       # Includes real AAC decrypt/decode, all three rates
+npm run test:host               # Chromium control, not physical Host evidence
+npm run prepare:aac -- /private/tmp/dotify-bulletin-aac-new
+npm run canary -- check /private/tmp/dotify-bulletin-aac-new
+npm run host -- /private/tmp/dotify-bulletin-aac-new
+```
+
+The prepared macOS fixture is 713,199 bytes / 16 blocks: 16 stores, with another
+16 transactions and the same renewal byte budget reserved by preflight. FFmpeg
+builds can produce different bytes/block counts; the command prints the exact
+budget and refuses more than 1 MiB / 40 store-plus-renewal transactions. The
+Linux test checks the bound, not equality to a macOS encoding. It verifies
+non-silent full-length PCM decoded from **each** authenticated rendition. These
+checks do not measure physical audibility or first sound.
+
+New live writes still require the explicit local signer descriptor and
+account/genesis/quota validation described above. A successful local prepare
+is not a network upload. Use the existing `publish`, signer-free `reconcile`
+and `verify` commands on this **new** directory after the operator activates
+signing. Renewal is optional for this reader experiment; the preflight still
+reserves a full cycle. Never automatically run a live command in CI.
+
+The server binds **127.0.0.1:5278 only**, with fixed Host/origin checks,
+no CORS and no-store responses. It serves only an explicitly selected private
+generated-AAC fixture; the old non-AAC fixture is rejected. It makes that test
+key available to the local page, never in a committed bundle or exported report.
+Do not expose the server by tunnel, LAN binding, reverse proxy or public preview.
+This operator fixture is not a content-key service or an access-control test.
+
+Open `localhost:5278` in a new Polkadot Desktop tab. The
+[official local-development instructions](https://docs.polkadot.com/apps/build/)
+describe the Desktop localhost route; this does not publish or modify DotNS.
+Choose the delivery explicitly:
+
+- **Native Host preimage API:** pinned Product SDK `queryBytes` with
+  `noReassemble: true` and a ten-second lookup bound. The shared `reader.mjs`
+  verifies every raw/DAG-PB CID and resolves only the requested path. It never
+  calls the local block endpoint, Pinata, a gateway or Dotify's API.
+- **Local control:** reads the same encrypted blocks from loopback, exercising
+  the current Dotify manifest authenticator, media reader and persistent audio
+  attachment. This checks the decoder without attributing local speed to Bulletin.
+
+Both modes inject only the ciphertext reader into the existing
+`createStreamingPlayback`; standard MSE, ManagedMediaSource and bounded Blob
+selection remain production code. Playback refuses the archival master's raw
+CIDs. Page memory starts empty per attempt; Host/IPFS caches cannot be cleared
+by this test and their state is recorded as unknown. There is no fallback
+between the two delivery modes. First-playing and sixty-second whole-clip
+watchdogs make failures visible instead of leaving an indefinite spinner.
+
+Enter device/OS/Host and network conditions, start at low volume, then download
+the report. It records source SHA/dirty state, root, transport, raw reads,
+reader selection, playback events and stall timing. The **playing event is not
+an audible-start measurement**; operator confirmation of hearing the chord is
+separate, unchecked by default. The report excludes keys and signer material.
+Close the test tab and stop the server after use.
+
+A physical mobile run needs a separately reviewed distribution route. This
+localhost-only tool cannot run on a phone by exposing the Mac's port; no public
+preview, domain, Host permission change or mobile result is implied here. The
+remaining gate is native raw retrieval plus actual audible startup/continuity,
+compared with the current storage path on the same device and network. An
+8-second chord cannot establish prolonged listening or production throughput.

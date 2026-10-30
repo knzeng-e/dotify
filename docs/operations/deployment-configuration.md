@@ -33,6 +33,14 @@ read-only timeout recovery. The local signer is removed. This does not activate
 Bulletin media in the app; the sequential prototype's roughly twelve-minute
 publication is an explicit throughput limitation.
 
+The [real-AAC Host reader preparation](../backlog/implementation/evidence/bulletin-aac-host-canary-2026-10-30.md)
+adds a separate generated eight-second fixture and a loopback-only test page.
+Its local reference budget is 16 stores / 713,199 bytes, with a full renewal
+cycle reserved by preflight. Run it only with the private generated fixture;
+never tunnel or publish its key endpoint. Native mode has no API/gateway/local
+fallback. Mobile distribution and physical native first sound remain unverified;
+no deployed origin, signer, Host permission or production storage is changed.
+
 ## W39 room scaling research, not deployed
 
 [ADR 0037](../adr/0037-room-scaling-and-sfu.md) and the

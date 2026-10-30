@@ -20,20 +20,24 @@ import { parseStreamingManifest, verifyStreamingManifest, decryptStreamingObject
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const json = value => JSON.stringify(value, (_, v) => typeof v === 'bigint' ? v.toString() : v, 2);
 
-export async function prepare(directory) {
+export async function prepare(directory, makeFixture = encryptedFixture) {
   await mkdir(directory, { mode: 0o700 }); // Refuse to overwrite an earlier fixture/nonce ledger.
-  const fixture = await encryptedFixture(directory);
+  const fixture = await makeFixture(directory);
   try {
     const graph = await buildDirectory(fixture.files);
     assert.ok(graph.bytes <= CANARY_BUDGET.maxBytes && graph.blocks.length * 2 <= CANARY_BUDGET.maxTransactions, 'Fixture exceeds the approved canary');
     await writeFile(join(directory, 'key.bin'), fixture.key, { flag: 'wx', mode: 0o600 });
     await writeFile(join(directory, 'fixture.json'), json({
       schema: 'dotify.bulletin.canary.v1', account: CANARY_ACCOUNT, scope: fixture.scope,
+      ...(fixture.audioProof ? { audioProof: fixture.audioProof } : {}),
       originals: Object.fromEntries([...fixture.originals].map(([path, bytes]) => [path, hash(bytes)])),
       graph: { ...graph, blocks: graph.blocks.map(b => ({ ...b, bytes: Buffer.from(b.bytes).toString('base64') })) }
     }), { flag: 'wx', mode: 0o600 });
     return { root: graph.root, blocks: graph.blocks.length, bytes: graph.bytes, prospectiveTransactions: graph.blocks.length * 2 };
-  } finally { fixture.key.fill(0); }
+  } finally {
+    fixture.key.fill(0);
+    for (const bytes of fixture.originals.values()) bytes.fill(0);
+  }
 }
 
 export async function loadFixture(directory) {
