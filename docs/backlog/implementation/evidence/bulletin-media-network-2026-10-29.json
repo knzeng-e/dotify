@@ -1,0 +1,46 @@
+{
+  "observedAt": "2026-10-29T15:16:37.031Z",
+  "readOnly": true,
+  "endpoint": "wss://bulletin-paseo.tservices.es:8443",
+  "genesisHash": "0xe101f0fa4627d29a257645e02be86d80378fea1a2bf8fa6a918d150ebc760a59",
+  "finalized": {
+    "number": 1417452,
+    "hash": "0x6bbdc3cb6b6626e62626c0b7ea6a2b4e39c64c191f135dd05d80e5d70a7df645"
+  },
+  "metadataVersion": 16,
+  "observedRuntimeVersion": {
+    "specName": "bulletin-paseo",
+    "specVersion": 2005004,
+    "transactionVersion": 1
+  },
+  "limits": {
+    "MaxBlockTransactions": "512",
+    "MaxTransactionSize": "2097152",
+    "AuthorizationPeriod": "201600"
+  },
+  "retentionBlocks": 201600,
+  "observedBlockTimeMs": 6240,
+  "renewalCapacityBytes": "1099511627776",
+  "renewedBytesCounter": "22917997",
+  "storageCalls": [
+    "store",
+    "store_with_cid_config",
+    "authorize_account",
+    "authorize_preimage",
+    "remove_expired_account_authorization",
+    "remove_expired_preimage_authorization",
+    "refresh_account_authorization",
+    "refresh_preimage_authorization",
+    "apply_block_inherents",
+    "add_authorizer",
+    "remove_authorizer",
+    "remove_exhausted_authorizer"
+  ],
+  "renewalCalls": [
+    "renew",
+    "force_renew",
+    "enable_auto_renew",
+    "disable_auto_renew",
+    "process_pending_renewals"
+  ]
+}
