@@ -73,8 +73,9 @@ physical evidence are accepted. Research is not a hosting activation.
 The owner-requested [Bulletin media feasibility study](../research/bulletin-media-storage-2026-10-29.md)
 records the existing storage Seam, exact DevNet limits and the remaining
 directory-delivery/renewal proof. The [real-AAC reader canary](implementation/evidence/bulletin-aac-host-canary-2026-10-30.md)
-adds generated codec/browser controls and a local native-reader harness after
-the first live block canary. Physical retrieval, audible startup and scalable
+adds a real codec/browser control and finalized AAC storage/readback, while
+installed Desktop retrieval exposes a Host compatibility blocker. Native
+retrieval, audible startup and scalable
 publication remain gates; this does not activate a storage replacement or close
 W32/W33 acceptance.
 

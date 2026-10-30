@@ -35,10 +35,13 @@ publication is an explicit throughput limitation.
 
 The [real-AAC Host reader preparation](../backlog/implementation/evidence/bulletin-aac-host-canary-2026-10-30.md)
 adds a separate generated eight-second fixture and a loopback-only test page.
-Its local reference budget is 16 stores / 713,199 bytes, with a full renewal
-cycle reserved by preflight. Run it only with the private generated fixture;
-never tunnel or publish its key endpoint. Native mode has no API/gateway/local
-fallback. Mobile distribution and physical native first sound remain unverified;
+Its 16 stores / 713,199 bytes were finalized and read back without a signer;
+46 transactions remained. A full renewal cycle was reserved but not executed
+for this fixture. Run it only with the private generated fixture;
+never tunnel or publish its key endpoint. Native modes have no API/gateway/local
+fallback. Installed Desktop preimage reads timed out and its chain adapter
+refused the content RPC; the SHA-256/BLAKE2b compatibility lead is in the evidence.
+Mobile distribution and physical native first sound remain unverified;
 no deployed origin, signer, Host permission or production storage is changed.
 
 ## W39 room scaling research, not deployed

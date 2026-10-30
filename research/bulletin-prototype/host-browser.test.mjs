@@ -21,13 +21,19 @@ test('browser plays authenticated generated AAC, stops cleanly and refuses nativ
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
     const objectPaths = [];
-    page.on('request', request => { if (request.url().includes('/canary/block/')) objectPaths.push(request.url()); });
+    page.on('request', request => {
+      if (request.url().includes('/canary/block/')) objectPaths.push(request.url());
+    });
     await page.goto(ORIGIN);
     await page.selectOption('#transport', 'local');
     await page.fill('#environment', 'Automated Chromium; not physical Product');
     await page.fill('#network', 'Loopback; no Bulletin reads');
     await page.click('#play');
-    await page.waitForFunction(() => ['ended','failed'].includes(JSON.parse(document.querySelector('#report').textContent || '{}').outcome), {}, { timeout: 60_000 });
+    await page.waitForFunction(
+      () => ['ended', 'failed'].includes(JSON.parse(document.querySelector('#report').textContent || '{}').outcome),
+      {},
+      { timeout: 60_000 }
+    );
     const report = JSON.parse(await page.locator('#report').textContent());
     assert.equal(report.outcome, 'ended', JSON.stringify(report));
     assert.ok(report.events.find(e => e.name === 'ended').mediaSeconds >= 7.8);
@@ -46,13 +52,13 @@ test('browser plays authenticated generated AAC, stops cleanly and refuses nativ
     assert.equal(exported.outcome, 'ended');
     assert.ok(!JSON.stringify(exported).includes('\"key\"'));
     assert.equal(typeof exported.implementation.sha, 'string');
-    assert.ok(!await page.locator('#audio').getAttribute('src'), 'Ended playback must release its source');
+    assert.ok(!(await page.locator('#audio').getAttribute('src')), 'Ended playback must release its source');
     // Start and explicitly stop before the end: the miniature-player contract.
     await page.click('#play');
     await page.waitForFunction(() => JSON.parse(document.querySelector('#report').textContent || '{}').outcome === 'playing');
     await page.click('#stop');
     assert.equal(await page.locator('#audio').evaluate(audio => audio.paused), true);
-    assert.ok(!await page.locator('#audio').getAttribute('src'));
+    assert.ok(!(await page.locator('#audio').getAttribute('src')));
     // The browser cannot silently reach a gateway when native lookup is missing.
     objectPaths.length = 0;
     await page.selectOption('#transport', 'native');
@@ -62,9 +68,17 @@ test('browser plays authenticated generated AAC, stops cleanly and refuses nativ
     assert.equal(native.transport, 'native-preimage');
     assert.equal(native.insideHost, false);
     assert.equal(objectPaths.length, 0, 'Native failure must never call the local block reader');
+    await page.selectOption('#transport', 'rpc');
+    await page.click('#play');
+    await page.waitForFunction(() => JSON.parse(document.querySelector('#report').textContent || '{}').outcome === 'failed');
+    const rpc = JSON.parse(await page.locator('#report').textContent());
+    assert.equal(rpc.transport, 'native-chain-rpc');
+    assert.equal(rpc.insideHost, false);
+    assert.equal(objectPaths.length, 0, 'RPC mode cannot fall back to the local reader');
     assert.deepEqual(errors, []);
   } finally {
-    await browser?.close(); await server?.close();
+    await browser?.close();
+    await server?.close();
     await rm(parent, { recursive: true, force: true });
   }
 });

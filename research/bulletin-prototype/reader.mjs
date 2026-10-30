@@ -5,14 +5,23 @@ import * as dagPB from '@ipld/dag-pb';
 import { UnixFS } from 'ipfs-unixfs';
 export const MAX_BLOCK_BYTES = 512 * 1024;
 const assert = {
-  ok(value, message = 'Invalid directory data') { if (!value) throw new Error(message); },
-  equal(a, b, message = 'Directory data mismatch') { if (a !== b) throw new Error(message); },
-  match(value, expression) { if (!expression.test(value)) throw new Error('Invalid path'); }
+  ok(value, message = 'Invalid directory data') {
+    if (!value) throw new Error(message);
+  },
+  equal(a, b, message = 'Directory data mismatch') {
+    if (a !== b) throw new Error(message);
+  },
+  match(value, expression) {
+    if (!expression.test(value)) throw new Error('Invalid path');
+  }
 };
 function concatenate(parts) {
   const output = new Uint8Array(parts.reduce((sum, part) => sum + part.length, 0));
   let offset = 0;
-  for (const part of parts) { output.set(part, offset); offset += part.length; }
+  for (const part of parts) {
+    output.set(part, offset);
+    offset += part.length;
+  }
   return output;
 }
 

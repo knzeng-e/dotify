@@ -6,18 +6,26 @@ export async function bounded(promise, signal, ms = 10_000) {
   signal.throwIfAborted();
   let timer, abort;
   try {
-    return await Promise.race([promise, new Promise((_, reject) => {
-      timer = setTimeout(() => reject(new Error('Native chain RPC exceeded its read deadline')), ms);
-      abort = () => reject(signal.reason ?? new Error('Read cancelled'));
-      signal.addEventListener('abort', abort, { once: true });
-    })]);
-  } finally { clearTimeout(timer); signal.removeEventListener('abort', abort); }
+    return await Promise.race([
+      promise,
+      new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error('Native chain RPC exceeded its read deadline')), ms);
+        abort = () => reject(signal.reason ?? new Error('Read cancelled'));
+        signal.addEventListener('abort', abort, { once: true });
+      })
+    ]);
+  } finally {
+    clearTimeout(timer);
+    signal.removeEventListener('abort', abort);
+  }
 }
 
 export async function nativeRpcReader(client, signal) {
+  signal.throwIfAborted();
   const actual = await bounded(client._request('chainSpec_v1_genesisHash', []), signal);
   if (actual !== NATIVE_GENESIS) throw new Error('Native chain RPC is not the approved Bulletin DevNet');
   return async cid => {
+    signal.throwIfAborted();
     const hex = await bounded(client._request('bitswap_v1_get', [cid]), signal);
     if (typeof hex !== 'string' || !/^0x(?:[0-9a-f]{2})+$/i.test(hex) || hex.length > 2 + 512 * 1024 * 2)
       throw new Error('Native chain RPC returned an invalid raw block');

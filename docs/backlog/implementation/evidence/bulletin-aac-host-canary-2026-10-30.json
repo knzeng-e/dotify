@@ -1,0 +1,451 @@
+{
+  "schema": "dotify.bulletin.real-aac-evidence.v1",
+  "sourcePublicationSha": "f26a42ed41c2b81691b32825758ab0cea784de60",
+  "sourceReadbackSha": "2288ac1363418b2f908a4531b2d5885c91415d1d",
+  "fixture": {
+    "kind": "generated-chord-aac-v1",
+    "durationSeconds": 8,
+    "storedBytes": 713199,
+    "blocks": 16,
+    "root": "bafybeia7ddqnsd3kuq7gigaqoppzu7pyjxcib5ijrh6n6pnwlfwrrks3pu"
+  },
+  "publish": {
+    "observedAt": "2026-10-30T11:11:59.030Z",
+    "endpoint": "wss://bulletin-paseo.tservices.es:8443",
+    "genesis": "0xe101f0fa4627d29a257645e02be86d80378fea1a2bf8fa6a918d150ebc760a59",
+    "account": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+    "root": "bafybeia7ddqnsd3kuq7gigaqoppzu7pyjxcib5ijrh6n6pnwlfwrrks3pu",
+    "before": {
+      "head": 1429075,
+      "hash": "0x3aae0fbee6e8bdec625fdbf7f0421a2b1de5cf76485cf5584b88dc8e83137dc6",
+      "authorization": {
+        "expiresAt": 1621405,
+        "remainingTransactions": 62,
+        "remainingBytes": "9615262",
+        "remainingRenewBytes": "9615262"
+      }
+    },
+    "command": "publish",
+    "result": {
+      "root": "bafybeia7ddqnsd3kuq7gigaqoppzu7pyjxcib5ijrh6n6pnwlfwrrks3pu",
+      "storedBlocks": 16,
+      "reusedBlocks": 0,
+      "reservedRenewalTransactions": 16
+    },
+    "after": {
+      "head": 1429165,
+      "hash": "0xa59854df1a3ae693e225d25ba8b0e68bf2632f505e104110ec6646737b44b969",
+      "authorization": {
+        "expiresAt": 1621405,
+        "remainingTransactions": 46,
+        "remainingBytes": "8902063",
+        "remainingRenewBytes": "9615262"
+      }
+    },
+    "attemptedTransactions": 16
+  },
+  "verify": {
+    "observedAt": "2026-10-30T11:21:58.533Z",
+    "endpoint": "wss://bulletin-paseo.tservices.es:8443",
+    "genesis": "0xe101f0fa4627d29a257645e02be86d80378fea1a2bf8fa6a918d150ebc760a59",
+    "account": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+    "root": "bafybeia7ddqnsd3kuq7gigaqoppzu7pyjxcib5ijrh6n6pnwlfwrrks3pu",
+    "before": {
+      "head": 1429174,
+      "hash": "0x9f0765605960f7d4499b39507f1a9e89c83d182e493b8902104cbb1193d83595",
+      "authorization": {
+        "expiresAt": 1621405,
+        "remainingTransactions": 46,
+        "remainingBytes": "8902063",
+        "remainingRenewBytes": "9615262"
+      }
+    },
+    "command": "verify",
+    "result": {
+      "verifiedObjects": 9,
+      "paths": [
+        "96/init.bin",
+        "96/segment-000.bin",
+        "96/segment-001.bin",
+        "160/init.bin",
+        "160/segment-000.bin",
+        "160/segment-001.bin",
+        "320/init.bin",
+        "320/segment-000.bin",
+        "320/segment-001.bin"
+      ],
+      "masterFetched": false,
+      "startupRawReads": 8,
+      "startupBytes": 52281,
+      "firstAuthenticatedObjectsMs": 570,
+      "totalRawReads": 29,
+      "totalReadBytes": 460502,
+      "audibleStartupMeasured": false,
+      "physicalHostTested": false
+    },
+    "after": {
+      "head": 1429175,
+      "hash": "0xf1d13db43f58323314de1e03b67e6664fb798246e6ccb20fe52f86e177c33ef2",
+      "authorization": {
+        "expiresAt": 1621405,
+        "remainingTransactions": 46,
+        "remainingBytes": "8902063",
+        "remainingRenewBytes": "9615262"
+      }
+    },
+    "attemptedTransactions": 0
+  },
+  "receipts": {
+    "bafkreiff56bffzkpyf4amfpnjw6ffdktafxlpmhnrw3y4zksj5kpz6l2cq": {
+      "cid": "bafkreiff56bffzkpyf4amfpnjw6ffdktafxlpmhnrw3y4zksj5kpz6l2cq",
+      "bytes": 780,
+      "block": 1429082,
+      "index": 0,
+      "expiresAt": 1630682,
+      "finalized": true
+    },
+    "bafkreidw2yaf7peslclbjzrew6sabtyd7nwouw4afl55rx5rbv7xkubztq": {
+      "cid": "bafkreidw2yaf7peslclbjzrew6sabtyd7nwouw4afl55rx5rbv7xkubztq",
+      "bytes": 80208,
+      "block": 1429087,
+      "index": 0,
+      "expiresAt": 1630687,
+      "finalized": true
+    },
+    "bafkreibo3ws2z3sihgmukai6fw75miqnwzmuqgr45porlcyovxgv5dvkfq": {
+      "cid": "bafkreibo3ws2z3sihgmukai6fw75miqnwzmuqgr45porlcyovxgv5dvkfq",
+      "bytes": 81140,
+      "block": 1429093,
+      "index": 0,
+      "expiresAt": 1630693,
+      "finalized": true
+    },
+    "bafybeiekmbvvqpcua4krjz4jyeptlhj2bxja7uvs6757hvl4jpb3lu2yvi": {
+      "cid": "bafybeiekmbvvqpcua4krjz4jyeptlhj2bxja7uvs6757hvl4jpb3lu2yvi",
+      "bytes": 179,
+      "block": 1429099,
+      "index": 0,
+      "expiresAt": 1630699,
+      "finalized": true
+    },
+    "bafkreid3esfgsq3i3nh7wt2pj3uevtirfe2ptvhyuwgise5b5ydtnma67m": {
+      "cid": "bafkreid3esfgsq3i3nh7wt2pj3uevtirfe2ptvhyuwgise5b5ydtnma67m",
+      "bytes": 780,
+      "block": 1429105,
+      "index": 0,
+      "expiresAt": 1630705,
+      "finalized": true
+    },
+    "bafkreibdha7uqfc2z5eqo4qzzj6sf7es6exeu6pcccdwjqq5v5rf4eso24": {
+      "cid": "bafkreibdha7uqfc2z5eqo4qzzj6sf7es6exeu6pcccdwjqq5v5rf4eso24",
+      "bytes": 96918,
+      "block": 1429111,
+      "index": 0,
+      "expiresAt": 1630711,
+      "finalized": true
+    },
+    "bafkreieuoavk4frvk42bha5lsbb6cpsumqrffmoidxoqffv6okjwhffcya": {
+      "cid": "bafkreieuoavk4frvk42bha5lsbb6cpsumqrffmoidxoqffv6okjwhffcya",
+      "bytes": 96914,
+      "block": 1429116,
+      "index": 0,
+      "expiresAt": 1630716,
+      "finalized": true
+    },
+    "bafybeihxmk7ks2uqonekmovsfpeemisvyhmvqsy6t4q6i5qwdu362ljauy": {
+      "cid": "bafybeihxmk7ks2uqonekmovsfpeemisvyhmvqsy6t4q6i5qwdu362ljauy",
+      "bytes": 179,
+      "block": 1429121,
+      "index": 0,
+      "expiresAt": 1630721,
+      "finalized": true
+    },
+    "bafkreids4wzssyzdxxsfwkp5i6xmtldwwl4ra4tlhegym56kwynf5rjqbm": {
+      "cid": "bafkreids4wzssyzdxxsfwkp5i6xmtldwwl4ra4tlhegym56kwynf5rjqbm",
+      "bytes": 780,
+      "block": 1429126,
+      "index": 0,
+      "expiresAt": 1630726,
+      "finalized": true
+    },
+    "bafkreibag5n6tds5ma5zynflcjdvxnwm7f7jd2yyhygkps7yxwpp2ae3iy": {
+      "cid": "bafkreibag5n6tds5ma5zynflcjdvxnwm7f7jd2yyhygkps7yxwpp2ae3iy",
+      "bytes": 48370,
+      "block": 1429132,
+      "index": 0,
+      "expiresAt": 1630732,
+      "finalized": true
+    },
+    "bafkreif6zfmk6wxfspizdid475vfzmxj5siwjswkq454iirmp3xd2huh4i": {
+      "cid": "bafkreif6zfmk6wxfspizdid475vfzmxj5siwjswkq454iirmp3xd2huh4i",
+      "bytes": 48401,
+      "block": 1429138,
+      "index": 0,
+      "expiresAt": 1630738,
+      "finalized": true
+    },
+    "bafybeifhsfxhupl4rs6fdxcq2gwilxjqmb6j4dtw5nl4gf5dvngmpovzby": {
+      "cid": "bafybeifhsfxhupl4rs6fdxcq2gwilxjqmb6j4dtw5nl4gf5dvngmpovzby",
+      "bytes": 179,
+      "block": 1429143,
+      "index": 0,
+      "expiresAt": 1630743,
+      "finalized": true
+    },
+    "bafkreiglt6r3bo6za72qlns27duuxrqrqlxafwrraa5zuunnvy4klkhb4a": {
+      "cid": "bafkreiglt6r3bo6za72qlns27duuxrqrqlxafwrraa5zuunnvy4klkhb4a",
+      "bytes": 256060,
+      "block": 1429149,
+      "index": 0,
+      "expiresAt": 1630749,
+      "finalized": true
+    },
+    "bafybeidb2fhbrmsnppxhfn2i3d7kpktyjnt6qtf4hxung5s5qs3aet6ypi": {
+      "cid": "bafybeidb2fhbrmsnppxhfn2i3d7kpktyjnt6qtf4hxung5s5qs3aet6ypi",
+      "bytes": 60,
+      "block": 1429154,
+      "index": 0,
+      "expiresAt": 1630754,
+      "finalized": true
+    },
+    "bafkreigacynz7sb2paexn7inlcc6x3kegxktbnmgapenzkef6znvyau3mm": {
+      "cid": "bafkreigacynz7sb2paexn7inlcc6x3kegxktbnmgapenzkef6znvyau3mm",
+      "bytes": 1990,
+      "block": 1429159,
+      "index": 0,
+      "expiresAt": 1630759,
+      "finalized": true
+    },
+    "bafybeia7ddqnsd3kuq7gigaqoppzu7pyjxcib5ijrh6n6pnwlfwrrks3pu": {
+      "cid": "bafybeia7ddqnsd3kuq7gigaqoppzu7pyjxcib5ijrh6n6pnwlfwrrks3pu",
+      "bytes": 261,
+      "block": 1429165,
+      "index": 0,
+      "expiresAt": 1630765,
+      "finalized": true
+    }
+  },
+  "sequentialPublicationSecondsApprox": 543,
+  "temporarySignerRemoved": true,
+  "nativeHost": {
+    "status": "blocked",
+    "physicalDesktopTested": true,
+    "physicalMobileTested": false,
+    "runs": [
+      {
+        "schema": "dotify.bulletin.host-report.v1",
+        "startedAt": "2026-10-30T11:26:53.689Z",
+        "base": "5b6ddec51ba4dfdc2383d7afbaf17996dfdda1a6",
+        "transport": "native-preimage",
+        "environment": "macOS 27.0.1 / installed Polkadot Desktop Dev 0.1.4-rc.3 / native preimage API",
+        "network": "Default connection, no test throttling; Host cache unknown",
+        "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) polkadot-desktop/0.1.4-rc.3 Chrome/152.0.7977.130 Electron/44.4.3 Safari/537.36",
+        "reader": "standard",
+        "hostCache": "unknown; not cleared",
+        "pageCache": "empty per attempt",
+        "audibleFirstSoundMeasured": false,
+        "operatorHeardAudio": false,
+        "productionAccessTested": false,
+        "outcome": "failed",
+        "reads": [],
+        "events": [],
+        "metrics": [
+          {
+            "phase": "error",
+            "errorKind": "transport",
+            "elapsedMs": 10117
+          }
+        ],
+        "root": "bafybeia7ddqnsd3kuq7gigaqoppzu7pyjxcib5ijrh6n6pnwlfwrrks3pu",
+        "audioProof": {
+          "kind": "generated-chord-aac-v1",
+          "durationSeconds": 8,
+          "sourceSha256": "9049f781cb98e534bea2d112d2fe94a81b8302a53792bd4c96c68df6a90b93ac",
+          "encoder": "services/api/src/services/streamingEncoder.ts",
+          "renditions": [
+            {
+              "bitrateKbps": 96,
+              "segments": 2
+            },
+            {
+              "bitrateKbps": 160,
+              "segments": 2
+            },
+            {
+              "bitrateKbps": 320,
+              "segments": 2
+            }
+          ]
+        },
+        "implementation": {
+          "sha": "be81733e38a7eccf73465caaf8b6a5b608844e4f",
+          "dirty": false
+        },
+        "insideHost": true,
+        "error": "Host could not retrieve the requested block"
+      },
+      {
+        "schema": "dotify.bulletin.host-report.v1",
+        "startedAt": "2026-10-30T11:38:30.589Z",
+        "base": "5b6ddec51ba4dfdc2383d7afbaf17996dfdda1a6",
+        "transport": "native-chain-rpc",
+        "environment": "macOS 27.0.1 / installed Polkadot Desktop Dev 0.1.4-rc.3",
+        "network": "Default connection, no test throttling; Host cache unknown",
+        "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) polkadot-desktop/0.1.4-rc.3 Chrome/152.0.7977.130 Electron/44.4.3 Safari/537.36",
+        "reader": "standard",
+        "hostCache": "unknown; not cleared",
+        "pageCache": "empty per attempt",
+        "audibleFirstSoundMeasured": false,
+        "operatorHeardAudio": false,
+        "lookupTimeoutMs": 10000,
+        "productionAccessTested": false,
+        "outcome": "failed",
+        "reads": [],
+        "events": [],
+        "metrics": [],
+        "root": "bafybeia7ddqnsd3kuq7gigaqoppzu7pyjxcib5ijrh6n6pnwlfwrrks3pu",
+        "audioProof": {
+          "kind": "generated-chord-aac-v1",
+          "durationSeconds": 8,
+          "sourceSha256": "9049f781cb98e534bea2d112d2fe94a81b8302a53792bd4c96c68df6a90b93ac",
+          "encoder": "services/api/src/services/streamingEncoder.ts",
+          "renditions": [
+            {
+              "bitrateKbps": 96,
+              "segments": 2
+            },
+            {
+              "bitrateKbps": 160,
+              "segments": 2
+            },
+            {
+              "bitrateKbps": 320,
+              "segments": 2
+            }
+          ]
+        },
+        "implementation": {
+          "sha": "8ff59c58c4b46f0b9c1e8227d061d9715b700e5a",
+          "dirty": false
+        },
+        "insideHost": true,
+        "error": "Method \"chain_getBlockHash\" is not supported by the host",
+        "errorName": "RpcError"
+      },
+      {
+        "schema": "dotify.bulletin.host-report.v1",
+        "startedAt": "2026-10-30T11:44:12.455Z",
+        "base": "5b6ddec51ba4dfdc2383d7afbaf17996dfdda1a6",
+        "transport": "native-chain-rpc",
+        "environment": "macOS 27.0.1 / installed Polkadot Desktop Dev 0.1.4-rc.3",
+        "network": "Default connection, no test throttling; Host cache unknown",
+        "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) polkadot-desktop/0.1.4-rc.3 Chrome/152.0.7977.130 Electron/44.4.3 Safari/537.36",
+        "reader": "standard",
+        "hostCache": "unknown; not cleared",
+        "pageCache": "empty per attempt",
+        "audibleFirstSoundMeasured": false,
+        "operatorHeardAudio": false,
+        "lookupTimeoutMs": 10000,
+        "productionAccessTested": false,
+        "outcome": "failed",
+        "reads": [],
+        "events": [],
+        "metrics": [
+          {
+            "phase": "error",
+            "errorKind": "transport",
+            "elapsedMs": 225
+          }
+        ],
+        "root": "bafybeia7ddqnsd3kuq7gigaqoppzu7pyjxcib5ijrh6n6pnwlfwrrks3pu",
+        "audioProof": {
+          "kind": "generated-chord-aac-v1",
+          "durationSeconds": 8,
+          "sourceSha256": "9049f781cb98e534bea2d112d2fe94a81b8302a53792bd4c96c68df6a90b93ac",
+          "encoder": "services/api/src/services/streamingEncoder.ts",
+          "renditions": [
+            {
+              "bitrateKbps": 96,
+              "segments": 2
+            },
+            {
+              "bitrateKbps": 160,
+              "segments": 2
+            },
+            {
+              "bitrateKbps": 320,
+              "segments": 2
+            }
+          ]
+        },
+        "implementation": {
+          "sha": "5e3e9137f14e4cd4d6d831051d682e567352c3d5",
+          "dirty": false
+        },
+        "insideHost": true,
+        "genesisVerified": true,
+        "error": "Method \"bitswap_v1_get\" is not supported by the host",
+        "errorName": "RpcError"
+      },
+      {
+        "schema": "dotify.bulletin.host-report.v1",
+        "startedAt": "2026-10-30T11:46:15.226Z",
+        "base": "5b6ddec51ba4dfdc2383d7afbaf17996dfdda1a6",
+        "transport": "native-preimage",
+        "environment": "macOS 27.0.1 / installed Polkadot Desktop Dev 0.1.4-rc.3",
+        "network": "Default connection, no test throttling; Host cache unknown",
+        "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) polkadot-desktop/0.1.4-rc.3 Chrome/152.0.7977.130 Electron/44.4.3 Safari/537.36",
+        "reader": "standard",
+        "hostCache": "unknown; not cleared",
+        "pageCache": "empty per attempt",
+        "audibleFirstSoundMeasured": false,
+        "operatorHeardAudio": false,
+        "lookupTimeoutMs": 30000,
+        "productionAccessTested": false,
+        "outcome": "failed",
+        "reads": [],
+        "events": [],
+        "metrics": [
+          {
+            "phase": "error",
+            "errorKind": "transport",
+            "elapsedMs": 30148
+          }
+        ],
+        "root": "bafybeia7ddqnsd3kuq7gigaqoppzu7pyjxcib5ijrh6n6pnwlfwrrks3pu",
+        "audioProof": {
+          "kind": "generated-chord-aac-v1",
+          "durationSeconds": 8,
+          "sourceSha256": "9049f781cb98e534bea2d112d2fe94a81b8302a53792bd4c96c68df6a90b93ac",
+          "encoder": "services/api/src/services/streamingEncoder.ts",
+          "renditions": [
+            {
+              "bitrateKbps": 96,
+              "segments": 2
+            },
+            {
+              "bitrateKbps": 160,
+              "segments": 2
+            },
+            {
+              "bitrateKbps": 320,
+              "segments": 2
+            }
+          ]
+        },
+        "implementation": {
+          "sha": "5e3e9137f14e4cd4d6d831051d682e567352c3d5",
+          "dirty": false
+        },
+        "insideHost": true,
+        "error": "Host could not retrieve the requested block: Host preimage lookup timed out after 30000ms for CID: bafybeia7ddqnsd3kuq7gigaqoppzu7pyjxcib5ijrh6n6pnwlfwrrks3pu",
+        "errorName": "CloudStorageLookupTimeoutError"
+      }
+    ]
+  },
+  "limits": [
+    "No physical mobile result",
+    "No measured cold audible first sound",
+    "No storage activation or production throughput claim"
+  ]
+}

@@ -15,7 +15,8 @@ test('local server refuses foreign origins, DNS rebinding, cross-site and writes
     { ...request, headers: { ...request.headers, host: 'attacker.example:5278' } },
     { ...request, headers: { ...request.headers, origin: 'https://attacker.example' } },
     { ...request, headers: { ...request.headers, 'sec-fetch-site': 'cross-site' } }
-  ]) assert.equal(admitRequest(bad), false);
+  ])
+    assert.equal(admitRequest(bad), false);
 });
 
 test('Host harness refuses the earlier non-AAC fixture', async () => {
@@ -24,5 +25,7 @@ test('Host harness refuses the earlier non-AAC fixture', async () => {
     const dir = join(parent, 'old');
     await prepare(dir);
     await assert.rejects(fixturePayload(dir), /generated AAC canary/);
-  } finally { await rm(parent, { recursive: true, force: true }); }
+  } finally {
+    await rm(parent, { recursive: true, force: true });
+  }
 });

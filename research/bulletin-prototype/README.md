@@ -33,7 +33,7 @@ dependencies are isolated here; the production SDK/protocol pins are unchanged.
    parents; each block is bounded below automatic SDK chunking. Read a path by
    fetching only its dependencies, verifying every block CID, with byte/depth/
    read budgets. Host reads request `noReassemble: true`, which exists in pinned
-   Product SDK 0.39.0. This exercises that interface, not an actual Host.
+   Product SDK 0.39.0. The original mock exercises only that interface; the real Host limitation is recorded below.
 2. `sdk-store.mjs`: the real Bulletin SDK builder preserves codec/hash and waits
    for finalization. Each returned CID/size/storage coordinate must match; an
    unexpectedly chunked result is refused. No signer is constructed here.
@@ -144,13 +144,13 @@ server advisory through tsx. This tool uses neither that CLI nor a dev server;
 no production dependency is changed. These advisories and the experimental SDK
 still require review before any production integration.
 
-Then verify Web and physical Product raw-CID retrieval, byte/AEAD equality,
+Continue verifying Web and physical Product raw-CID retrieval, byte/AEAD equality,
 real decodable audio, cold first sound and continuity against the current
 baseline. Local fixture timings are not network or audible-start measurements.
 The [live canary](../../docs/backlog/implementation/evidence/bulletin-network-canary-2026-10-29.md)
 verified 19 stores, signer-free timeout recovery, selective decryption and 19
-immediate renewals. Native API support and a full retention-window/scheduled
-renewal cycle remain unverified. Sequential storage took roughly twelve minutes
+immediate renewals. Native delivery compatibility and a full retention-window/scheduled
+renewal cycle remain gates. Sequential storage took roughly twelve minutes
 for this small fixture; do not treat this writer as a production throughput design.
 
 ## Real AAC and Host reader, 2026-10-30
@@ -202,19 +202,24 @@ describe the Desktop localhost route; this does not publish or modify DotNS.
 Choose the delivery explicitly:
 
 - **Native Host preimage API:** pinned Product SDK `queryBytes` with
-  `noReassemble: true` and a ten-second lookup bound. The shared `reader.mjs`
+  `noReassemble: true` and an explicit ten-second lookup bound (thirty seconds for diagnosis). The shared `reader.mjs`
   verifies every raw/DAG-PB CID and resolves only the requested path. It never
   calls the local block endpoint, Pinata, a gateway or Dotify's API.
+- **Native Host chain RPC (diagnostic):** obtains the approved genesis through
+  the Host provider, verifies it with `chainSpec_v1_genesisHash`, then requests
+  only `bitswap_v1_get`. It has a ten-second read bound, verifies every returned
+  block and destroys its client on stop. A missing method is a failure, never a
+  gateway fallback. The installed adapter rejects this content method.
 - **Local control:** reads the same encrypted blocks from loopback, exercising
   the current Dotify manifest authenticator, media reader and persistent audio
   attachment. This checks the decoder without attributing local speed to Bulletin.
 
-Both modes inject only the ciphertext reader into the existing
+All modes inject only the ciphertext reader into the existing
 `createStreamingPlayback`; standard MSE, ManagedMediaSource and bounded Blob
 selection remain production code. Playback refuses the archival master's raw
 CIDs. Page memory starts empty per attempt; Host/IPFS caches cannot be cleared
 by this test and their state is recorded as unknown. There is no fallback
-between the two delivery modes. First-playing and sixty-second whole-clip
+between delivery modes. First-playing and sixty-second whole-clip
 watchdogs make failures visible instead of leaving an indefinite spinner.
 
 Enter device/OS/Host and network conditions, start at low volume, then download
@@ -230,3 +235,15 @@ preview, domain, Host permission change or mobile result is implied here. The
 remaining gate is native raw retrieval plus actual audible startup/continuity,
 compared with the current storage path on the same device and network. An
 8-second chord cannot establish prolonged listening or production throughput.
+
+### Live and installed-Host outcome
+
+The [real-AAC evidence](../../docs/backlog/implementation/evidence/bulletin-aac-host-canary-2026-10-30.md)
+records 16 finalized stores, nine decrypted audio objects and a removed signer.
+Native Desktop 0.1.4-rc.3 returns no preimage block at 10 or 30 seconds; the
+separate Host chain provider verifies genesis but rejects `bitswap_v1_get`.
+The pinned SDK strips SHA-256 CIDs to bare digests while the inspected upstream
+core expects BLAKE2b preimages. This is a compatibility lead, not a proof that
+the installed binary equals upstream or that BLAKE2b playback already works.
+Keep Pinata active. A new bounded BLAKE2b fixture or a CID-aware Host reader
+needs a separate proof before production integration.

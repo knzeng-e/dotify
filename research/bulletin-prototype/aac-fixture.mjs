@@ -9,13 +9,22 @@ import { blake2b } from '../../services/api/node_modules/@noble/hashes/blake2.js
 import { prepare } from './canary.mjs';
 
 export function generatedWav() {
-  const rate = 16_000, seconds = 8, samples = rate * seconds;
+  const rate = 16_000,
+    seconds = 8,
+    samples = rate * seconds;
   const wav = Buffer.alloc(44 + samples * 2);
-  wav.write('RIFF'); wav.writeUInt32LE(wav.length - 8, 4); wav.write('WAVEfmt ', 8);
-  wav.writeUInt32LE(16, 16); wav.writeUInt16LE(1, 20); wav.writeUInt16LE(1, 22);
-  wav.writeUInt32LE(rate, 24); wav.writeUInt32LE(rate * 2, 28);
-  wav.writeUInt16LE(2, 32); wav.writeUInt16LE(16, 34);
-  wav.write('data', 36); wav.writeUInt32LE(samples * 2, 40);
+  wav.write('RIFF');
+  wav.writeUInt32LE(wav.length - 8, 4);
+  wav.write('WAVEfmt ', 8);
+  wav.writeUInt32LE(16, 16);
+  wav.writeUInt16LE(1, 20);
+  wav.writeUInt16LE(1, 22);
+  wav.writeUInt32LE(rate, 24);
+  wav.writeUInt32LE(rate * 2, 28);
+  wav.writeUInt16LE(2, 32);
+  wav.writeUInt16LE(16, 34);
+  wav.write('data', 36);
+  wav.writeUInt32LE(samples * 2, 40);
   for (let i = 0; i < samples; i++) {
     const t = i / rate;
     const envelope = Math.min(1, t / 0.1, (seconds - t) / 0.2);
@@ -30,7 +39,8 @@ export async function encryptedAacFixture(directory) {
   const master = generatedWav();
   const key = randomBytes(32);
   const scope = {
-    chainId: 420420417, runtimeAddress: `0x${'11'.repeat(20)}`,
+    chainId: 420420417,
+    runtimeAddress: `0x${'11'.repeat(20)}`,
     contentHash: `0x${Buffer.from(blake2b(master, { dkLen: 32 })).toString('hex')}`,
     keyVersion: 'dotify-content-key-v2'
   };
@@ -45,21 +55,33 @@ export async function encryptedAacFixture(directory) {
       for (const object of [rendition.init, ...rendition.segments])
         originals.set(object.path, decryptStreamingObject(byPath.get(object.path), key, result.manifest, object));
     return {
-      key, files, scope, manifest: result.manifest, originals,
+      key,
+      files,
+      scope,
+      manifest: result.manifest,
+      originals,
       audioProof: {
-        kind: 'generated-chord-aac-v1', durationSeconds: result.manifest.durationSeconds,
+        kind: 'generated-chord-aac-v1',
+        durationSeconds: result.manifest.durationSeconds,
         sourceSha256: createHash('sha256').update(master).digest('hex'),
         encoder: 'services/api/src/services/streamingEncoder.ts',
         renditions: result.manifest.renditions.map(r => ({ bitrateKbps: r.bitrateKbps, segments: r.segments.length }))
       }
     };
-  } catch (error) { key.fill(0); throw error; }
-  finally { master.fill(0); }
+  } catch (error) {
+    key.fill(0);
+    throw error;
+  } finally {
+    master.fill(0);
+  }
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   try {
     if (process.argv.length !== 3) throw new Error('Usage: node --import tsx aac-fixture.mjs NEW_PRIVATE_DIRECTORY');
     console.log(JSON.stringify(await prepare(resolve(process.argv[2]), encryptedAacFixture), null, 2));
-  } catch (error) { console.error(String(error.message).slice(0, 500)); process.exitCode = 1; }
+  } catch (error) {
+    console.error(String(error.message).slice(0, 500));
+    process.exitCode = 1;
+  }
 }
