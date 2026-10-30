@@ -1,0 +1,1180 @@
+{
+  "schema": "dotify.bulletin.continuity-publication.v1",
+  "operatorDate": "2026-10-31 Europe/Paris; machine timestamps UTC",
+  "source": "0da3a52827b1266675fb612119e9cd3ded4e7a91",
+  "domain": "dotify-bulletin-lab.dot",
+  "version": [0, 2, 0],
+  "artifact": {
+    "audioRoot": "bafykbzacecj2qvfpqevlm6pqkm24fjcmszi6qd5r3ywikxfxx5yhjqsyorot4",
+    "carBytes": 5272391,
+    "carSha256": "01df74e4fbab43eb77a46aafbece6ed88c66ac4b2e7bef6a69d5d84fd3f9de46",
+    "directoryCid": "bafybeib6lj3vxavuuotmscfyyw5leauy3x32xy3otgioect43n4b76ggu4",
+    "storageCid": "bafybeiggb5c66s6fnlrqg3hpobgk4rhfr25qpp5odfqagapyeumrvv5lwa"
+  },
+  "approval": {
+    "maxStores": 75,
+    "maxBytes": 10986543,
+    "renewalsApproved": false,
+    "productionUpdateApproved": false
+  },
+  "actual": {
+    "newStores": 74,
+    "storedBytes": 10950594,
+    "reusedBlocks": 1,
+    "renewalsSubmitted": 0,
+    "dotnsSignatureRequests": 3,
+    "completedAt": "2026-10-30T23:22:16.845Z"
+  },
+  "pipeline": {
+    "root": "bafykbzacecj2qvfpqevlm6pqkm24fjcmszi6qd5r3ywikxfxx5yhjqsyorot4",
+    "storedBlocks": 66,
+    "reusedBlocks": 0,
+    "reservedRenewalTransactions": 66,
+    "concurrency": 2,
+    "maxInFlightBytes": 524288,
+    "peakInFlight": 2,
+    "peakInFlightBytes": 524288
+  },
+  "storage": [
+    {
+      "phase": "audio",
+      "cid": "bafk2bzacec6lvkomtrhir6lcmrmi4spvctmzhrssdhhygjinefzobjibnzn6g",
+      "bytes": 780,
+      "nonce": 948,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436039,
+        "index": 0
+      }
+    },
+    {
+      "phase": "audio",
+      "cid": "bafk2bzaceaclfiv4bytng7xxa4ppgsjnp237wqzlukwb3iyvas3f6m6uky5w4",
+      "bytes": 80208,
+      "nonce": 949,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436039,
+        "index": 1
+      }
+    },
+    {
+      "phase": "audio",
+      "cid": "bafk2bzacecdj3hbn7552m2wg7pyiak55g7gefncw2ckmzjoepmasetqpet3q4",
+      "bytes": 81258,
+      "nonce": 950,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436046,
+        "index": 0
+      }
+    },
+    {
+      "phase": "audio",
+      "cid": "bafk2bzaceamezbsmlocsdpvqif2vx3lvebapfarorjt3shnlqbju35rcymvja",
+      "bytes": 81057,
+      "nonce": 951,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436046,
+        "index": 1
+      }
+    },
+    {
+      "phase": "audio",
+      "cid": "bafk2bzacecsmppnprklqasswwsaxddi4zrqmmjhu7cqig2i4okx57sozorenk",
+      "bytes": 81159,
+      "nonce": 952,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436052,
+        "index": 0
+      }
+    },
+    {
+      "phase": "audio",
+      "cid": "bafk2bzacebfzgicl6bp5p6e5tkoc7wtd3oxmr5xtn7skdxvghk3rygdmd7v6a",
+      "bytes": 80729,
+      "nonce": 953,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436052,
+        "index": 1
+      }
+    },
+    {
+      "phase": "audio",
+      "cid": "bafk2bzaceawrj2okop43v36st3ty7uypcrbc5lnr6fpaq5l64celbdk2i3x4o",
+      "bytes": 81032,
+      "nonce": 954,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436059,
+        "index": 0
+      }
+    },
+    {
+      "phase": "audio",
+      "cid": "bafk2bzaceayiomriwc6rekair52evm3s7dsslquznrxgmsmalgb25uopef4uw",
+      "bytes": 81180,
+      "nonce": 955,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436059,
+        "index": 1
+      }
+    },
+    {
+      "phase": "audio",
+      "cid": "bafk2bzaceczkgxtnesna7hhgklepmndmqcko3qp2ze2z2wiji6emdylwf2ip2",
+      "bytes": 80927,
+      "nonce": 956,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436067,
+        "index": 0
+      }
+    },
+    {
+      "phase": "audio",
+      "cid": "bafk2bzacecqhuj7ekepgw5qoir5w3fgqjpcj3rxb4vxawnssl4kz524zg4mhk",
+      "bytes": 81092,
+      "nonce": 957,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436067,
+        "index": 1
+      }
+    },
+    {
+      "phase": "audio",
+      "cid": "bafk2bzacecp4vs5g7qye3tkchrzxvcijbnptwbyqzxyoriiaqozglxpuecnom",
+      "bytes": 80491,
+      "nonce": 958,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436074,
+        "index": 0
+      }
+    },
+    {
+      "phase": "audio",
+      "cid": "bafk2bzacecfivfmkyqkxr7nmkwtowey6saz3w2z2xh6yvuw3ln6pgfh5yxjf2",
+      "bytes": 81198,
+      "nonce": 959,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436074,
+        "index": 1
+      }
+    },
+    {
+      "phase": "audio",
+      "cid": "bafk2bzaceanyvomdlaere6cpnshygen42mzzwf5nnlvahxlqo2uhpv3loblrm",
+      "bytes": 80965,
+      "nonce": 960,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436080,
+        "index": 0
+      }
+    },
+    {
+      "phase": "audio",
+      "cid": "bafk2bzacedf2vsfrphxo3xsh4ihhhyx7uutpprxtk5bbm537raqej43or573y",
+      "bytes": 80456,
+      "nonce": 961,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436080,
+        "index": 1
+      }
+    },
+    {
+      "phase": "audio",
+      "cid": "bafk2bzaceayft6c4kcka36li6r4qiz5xkypztdc7nu75yjije6sqx6anky4t2",
+      "bytes": 81040,
+      "nonce": 962,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436086,
+        "index": 0
+      }
+    },
+    {
+      "phase": "audio",
+      "cid": "bafk2bzacebng6gimwuf7gxyh3fwjcxfkqcn4snjbhlw74qyqgeh2lvbu3x76y",
+      "bytes": 80904,
+      "nonce": 963,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436087,
+        "index": 0
+      }
+    },
+    {
+      "phase": "audio",
+      "cid": "bafk2bzacecyy4bayovciyhk2y4w3d22mm2hjqi4zs4kr2xe5tys2vg3n3mt6k",
+      "bytes": 77585,
+      "nonce": 964,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436093,
+        "index": 0
+      }
+    },
+    {
+      "phase": "audio",
+      "cid": "bafk2bzacedyag3ub7p7eqbive4ytaxwxmzpbrnlqs6yq7y43giljltsxamhmq",
+      "bytes": 780,
+      "nonce": 965,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436093,
+        "index": 1
+      }
+    },
+    {
+      "phase": "audio",
+      "cid": "bafk2bzacebxitghm7vpc2llkgslyq47ca5cl6prd5x57sda27ynimfjmx7xwi",
+      "bytes": 96918,
+      "nonce": 966,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436099,
+        "index": 0
+      }
+    },
+    {
+      "phase": "audio",
+      "cid": "bafykbzacecuabg7spi5vyts7e6qvzodz6fpcuot5pynkicduh3oj6qqczgdye",
+      "bytes": 1067,
+      "nonce": 967,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436099,
+        "index": 1
+      }
+    },
+    {
+      "phase": "audio",
+      "cid": "bafk2bzacedezzooa7rjdawadsgd6nnzxooe73wfle2jslsvlob7holkvifrp2",
+      "bytes": 97527,
+      "nonce": 968,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436106,
+        "index": 0
+      }
+    },
+    {
+      "phase": "audio",
+      "cid": "bafk2bzaceap5fj5jjtrvdmbislrfsmnqz6lcowhldddhphse63xmfba6gfbxe",
+      "bytes": 96515,
+      "nonce": 969,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436106,
+        "index": 1
+      }
+    },
+    {
+      "phase": "audio",
+      "cid": "bafk2bzaceckj6hvqgl6wycuz763c73v5daz6gtp3ggpqs4h27coype3cabfdg",
+      "bytes": 97787,
+      "nonce": 970,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436112,
+        "index": 0
+      }
+    },
+    {
+      "phase": "audio",
+      "cid": "bafk2bzacedomwxmuf55tod4v6cwtxv6l7midm4752q3zu5ieyz6gkrepgvka4",
+      "bytes": 98087,
+      "nonce": 971,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436112,
+        "index": 1
+      }
+    },
+    {
+      "phase": "audio",
+      "cid": "bafk2bzaceanvoakszujwnkdqcxzjefg4yo4fcirb23ezywcz2sdzrwrqu2eq6",
+      "bytes": 97788,
+      "nonce": 972,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436119,
+        "index": 0
+      }
+    },
+    {
+      "phase": "audio",
+      "cid": "bafk2bzaceaq2tj7lxzfcjuiloshbthf47ppxtzg4s2b6y77ksqx62dae46vty",
+      "bytes": 96694,
+      "nonce": 973,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436119,
+        "index": 1
+      }
+    },
+    {
+      "phase": "audio",
+      "cid": "bafk2bzaceank5rfqjz3664fbif35le7psl6ngv76th5y6gapsif6n3ln25ck2",
+      "bytes": 97566,
+      "nonce": 974,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436125,
+        "index": 0
+      }
+    },
+    {
+      "phase": "audio",
+      "cid": "bafk2bzacea7pbduxts66fqx2ykx4k2uyoexmtjhu5mogd2sk462tzwsc3ybbi",
+      "bytes": 98477,
+      "nonce": 975,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436126,
+        "index": 0
+      }
+    },
+    {
+      "phase": "audio",
+      "cid": "bafk2bzacea6r6mvdsvytmp5cpzpfg7f3zgazhugpyy3ix72d7xbibn6y4qjcg",
+      "bytes": 96637,
+      "nonce": 976,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436132,
+        "index": 0
+      }
+    },
+    {
+      "phase": "audio",
+      "cid": "bafk2bzacedgnpcwqx5owfe4lllqtw5p53wsnkvdkv3ybomawx2xzjtfj7pw7u",
+      "bytes": 96828,
+      "nonce": 977,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436132,
+        "index": 1
+      }
+    },
+    {
+      "phase": "audio",
+      "cid": "bafk2bzaceadzepzh6ef7slrgoeicnkk2uygsw665krms4glnx5jkrqbi2mz6k",
+      "bytes": 97500,
+      "nonce": 978,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436138,
+        "index": 0
+      }
+    },
+    {
+      "phase": "audio",
+      "cid": "bafk2bzaceaxg3adts22wusb4frjzgnddf7n7rjmg5rojmeokojegcdwpuinkk",
+      "bytes": 96296,
+      "nonce": 979,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436138,
+        "index": 1
+      }
+    },
+    {
+      "phase": "audio",
+      "cid": "bafk2bzaced66emaam653pkbhdsizsmmfvqaqxcxhb6g7qfwp732zlr7v7spbu",
+      "bytes": 98114,
+      "nonce": 980,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436144,
+        "index": 0
+      }
+    },
+    {
+      "phase": "audio",
+      "cid": "bafk2bzaced2utigmroo3gk2je3bp6psio6byfq64yhgmp2vx4gefbqk7zivza",
+      "bytes": 97601,
+      "nonce": 981,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436144,
+        "index": 1
+      }
+    },
+    {
+      "phase": "audio",
+      "cid": "bafk2bzaceda2z73tuahe4suuu2wodzrcbmxha5vkqjmrm4ndbpmv76voe4tuc",
+      "bytes": 95070,
+      "nonce": 982,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436150,
+        "index": 0
+      }
+    },
+    {
+      "phase": "audio",
+      "cid": "bafk2bzacebb5w2v5jd7h6nq74jdukqggvnhozo5d7vtokyy7myi5j7qlkcxtu",
+      "bytes": 780,
+      "nonce": 983,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436150,
+        "index": 1
+      }
+    },
+    {
+      "phase": "audio",
+      "cid": "bafk2bzaceb3guh5dy64svg4tnzjvpcqwf7pa4pig635vfaisatvjbfnhmx5ys",
+      "bytes": 48370,
+      "nonce": 984,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436157,
+        "index": 0
+      }
+    },
+    {
+      "phase": "audio",
+      "cid": "bafykbzaceaoryjafcl4qpep77o64jkh5vdkb35epaykjrgd6i47w7ea7s5foy",
+      "bytes": 1067,
+      "nonce": 985,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436157,
+        "index": 1
+      }
+    },
+    {
+      "phase": "audio",
+      "cid": "bafk2bzacebn467snczanyj3xvyvlxsmoz5xhprayadzb7a4x4almfd57mtlkg",
+      "bytes": 48379,
+      "nonce": 986,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436163,
+        "index": 0
+      }
+    },
+    {
+      "phase": "audio",
+      "cid": "bafk2bzaceb5gvgf4l2eqry7mvgapyeeqpb4kp2i3hmyfan27nyk5ok2d64vny",
+      "bytes": 48538,
+      "nonce": 987,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436163,
+        "index": 1
+      }
+    },
+    {
+      "phase": "audio",
+      "cid": "bafk2bzaced6vrwaaq23qxzxdnwwub6zk6ag62hjeqt7czbbjvpwtyg5wtokxg",
+      "bytes": 48132,
+      "nonce": 988,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436169,
+        "index": 0
+      }
+    },
+    {
+      "phase": "audio",
+      "cid": "bafk2bzaced37xxd4bykhmlvhonsp3kklpe6wbnrjo3x5h4tsqwraztq2vywui",
+      "bytes": 48288,
+      "nonce": 989,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436169,
+        "index": 1
+      }
+    },
+    {
+      "phase": "audio",
+      "cid": "bafk2bzaced42rl5dgdjhmwxspd75pyg7c4ofjyab4mimihw57u7i4fmpua5me",
+      "bytes": 48164,
+      "nonce": 990,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436176,
+        "index": 0
+      }
+    },
+    {
+      "phase": "audio",
+      "cid": "bafk2bzacedoa5ge6gx3nlvei3jkwjueyyy2jt24buwplosc6fftw4uqjcr5vy",
+      "bytes": 47991,
+      "nonce": 991,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436176,
+        "index": 1
+      }
+    },
+    {
+      "phase": "audio",
+      "cid": "bafk2bzaceaje4sl4lxd7kctfn726r5j2k45tox4vouhjuwpsb67d2zvqfxvf6",
+      "bytes": 48377,
+      "nonce": 992,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436182,
+        "index": 0
+      }
+    },
+    {
+      "phase": "audio",
+      "cid": "bafk2bzacebkfbbdt5im4gwukzwt6k5bjldzfabuf6myjvr7avht7jcbors57k",
+      "bytes": 48123,
+      "nonce": 993,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436182,
+        "index": 1
+      }
+    },
+    {
+      "phase": "audio",
+      "cid": "bafk2bzacec2vby64tgvljllrriijxitw2sorzynykmoyfeuigmhitbzgt6uxu",
+      "bytes": 48164,
+      "nonce": 994,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436189,
+        "index": 0
+      }
+    },
+    {
+      "phase": "audio",
+      "cid": "bafk2bzaceab75czk27svipirqx4fme5ebnn4wkrkvjoy3snywdaw5epdjl7xc",
+      "bytes": 48335,
+      "nonce": 995,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436189,
+        "index": 1
+      }
+    },
+    {
+      "phase": "audio",
+      "cid": "bafk2bzacebancvhw2udx453mhn3wjj3vyafqamghgcuvax6jqebjkkozxye5i",
+      "bytes": 47983,
+      "nonce": 996,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436196,
+        "index": 0
+      }
+    },
+    {
+      "phase": "audio",
+      "cid": "bafk2bzacebrg7k662imbnqhlnlo5jceemcqqaxbhzx6tgvs563v6vagpotrd6",
+      "bytes": 48220,
+      "nonce": 997,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436196,
+        "index": 1
+      }
+    },
+    {
+      "phase": "audio",
+      "cid": "bafk2bzacecqyt2h7w44w5dmhl6vp2vid63mc3xwgnvs57c3gzcfieicrquwn2",
+      "bytes": 48024,
+      "nonce": 998,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436202,
+        "index": 0
+      }
+    },
+    {
+      "phase": "audio",
+      "cid": "bafk2bzacedoqko6t6kk27r6hq2l6u5o6cn7e22n64wlp2chy3mx6wdej77g7g",
+      "bytes": 48103,
+      "nonce": 999,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436202,
+        "index": 1
+      }
+    },
+    {
+      "phase": "audio",
+      "cid": "bafk2bzacecbd57i64hpchm3vxlzidlzwn6ykhy4gdvi6sx3gtjsx5xhqqedvg",
+      "bytes": 46128,
+      "nonce": 1000,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436208,
+        "index": 0
+      }
+    },
+    {
+      "phase": "audio",
+      "cid": "bafk2bzaced63ecpysktelpcoeoynke727repsat72xlo3wcyi74cho65tfyjs",
+      "bytes": 262144,
+      "nonce": 1001,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436208,
+        "index": 1
+      }
+    },
+    {
+      "phase": "audio",
+      "cid": "bafykbzacec7baomhq7wqzd6db7zt3dwklozy6shcgbn3kix7mc2qzijlcoh6k",
+      "bytes": 1067,
+      "nonce": 1002,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436214,
+        "index": 0
+      }
+    },
+    {
+      "phase": "audio",
+      "cid": "bafk2bzacec6lwzpojzzbaktjxfwmsn743tq6mfreqss26odwkf2bfi32b4g2a",
+      "bytes": 262144,
+      "nonce": 1003,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436214,
+        "index": 1
+      }
+    },
+    {
+      "phase": "audio",
+      "cid": "bafk2bzaceaeof3kcvth7prkf3hqhojd4scuhuxj4kwykooo2fyo6udftpofvk",
+      "bytes": 262144,
+      "nonce": 1004,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436221,
+        "index": 0
+      }
+    },
+    {
+      "phase": "audio",
+      "cid": "bafk2bzacea7jsm2rcyhai52eqy2x6zgzo5yxpviz3nj4ermuupzqbcuxegqrq",
+      "bytes": 262144,
+      "nonce": 1005,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436221,
+        "index": 1
+      }
+    },
+    {
+      "phase": "audio",
+      "cid": "bafk2bzacecowpnhsw7lbg64v45qsi2fv7sepaxbqvgygq7cq7pbabpdszdfxg",
+      "bytes": 262144,
+      "nonce": 1006,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436228,
+        "index": 0
+      }
+    },
+    {
+      "phase": "audio",
+      "cid": "bafk2bzacebgu33fuz5inxnjzrurck3ris5c47ic6orfu2zun2hlcuu7vrkrjc",
+      "bytes": 262144,
+      "nonce": 1007,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436228,
+        "index": 1
+      }
+    },
+    {
+      "phase": "audio",
+      "cid": "bafk2bzacec7banv6zx2qeh4hyqle5tbndorelpvjtyza773tfthlcsviwhbeo",
+      "bytes": 262144,
+      "nonce": 1008,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436235,
+        "index": 0
+      }
+    },
+    {
+      "phase": "audio",
+      "cid": "bafk2bzacec6kcc7suhh2isvg5ytzwu6dgvn77ouzbzxeg432v6vobkzcrai5w",
+      "bytes": 213052,
+      "nonce": 1009,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436235,
+        "index": 1
+      }
+    },
+    {
+      "phase": "audio",
+      "cid": "bafk2bzaceamyjzmsnmpmwqzjyyo4boaz76znwpnzmetkob2jdwjdkehq3shgc",
+      "bytes": 7485,
+      "nonce": 1010,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436242,
+        "index": 0
+      }
+    },
+    {
+      "phase": "audio",
+      "cid": "bafykbzaceclohfrgzrkf45o6fv7nt4k6765mjo26uu5rv7o2ah3oplf7zqlhu",
+      "bytes": 424,
+      "nonce": 1011,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436242,
+        "index": 1
+      }
+    },
+    {
+      "phase": "audio",
+      "cid": "bafykbzacecwpjrb6ffuesqudcx6hf5xrqarskmxb2hp22y5s2zd2qvult7zkw",
+      "bytes": 62,
+      "nonce": 1012,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436248,
+        "index": 0
+      }
+    },
+    {
+      "phase": "audio",
+      "cid": "bafykbzacecj2qvfpqevlm6pqkm24fjcmszi6qd5r3ywikxfxx5yhjqsyorot4",
+      "bytes": 271,
+      "nonce": 1013,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436254,
+        "index": 0
+      }
+    },
+    {
+      "phase": "product",
+      "cid": "bafkreiebp62bwyllb2uxbzo4v2waidkii62tqtey4w3buy7txvkp2axccq",
+      "bytes": 4385,
+      "nonce": 1014,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436261,
+        "index": 0
+      },
+      "verified": {
+        "block": 1436261,
+        "index": 0,
+        "expiresAt": 1637861
+      }
+    },
+    {
+      "phase": "product",
+      "cid": "bafkreieyyn6vnrz7w3iynefc2cvq2aoxfdeumh2gepa64wfjqq3banhjie",
+      "bytes": 39227,
+      "nonce": 1015,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436267,
+        "index": 0
+      },
+      "verified": {
+        "block": 1436267,
+        "index": 0,
+        "expiresAt": 1637867
+      }
+    },
+    {
+      "phase": "product",
+      "cid": "bafkreibjk5halfp5bdnfv7eoituy3rystqddwijmmyrnhakbdzo67vffoy",
+      "bytes": 1836278,
+      "nonce": 1016,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436273,
+        "index": 0
+      },
+      "verified": {
+        "block": 1436273,
+        "index": 0,
+        "expiresAt": 1637873
+      }
+    },
+    {
+      "phase": "product",
+      "cid": "bafkreiggtvq43ellbxyjsqfa3ja4xdkjobc6bj76zlucvxeex2rs6tsdhy",
+      "bytes": 1835281,
+      "nonce": 1017,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436279,
+        "index": 0
+      },
+      "verified": {
+        "block": 1436279,
+        "index": 0,
+        "expiresAt": 1637879
+      }
+    },
+    {
+      "phase": "product",
+      "cid": "bafkreifq276i42kmuedh7oyuzd4fv6khoyg4ym2zp5cbosyjan6tbthzku",
+      "bytes": 1173035,
+      "nonce": 1018,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436285,
+        "index": 0
+      },
+      "verified": {
+        "block": 1436285,
+        "index": 0,
+        "expiresAt": 1637885
+      }
+    },
+    {
+      "phase": "product",
+      "cid": "bafkreihfz67b3767zkx6bulwfxlhe3qllryrp6yud33u6k4vnrhwczpoqm",
+      "bytes": 378386,
+      "nonce": 1019,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436292,
+        "index": 0
+      },
+      "verified": {
+        "block": 1436292,
+        "index": 0,
+        "expiresAt": 1637892
+      }
+    },
+    {
+      "phase": "product",
+      "cid": "bafkreicowfcf5osxgigyngmxm5ujtkrlk3meq7h4s6xxa4ye3kpks7phua",
+      "bytes": 5799,
+      "nonce": 1020,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436297,
+        "index": 0
+      },
+      "verified": {
+        "block": 1436297,
+        "index": 0,
+        "expiresAt": 1637897
+      }
+    },
+    {
+      "phase": "product",
+      "cid": "bafybeiggb5c66s6fnlrqg3hpobgk4rhfr25qpp5odfqagapyeumrvv5lwa",
+      "bytes": 355,
+      "nonce": 1021,
+      "status": "finalized",
+      "receipt": {
+        "block": 1436303,
+        "index": 0
+      },
+      "verified": {
+        "block": 1436303,
+        "index": 0,
+        "expiresAt": 1637903
+      }
+    },
+    {
+      "phase": "product",
+      "cid": "bafk2bzacebh4rknk6x7zl4pul7t3ff7y2pglpk5x4q2k3nxnql5ebizvgluxk",
+      "bytes": 35949,
+      "status": "reused",
+      "receipt": {
+        "block": 1275659,
+        "index": 0,
+        "expiresAt": 1477259
+      }
+    }
+  ],
+  "before": {
+    "block": "15120614",
+    "records": {
+      "dotify-bulletin-lab.dot": {
+        "owner": "0xe3e3a0916d27c5174313f16E1507a286985a8Ac8",
+        "resolver": "0x7e75491ecfb04900EB05ee63CABA2B33900aABB5",
+        "contenthash": "0xe30101701220e925d435d54633a567c94a30af7b920f3cd7640f5d31e19af06e47f53703380a",
+        "record": "{\"$v\":1,\"displayName\":\"Dotify First note lab\",\"description\":\"Generated eight-second audio diagnostic. No artist music, wallet or payment.\",\"icon\":{\"cid\":\"bafk2bzacebh4rknk6x7zl4pul7t3ff7y2pglpk5x4q2k3nxnql5ebizvgluxk\",\"format\":\"png\"}}"
+      },
+      "app.dotify-bulletin-lab.dot": {
+        "owner": "0xe3e3a0916d27c5174313f16E1507a286985a8Ac8",
+        "resolver": "0x7e75491ecfb04900EB05ee63CABA2B33900aABB5",
+        "contenthash": "0xe30101701220e925d435d54633a567c94a30af7b920f3cd7640f5d31e19af06e47f53703380a",
+        "record": "{\"$v\":1,\"kind\":\"app\",\"appVersion\":[0,1,0]}"
+      },
+      "dotify-test01.dot": {
+        "owner": "0xe3e3a0916d27c5174313f16E1507a286985a8Ac8",
+        "resolver": "0x7e75491ecfb04900EB05ee63CABA2B33900aABB5",
+        "contenthash": "0xe30101701220e8c54db8889ade46e8cfe5b62af84c79776b503a91b00c21cc89b2c3fd301c76",
+        "record": "{\"$v\":1,\"displayName\":\"Dotify\",\"description\":\"Shared musical presence with artist-owned access and value flows.\",\"icon\":{\"cid\":\"bafk2bzacebh4rknk6x7zl4pul7t3ff7y2pglpk5x4q2k3nxnql5ebizvgluxk\",\"format\":\"png\"}}"
+      },
+      "app.dotify-test01.dot": {
+        "owner": "0xe3e3a0916d27c5174313f16E1507a286985a8Ac8",
+        "resolver": "0x7e75491ecfb04900EB05ee63CABA2B33900aABB5",
+        "contenthash": "0xe30101701220e8c54db8889ade46e8cfe5b62af84c79776b503a91b00c21cc89b2c3fd301c76",
+        "record": "{\"$v\":1,\"kind\":\"app\",\"appVersion\":[0,1,67]}"
+      }
+    }
+  },
+  "after": {
+    "block": "15121446",
+    "records": {
+      "dotify-bulletin-lab.dot": {
+        "owner": "0xe3e3a0916d27c5174313f16E1507a286985a8Ac8",
+        "resolver": "0x7e75491ecfb04900EB05ee63CABA2B33900aABB5",
+        "contenthash": "0xe30101701220c60f45ef4bc56ae3036cef704cae44e58ebb07bfae19600301f825191ad7abb0",
+        "record": "{\"$v\":1,\"displayName\":\"Dotify First note lab\",\"description\":\"Generated 64-second audio continuity diagnostic. No artist music, wallet or payment.\",\"icon\":{\"cid\":\"bafk2bzacebh4rknk6x7zl4pul7t3ff7y2pglpk5x4q2k3nxnql5ebizvgluxk\",\"format\":\"png\"}}"
+      },
+      "app.dotify-bulletin-lab.dot": {
+        "owner": "0xe3e3a0916d27c5174313f16E1507a286985a8Ac8",
+        "resolver": "0x7e75491ecfb04900EB05ee63CABA2B33900aABB5",
+        "contenthash": "0xe30101701220c60f45ef4bc56ae3036cef704cae44e58ebb07bfae19600301f825191ad7abb0",
+        "record": "{\"$v\":1,\"kind\":\"app\",\"appVersion\":[0,2,0]}"
+      },
+      "dotify-test01.dot": {
+        "owner": "0xe3e3a0916d27c5174313f16E1507a286985a8Ac8",
+        "resolver": "0x7e75491ecfb04900EB05ee63CABA2B33900aABB5",
+        "contenthash": "0xe30101701220e8c54db8889ade46e8cfe5b62af84c79776b503a91b00c21cc89b2c3fd301c76",
+        "record": "{\"$v\":1,\"displayName\":\"Dotify\",\"description\":\"Shared musical presence with artist-owned access and value flows.\",\"icon\":{\"cid\":\"bafk2bzacebh4rknk6x7zl4pul7t3ff7y2pglpk5x4q2k3nxnql5ebizvgluxk\",\"format\":\"png\"}}"
+      },
+      "app.dotify-test01.dot": {
+        "owner": "0xe3e3a0916d27c5174313f16E1507a286985a8Ac8",
+        "resolver": "0x7e75491ecfb04900EB05ee63CABA2B33900aABB5",
+        "contenthash": "0xe30101701220e8c54db8889ade46e8cfe5b62af84c79776b503a91b00c21cc89b2c3fd301c76",
+        "record": "{\"$v\":1,\"kind\":\"app\",\"appVersion\":[0,1,67]}"
+      }
+    }
+  },
+  "quotaBefore": {
+    "head": 1436031,
+    "hash": "0x0c3bc1bde6b4e46779f12824c9518547d255b5ef4bac230b64920adc57efff87",
+    "authorization": {
+      "expiresAt": 1621405,
+      "remainingTransactions": 223,
+      "remainingBytes": "59583566",
+      "remainingRenewBytes": "62044062"
+    }
+  },
+  "quotaAfter": {
+    "head": 1436318,
+    "hash": "0x5ead154843f0699e0b1c87ce623968258146a8919ebb7d04ba605b8d5fd0d7fb",
+    "authorization": {
+      "expiresAt": 1621405,
+      "remainingTransactions": 149,
+      "remainingBytes": "48632972",
+      "remainingRenewBytes": "62044062"
+    }
+  },
+  "independentReadback": {
+    "schema": "dotify.bulletin.continuity-readback.v1",
+    "observedAt": "2026-10-30T23:23:45.792Z",
+    "domain": "dotify-bulletin-lab.dot",
+    "source": "0da3a52827b1266675fb612119e9cd3ded4e7a91",
+    "storage": [
+      {
+        "cid": "bafkreiebp62bwyllb2uxbzo4v2waidkii62tqtey4w3buy7txvkp2axccq",
+        "bytes": 4385,
+        "cidVerified": true
+      },
+      {
+        "cid": "bafkreieyyn6vnrz7w3iynefc2cvq2aoxfdeumh2gepa64wfjqq3banhjie",
+        "bytes": 39227,
+        "cidVerified": true
+      },
+      {
+        "cid": "bafkreibjk5halfp5bdnfv7eoituy3rystqddwijmmyrnhakbdzo67vffoy",
+        "bytes": 1836278,
+        "cidVerified": true
+      },
+      {
+        "cid": "bafkreiggtvq43ellbxyjsqfa3ja4xdkjobc6bj76zlucvxeex2rs6tsdhy",
+        "bytes": 1835281,
+        "cidVerified": true
+      },
+      {
+        "cid": "bafkreifq276i42kmuedh7oyuzd4fv6khoyg4ym2zp5cbosyjan6tbthzku",
+        "bytes": 1173035,
+        "cidVerified": true
+      },
+      {
+        "cid": "bafkreihfz67b3767zkx6bulwfxlhe3qllryrp6yud33u6k4vnrhwczpoqm",
+        "bytes": 378386,
+        "cidVerified": true
+      },
+      {
+        "cid": "bafkreicowfcf5osxgigyngmxm5ujtkrlk3meq7h4s6xxa4ye3kpks7phua",
+        "bytes": 5799,
+        "cidVerified": true
+      },
+      {
+        "cid": "bafybeiggb5c66s6fnlrqg3hpobgk4rhfr25qpp5odfqagapyeumrvv5lwa",
+        "bytes": 355,
+        "cidVerified": true
+      },
+      {
+        "cid": "bafk2bzacebh4rknk6x7zl4pul7t3ff7y2pglpk5x4q2k3nxnql5ebizvgluxk",
+        "bytes": 35949,
+        "cidVerified": true
+      }
+    ],
+    "networkWrites": 0,
+    "signerUsed": false,
+    "reconstructedCar": {
+      "bytes": 5272391,
+      "sha256": "01df74e4fbab43eb77a46aafbece6ed88c66ac4b2e7bef6a69d5d84fd3f9de46"
+    },
+    "assetHubBlock": "15121491",
+    "records": {
+      "dotify-bulletin-lab.dot": {
+        "owner": "0xe3e3a0916d27c5174313f16E1507a286985a8Ac8",
+        "resolver": "0x7e75491ecfb04900EB05ee63CABA2B33900aABB5",
+        "contenthash": "0xe30101701220c60f45ef4bc56ae3036cef704cae44e58ebb07bfae19600301f825191ad7abb0",
+        "record": "{\"$v\":1,\"displayName\":\"Dotify First note lab\",\"description\":\"Generated 64-second audio continuity diagnostic. No artist music, wallet or payment.\",\"icon\":{\"cid\":\"bafk2bzacebh4rknk6x7zl4pul7t3ff7y2pglpk5x4q2k3nxnql5ebizvgluxk\",\"format\":\"png\"}}"
+      },
+      "app.dotify-bulletin-lab.dot": {
+        "owner": "0xe3e3a0916d27c5174313f16E1507a286985a8Ac8",
+        "resolver": "0x7e75491ecfb04900EB05ee63CABA2B33900aABB5",
+        "contenthash": "0xe30101701220c60f45ef4bc56ae3036cef704cae44e58ebb07bfae19600301f825191ad7abb0",
+        "record": "{\"$v\":1,\"kind\":\"app\",\"appVersion\":[0,2,0]}"
+      },
+      "dotify-test01.dot": {
+        "owner": "0xe3e3a0916d27c5174313f16E1507a286985a8Ac8",
+        "resolver": "0x7e75491ecfb04900EB05ee63CABA2B33900aABB5",
+        "contenthash": "0xe30101701220e8c54db8889ade46e8cfe5b62af84c79776b503a91b00c21cc89b2c3fd301c76",
+        "record": "{\"$v\":1,\"displayName\":\"Dotify\",\"description\":\"Shared musical presence with artist-owned access and value flows.\",\"icon\":{\"cid\":\"bafk2bzacebh4rknk6x7zl4pul7t3ff7y2pglpk5x4q2k3nxnql5ebizvgluxk\",\"format\":\"png\"}}"
+      },
+      "app.dotify-test01.dot": {
+        "owner": "0xe3e3a0916d27c5174313f16E1507a286985a8Ac8",
+        "resolver": "0x7e75491ecfb04900EB05ee63CABA2B33900aABB5",
+        "contenthash": "0xe30101701220e8c54db8889ade46e8cfe5b62af84c79776b503a91b00c21cc89b2c3fd301c76",
+        "record": "{\"$v\":1,\"kind\":\"app\",\"appVersion\":[0,1,67]}"
+      }
+    },
+    "productionUnchanged": true,
+    "gateway": {
+      "status": 200,
+      "bytes": 5272391,
+      "sha256": "01df74e4fbab43eb77a46aafbece6ed88c66ac4b2e7bef6a69d5d84fd3f9de46"
+    },
+    "operatorWallMsIncludingChecks": 1727978
+  },
+  "audioReadback": {
+    "schema": "dotify.bulletin.continuity-audio-readback.v1",
+    "observedAt": "2026-10-30T23:17:22.140Z",
+    "source": "0da3a52827b1266675fb612119e9cd3ded4e7a91",
+    "root": "bafykbzacecj2qvfpqevlm6pqkm24fjcmszi6qd5r3ywikxfxx5yhjqsyorot4",
+    "readTransport": "node bitswap RPC; not physical Host",
+    "proof": {
+      "verifiedObjects": 51,
+      "paths": [
+        "96/init.bin",
+        "96/segment-000.bin",
+        "96/segment-001.bin",
+        "96/segment-002.bin",
+        "96/segment-003.bin",
+        "96/segment-004.bin",
+        "96/segment-005.bin",
+        "96/segment-006.bin",
+        "96/segment-007.bin",
+        "96/segment-008.bin",
+        "96/segment-009.bin",
+        "96/segment-010.bin",
+        "96/segment-011.bin",
+        "96/segment-012.bin",
+        "96/segment-013.bin",
+        "96/segment-014.bin",
+        "96/segment-015.bin",
+        "160/init.bin",
+        "160/segment-000.bin",
+        "160/segment-001.bin",
+        "160/segment-002.bin",
+        "160/segment-003.bin",
+        "160/segment-004.bin",
+        "160/segment-005.bin",
+        "160/segment-006.bin",
+        "160/segment-007.bin",
+        "160/segment-008.bin",
+        "160/segment-009.bin",
+        "160/segment-010.bin",
+        "160/segment-011.bin",
+        "160/segment-012.bin",
+        "160/segment-013.bin",
+        "160/segment-014.bin",
+        "160/segment-015.bin",
+        "320/init.bin",
+        "320/segment-000.bin",
+        "320/segment-001.bin",
+        "320/segment-002.bin",
+        "320/segment-003.bin",
+        "320/segment-004.bin",
+        "320/segment-005.bin",
+        "320/segment-006.bin",
+        "320/segment-007.bin",
+        "320/segment-008.bin",
+        "320/segment-009.bin",
+        "320/segment-010.bin",
+        "320/segment-011.bin",
+        "320/segment-012.bin",
+        "320/segment-013.bin",
+        "320/segment-014.bin",
+        "320/segment-015.bin"
+      ],
+      "masterFetched": false,
+      "startupRawReads": 5,
+      "startupBytes": 57973,
+      "firstAuthenticatedObjectsMs": 782,
+      "totalRawReads": 56,
+      "totalReadBytes": 3629302,
+      "audibleStartupMeasured": false,
+      "physicalHostTested": false
+    },
+    "cache": "fresh per-process cache; upstream cache unknown",
+    "audibleStartupMeasured": false,
+    "networkWrites": 0,
+    "signerUsed": false
+  },
+  "signerCleanup": {
+    "removed": true,
+    "variable": "MNEMONIC",
+    "checkedAt": "2026-10-30T23:24:20.131610+00:00",
+    "check": "unsetenv succeeded and getenv output was empty; no value displayed or saved"
+  },
+  "desktop": {
+    "hostVersion": "0.1.4-rc.3",
+    "platform": "macOS",
+    "versionVerifiedVia": "Installed Host About dialogue",
+    "newNativePlaybackTested": false,
+    "outcome": "UI automation inconclusive before playback",
+    "reason": "Address entry did not respond to accessibility/menu/keyboard actions; coordinate input reported noWindowsAvailable."
+  },
+  "mobile": {
+    "new64SecondPlaybackTested": false
+  },
+  "limitations": [
+    "One mixed publication, no controlled serial/parallel throughput comparison",
+    "Operator wall time includes preflight, finality, byte readback and DotNS; not listening latency",
+    "Host cache state is unknown",
+    "No measured audible first sound, artist access or production storage activation",
+    "Renewal reserves are not an executed renewal or unattended retention service"
+  ],
+  "dotnsTransactionHashesObserved": [
+    "0x2b4a55ece884746d0b00f8a110c23d2134ca6bc062a469eade5f50aa02ecd60d",
+    "0xfc8b755b03e122f1a166040eba6122c6886a3b8fad71e81bf8e254b88da3f9d2",
+    "0x20e291c80a04868beaa346f970afb77805b14fd53f0d33987ff55b37c7e5e3df"
+  ]
+}

@@ -19,7 +19,11 @@ Local controls prove continued segment reads beyond the initial buffer, report
 recovery and explicit larger-profile limits. No new storage, renewal, Product
 update or provider switch has occurred. Native long listening, cold audible
 startup, real network/background recovery and production retention remain open.
-The next network run requires an exact reviewed allowance/distribution budget.
+The next network run requires an exact reviewed allowance/distribution budget. The subsequent
+[owner-approved publication](evidence/bulletin-continuity-publication-2026-10-31.md)
+is now complete: 74 new stores, verified records/data and signer removal.
+The 0.2.0 diagnostic is available for native 64-second listening; those physical
+and production gates remain open. No production storage switch occurred.
 
 ## Agent assignment
 

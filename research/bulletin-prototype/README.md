@@ -466,6 +466,12 @@ long listening and production storage activation remain open.
 
 ## Longer mobile continuity preparation
 
+The [reviewed diagnostic is published](../../docs/backlog/implementation/evidence/bulletin-continuity-publication-2026-10-31.md)
+as `dotify-bulletin-lab.dot` 0.2.0. Its 74 new stores and exact data/record
+readback are verified; no renewal or production storage switch was performed.
+The 82 reserved renewal transactions remain available. Physical 64-second
+listening is the next gate; the commands below still prepare only local data.
+
 The explicit `continuity` profile generates 64 seconds with the unchanged real three-rendition encoder, beyond the player's 30-second buffer. It is an isolated test, not a production storage adapter. See the [design, exact local budget and remaining gates](../../docs/backlog/implementation/evidence/bulletin-mobile-continuity-2026-10-30.md).
 
 ```sh

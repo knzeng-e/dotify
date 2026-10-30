@@ -99,7 +99,29 @@ Two owner-reported native eight-second listens and two completed decoder control
 are recorded above; background, longer listening and measured first-sound gates
 remain unverified.
 
-## Longer Bulletin mobile diagnostic, prepared only
+## Longer Bulletin mobile diagnostic, published independently
+
+The [owner-approved 0.2.0 publication](../backlog/implementation/evidence/bulletin-continuity-publication-2026-10-31.md)
+is complete at `dotify-bulletin-lab.dot`, from clean dev `0da3a528`.
+74 new stores / 10,950,594 bytes were finalized and checked, with the existing
+icon reused. Independent node readback reconstructs the exact 5,272,391-byte
+CAR, and the gateway returns that same hash. All 51 playback objects across
+three qualities authenticate and decrypt without fetching the archival master.
+Both production Dotify records remain at their previous values; no service,
+secret, origin or media-provider setting changes. The signer was removed and
+its absence checked without displaying or saving a value.
+
+149 Bulletin transactions remain, including the new 66 and previous 16 renewal
+reserves. No renewal was sent or scheduled; retain all private nonce/checkpoint
+state. Recheck the earlier-expiring reused icon and all dependencies before a
+delayed test. Rollback is an explicitly reviewed lab-record change to a still
+retrievable previous root; it is not a production rollback. Native 64-second
+listening/background/network and cold audible startup remain open. Desktop
+navigation automation was inconclusive before playback.
+
+The following describes the preparation boundary before this authorized run.
+
+
 
 The [64-second continuity preparation](../backlog/implementation/evidence/bulletin-mobile-continuity-2026-10-30.md)
 is local only. Its explicit `continuity` profile keeps the real three-rendition
@@ -111,8 +133,8 @@ is automatic proof of a real handover, cold cache or physical first sound.
 The locally prepared graph is 66 blocks / 5,677,848 bytes, with 66 further
 transactions reserved for one renewal. The hard profile ceiling is not owner
 approval. Fresh quota must preserve earlier reserves and cover the exact
-independent Product distribution plan before asking for a signer. No allowance,
-service, secret, CORS origin, storage setting or deployment has changed.
+independent Product distribution plan before asking for a signer. At that preparation stage, no allowance,
+service, secret, CORS origin, storage setting or deployment had changed.
 Do not overwrite the existing diagnostic or `dotify-test01.dot` as part of local
 preparation. The old sequential renewal command does not accept the larger
 profile/pipeline journal. Failed encryption keeps its nonce ledger; prepare a
