@@ -393,3 +393,59 @@ The [evidence and mobile handoff](../../docs/backlog/implementation/evidence/bul
 distinguish offline overlap/recovery proof from actual network throughput.
 No network speedup, native mobile playback, retention cycle, free storage,
 production readiness, new domain or deployment is claimed here.
+
+## Standalone mobile diagnostic preparation
+
+The loopback reader above cannot reach a phone safely. `mobile-package.mjs`
+instead builds a separate static Product using the **already generated BLAKE2b
+AAC fixture**. It authenticates the manifest and all playback objects, decrypts
+the archival master locally and compares its exact bytes with `generatedWav()`.
+A label claiming “generated audio” is insufficient. Non-generated masters,
+SHA-256 graphs, loose key permissions and overwrite attempts are refused.
+
+The build deliberately embeds that generated test key and the encrypted playback
+blocks for an explicitly selected **bundled decoder control**, loaded as a
+separate chunk only when that control is chosen. Archival raw
+blocks, operator files, signing credentials and encryption ledgers are excluded.
+The key is public test data, not an artist entitlement. Native mode always uses
+Host preimage reads and has no HTTP or bundled-control fallback. Both modes use
+`host/player.ts` and the unchanged production streaming player/AEAD verifier.
+
+```sh
+npm run test:mobile --prefix research/bulletin-prototype
+npm run test:mobile-browser --prefix research/bulletin-prototype
+npm run build:mobile --prefix research/bulletin-prototype -- \
+  /private/tmp/EXISTING_GENERATED_BLAKE_AAC /private/tmp/NEW_DIAGNOSTIC_OUTPUT \
+  --allow-public-generated-key
+```
+
+`NEW_DIAGNOSTIC_OUTPUT` must not exist. The command is local-only, reads no
+`.env` file, requests no signer and uploads nothing. `diagnostic-build.json`
+records the exact source revision/dirty state and root, with no content key.
+The output is not a Dotify app release: **do not deploy it over `dotify-test01.dot`**.
+Choose and approve a separate diagnostic address and verify its deployment/Host
+profile before signing any publication. No domain is assumed available or owned.
+
+The interface starts in native mode and offers a separately labeled decoder
+control, audio pause/seek/stop and optional device/network notes. First-playing
+and whole-attempt limits remain 45 and 60 seconds; deliberate pauses/background
+checks must fit that bounded eight-second experiment. Background visibility is
+observed without stopping healthy playback; page exit stops the test. On iOS,
+suspension can delay timers. A missing event or `playing` event is not a physical
+audibility measurement, and an eight-second test cannot prove prolonged listening.
+
+Up to five reports (at most 256 KiB total) are saved only in that diagnostic origin's `localStorage`.
+They record read counts/timing, media/visibility events, exact source/root,
+reader choice and explicit audibility confirmation. Preparing/playing records
+found on reload become interrupted with their previous observed state retained.
+Reports have a bounded allowlisted projection: no key, raw audio, signer or
+arbitrary metadata is persisted. Nothing is transmitted automatically. Users
+can inspect/select text for manual copying when Host downloads fail, or clear
+history with confirmation. Blocked/full/corrupt storage displays a warning and
+keeps recording in page memory; it cannot promise persistence after the page closes.
+Device notes/user agent and public CIDs are diagnostic data, so inspect before
+sharing. History eviction is disclosed; keep important reports separately.
+
+Automated browser controls test the built bundle and persistence, not installed
+mobile Host support. Native mobile first sound, paired delivery measurements,
+long listening and production storage activation remain open.

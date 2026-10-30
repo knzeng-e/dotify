@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <meta name="referrer" content="no-referrer" />
+    <title>Dotify · First note lab</title>
+  </head>
+  <body>
+    <main>
+      <header>
+        <a class="brand" href="#">Dotify<span aria-hidden="true">·</span> lab</a><span class="tag">Generated audio only</span>
+      </header>
+      <section class="intro">
+        <p class="eyebrow">LET THE MUSIC CONNECT THE DOTS</p>
+        <h1>The first<br /><em>note.</em></h1>
+        <p>Can Bulletin bring the music to your phone?<br />One quiet chord. Eight seconds. A clear result.</p>
+      </section>
+      <section class="player" aria-label="Audio diagnostic">
+        <div class="player-heading">
+          <span class="dot" aria-hidden="true"></span>
+          <h2>Listening test</h2>
+          <span>00:08</span>
+        </div>
+        <p>Use low volume. Native mode reads Bulletin directly; it never switches to a gateway.</p>
+        <label
+          >Delivery
+          <select id="transport">
+            <option value="native">Bulletin through Polkadot app</option>
+            <option value="local">Bundled decoder control (not Bulletin)</option>
+          </select></label
+        >
+        <details>
+          <summary>Test conditions</summary>
+          <label>Device, OS and Host version <input id="environment" type="text" maxlength="240" placeholder="iPhone · iOS · Polkadot app version" /></label>
+          <label>Network <input id="network" type="text" maxlength="160" placeholder="Wi-Fi or mobile data" /></label>
+          <label
+            >Lookup limit
+            <select id="lookup">
+              <option value="10000">10 seconds</option>
+              <option value="30000">30 seconds, diagnostic</option>
+            </select></label
+          >
+          <p>The bundled control isolates decoding. Its speed does not measure Bulletin. Host caches are unknown, even after restarting a test.</p>
+        </details>
+        <div class="actions">
+          <button id="play">Start listening <span aria-hidden="true">↗</span></button><button id="stop" disabled>Stop</button>
+        </div>
+        <audio id="audio" controls playsinline aria-label="Generated eight-second chord"></audio>
+        <p id="status" role="status" aria-live="polite">Ready when you are.</p>
+        <label class="check"><input id="heard" type="checkbox" /> I heard the chord on this device.</label>
+        <p class="note">
+          A “playing” event does not prove audible sound. Pause, seek or switch apps briefly to check continuity. Each attempt stops after 60 seconds.
+        </p>
+      </section>
+      <section class="evidence">
+        <p class="eyebrow">KEEP WHAT WE LEARN</p>
+        <h2>Your test notebook</h2>
+        <p>
+          Up to five recent attempts stay on this device. A later test never overwrites an earlier one until the history limit is reached. No report is sent to
+          Dotify.
+        </p>
+        <p id="storage-status" role="status">Reports are saved locally. Device details are optional.</p>
+        <label
+          >Saved attempt
+          <select id="saved"></select
+        ></label>
+        <label>Report to copy <textarea id="saved-output" readonly rows="8" spellcheck="false"></textarea></label>
+        <div class="secondary-actions"><button id="select-report">Select report text</button><button id="clear-reports">Clear notebook</button></div>
+        <details>
+          <summary>Current technical report</summary>
+          <pre id="report">No attempt yet.</pre>
+          <button id="export" disabled>Download current report</button>
+        </details>
+      </section>
+      <footer>
+        <p>
+          This isolated diagnostic does not test artist access, payments or production storage. The test key is public and unlocks only this generated chord.
+        </p>
+        <p>Build <code id="source"></code> · Bulletin lab 0.1.0</p>
+      </footer>
+    </main>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>
