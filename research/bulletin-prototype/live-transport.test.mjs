@@ -4,6 +4,8 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { openSync, closeSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import { StoreBuilder } from '@parity/bulletin-sdk';
 import { GENESIS, buildDirectory } from './graph.mjs';
 import { liveTransport, CANARY_ACCOUNT, authorization } from './live-transport.mjs';
@@ -131,4 +133,16 @@ test('local signing requires a private descriptor, refuses invalid input and nev
   const fd = openSync(path, 'r');
   try { assert.throws(() => localSigner(fd), /Invalid local signer input/); }
   finally { closeSync(fd); }
+});
+
+test('direct Node invocation receives the explicit signer pipe across a real shell process', () => {
+  const program = "import {localSigner} from './canary.mjs'; try {localSigner(3);process.exitCode=2} catch(e) {console.log(e.message);process.exitCode=1}";
+  // Public invalid input exercises the exact descriptor handoff without a key
+  // or network connection. Do not wrap this in npm, which drops extra FDs.
+  const result = spawnSync('/bin/bash', ['-c', 'exec "$1" --import tsx --input-type=module -e "$2" 3< <(printf %s invalid-input)', 'canary-test', process.execPath, program], {
+    cwd: fileURLToPath(new URL('.', import.meta.url)), encoding: 'utf8', timeout: 20_000
+  });
+  assert.equal(result.status, 1, result.stderr);
+  assert.equal(result.stdout.trim(), 'Invalid local signer input');
+  assert.equal(result.stderr, '');
 });

@@ -131,12 +131,14 @@ export async function main(argv) {
   if (command === 'prepare') return prepare(directory);
   const fixture = await loadFixture(directory);
   return withLease(directory, async () => {
+    // npm scripts do not preserve arbitrary descriptors. Validate the explicit
+    // descriptor/account before even opening a network connection.
+    const signer = writing ? localSigner(Number(options[1])) : null;
     const client = createClient(getWsProvider(ENDPOINT));
     // Independent wall clock bound; a hard exit leaves the lease for manual reconciliation.
     const watchdog = setTimeout(() => { console.error('Canary exceeded 12 minutes; reconcile the lease and receipts before retrying.'); process.exit(2); }, 12 * 60_000);
     let key;
     try {
-      const signer = writing ? localSigner(Number(options[1])) : null;
       const sdk = signer ? new AsyncBulletinClient(client.getUnsafeApi(), signer, client.submit) : null;
       const transport = liveTransport(client, sdk, CANARY_ACCOUNT);
       const before = await transport.status();

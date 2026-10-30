@@ -5,7 +5,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { StoreBuilder } from '@parity/bulletin-sdk';
+import { AsyncBulletinClient, HashAlgorithm, StoreBuilder } from '@parity/bulletin-sdk';
 import { encryptedFixture } from './fixture.mjs';
 import { buildDirectory, readPath, hostBlockReader, verifyBlock } from './graph.mjs';
 import { publish, requestRenewal, verifyRenewal } from './publication.mjs';
@@ -114,9 +114,32 @@ test('the pinned SDK builder preserves exact codecs/hash and requests finalized 
     const receipt = await sdkBlockStore({ store: bytes => new StoreBuilder(executor, bytes) })(block);
     assert.equal(receipt.cid, block.cid);
     assert.equal(calls.at(-1).options.cidCodec, block.codec);
-    assert.equal(calls.at(-1).options.hashingAlgorithm, 'sha2-256');
+    assert.equal(calls.at(-1).options.hashingAlgorithm, HashAlgorithm.Sha2_256);
     assert.equal(calls.at(-1).options.waitFor, 'finalized');
     assert.equal(calls.at(-1).chunker, undefined);
+  }
+});
+
+test('the actual SDK preparer computes the same raw and DAG-PB CIDs before SCALE encoding', async t => {
+  const c = await context(t);
+  const encoded = [];
+  const api = { tx: { TransactionStorage: { store_with_cid_config: args => {
+    assert.equal(args.cid.hashing.type, 'Sha2_256');
+    encoded.push(args);
+    return { canaryEncodedCall: true };
+  } } } };
+  const sdk = new AsyncBulletinClient(api, null, () => assert.fail('No broadcast in this test'));
+  // Keep SDK hash preparation, CID calculation and enum/call construction real;
+  // replace only transaction signing/submission with a finalized receipt.
+  sdk.signAndSubmitWithProgress = async (tx, _progress, waitFor) => {
+    assert.equal(tx.canaryEncodedCall, true); assert.equal(waitFor, 'finalized');
+    return { blockNumber: 500, txIndex: 1 };
+  };
+  for (const block of [c.graph.blocks.find(b => b.codec === 0x55), c.graph.blocks.at(-1)]) {
+    const receipt = await sdkBlockStore(sdk)(block);
+    assert.equal(receipt.cid, block.cid);
+    assert.equal(encoded.at(-1).cid.codec, BigInt(block.codec));
+    assert.deepEqual(encoded.at(-1).data, block.bytes);
   }
 });
 

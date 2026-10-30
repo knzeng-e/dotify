@@ -102,16 +102,19 @@ npm run canary --prefix research/bulletin-prototype -- check /private/tmp/dotify
 For the reviewed owner-authorized canary only, use a local signer pipe on
 FD 3. Never place the phrase in an argument, tracked file, command output or CI.
 For example, in zsh after the owner has temporarily activated the local signer:
+Invoke Node directly for signing: `npm run` does not preserve the extra file
+descriptor and must only be used for the unsigned commands above.
 
 ```zsh
 # Keep shell tracing off. Always remove the temporary local signer afterward.
+cd research/bulletin-prototype
 trap 'launchctl unsetenv MNEMONIC' EXIT
-npm run canary --prefix research/bulletin-prototype -- publish /private/tmp/dotify-bulletin-canary --signer-fd 3 3< <(launchctl getenv MNEMONIC)
+node --import tsx canary.mjs publish /private/tmp/dotify-bulletin-canary --signer-fd 3 3< <(launchctl getenv MNEMONIC)
 # Same graph, fresh process: should reuse all 19 receipts with no new write.
-npm run canary --prefix research/bulletin-prototype -- publish /private/tmp/dotify-bulletin-canary --signer-fd 3 3< <(launchctl getenv MNEMONIC)
-npm run canary --prefix research/bulletin-prototype -- verify /private/tmp/dotify-bulletin-canary
-npm run canary --prefix research/bulletin-prototype -- renew-now /private/tmp/dotify-bulletin-canary --signer-fd 3 3< <(launchctl getenv MNEMONIC)
-npm run canary --prefix research/bulletin-prototype -- verify /private/tmp/dotify-bulletin-canary
+node --import tsx canary.mjs publish /private/tmp/dotify-bulletin-canary --signer-fd 3 3< <(launchctl getenv MNEMONIC)
+node --import tsx canary.mjs verify /private/tmp/dotify-bulletin-canary
+node --import tsx canary.mjs renew-now /private/tmp/dotify-bulletin-canary --signer-fd 3 3< <(launchctl getenv MNEMONIC)
+node --import tsx canary.mjs verify /private/tmp/dotify-bulletin-canary
 ```
 
 The canary is capped at 1 MiB of stored ciphertext and 40 attempted transactions
