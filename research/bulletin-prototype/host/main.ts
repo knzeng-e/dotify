@@ -23,7 +23,7 @@ function cleanup() {
 }
 function fail(error: unknown, attempt: Record<string, any>) {
   if (report !== attempt || attempt.outcome === 'failed') return;
-  attempt.outcome = 'failed'; attempt.error = String(error instanceof Error ? error.message : error).slice(0, 400);
+  attempt.outcome = 'failed'; attempt.error = String(error instanceof Error ? error.message : error).slice(0, 400); attempt.errorName = error instanceof Error ? error.name : 'UnknownError';
   status.textContent = `Test stopped: ${attempt.error}`; cleanup(); display();
 }
 start.onclick = async () => {
@@ -36,6 +36,7 @@ start.onclick = async () => {
     network: element<HTMLInputElement>('network').value.slice(0, 160), userAgent: navigator.userAgent,
     reader: streamingMediaSource()?.kind ?? 'full-rendition-blob', hostCache: 'unknown; not cleared',
     pageCache: 'empty per attempt', audibleFirstSoundMeasured: false, operatorHeardAudio: false,
+    lookupTimeoutMs: Number(element<HTMLSelectElement>('lookup').value),
     productionAccessTested: false, outcome: 'preparing', reads: [], events: [], metrics: []
   };
   const control = controller = new AbortController();
@@ -75,7 +76,7 @@ start.onclick = async () => {
       attempt.insideHost = await isInsideContainer();
       if (!attempt.insideHost) { key.fill(0); throw new Error('Native mode needs Polkadot Desktop/mobile. Select local control for a browser test.'); }
     }
-    const native = hostBlockReader({ fetchBytes: queryBytes });
+    const native = hostBlockReader({ fetchBytes: queryBytes }, { lookupTimeoutMs: attempt.lookupTimeoutMs });
     const cache = new Map<string, Uint8Array>();
     const readBlock = async (cid: string) => {
       control.signal.throwIfAborted();

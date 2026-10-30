@@ -99,6 +99,9 @@ test('CID corruption and a denied Host response fail closed', async t => {
   await assert.rejects(verifyBlock(block.cid, corrupt), /does not match/);
   await assert.rejects(hostBlockReader({ fetchBytes: async () => ({ ok: false }) })(block.cid), /Host could not/);
   await assert.rejects(hostBlockReader({ fetchBytes: async () => ({ ok: true, value: corrupt }) })(block.cid), /does not match/);
+  const typed = Object.assign(new Error('Native lookup expired'), { name: 'CloudStorageLookupTimeoutError' });
+  await assert.rejects(hostBlockReader({ fetchBytes: async () => ({ ok: false, error: typed }) })(block.cid), error => error.name === typed.name && error.message.includes('Native lookup expired'));
+  assert.throws(() => hostBlockReader({}, { lookupTimeoutMs: 60_000 }), /lookup bound/);
 });
 
 test('the pinned SDK builder preserves exact codecs/hash and requests finalized single-block stores', async t => {

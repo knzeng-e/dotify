@@ -72,10 +72,16 @@ export async function readPath(readBlock, root, path, { maxBytes = 1024 * 1024, 
 }
 
 /** Pinned Product SDK 0.39 supports raw CID bytes via noReassemble. */
-export function hostBlockReader(cloud) {
+export function hostBlockReader(cloud, { lookupTimeoutMs = 10_000 } = {}) {
+  assert.ok(Number.isSafeInteger(lookupTimeoutMs) && lookupTimeoutMs >= 1000 && lookupTimeoutMs <= 30_000, 'Invalid Host lookup bound');
   return async cid => {
-    const result = await cloud.fetchBytes(cid, { noReassemble: true, lookupTimeoutMs: 10_000 });
-    assert.ok(result.ok, 'Host could not retrieve the requested block');
+    const result = await cloud.fetchBytes(cid, { noReassemble: true, lookupTimeoutMs });
+    if (!result.ok) {
+      const error = new Error('Host could not retrieve the requested block');
+      error.name = result.error?.name ?? 'HostBlockReadError';
+      error.message += result.error?.message ? `: ${String(result.error.message).slice(0, 300)}` : '';
+      throw error;
+    }
     await verifyBlock(cid, result.value);
     return result.value;
   };
