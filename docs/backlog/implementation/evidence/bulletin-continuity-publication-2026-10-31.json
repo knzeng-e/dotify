@@ -3,7 +3,11 @@
   "operatorDate": "2026-10-31 Europe/Paris; machine timestamps UTC",
   "source": "0da3a52827b1266675fb612119e9cd3ded4e7a91",
   "domain": "dotify-bulletin-lab.dot",
-  "version": [0, 2, 0],
+  "version": [
+    0,
+    2,
+    0
+  ],
   "artifact": {
     "audioRoot": "bafykbzacecj2qvfpqevlm6pqkm24fjcmszi6qd5r3ywikxfxx5yhjqsyorot4",
     "carBytes": 5272391,
@@ -1163,7 +1167,16 @@
     "reason": "Address entry did not respond to accessibility/menu/keyboard actions; coordinate input reported noWindowsAvailable."
   },
   "mobile": {
-    "new64SecondPlaybackTested": false
+    "new64SecondPlaybackTested": true,
+    "evidence": "bulletin-continuity-mobile-wifi-2026-10-31.json",
+    "source": "owner-supplied report",
+    "network": "Wi-Fi, owner-reported",
+    "hostVersionReconfirmed": false,
+    "firstPlayingEventMs": 1388,
+    "outcome": "ended",
+    "operatorHeardAudio": true,
+    "ownerReportedAudibleCuts": 1,
+    "uninterruptedContinuityAccepted": false
   },
   "limitations": [
     "One mixed publication, no controlled serial/parallel throughput comparison",

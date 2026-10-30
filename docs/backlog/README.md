@@ -30,8 +30,11 @@ the [64-second diagnostic is now published](implementation/evidence/bulletin-con
 as `dotify-bulletin-lab.dot` 0.2.0. All audio and Product data, exact CAR and
 DotNS records were verified; the local signer is removed. The 74 new stores
 stay within the owner-approved budget, with 82 renewal transactions reserved.
-Native long listening, cold audible startup and production retention remain
-open. This changes no deployed Dotify storage provider or production record.
+The first owner-supplied native mobile Wi-Fi report reaches 64 seconds with
+sound heard and first `playing` at 1,388 ms, but the owner heard one cut.
+Uninterrupted listening is not accepted; a paired bundled control is next.
+Cold audible startup and production retention remain open. This changes no
+deployed Dotify storage provider or production record.
 
 ## Current reconciliation, 2026-10-23
 
