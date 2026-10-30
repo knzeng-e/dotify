@@ -21,7 +21,11 @@
     "inspect:pipeline": "node inspect-pipeline.mjs",
     "build:mobile": "node --import tsx mobile-package.mjs",
     "test:mobile": "node --import tsx --test mobile-package.test.mjs mobile-reports.test.mjs",
-    "test:mobile-browser": "node --import tsx --test mobile-browser.test.mjs"
+    "test:mobile-browser": "node --import tsx --test mobile-browser.test.mjs",
+    "probe:writer": "node --import tsx writer-probe.mjs",
+    "test:continuity": "node --import tsx --test continuity.test.mjs",
+    "test:continuity-browser": "node --import tsx --test continuity-browser.test.mjs",
+    "continuity": "node --import tsx continuity.mjs"
   },
   "dependencies": {
     "@ipld/dag-pb": "4.2.0",

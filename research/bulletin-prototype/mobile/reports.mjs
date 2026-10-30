@@ -25,6 +25,10 @@ const scalarFields = {
   errorName: text,
   lookupTimeoutMs: number,
   firstPlayingEventMs: number,
+  fixtureProfile: text,
+  fixtureDurationSeconds: number,
+  attemptLimitMs: number,
+  firstPlayingLimitMs: number,
   progressive: value => (typeof value === 'boolean' ? value : undefined),
   insideHost: value => (typeof value === 'boolean' ? value : undefined),
   operatorHeardAudio: value => value === true,
@@ -42,12 +46,19 @@ export function safeReport(input) {
   if (!input || input.schema !== 'dotify.bulletin.host-report.v1' || !text(input.id, 80)) throw new Error('Invalid diagnostic report');
   const report = project(input, scalarFields);
   report.implementation = project(input.implementation, { sha: value => text(value, 64), dirty: value => value === true });
-  report.events = (Array.isArray(input.events) ? input.events : [])
-    .slice(-200)
-    .map(event => project(event, { name: value => text(value, 40), at: value => text(value, 40), elapsedMs: number, mediaSeconds: number }));
+  report.events = (Array.isArray(input.events) ? input.events : []).slice(-200).map(event =>
+    project(event, {
+      name: value => text(value, 40),
+      at: value => text(value, 40),
+      elapsedMs: number,
+      mediaSeconds: number,
+      bufferedUntilMediaSeconds: number,
+      networkNote: value => text(value, 160)
+    })
+  );
   report.reads = (Array.isArray(input.reads) ? input.reads : [])
     .slice(-100)
-    .map(read => project(read, { cid: value => text(value, 128), bytes: number, elapsedMs: number }));
+    .map(read => project(read, { cid: value => text(value, 128), bytes: number, elapsedMs: number, attemptElapsedMs: number, mediaSeconds: number }));
   // Metrics remain on the current screen; stored/exported evidence has an explicit, smaller schema.
   return report;
 }

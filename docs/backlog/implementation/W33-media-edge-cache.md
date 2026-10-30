@@ -11,6 +11,16 @@ timings as first sound or reactivate DAV2 range readers. See [W33](evidence/W33.
 
 Copy this entire file into an agent working in the Dotify repository, or use the launcher in README.md.
 
+## Bulletin continuity research, 2026-10-30
+
+The owner-reported [eight-second mobile evidence](evidence/bulletin-mobile-publication-2026-10-30.md)
+now has a [64-second generated-only follow-up preparation](evidence/bulletin-mobile-continuity-2026-10-30.md).
+Local controls prove continued segment reads beyond the initial buffer, report
+recovery and explicit larger-profile limits. No new storage, renewal, Product
+update or provider switch has occurred. Native long listening, cold audible
+startup, real network/background recovery and production retention remain open.
+The next network run requires an exact reviewed allowance/distribution budget.
+
 ## Agent assignment
 
 Implement **W33** only. Read `AGENTS.md`, `docs/backlog/implementation/common.md`, and the files below before changing code. Follow the common execution contract, including the evidence/handoff record.

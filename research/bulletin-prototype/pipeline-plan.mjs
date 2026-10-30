@@ -5,7 +5,7 @@ import { pipelineLimits } from './pipeline.mjs';
 
 /** Equal-duration waves are a scheduling model, never a wall-clock estimate. */
 export async function planPipeline(graph, options = {}) {
-  await verifyGraph(graph);
+  await verifyGraph(graph, options);
   const limits = pipelineLimits(options);
   assert.ok(
     graph.blocks.every(b => b.bytes.length <= limits.maxInFlightBytes),

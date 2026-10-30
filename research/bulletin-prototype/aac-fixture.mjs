@@ -7,36 +7,19 @@ import { initializeStreamingNonceLedger, StreamingNonceLedger } from '../../serv
 import { decryptStreamingObject } from '../../services/api/src/services/streamingFormat.ts';
 import { blake2b } from '../../services/api/node_modules/@noble/hashes/blake2.js';
 import { prepare } from './canary.mjs';
-
-export function generatedWav() {
-  const rate = 16_000,
-    seconds = 8,
-    samples = rate * seconds;
-  const wav = Buffer.alloc(44 + samples * 2);
-  wav.write('RIFF');
-  wav.writeUInt32LE(wav.length - 8, 4);
-  wav.write('WAVEfmt ', 8);
-  wav.writeUInt32LE(16, 16);
-  wav.writeUInt16LE(1, 20);
-  wav.writeUInt16LE(1, 22);
-  wav.writeUInt32LE(rate, 24);
-  wav.writeUInt32LE(rate * 2, 28);
-  wav.writeUInt16LE(2, 32);
-  wav.writeUInt16LE(16, 34);
-  wav.write('data', 36);
-  wav.writeUInt32LE(samples * 2, 40);
-  for (let i = 0; i < samples; i++) {
-    const t = i / rate;
-    const envelope = Math.min(1, t / 0.1, (seconds - t) / 0.2);
-    const chord = [220, 277.18, 329.63].reduce((sum, hz) => sum + Math.sin(2 * Math.PI * hz * t), 0) / 3;
-    wav.writeInt16LE(Math.round(chord * envelope * 4000), 44 + i * 2);
-  }
-  return wav;
-}
+import { generatedWav } from './generated-source.mjs';
+export { generatedWav } from './generated-source.mjs';
+import { fixtureProfile } from './fixture-profile.mjs';
 
 /** Real encoder: loudness, FFmpeg, nonce reservation and v3 AEAD. */
 export async function encryptedAacFixture(directory) {
-  const master = generatedWav();
+  return encodeGenerated(directory, fixtureProfile());
+}
+export async function encryptedContinuityFixture(directory) {
+  return encodeGenerated(directory, fixtureProfile('continuity'));
+}
+async function encodeGenerated(directory, profile) {
+  const master = generatedWav(profile.durationSeconds);
   const key = randomBytes(32);
   const scope = {
     chainId: 420420417,
@@ -47,7 +30,12 @@ export async function encryptedAacFixture(directory) {
   const ledgerPath = join(directory, 'nonces');
   await initializeStreamingNonceLedger(ledgerPath);
   try {
-    const result = await encodeStreamingRelease({ master, key, scope, ledger: new StreamingNonceLedger(ledgerPath) });
+    const result = await encodeStreamingRelease({
+      master,
+      key,
+      scope,
+      ledger: new StreamingNonceLedger(ledgerPath)
+    });
     const files = result.files.map(({ name, bytes }) => ({ path: name, bytes }));
     const byPath = new Map(files.map(file => [file.path, file.bytes]));
     const originals = new Map();
@@ -61,7 +49,7 @@ export async function encryptedAacFixture(directory) {
       manifest: result.manifest,
       originals,
       audioProof: {
-        kind: 'generated-chord-aac-v1',
+        kind: profile.kind,
         durationSeconds: result.manifest.durationSeconds,
         sourceSha256: createHash('sha256').update(master).digest('hex'),
         encoder: 'services/api/src/services/streamingEncoder.ts',

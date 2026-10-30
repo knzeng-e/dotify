@@ -14,13 +14,13 @@
       <section class="intro">
         <p class="eyebrow">LET THE MUSIC CONNECT THE DOTS</p>
         <h1>The first<br /><em>note.</em></h1>
-        <p>Can Bulletin bring the music to your phone?<br />One quiet chord. Eight seconds. A clear result.</p>
+        <p>Can Bulletin bring the music to your phone?<br />One quiet chord. <span id="clip-duration">Eight seconds.</span> A clear result.</p>
       </section>
       <section class="player" aria-label="Audio diagnostic">
         <div class="player-heading">
           <span class="dot" aria-hidden="true"></span>
           <h2>Listening test</h2>
-          <span>00:08</span>
+          <span id="duration">00:08</span>
         </div>
         <p>Use low volume. Native mode reads Bulletin directly; it never switches to a gateway.</p>
         <label
@@ -46,11 +46,16 @@
         <div class="actions">
           <button id="play">Start listening <span aria-hidden="true">↗</span></button><button id="stop" disabled>Stop</button>
         </div>
+        <button id="mark-network" disabled>Mark network switch</button>
+        <p class="note">
+          Update Network in Test conditions when switching, then mark it here. A marker records your observation, not a verified network change.
+        </p>
         <audio id="audio" controls playsinline aria-label="Generated eight-second chord"></audio>
         <p id="status" role="status" aria-live="polite">Ready when you are.</p>
         <label class="check"><input id="heard" type="checkbox" /> I heard the chord on this device.</label>
         <p class="note">
-          A “playing” event does not prove audible sound. Pause, seek or switch apps briefly to check continuity. Each attempt stops after 60 seconds.
+          A “playing” event does not prove audible sound. Pause, seek or switch apps briefly to check continuity. Each attempt stops after
+          <span id="attempt-limit">60</span> seconds.
         </p>
       </section>
       <section class="evidence">
@@ -77,7 +82,7 @@
         <p>
           This isolated diagnostic does not test artist access, payments or production storage. The test key is public and unlocks only this generated chord.
         </p>
-        <p>Build <code id="source"></code> · Bulletin lab 0.1.0</p>
+        <p>Build <code id="source"></code> · Bulletin lab <span id="diagnostic-version">0.1.0</span></p>
       </footer>
     </main>
     <script type="module" src="./main.ts"></script>

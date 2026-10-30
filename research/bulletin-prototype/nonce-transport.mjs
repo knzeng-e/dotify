@@ -1,9 +1,11 @@
 // Direct, explicitly nonced Bulletin transactions. No SDK retry or wrapper batch.
 import assert from 'node:assert/strict';
 import { verifyBlock, MAX_BLOCK_BYTES } from './graph.mjs';
-import { liveTransport, CANARY_ACCOUNT, CANARY_BUDGET } from './live-transport.mjs';
+import { fixtureProfile } from './fixture-profile.mjs';
+import { liveTransport, CANARY_ACCOUNT } from './live-transport.mjs';
 
 export function watchFinalized(tx, signer, nonce, { timeoutMs = 120_000 } = {}) {
+  assert.equal(typeof signer, 'function', 'PAPI 3 requires an explicit transaction creator, not a PAPI 2 signer object');
   assert.ok(Number.isSafeInteger(nonce) && nonce >= 0 && nonce <= 0xffffffff, 'Invalid explicit nonce');
   assert.ok(Number.isSafeInteger(timeoutMs) && timeoutMs > 0 && timeoutMs <= 120_000, 'Invalid finality deadline');
   return new Promise((resolve, reject) => {
@@ -53,6 +55,8 @@ export function watchFinalized(tx, signer, nonce, { timeoutMs = 120_000 } = {}) 
 }
 
 export function nonceTransport(client, signer, account, options = {}) {
+  assert.ok(signer == null || typeof signer === 'function', 'PAPI 3 transaction creator required');
+  const budget = fixtureProfile(options.profile).budget;
   const read = liveTransport(client, null, account, options);
   const api = client.getUnsafeApi();
   const issued = new Map();
@@ -72,7 +76,7 @@ export function nonceTransport(client, signer, account, options = {}) {
     const operation = reservation.then(async () => {
       assert.ok(signer && account === CANARY_ACCOUNT, 'Explicit owner-selected local signer required');
       assert.ok(!issued.has(nonce), 'Nonce already issued by this transport');
-      assert.ok(attempts < CANARY_BUDGET.maxTransactions && writtenBytes + bytes <= CANARY_BUDGET.maxBytes, 'Live session budget exceeded');
+      assert.ok(attempts < budget.maxTransactions && writtenBytes + bytes <= budget.maxBytes, 'Live session budget exceeded');
       const { authorization, head } = await read.status();
       // Subtract only attempts not yet reflected in this finalized snapshot.
       const outstanding = [...issued.values()].filter(r => r.finalizedBlock === null || r.finalizedBlock > head);

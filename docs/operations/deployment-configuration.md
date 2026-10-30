@@ -99,6 +99,32 @@ Two owner-reported native eight-second listens and two completed decoder control
 are recorded above; background, longer listening and measured first-sound gates
 remain unverified.
 
+## Longer Bulletin mobile diagnostic, prepared only
+
+The [64-second continuity preparation](../backlog/implementation/evidence/bulletin-mobile-continuity-2026-10-30.md)
+is local only. Its explicit `continuity` profile keeps the real three-rendition
+format, authenticates the generated source and excludes the archival master
+from playback. Default short budgets remain unchanged. It adds bounded progress
+and media-relative reads to local reports, plus a human network marker; none
+is automatic proof of a real handover, cold cache or physical first sound.
+
+The locally prepared graph is 66 blocks / 5,677,848 bytes, with 66 further
+transactions reserved for one renewal. The hard profile ceiling is not owner
+approval. Fresh quota must preserve earlier reserves and cover the exact
+independent Product distribution plan before asking for a signer. No allowance,
+service, secret, CORS origin, storage setting or deployment has changed.
+Do not overwrite the existing diagnostic or `dotify-test01.dot` as part of local
+preparation. The old sequential renewal command does not accept the larger
+profile/pipeline journal. Failed encryption keeps its nonce ledger; prepare a
+new directory rather than deleting it.
+
+The manual `probe:writer` command only reads pinned DevNet metadata and builds
+an invalid fake-signed transaction with PAPI 3. Its provider rejects any RPC
+outside a read allowlist; it consumes no storage quota. This verifies an
+operator API boundary, not actual publication throughput. CI runs only offline
+variants and compiled browser controls. Rollback remains to stop using the
+isolated diagnostic; production storage is untouched.
+
 ## Bounded Bulletin publication research, not deployed
 
 The [isolated pipeline](../../research/bulletin-prototype/README.md#opt-in-bounded-publication)

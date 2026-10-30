@@ -1,5 +1,6 @@
 import { queryBytes } from '@parity/product-sdk/cloud-storage';
 import { createClient } from 'polkadot-api';
+import { fixtureProfile } from '../fixture-profile.mjs';
 import { nativeRpcReader, NATIVE_GENESIS, bounded } from '../native-rpc.mjs';
 import { isInsideContainer, getHostProvider } from '@parity/product-sdk/host';
 import { readPath, hostBlockReader } from '../reader.mjs';
@@ -10,9 +11,11 @@ export type PlayerOptions = {
   loadSession: (signal: AbortSignal) => Promise<any>;
   readControlBlock: (cid: string, signal: AbortSignal) => Promise<Uint8Array>;
   controlTransport?: string;
+  profile?: string;
   onReport?: (report: Record<string, any>) => void;
 };
 export function mountPlayer(options: PlayerOptions) {
+  const profile = fixtureProfile(options.profile);
   const element = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
   const audio = element<HTMLAudioElement>('audio');
   const start = element<HTMLButtonElement>('play');
@@ -21,6 +24,8 @@ export function mountPlayer(options: PlayerOptions) {
   const output = element('report');
   const download = element<HTMLButtonElement>('export');
   const heard = element<HTMLInputElement>('heard');
+  const networkMarker = element<HTMLButtonElement>('mark-network');
+  let began = 0;
   let controller: AbortController | undefined;
   let report: Record<string, any> | undefined;
   let mediaUrl: string | undefined;
@@ -47,6 +52,7 @@ export function mountPlayer(options: PlayerOptions) {
     nativeClient = undefined;
     start.disabled = false;
     stop.disabled = true;
+    if (networkMarker) networkMarker.disabled = true;
   }
   function fail(error: unknown, attempt: Record<string, any>) {
     if (report !== attempt || attempt.outcome === 'failed') return;
@@ -63,6 +69,10 @@ export function mountPlayer(options: PlayerOptions) {
     const mode = element<HTMLSelectElement>('transport').value;
     const attempt = (report = {
       schema: 'dotify.bulletin.host-report.v1',
+      fixtureProfile: profile.id,
+      fixtureDurationSeconds: profile.durationSeconds,
+      attemptLimitMs: profile.attemptLimitMs,
+      firstPlayingLimitMs: profile.firstPlayingLimitMs,
       id: crypto.randomUUID(),
       startedAt: new Date().toISOString(),
       transport: mode === 'native' ? 'native-preimage' : mode === 'rpc' ? 'native-chain-rpc' : (options.controlTransport ?? 'local-control'),
@@ -84,9 +94,10 @@ export function mountPlayer(options: PlayerOptions) {
     const control = (controller = new AbortController());
     start.disabled = true;
     stop.disabled = false;
+    if (networkMarker) networkMarker.disabled = false;
     download.disabled = false;
     status.textContent = 'Reading and authenticating the first audio objects…';
-    const began = performance.now();
+    began = performance.now();
     const listeners = new AbortController();
     control.signal.addEventListener('abort', () => listeners.abort(), { once: true });
     for (const name of ['playing', 'pause', 'waiting', 'stalled', 'seeking', 'seeked', 'ended', 'error']) {
@@ -111,10 +122,32 @@ export function mountPlayer(options: PlayerOptions) {
         { signal: listeners.signal }
       );
     }
+    let lastProgress = -4;
+    audio.addEventListener(
+      'timeupdate',
+      () => {
+        if (report !== attempt || control.signal.aborted || attempt.firstPlayingEventMs == null || attempt.events.length >= 200) return;
+        if (audio.currentTime < lastProgress || audio.currentTime >= lastProgress + 4) {
+          lastProgress = audio.currentTime;
+          const bufferedUntilMediaSeconds = audio.buffered.length ? audio.buffered.end(audio.buffered.length - 1) : 0;
+          attempt.events.push({
+            name: 'progress',
+            elapsedMs: Math.round(performance.now() - began),
+            mediaSeconds: audio.currentTime,
+            bufferedUntilMediaSeconds
+          });
+          display();
+        }
+      },
+      { signal: listeners.signal }
+    );
     display();
-    const wholeAttempt = setTimeout(() => fail(new Error('Clip did not finish within 60 seconds'), attempt), 60_000);
+    const wholeAttempt = setTimeout(
+      () => fail(new Error(`Clip did not finish within ${profile.attemptLimitMs / 1000} seconds`), attempt),
+      profile.attemptLimitMs
+    );
     control.signal.addEventListener('abort', () => clearTimeout(wholeAttempt), { once: true });
-    const deadline = setTimeout(() => fail(new Error('No first playing event within 45 seconds'), attempt), 45_000);
+    const deadline = setTimeout(() => fail(new Error('No first playing event within 45 seconds'), attempt), profile.firstPlayingLimitMs);
     control.signal.addEventListener('abort', () => clearTimeout(deadline), { once: true });
     audio.addEventListener('playing', () => clearTimeout(deadline), { once: true, signal: listeners.signal });
     let key: Uint8Array | undefined;
@@ -122,7 +155,12 @@ export function mountPlayer(options: PlayerOptions) {
     try {
       session = await options.loadSession(control.signal);
       control.signal.throwIfAborted();
-      if (session.schema !== 'dotify.bulletin.host-canary.v1' || session.audioProof?.kind !== 'generated-chord-aac-v1')
+      if (
+        session.schema !== 'dotify.bulletin.host-canary.v1' ||
+        session.audioProof?.kind !== profile.kind ||
+        session.audioProof?.durationSeconds !== profile.durationSeconds ||
+        (session.fixtureProfile ?? 'short') !== profile.id
+      )
         throw new Error('Unexpected test fixture');
       key = Uint8Array.from(session.key);
       attempt.root = session.root;
@@ -152,7 +190,13 @@ export function mountPlayer(options: PlayerOptions) {
         const readStart = performance.now();
         const bytes = mode !== 'local' ? await native!(cid) : await options.readControlBlock(cid, control.signal);
         control.signal.throwIfAborted();
-        attempt.reads.push({ cid, bytes: bytes.length, elapsedMs: Math.round(performance.now() - readStart) });
+        attempt.reads.push({
+          cid,
+          bytes: bytes.length,
+          elapsedMs: Math.round(performance.now() - readStart),
+          attemptElapsedMs: Math.round(performance.now() - began),
+          mediaSeconds: audio.currentTime
+        });
         cache.set(cid, bytes);
         return bytes;
       };
@@ -204,6 +248,17 @@ export function mountPlayer(options: PlayerOptions) {
     status.textContent = 'Stopped.';
     display();
   };
+  if (networkMarker)
+    networkMarker.onclick = () => {
+      if (!report || !controller || controller.signal.aborted || report.events.length >= 200) return;
+      report.events.push({
+        name: 'network-switch-marked',
+        elapsedMs: Math.round(performance.now() - began),
+        mediaSeconds: audio.currentTime,
+        networkNote: element<HTMLInputElement>('network').value.slice(0, 160)
+      });
+      display(); // A human marker is not automatic verification of a network handover.
+    };
   heard.onchange = () => {
     if (report) report.operatorHeardAudio = heard.checked;
     display();
