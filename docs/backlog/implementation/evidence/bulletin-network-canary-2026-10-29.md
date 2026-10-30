@@ -43,14 +43,64 @@ media delivery or physical Host support.
 
 ## Validation and remaining gates
 
+### Operator correction and validated implementation, 2026-10-30
+
+The first operator invocation stopped with `ENXIO` before any storage submission:
+`npm run` did not preserve the extra signer descriptor. The temporary signer was
+removed automatically. The corrected command invokes Node directly and validates
+the descriptor/account before opening a network connection. A real-shell pipe
+test now covers this boundary without a secret or network call.
+
+Unsigned call-encoding checks also caught an SDK example/API mismatch: SDK 0.5.0
+requires numeric `HashAlgorithm.Sha2_256`, despite string examples in its comments.
+The additional regression exercises the actual SDK hash preparer, CID calculation
+and SCALE enum construction; only signing/broadcast is replaced. It verifies raw
+and DAG-PB CIDs rather than merely checking builder options.
+
+All **26 tests pass** locally and in the [dedicated Linux workflow](https://github.com/knzeng-e/dotify/actions/runs/40978575683)
+on implementation `7d17b272224ec7f76c16f46c557d01f135e29ef9`. An unsigned live
+metadata check encodes the store call and confirms immediate renewal compatibility;
+it submits neither call. The same persisted fixture is used for the live run.
+
 The offline suite covers consumed-vs-allowed counters, wrong chain/account,
 unfinalized or substituted metadata, RPC corruption/timeouts, explicit signer
 input, private fixture preservation and overlapping operators, in addition to
 the previous directory/nonce/recovery scenarios. CI never invokes the live CLI.
 
-Live upload/renewal results are not yet recorded. Do not infer success from the
-read-only preflight. After the run, record tested implementation SHA, exact public
-receipts, before/after quota and selective read evidence here.
+### Live storage and read-only recovery, 2026-10-30
+
+The owner temporarily reactivated the local signer. Implementation `7d17b272`
+stored all 19 blocks, including the unchanged root
+`bafybeigxn7eqo72r2zjyd7drktzqaoi7nubl74zthst4lf2vej7y2mozua`.
+The initial 12-minute command limit stopped the process after 18 receipts were
+checkpointed while the root was still pending locally. Read-only reconciliation
+found the root finalized at (1,422,766, 0), verified all 19 block hashes/metadata
+and rebuilt the checkpoint with **zero additional stores**. The original process
+was confirmed stopped before removing only its stale operator lock. Ciphertext,
+key, nonces and pending journal were preserved; the pending root was cleared only
+after finalized lookup and readback. The signer was removed on timeout.
+
+After the 19 stores and read-only resume, quota was 81 transactions and
+9,615,262 stored bytes remaining; renewal allowance was still 10,485,760 bytes.
+This is exactly 19 transactions / 870,498 bytes consumed. Store positions span
+blocks 1,422,653–1,422,766. Roughly twelve minutes for this sequential publication
+is an explicit throughput limitation, not a speed improvement. A production
+writer needs separately designed/measured bounded scheduling or batching.
+
+The nine streaming objects (init and both segments for 96/160/320 kb/s) passed
+v3 authentication/decryption and plaintext-hash comparison. Startup fetched
+28,767 bytes in eight raw-CID reads, with no archival-master block; the complete
+read proof used 29 reads / 156,887 bytes. First authenticated objects took 424 ms
+in this single-node, already-published path. This is not cold-cache, audible
+startup or physical Host evidence, and is not a performance comparison to Pinata.
+
+The CLI now offers signer-free `reconcile`, refuses to create write intents for
+missing blocks on a read-only transport, and uses a bounded 30-minute command
+deadline. Immediate renewal and its post-renewal readback remain outstanding.
+The reconciliation ran on implementation `01ada3a53077bad234c4ddc18a94d60ccfd9270b`;
+all 27 offline tests pass. The [public run artifact](bulletin-network-canary-2026-10-30.json)
+contains exact finalized receipts, before/after quota and selective read results,
+without ciphertext, content keys, mnemonic material or private fixture files.
 
 The fixture is synthetic byte patterns, not decodable AAC. RPC reads through
 one node are not Web/physical Product light-client playback, a cold first-sound
