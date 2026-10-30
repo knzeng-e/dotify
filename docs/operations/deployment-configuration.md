@@ -33,6 +33,32 @@ read-only timeout recovery. The local signer is removed. This does not activate
 Bulletin media in the app; the sequential prototype's roughly twelve-minute
 publication is an explicit throughput limitation.
 
+The [real-AAC Host reader preparation](../backlog/implementation/evidence/bulletin-aac-host-canary-2026-10-30.md)
+adds a separate generated eight-second fixture and a loopback-only test page.
+Its 16 stores / 713,199 bytes were finalized and read back without a signer;
+46 transactions remained. A full renewal cycle was reserved but not executed
+for this fixture. Run it only with the private generated fixture;
+never tunnel or publish its key endpoint. Native modes have no API/gateway/local
+fallback. Installed Desktop preimage reads timed out and its chain adapter
+refused the content RPC; the SHA-256/BLAKE2b compatibility lead is in the evidence.
+Mobile distribution and physical native first sound remain unverified;
+no deployed origin, signer, Host permission or production storage is changed.
+
+The [addressing diagnostic](../backlog/implementation/evidence/bulletin-addressing-canary-2026-10-30.md) finalized exactly three public-marker
+blocks / 387 bytes, with SHA-256 and BLAKE2b-256 hashes and one named directory.
+Its separate budget reserves three stores plus three possible renewals, but
+only stores are planned. Follow the [controlled comparison](../../research/bulletin-prototype/README.md#controlled-addressing-comparison);
+its public session has no key and the audio session endpoint returns 404.
+The normal generated-AAC session remains private and loopback-only. The installed Desktop verified BLAKE2b raw/directory/path reads; SHA-256
+timed out. There are 43 transactions left and the signer was removed. This
+marker result must not activate production delivery or be presented as AAC proof.
+The [generated-AAC BLAKE2b follow-up](../backlog/implementation/evidence/bulletin-blake-aac-canary-2026-10-30.md)
+finalized 16 blocks / 713,229 bytes and completed eight-second native Desktop
+playback (first playing event 2,052 ms; cache state unknown). Its original
+ciphertext and permanent nonce ledger remain unchanged. The signer is removed,
+no renewal ran, and 27 transactions remain. These are research-only receipts;
+mobile/cold audible-start evidence and production integration are still open.
+
 ## W39 room scaling research, not deployed
 
 [ADR 0037](../adr/0037-room-scaling-and-sfu.md) and the

@@ -12,13 +12,16 @@ import { liveTransport, CANARY_ACCOUNT, authorization } from './live-transport.m
 import { prepare, loadFixture, withLease, verifyFiles, localSigner } from './canary.mjs';
 import { SimulatedChain } from './simulated-chain.mjs';
 import { publish } from './publication.mjs';
+import { addressingFixture } from './addressing.mjs';
+import { runtimeHashName } from './hashes.mjs';
+import { CID } from 'multiformats/cid';
 
 const rawAuth = () => ({ expires_at: 20_000, transactions_used: 8, transactions_allowance: 100, bytes_used: 100n, bytes_allowance: 1_000_000n, bytes_permanent_used: 50n });
-async function fake() {
+async function fake(suppliedBlock) {
   const graph = await buildDirectory([{ path: 'manifest.json', bytes: Buffer.from('synthetic') }]);
-  const block = graph.blocks[0];
+  const block = suppliedBlock ?? graph.blocks[0];
   let genesis = GENESIS, auth = rawAuth(), position = [100, 0];
-  let info = { content_hash: `0x${Buffer.from((await import('multiformats/cid')).CID.parse(block.cid).multihash.digest).toString('hex')}`, hashing: { type: 'Sha2_256' }, cid_codec: BigInt(block.codec), size: block.bytes.length };
+  let info = { content_hash: `0x${Buffer.from((await import('multiformats/cid')).CID.parse(block.cid).multihash.digest).toString('hex')}`, hashing: { type: runtimeHashName(CID.parse(block.cid).multihash.code) }, cid_codec: BigInt(block.codec), size: block.bytes.length };
   let rpcBytes = `0x${Buffer.from(block.bytes).toString('hex')}`;
   let releases = 0;
   const calls = [], writes = [], renewals = [];
@@ -157,4 +160,17 @@ test('direct Node invocation receives the explicit signer pipe across a real she
   assert.equal(result.status, 1, result.stderr);
   assert.equal(result.stdout.trim(), 'Invalid local signer input');
   assert.equal(result.stderr, '');
+});
+
+ test('BLAKE2 lookups validate finalized hash metadata and reject an algorithm substitution', async () => {
+  const fixture = await addressingFixture();
+  for (const block of fixture.graph.blocks.slice(1)) {
+    const f = await fake(block);
+    const t = liveTransport(f.client, null, CANARY_ACCOUNT);
+    assert.equal((await t.lookup(block.cid)).cid, block.cid);
+    assert.deepEqual(await t.readBlock(block.cid), Buffer.from(block.bytes));
+    f.info = { hashing: { type: 'Sha2_256' } };
+    await assert.rejects(t.lookup(block.cid), /different hash/);
+    assert.equal(f.writes.length, 0);
+  }
 });
