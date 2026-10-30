@@ -69,5 +69,105 @@
     "pipelineTests": 19,
     "livePublicationSpeedMeasured": false,
     "mobileTested": false
+  },
+  "testedPipelineSource": "4dd555014eb2424ea6ca3f392166aeaea939cf76",
+  "compatibilityOverlay": {
+    "readerSource": "7b6d4d224f3a317bbd493b556bca604aca321194",
+    "pipelineSource": "4dd555014eb2424ea6ca3f392166aeaea939cf76",
+    "overlay": true,
+    "networkWrites": 0,
+    "keyLoaded": false,
+    "blocks": 16,
+    "bytes": 713229,
+    "result": {
+      "root": "bafykbzacecbgxu5coifnfzajpkwzuaxv36snvjfd4zqsbvpgfk4mx7mhzhtj4",
+      "storedBlocks": 16,
+      "reusedBlocks": 0,
+      "reservedRenewalTransactions": 16,
+      "concurrency": 2,
+      "maxInFlightBytes": 524288,
+      "peakInFlight": 2,
+      "peakInFlightBytes": 304461
+    },
+    "plan": {
+      "schema": "dotify.bulletin.pipeline-plan.v1",
+      "root": "bafykbzacecbgxu5coifnfzajpkwzuaxv36snvjfd4zqsbvpgfk4mx7mhzhtj4",
+      "blocks": 16,
+      "bytes": 713229,
+      "concurrency": 2,
+      "maxInFlightBytes": 524288,
+      "serialFinalityWaves": 16,
+      "modeledFinalityWaves": 9,
+      "waves": [
+        {
+          "cids": [
+            "bafk2bzacebvogx72ouutwhmwl4unnz2eslp6cwr5vgartcow6gvufxdvlquva",
+            "bafk2bzacebpd6ny4na3yhf6h47ihzfgduhq4wjz6ag3bezhle7ijjgpmkp7gw"
+          ],
+          "bytes": 80988
+        },
+        {
+          "cids": [
+            "bafk2bzaceargbep2z6ogreshi6irm2mbemghyinvpzk6od4qx2zhde5b3t7tu",
+            "bafk2bzacedj56gy5dfohhc3o7dftweyvnzbixbfdn3kcmcz3gnbmaky4dws6c"
+          ],
+          "bytes": 81920
+        },
+        {
+          "cids": [
+            "bafykbzacedazw652ftokwskn4dl6aw4clq2lsj4cnszzvohdvydbiughvxmfc",
+            "bafk2bzaceajpkymbzny3gemzdwcdciqfqmwde4clixnpsb6mzcugn7ktxylrk"
+          ],
+          "bytes": 97103
+        },
+        {
+          "cids": [
+            "bafk2bzaceb2iebc43v2r4vanqh7zriwt2hckfxvl5fvxcww3agu4fkp2hqkyy",
+            "bafk2bzaceaq6qzkz3bk3w66rhnwcathlmvllaioff6276lbjl44qh33nkj3fk"
+          ],
+          "bytes": 97694
+        },
+        {
+          "cids": [
+            "bafykbzacebhbqaxfr6gz6mtknngps7kwcy4yihiyi7jth3c5twbbccdspr6dc",
+            "bafk2bzaceabx4deg2xjygwxrtsnuvy72pv62pxwzj6fw62ehmwvmot34phzlm"
+          ],
+          "bytes": 48555
+        },
+        {
+          "cids": [
+            "bafk2bzacecoq4m7e35hpcg3xhry2hfhmkluzflbsn2l263wtcquxvjf2423ps",
+            "bafk2bzacebybumvaphjpmqklrop3t5ypgtn34nbfkn6ro5zu73xuyjrcoib2s"
+          ],
+          "bytes": 304461
+        },
+        {
+          "cids": [
+            "bafykbzaced7bpqf2f4bwkxpnwvyswdid3t5urqdkybvsezke3fguqalaxhces",
+            "bafykbzacebe6i64545pjwmay342hjsdiofla2h3lpueq5zhc4x77f4qeieses"
+          ],
+          "bytes": 247
+        },
+        {
+          "cids": [
+            "bafk2bzaced7xt7u2trvyvdmnnt4p5p6ikudesmb43l3y3w753s64yp4bja44c"
+          ],
+          "bytes": 1990
+        },
+        {
+          "cids": [
+            "bafykbzacecbgxu5coifnfzajpkwzuaxv36snvjfd4zqsbvpgfk4mx7mhzhtj4"
+          ],
+          "bytes": 271
+        }
+      ],
+      "model": "all blocks take one equal-duration stage; no network or time prediction",
+      "networkWrites": 0
+    },
+    "tests": {
+      "readerExistingTests": 38,
+      "pipelineTests": 19,
+      "passed": 57
+    }
   }
 }

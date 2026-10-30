@@ -76,6 +76,17 @@ They contain public identifiers and counters only, no key, signer, ciphertext
 or artist recording. Production SDK pins, encryption/nonces, access rules,
 Pinata configuration, servers, paid resources and DotNS are unchanged.
 
+## Compatibility with the separately reviewed reader
+
+An isolated temporary assembly combines #355 revision
+`7b6d4d224f3a317bbd493b556bca604aca321194` with pipeline code `4dd555014eb2424ea6ca3f392166aeaea939cf76`.
+It changes neither branch. **57 automated tests pass** in that assembly:
+38 reader/codec/addressing checks and the 19 pipeline checks. The already
+prepared 16-block / 713,229-byte BLAKE2b graph also completes the **simulated**
+pipeline with a peak of two in-flight operations. Its key is not loaded and
+no network write or physical playback is performed by this compatibility run.
+This is combined-source evidence, not a merged release build or live speed test.
+
 ## Mobile and long-listening handoff
 
 Mobile delivery uses the separately reviewed #355 reader. Do not duplicate
