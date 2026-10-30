@@ -33,6 +33,30 @@ read-only timeout recovery. The local signer is removed. This does not activate
 Bulletin media in the app; the sequential prototype's roughly twelve-minute
 publication is an explicit throughput limitation.
 
+## Bounded Bulletin publication research, not deployed
+
+The [isolated pipeline](../../research/bulletin-prototype/README.md#opt-in-bounded-publication)
+uses direct nonced storage calls, default concurrency two (hard maximum four),
+and default 512-KiB in-flight bytes (hard maximum 1 MiB). It is opt-in and does
+not change the existing sequential command, production storage or SDK pins.
+Its `pipeline-checkpoint/` schema cannot be opened by the old renewal writer.
+
+A manual write requires the approved fixture/budget, local private signer
+file descriptor and `--exclusive-account`. This CLI's private account lease
+coordinates only its own invocations; stop all other writers/wallet operations
+on that account. Do not use the DotNS key in a service, add a hidden fallback,
+or grant new storage permission as part of a test. Each unknown CID/nonce
+intent remains unresolved until finalized chain and raw-byte verification.
+Never delete journals to force retries or fill nonce gaps automatically.
+
+For a hard stop, first prove the process ended, then audit both the private
+fixture lease and the account lease under the OS temporary directory. An
+unsubscribed/timed-out transaction can still land. Keep the original encrypted
+fixture and nonce ledger. The [evidence and mobile handoff](../backlog/implementation/evidence/bulletin-bounded-publication-2026-10-30.md)
+record the limits: no live speedup, mobile distribution, long-listening result
+or pipeline renewal is claimed. A generated-only mobile diagnostic needs a
+separately reviewed build/address after #355; do not expose the loopback server.
+
 ## W39 room scaling research, not deployed
 
 [ADR 0037](../adr/0037-room-scaling-and-sfu.md) and the

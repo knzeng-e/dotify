@@ -152,3 +152,78 @@ verified 19 stores, signer-free timeout recovery, selective decryption and 19
 immediate renewals. Native API support and a full retention-window/scheduled
 renewal cycle remain unverified. Sequential storage took roughly twelve minutes
 for this small fixture; do not treat this writer as a production throughput design.
+
+## Opt-in bounded publication
+
+`pipeline-canary.mjs` is an independent research increment from `dev`; the
+native AAC reader in [#355](https://github.com/knzeng-e/dotify/pull/355) stays
+under separate review. It does not activate an app storage adapter.
+
+The pipeline overlaps **two direct transactions by default**, at most four,
+with at most 512 KiB in flight by default (hard ceiling 1 MiB). Each account
+nonce is explicit and written to the durable journal **before** submission.
+Parent directories wait for verified child receipts; the root waits for the
+whole graph. Parent admission rechecks the remaining retention margin. CID,
+codec, size, finalized storage coordinates and raw bytes must all verify.
+The `Stored` event supplies the storage index; the extrinsic's index is not
+interchangeable with it.
+
+The CLI owns one fixture lease and a local account lease shared by its own
+invocations. `--exclusive-account` confirms the operator has stopped other
+wallets, DotNS publishers and the old sequential command using that account.
+The local lock cannot control those external writers. A separately owned
+storage signer remains the production direction; this tool never loads an
+environment phrase or selects a fallback signer.
+
+On any uncertain write, stop new admissions, drain already-started writes and
+retain every unresolved CID/nonce intent. Restart rechecks finalized chain
+metadata and raw bytes. A missing CID, a rejected nonce or a timeout is **not**
+permission to resend or fill a nonce gap. Even a definitive pre-submission
+error can leave later nonces in flight; this prototype leaves the gap for
+explicit operator reconciliation. There is no automatic retry/re-signing.
+Never erase a journal or start a fresh one to bypass an unresolved outcome.
+
+The pipeline uses `pipeline-checkpoint/` and schema
+`dotify.bulletin.pipeline.v1`; sequential/renewal tools reject this journal.
+The old `checkpoint/` and `publish` behavior are preserved. Do not switch
+modes on an unfinished graph. Recurring renewal and pipeline-journal renewal
+are not implemented; retain encrypted source data and verified public receipt
+coordinates, and keep this a short bounded experiment.
+
+```sh
+npm run test:pipeline --prefix research/bulletin-prototype
+npm run measure:pipeline --prefix research/bulletin-prototype
+npm run pipeline --prefix research/bulletin-prototype -- plan PRIVATE_DIRECTORY
+npm run pipeline --prefix research/bulletin-prototype -- check PRIVATE_DIRECTORY
+```
+
+`plan` is offline. `check` reads quota and the finalized account nonce, without
+signing; it does not declare pending outcomes resolved. Both initial publication
+and retry validate the full graph's storage plus one-renewal budget. The
+`reconcile` command is strictly read-only and refuses missing/unresolved data.
+For an explicitly authorized manual write, from this package directory:
+
+```sh
+# Activate the owner-selected signer locally first; never paste it into chat.
+trap 'launchctl unsetenv MNEMONIC' EXIT HUP INT TERM
+node --import tsx pipeline-canary.mjs publish PRIVATE_DIRECTORY \
+  --concurrency 2 --exclusive-account --signer-fd 3 \
+  3< <(launchctl getenv MNEMONIC)
+```
+
+Run Node directly: npm does not preserve the private descriptor. A hard exit
+leaves leases/intents for manual audit; remove a stale lock only after proving
+its process is stopped and reconciling every pending transaction. Normal exits
+release locks, but they do not claim a timed-out signed transaction was cancelled.
+
+Atomic `Utility.batch_all` was considered and rejected for storage: the
+[inspected upstream extension](https://github.com/paritytech/polkadot-bulletin-chain/blob/e0190de902b41b820844ec530ec21f5af04d1f11/pallets/transaction-storage/src/extension.rs#L167)
+rejects nested store calls because node-side indexing expects the data at the
+end of a direct extrinsic. Metadata exposing a batch call does not establish
+storage compatibility. `inspect:pipeline` is a read-only inventory; it neither
+signs nor attempts a rejected batch.
+
+The [evidence and mobile handoff](../../docs/backlog/implementation/evidence/bulletin-bounded-publication-2026-10-30.md)
+distinguish offline overlap/recovery proof from actual network throughput.
+No network speedup, native mobile playback, retention cycle, free storage,
+production readiness, new domain or deployment is claimed here.

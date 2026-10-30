@@ -1,0 +1,73 @@
+{
+  "schema": "dotify.bulletin.pipeline-evidence.v1",
+  "base": "5b6ddec51ba4dfdc2383d7afbaf17996dfdda1a6",
+  "model": {
+    "observedAt": "2026-10-30T13:41:26.694Z",
+    "synthetic": true,
+    "networkWrites": 0,
+    "physicalHostTested": false,
+    "audibleStartupMeasured": false,
+    "livePublicationSpeedMeasured": false,
+    "graph": {
+      "blocks": 19,
+      "bytes": 870498
+    },
+    "model": "all blocks take one equal-duration stage; no network or time prediction",
+    "schedules": [
+      {
+        "concurrency": 1,
+        "maxInFlightBytes": 524288,
+        "modeledFinalityWaves": 19,
+        "peakWaveBytes": 262144
+      },
+      {
+        "concurrency": 2,
+        "maxInFlightBytes": 524288,
+        "modeledFinalityWaves": 11,
+        "peakWaveBytes": 286736
+      },
+      {
+        "concurrency": 4,
+        "maxInFlightBytes": 524288,
+        "modeledFinalityWaves": 7,
+        "peakWaveBytes": 456845
+      }
+    ]
+  },
+  "capabilities": {
+    "observedAt": "2026-10-30T13:41:52.116Z",
+    "endpoint": "wss://bulletin-paseo.tservices.es:8443",
+    "genesis": "0xe101f0fa4627d29a257645e02be86d80378fea1a2bf8fa6a918d150ebc760a59",
+    "finalized": {
+      "hash": "0x18ca330dcf81c4a795cbcb14438d3964b2672f87bd7bbd8456ea05e2775b8d27",
+      "number": 1430571,
+      "parent": "0x1618bf4f760d40dbc9b06c9735923fabf82b61de0b33ff77e3f444880f3df903",
+      "hasNewRuntime": false
+    },
+    "finalizedAccountNonce": 944,
+    "utilityCalls": [
+      "batch",
+      "as_derivative",
+      "batch_all",
+      "dispatch_as",
+      "force_batch",
+      "with_weight",
+      "if_else",
+      "dispatch_as_fallible"
+    ],
+    "utilityBatchCallPresent": true,
+    "metadataOnly": true,
+    "storageBatchCompatibility": "not proven; inspected upstream storage validation rejects nested store calls",
+    "networkWrites": 0
+  },
+  "upstreamSource": "e0190de902b41b820844ec530ec21f5af04d1f11",
+  "networkWrites": 0,
+  "signerUsed": false,
+  "productionChanged": false,
+  "verification": {
+    "existingTests": 27,
+    "pipelineTests": 19,
+    "livePublicationSpeedMeasured": false,
+    "mobileTested": false
+  }
+}

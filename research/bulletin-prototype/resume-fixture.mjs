@@ -2,6 +2,7 @@
 // No network transport, credential loader, encoder or key is available here.
 import { readFile } from 'node:fs/promises';
 import assert from 'node:assert/strict';
+import { publishPipelined } from './pipeline.mjs';
 import { publish } from './publication.mjs';
 import { SimulatedChain } from './simulated-chain.mjs';
 
@@ -12,5 +13,12 @@ const graph = { ...saved.graph, blocks: saved.graph.blocks.map(block => ({ ...bl
 const chain = new SimulatedChain();
 chain.stores = saved.stores;
 chain.blocks = new Map(saved.blocks.map(([cid, block]) => [cid, { ...block, bytes: Buffer.from(block.bytes, 'base64') }]));
-const result = await publish(graph, chain, process.argv[3], { maxTransactions: 64, maxBytes: 4 * 1024 * 1024 });
+if (saved.pipeline) {
+  let nonce = saved.nextNonce;
+  chain.nextNonce = async () => nonce;
+  const store = chain.store.bind(chain);
+  chain.store = async (block, options) => { assert.equal(options.nonce, nonce++); return store(block); };
+}
+const writer = saved.pipeline ? publishPipelined : publish;
+const result = await writer(graph, chain, process.argv[3], { maxTransactions: 64, maxBytes: 4 * 1024 * 1024 });
 console.log(JSON.stringify({ ...result, totalStoreCalls: chain.stores.length, networkWrites: 0 }));

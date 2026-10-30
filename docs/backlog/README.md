@@ -75,6 +75,15 @@ records the existing storage Seam, exact DevNet limits and the remaining
 directory-delivery/renewal proof. It does not activate a storage replacement or
 close W32/W33 acceptance.
 
+## Bulletin publication follow-up, 2026-10-30
+
+The [bounded direct writer](implementation/evidence/bulletin-bounded-publication-2026-10-30.md)
+adds an opt-in nonce journal, dependency-aware overlap and fail-closed recovery.
+It is independent of [#355](https://github.com/knzeng-e/dotify/pull/355), which
+remains under review for native AAC delivery. The scheduling model is not a
+network latency claim. Mobile distribution, actual throughput, longer listening
+and renewal remain separate evidence gates; no app storage switch is activated.
+
 ## Status contract
 
 GitHub Project 5 owns live workflow status. This document records scope,

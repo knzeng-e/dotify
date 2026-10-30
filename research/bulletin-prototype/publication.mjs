@@ -27,7 +27,7 @@ async function save(directory, state) {
   }
 }
 
-function receiptFor(block, receipt, status, margin) {
+export function receiptFor(block, receipt, status, margin) {
   assert.ok(receipt?.finalized === true, 'Storage is not finalized');
   assert.equal(receipt.cid, block.cid, 'Receipt has the wrong CID');
   assert.equal(receipt.bytes, block.bytes.length, 'Receipt has the wrong size');
@@ -36,7 +36,7 @@ function receiptFor(block, receipt, status, margin) {
   return receipt;
 }
 
-async function session(graph, transport, directory, run) {
+export async function publicationSession(graph, transport, directory, run, { schema = 'dotify.bulletin.prototype.v1', initial = {} } = {}) {
   await verifyGraph(graph);
   assert.equal(transport.genesis, GENESIS, 'Wrong Bulletin network');
   assert.ok(typeof transport.account === 'string' && transport.account.length > 0, 'Explicit storage account required');
@@ -46,7 +46,7 @@ async function session(graph, transport, directory, run) {
   try {
     await mkdir(directory, { recursive: true, mode: 0o700 });
     const identity = {
-      schema: 'dotify.bulletin.prototype.v1',
+      schema,
       genesis: GENESIS,
       account: transport.account,
       root: graph.root,
@@ -57,7 +57,7 @@ async function session(graph, transport, directory, run) {
       state = JSON.parse(await readFile(join(directory, 'receipts.json'), 'utf8'));
     } catch (error) {
       if (error.code !== 'ENOENT') throw error;
-      state = { ...identity, receipts: {}, pending: null, renewals: {} };
+      state = { ...identity, receipts: {}, pending: null, renewals: {}, ...initial };
     }
     for (const key of Object.keys(identity)) assert.deepEqual(state[key], identity[key], 'Checkpoint belongs to another graph/account/network');
     assert.ok(state.receipts && state.renewals, 'Incomplete checkpoint');
@@ -69,7 +69,7 @@ async function session(graph, transport, directory, run) {
 
 /** Local research orchestration; no production client or signer is created. */
 export async function publish(graph, transport, directory, budget) {
-  return session(graph, transport, directory, async (state, persist) => {
+  return publicationSession(graph, transport, directory, async (state, persist) => {
     assert.ok(Number.isSafeInteger(budget.maxTransactions) && budget.maxTransactions > 0);
     assert.ok(Number.isSafeInteger(budget.maxBytes) && budget.maxBytes > 0);
     const status = await transport.status();
@@ -136,7 +136,7 @@ export async function publish(graph, transport, directory, budget) {
 
 /** Acknowledged renewal requests are not proof of extended data retention. */
 export async function requestRenewal(graph, transport, directory, budget) {
-  return session(graph, transport, directory, async (state, persist) => {
+  return publicationSession(graph, transport, directory, async (state, persist) => {
     assert.ok(!state.pending && Object.keys(state.receipts).length === graph.blocks.length, 'Publication is incomplete');
     const status = await transport.status();
     assert.ok(status.authorization.expiresAt > status.head + 100, 'Renewal authorization expires too soon');
@@ -161,7 +161,7 @@ export async function requestRenewal(graph, transport, directory, budget) {
 }
 
 export async function verifyRenewal(graph, transport, directory) {
-  return session(graph, transport, directory, async (state, persist) => {
+  return publicationSession(graph, transport, directory, async (state, persist) => {
     const status = await transport.status();
     for (const block of graph.blocks) {
       const request = state.renewals[block.cid];

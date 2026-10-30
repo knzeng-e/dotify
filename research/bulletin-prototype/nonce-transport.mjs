@@ -1,0 +1,125 @@
+// Direct, explicitly nonced Bulletin transactions. No SDK retry or wrapper batch.
+import assert from 'node:assert/strict';
+import { verifyBlock, MAX_BLOCK_BYTES } from './graph.mjs';
+import { liveTransport, CANARY_ACCOUNT, CANARY_BUDGET } from './live-transport.mjs';
+
+export function watchFinalized(tx, signer, nonce, { timeoutMs = 120_000 } = {}) {
+  assert.ok(Number.isSafeInteger(nonce) && nonce >= 0 && nonce <= 0xffffffff, 'Invalid explicit nonce');
+  assert.ok(Number.isSafeInteger(timeoutMs) && timeoutMs > 0 && timeoutMs <= 120_000, 'Invalid finality deadline');
+  return new Promise((resolve, reject) => {
+    let subscription,
+      timer,
+      settled = false;
+    const finish = (error, receipt) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      try {
+        subscription?.unsubscribe();
+      } catch {}
+      if (error) reject(error);
+      else resolve(receipt);
+    };
+    timer = setTimeout(() => finish(new Error('Finality deadline exceeded; submission outcome is unknown')), timeoutMs);
+    try {
+      subscription = tx.createSubmitAndWatch(signer, { nonce }).subscribe({
+        next(event) {
+          if (settled || event.type !== 'finalized') return;
+          try {
+            assert.ok(event.ok === true, 'Finalized transaction dispatch did not succeed');
+            assert.ok(Number.isSafeInteger(event.block?.number) && event.block.number >= 0, 'Missing finalized block');
+            // This is the storage pallet index, not the extrinsic's index in the block.
+            const stored = event.events?.filter(e => e.type === 'TransactionStorage' && e.value?.type === 'Stored');
+            assert.equal(stored?.length, 1, 'Expected exactly one direct storage receipt');
+            const index = stored[0].value.value?.index;
+            assert.ok(Number.isSafeInteger(index) && index >= 0, 'Missing finalized storage index');
+            finish(null, { block: event.block.number, index });
+          } catch (error) {
+            finish(error instanceof Error ? error : new Error('Unknown transaction failure'));
+          }
+        },
+        error: error => finish(error instanceof Error ? error : new Error('Unknown transaction failure')),
+        complete: () => finish(new Error('Subscription ended without finalized storage; outcome is unknown'))
+      });
+      if (settled) {
+        try {
+          subscription.unsubscribe();
+        } catch {}
+      } // Synchronous observable test/implementation.
+    } catch (error) {
+      finish(error instanceof Error ? error : new Error('Unknown transaction failure'));
+    }
+  });
+}
+
+export function nonceTransport(client, signer, account, options = {}) {
+  const read = liveTransport(client, null, account, options);
+  const api = client.getUnsafeApi();
+  const issued = new Map();
+  let attempts = 0,
+    writtenBytes = 0,
+    reservation = Promise.resolve();
+  const within = (fn, timeoutMs = 30_000) => {
+    let timer;
+    return Promise.race([
+      Promise.resolve().then(fn),
+      new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error('Finalized nonce read timed out')), timeoutMs);
+      })
+    ]).finally(() => clearTimeout(timer));
+  };
+  const reserve = (bytes, nonce) => {
+    const operation = reservation.then(async () => {
+      assert.ok(signer && account === CANARY_ACCOUNT, 'Explicit owner-selected local signer required');
+      assert.ok(!issued.has(nonce), 'Nonce already issued by this transport');
+      assert.ok(attempts < CANARY_BUDGET.maxTransactions && writtenBytes + bytes <= CANARY_BUDGET.maxBytes, 'Live session budget exceeded');
+      const { authorization, head } = await read.status();
+      // Subtract only attempts not yet reflected in this finalized snapshot.
+      const outstanding = [...issued.values()].filter(r => r.finalizedBlock === null || r.finalizedBlock > head);
+      const reservedBytes = outstanding.reduce((sum, r) => sum + r.bytes, 0);
+      assert.ok(
+        authorization.remainingTransactions >= outstanding.length + 1 && authorization.remainingBytes >= BigInt(reservedBytes + bytes),
+        'Live quota does not cover reserved attempts'
+      );
+      issued.set(nonce, { bytes, finalizedBlock: null });
+      attempts++;
+      writtenBytes += bytes;
+    });
+    reservation = operation.catch(() => {});
+    return operation;
+  };
+  return {
+    ...read,
+    writable: Boolean(signer),
+    async nextNonce() {
+      const head = await within(() => client.getFinalizedBlock());
+      const release = client.hodlBlock(head.hash);
+      try {
+        const nonce = await within(() => api.apis.AccountNonceApi.account_nonce(account, { at: head.hash }));
+        assert.ok(Number.isSafeInteger(nonce) && nonce >= 0 && nonce <= 0xffffffff, 'Unsupported finalized account nonce');
+        return nonce;
+      } finally {
+        release();
+      }
+    },
+    async store(block, { nonce } = {}) {
+      assert.ok(Number.isSafeInteger(nonce) && nonce >= 0 && nonce <= 0xffffffff, 'Explicit nonce required');
+      const cid = await verifyBlock(block.cid, block.bytes);
+      assert.ok(block.bytes.length <= MAX_BLOCK_BYTES);
+      await reserve(block.bytes.length, nonce);
+      const hashing = cid.multihash.code === 0x12 ? 'Sha2_256' : cid.multihash.code === 0xb220 ? 'Blake2b256' : null;
+      assert.ok(hashing, 'Unsupported hash algorithm');
+      // Direct call only. The node indexes the data at the end of this extrinsic.
+      const tx = api.tx.TransactionStorage.store_with_cid_config({
+        data: block.bytes,
+        cid: { codec: BigInt(cid.code), hashing: { type: hashing, value: undefined } }
+      });
+      const receipt = await watchFinalized(tx, signer, nonce, options);
+      issued.get(nonce).finalizedBlock = receipt.block;
+      return receipt;
+    },
+    get attemptedTransactions() {
+      return attempts;
+    }
+  };
+}
