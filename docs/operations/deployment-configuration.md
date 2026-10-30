@@ -59,7 +59,20 @@ ciphertext and permanent nonce ledger remain unchanged. The signer is removed,
 no renewal ran, and 27 transactions remain. These are research-only receipts;
 mobile/cold audible-start evidence and production integration are still open.
 
-## Generated-only Bulletin mobile diagnostic, not deployed
+<a id="generated-only-bulletin-mobile-diagnostic-not-deployed"></a>
+
+## Generated-only Bulletin mobile diagnostic
+
+The owner-approved [October 30 publication](../backlog/implementation/evidence/bulletin-mobile-publication-2026-10-30.md)
+is available as `dotify-bulletin-lab.dot`, Product `[0,1,0]`. Four new stores and
+an existing icon were verified; the ordinary Dotify Product is unchanged. The
+signer was removed. The owner subsequently supplied two completed native mobile
+reports with audio heard (first `playing`: 1,195 / 117 ms). Host cache state is
+unknown. The owner also supplied completed bundled decoder controls at 112 ms
+(Wi-Fi) and 74 ms (5G), with Polkadot app 0.10.0(18) reported for both. Embedded
+object reads do not measure Bulletin delivery over those networks. These are
+functional observations; controlled
+cold audible-start and longer-listening acceptance remain unverified.
 
 The [standalone diagnostic build](../../research/bulletin-prototype/README.md#standalone-mobile-diagnostic-preparation)
 removes the need to expose the local key server to a phone. It verifies the
@@ -82,7 +95,9 @@ unfinished recovered attempts as interrupted. Export/copy important evidence
 before changing origin or clearing Host data. Blocked/full storage falls back to
 page memory with a warning. Removing the test tab stops audio; rollback is to
 stop using the separate diagnostic, not to change Dotify's deployed storage.
-Physical mobile/background/first-sound evidence remains unverified.
+Two owner-reported native eight-second listens and two completed decoder controls
+are recorded above; background, longer listening and measured first-sound gates
+remain unverified.
 
 ## Bounded Bulletin publication research, not deployed
 

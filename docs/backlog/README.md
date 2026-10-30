@@ -97,8 +97,13 @@ and renewal remain separate evidence gates; no app storage switch is activated.
 After #355/#356 merged, the [standalone generated-only diagnostic](implementation/evidence/bulletin-mobile-diagnostic-2026-10-30.md)
 prepares a separate static Product for physical mobile verification. It reuses
 the native reader, adds a bundled decoder control and preserves five local
-reports across reloads without relying on Host downloads. It is not published
-or a production storage switch. Mobile first sound, real upload throughput,
+reports across reloads without relying on Host downloads. It is now [published as `dotify-bulletin-lab.dot`](implementation/evidence/bulletin-mobile-publication-2026-10-30.md)
+with verified artifact/record readback and two owner-reported complete native
+mobile listens plus two completed bundled decoder controls (Polkadot app
+0.10.0(18), Wi-Fi and 5G, as reported by the owner). Embedded controls do not
+measure Bulletin network delivery. A known-cache performance comparison
+is still missing. It is not a production storage switch.
+Physical mobile first sound, real upload throughput,
 long listening and renewal remain separate gates in #288/#287.
 
 ## Status contract
