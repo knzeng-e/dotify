@@ -52,3 +52,30 @@ jobs:
           path: research/bulletin-prototype/results.json
           if-no-files-found: ignore
           retention-days: 7
+
+  pipeline:
+    name: Bounded direct publication and nonce recovery
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.1
+          cache: npm
+          cache-dependency-path: |
+            services/api/package-lock.json
+            research/bulletin-prototype/package-lock.json
+      - name: Install isolated test dependencies
+        run: |
+          npm ci --prefix services/api --ignore-scripts
+          npm ci --prefix research/bulletin-prototype --ignore-scripts
+      - name: Verify bounded direct writes, durable nonces and fresh-process recovery
+        run: npm run test:pipeline --prefix research/bulletin-prototype
+      - name: Record scheduling model without network or signer
+        run: npm run measure:pipeline --prefix research/bulletin-prototype
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bulletin-pipeline-offline
+          path: research/bulletin-prototype/pipeline-results.json
+          retention-days: 7
