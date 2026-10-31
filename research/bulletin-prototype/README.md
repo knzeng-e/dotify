@@ -555,3 +555,14 @@ lost-acknowledgement restart, no re-encoding/duplicate stores, authorized AAC
 frame decoding at all three rates and denial without key derivation. This is
 not physical protected-playback acceptance. See the [evidence and next adapter
 boundary](../../docs/backlog/implementation/evidence/bulletin-protected-rehearsal-2026-10-31.md).
+
+## Reusable server adapter follow-up
+
+The protected rehearsal now calls `services/api/src/services/bulletinMedia.ts`
+instead of its inline fixture publisher, with separate durable job/receipt
+ownership. Its server directory root is checked against the prototype above;
+real signature/access checks and AAC decode still run. The API also has a bounded
+raw-block reader for the unchanged catalog-gated Web media route. Both modules
+remain unselected in the deployed app. See [ADR 0038](../../docs/adr/0038-bulletin-media-adapter.md)
+and [adapter verification](../../docs/backlog/implementation/evidence/bulletin-media-adapter-2026-10-31.md)
+for limits, exclusive-account/state requirements and the next live-canary gate.

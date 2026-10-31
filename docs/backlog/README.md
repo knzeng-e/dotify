@@ -62,6 +62,16 @@ No production storage provider changes.
 
 The next owner-selected slice adds an [offline protected-release rehearsal](implementation/evidence/bulletin-protected-rehearsal-2026-10-31.md): existing durable publication, real Web/Product signatures, canonical access checks and selective authenticated AAC decoding over simulated Bulletin. Interrupted publication resumes without re-encoding or duplicate stores; denied requests derive no key. A bounded production storage adapter and real protected canary remain next; this changes no deployed provider or access policy.
 
+## Bulletin adapter preparation, 2026-10-31
+
+The [server-side media adapter](implementation/evidence/bulletin-media-adapter-2026-10-31.md)
+now owns bounded full-release publication receipts independently of job cleanup,
+with durable budgets/uncertain-submission recovery and an existing-API Web
+ciphertext path. The protected rehearsal uses it; defaults remain unchanged.
+Live transport/signer composition, canary activation, physical protected playback,
+representative resource costs and recurring retention remain open. See
+[ADR 0038](../adr/0038-bulletin-media-adapter.md).
+
 ## Current reconciliation, 2026-10-23
 
 [The 31-open-issue audit](implementation/evidence/backlog-reconciliation-2026-10-23.md)
