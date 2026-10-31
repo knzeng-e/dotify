@@ -31,6 +31,7 @@ export { initializeBulletinMediaStore, type BulletinMediaInventory } from './bul
 
 export type BulletinReceipt = { cid: string; bytes: number; block: number; index: number; expiresAt: number; finalized: true };
 export type BulletinWriteIntent = { nonce: number; afterBlock: number };
+export type BulletinSubmissionQuery = BulletinWriteIntent & { cid: string };
 export type BulletinSubmissionReceipt = BulletinReceipt & { nonce: number; account: string };
 export type BulletinBudget = { maxBytes: number; maxTransactions: number; minimumLifetimeBlocks: number };
 export type BulletinStatus = {
@@ -47,7 +48,7 @@ export type BulletinMediaTransport = {
   /** Both observations must come from finalized chain state. lookupSubmission
    * identifies the direct store extrinsic by sender+nonce, not just by CID. */
   nextNonce(signal: AbortSignal): Promise<{ nonce: number; head: number }>;
-  lookupSubmission(intent: BulletinWriteIntent, signal: AbortSignal): Promise<BulletinSubmissionReceipt | null>;
+  lookupSubmission(intent: BulletinSubmissionQuery, signal: AbortSignal): Promise<BulletinSubmissionReceipt | null>;
   /** Invoke exactly once with this explicit nonce; never retry or choose another. */
   store(block: BulletinBlock, intent: BulletinWriteIntent, signal: AbortSignal): Promise<BulletinSubmissionReceipt>;
 };
@@ -232,7 +233,7 @@ export function createBulletinMediaStore(options: {
         if (intents.length) {
           const nonce = await nonceAt(status.head);
           for (const [cid, intent] of intents) {
-            const submitted = await call(signal, s => transport.lookupSubmission(intent, s));
+            const submitted = await call(signal, s => transport.lookupSubmission({ ...intent, cid }, s));
             assert.ok(submitted, 'Submission unresolved; a missing block does not authorize retry');
             const receipt = verifiedSubmission(byCid.get(cid)!, intent.nonce, submitted, nonce.head);
             assert.ok(nonce.nonce > intent.nonce && state.receipts[cid], 'Submission unresolved; a missing block does not authorize retry');
@@ -327,7 +328,7 @@ export function createBulletinMediaStore(options: {
                       'Finalized readback differs from submitted receipt'
                     );
                     assert.ok(receipt.block > afterBlock, 'Submission predates its durable intent');
-                    const ownReceipt = await call(signal, s => transport.lookupSubmission({ nonce: writeNonce, afterBlock }, s));
+                    const ownReceipt = await call(signal, s => transport.lookupSubmission({ nonce: writeNonce, afterBlock, cid: block.cid }, s));
                     assert.deepEqual(verifiedSubmission(block, writeNonce, ownReceipt, current.head), receipt, 'Finalized submission and CID readback differ');
                     verifyBulletinBlock(block.cid, await call(signal, s => transport.readBlock(block.cid, s)));
                     return { block, receipt };
