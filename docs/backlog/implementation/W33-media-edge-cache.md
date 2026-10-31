@@ -37,7 +37,8 @@ with four new Product stores / 392,466 bytes, retained audio reuse, exact artifa
 and record readback, and signer removal. The generated-only wrapper and bounded
 notebook change no ordinary caller behavior or production record. The physical
 iPhone [paired controls both record two human cut markers](evidence/bulletin-finalization-mobile-2026-10-31.md)
-despite delayed finalization; redundant appends are the next regression to address.
+despite delayed finalization; the redundant-append bookkeeping correction is
+recorded below, with corrected-build physical acceptance still open.
 No audible fix is established. Keep 91
 renewal transactions reserved and recheck retained dependencies before delayed
 tests; no renewal was submitted or scheduled.
@@ -49,9 +50,12 @@ keep two marked cuts even when the successful finish call is delayed. The
 [scoped correction](evidence/managed-audio-append-commit-2026-10-31.md) prevents a
 completed native append from being forgotten when managed demand stops during
 its update. Cancelled downloads, actual evictions and owner cancellation keep
-their existing boundaries. The next local lab identifies itself as 0.3.1;
-publication and corrected-build physical acceptance remain separate steps.
-No audible fix or production storage switch is claimed.
+their existing boundaries. The [owner-approved lab 0.3.1 publication](evidence/bulletin-append-publication-2026-10-31.md)
+is complete from clean tested dev `1e286e5c`: four stores / 392,466 bytes, retained
+audio reuse, independent byte/record readback and signer removal. Keep 91 renewal
+transactions reserved; none was submitted or scheduled. Corrected-build physical
+iPhone listening remains the next gate. No audible fix or production storage
+switch is claimed.
 
 ## Agent assignment
 
