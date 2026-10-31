@@ -538,9 +538,9 @@ for (const encryptedOnPolicy of [false, true])
 
 // Real native AAC decoding with controlled MMS demand/eviction. This does not
 // replace physical Product/iPhone acceptance.
-async function installManagedReader(page: Page, automaticDemand = true) {
+async function installManagedReader(page: Page, automaticDemand = true, stopDuringFirstMediaAppend = false) {
   await page.addInitScript(
-    ({ automaticDemand }) => {
+    ({ automaticDemand, stopDuringFirstMediaAppend }) => {
       const Native = window.MediaSource;
       const sources: MediaSource[] = [];
       Reflect.set(window, '__managedSources', sources);
@@ -561,12 +561,27 @@ async function installManagedReader(page: Page, automaticDemand = true) {
       });
       class ManagedReader extends Native {
         streaming = false;
+        appendCalls = 0;
         constructor() {
           super();
           sources.push(this);
           this.addEventListener('sourceopen', () => {
             if (automaticDemand) this.demand(true);
           });
+        }
+        addSourceBuffer(mime: string) {
+          const buffer = super.addSourceBuffer(mime);
+          if (stopDuringFirstMediaAppend) {
+            const append = buffer.appendBuffer.bind(buffer);
+            buffer.appendBuffer = data => {
+              append(data);
+              this.appendCalls++;
+              // Init is first. Stop demand during the first real AAC append,
+              // before native updateend completes, as observed on iPhone.
+              if (this.appendCalls === 2) this.demand(false);
+            };
+          }
+          return buffer;
         }
         demand(value: boolean) {
           this.streaming = value;
@@ -576,7 +591,7 @@ async function installManagedReader(page: Page, automaticDemand = true) {
       Reflect.set(window, 'ManagedMediaSource', ManagedReader);
       Object.defineProperty(window, 'MediaSource', { value: undefined, configurable: true });
     },
-    { automaticDemand }
+    { automaticDemand, stopDuringFirstMediaAppend }
   );
 }
 
@@ -618,6 +633,21 @@ test('managed AAC respects demand before requesting media and resumes after evic
   await page.getByRole('button', { name: 'Toggle playback' }).click();
   await playing(page, 0.8);
   expect(probe.keyRequests()).toBe(1);
+});
+
+test('managed AAC does not append completed frames again after a demand stop during update', async ({ page }) => {
+  await installManagedReader(page, true, true);
+  const probe = await setup(page);
+  await playing(page);
+  await expect.poll(() => page.evaluate(() => Reflect.get(window, '__managedSources')[0].sourceBuffers[0].updating)).toBe(false);
+  expect(await page.evaluate(() => Reflect.get(window, '__managedSources')[0].appendCalls)).toBe(2);
+  await page.evaluate(() => Reflect.get(window, '__managedSources')[0].demand(true));
+  await expect.poll(() => page.evaluate(() => Reflect.get(window, '__managedSources')[0].readyState)).toBe('ended');
+  const segments = Object.keys(fixture.files).filter(name => /^96\/segment-\d+\.bin$/.test(name)).length;
+  expect(segments).toBeGreaterThan(1);
+  expect(await page.evaluate(() => Reflect.get(window, '__managedSources')[0].appendCalls)).toBe(segments + 1); // One init, each media fragment once.
+  expect(probe.keyRequests()).toBe(1);
+  expect(probe.requests.some(item => /archive/.test(item))).toBe(false);
 });
 
 test('managed AAC does not download or play denied audio', async ({ page }) => {

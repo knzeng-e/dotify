@@ -119,6 +119,60 @@ it('cancels in-flight network work on demand stop and on owner cancellation', as
   await result;
   expect(request?.aborted).toBe(true);
 });
+it('keeps a completed append when managed demand stops during the buffer update', async () => {
+  const h = harness();
+  h.appendSegment.mockImplementation(async (index, signal) => {
+    signal.throwIfAborted();
+    if (index === 0) {
+      // Native endstreaming may precede updateend. The adapter finishes this
+      // append under the owner signal even though speculative reads stop.
+      h.buffer.buffered = ranges([[0, 4]]);
+      h.demand(false);
+    }
+  });
+  const result = h.run().catch(error => error);
+  h.demand(true);
+  await tick();
+  expect(h.appendSegment.mock.calls.map(c => c[0])).toEqual([0]);
+  h.demand(true);
+  await tick();
+  expect(h.appendSegment.mock.calls.map(c => c[0])).toEqual([0, 1, 2]);
+  h.controller.abort();
+  await result;
+});
+it('retries an evicted append even when demand stopped before its completion', async () => {
+  const h = harness();
+  let first = true;
+  h.appendSegment.mockImplementation(async (index, signal) => {
+    signal.throwIfAborted();
+    if (index === 0 && first) {
+      first = false;
+      h.demand(false);
+      h.remove(0.5, 1);
+    }
+  });
+  const result = h.run().catch(error => error);
+  h.demand(true);
+  await tick();
+  h.demand(true);
+  await tick();
+  expect(h.appendSegment.mock.calls.map(c => c[0])).toEqual([0, 0, 1, 2]);
+  h.controller.abort();
+  await result;
+});
+it('still stops before finalizing if the owner cancels during a completed append', async () => {
+  const h = harness(1);
+  h.appendSegment.mockImplementation(async (_index, signal) => {
+    signal.throwIfAborted();
+    h.controller.abort();
+  });
+  const result = h.run().catch(error => error);
+  h.demand(true);
+  await tick();
+  expect((await result).name).toBe('AbortError');
+  expect(h.source.endOfStream).not.toHaveBeenCalled();
+  expect(h.appendSegment).toHaveBeenCalledTimes(1);
+});
 it('reports unavailable demand instead of preparing forever and detaches its listeners', async () => {
   const h = harness();
   const result = h.run().catch(error => error);

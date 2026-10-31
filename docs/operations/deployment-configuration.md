@@ -99,6 +99,20 @@ Two owner-reported native eight-second listens and two completed decoder control
 are recorded above; background, longer listening and measured first-sound gates
 remain unverified.
 
+## Managed append completion correction, local candidate
+
+The [managed-reader correction](../backlog/implementation/evidence/managed-audio-append-commit-2026-10-31.md)
+keeps a completed native append present when demand stops before its completion
+callback. It changes the shared client pump, not a hosted service or access
+policy. The continuity lab candidate identifies itself as 0.3.1; this is not a
+publication. Keep the reviewed production end-of-stream default and existing
+generated fixture/nonce ledger. A later clean-source lab update requires fresh
+retention checks, an exact reviewed store/record budget and signer authorization.
+After publication, physical iPhone listening must confirm whether the cuts are
+removed; browser regressions alone do not accept audible continuity. The
+[paired 0.3.0 observations](https://github.com/knzeng-e/dotify/pull/362) remain the
+pre-correction evidence.
+
 ## Bulletin finalization comparison, published independently
 
 The [lab 0.3.0 candidate](../backlog/implementation/evidence/bulletin-finalization-control-2026-10-31.md)

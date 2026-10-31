@@ -42,6 +42,17 @@ No audible fix is established. Keep 91
 renewal transactions reserved and recheck retained dependencies before delayed
 tests; no renewal was submitted or scheduled.
 
+## Managed-reader append completion follow-up, 2026-10-31
+
+The [paired physical iPhone controls](https://github.com/knzeng-e/dotify/pull/362)
+keep two marked cuts even when the successful finish call is delayed. The
+[scoped correction](evidence/managed-audio-append-commit-2026-10-31.md) prevents a
+completed native append from being forgotten when managed demand stops during
+its update. Cancelled downloads, actual evictions and owner cancellation keep
+their existing boundaries. The next local lab identifies itself as 0.3.1;
+publication and corrected-build physical acceptance remain separate steps.
+No audible fix or production storage switch is claimed.
+
 ## Agent assignment
 
 Implement **W33** only. Read `AGENTS.md`, `docs/backlog/implementation/common.md`, and the files below before changing code. Follow the common execution contract, including the evidence/handoff record.
