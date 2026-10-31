@@ -96,6 +96,19 @@ prepare an exact protected-canary budget and persistent-state plan. Real release
 throughput, costs, Web/Host protected listening and recurring retention remain
 gates; no network store, signer use or production switch occurred.
 
+## Explicit RPC transport and receipt verification, 2026-10-31
+
+[ADR 0040](../../adr/0040-bulletin-direct-store-receipts.md) and the
+[transport evidence](evidence/bulletin-media-transport-2026-10-31.md) add the RPC
+reader and isolated PAPI writer composition for the prepared adapter. Recovery
+verifies the exact sender/nonce, direct store bytes and successful events in one
+canonical candidate block, using its execution runtime. Read-only inspection of
+a previously published synthetic marker succeeds; no new write or signer use
+occurred. Missing or replaced references remain unresolved. Next: review the
+private-state/client composition and exact generated protected-canary budget,
+then request write approval. Live publication, real resource costs, protected
+Web/Host listening, recurring retention and provider activation remain open.
+
 ## Agent assignment
 
 Implement **W33** only. Read `AGENTS.md`, `docs/backlog/implementation/common.md`, and the files below before changing code. Follow the common execution contract, including the evidence/handoff record.
