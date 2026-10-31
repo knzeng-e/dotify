@@ -52,7 +52,7 @@ test('instrumented real AAC control finalizes naturally in both modes and retain
       Object.defineProperty(globalThis, 'ManagedMediaSource', { value: ManagedDemandShim, configurable: true });
     });
     await page.goto(origin);
-    assert.equal(await page.locator('#diagnostic-version').textContent(), '0.3.0');
+    assert.equal(await page.locator('#diagnostic-version').textContent(), '0.3.1');
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     const reports = [];
     for (const policy of ['after-final-append', 'near-playback-end']) {

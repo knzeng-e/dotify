@@ -16,6 +16,8 @@ export async function pumpManagedAudio(input: {
   signal: AbortSignal;
   bufferAheadSeconds: () => number;
   initialize: (signal: AbortSignal) => Promise<void>;
+  // Resolve after the authenticated append commits. Demand can cancel its read,
+  // but an already-started buffer update must finish under the owner signal.
   appendSegment: (index: number, signal: AbortSignal) => Promise<void>;
   demandTimeoutMs?: number;
 }) {
@@ -142,7 +144,11 @@ export async function pumpManagedAudio(input: {
         if (count > 4) throw new Error('The audio player could not retain its buffer. Please try again.');
         const eviction = evictions.get(next) ?? 0;
         await input.appendSegment(next, requestSignal);
-        requestSignal.throwIfAborted();
+        // A successful append has committed under the owner's signal. Native
+        // endstreaming can cancel speculative reads before updateend without
+        // undoing that append; forgetting it would append the same frames again
+        // on demand resume. Owner cancellation and actual evictions still win.
+        signal.throwIfAborted();
         refills.set(next, { start: count === 1 ? now : recent!.start, count });
         if ((evictions.get(next) ?? 0) === eviction) present.add(next);
         firstSegment = true;
