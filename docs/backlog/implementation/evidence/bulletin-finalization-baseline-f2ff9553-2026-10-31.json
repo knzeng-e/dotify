@@ -1,0 +1,1456 @@
+{
+  "id": "f2ff9553-1590-427b-bc1c-1396ca9de921",
+  "schema": "dotify.bulletin.host-report.v1",
+  "startedAt": "2026-10-31T12:12:30.476Z",
+  "transport": "bundled-decoder-control",
+  "environment": "",
+  "network": "Wifi",
+  "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148",
+  "reader": "managed",
+  "hostCache": "unknown; not cleared",
+  "pageCache": "empty per attempt",
+  "recoveredAfterReload": false,
+  "outcome": "ended",
+  "root": "bafykbzacecj2qvfpqevlm6pqkm24fjcmszi6qd5r3ywikxfxx5yhjqsyorot4",
+  "firstPlayingEventMs": 77,
+  "fixtureProfile": "continuity",
+  "fixtureDurationSeconds": 64,
+  "attemptLimitMs": 180000,
+  "firstPlayingLimitMs": 45000,
+  "finalizationPolicy": "after-final-append",
+  "finalizationExperimentApplied": true,
+  "progressive": true,
+  "operatorHeardAudio": true,
+  "audibleFirstSoundMeasured": false,
+  "productionAccessTested": false,
+  "implementation": {
+    "sha": "20ff46df0d5a7c5716dc77afd14d06b4a223ff31",
+    "dirty": false
+  },
+  "events": [
+    {
+      "name": "waiting",
+      "elapsedMs": 28,
+      "mediaSeconds": 0
+    },
+    {
+      "name": "managed-observer-attached",
+      "elapsedMs": 38,
+      "mediaSeconds": 0,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "bufferedRanges": []
+    },
+    {
+      "name": "startstreaming",
+      "elapsedMs": 40,
+      "mediaSeconds": 0,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "bufferedRanges": []
+    },
+    {
+      "name": "durationchange",
+      "elapsedMs": 49,
+      "mediaSeconds": 0,
+      "durationSeconds": 64
+    },
+    {
+      "name": "buffer-updateend",
+      "elapsedMs": 60,
+      "mediaSeconds": 0,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "bufferedRanges": []
+    },
+    {
+      "name": "segment-append-start",
+      "elapsedMs": 60,
+      "mediaSeconds": 0,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "segmentIndex": 0,
+      "bufferedRanges": []
+    },
+    {
+      "name": "buffer-bufferedchange",
+      "elapsedMs": 77,
+      "mediaSeconds": 0,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "bufferedRanges": [
+        [
+          0,
+          3.989333333333333
+        ]
+      ]
+    },
+    {
+      "name": "playing",
+      "elapsedMs": 77,
+      "mediaSeconds": 0
+    },
+    {
+      "name": "buffer-updateend",
+      "elapsedMs": 123,
+      "mediaSeconds": 0.002633375,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "bufferedRanges": [
+        [
+          0,
+          3.989333333333333
+        ]
+      ]
+    },
+    {
+      "name": "segment-append-complete",
+      "elapsedMs": 123,
+      "mediaSeconds": 0.003318167,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "segmentIndex": 0,
+      "bufferedRanges": [
+        [
+          0,
+          3.989333333333333
+        ]
+      ]
+    },
+    {
+      "name": "segment-append-start",
+      "elapsedMs": 123,
+      "mediaSeconds": 0.003371125,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "segmentIndex": 1,
+      "bufferedRanges": [
+        [
+          0,
+          3.989333333333333
+        ]
+      ]
+    },
+    {
+      "name": "buffer-bufferedchange",
+      "elapsedMs": 130,
+      "mediaSeconds": 0.009642958,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "bufferedRanges": [
+        [
+          0,
+          8
+        ]
+      ]
+    },
+    {
+      "name": "buffer-updateend",
+      "elapsedMs": 130,
+      "mediaSeconds": 0.009760375,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "bufferedRanges": [
+        [
+          0,
+          8
+        ]
+      ]
+    },
+    {
+      "name": "segment-append-complete",
+      "elapsedMs": 130,
+      "mediaSeconds": 0.009776875,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "segmentIndex": 1,
+      "bufferedRanges": [
+        [
+          0,
+          8
+        ]
+      ]
+    },
+    {
+      "name": "segment-append-start",
+      "elapsedMs": 130,
+      "mediaSeconds": 0.009821833,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "segmentIndex": 2,
+      "bufferedRanges": [
+        [
+          0,
+          8
+        ]
+      ]
+    },
+    {
+      "name": "buffer-bufferedchange",
+      "elapsedMs": 133,
+      "mediaSeconds": 0.013220791,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "bufferedRanges": [
+        [
+          0,
+          12.010666666666667
+        ]
+      ]
+    },
+    {
+      "name": "buffer-updateend",
+      "elapsedMs": 133,
+      "mediaSeconds": 0.013255166,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "bufferedRanges": [
+        [
+          0,
+          12.010666666666667
+        ]
+      ]
+    },
+    {
+      "name": "segment-append-complete",
+      "elapsedMs": 133,
+      "mediaSeconds": 0.013264624,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "segmentIndex": 2,
+      "bufferedRanges": [
+        [
+          0,
+          12.010666666666667
+        ]
+      ]
+    },
+    {
+      "name": "segment-append-start",
+      "elapsedMs": 133,
+      "mediaSeconds": 0.013281874,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "segmentIndex": 3,
+      "bufferedRanges": [
+        [
+          0,
+          12.010666666666667
+        ]
+      ]
+    },
+    {
+      "name": "buffer-bufferedchange",
+      "elapsedMs": 136,
+      "mediaSeconds": 0.016283499,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "bufferedRanges": [
+        [
+          0,
+          16.021333333333335
+        ]
+      ]
+    },
+    {
+      "name": "buffer-updateend",
+      "elapsedMs": 136,
+      "mediaSeconds": 0.016310208,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "bufferedRanges": [
+        [
+          0,
+          16.021333333333335
+        ]
+      ]
+    },
+    {
+      "name": "segment-append-complete",
+      "elapsedMs": 136,
+      "mediaSeconds": 0.016317708,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "segmentIndex": 3,
+      "bufferedRanges": [
+        [
+          0,
+          16.021333333333335
+        ]
+      ]
+    },
+    {
+      "name": "segment-append-start",
+      "elapsedMs": 136,
+      "mediaSeconds": 0.016329208,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "segmentIndex": 4,
+      "bufferedRanges": [
+        [
+          0,
+          16.021333333333335
+        ]
+      ]
+    },
+    {
+      "name": "buffer-bufferedchange",
+      "elapsedMs": 139,
+      "mediaSeconds": 0.019225041,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "bufferedRanges": [
+        [
+          0,
+          20.032
+        ]
+      ]
+    },
+    {
+      "name": "buffer-updateend",
+      "elapsedMs": 139,
+      "mediaSeconds": 0.019255874,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "bufferedRanges": [
+        [
+          0,
+          20.032
+        ]
+      ]
+    },
+    {
+      "name": "segment-append-complete",
+      "elapsedMs": 139,
+      "mediaSeconds": 0.019262249,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "segmentIndex": 4,
+      "bufferedRanges": [
+        [
+          0,
+          20.032
+        ]
+      ]
+    },
+    {
+      "name": "segment-append-start",
+      "elapsedMs": 139,
+      "mediaSeconds": 0.019272916,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "segmentIndex": 5,
+      "bufferedRanges": [
+        [
+          0,
+          20.032
+        ]
+      ]
+    },
+    {
+      "name": "buffer-bufferedchange",
+      "elapsedMs": 142,
+      "mediaSeconds": 0.022071374,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "bufferedRanges": [
+        [
+          0,
+          24.042666666666666
+        ]
+      ]
+    },
+    {
+      "name": "buffer-updateend",
+      "elapsedMs": 142,
+      "mediaSeconds": 0.022101916,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "bufferedRanges": [
+        [
+          0,
+          24.042666666666666
+        ]
+      ]
+    },
+    {
+      "name": "segment-append-complete",
+      "elapsedMs": 142,
+      "mediaSeconds": 0.022107666,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "segmentIndex": 5,
+      "bufferedRanges": [
+        [
+          0,
+          24.042666666666666
+        ]
+      ]
+    },
+    {
+      "name": "segment-append-start",
+      "elapsedMs": 142,
+      "mediaSeconds": 0.022115083,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "segmentIndex": 6,
+      "bufferedRanges": [
+        [
+          0,
+          24.042666666666666
+        ]
+      ]
+    },
+    {
+      "name": "buffer-bufferedchange",
+      "elapsedMs": 145,
+      "mediaSeconds": 0.025019458,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "bufferedRanges": [
+        [
+          0,
+          28.053333333333335
+        ]
+      ]
+    },
+    {
+      "name": "buffer-updateend",
+      "elapsedMs": 145,
+      "mediaSeconds": 0.025087124,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "bufferedRanges": [
+        [
+          0,
+          28.053333333333335
+        ]
+      ]
+    },
+    {
+      "name": "segment-append-complete",
+      "elapsedMs": 145,
+      "mediaSeconds": 0.025093083,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "segmentIndex": 6,
+      "bufferedRanges": [
+        [
+          0,
+          28.053333333333335
+        ]
+      ]
+    },
+    {
+      "name": "segment-append-start",
+      "elapsedMs": 145,
+      "mediaSeconds": 0.025100499,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "segmentIndex": 7,
+      "bufferedRanges": [
+        [
+          0,
+          28.053333333333335
+        ]
+      ]
+    },
+    {
+      "name": "buffer-bufferedchange",
+      "elapsedMs": 150,
+      "mediaSeconds": 0.030086999,
+      "sourceState": "open",
+      "managedStreaming": false,
+      "durationSeconds": 64,
+      "bufferedRanges": [
+        [
+          0,
+          32.064
+        ]
+      ]
+    },
+    {
+      "name": "endstreaming",
+      "elapsedMs": 150,
+      "mediaSeconds": 0.030099833,
+      "sourceState": "open",
+      "managedStreaming": false,
+      "durationSeconds": 64,
+      "bufferedRanges": [
+        [
+          0,
+          32.064
+        ]
+      ]
+    },
+    {
+      "name": "buffer-updateend",
+      "elapsedMs": 150,
+      "mediaSeconds": 0.030151124,
+      "sourceState": "open",
+      "managedStreaming": false,
+      "durationSeconds": 64,
+      "bufferedRanges": [
+        [
+          0,
+          32.064
+        ]
+      ]
+    },
+    {
+      "name": "segment-append-complete",
+      "elapsedMs": 150,
+      "mediaSeconds": 0.030162291,
+      "sourceState": "open",
+      "managedStreaming": false,
+      "durationSeconds": 64,
+      "segmentIndex": 7,
+      "bufferedRanges": [
+        [
+          0,
+          32.064
+        ]
+      ]
+    },
+    {
+      "name": "progress",
+      "elapsedMs": 329,
+      "mediaSeconds": 0.208627625,
+      "bufferedUntilMediaSeconds": 32.064
+    },
+    {
+      "name": "progress",
+      "elapsedMs": 4339,
+      "mediaSeconds": 4.219507708,
+      "bufferedUntilMediaSeconds": 32.064
+    },
+    {
+      "name": "progress",
+      "elapsedMs": 8353,
+      "mediaSeconds": 8.233160605,
+      "bufferedUntilMediaSeconds": 32.064
+    },
+    {
+      "name": "progress",
+      "elapsedMs": 12368,
+      "mediaSeconds": 12.248588186,
+      "bufferedUntilMediaSeconds": 32.064
+    },
+    {
+      "name": "progress",
+      "elapsedMs": 16381,
+      "mediaSeconds": 16.261027236,
+      "bufferedUntilMediaSeconds": 32.064
+    },
+    {
+      "name": "progress",
+      "elapsedMs": 20395,
+      "mediaSeconds": 20.27578267,
+      "bufferedUntilMediaSeconds": 32.064
+    },
+    {
+      "name": "segment-append-start",
+      "elapsedMs": 22401,
+      "mediaSeconds": 22.281169874,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "segmentIndex": 7,
+      "bufferedRanges": [
+        [
+          0,
+          32.064
+        ]
+      ]
+    },
+    {
+      "name": "startstreaming",
+      "elapsedMs": 22410,
+      "mediaSeconds": 22.29006681,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "bufferedRanges": [
+        [
+          0,
+          32.064
+        ]
+      ]
+    },
+    {
+      "name": "buffer-updateend",
+      "elapsedMs": 22417,
+      "mediaSeconds": 22.297773933,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "bufferedRanges": [
+        [
+          0,
+          32.064
+        ]
+      ]
+    },
+    {
+      "name": "segment-append-complete",
+      "elapsedMs": 22417,
+      "mediaSeconds": 22.29784664,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "segmentIndex": 7,
+      "bufferedRanges": [
+        [
+          0,
+          32.064
+        ]
+      ]
+    },
+    {
+      "name": "segment-append-start",
+      "elapsedMs": 22418,
+      "mediaSeconds": 22.297913681,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "segmentIndex": 8,
+      "bufferedRanges": [
+        [
+          0,
+          32.064
+        ]
+      ]
+    },
+    {
+      "name": "buffer-bufferedchange",
+      "elapsedMs": 22433,
+      "mediaSeconds": 22.313179012,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "bufferedRanges": [
+        [
+          0,
+          36.074666666666666
+        ]
+      ]
+    },
+    {
+      "name": "buffer-updateend",
+      "elapsedMs": 22433,
+      "mediaSeconds": 22.3133863,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "bufferedRanges": [
+        [
+          0,
+          36.074666666666666
+        ]
+      ]
+    },
+    {
+      "name": "segment-append-complete",
+      "elapsedMs": 22433,
+      "mediaSeconds": 22.313420799,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "segmentIndex": 8,
+      "bufferedRanges": [
+        [
+          0,
+          36.074666666666666
+        ]
+      ]
+    },
+    {
+      "name": "segment-append-start",
+      "elapsedMs": 22433,
+      "mediaSeconds": 22.31348084,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "segmentIndex": 9,
+      "bufferedRanges": [
+        [
+          0,
+          36.074666666666666
+        ]
+      ]
+    },
+    {
+      "name": "buffer-bufferedchange",
+      "elapsedMs": 22444,
+      "mediaSeconds": 22.3239685,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "bufferedRanges": [
+        [
+          0,
+          40.08533333333333
+        ]
+      ]
+    },
+    {
+      "name": "buffer-updateend",
+      "elapsedMs": 22444,
+      "mediaSeconds": 22.324066623,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "bufferedRanges": [
+        [
+          0,
+          40.08533333333333
+        ]
+      ]
+    },
+    {
+      "name": "segment-append-complete",
+      "elapsedMs": 22444,
+      "mediaSeconds": 22.324093206,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "segmentIndex": 9,
+      "bufferedRanges": [
+        [
+          0,
+          40.08533333333333
+        ]
+      ]
+    },
+    {
+      "name": "segment-append-start",
+      "elapsedMs": 22444,
+      "mediaSeconds": 22.324143831,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "segmentIndex": 10,
+      "bufferedRanges": [
+        [
+          0,
+          40.08533333333333
+        ]
+      ]
+    },
+    {
+      "name": "buffer-bufferedchange",
+      "elapsedMs": 22453,
+      "mediaSeconds": 22.333485551,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "bufferedRanges": [
+        [
+          0,
+          44.096
+        ]
+      ]
+    },
+    {
+      "name": "buffer-updateend",
+      "elapsedMs": 22453,
+      "mediaSeconds": 22.333540467,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "bufferedRanges": [
+        [
+          0,
+          44.096
+        ]
+      ]
+    },
+    {
+      "name": "segment-append-complete",
+      "elapsedMs": 22453,
+      "mediaSeconds": 22.3335638,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "segmentIndex": 10,
+      "bufferedRanges": [
+        [
+          0,
+          44.096
+        ]
+      ]
+    },
+    {
+      "name": "segment-append-start",
+      "elapsedMs": 22453,
+      "mediaSeconds": 22.333588799,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "segmentIndex": 11,
+      "bufferedRanges": [
+        [
+          0,
+          44.096
+        ]
+      ]
+    },
+    {
+      "name": "buffer-bufferedchange",
+      "elapsedMs": 22460,
+      "mediaSeconds": 22.340398228,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "bufferedRanges": [
+        [
+          0,
+          48.10666666666667
+        ]
+      ]
+    },
+    {
+      "name": "buffer-updateend",
+      "elapsedMs": 22460,
+      "mediaSeconds": 22.340442894,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "bufferedRanges": [
+        [
+          0,
+          48.10666666666667
+        ]
+      ]
+    },
+    {
+      "name": "segment-append-complete",
+      "elapsedMs": 22460,
+      "mediaSeconds": 22.340458186,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "segmentIndex": 11,
+      "bufferedRanges": [
+        [
+          0,
+          48.10666666666667
+        ]
+      ]
+    },
+    {
+      "name": "segment-append-start",
+      "elapsedMs": 22460,
+      "mediaSeconds": 22.34047756,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "segmentIndex": 12,
+      "bufferedRanges": [
+        [
+          0,
+          48.10666666666667
+        ]
+      ]
+    },
+    {
+      "name": "buffer-bufferedchange",
+      "elapsedMs": 22466,
+      "mediaSeconds": 22.346652875,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "bufferedRanges": [
+        [
+          0,
+          52.117333333333335
+        ]
+      ]
+    },
+    {
+      "name": "buffer-updateend",
+      "elapsedMs": 22466,
+      "mediaSeconds": 22.346693166,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "bufferedRanges": [
+        [
+          0,
+          52.117333333333335
+        ]
+      ]
+    },
+    {
+      "name": "segment-append-complete",
+      "elapsedMs": 22466,
+      "mediaSeconds": 22.346706541,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "segmentIndex": 12,
+      "bufferedRanges": [
+        [
+          0,
+          52.117333333333335
+        ]
+      ]
+    },
+    {
+      "name": "segment-append-start",
+      "elapsedMs": 22466,
+      "mediaSeconds": 22.346722207,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "segmentIndex": 13,
+      "bufferedRanges": [
+        [
+          0,
+          52.117333333333335
+        ]
+      ]
+    },
+    {
+      "name": "buffer-bufferedchange",
+      "elapsedMs": 22475,
+      "mediaSeconds": 22.355412022,
+      "sourceState": "open",
+      "managedStreaming": false,
+      "durationSeconds": 64,
+      "bufferedRanges": [
+        [
+          0,
+          56.128
+        ]
+      ]
+    },
+    {
+      "name": "endstreaming",
+      "elapsedMs": 22475,
+      "mediaSeconds": 22.355461313,
+      "sourceState": "open",
+      "managedStreaming": false,
+      "durationSeconds": 64,
+      "bufferedRanges": [
+        [
+          0,
+          56.128
+        ]
+      ]
+    },
+    {
+      "name": "buffer-updateend",
+      "elapsedMs": 22475,
+      "mediaSeconds": 22.355513437,
+      "sourceState": "open",
+      "managedStreaming": false,
+      "durationSeconds": 64,
+      "bufferedRanges": [
+        [
+          0,
+          56.128
+        ]
+      ]
+    },
+    {
+      "name": "segment-append-complete",
+      "elapsedMs": 22475,
+      "mediaSeconds": 22.35553577,
+      "sourceState": "open",
+      "managedStreaming": false,
+      "durationSeconds": 64,
+      "segmentIndex": 13,
+      "bufferedRanges": [
+        [
+          0,
+          56.128
+        ]
+      ]
+    },
+    {
+      "name": "audible-cut-marked",
+      "elapsedMs": 24585,
+      "mediaSeconds": 24.196588983
+    },
+    {
+      "name": "progress",
+      "elapsedMs": 24910,
+      "mediaSeconds": 24.521824122,
+      "bufferedUntilMediaSeconds": 56.128
+    },
+    {
+      "name": "progress",
+      "elapsedMs": 28926,
+      "mediaSeconds": 28.537821684,
+      "bufferedUntilMediaSeconds": 56.128
+    },
+    {
+      "name": "progress",
+      "elapsedMs": 32944,
+      "mediaSeconds": 32.556348034,
+      "bufferedUntilMediaSeconds": 56.128
+    },
+    {
+      "name": "progress",
+      "elapsedMs": 36959,
+      "mediaSeconds": 36.571447914,
+      "bufferedUntilMediaSeconds": 56.128
+    },
+    {
+      "name": "progress",
+      "elapsedMs": 40975,
+      "mediaSeconds": 40.587682053,
+      "bufferedUntilMediaSeconds": 56.128
+    },
+    {
+      "name": "progress",
+      "elapsedMs": 44990,
+      "mediaSeconds": 44.602613059,
+      "bufferedUntilMediaSeconds": 56.128
+    },
+    {
+      "name": "segment-append-start",
+      "elapsedMs": 46747,
+      "mediaSeconds": 46.359561344,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "segmentIndex": 13,
+      "bufferedRanges": [
+        [
+          0,
+          56.128
+        ]
+      ]
+    },
+    {
+      "name": "startstreaming",
+      "elapsedMs": 46759,
+      "mediaSeconds": 46.370961989,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "bufferedRanges": [
+        [
+          0,
+          56.128
+        ]
+      ]
+    },
+    {
+      "name": "buffer-updateend",
+      "elapsedMs": 46768,
+      "mediaSeconds": 46.380125962,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "bufferedRanges": [
+        [
+          0,
+          56.128
+        ]
+      ]
+    },
+    {
+      "name": "segment-append-complete",
+      "elapsedMs": 46768,
+      "mediaSeconds": 46.380233294,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "segmentIndex": 13,
+      "bufferedRanges": [
+        [
+          0,
+          56.128
+        ]
+      ]
+    },
+    {
+      "name": "segment-append-start",
+      "elapsedMs": 46768,
+      "mediaSeconds": 46.380347209,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "segmentIndex": 14,
+      "bufferedRanges": [
+        [
+          0,
+          56.128
+        ]
+      ]
+    },
+    {
+      "name": "buffer-bufferedchange",
+      "elapsedMs": 46787,
+      "mediaSeconds": 46.399553183,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "bufferedRanges": [
+        [
+          0,
+          60.138666666666666
+        ]
+      ]
+    },
+    {
+      "name": "buffer-updateend",
+      "elapsedMs": 46787,
+      "mediaSeconds": 46.399683514,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "bufferedRanges": [
+        [
+          0,
+          60.138666666666666
+        ]
+      ]
+    },
+    {
+      "name": "segment-append-complete",
+      "elapsedMs": 46787,
+      "mediaSeconds": 46.399724972,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "segmentIndex": 14,
+      "bufferedRanges": [
+        [
+          0,
+          60.138666666666666
+        ]
+      ]
+    },
+    {
+      "name": "segment-append-start",
+      "elapsedMs": 46788,
+      "mediaSeconds": 46.399814595,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "segmentIndex": 15,
+      "bufferedRanges": [
+        [
+          0,
+          60.138666666666666
+        ]
+      ]
+    },
+    {
+      "name": "buffer-bufferedchange",
+      "elapsedMs": 46799,
+      "mediaSeconds": 46.411331572,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "bufferedRanges": [
+        [
+          0,
+          64
+        ]
+      ]
+    },
+    {
+      "name": "buffer-updateend",
+      "elapsedMs": 46799,
+      "mediaSeconds": 46.411552485,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "bufferedRanges": [
+        [
+          0,
+          64
+        ]
+      ]
+    },
+    {
+      "name": "segment-append-complete",
+      "elapsedMs": 46799,
+      "mediaSeconds": 46.411575026,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "segmentIndex": 15,
+      "bufferedRanges": [
+        [
+          0,
+          64
+        ]
+      ]
+    },
+    {
+      "name": "end-of-stream-requested",
+      "elapsedMs": 46799,
+      "mediaSeconds": 46.411612984,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "bufferedRanges": [
+        [
+          0,
+          64
+        ]
+      ]
+    },
+    {
+      "name": "end-of-stream-called",
+      "elapsedMs": 46799,
+      "mediaSeconds": 46.411619942,
+      "sourceState": "open",
+      "managedStreaming": true,
+      "durationSeconds": 64,
+      "bufferedRanges": [
+        [
+          0,
+          64
+        ]
+      ]
+    },
+    {
+      "name": "sourceended",
+      "elapsedMs": 46799,
+      "mediaSeconds": 46.411744606,
+      "sourceState": "ended",
+      "managedStreaming": false,
+      "durationSeconds": 64,
+      "bufferedRanges": [
+        [
+          0,
+          64
+        ]
+      ]
+    },
+    {
+      "name": "endstreaming",
+      "elapsedMs": 46799,
+      "mediaSeconds": 46.411748023,
+      "sourceState": "ended",
+      "managedStreaming": false,
+      "durationSeconds": 64,
+      "bufferedRanges": [
+        [
+          0,
+          64
+        ]
+      ]
+    },
+    {
+      "name": "audible-cut-marked",
+      "elapsedMs": 47802,
+      "mediaSeconds": 47.247947625
+    },
+    {
+      "name": "progress",
+      "elapsedMs": 49257,
+      "mediaSeconds": 48.603208634,
+      "bufferedUntilMediaSeconds": 64
+    },
+    {
+      "name": "progress",
+      "elapsedMs": 53271,
+      "mediaSeconds": 52.617594632,
+      "bufferedUntilMediaSeconds": 64
+    },
+    {
+      "name": "progress",
+      "elapsedMs": 57286,
+      "mediaSeconds": 56.632099116,
+      "bufferedUntilMediaSeconds": 64
+    },
+    {
+      "name": "progress",
+      "elapsedMs": 61302,
+      "mediaSeconds": 60.648347764,
+      "bufferedUntilMediaSeconds": 64
+    },
+    {
+      "name": "pause",
+      "elapsedMs": 64771,
+      "mediaSeconds": 64
+    },
+    {
+      "name": "ended",
+      "elapsedMs": 64774,
+      "mediaSeconds": 64
+    }
+  ],
+  "reads": [
+    {
+      "cid": "bafykbzacecj2qvfpqevlm6pqkm24fjcmszi6qd5r3ywikxfxx5yhjqsyorot4",
+      "bytes": 271,
+      "elapsedMs": 0,
+      "attemptElapsedMs": 3,
+      "mediaSeconds": 0
+    },
+    {
+      "cid": "bafk2bzaceamyjzmsnmpmwqzjyyo4boaz76znwpnzmetkob2jdwjdkehq3shgc",
+      "bytes": 7485,
+      "elapsedMs": 0,
+      "attemptElapsedMs": 4,
+      "mediaSeconds": 0
+    },
+    {
+      "cid": "bafykbzacec7baomhq7wqzd6db7zt3dwklozy6shcgbn3kix7mc2qzijlcoh6k",
+      "bytes": 1067,
+      "elapsedMs": 0,
+      "attemptElapsedMs": 39,
+      "mediaSeconds": 0
+    },
+    {
+      "cid": "bafk2bzacebb5w2v5jd7h6nq74jdukqggvnhozo5d7vtokyy7myi5j7qlkcxtu",
+      "bytes": 780,
+      "elapsedMs": 0,
+      "attemptElapsedMs": 39,
+      "mediaSeconds": 0
+    },
+    {
+      "cid": "bafk2bzaceb3guh5dy64svg4tnzjvpcqwf7pa4pig635vfaisatvjbfnhmx5ys",
+      "bytes": 48370,
+      "elapsedMs": 1,
+      "attemptElapsedMs": 62,
+      "mediaSeconds": 0
+    },
+    {
+      "cid": "bafk2bzacebn467snczanyj3xvyvlxsmoz5xhprayadzb7a4x4almfd57mtlkg",
+      "bytes": 48379,
+      "elapsedMs": 1,
+      "attemptElapsedMs": 125,
+      "mediaSeconds": 0.005053333
+    },
+    {
+      "cid": "bafk2bzaceb5gvgf4l2eqry7mvgapyeeqpb4kp2i3hmyfan27nyk5ok2d64vny",
+      "bytes": 48538,
+      "elapsedMs": 1,
+      "attemptElapsedMs": 131,
+      "mediaSeconds": 0.0105735
+    },
+    {
+      "cid": "bafk2bzaced6vrwaaq23qxzxdnwwub6zk6ag62hjeqt7czbbjvpwtyg5wtokxg",
+      "bytes": 48132,
+      "elapsedMs": 1,
+      "attemptElapsedMs": 134,
+      "mediaSeconds": 0.013949541
+    },
+    {
+      "cid": "bafk2bzaced37xxd4bykhmlvhonsp3kklpe6wbnrjo3x5h4tsqwraztq2vywui",
+      "bytes": 48288,
+      "elapsedMs": 1,
+      "attemptElapsedMs": 137,
+      "mediaSeconds": 0.016938833
+    },
+    {
+      "cid": "bafk2bzaced42rl5dgdjhmwxspd75pyg7c4ofjyab4mimihw57u7i4fmpua5me",
+      "bytes": 48164,
+      "elapsedMs": 1,
+      "attemptElapsedMs": 140,
+      "mediaSeconds": 0.019877499
+    },
+    {
+      "cid": "bafk2bzacedoa5ge6gx3nlvei3jkwjueyyy2jt24buwplosc6fftw4uqjcr5vy",
+      "bytes": 47991,
+      "elapsedMs": 1,
+      "attemptElapsedMs": 143,
+      "mediaSeconds": 0.022702708
+    },
+    {
+      "cid": "bafk2bzaceaje4sl4lxd7kctfn726r5j2k45tox4vouhjuwpsb67d2zvqfxvf6",
+      "bytes": 48377,
+      "elapsedMs": 1,
+      "attemptElapsedMs": 146,
+      "mediaSeconds": 0.025882208
+    },
+    {
+      "cid": "bafk2bzacebkfbbdt5im4gwukzwt6k5bjldzfabuf6myjvr7avht7jcbors57k",
+      "bytes": 48123,
+      "elapsedMs": 5,
+      "attemptElapsedMs": 22423,
+      "mediaSeconds": 22.303358882
+    },
+    {
+      "cid": "bafk2bzacec2vby64tgvljllrriijxitw2sorzynykmoyfeuigmhitbzgt6uxu",
+      "bytes": 48164,
+      "elapsedMs": 2,
+      "attemptElapsedMs": 22436,
+      "mediaSeconds": 22.316326418
+    },
+    {
+      "cid": "bafk2bzaceab75czk27svipirqx4fme5ebnn4wkrkvjoy3snywdaw5epdjl7xc",
+      "bytes": 48335,
+      "elapsedMs": 2,
+      "attemptElapsedMs": 22446,
+      "mediaSeconds": 22.326443168
+    },
+    {
+      "cid": "bafk2bzacebancvhw2udx453mhn3wjj3vyafqamghgcuvax6jqebjkkozxye5i",
+      "bytes": 47983,
+      "elapsedMs": 1,
+      "attemptElapsedMs": 22455,
+      "mediaSeconds": 22.33537677
+    },
+    {
+      "cid": "bafk2bzacebrg7k662imbnqhlnlo5jceemcqqaxbhzx6tgvs563v6vagpotrd6",
+      "bytes": 48220,
+      "elapsedMs": 1,
+      "attemptElapsedMs": 22461,
+      "mediaSeconds": 22.341362463
+    },
+    {
+      "cid": "bafk2bzacecqyt2h7w44w5dmhl6vp2vid63mc3xwgnvs57c3gzcfieicrquwn2",
+      "bytes": 48024,
+      "elapsedMs": 1,
+      "attemptElapsedMs": 22468,
+      "mediaSeconds": 22.348528136
+    },
+    {
+      "cid": "bafk2bzacedoqko6t6kk27r6hq2l6u5o6cn7e22n64wlp2chy3mx6wdej77g7g",
+      "bytes": 48103,
+      "elapsedMs": 5,
+      "attemptElapsedMs": 46774,
+      "mediaSeconds": 46.386582356
+    },
+    {
+      "cid": "bafk2bzacecbd57i64hpchm3vxlzidlzwn6ykhy4gdvi6sx3gtjsx5xhqqedvg",
+      "bytes": 46128,
+      "elapsedMs": 2,
+      "attemptElapsedMs": 46790,
+      "mediaSeconds": 46.402691131
+    }
+  ]
+}
