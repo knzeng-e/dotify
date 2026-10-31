@@ -99,6 +99,19 @@ Two owner-reported native eight-second listens and two completed decoder control
 are recorded above; background, longer listening and measured first-sound gates
 remain unverified.
 
+## Protected Bulletin rehearsal: local only
+
+`npm run test:protected --prefix research/bulletin-prototype` runs a generated-only
+cross-package rehearsal in a fresh temporary directory and a child with an
+allowlisted environment. It inherits no dotenv, database/upload/key credentials
+or signer. Fastify request injection opens no port; the test refuses Node
+TCP/fetch. Actual custody jobs, encryption, signatures, canonical access checks
+and selective AAC decoding run against simulated chain/catalog/storage. Temporary
+files are removed on normal child exit, including failures; an abrupt process
+kill may leave a temporary directory. No deployment setting, provider, gateway,
+account authorization, contract, DotNS record or retention schedule changes.
+See [scope, recovery and live-canary prerequisites](../backlog/implementation/evidence/bulletin-protected-rehearsal-2026-10-31.md).
+
 ## Managed append completion correction, lab 0.3.1 published
 
 The [managed-reader correction](../backlog/implementation/evidence/managed-audio-append-commit-2026-10-31.md)

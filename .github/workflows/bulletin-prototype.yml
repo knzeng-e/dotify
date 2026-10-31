@@ -4,6 +4,14 @@ on:
     branches: [dev]
     paths:
       - 'research/bulletin-prototype/**'
+      - 'services/api/src/routes/keys.ts'
+      - 'services/api/src/services/streamingJobs.ts'
+      - 'services/api/src/services/keyVault.ts'
+      - 'services/api/src/services/signatures.ts'
+      - 'services/api/src/services/replayProtection.ts'
+      - 'services/api/src/services/chainAccess.ts'
+      - 'services/api/src/config.ts'
+      - 'services/api/package-lock.json'
       - 'services/api/src/services/streamingFormat.ts'
       - 'services/api/src/services/streamingNonces.ts'
       - 'services/api/src/services/streamingEncoder.ts'
@@ -39,6 +47,8 @@ jobs:
           npm ci --prefix research/bulletin-prototype --ignore-scripts
       - name: Test actual v3 encryption, IPFS paths and simulated recovery
         run: npm test --prefix research/bulletin-prototype
+      - name: Rehearse protected publication and signed key delivery offline
+        run: npm run test:protected --prefix research/bulletin-prototype
       - name: Verify generated-only mobile packaging and local evidence recovery
         run: npm run test:mobile --prefix research/bulletin-prototype
       - name: Verify explicit continuity limits and a read-only transaction creator

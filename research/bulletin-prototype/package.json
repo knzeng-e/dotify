@@ -25,7 +25,8 @@
     "probe:writer": "node --import tsx writer-probe.mjs",
     "test:continuity": "node --import tsx --test continuity.test.mjs finalization.test.mjs",
     "test:continuity-browser": "node --import tsx --test continuity-browser.test.mjs finalization-browser.test.mjs",
-    "continuity": "node --import tsx continuity.mjs"
+    "continuity": "node --import tsx continuity.mjs",
+    "test:protected": "node protected-rehearsal.mjs"
   },
   "dependencies": {
     "@ipld/dag-pb": "4.2.0",
