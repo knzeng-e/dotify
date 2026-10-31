@@ -181,7 +181,8 @@ export function createBulletinMediaStore(options: {
       assert.equal(state.genesis, selected.genesis);
       return state;
     },
-    async pin(files: PinataFile[], name: string, signal: AbortSignal): Promise<string> {
+    async pin(files: PinataFile[], name: string, ownerSignal: AbortSignal): Promise<string> {
+      const signal = AbortSignal.any([ownerSignal, AbortSignal.timeout(5 * 60_000)]);
       jobId.parse(name);
       signal.throwIfAborted();
       const initialOwner = await owner();
@@ -323,6 +324,13 @@ export function createBulletinMediaStore(options: {
           state.receipts[block.cid] = receiptFor(block, await call(signal, s => transport.lookup(block.cid, s)), final.head, budget.minimumLifetimeBlocks);
           verifyBulletinBlock(block.cid, await call(signal, s => transport.readBlock(block.cid, s)));
         }
+        const completed = await observeStatus();
+        for (const block of graph.blocks) receiptFor(block, state.receipts[block.cid], completed.head, budget.minimumLifetimeBlocks);
+        assert.ok(
+          nonnegative(completed.authorization.remainingTransactions) >= BigInt(graph.blocks.length) &&
+            nonnegative(completed.authorization.remainingRenewBytes) >= BigInt(graph.bytes),
+          'Bulletin renewal reserve unavailable'
+        );
         owns();
         assert.equal(Object.keys(state.receipts).length, graph.blocks.length, 'Incomplete Bulletin publication');
         // All blocks are freshly checked above. This durable receipt inventory
