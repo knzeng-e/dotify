@@ -6,6 +6,7 @@ on:
       - 'research/bulletin-prototype/**'
       - 'services/api/src/routes/keys.ts'
       - 'services/api/src/services/streamingJobs.ts'
+      - 'services/api/src/services/bulletin*.ts'
       - 'services/api/src/services/keyVault.ts'
       - 'services/api/src/services/signatures.ts'
       - 'services/api/src/services/replayProtection.ts'

@@ -11,8 +11,9 @@ import { Socket } from 'node:net';
 import { generatedWav } from './generated-source.mjs';
 import { buildDirectory, readPath, hostBlockReader } from './graph.mjs';
 import { blakeGraph } from './readdress-aac.mjs';
-import { publish } from './publication.mjs';
 import { SimulatedChain } from './simulated-chain.mjs';
+import { initializeBulletinMediaStore, createBulletinMediaStore } from '../../services/api/src/services/bulletinMedia.ts';
+import { buildBulletinMediaGraph } from '../../services/api/src/services/bulletinGraph.ts';
 import { StreamingJobs, initializeStreamingJobs } from '../../services/api/src/services/streamingJobs.ts';
 import { transcodeStreamingAudio } from '../../services/api/src/services/streamingTranscoder.ts';
 import { deriveContentKey, deriveContentKeyBytes } from '../../services/api/src/services/keyVault.ts';
@@ -198,6 +199,10 @@ async function fixture(t) {
   await initializeStreamingJobs(directory);
   const chain = new SimulatedChain();
   const model = runtimeModel();
+  const storageDirectory = join(process.cwd(), 'bulletin-publications');
+  const identity = { genesis: chain.genesis, account: chain.account };
+  await initializeBulletinMediaStore(storageDirectory, identity);
+  const storage = createBulletinMediaStore({ directory: storageDirectory, identity, transport: chain, budget: { ...budget, minimumLifetimeBlocks: 100 } });
   let encodes = 0,
     graph,
     files,
@@ -213,14 +218,16 @@ async function fixture(t) {
       encodes++;
       return transcodeStreamingAudio({ master: bytes, signal });
     },
-    pin: async (value, _name, signal) => {
+    pin: async (value, name, signal) => {
       signal.throwIfAborted();
       files = value;
-      graph = await blakeGraph(await buildDirectory(files));
+      graph = await buildBulletinMediaGraph(files, signal);
+      const prototype = await blakeGraph(await buildDirectory(files));
+      assert.equal(graph.root, prototype.root, 'Server adapter must preserve the physically tested BLAKE2b directory identity');
       attempts++;
-      const result = await publish(graph, chain, join(process.cwd(), 'receipts'), budget);
+      const root = await storage.pin(files, name, signal);
       signal.throwIfAborted();
-      return result.root;
+      return root;
     }
   };
   return {
@@ -382,7 +389,7 @@ test('protected release: custody retry, canonical signed access, selective Bulle
   const before = await ledgerSnapshot(join(c.directory, 'nonces'));
   const firstRoot = c.graph.root;
   const firstFiles = c.files.map(f => [f.path, hash(f.bytes)]);
-  const ledger = await readFile(join(process.cwd(), 'receipts/receipts.json'), 'utf8');
+  const ledger = await readFile(join(process.cwd(), 'bulletin-publications', `stream-${job.id}.json`), 'utf8');
   assert.ok(JSON.parse(ledger).pending, 'Uncertain submission must remain journalled');
   assert.ok(!ledger.includes(c.key.toString('hex')) && !ledger.includes(c.vault.contentKeyMasterSecret));
   await jobs.stop();
