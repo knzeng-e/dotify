@@ -72,6 +72,17 @@ reservations, without duplicate stores. Denials derive no key. No provider is
 activated; full-release adapter ownership, real registration/access, Web delivery,
 physical protected listening and recurring retention remain open.
 
+## Server-side Bulletin adapter, 2026-10-31
+
+[ADR 0038](../../adr/0038-bulletin-media-adapter.md) and the
+[adapter evidence](evidence/bulletin-media-adapter-2026-10-31.md) record bounded
+full-release directory construction, durable per-job receipt/allowance ownership
+and the catalog-gated Web reader. The actual protected rehearsal uses the adapter
+without changing directory identity, key checks or ciphertext. API/queue provider
+composition stays unselected. Prepare its real transport, persistent state,
+account isolation and exact canary budget next; physical protected listening,
+uncached recovery, measured costs and recurring retention remain open.
+
 ## Agent assignment
 
 Implement **W33** only. Read `AGENTS.md`, `docs/backlog/implementation/common.md`, and the files below before changing code. Follow the common execution contract, including the evidence/handoff record.

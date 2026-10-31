@@ -99,6 +99,35 @@ Two owner-reported native eight-second listens and two completed decoder control
 are recorded above; background, longer listening and measured first-sound gates
 remain unverified.
 
+## Bulletin media adapter: prepared, not selected
+
+The API now exports `createBulletinMediaStore`, its explicit first-provisioning
+function `initializeBulletinMediaStore`, and `createBulletinMediaReader`. No app
+composition, environment variable, mount, gateway origin or deployed provider is
+changed. See [ADR 0038](../adr/0038-bulletin-media-adapter.md) and the
+[verification record](../backlog/implementation/evidence/bulletin-media-adapter-2026-10-31.md).
+
+Before activation, select one persistent, backed-up private directory outside
+streaming-job cleanup and one exclusive storage signer. Provision once; never
+recreate a missing owner marker or recorded job journal. Keep owner/job inventories,
+pending intents, cumulative allowances, ciphertext recovery and nonce reservations
+together in the recovery plan. The 4,096-job inventory cap and whole-graph memory
+ceiling require resource/capacity validation before real release traffic.
+
+A crashed writer leaves `writer.lock`. Stop all tools using the account, prove
+that no writer or pending broadcast survives, reconcile the affected job against
+finalized chain data, and review the durable owner/pending/attempt records before
+any operator removes that lock. There is no automatic stale-lock removal or
+broadcast retry. A missing pending CID alone is never sufficient evidence to
+clear an intent. Do not reuse the account from another state directory or CLI.
+
+Provider activation must separately wire the selected job callback, bounded live
+transport and catalog-gated Web reader while preserving canonical signed key
+delivery. The reader is not a gateway for arbitrary CIDs or archival originals.
+Rollback may stop new publication, but must retain receipts/nonces and a working
+read path for every already registered reference. No retention scheduler or new
+storage allowance is created by these modules.
+
 ## Protected Bulletin rehearsal: local only
 
 `npm run test:protected --prefix research/bulletin-prototype` runs a generated-only
