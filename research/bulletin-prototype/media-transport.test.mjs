@@ -179,3 +179,17 @@ test('mismatched signer, absent budget and pre-cancelled requests fail before si
   assert.equal(c.subscriptions, 0);
   c.session.close();
 });
+
+test('the selected transaction creator is stable if the caller later edits its options', async () => {
+  const signer = { account: identity.account, createTransaction: creator };
+  const c = context({ signer });
+  signer.account = 'other';
+  signer.createTransaction = () => {
+    throw new Error('Changed creator must never be selected');
+  };
+  const writing = c.session.transport.store(block, intent, signal());
+  await started(c);
+  c.observer.next(finalEvent);
+  assert.deepEqual(await writing, fixture.receipt);
+  c.session.close();
+});

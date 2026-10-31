@@ -8,6 +8,7 @@ import { watchFinalized } from './finalized-store.mjs';
 
 export function createPapiMediaTransport({ client, identity, signer = null, budget }) {
   identity = { ...identity };
+  signer = signer === null ? null : { ...signer };
   assert.ok(client && typeof client._request === 'function' && typeof client.destroy === 'function', 'Dedicated PAPI client required');
   assert.ok(
     signer === null || (signer.account === identity.account && typeof signer.createTransaction === 'function'),
