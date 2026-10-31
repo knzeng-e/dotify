@@ -36,8 +36,9 @@ is now [published independently](evidence/bulletin-finalization-publication-2026
 with four new Product stores / 392,466 bytes, retained audio reuse, exact artifact
 and record readback, and signer removal. The generated-only wrapper and bounded
 notebook change no ordinary caller behavior or production record. The physical
-iPhone [baseline now records two human cut markers](evidence/bulletin-finalization-mobile-2026-10-31.md);
-the near-end comparison remains pending and no audible fix is established. Keep 91
+iPhone [paired controls both record two human cut markers](evidence/bulletin-finalization-mobile-2026-10-31.md)
+despite delayed finalization; redundant appends are the next regression to address.
+No audible fix is established. Keep 91
 renewal transactions reserved and recheck retained dependencies before delayed
 tests; no renewal was submitted or scheduled.
 

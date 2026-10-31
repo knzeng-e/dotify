@@ -1,6 +1,6 @@
-# Bulletin lab 0.3.0: physical iPhone baseline, 2026-10-31
+# Bulletin lab 0.3.0: paired physical iPhone observations, 2026-10-31
 
-Refs #288 / #287. The first [published lab 0.3.0](bulletin-finalization-publication-2026-10-31.md) baseline reaches the end, with audio heard, but the owner marks **two cuts**. Uninterrupted listening is not accepted. The near-playback-end comparison is still pending; this report does not establish a fix or an end-of-stream cause.
+Refs #288 / #287. The first [published lab 0.3.0](bulletin-finalization-publication-2026-10-31.md) baseline reaches the end, with audio heard, but the owner marks **two cuts**. Uninterrupted listening is not accepted. The near-playback-end comparison also completes with two marked cuts. Moving the actual finish call later does not remove the symptom; this pair does not establish that redundant appends are its audible cause.
 
 ## What was tested
 
@@ -30,8 +30,26 @@ Code inspection identifies a matching hypothesis in `web/src/features/catalog/ma
 
 The progress-clock differences across the two surrounding sample windows are 268.959 ms (media 20.276 to 24.522 s) and 266.404 ms (44.603 to 48.603 s). These are wall/media clock observations, **not measured audio-gap durations**. There is no post-start `waiting` or `stalled` event; the human markers still establish that `ended` alone is insufficient acceptance.
 
-## Next controlled comparison
+## Near-playback-end result
 
-Keep the same iPhone, volume, foreground conditions and embedded delivery. Select **Near playback end (experiment)**, listen through 1 min 04, mark each heard cut once and preserve the report. Verify managed applicability and the actual end-of-stream call position. Compare both marked cuts and repeated appends, including a possible cut near the deferred finish. Repeat native delivery only after the shared-reader behavior is understood.
+The owner supplied the second report `707c164e-01b2-4622-a1d1-6aec150547ad`, started `2026-10-31T12:21:46.768Z`, on Wi-Fi with the same iPhone user agent, implementation, audio root and embedded managed delivery. The [selected-field projection](bulletin-finalization-near-end-707c164e-2026-10-31.json) explicitly identifies its transcription/projection boundary; it is not a complete host report. Host app version remains unconfirmed.
 
-This observation changes no player, ciphertext, access policy, service, provider or deployed record. Native network performance, cold audible startup, background recovery, artist access and recurring retention remain separate gates.
+| Observation | Baseline | Near-playback-end |
+| --- | --- | --- |
+| First `playing` | 77 ms | 91 ms |
+| First human cut marker, media time | 24.197 s | 22.935 s |
+| Second human cut marker, media time | 47.248 s | 47.125 s |
+| Actual end-of-stream call, media time | 46.412 s | 63.167 s |
+| Segment indices appended twice | 7 and 13 | 7 and 13 |
+| Natural completion | 64 s | 64 s |
+| Heard audio / managed experiment applied | true / true | true / true |
+
+The alternate mode takes effect: the request remains at media 46.415 s, while the actual call moves to 63.167 s. Both markers occur before that deferred call. This rules out the timing of the successful end-of-stream call as a sufficient explanation/remedy for these two marked cuts in this pair. It does not rule out every finalization-related effect or other production problems.
+
+The repeated appends and demand resumes remain near media 22.3 and 46.4 s. Repeating a segment whose previous append completed is now a concrete bookkeeping defect to reproduce deterministically, while its audible effect still needs a corrected-build physical comparison. The embedded control proves native Bulletin delivery is not necessary to reproduce the symptom; it does not measure Wi-Fi/Bulletin throughput or rule out separate network stalls in production.
+
+## Next implementation and acceptance
+
+Add a regression for demand stopping during a successful native append, preserve the committed segment without treating a cancelled download as success, and retain real-eviction and owner-cancellation guards. Verify the real compiled AAC adapter locally, then prepare a clean lab candidate after code review. Any later publication needs a fresh retention/budget review and explicit authorization; these reports authorize no new stores or record changes.
+
+The current observations change no player, ciphertext, access policy, service, provider or deployed record. No audible fix is accepted. Corrected-build iPhone listening, native delivery, cold audible startup, background recovery, artist access and recurring retention remain separate gates.

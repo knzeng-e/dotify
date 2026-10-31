@@ -125,8 +125,9 @@ any missing reused dependency requires a new reviewed plan.
 First compare both embedded modes on the same physical iPhone, preserving the
 reports; only then repeat native delivery if finalization is implicated. A
 lab-only rollback requires a separate reviewed record change with retained bytes
-and Host version behavior checked. The [first physical baseline](../backlog/implementation/evidence/bulletin-finalization-mobile-2026-10-31.md)
-now records two human cut markers; the near-end comparison remains pending.
+and Host version behavior checked. The [paired physical controls](../backlog/implementation/evidence/bulletin-finalization-mobile-2026-10-31.md)
+both record two human cut markers despite the changed finish timing; redundant
+segment appends during demand resume need a scoped correction and new acceptance.
 No audible fix is claimed. The published player is unchanged by these observations.
 
 ## Longer Bulletin mobile diagnostic, published independently
