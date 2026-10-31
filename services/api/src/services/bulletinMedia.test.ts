@@ -296,7 +296,10 @@ test('Web route delivers verified ciphertext selectively, denies arbitrary paths
   active = false;
   assert.equal((await app.inject(prefix + object.path)).statusCode, 404);
   assert.equal(c.transport.reads.length, reads, 'Denied route must not read any block');
-  assert.ok(!c.transport.reads.includes(c.graph.blocks[0].cid), 'Streaming must not read the archive raw block');
+  const master = c.files.find(file => file.path === 'archive/master.bin')!.bytes;
+  const archiveBlock = c.graph.blocks.find(block => block.codec === 0x55 && Buffer.from(block.bytes).equals(master));
+  assert.ok(archiveBlock, 'Fixture archive must resolve to a raw block');
+  assert.ok(!c.transport.reads.includes(archiveBlock.cid), 'Streaming must not read the archive raw block');
 });
 
 test('Web reader rejects corruption and bounds concurrent/aborted reads even for an unresponsive transport', async t => {
