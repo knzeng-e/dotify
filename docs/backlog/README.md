@@ -202,6 +202,17 @@ and physical Product-host validation remain release gates.
 
 Dotify is not a Spotify clone. Dotify is a decentralized cultural social hub where music becomes a live social connector, artists retain sovereignty over catalog/access/royalties, and listeners can discover music through shared real-time presence.
 
+## Bulletin publication pipeline, 2026-10-31
+
+The [prepared server adapter](../adr/0038-bulletin-media-adapter.md) now has
+[bounded nonce-aware publication](../adr/0039-bulletin-media-pipeline.md): default
+two concurrent stores, durable account-wide sequence numbers, exact submission
+reconciliation and dependency-ordered readiness. The
+[verification record](implementation/evidence/bulletin-media-pipeline-2026-10-31.md)
+separates local failure/recovery tests from live throughput and protected-device
+acceptance. Provider composition, the live signer/receipt transport and recurring
+retention are still open. No production storage path changes.
+
 ## Production readiness rule
 
 Do not add ornamental product features until the following spine is stable:

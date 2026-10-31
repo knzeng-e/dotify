@@ -128,6 +128,51 @@ Rollback may stop new publication, but must retain receipts/nonces and a working
 read path for every already registered reference. No retention scheduler or new
 storage allowance is created by these modules.
 
+### Prepared v2 publication pipeline
+
+[ADR 0039](../adr/0039-bulletin-media-pipeline.md) adds default two / maximum four
+parallel stores and bounded parallel audits to this unselected adapter. Explicit
+constructor limits (512 KiB in flight by default, at most 1 MiB) are immutable
+per job; there is no new environment setting or deployment action. The existing
+five-minute publication and thirty-second call deadlines remain.
+
+The v2 owner holds the account-wide next nonce; each job also persists its cursor
+and pending CID/nonce/observed-head intents. Back up owner and job files together.
+Mismatch after interrupted persistence requires review, never cursor guessing.
+The selected live transport must use explicit nonces and independently recover
+the exact finalized sender/nonce store receipt, with bounded history lookup from
+the recorded `afterBlock`, not merely find content by CID. That transport is not
+implemented or wired by this change. No general-purpose SDK retry is allowed.
+
+V1 experimental inventories have no authoritative nonce cursor. The v2 opener
+rejects them without changing or deleting them; do not reset the directory or
+reuse its account to bypass pending duties. Review a fresh v2 state/account plan
+before first activation. Keep previous inventories available for their own
+retention/recovery duties. No production migration or automatic conversion is
+provided because this adapter has not been selected for deployment.
+
+The same account may be used for finalized DotNS operations between fully
+settled jobs: an idle cursor can advance monotonically. Never run another tool
+or leave external transactions pending during publication; an active job
+requires the exact durable nonce. This does not coordinate independent writers.
+
+A failed store may leave higher nonces queued. Preserve every uncertain intent,
+even on a claimed pre-broadcast rejection; stop all account users and reconcile
+finalized extrinsics, pending pool/broadcast lifetime, owner/job cursors and
+cumulative allowance before deciding on any operator recovery. Missing content
+or a higher account nonce alone is not proof of the intended storage outcome.
+A normal cancellation releases only the local process lock; the persistent
+account barrier remains. A late result cannot mutate the journal. Confirm the
+actual transport releases its resources on abort before live use.
+
+Before enabling writes: rehearse fresh-process resume and coherent backup/restore
+with the real transport, measure upload duration and peak memory for a
+representative release, and obtain its exact network budget. The local tests
+prove bounded scheduling and failure behavior over a model, not an upload speed
+or hosting-cost improvement. The [verification record](../backlog/implementation/evidence/bulletin-media-pipeline-2026-10-31.md)
+lists the remaining protected-canary gates. Existing catalogs, key services,
+Web delivery defaults and rollback obligations above are unchanged.
+
 ## Protected Bulletin rehearsal: local only
 
 `npm run test:protected --prefix research/bulletin-prototype` runs a generated-only
