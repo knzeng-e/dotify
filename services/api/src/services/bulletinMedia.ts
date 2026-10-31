@@ -280,8 +280,10 @@ export function createBulletinMediaStore(options: {
               nonnegative(before.authorization.remainingRenewBytes) >= BigInt(graph.bytes),
             'Bulletin quota changed before submission'
           );
-          custody.activeJob = name;
-          await save(directory, 'owner.json', custody);
+          if (custody.activeJob !== name) {
+            custody.activeJob = name;
+            await save(directory, 'owner.json', custody);
+          }
           state.pending = block.cid;
           state.attemptedStores++;
           state.attemptedBytes += block.bytes.length;
