@@ -213,6 +213,17 @@ separates local failure/recovery tests from live throughput and protected-device
 acceptance. Provider composition, the live signer/receipt transport and recurring
 retention are still open. No production storage path changes.
 
+## Bulletin transport preparation, 2026-10-31
+
+The [explicit transport](../adr/0040-bulletin-direct-store-receipts.md) now
+connects the prepared adapter to real RPC reads and an isolated PAPI writer.
+A read-only check verifies a previous public synthetic store; offline tests
+challenge its sender/nonce, payload and event checks. See the
+[verification record](implementation/evidence/bulletin-media-transport-2026-10-31.md).
+No new publication or signer use occurred. Private-state/client composition,
+an approved protected-canary budget, measured throughput and recurring retention
+still precede any provider activation.
+
 ## Production readiness rule
 
 Do not add ornamental product features until the following spine is stable:

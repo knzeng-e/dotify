@@ -16,7 +16,7 @@
     "prepare:addressing": "node --import tsx addressing-fixture.mjs",
     "prepare:blake-aac": "node --import tsx readdress-aac.mjs",
     "pipeline": "node --import tsx pipeline-canary.mjs",
-    "test:pipeline": "node --import tsx --test pipeline.test.mjs nonce-transport.test.mjs pipeline-cli.test.mjs",
+    "test:pipeline": "node --import tsx --test pipeline.test.mjs nonce-transport.test.mjs pipeline-cli.test.mjs media-transport.test.mjs",
     "measure:pipeline": "node --import tsx measure-pipeline.mjs",
     "inspect:pipeline": "node inspect-pipeline.mjs",
     "build:mobile": "node --import tsx mobile-package.mjs",

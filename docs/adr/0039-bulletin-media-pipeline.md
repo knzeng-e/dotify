@@ -1,6 +1,8 @@
 # ADR 0039: Bounded Bulletin publication with durable account nonces
 
 Date: 2026-10-31. Status: **implemented, provider composition still unselected**.
+The subsequent [direct-store transport](0040-bulletin-direct-store-receipts.md)
+adds bounded RPC receipt verification without activating publication.
 Refs #288 / #287. Extends [ADR 0038](0038-bulletin-media-adapter.md); it does not
 activate Bulletin storage or alter the existing access/key boundary.
 

@@ -173,6 +173,44 @@ or hosting-cost improvement. The [verification record](../backlog/implementation
 lists the remaining protected-canary gates. Existing catalogs, key services,
 Web delivery defaults and rollback obligations above are unchanged.
 
+### Explicit RPC transport: prepared, not deployed
+
+[ADR 0040](../adr/0040-bulletin-direct-store-receipts.md) adds
+`createBulletinRpcTransport` in the API and `createPapiMediaTransport` in the
+isolated research/operator package. No environment variable, default endpoint,
+credential, mount or production dependency changes. The existing PAPI 3 package
+supplies a dedicated caller-owned client and, for writes, an explicit matching
+transaction creator plus an immutable session allowance. Read-only construction
+accepts no signer and cannot submit. No secret is read from the environment.
+
+The RPC transport verifies genesis, finalized retained CID coordinates, exact
+sender/nonce, direct call bytes, successful dispatch and the matching storage
+event. It inspects one canonical candidate block, with metadata from the parent
+runtime. It requires metadata v15 and signed v4 support. The selected RPC is
+trusted for canonical state/finality; this is not independent light-client proof.
+If renewal or another store replaces the CID pointer, missing exact evidence
+keeps the custody intent unresolved. Require archive availability for candidate
+block bodies/events and parent metadata across the intended recovery window;
+retaining a CID alone is insufficient. Never clear or replay it from absence.
+
+Each operation is limited to 25 seconds; block/event/metadata/raw-object sizes
+and RPC concurrency have explicit bounds. Cancellation destroys the dedicated
+PAPI client and unsubscribes the watcher, but cannot retract a broadcast. A later
+retry needs a fresh client while retaining the same owner/job state. Install
+and test the provider's wire-frame limit before production: decoded size checks
+cannot prevent PAPI's initial JSON allocation. Keep other account tools idle
+during publication. Session counters supplement the durable job allowance;
+constructing another session never resets an unfinished job's allowance.
+
+A read-only check verified a previous 117-byte public synthetic store at block
+1429874, nonce 927, extrinsic index 2 and storage index 0. Captured public
+metadata/body/events are offline fixtures, containing no artist audio or content
+key. No store, renewal, DotNS change or signer activation occurred. See
+[the evidence and remaining canary gates](../backlog/implementation/evidence/bulletin-media-transport-2026-10-31.md).
+Before signed testing, review coherent private-state provisioning/restore,
+explicit signer identity, provider/client disposal and an exact generated-only
+budget. Provider activation and real protected Web/Host acceptance remain open.
+
 ## Protected Bulletin rehearsal: local only
 
 `npm run test:protected --prefix research/bulletin-prototype` runs a generated-only

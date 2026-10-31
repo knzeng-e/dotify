@@ -579,3 +579,24 @@ there is no network signer or provider switch. See
 The historical research pipeline and network canary commands keep their own
 separate budgets and checkpoints; they do not provision or activate the server
 adapter. V1 server inventories are not automatically converted to v2.
+
+
+### Explicit server-media transport
+
+`media-transport.mjs` composes a dedicated caller-created PAPI 3 client with the
+API's RPC transport. It selects no endpoint or signer. An explicit transaction
+creator/account and immutable session budget are required for writes; omitting
+the signer creates a read-only transport. Cancellation destroys that dedicated
+client, without retracting a submitted transaction. Retry with a new client and
+the same durable owner/job state. No new publish command or production setting
+is enabled here.
+
+`npm run test:pipeline` includes offline composition, cancellation and budget
+checks. API tests decode the captured public synthetic store in
+`fixtures/bulletin-receipt.json` with its checked v15 metadata. The fixture is
+from block 1429874, nonce 927, extrinsic index 2 / storage index 0; it contains no
+artist audio or content key. Tests never connect to the captured endpoint or
+submit its historical transaction. See
+[ADR 0040](../../docs/adr/0040-bulletin-direct-store-receipts.md) and the
+[transport evidence](../../docs/backlog/implementation/evidence/bulletin-media-transport-2026-10-31.md)
+for RPC trust, provider bounds, replaced-pointer failure and the next canary gate.
