@@ -1,0 +1,345 @@
+{
+  "schema": "dotify.bulletin.observation-projection.v1",
+  "provenance": "Selected fields and all segment append start/completion entries transcribed from the owner-provided JSON reply; this is not a complete host report or an audio-gap measurement.",
+  "reportId": "fc542404-eef3-4515-891f-f4ca625949a6",
+  "startedAt": "2026-10-31T14:48:04.697Z",
+  "implementation": {
+    "sha": "1e286e5c266765427a758fd119f270361acb0375",
+    "dirty": false
+  },
+  "transport": "bundled-decoder-control",
+  "network": "wifi",
+  "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148",
+  "ownerSuppliedHostVersion": "Polkadot app v0.10.0 (18)",
+  "reader": "managed",
+  "hostCache": "unknown; not cleared",
+  "pageCache": "empty per attempt",
+  "recoveredAfterReload": false,
+  "outcome": "ended",
+  "root": "bafykbzacecj2qvfpqevlm6pqkm24fjcmszi6qd5r3ywikxfxx5yhjqsyorot4",
+  "firstPlayingEventMs": 159,
+  "fixtureProfile": "continuity",
+  "fixtureDurationSeconds": 64,
+  "finalizationPolicy": "after-final-append",
+  "finalizationExperimentApplied": true,
+  "progressive": true,
+  "operatorHeardAudio": true,
+  "audibleFirstSoundMeasured": false,
+  "productionAccessTested": false,
+  "ownerConfirmedNoAudibleCuts": null,
+  "reportedAudibleCutMarkers": [],
+  "reportedPostStartupWaitingOrStalledEvents": [],
+  "appendStarts": [
+    {
+      "segmentIndex": 0,
+      "elapsedMs": 139,
+      "mediaSeconds": 0
+    },
+    {
+      "segmentIndex": 1,
+      "elapsedMs": 213,
+      "mediaSeconds": 0.019525209
+    },
+    {
+      "segmentIndex": 2,
+      "elapsedMs": 236,
+      "mediaSeconds": 0.042927917
+    },
+    {
+      "segmentIndex": 3,
+      "elapsedMs": 243,
+      "mediaSeconds": 0.049750584
+    },
+    {
+      "segmentIndex": 4,
+      "elapsedMs": 248,
+      "mediaSeconds": 0.054943959
+    },
+    {
+      "segmentIndex": 5,
+      "elapsedMs": 257,
+      "mediaSeconds": 0.063697667
+    },
+    {
+      "segmentIndex": 6,
+      "elapsedMs": 262,
+      "mediaSeconds": 0.068584792
+    },
+    {
+      "segmentIndex": 7,
+      "elapsedMs": 266,
+      "mediaSeconds": 0.072670001
+    },
+    {
+      "segmentIndex": 8,
+      "elapsedMs": 22481,
+      "mediaSeconds": 22.287351653
+    },
+    {
+      "segmentIndex": 9,
+      "elapsedMs": 22506,
+      "mediaSeconds": 22.313372113
+    },
+    {
+      "segmentIndex": 10,
+      "elapsedMs": 22520,
+      "mediaSeconds": 22.326542944
+    },
+    {
+      "segmentIndex": 11,
+      "elapsedMs": 22529,
+      "mediaSeconds": 22.336340704
+    },
+    {
+      "segmentIndex": 12,
+      "elapsedMs": 22539,
+      "mediaSeconds": 22.346179631
+    },
+    {
+      "segmentIndex": 13,
+      "elapsedMs": 22546,
+      "mediaSeconds": 22.353312058
+    },
+    {
+      "segmentIndex": 14,
+      "elapsedMs": 46567,
+      "mediaSeconds": 46.373903836
+    },
+    {
+      "segmentIndex": 15,
+      "elapsedMs": 46595,
+      "mediaSeconds": 46.402206461
+    }
+  ],
+  "appendCompletions": [
+    {
+      "segmentIndex": 0,
+      "elapsedMs": 213,
+      "mediaSeconds": 0.019489376
+    },
+    {
+      "segmentIndex": 1,
+      "elapsedMs": 236,
+      "mediaSeconds": 0.042889626
+    },
+    {
+      "segmentIndex": 2,
+      "elapsedMs": 243,
+      "mediaSeconds": 0.049719792
+    },
+    {
+      "segmentIndex": 3,
+      "elapsedMs": 248,
+      "mediaSeconds": 0.054895917
+    },
+    {
+      "segmentIndex": 4,
+      "elapsedMs": 257,
+      "mediaSeconds": 0.063663959
+    },
+    {
+      "segmentIndex": 5,
+      "elapsedMs": 262,
+      "mediaSeconds": 0.068564584
+    },
+    {
+      "segmentIndex": 6,
+      "elapsedMs": 266,
+      "mediaSeconds": 0.072649209
+    },
+    {
+      "segmentIndex": 7,
+      "elapsedMs": 272,
+      "mediaSeconds": 0.078467792
+    },
+    {
+      "segmentIndex": 8,
+      "elapsedMs": 22506,
+      "mediaSeconds": 22.313288322
+    },
+    {
+      "segmentIndex": 9,
+      "elapsedMs": 22520,
+      "mediaSeconds": 22.326490528
+    },
+    {
+      "segmentIndex": 10,
+      "elapsedMs": 22529,
+      "mediaSeconds": 22.336306871
+    },
+    {
+      "segmentIndex": 11,
+      "elapsedMs": 22539,
+      "mediaSeconds": 22.346125131
+    },
+    {
+      "segmentIndex": 12,
+      "elapsedMs": 22546,
+      "mediaSeconds": 22.353294434
+    },
+    {
+      "segmentIndex": 13,
+      "elapsedMs": 22554,
+      "mediaSeconds": 22.361454803
+    },
+    {
+      "segmentIndex": 14,
+      "elapsedMs": 46595,
+      "mediaSeconds": 46.402128338
+    },
+    {
+      "segmentIndex": 15,
+      "elapsedMs": 46609,
+      "mediaSeconds": 46.416173819
+    }
+  ],
+  "progress": [
+    {
+      "elapsedMs": 410,
+      "mediaSeconds": 0.216192083,
+      "bufferedUntilMediaSeconds": 32.064
+    },
+    {
+      "elapsedMs": 4421,
+      "mediaSeconds": 4.227732805,
+      "bufferedUntilMediaSeconds": 32.064
+    },
+    {
+      "elapsedMs": 8433,
+      "mediaSeconds": 8.239833636,
+      "bufferedUntilMediaSeconds": 32.064
+    },
+    {
+      "elapsedMs": 12446,
+      "mediaSeconds": 12.252972336,
+      "bufferedUntilMediaSeconds": 32.064
+    },
+    {
+      "elapsedMs": 16459,
+      "mediaSeconds": 16.266082294,
+      "bufferedUntilMediaSeconds": 32.064
+    },
+    {
+      "elapsedMs": 20474,
+      "mediaSeconds": 20.280666448,
+      "bufferedUntilMediaSeconds": 32.064
+    },
+    {
+      "elapsedMs": 24488,
+      "mediaSeconds": 24.29518383,
+      "bufferedUntilMediaSeconds": 56.128
+    },
+    {
+      "elapsedMs": 28502,
+      "mediaSeconds": 28.309319594,
+      "bufferedUntilMediaSeconds": 56.128
+    },
+    {
+      "elapsedMs": 32517,
+      "mediaSeconds": 32.324127592,
+      "bufferedUntilMediaSeconds": 56.128
+    },
+    {
+      "elapsedMs": 36529,
+      "mediaSeconds": 36.336684906,
+      "bufferedUntilMediaSeconds": 56.128
+    },
+    {
+      "elapsedMs": 40544,
+      "mediaSeconds": 40.351143174,
+      "bufferedUntilMediaSeconds": 56.128
+    },
+    {
+      "elapsedMs": 44558,
+      "mediaSeconds": 44.365614555,
+      "bufferedUntilMediaSeconds": 56.128
+    },
+    {
+      "elapsedMs": 48573,
+      "mediaSeconds": 48.380601333,
+      "bufferedUntilMediaSeconds": 64
+    },
+    {
+      "elapsedMs": 52589,
+      "mediaSeconds": 52.396844382,
+      "bufferedUntilMediaSeconds": 64
+    },
+    {
+      "elapsedMs": 56605,
+      "mediaSeconds": 56.412943841,
+      "bufferedUntilMediaSeconds": 64
+    },
+    {
+      "elapsedMs": 60621,
+      "mediaSeconds": 60.428546212,
+      "bufferedUntilMediaSeconds": 64
+    }
+  ],
+  "selectedEvents": [
+    {
+      "name": "waiting",
+      "elapsedMs": 43,
+      "mediaSeconds": 0
+    },
+    {
+      "name": "startstreaming",
+      "elapsedMs": 52,
+      "mediaSeconds": 0
+    },
+    {
+      "name": "playing",
+      "elapsedMs": 159,
+      "mediaSeconds": 0
+    },
+    {
+      "name": "endstreaming",
+      "elapsedMs": 272,
+      "mediaSeconds": 0.078356001
+    },
+    {
+      "name": "startstreaming",
+      "elapsedMs": 22498,
+      "mediaSeconds": 22.30455117
+    },
+    {
+      "name": "endstreaming",
+      "elapsedMs": 22554,
+      "mediaSeconds": 22.361377596
+    },
+    {
+      "name": "startstreaming",
+      "elapsedMs": 46581,
+      "mediaSeconds": 46.388083815
+    },
+    {
+      "name": "end-of-stream-requested",
+      "elapsedMs": 46610,
+      "mediaSeconds": 46.417067804
+    },
+    {
+      "name": "end-of-stream-called",
+      "elapsedMs": 46610,
+      "mediaSeconds": 46.417102054
+    },
+    {
+      "name": "sourceended",
+      "elapsedMs": 46610,
+      "mediaSeconds": 46.4173343
+    },
+    {
+      "name": "endstreaming",
+      "elapsedMs": 46610,
+      "mediaSeconds": 46.41734355
+    },
+    {
+      "name": "pause",
+      "elapsedMs": 64294,
+      "mediaSeconds": 64
+    },
+    {
+      "name": "ended",
+      "elapsedMs": 64297,
+      "mediaSeconds": 64
+    }
+  ]
+}

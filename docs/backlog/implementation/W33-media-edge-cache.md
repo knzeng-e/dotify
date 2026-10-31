@@ -53,9 +53,11 @@ its update. Cancelled downloads, actual evictions and owner cancellation keep
 their existing boundaries. The [owner-approved lab 0.3.1 publication](evidence/bulletin-append-publication-2026-10-31.md)
 is complete from clean tested dev `1e286e5c`: four stores / 392,466 bytes, retained
 audio reuse, independent byte/record readback and signer removal. Keep 91 renewal
-transactions reserved; none was submitted or scheduled. Corrected-build physical
-iPhone listening remains the next gate. No audible fix or production storage
-switch is claimed.
+transactions reserved; none was submitted or scheduled. The [first corrected
+iPhone embedded trace](evidence/bulletin-append-mobile-2026-10-31.md) shows each of
+16 segments appended once with no cut marker; explicit auditory confirmation
+and native delivery remain pending. No general audible acceptance or production
+storage switch is claimed.
 
 ## Agent assignment
 

@@ -1,6 +1,6 @@
 # Bulletin lab 0.3.1 publication, 2026-10-31
 
-**Available: `dotify-bulletin-lab.dot`, Product `[0,3,1]`, generated 64-second clip.** Refs #288 / #287. The [reviewed append correction](managed-audio-append-commit-2026-10-31.md) is now published from clean merged `dev` `1e286e5c266765427a758fd119f270361acb0375`. The [paired pre-correction iPhone controls](bulletin-finalization-mobile-2026-10-31.md) retained two marked cuts despite delayed finalization. The bookkeeping regression is corrected, but audible improvement still requires new physical listening.
+**Available: `dotify-bulletin-lab.dot`, Product `[0,3,1]`, generated 64-second clip.** Refs #288 / #287. The [reviewed append correction](managed-audio-append-commit-2026-10-31.md) is now published from clean merged `dev` `1e286e5c266765427a758fd119f270361acb0375`. The [paired pre-correction iPhone controls](bulletin-finalization-mobile-2026-10-31.md) retained two marked cuts despite delayed finalization. The bookkeeping regression is corrected. The [first corrected iPhone embedded trace](bulletin-append-mobile-2026-10-31.md) now shows each segment appended once and no cut marker; explicit auditory confirmation and native delivery remain pending.
 
 ## Verified release
 
@@ -34,4 +34,4 @@ The reused icon is the earliest-expiring dependency: observed expiry block 14772
 1. Copy important old reports before reopening the Product. Verify footer **Bulletin lab 0.3.1**, duration **01:04** and default **After final append (baseline)**.
 2. First select **Bundled decoder control (not Bulletin)** on the same iPhone/volume/foreground conditions, listen through 1 min 04 without pausing, mark each heard cut once, check heard-audio if appropriate and copy the report. Compare completed append counts and human cut markers with the paired 0.3.0 observations.
 3. Then repeat with **Bulletin through Polkadot app**, keeping baseline finish timing. This verifies the actual retained audio delivery after the shared-reader correction. Host cache remains unknown unless independently controlled. Human markers include reaction delay; `playing` is not measured first sound.
-4. No corrected-build physical result is claimed here. Cold audible startup, background/network recovery, artist access and recurring retention remain separate gates.
+4. The adjacent publication JSON is the snapshot taken before the physical follow-up. The [first corrected embedded observation](bulletin-append-mobile-2026-10-31.md) is now recorded separately; no marker is not an explicit uninterrupted-listening confirmation. Native delivery, cold audible startup, background/network recovery, artist access and recurring retention remain separate gates.

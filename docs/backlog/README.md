@@ -51,8 +51,10 @@ both have two human cut markers, despite moving the actual finish call from
 corrected in #363, now [published independently as lab 0.3.1](implementation/evidence/bulletin-append-publication-2026-10-31.md)
 from clean tested dev `1e286e5c`. Four new Product stores / 392,466 bytes reuse
 all existing audio and five Product blocks, with exact artifact/record readback
-and signer removal. Corrected-build physical iPhone listening remains next;
-publication establishes no audible fix and changes no production storage provider.
+and signer removal. The [first corrected physical embedded control](implementation/evidence/bulletin-append-mobile-2026-10-31.md)
+shows 16 unique appends and no cut marker on Polkadot app v0.10.0 (18) / Wi-Fi.
+Explicit auditory confirmation and native delivery remain pending; this changes
+no production storage provider and does not establish general audible acceptance.
 
 ## Current reconciliation, 2026-10-23
 

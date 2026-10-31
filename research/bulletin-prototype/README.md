@@ -528,5 +528,7 @@ all retained audio and five Product blocks reused. Independent readback verifies
 the exact CAR and lab records; main Dotify records are unchanged and the signer
 is removed. Keep 91 renewal transactions reserved, with no renewal submitted or
 scheduled. Recheck earlier-expiring dependencies before delayed tests. The next
-gate is corrected-build iPhone embedded listening followed by native delivery;
-no audible fix is established by publication or browser regressions.
+gate follows the [first corrected physical embedded trace](../../docs/backlog/implementation/evidence/bulletin-append-mobile-2026-10-31.md):
+16 unique appends and no cut marker, with explicit auditory confirmation and
+native delivery still pending. No general audible acceptance is established
+by publication, browser regressions or absent markers.
