@@ -31,10 +31,14 @@ cut. The next controlled experiment instruments final append/end-of-stream
 in the shared managed reader before varying its timing. Other physical and
 production gates remain open; no production storage switch occurred.
 
-The [lab 0.3.0 comparison preparation](evidence/bulletin-finalization-control-2026-10-31.md)
-now isolates that timing with a generated-only wrapper and bounded notebook
-snapshots. It changes no ordinary caller behavior or deployed record; physical
-comparison and a separately authorized lab publication remain next.
+The [lab 0.3.0 comparison](evidence/bulletin-finalization-control-2026-10-31.md)
+is now [published independently](evidence/bulletin-finalization-publication-2026-10-31.md)
+with four new Product stores / 392,466 bytes, retained audio reuse, exact artifact
+and record readback, and signer removal. The generated-only wrapper and bounded
+notebook change no ordinary caller behavior or production record. Paired physical
+iPhone comparison remains next; an audible fix is not established. Keep 91
+renewal transactions reserved and recheck retained dependencies before delayed
+tests; no renewal was submitted or scheduled.
 
 ## Agent assignment
 

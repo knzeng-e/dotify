@@ -99,7 +99,7 @@ Two owner-reported native eight-second listens and two completed decoder control
 are recorded above; background, longer listening and measured first-sound gates
 remain unverified.
 
-## Bulletin finalization comparison, prepared locally
+## Bulletin finalization comparison, published independently
 
 The [lab 0.3.0 candidate](../backlog/implementation/evidence/bulletin-finalization-control-2026-10-31.md)
 adds a generated-only managed-reader comparison after both native and embedded
@@ -108,14 +108,24 @@ append; the alternate mode waits until the last second with the tail buffered.
 Reports retain source/buffer transitions and an optional human cut marker.
 Standard MSE/Blob controls are explicitly not an applied managed experiment.
 Ordinary app callers keep their existing producer and behavior. No hosted
-setting, origin, key, runtime or deployed record changes.
+setting, origin, key or runtime changes.
 
-This preparation neither publishes 0.3.0 nor renews any data. A later operator
-must bind a clean source SHA, verify existing audio/dependency retention and
-compute the exact Product upload allowance before seeking publication approval.
-Do not re-encrypt the fixture or reset its nonce ledger. First compare both
-embedded modes on the same physical iPhone, preserving the reports; only then
-repeat native delivery if finalization is implicated. No audible fix is claimed.
+The [owner-approved lab 0.3.0 publication](../backlog/implementation/evidence/bulletin-finalization-publication-2026-10-31.md)
+is complete from clean tested dev `20ff46df`. Four new Product stores / 392,466
+bytes stay within the approved allowance; five Product blocks and all 66 audio
+blocks were reused after finalized retention/CID checks. Independent node and
+HTTP gateway readback reconstruct the exact CAR. Only the diagnostic root/app
+records change; ordinary `dotify-test01.dot` records remain identical, and the
+signer is removed. Keep 91 renewal transactions reserved; no renewal was sent or
+scheduled. The reused icon expires before new data, so recheck dependencies
+before delayed tests. Preserve the fixture nonce ledger and durable publication
+journal. A failed or ambiguous write requires reconciliation before retry, and
+any missing reused dependency requires a new reviewed plan.
+
+First compare both embedded modes on the same physical iPhone, preserving the
+reports; only then repeat native delivery if finalization is implicated. A
+lab-only rollback requires a separate reviewed record change with retained bytes
+and Host version behavior checked. No audible fix is claimed.
 
 ## Longer Bulletin mobile diagnostic, published independently
 

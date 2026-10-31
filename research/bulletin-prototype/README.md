@@ -493,7 +493,7 @@ The separate manual `npm run probe:writer --prefix research/bulletin-prototype` 
 No new Bulletin stores, renewals, account allowance or Product update are authorized by preparation. The candidate needs 66 stores / 5,677,848 bytes plus 66 reserved renewals, with old reserves and independent Product distribution budget added separately. The old sequential renewal command is not a larger-profile renewal mechanism. Obtain a reviewed exact budget before live commands; never treat the fixed 8-MiB/160-transaction ceiling as permission to spend it.
 
 
-## Managed finalization comparison, lab 0.3.0 preparation
+## Managed finalization comparison, lab 0.3.0 published
 
 The [paired mobile cut](../../docs/backlog/implementation/evidence/bulletin-continuity-publication-2026-10-31.md#native-acceptance-and-next-test)
 also occurs with embedded bytes near 46 seconds. The [next isolated control](../../docs/backlog/implementation/evidence/bulletin-finalization-control-2026-10-31.md)
@@ -508,6 +508,14 @@ unchanged. Standard MSE/Blob reports set `finalizationExperimentApplied: false`
 and do not validate the managed control. The existing `test:continuity` and
 `test:continuity-browser` commands now include finalization state tests and a
 compiled AAC comparison with an explicit Chromium managed-demand shim. A shim
-is not native iPhone evidence. No new publication, renewal or provider switch
-is performed. Reuse the existing generated fixture only after a retention
-check and a separate exact Product distribution review; keep its nonce ledger.
+is not native iPhone evidence.
+
+The [owner-approved 0.3.0 publication](../../docs/backlog/implementation/evidence/bulletin-finalization-publication-2026-10-31.md)
+is complete from clean merged dev `20ff46df`: four new Product blocks / 392,466
+bytes, five Product blocks and all 66 audio blocks reused after retention and
+CID checks. Independent readback verifies the exact CAR and lab records;
+production records are unchanged and the signer is removed. No renewal or
+provider switch occurred. Keep the fixture nonce ledger and 91 renewal
+transactions reserved. Before delayed tests, recheck the earlier-expiring reused
+icon and other dependencies. Next compare both embedded modes on the same
+physical iPhone, preserving cut markers and reports; no audible fix is claimed.
