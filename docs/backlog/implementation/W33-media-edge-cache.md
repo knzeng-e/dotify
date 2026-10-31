@@ -31,6 +31,11 @@ cut. The next controlled experiment instruments final append/end-of-stream
 in the shared managed reader before varying its timing. Other physical and
 production gates remain open; no production storage switch occurred.
 
+The [lab 0.3.0 comparison preparation](evidence/bulletin-finalization-control-2026-10-31.md)
+now isolates that timing with a generated-only wrapper and bounded notebook
+snapshots. It changes no ordinary caller behavior or deployed record; physical
+comparison and a separately authorized lab publication remain next.
+
 ## Agent assignment
 
 Implement **W33** only. Read `AGENTS.md`, `docs/backlog/implementation/common.md`, and the files below before changing code. Follow the common execution contract, including the evidence/handoff record.

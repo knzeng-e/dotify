@@ -1,6 +1,7 @@
 import { queryBytes } from '@parity/product-sdk/cloud-storage';
 import { createClient } from 'polkadot-api';
 import { fixtureProfile } from '../fixture-profile.mjs';
+import { finalizationPolicy, finalizationProducer } from './finalization';
 import { nativeRpcReader, NATIVE_GENESIS, bounded } from '../native-rpc.mjs';
 import { isInsideContainer, getHostProvider } from '@parity/product-sdk/host';
 import { readPath, hostBlockReader } from '../reader.mjs';
@@ -25,6 +26,8 @@ export function mountPlayer(options: PlayerOptions) {
   const download = element<HTMLButtonElement>('export');
   const heard = element<HTMLInputElement>('heard');
   const networkMarker = element<HTMLButtonElement>('mark-network');
+  const cutMarker = element<HTMLButtonElement>('mark-cut');
+  const finishSelector = element<HTMLSelectElement>('finish-policy');
   let began = 0;
   let controller: AbortController | undefined;
   let report: Record<string, any> | undefined;
@@ -53,6 +56,8 @@ export function mountPlayer(options: PlayerOptions) {
     start.disabled = false;
     stop.disabled = true;
     if (networkMarker) networkMarker.disabled = true;
+    if (cutMarker) cutMarker.disabled = true;
+    if (finishSelector) finishSelector.disabled = false;
   }
   function fail(error: unknown, attempt: Record<string, any>) {
     if (report !== attempt || attempt.outcome === 'failed') return;
@@ -67,7 +72,9 @@ export function mountPlayer(options: PlayerOptions) {
     cleanup();
     heard.checked = false;
     const mode = element<HTMLSelectElement>('transport').value;
-    const attempt = (report = {
+    // Only the 64-second diagnostic exposes the alternate timing.
+    const finishPolicy = finalizationPolicy(profile.id === 'continuity' ? finishSelector?.value : undefined);
+    const attempt: Record<string, any> = (report = {
       schema: 'dotify.bulletin.host-report.v1',
       fixtureProfile: profile.id,
       fixtureDurationSeconds: profile.durationSeconds,
@@ -80,6 +87,8 @@ export function mountPlayer(options: PlayerOptions) {
       network: element<HTMLInputElement>('network').value.slice(0, 160),
       userAgent: navigator.userAgent,
       reader: streamingMediaSource()?.kind ?? 'full-rendition-blob',
+      finalizationPolicy: finishPolicy,
+      finalizationExperimentApplied: false,
       hostCache: 'unknown; not cleared',
       pageCache: 'empty per attempt',
       audibleFirstSoundMeasured: false,
@@ -95,17 +104,25 @@ export function mountPlayer(options: PlayerOptions) {
     start.disabled = true;
     stop.disabled = false;
     if (networkMarker) networkMarker.disabled = false;
+    if (cutMarker) cutMarker.disabled = false;
+    if (finishSelector) finishSelector.disabled = true;
     download.disabled = false;
     status.textContent = 'Reading and authenticating the first audio objects…';
     began = performance.now();
     const listeners = new AbortController();
     control.signal.addEventListener('abort', () => listeners.abort(), { once: true });
-    for (const name of ['playing', 'pause', 'waiting', 'stalled', 'seeking', 'seeked', 'ended', 'error']) {
+    for (const name of ['playing', 'pause', 'waiting', 'stalled', 'seeking', 'seeked', 'ended', 'error', 'durationchange']) {
       audio.addEventListener(
         name,
         () => {
           if (report !== attempt || control.signal.aborted) return;
-          if (attempt.events.length < 200) attempt.events.push({ name, elapsedMs: Math.round(performance.now() - began), mediaSeconds: audio.currentTime });
+          if (attempt.events.length < 200)
+            attempt.events.push({
+              name,
+              elapsedMs: Math.round(performance.now() - began),
+              mediaSeconds: audio.currentTime,
+              ...(name === 'durationchange' && Number.isFinite(audio.duration) ? { durationSeconds: audio.duration } : {})
+            });
           if (name === 'playing') {
             attempt.firstPlayingEventMs ??= Math.round(performance.now() - began);
             attempt.outcome = 'playing';
@@ -209,6 +226,17 @@ export function mountPlayer(options: PlayerOptions) {
           audio: () => audio,
           onError: error => fail(error, attempt),
           bufferAheadSeconds: () => 30,
+          managedProducer: finalizationProducer(
+            finishPolicy,
+            event => {
+              if (control.signal.aborted || report !== attempt) return;
+              attempt.finalizationExperimentApplied = true;
+              if (attempt.events.length < 200) attempt.events.push({ ...event, elapsedMs: Math.round(performance.now() - began) });
+              // Do not synchronously persist/render every extra SourceBuffer event.
+              // Existing progress/terminal events flush these bounded snapshots.
+            },
+            error => fail(error, attempt)
+          ),
           fetchObject: async (cid, path, maxBytes, signal, observe) => {
             signal.throwIfAborted();
             if (!/^(manifest\.json|(?:96|160|320)\/(init|segment-[0-9]{3})\.bin)$/.test(path)) throw new Error('Playback path refused');
@@ -258,6 +286,12 @@ export function mountPlayer(options: PlayerOptions) {
         networkNote: element<HTMLInputElement>('network').value.slice(0, 160)
       });
       display(); // A human marker is not automatic verification of a network handover.
+    };
+  if (cutMarker)
+    cutMarker.onclick = () => {
+      if (!report || !controller || controller.signal.aborted || report.events.length >= 200) return;
+      report.events.push({ name: 'audible-cut-marked', elapsedMs: Math.round(performance.now() - began), mediaSeconds: audio.currentTime });
+      display(); // Human reaction time is not an exact audio-gap measurement.
     };
   heard.onchange = () => {
     if (report) report.operatorHeardAudio = heard.checked;

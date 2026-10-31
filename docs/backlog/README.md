@@ -38,6 +38,11 @@ isolates final append/end-of-stream timing in the shared managed reader.
 Cold audible startup and production retention remain open. This changes no
 deployed Dotify storage provider or production record.
 
+The next [finalization comparison is prepared locally](implementation/evidence/bulletin-finalization-control-2026-10-31.md)
+for lab 0.3.0: immediate versus near-end finalization, bounded source/buffer
+snapshots and a human cut marker. Ordinary Dotify playback stays unchanged.
+The candidate is not published and does not establish an audible fix.
+
 ## Current reconciliation, 2026-10-23
 
 [The 31-open-issue audit](implementation/evidence/backlog-reconciliation-2026-10-23.md)

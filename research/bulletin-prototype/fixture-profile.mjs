@@ -22,7 +22,7 @@ const profiles = Object.freeze({
     archiveReadBytes: 3 * 1024 * 1024,
     attemptLimitMs: 180_000,
     firstPlayingLimitMs: 45_000,
-    diagnosticVersion: '0.2.0'
+    diagnosticVersion: '0.3.0'
   })
 });
 export function fixtureProfile(id = 'short') {

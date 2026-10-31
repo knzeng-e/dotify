@@ -491,3 +491,23 @@ These commands are local only. The larger profile must be selected explicitly an
 The separate manual `npm run probe:writer --prefix research/bulletin-prototype` reads the pinned DevNet and builds an invalid fake-signed transaction with real PAPI 3.3.0. It loads no signer and allowlists only read RPCs; CI never calls it. A PAPI 2 signer object is refused by the actual writer before RPC. The repository writer was already PAPI 3-compatible; this guards against mixing operator/dependency versions.
 
 No new Bulletin stores, renewals, account allowance or Product update are authorized by preparation. The candidate needs 66 stores / 5,677,848 bytes plus 66 reserved renewals, with old reserves and independent Product distribution budget added separately. The old sequential renewal command is not a larger-profile renewal mechanism. Obtain a reviewed exact budget before live commands; never treat the fixed 8-MiB/160-transaction ceiling as permission to spend it.
+
+
+## Managed finalization comparison, lab 0.3.0 preparation
+
+The [paired mobile cut](../../docs/backlog/implementation/evidence/bulletin-continuity-publication-2026-10-31.md#native-acceptance-and-next-test)
+also occurs with embedded bytes near 46 seconds. The [next isolated control](../../docs/backlog/implementation/evidence/bulletin-finalization-control-2026-10-31.md)
+uses the same managed producer in both modes: **After final append (baseline)**
+or **Near playback end (experiment)**. Native source/buffer events and exact
+finalization calls survive the bounded notebook; **I heard a cut** records a
+human reaction marker. Extra observer events are accumulated in memory and do
+not add per-event synchronous persistence.
+
+Ordinary Dotify playback defaults remain unchanged. The short profile is
+unchanged. Standard MSE/Blob reports set `finalizationExperimentApplied: false`
+and do not validate the managed control. The existing `test:continuity` and
+`test:continuity-browser` commands now include finalization state tests and a
+compiled AAC comparison with an explicit Chromium managed-demand shim. A shim
+is not native iPhone evidence. No new publication, renewal or provider switch
+is performed. Reuse the existing generated fixture only after a retention
+check and a separate exact Product distribution review; keep its nonce ledger.

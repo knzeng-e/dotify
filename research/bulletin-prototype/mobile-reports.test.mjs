@@ -97,3 +97,33 @@ test('continuity evidence preserves bounded progress and human network markers w
   assert.equal(safe.reads[0].attemptElapsedMs, 36000);
   assert.ok(!JSON.stringify(safe).includes('secret'));
 });
+
+test('finalization snapshots and human cut markers survive projection without arbitrary data', () => {
+  const report = safeReport({
+    ...attempt('finish'),
+    finalizationPolicy: 'near-playback-end',
+    finalizationExperimentApplied: true,
+    events: [
+      {
+        name: 'end-of-stream-called',
+        mediaSeconds: 63,
+        sourceState: 'open',
+        durationSeconds: 64,
+        managedStreaming: false,
+        segmentIndex: 15,
+        bufferedRanges: [[0, 64], ['SECRET', 64], ...Array.from({ length: 12 }, () => [0, 64])],
+        key: 'SECRET'
+      },
+      { name: 'audible-cut-marked', mediaSeconds: 46.8, elapsedMs: 48000 }
+    ]
+  });
+  assert.equal(report.finalizationPolicy, 'near-playback-end');
+  assert.equal(report.finalizationExperimentApplied, true);
+  assert.equal(report.events[0].sourceState, 'open');
+  assert.equal(report.events[0].durationSeconds, 64);
+  assert.equal(report.events[0].managedStreaming, false);
+  assert.equal(report.events[0].bufferedRanges.length, 7);
+  assert.equal(report.events[1].name, 'audible-cut-marked');
+  assert.ok(!JSON.stringify(report).includes('SECRET'));
+  assert.equal(safeReport({ ...attempt('bad'), finalizationPolicy: 'never' }).finalizationPolicy, undefined);
+});

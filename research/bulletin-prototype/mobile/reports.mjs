@@ -29,6 +29,8 @@ const scalarFields = {
   fixtureDurationSeconds: number,
   attemptLimitMs: number,
   firstPlayingLimitMs: number,
+  finalizationPolicy: value => (['after-final-append', 'near-playback-end'].includes(value) ? value : undefined),
+  finalizationExperimentApplied: value => value === true,
   progressive: value => (typeof value === 'boolean' ? value : undefined),
   insideHost: value => (typeof value === 'boolean' ? value : undefined),
   operatorHeardAudio: value => value === true,
@@ -53,6 +55,20 @@ export function safeReport(input) {
       elapsedMs: number,
       mediaSeconds: number,
       bufferedUntilMediaSeconds: number,
+      sourceState: value => (['open', 'ended', 'closed'].includes(value) ? value : undefined),
+      managedStreaming: value => (typeof value === 'boolean' ? value : undefined),
+      durationSeconds: number,
+      segmentIndex: number,
+      bufferedRanges: value =>
+        Array.isArray(value)
+          ? value
+              .slice(0, 8)
+              .flatMap(range =>
+                Array.isArray(range) && range.length === 2 && range.every(item => typeof item === 'number' && Number.isFinite(item))
+                  ? [[range[0], range[1]]]
+                  : []
+              )
+          : undefined,
       networkNote: value => text(value, 160)
     })
   );
