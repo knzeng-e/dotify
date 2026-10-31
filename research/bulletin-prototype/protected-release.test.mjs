@@ -198,6 +198,19 @@ async function fixture(t) {
   const directory = join(process.cwd(), 'custody');
   await initializeStreamingJobs(directory);
   const chain = new SimulatedChain();
+  let nextNonce = 10;
+  const submissions = new Map();
+  const storeBlock = chain.store.bind(chain);
+  chain.nextNonce = async () => ({ nonce: nextNonce, head: chain.head });
+  chain.lookupSubmission = async ({ nonce }) => submissions.get(nonce) ?? null;
+  chain.store = async (block, { nonce }) => {
+    assert.ok(!submissions.has(nonce), 'No duplicate model nonce');
+    chain.advance(1);
+    const receipt = { ...(await storeBlock(block)), nonce, account: chain.account };
+    submissions.set(nonce, receipt);
+    while (submissions.has(nextNonce)) nextNonce++;
+    return receipt;
+  };
   const model = runtimeModel();
   const storageDirectory = join(process.cwd(), 'bulletin-publications');
   const identity = { genesis: chain.genesis, account: chain.account };
@@ -373,8 +386,8 @@ test('protected release: custody retry, canonical signed access, selective Bulle
   });
   const c = await fixture(t);
   const store = c.chain.store.bind(c.chain);
-  c.chain.store = async block => {
-    const receipt = await store(block);
+  c.chain.store = async (block, intent) => {
+    const receipt = await store(block, intent);
     if (c.chain.stores.length === 3) throw new Error('simulated lost storage acknowledgement');
     return receipt;
   };
@@ -390,7 +403,7 @@ test('protected release: custody retry, canonical signed access, selective Bulle
   const firstRoot = c.graph.root;
   const firstFiles = c.files.map(f => [f.path, hash(f.bytes)]);
   const ledger = await readFile(join(process.cwd(), 'bulletin-publications', `stream-${job.id}.json`), 'utf8');
-  assert.ok(JSON.parse(ledger).pending, 'Uncertain submission must remain journalled');
+  assert.ok(Object.keys(JSON.parse(ledger).pending).length, 'Uncertain submission must remain journalled');
   assert.ok(!ledger.includes(c.key.toString('hex')) && !ledger.includes(c.vault.contentKeyMasterSecret));
   await jobs.stop();
   c.chain.store = store;
