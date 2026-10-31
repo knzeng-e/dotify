@@ -43,9 +43,21 @@
           >
           <p>The bundled control isolates decoding. Its speed does not measure Bulletin. Host caches are unknown, even after restarting a test.</p>
         </details>
+        <div id="finish-controls" hidden>
+          <label
+            >Stream finish experiment
+            <select id="finish-policy">
+              <option value="after-final-append">After final append (baseline)</option>
+              <option value="near-playback-end">Near playback end (experiment)</option>
+            </select>
+          </label>
+          <p class="note">Managed reader only. Compare the same clip in both modes. This is a diagnostic, not a confirmed fix.</p>
+        </div>
         <div class="actions">
           <button id="play">Start listening <span aria-hidden="true">↗</span></button><button id="stop" disabled>Stop</button>
         </div>
+        <button id="mark-cut" disabled>I heard a cut</button>
+        <p class="note">Tap after a cut. The marker includes your reaction time; it does not measure the gap exactly.</p>
         <button id="mark-network" disabled>Mark network switch</button>
         <p class="note">
           Update Network in Test conditions when switching, then mark it here. A marker records your observation, not a verified network change.

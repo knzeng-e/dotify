@@ -9,6 +9,7 @@ element('clip-duration').textContent = `${profile.durationSeconds} seconds.`;
 element('duration').textContent = profile.id === 'continuity' ? '01:04' : '00:08';
 element('attempt-limit').textContent = String(profile.attemptLimitMs / 1000);
 element('diagnostic-version').textContent = profile.diagnosticVersion;
+element('finish-controls').hidden = profile.id !== 'continuity';
 element<HTMLAudioElement>('audio').setAttribute('aria-label', `Generated ${profile.durationSeconds}-second chord`);
 const saved = element<HTMLSelectElement>('saved');
 const savedOutput = element<HTMLTextAreaElement>('saved-output');

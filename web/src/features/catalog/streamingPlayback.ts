@@ -151,6 +151,8 @@ export async function createStreamingPlayback(input: {
   bufferAheadSeconds?: () => number;
   fetchObject?: typeof fetchStreamingObject;
   onMetric?: (metric: ReaderMetric) => void;
+  // Research may observe/wrap the same producer; ordinary playback always uses the default.
+  managedProducer?: typeof pumpManagedAudio;
 }): Promise<{ url: string; gainDb: number; progressive: boolean }> {
   const emit = (metric: ReaderMetric) => {
     if (!input.signal.aborted) input.onMetric?.(metric);
@@ -247,7 +249,7 @@ export async function createStreamingPlayback(input: {
         let init: Uint8Array | undefined;
         // Keep one small authenticated init for reopening after managed eviction.
         // Start at 96 kb/s: native mobile acceptance precedes adapting this path.
-        await pumpManagedAudio({
+        await (input.managedProducer ?? pumpManagedAudio)({
           source: source as ManagedAudioSource,
           buffer,
           audio,

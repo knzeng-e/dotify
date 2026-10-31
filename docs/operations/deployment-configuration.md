@@ -99,6 +99,24 @@ Two owner-reported native eight-second listens and two completed decoder control
 are recorded above; background, longer listening and measured first-sound gates
 remain unverified.
 
+## Bulletin finalization comparison, prepared locally
+
+The [lab 0.3.0 candidate](../backlog/implementation/evidence/bulletin-finalization-control-2026-10-31.md)
+adds a generated-only managed-reader comparison after both native and embedded
+64-second tests had a cut near 46 seconds. Baseline finalizes after the last
+append; the alternate mode waits until the last second with the tail buffered.
+Reports retain source/buffer transitions and an optional human cut marker.
+Standard MSE/Blob controls are explicitly not an applied managed experiment.
+Ordinary app callers keep their existing producer and behavior. No hosted
+setting, origin, key, runtime or deployed record changes.
+
+This preparation neither publishes 0.3.0 nor renews any data. A later operator
+must bind a clean source SHA, verify existing audio/dependency retention and
+compute the exact Product upload allowance before seeking publication approval.
+Do not re-encrypt the fixture or reset its nonce ledger. First compare both
+embedded modes on the same physical iPhone, preserving the reports; only then
+repeat native delivery if finalization is implicated. No audible fix is claimed.
+
 ## Longer Bulletin mobile diagnostic, published independently
 
 The [owner-approved 0.2.0 publication](../backlog/implementation/evidence/bulletin-continuity-publication-2026-10-31.md)
