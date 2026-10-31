@@ -527,8 +527,11 @@ from clean tested dev `1e286e5c`, with four new Product blocks / 392,466 bytes,
 all retained audio and five Product blocks reused. Independent readback verifies
 the exact CAR and lab records; main Dotify records are unchanged and the signer
 is removed. Keep 91 renewal transactions reserved, with no renewal submitted or
-scheduled. Recheck earlier-expiring dependencies before delayed tests. The next
-gate follows the [first corrected physical embedded trace](../../docs/backlog/implementation/evidence/bulletin-append-mobile-2026-10-31.md):
-16 unique appends and no cut marker, with explicit auditory confirmation and
-native delivery still pending. No general audible acceptance is established
-by publication, browser regressions or absent markers.
+scheduled. Recheck earlier-expiring dependencies before delayed tests. The
+[corrected physical iPhone listens](../../docs/backlog/implementation/evidence/bulletin-append-mobile-2026-10-31.md)
+confirm uninterrupted embedded control and native Wi-Fi playback, plus native
+playback during an owner-reported Wi-Fi-to-5G switch. All three append each of
+16 segments once. Preserve the raw switch report and the separately labelled
+control projections. Unknown Host cache and buffering limit these observations:
+cold startup, uncached network recovery, background interruption, protected
+artist access and recurring retention remain separate gates.

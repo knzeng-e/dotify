@@ -1,33 +1,35 @@
-# Corrected lab 0.3.1: iPhone embedded control, 2026-10-31
+# Corrected lab 0.3.1: uninterrupted iPhone listens, 2026-10-31
 
-Refs #288 / #287. The first physical control after the [0.3.1 publication](bulletin-append-publication-2026-10-31.md) reaches 64 seconds with audio heard and **each of the 16 segments appended exactly once**. No cut marker or post-start waiting/stalled event appears in the supplied report. **The owner has not yet explicitly confirmed an uninterrupted audible listen**; absent markers alone do not establish that. Native Bulletin delivery on the corrected build remains next.
+Refs #288 / #287. Following the [0.3.1 publication](bulletin-append-publication-2026-10-31.md), the owner confirms **three complete, uninterrupted 64-second listens**: embedded decoder control, native Bulletin over Wi-Fi, and native Bulletin during a reported Wi-Fi-to-5G switch. Every trace has **16 segment starts and completions, indices 0–15 exactly once**, no cut markers and no post-start waiting/stalled events. This accepts these bounded physical listens; it does not close W32/W33 or establish general network reliability.
 
-## Attempt and scope
+## Attempts and provenance
 
-- Report `fc542404-eef3-4515-891f-f4ca625949a6`, started `2026-10-31T14:48:04.697Z`; [selected-field projection](bulletin-append-control-fc542404-2026-10-31.json).
-- Clean merged implementation `1e286e5c266765427a758fd119f270361acb0375`, published lab 0.3.1; same generated 64-second audio root as the [pre-correction pair](bulletin-finalization-mobile-2026-10-31.md).
-- iPhone user agent reports iOS 18.7. The owner supplies **Polkadot app v0.10.0 (18)** and **Wi-Fi**.
-- Embedded decoder control, managed reader, after-final-append baseline, experiment applied. `operatorHeardAudio: true`; measured audible-first-sound and production access both false. Host cache remains unknown; page cache is empty per attempt.
-- The JSON is explicitly a transcription/projection of selected fields, not the entire host report or a measurement of network delivery.
+| Mode | Report | First `playing` | Natural end | Audible result |
+| --- | --- | --- | --- | --- |
+| Embedded decoder control, Wi-Fi | `fc542404-eef3-4515-891f-f4ca625949a6` | 159 ms | 64 s / elapsed 64,297 ms | Owner explicitly confirms no cuts |
+| Native Bulletin, Wi-Fi | `54016dbe-e598-4d5a-af69-6af0ddfbe099` | 133 ms | 64 s / elapsed 64,241 ms | Owner answers “Sans coupure” to the native-specific question |
+| Native Bulletin, reported Wi-Fi → 5G | `470ceb83-e8a6-4024-8a50-a60002605cdf` | 110 ms | 64 s / elapsed 64,198 ms | Owner reports “Entendu tout sans coupures” |
 
-## What changed in the trace
+The [embedded projection](bulletin-append-control-fc542404-2026-10-31.json) and [native Wi-Fi projection](bulletin-append-native-54016dbe-2026-10-31.json) preserve selected fields and all segment append start/completion entries transcribed from the owner's JSON replies. They are explicitly **not complete host reports**. The [network-switch JSON](bulletin-append-network-switch-470ceb83-2026-10-31.json) is the owner's attached file, copied byte-for-byte without annotations or field changes. The separate confirmation statements above supply auditory evidence; absent markers alone do not.
 
-| Observation | Before correction, lab 0.3.0 | Corrected embedded control |
-| --- | --- | --- |
-| Segment append starts/completions | 18 each; segments 7 and 13 repeated | 16 each; indices 0 through 15 once |
-| First refill starts with | segment 7 again, near media 22.3 s | segment 8, at media 22.287 s |
-| Second refill starts with | segment 13 again, near media 46.4 s | segment 14, at media 46.374 s |
-| Actual baseline end-of-stream call | media 46.412 s | media 46.417 s |
-| Human cut markers | two in each previous mode | none in this report; auditory confirmation pending |
-| First `playing` | 77 / 91 ms in the paired controls | 159 ms, not audible-start timing |
-| Natural completion | 64 s | 64 s / elapsed 64,297 ms |
+All three runs bind to clean merged implementation `1e286e5c266765427a758fd119f270361acb0375`, lab 0.3.1, the same generated 64-second audio root, managed reader and after-final-append baseline. `operatorHeardAudio` is true; `audibleFirstSoundMeasured` and `productionAccessTested` are false. Native runs report `insideHost: true`. Host cache is **unknown; not cleared**, page cache empty per attempt, with no recovery after reload.
 
-The baseline finish call stays at essentially the same position. The demand resumes still occur near media 22.3 and 46.4 seconds, but now continue with the next segment. That is physical trace evidence that the corrected completion bookkeeping removes the redundant appends under this Host's actual managed-demand transitions.
+The owner supplies Polkadot app **v0.10.0 (18)** and the same iPhone/Wi-Fi conditions for the paired controls. Native reports identify their environment as **iPhone 16e - iOS v27.0.1**. Separately, their user-agent token reports **iOS 18.7**. These are distinct owner-entered and user-agent fields; neither has been rewritten to resolve the discrepancy.
 
-Across the progress samples surrounding those refills, wall/media clock differences are -0.517 ms (media 20.281 to 24.295 s) and 0.013 ms (44.366 to 48.381 s), versus approximately 269 / 266 ms in the previous baseline. These are sample-clock observations, **not measured audio-gap durations or audible acceptance**. The embedded control does not measure Bulletin or Wi-Fi throughput, and one run does not establish device/network reliability.
+## What the correction changes
 
-## Next acceptance step
+The [pre-correction controls](bulletin-finalization-mobile-2026-10-31.md) both contain two human cut markers and 18 appends, repeating segments 7 and 13 at the managed-demand resumes. The corrected runs resume with **segment 8 near media 22.3 s** and **segment 14 near 46.4 s**, with no duplicates and owner-confirmed uninterrupted audio. The actual baseline finish call remains near media 46.4 s (46.417 / 46.458 / 46.421 s across the three corrected runs). This supports the completed-append bookkeeping fix without changing the ordinary end-of-stream default.
 
-Confirm whether the owner heard any gap during this embedded control. Then repeat on the same iPhone/Wi-Fi/Host version using **Bulletin through Polkadot app** with **After final append (baseline)**. Listen through 1 min 04 without pausing, mark each heard cut, check heard audio if appropriate and preserve the report. Compare unique appends, buffer progress, actual completion and the owner's auditory observations separately.
+For the embedded control, the wall/media clock differences across progress samples surrounding refills are -0.517 ms and 0.013 ms, versus about 269 / 266 ms in the previous baseline. These are sample-clock observations, **not measured audio-gap durations**. Audible acceptance comes from the owner's separate confirmations.
 
-No new player, encryption, access-policy, service, provider, storage or deployed record change follows from this observation. Native corrected-build delivery, cold audible startup, background/network recovery, protected artist access and recurring retention remain separate gates. Do not close W32/W33 from this embedded result alone.
+## Network-switch observation and its limit
+
+The owner reports switching from Wi-Fi to 5G. The raw report retains `network: "Wifi"` and a manual `network-switch-marked` event at elapsed 22,701 ms / media **22.566505142 s**, also labelled `networkNote: "Wifi"`. The direction comes from the owner's accompanying message, not automatic network detection. At this marker the last known buffered end is 56.128 s: approximately **33.56 seconds ahead**. The next two reads complete near media 46.387 / 46.409 s; the stream reaches 64 s without a reported cut.
+
+This proves uninterrupted listening during the owner-reported switch in this attempt. It does **not** prove that later reads traversed 5G or that a failed uncached fetch recovered: Host cache is unknown, read latencies are 1–18 ms, and no connectivity failure/retry is recorded. Do not describe this as a cold-network recovery benchmark.
+
+## Remaining acceptance and next step
+
+The reproduced duplicate-append regression now has physical audible acceptance for this device and synthetic clip. Keep historical failing reports alongside these successful ones. Cold audible startup, longer/protected artist playback, background interruption, uncached network failure/recovery and recurring retention remain separate gates. The 110–159 ms `playing` events are not audible-first-sound or cold-start measurements.
+
+The next useful step is a bounded protected-release integration plan covering publication, signed key access, native playback and retention before production provider activation. Additional synthetic reruns of the same cached minute would add little evidence. No player, encryption, access policy, service, storage provider or deployed record is changed by this evidence update; no publication or renewal is requested.

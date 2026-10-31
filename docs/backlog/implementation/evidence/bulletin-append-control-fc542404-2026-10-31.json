@@ -26,7 +26,7 @@
   "operatorHeardAudio": true,
   "audibleFirstSoundMeasured": false,
   "productionAccessTested": false,
-  "ownerConfirmedNoAudibleCuts": null,
+  "ownerConfirmedNoAudibleCuts": true,
   "reportedAudibleCutMarkers": [],
   "reportedPostStartupWaitingOrStalledEvents": [],
   "appendStarts": [
@@ -341,5 +341,6 @@
       "elapsedMs": 64297,
       "mediaSeconds": 64
     }
-  ]
+  ],
+  "auditoryConfirmationProvenance": "Owner explicitly confirmed the complete embedded-control listen without cuts in the follow-up reply on 2026-10-31."
 }

@@ -115,12 +115,13 @@ The reused icon expires before new content: recheck dependencies before delayed
 tests. Preserve the fixture nonce ledger and durable submission intents. An
 uncertain outcome requires reconciliation before retry; a missing reused
 dependency or later lab rollback requires a newly reviewed plan. The ordinary
-end-of-stream default is unchanged. The [first corrected physical iPhone
-embedded trace](../backlog/implementation/evidence/bulletin-append-mobile-2026-10-31.md)
-shows 16 unique appends and no cut marker, on the owner-confirmed Host version
-0.10.0 (18) / Wi-Fi. Explicit uninterrupted-listening confirmation and native
-delivery remain pending; browser regressions, absent markers and natural
-completion alone cannot accept audible continuity. The [paired 0.3.0 observations](../backlog/implementation/evidence/bulletin-finalization-mobile-2026-10-31.md)
+end-of-stream default is unchanged. The [corrected physical iPhone
+listens](../backlog/implementation/evidence/bulletin-append-mobile-2026-10-31.md)
+show 16 unique appends per run on Polkadot app 0.10.0 (18), with owner-confirmed
+uninterrupted embedded control, native Wi-Fi and native playback during a
+reported Wi-Fi-to-5G switch. Cache remains unknown; the switch occurs with about
+33.56 seconds buffered ahead. This does not verify cold startup, uncached network
+recovery, background interruption or protected artist access. The [paired 0.3.0 observations](../backlog/implementation/evidence/bulletin-finalization-mobile-2026-10-31.md)
 remain the pre-correction evidence.
 
 ## Bulletin finalization comparison, published independently

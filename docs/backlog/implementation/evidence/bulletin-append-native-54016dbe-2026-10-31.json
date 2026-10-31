@@ -1,0 +1,349 @@
+{
+  "schema": "dotify.bulletin.observation-projection.v1",
+  "provenance": "Selected fields and all segment append start/completion entries transcribed from the owner-provided native JSON reply; this is not a complete host report or an audio-gap measurement.",
+  "reportId": "54016dbe-e598-4d5a-af69-6af0ddfbe099",
+  "startedAt": "2026-10-31T14:55:34.685Z",
+  "implementation": {
+    "sha": "1e286e5c266765427a758fd119f270361acb0375",
+    "dirty": false
+  },
+  "transport": "native-preimage",
+  "network": "Wifi",
+  "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148",
+  "ownerSuppliedHostVersion": "Polkadot app v0.10.0 (18)",
+  "reader": "managed",
+  "hostCache": "unknown; not cleared",
+  "pageCache": "empty per attempt",
+  "recoveredAfterReload": false,
+  "outcome": "ended",
+  "root": "bafykbzacecj2qvfpqevlm6pqkm24fjcmszi6qd5r3ywikxfxx5yhjqsyorot4",
+  "firstPlayingEventMs": 133,
+  "fixtureProfile": "continuity",
+  "fixtureDurationSeconds": 64,
+  "finalizationPolicy": "after-final-append",
+  "finalizationExperimentApplied": true,
+  "progressive": true,
+  "operatorHeardAudio": true,
+  "audibleFirstSoundMeasured": false,
+  "productionAccessTested": false,
+  "ownerConfirmedNoAudibleCuts": true,
+  "reportedAudibleCutMarkers": [],
+  "reportedPostStartupWaitingOrStalledEvents": [],
+  "environment": "iPhone 16e - iOS v27.0.1",
+  "insideHost": true,
+  "lookupTimeoutMs": 10000,
+  "auditoryConfirmationProvenance": "Owner answered \u201cSans coupure\u201d to the explicit question about this native Bulletin listen on 2026-10-31.",
+  "appendStarts": [
+    {
+      "segmentIndex": 0,
+      "elapsedMs": 121,
+      "mediaSeconds": 0
+    },
+    {
+      "segmentIndex": 1,
+      "elapsedMs": 162,
+      "mediaSeconds": 0.004037583
+    },
+    {
+      "segmentIndex": 2,
+      "elapsedMs": 172,
+      "mediaSeconds": 0.014024667
+    },
+    {
+      "segmentIndex": 3,
+      "elapsedMs": 180,
+      "mediaSeconds": 0.022020833
+    },
+    {
+      "segmentIndex": 4,
+      "elapsedMs": 187,
+      "mediaSeconds": 0.028786917
+    },
+    {
+      "segmentIndex": 5,
+      "elapsedMs": 194,
+      "mediaSeconds": 0.036062625
+    },
+    {
+      "segmentIndex": 6,
+      "elapsedMs": 202,
+      "mediaSeconds": 0.043229583
+    },
+    {
+      "segmentIndex": 7,
+      "elapsedMs": 209,
+      "mediaSeconds": 0.050659375
+    },
+    {
+      "segmentIndex": 8,
+      "elapsedMs": 22467,
+      "mediaSeconds": 22.308740474
+    },
+    {
+      "segmentIndex": 9,
+      "elapsedMs": 22502,
+      "mediaSeconds": 22.343540751
+    },
+    {
+      "segmentIndex": 10,
+      "elapsedMs": 22520,
+      "mediaSeconds": 22.362215745
+    },
+    {
+      "segmentIndex": 11,
+      "elapsedMs": 22532,
+      "mediaSeconds": 22.374059847
+    },
+    {
+      "segmentIndex": 12,
+      "elapsedMs": 22542,
+      "mediaSeconds": 22.38420256
+    },
+    {
+      "segmentIndex": 13,
+      "elapsedMs": 22551,
+      "mediaSeconds": 22.392761632
+    },
+    {
+      "segmentIndex": 14,
+      "elapsedMs": 46561,
+      "mediaSeconds": 46.403208291
+    },
+    {
+      "segmentIndex": 15,
+      "elapsedMs": 46595,
+      "mediaSeconds": 46.43739828
+    }
+  ],
+  "appendCompletions": [
+    {
+      "segmentIndex": 0,
+      "elapsedMs": 162,
+      "mediaSeconds": 0.00400175
+    },
+    {
+      "segmentIndex": 1,
+      "elapsedMs": 172,
+      "mediaSeconds": 0.013998708
+    },
+    {
+      "segmentIndex": 2,
+      "elapsedMs": 180,
+      "mediaSeconds": 0.021999667
+    },
+    {
+      "segmentIndex": 3,
+      "elapsedMs": 187,
+      "mediaSeconds": 0.02877025
+    },
+    {
+      "segmentIndex": 4,
+      "elapsedMs": 194,
+      "mediaSeconds": 0.036041083
+    },
+    {
+      "segmentIndex": 5,
+      "elapsedMs": 202,
+      "mediaSeconds": 0.043202583
+    },
+    {
+      "segmentIndex": 6,
+      "elapsedMs": 209,
+      "mediaSeconds": 0.050639
+    },
+    {
+      "segmentIndex": 7,
+      "elapsedMs": 216,
+      "mediaSeconds": 0.057791792
+    },
+    {
+      "segmentIndex": 8,
+      "elapsedMs": 22502,
+      "mediaSeconds": 22.343439961
+    },
+    {
+      "segmentIndex": 9,
+      "elapsedMs": 22520,
+      "mediaSeconds": 22.36214258
+    },
+    {
+      "segmentIndex": 10,
+      "elapsedMs": 22532,
+      "mediaSeconds": 22.374027848
+    },
+    {
+      "segmentIndex": 11,
+      "elapsedMs": 22542,
+      "mediaSeconds": 22.384178686
+    },
+    {
+      "segmentIndex": 12,
+      "elapsedMs": 22551,
+      "mediaSeconds": 22.392745007
+    },
+    {
+      "segmentIndex": 13,
+      "elapsedMs": 22559,
+      "mediaSeconds": 22.401182748
+    },
+    {
+      "segmentIndex": 14,
+      "elapsedMs": 46595,
+      "mediaSeconds": 46.437319407
+    },
+    {
+      "segmentIndex": 15,
+      "elapsedMs": 46615,
+      "mediaSeconds": 46.45752158
+    }
+  ],
+  "progress": [
+    {
+      "elapsedMs": 386,
+      "mediaSeconds": 0.227367834,
+      "bufferedUntilMediaSeconds": 32.064
+    },
+    {
+      "elapsedMs": 4404,
+      "mediaSeconds": 4.245667144,
+      "bufferedUntilMediaSeconds": 32.064
+    },
+    {
+      "elapsedMs": 8419,
+      "mediaSeconds": 8.260649698,
+      "bufferedUntilMediaSeconds": 32.064
+    },
+    {
+      "elapsedMs": 12434,
+      "mediaSeconds": 12.275593323,
+      "bufferedUntilMediaSeconds": 32.064
+    },
+    {
+      "elapsedMs": 16446,
+      "mediaSeconds": 16.287958218,
+      "bufferedUntilMediaSeconds": 32.064
+    },
+    {
+      "elapsedMs": 20459,
+      "mediaSeconds": 20.301262375,
+      "bufferedUntilMediaSeconds": 32.064
+    },
+    {
+      "elapsedMs": 24474,
+      "mediaSeconds": 24.316459253,
+      "bufferedUntilMediaSeconds": 56.128
+    },
+    {
+      "elapsedMs": 28491,
+      "mediaSeconds": 28.333294472,
+      "bufferedUntilMediaSeconds": 56.128
+    },
+    {
+      "elapsedMs": 32508,
+      "mediaSeconds": 32.350001124,
+      "bufferedUntilMediaSeconds": 56.128
+    },
+    {
+      "elapsedMs": 36522,
+      "mediaSeconds": 36.364162471,
+      "bufferedUntilMediaSeconds": 56.128
+    },
+    {
+      "elapsedMs": 40536,
+      "mediaSeconds": 40.378578663,
+      "bufferedUntilMediaSeconds": 56.128
+    },
+    {
+      "elapsedMs": 44552,
+      "mediaSeconds": 44.394681941,
+      "bufferedUntilMediaSeconds": 56.128
+    },
+    {
+      "elapsedMs": 48569,
+      "mediaSeconds": 48.411439407,
+      "bufferedUntilMediaSeconds": 64
+    },
+    {
+      "elapsedMs": 52585,
+      "mediaSeconds": 52.427779828,
+      "bufferedUntilMediaSeconds": 64
+    },
+    {
+      "elapsedMs": 56602,
+      "mediaSeconds": 56.444678077,
+      "bufferedUntilMediaSeconds": 64
+    },
+    {
+      "elapsedMs": 60618,
+      "mediaSeconds": 60.460497307,
+      "bufferedUntilMediaSeconds": 64
+    }
+  ],
+  "selectedEvents": [
+    {
+      "name": "waiting",
+      "elapsedMs": 78,
+      "mediaSeconds": 0
+    },
+    {
+      "name": "startstreaming",
+      "elapsedMs": 94,
+      "mediaSeconds": 0
+    },
+    {
+      "name": "playing",
+      "elapsedMs": 133,
+      "mediaSeconds": 0
+    },
+    {
+      "name": "endstreaming",
+      "elapsedMs": 216,
+      "mediaSeconds": 0.057717083
+    },
+    {
+      "name": "startstreaming",
+      "elapsedMs": 22470,
+      "mediaSeconds": 22.312210668
+    },
+    {
+      "name": "endstreaming",
+      "elapsedMs": 22559,
+      "mediaSeconds": 22.40113529
+    },
+    {
+      "name": "startstreaming",
+      "elapsedMs": 46563,
+      "mediaSeconds": 46.405780499
+    },
+    {
+      "name": "end-of-stream-requested",
+      "elapsedMs": 46616,
+      "mediaSeconds": 46.458044405
+    },
+    {
+      "name": "end-of-stream-called",
+      "elapsedMs": 46616,
+      "mediaSeconds": 46.458062572
+    },
+    {
+      "name": "sourceended",
+      "elapsedMs": 46616,
+      "mediaSeconds": 46.458189986
+    },
+    {
+      "name": "endstreaming",
+      "elapsedMs": 46616,
+      "mediaSeconds": 46.458193111
+    },
+    {
+      "name": "pause",
+      "elapsedMs": 64236,
+      "mediaSeconds": 64
+    },
+    {
+      "name": "ended",
+      "elapsedMs": 64241,
+      "mediaSeconds": 64
+    }
+  ]
+}
