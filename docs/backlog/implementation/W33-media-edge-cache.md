@@ -61,6 +61,17 @@ buffering prevent a cold-start or uncached recovery claim. Protected artist
 access, background interruption and recurring retention remain open; no
 production storage switch is claimed.
 
+## Protected-release seam rehearsal, 2026-10-31
+
+The [offline protected rehearsal](evidence/bulletin-protected-rehearsal-2026-10-31.md)
+connects existing custody jobs to bounded BLAKE2b publication through `pin`, then
+uses real Web/Product signatures and canonical access resolution to deliver the
+key and authenticate/decode segments. Storage and runtime/catalog responses are
+simulated. Lost-acknowledgement retry reuses ciphertext and permanent nonce
+reservations, without duplicate stores. Denials derive no key. No provider is
+activated; full-release adapter ownership, real registration/access, Web delivery,
+physical protected listening and recurring retention remain open.
+
 ## Agent assignment
 
 Implement **W33** only. Read `AGENTS.md`, `docs/backlog/implementation/common.md`, and the files below before changing code. Follow the common execution contract, including the evidence/handoff record.

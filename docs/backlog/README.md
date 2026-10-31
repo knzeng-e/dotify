@@ -58,6 +58,10 @@ Polkadot app v0.10.0 (18). All four append 16 segments exactly once. Cache state
 uncached network recovery, protected access and retention remain separate gates.
 No production storage provider changes.
 
+## Protected Bulletin integration, 2026-10-31
+
+The next owner-selected slice adds an [offline protected-release rehearsal](implementation/evidence/bulletin-protected-rehearsal-2026-10-31.md): existing durable publication, real Web/Product signatures, canonical access checks and selective authenticated AAC decoding over simulated Bulletin. Interrupted publication resumes without re-encoding or duplicate stores; denied requests derive no key. A bounded production storage adapter and real protected canary remain next; this changes no deployed provider or access policy.
+
 ## Current reconciliation, 2026-10-23
 
 [The 31-open-issue audit](implementation/evidence/backlog-reconciliation-2026-10-23.md)

@@ -536,3 +536,22 @@ All four append each of
 control projections, plus the unmodified 5G report. Unknown Host cache and buffering limit these observations:
 cold startup, uncached network recovery, background interruption, protected
 artist access and recurring retention remain separate gates.
+
+## Protected-release integration rehearsal (offline)
+
+After the four uninterrupted iPhone listens, run:
+
+```sh
+npm run test:protected --prefix research/bulletin-prototype
+```
+
+Requires Node 22, the locked API/prototype dependencies and FFmpeg/FFprobe.
+The launcher removes inherited service/signer configuration and runs in a fresh
+temporary directory. Real custody jobs, nonce-safe encryption, EIP-191/Product
+sr25519 verification and canonical access resolution feed the existing selective
+reader. Chain/catalog replies and Bulletin remain simulated; no port, live
+transaction, artist recording or production provider is involved. Tests cover
+lost-acknowledgement restart, no re-encoding/duplicate stores, authorized AAC
+frame decoding at all three rates and denial without key derivation. This is
+not physical protected-playback acceptance. See the [evidence and next adapter
+boundary](../../docs/backlog/implementation/evidence/bulletin-protected-rehearsal-2026-10-31.md).
