@@ -109,6 +109,18 @@ private-state/client composition and exact generated protected-canary budget,
 then request write approval. Live publication, real resource costs, protected
 Web/Host listening, recurring retention and provider activation remain open.
 
+## Private canary operator preparation, 2026-11-01
+
+[ADR 0041](../../adr/0041-private-bulletin-canary-package.md) and the
+[local evidence](evidence/bulletin-protected-package-2026-11-01.md) add a private
+immutable generated package, an exact 16-store / 713,229-byte plan, quiescent
+inspection backup and explicit publish/read-only reconciliation commands.
+Offline tests verify custody, allowance floors and lost-ack recovery; a real
+read-only preflight confirms quota without a signer. No upload, renewal, DotNS
+change or production activation occurred. Review, green CI, durable custody
+and fresh write approval precede signed testing; real registration/access,
+protected Web/Host listening and recurring retention remain open.
+
 ## Agent assignment
 
 Implement **W33** only. Read `AGENTS.md`, `docs/backlog/implementation/common.md`, and the files below before changing code. Follow the common execution contract, including the evidence/handoff record.

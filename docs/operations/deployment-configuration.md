@@ -211,6 +211,30 @@ Before signed testing, review coherent private-state provisioning/restore,
 explicit signer identity, provider/client disposal and an exact generated-only
 budget. Provider activation and real protected Web/Host acceptance remain open.
 
+### Private generated canary operator: prepared, not published
+
+[ADR 0041](../adr/0041-private-bulletin-canary-package.md) and the
+[operator runbook](bulletin-protected-canary.md) add an isolated generated-only
+package with exact graph/allowance binding, a private custody secret, permanent
+nonce ledger and v2 publication inventory. Only `publish` accepts a signer FD,
+after digest/source/backup and read-only network/quota checks. `reconcile` can
+update local receipts but cannot store missing blocks. Snapshots are marked
+inspection-only before copying; no automatic nonce-cursor restoration is offered.
+
+The operator declares already locked `ws` 8.22.0 explicitly, with a 20-MiB
+assembled-message bound before JSON parsing, fragment/chunk caps and no
+compression or redirects. This is not a total-memory cap or a production client
+selection. Existing 91 renewal slots and a conservative 20-MiB renewable-byte
+floor are preserved alongside the new graph reserve. No renewals are sent.
+
+The [local candidate evidence](../backlog/implementation/evidence/bulletin-protected-package-2026-11-01.md)
+records 16 stores / 713,229 bytes proposed, private inspection backup and an
+actual signer-free quota check. No network upload, DotNS change, mount, secret,
+origin or deployed provider changed. Temporary candidates are not durable
+custody. Review, green CI, persistent custody/backup and new budget approval
+remain prerequisites to signing; real artist access and protected Web/Host
+acceptance remain separate gates.
+
 ## Protected Bulletin rehearsal: local only
 
 `npm run test:protected --prefix research/bulletin-prototype` runs a generated-only
