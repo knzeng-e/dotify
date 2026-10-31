@@ -566,3 +566,16 @@ raw-block reader for the unchanged catalog-gated Web media route. Both modules
 remain unselected in the deployed app. See [ADR 0038](../../docs/adr/0038-bulletin-media-adapter.md)
 and [adapter verification](../../docs/backlog/implementation/evidence/bulletin-media-adapter-2026-10-31.md)
 for limits, exclusive-account/state requirements and the next live-canary gate.
+
+
+### Server adapter publication pipeline
+
+The protected rehearsal now uses the server adapter's v2 nonce-aware pipeline,
+with an explicit storage model for finalized nonce and sender/nonce receipt
+observations. It retains real encoding, signed key access and AAC decoding;
+there is no network signer or provider switch. See
+[ADR 0039](../../docs/adr/0039-bulletin-media-pipeline.md) and the
+[verification record](../../docs/backlog/implementation/evidence/bulletin-media-pipeline-2026-10-31.md).
+The historical research pipeline and network canary commands keep their own
+separate budgets and checkpoints; they do not provision or activate the server
+adapter. V1 server inventories are not automatically converted to v2.

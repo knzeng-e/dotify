@@ -83,6 +83,19 @@ composition stays unselected. Prepare its real transport, persistent state,
 account isolation and exact canary budget next; physical protected listening,
 uncached recovery, measured costs and recurring retention remain open.
 
+## Server publication pipeline, 2026-10-31
+
+[ADR 0039](../../adr/0039-bulletin-media-pipeline.md) and the
+[pipeline verification](evidence/bulletin-media-pipeline-2026-10-31.md) extend the
+prepared adapter with bounded parallel stores, account-wide durable nonces and
+exact submission reconciliation. The root waits for every verified dependency;
+unknown broadcasts are not replayed. Experimental inventory v1 is preserved and
+rejected rather than silently migrated. Provider composition remains unselected.
+Next: implement and review the bounded live sender/nonce receipt lookup, then
+prepare an exact protected-canary budget and persistent-state plan. Real release
+throughput, costs, Web/Host protected listening and recurring retention remain
+gates; no network store, signer use or production switch occurred.
+
 ## Agent assignment
 
 Implement **W33** only. Read `AGENTS.md`, `docs/backlog/implementation/common.md`, and the files below before changing code. Follow the common execution contract, including the evidence/handoff record.

@@ -1,6 +1,8 @@
 # ADR 0038: Bounded Bulletin media adapter with durable job ownership
 
 Date: 2026-10-31. Status: **implemented as an unselected server-side adapter**.
+The subsequent [nonce-aware pipeline decision](0039-bulletin-media-pipeline.md)
+extends publication and versions the experimental inventories to v2.
 Refs #288 / #287. [ADR 0034](0034-media-cdn-and-native-storage.md) remains the
 active delivery decision; this does not activate a replacement provider.
 
@@ -80,11 +82,12 @@ against its CID. The existing route still rejects unknown/inactive releases,
 queries, ranges and archival-master paths, and replies `no-store`. It supplies
 no content keys. No additional resident gateway service is introduced.
 
-Writes are deliberately sequential in this slice. Larger graph admission is not
+Writes were deliberately sequential in the initial slice;
+[ADR 0039](0039-bulletin-media-pipeline.md) subsequently adds bounded parallel
+waves and explicit account nonce ownership. Larger graph admission is not
 proof that a real release fits the five-minute upstream publication window. A
-live composition must measure that limit and use separately reviewed durable
-nonce-aware pipelining if needed; do not relax finality checks or raise timeouts
-silently to obtain a successful upload.
+live composition must measure that limit with the new bounded pipeline; do not
+relax finality checks or raise timeouts silently to obtain a successful upload.
 
 ## Alternatives and consequences
 

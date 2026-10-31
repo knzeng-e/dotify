@@ -1,15 +1,37 @@
 // Opt-in custody storage seam. Transport/signing are supplied explicitly; the
 // default app continues using Pinata. No SDK, credentials or network defaults.
 import assert from 'node:assert/strict';
-import { constants } from 'node:fs';
-import { open, mkdir, rename, rm, lstat } from 'node:fs/promises';
+import { open, rm } from 'node:fs/promises';
 import { join } from 'node:path';
-import { randomUUID } from 'node:crypto';
-import { z } from 'zod';
-import { buildBulletinMediaGraph, verifyBulletinBlock, BULLETIN_GRAPH_MAX, BULLETIN_BLOCK_COUNT_MAX, type BulletinBlock } from './bulletinGraph.js';
+import { buildBulletinMediaGraph, verifyBulletinBlock, type BulletinBlock } from './bulletinGraph.js';
+import {
+  bulletinDependencies,
+  bulletinWave,
+  observeBulletinBlocks,
+  pipelineSchema,
+  publicationError,
+  type BulletinPipelineLimits
+} from './bulletinPipeline.js';
+import {
+  jobId,
+  integer,
+  budgetSchema,
+  identitySchema,
+  ownerSchema,
+  receiptSchema,
+  jobSchema,
+  privateDirectory,
+  load,
+  save,
+  sync,
+  type BulletinMediaInventory
+} from './bulletinMediaState.js';
 import type { PinataFile } from './pinata.js';
+export { initializeBulletinMediaStore, type BulletinMediaInventory } from './bulletinMediaState.js';
 
 export type BulletinReceipt = { cid: string; bytes: number; block: number; index: number; expiresAt: number; finalized: true };
+export type BulletinWriteIntent = { nonce: number; afterBlock: number };
+export type BulletinSubmissionReceipt = BulletinReceipt & { nonce: number; account: string };
 export type BulletinBudget = { maxBytes: number; maxTransactions: number; minimumLifetimeBlocks: number };
 export type BulletinStatus = {
   head: number;
@@ -22,97 +44,14 @@ export type BulletinMediaTransport = {
   status(signal: AbortSignal): Promise<BulletinStatus>;
   lookup(cid: string, signal: AbortSignal): Promise<BulletinReceipt | null>;
   readBlock(cid: string, signal: AbortSignal): Promise<Uint8Array>;
-  store(block: BulletinBlock, signal: AbortSignal): Promise<BulletinReceipt>;
+  /** Both observations must come from finalized chain state. lookupSubmission
+   * identifies the direct store extrinsic by sender+nonce, not just by CID. */
+  nextNonce(signal: AbortSignal): Promise<{ nonce: number; head: number }>;
+  lookupSubmission(intent: BulletinWriteIntent, signal: AbortSignal): Promise<BulletinSubmissionReceipt | null>;
+  /** Invoke exactly once with this explicit nonce; never retry or choose another. */
+  store(block: BulletinBlock, intent: BulletinWriteIntent, signal: AbortSignal): Promise<BulletinSubmissionReceipt>;
 };
 export type BulletinStoreIdentity = { genesis: string; account: string };
-const jobId = z.string().regex(/^stream-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
-const integer = z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER);
-const budgetSchema = z
-  .object({ maxBytes: integer.min(1).max(BULLETIN_GRAPH_MAX * 2), maxTransactions: integer.min(1).max(8192), minimumLifetimeBlocks: integer.min(100) })
-  .strict();
-const identitySchema = z.object({ genesis: z.string().regex(/^0x[0-9a-f]{64}$/), account: z.string().min(1).max(128) }).strict();
-const ownerSchema = identitySchema
-  .extend({ schema: z.literal('dotify.bulletin.media-owner.v1'), activeJob: jobId.nullable(), jobs: z.array(jobId).max(4096) })
-  .strict();
-const receiptSchema = z
-  .object({ cid: z.string(), bytes: integer.min(1), block: integer, index: integer, expiresAt: integer, finalized: z.literal(true) })
-  .strict();
-const jobSchema = z
-  .object({
-    schema: z.literal('dotify.bulletin.media-job.v1'),
-    genesis: z.string(),
-    account: z.string(),
-    job: jobId,
-    root: z.string(),
-    scope: z.object({ chainId: integer.min(1), runtimeAddress: z.string(), contentHash: z.string(), keyVersion: z.string() }).strict(),
-    generation: z.string(),
-    blocks: z
-      .array(z.object({ cid: z.string(), bytes: integer.min(1) }).strict())
-      .min(1)
-      .max(BULLETIN_BLOCK_COUNT_MAX),
-    budget: budgetSchema,
-    attemptedBytes: integer,
-    attemptedStores: integer,
-    receipts: z.record(receiptSchema),
-    pending: z.string().nullable(),
-    ready: z.boolean()
-  })
-  .strict();
-export type BulletinMediaInventory = z.infer<typeof jobSchema>;
-
-async function sync(directory: string) {
-  const handle = await open(directory, constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW);
-  try {
-    await handle.sync();
-  } finally {
-    await handle.close();
-  }
-}
-async function privateDirectory(directory: string) {
-  const info = await lstat(directory);
-  assert.ok(
-    info.isDirectory() && !info.isSymbolicLink() && !(info.mode & 0o077) && info.uid === process.getuid?.(),
-    'Bulletin state must be an owned private directory'
-  );
-}
-async function load(file: string): Promise<unknown> {
-  const handle = await open(file, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
-  try {
-    const info = await handle.stat();
-    assert.ok(
-      info.isFile() && info.nlink === 1 && info.size <= 2 * 1024 * 1024 && !(info.mode & 0o077) && info.uid === process.getuid?.(),
-      'Invalid Bulletin state file'
-    );
-    return JSON.parse(await handle.readFile('utf8'));
-  } finally {
-    await handle.close();
-  }
-}
-async function save(directory: string, name: string, data: unknown) {
-  const temporary = `${name}.${randomUUID()}.tmp`;
-  const file = await open(join(directory, temporary), 'wx', 0o600);
-  try {
-    await file.writeFile(JSON.stringify(data));
-    await file.sync();
-  } finally {
-    await file.close();
-  }
-  try {
-    await rename(join(directory, temporary), join(directory, name));
-    await sync(directory);
-  } finally {
-    await rm(join(directory, temporary), { force: true });
-  }
-}
-
-/** Explicit first provisioning only; missing custody state is never recreated. */
-export async function initializeBulletinMediaStore(directory: string, selected: BulletinStoreIdentity): Promise<void> {
-  const identity = identitySchema.parse(selected);
-  await mkdir(directory, { mode: 0o700 });
-  await privateDirectory(directory);
-  await save(directory, 'owner.json', { schema: 'dotify.bulletin.media-owner.v1', ...identity, activeJob: null, jobs: [] });
-  await sync(join(directory, '..'));
-}
 
 function receiptFor(block: BulletinBlock, value: BulletinReceipt | null, head: number, lifetime: number): BulletinReceipt {
   const receipt = receiptSchema.parse(value);
@@ -133,21 +72,27 @@ export function createBulletinMediaStore(options: {
   identity: BulletinStoreIdentity;
   transport: BulletinMediaTransport;
   budget: BulletinBudget;
+  pipeline?: Partial<BulletinPipelineLimits>;
 }) {
   const selected = identitySchema.parse(options.identity);
   const budget = budgetSchema.parse(options.budget);
+  const pipeline = pipelineSchema.parse({ concurrency: 2, maxInFlightBytes: 512 * 1024, ...options.pipeline });
   const { directory, transport } = options;
   const owns = () => assert.ok(transport.genesis === selected.genesis && transport.account === selected.account, 'Bulletin transport identity mismatch');
   owns();
-  // A timed-out broadcast stays uncertain. The account barrier below survives
-  // process restart and prevents any different job using that signer meanwhile.
+  // A deadline stops waiting, not an already-broadcast transaction. The durable
+  // account barrier and pending nonces protect retries even if it finishes late.
   const call = async <T>(signal: AbortSignal, action: (bounded: AbortSignal) => Promise<T>): Promise<T> => {
     signal.throwIfAborted();
+    owns();
     const bounded = AbortSignal.any([signal, AbortSignal.timeout(30_000)]);
     let abort: () => void = () => undefined;
     try {
       return await Promise.race([
-        action(bounded),
+        Promise.resolve().then(() => {
+          bounded.throwIfAborted();
+          return action(bounded);
+        }),
         new Promise<never>((_, reject) => {
           abort = () => reject(bounded.reason);
           bounded.addEventListener('abort', abort, { once: true });
@@ -169,8 +114,7 @@ export function createBulletinMediaStore(options: {
     return state;
   };
   return {
-    /** Inventory persists after StreamingJobs removes its completed job files.
-     * It is a retention duty, never a promise that stored blocks still exist. */
+    /** Last recorded inventory, not a promise of present chain retention. */
     async inventory(job: string): Promise<BulletinMediaInventory> {
       jobId.parse(job);
       const custody = await owner();
@@ -187,9 +131,7 @@ export function createBulletinMediaStore(options: {
       signal.throwIfAborted();
       const initialOwner = await owner();
       assert.ok(!initialOwner.activeJob || initialOwner.activeJob === name, 'A previous Bulletin job needs reconciliation');
-      // Exclusive create covers other processes sharing this custody volume.
-      // A process crash leaves the lock: operator recovery must establish that
-      // no writer/broadcast survives before removing it. Never expire by time.
+      // Never expire a crash lock: operator recovery must establish exclusivity.
       const lock = await open(join(directory, 'writer.lock'), 'wx', 0o600);
       try {
         await lock.writeFile(JSON.stringify({ pid: process.pid, job: name }));
@@ -198,15 +140,20 @@ export function createBulletinMediaStore(options: {
         const custody = await owner();
         assert.ok(!custody.activeJob || custody.activeJob === name, 'A previous Bulletin job needs reconciliation');
         const graph = await buildBulletinMediaGraph(files, signal);
+        assert.ok(
+          graph.blocks.every(b => b.bytes.length <= pipeline.maxInFlightBytes),
+          'A block exceeds the in-flight byte bound'
+        );
         const binding = {
-          schema: 'dotify.bulletin.media-job.v1' as const,
+          schema: 'dotify.bulletin.media-job.v2' as const,
           ...selected,
           job: name,
           root: graph.root,
           scope: graph.scope,
           generation: graph.generation,
           blocks: graph.blocks.map(b => ({ cid: b.cid, bytes: b.bytes.length })),
-          budget
+          budget,
+          pipeline
         };
         let state: BulletinMediaInventory;
         try {
@@ -219,21 +166,28 @@ export function createBulletinMediaStore(options: {
           assert.ok(custody.jobs.length < 4096, 'Bulletin inventory capacity reached');
           custody.jobs.push(name);
           await save(directory, 'owner.json', custody);
-          state = { ...binding, attemptedBytes: 0, attemptedStores: 0, receipts: {}, pending: null, ready: false };
+          state = { ...binding, attemptedBytes: 0, attemptedStores: 0, receipts: {}, pending: {}, nextNonce: custody.nextNonce, ready: false };
           await save(directory, `${name}.json`, state);
         }
         for (const key of Object.keys(binding) as (keyof typeof binding)[])
-          assert.deepEqual(state[key], binding[key], 'Bulletin job identity or budget changed');
-        assert.ok(state.pending === null || graph.blocks.some(b => b.cid === state.pending), 'Unknown pending block');
+          assert.deepEqual(state[key], binding[key], 'Bulletin job identity, budget or pipeline changed');
+        const persist = () => save(directory, `${name}.json`, state);
+        const byCid = new Map(graph.blocks.map(b => [b.cid, b]));
+        const intents = Object.entries(state.pending);
+        assert.ok(
+          intents.length <= pipeline.concurrency && intents.every(([cid, p]) => byCid.has(cid) && state.nextNonce !== null && p.nonce < state.nextNonce),
+          'Invalid pending nonce intent'
+        );
+        assert.equal(new Set(intents.map(([, p]) => p.nonce)).size, intents.length, 'Duplicate pending nonce');
+        assert.ok(!intents.length || custody.activeJob === name, 'Pending nonce lacks account barrier');
+        assert.ok(state.nextNonce === null || (custody.nextNonce !== null && state.nextNonce <= custody.nextNonce), 'Invalid account nonce cursor');
+        if (custody.activeJob === name) assert.equal(state.nextNonce, custody.nextNonce, 'Account/job nonce cursors differ; operator reconciliation required');
         assert.ok(state.attemptedStores <= budget.maxTransactions && state.attemptedBytes <= budget.maxBytes, 'Invalid cumulative submission accounting');
         const observeStatus = async () => {
-          owns();
           const status = await call(signal, s => transport.status(s));
+          integer.parse(status.head);
           assert.ok(
-            Number.isSafeInteger(status.head) &&
-              status.head >= 0 &&
-              Number.isSafeInteger(status.authorization.expiresAt) &&
-              status.authorization.expiresAt > status.head + budget.minimumLifetimeBlocks,
+            Number.isSafeInteger(status.authorization.expiresAt) && status.authorization.expiresAt > status.head + budget.minimumLifetimeBlocks,
             'Bulletin authorization unavailable or expiring'
           );
           nonnegative(status.authorization.remainingTransactions);
@@ -241,22 +195,55 @@ export function createBulletinMediaStore(options: {
           nonnegative(status.authorization.remainingRenewBytes);
           return status;
         };
+        const nonceAt = async (head: number) => {
+          const observed = await call(signal, s => transport.nextNonce(s));
+          assert.ok(
+            Number.isSafeInteger(observed.head) &&
+              observed.head >= head &&
+              Number.isSafeInteger(observed.nonce) &&
+              observed.nonce >= 0 &&
+              observed.nonce <= 0x100000000,
+            'Invalid or stale finalized account nonce'
+          );
+          return observed;
+        };
+        const verifiedSubmission = (block: BulletinBlock, nonce: number, submitted: BulletinSubmissionReceipt | null, head: number) => {
+          assert.ok(submitted && submitted.account === selected.account && submitted.nonce === nonce, 'Finalized submission identity mismatch');
+          // Strip submission identity only after checking it: receiptSchema is strict.
+          const { account: _account, nonce: _nonce, ...position } = submitted;
+          return receiptFor(block, position, head, budget.minimumLifetimeBlocks);
+        };
         const status = await observeStatus();
-        const missing: BulletinBlock[] = [];
-        state.receipts = {};
         state.ready = false;
-        for (const block of graph.blocks) {
+        await persist();
+        const observed = await observeBulletinBlocks(graph.blocks, pipeline.concurrency, async block => {
           const found = await call(signal, s => transport.lookup(block.cid, s));
-          if (found) {
-            state.receipts[block.cid] = receiptFor(block, found, status.head, budget.minimumLifetimeBlocks);
-            verifyBulletinBlock(block.cid, await call(signal, s => transport.readBlock(block.cid, s)));
-            if (state.pending === block.cid) state.pending = null;
-          } else {
-            assert.notEqual(state.pending, block.cid, 'Submission unresolved; a missing block does not authorize retry');
-            missing.push(block);
+          if (!found) return null;
+          const receipt = receiptFor(block, found, status.head, budget.minimumLifetimeBlocks);
+          verifyBulletinBlock(block.cid, await call(signal, s => transport.readBlock(block.cid, s)));
+          return receipt;
+        });
+        state.receipts = {};
+        graph.blocks.forEach((block, i) => {
+          if (observed[i]) state.receipts[block.cid] = observed[i]!;
+        });
+        // A CID may have been stored by somebody else. Resolve our own nonce as
+        // well, then require a matching finalized account cursor before writing.
+        if (intents.length) {
+          const nonce = await nonceAt(status.head);
+          for (const [cid, intent] of intents) {
+            const submitted = await call(signal, s => transport.lookupSubmission(intent, s));
+            assert.ok(submitted, 'Submission unresolved; a missing block does not authorize retry');
+            const receipt = verifiedSubmission(byCid.get(cid)!, intent.nonce, submitted, nonce.head);
+            assert.ok(nonce.nonce > intent.nonce && state.receipts[cid], 'Submission unresolved; a missing block does not authorize retry');
+            assert.ok(receipt.block > intent.afterBlock, 'Submission predates its durable intent');
+            assert.deepEqual(receipt, state.receipts[cid], 'Submission and CID readback differ');
+            delete state.pending[cid];
           }
+          await persist();
         }
-        await save(directory, `${name}.json`, state);
+        const missing = graph.blocks.filter(b => !state.receipts[b.cid]);
+        await persist();
         assert.ok(transport.writable !== false || !missing.length, 'Bulletin transport is read-only');
         const neededBytes = missing.reduce((sum, b) => sum + b.bytes.length, 0);
         const transactions = missing.length + graph.blocks.length;
@@ -264,81 +251,131 @@ export function createBulletinMediaStore(options: {
           state.attemptedStores + transactions <= budget.maxTransactions && state.attemptedBytes + neededBytes <= budget.maxBytes,
           'Bulletin job allowance exhausted'
         );
-        const auth = status.authorization;
-        assert.ok(
-          nonnegative(auth.remainingTransactions) >= BigInt(transactions) &&
-            nonnegative(auth.remainingBytes) >= BigInt(neededBytes) &&
-            nonnegative(auth.remainingRenewBytes) >= BigInt(graph.bytes),
-          'Insufficient Bulletin quota including renewal reserve'
-        );
-        for (const block of missing) {
+        const quotaFor = (current: BulletinStatus, count: number, bytes: number) => {
+          assert.ok(
+            nonnegative(current.authorization.remainingTransactions) >= BigInt(count + graph.blocks.length) &&
+              nonnegative(current.authorization.remainingBytes) >= BigInt(bytes) &&
+              nonnegative(current.authorization.remainingRenewBytes) >= BigInt(graph.bytes),
+            'Insufficient Bulletin quota including renewal reserve'
+          );
+        };
+        quotaFor(status, missing.length, neededBytes);
+        if (missing.length || custody.activeJob === name) {
+          const observedNonce = await nonceAt(status.head);
+          assert.ok(
+            custody.nextNonce === null ||
+              (observedNonce.nonce >= custody.nextNonce && (custody.activeJob !== name || observedNonce.nonce === custody.nextNonce)),
+            'Finalized account nonce differs from durable cursor; operator reconciliation required'
+          );
+          assert.ok(observedNonce.nonce + missing.length <= 0x100000000, 'Account nonce range exhausted');
+          // DotNS may use this same account between fully settled jobs. A
+          // monotonic advance is safe only while no owned submission is active.
+          custody.nextNonce = state.nextNonce = observedNonce.nonce;
+        }
+        const dependencies = bulletinDependencies(graph);
+        while (Object.keys(state.receipts).length < graph.blocks.length) {
           signal.throwIfAborted();
+          const wave = bulletinWave(graph, state.receipts, dependencies, pipeline);
           const before = await observeStatus();
-          assert.ok(
-            nonnegative(before.authorization.remainingTransactions) >= BigInt(1 + graph.blocks.length) &&
-              nonnegative(before.authorization.remainingBytes) >= BigInt(block.bytes.length) &&
-              nonnegative(before.authorization.remainingRenewBytes) >= BigInt(graph.bytes),
-            'Bulletin quota changed before submission'
+          quotaFor(
+            before,
+            wave.length,
+            wave.reduce((sum, b) => sum + b.bytes.length, 0)
           );
-          if (custody.activeJob !== name) {
-            custody.activeJob = name;
-            await save(directory, 'owner.json', custody);
+          const nonce = await nonceAt(before.head);
+          assert.equal(nonce.nonce, custody.nextNonce, 'Finalized account nonce differs from durable cursor; operator reconciliation required');
+          assert.ok(before.authorization.expiresAt > nonce.head + budget.minimumLifetimeBlocks, 'Bulletin authorization unavailable or expiring');
+          for (const block of wave) {
+            const children = block.cid === graph.root ? Object.keys(state.receipts) : dependencies.get(block.cid)!;
+            for (const cid of children) receiptFor(byCid.get(cid)!, state.receipts[cid], nonce.head, budget.minimumLifetimeBlocks);
           }
-          state.pending = block.cid;
-          state.attemptedStores++;
-          state.attemptedBytes += block.bytes.length;
-          await save(directory, `${name}.json`, state);
-          let submitted: BulletinReceipt;
-          try {
-            submitted = await call(signal, s => transport.store(block, s));
-          } catch (error) {
-            if ((error as { definitelyNotSubmitted?: boolean }).definitelyNotSubmitted === true && !signal.aborted) {
-              state.pending = null;
-              await save(directory, `${name}.json`, state);
-              custody.activeJob = null;
+          let failure: Error | undefined;
+          const tasks: Promise<{ block: BulletinBlock; receipt?: BulletinReceipt }>[] = [];
+          for (const block of wave) {
+            if (failure) break;
+            try {
+              signal.throwIfAborted();
+              owns();
+              const afterBlock = nonce.head;
+              const writeNonce = custody.nextNonce!;
+              custody.activeJob = name;
+              custody.nextNonce = state.nextNonce = writeNonce + 1;
+              state.pending[block.cid] = { nonce: writeNonce, afterBlock };
+              state.attemptedStores++;
+              state.attemptedBytes += block.bytes.length;
               await save(directory, 'owner.json', custody);
+              await persist(); // Both durable cursors + intent precede any broadcast.
+              if (failure || signal.aborted) {
+                // Only this trailing reservation has never reached store(). The
+                // attempt remains charged. A crash between saves fails closed.
+                delete state.pending[block.cid];
+                custody.nextNonce = state.nextNonce = writeNonce;
+                await persist();
+                await save(directory, 'owner.json', custody);
+                signal.throwIfAborted();
+                break;
+              }
+              tasks.push(
+                (async () => {
+                  try {
+                    const submitted = await call(signal, s => transport.store(block, { nonce: writeNonce, afterBlock }, s));
+                    const current = await observeStatus();
+                    const receipt = receiptFor(block, await call(signal, s => transport.lookup(block.cid, s)), current.head, budget.minimumLifetimeBlocks);
+                    assert.deepEqual(
+                      verifiedSubmission(block, writeNonce, submitted, current.head),
+                      receipt,
+                      'Finalized readback differs from submitted receipt'
+                    );
+                    assert.ok(receipt.block > afterBlock, 'Submission predates its durable intent');
+                    const ownReceipt = await call(signal, s => transport.lookupSubmission({ nonce: writeNonce, afterBlock }, s));
+                    assert.deepEqual(verifiedSubmission(block, writeNonce, ownReceipt, current.head), receipt, 'Finalized submission and CID readback differ');
+                    verifyBulletinBlock(block.cid, await call(signal, s => transport.readBlock(block.cid, s)));
+                    return { block, receipt };
+                  } catch (error) {
+                    failure ??= publicationError(error);
+                    return { block };
+                  }
+                })()
+              );
+            } catch (error) {
+              failure ??= publicationError(error);
+              break;
             }
-            throw error;
           }
-          const current = await observeStatus();
-          const receipt = receiptFor(block, await call(signal, s => transport.lookup(block.cid, s)), current.head, budget.minimumLifetimeBlocks);
-          assert.ok(
-            submitted?.finalized === true &&
-              submitted.cid === block.cid &&
-              submitted.bytes === block.bytes.length &&
-              submitted.block === receipt.block &&
-              submitted.index === receipt.index,
-            'Finalized readback differs from submitted receipt'
-          );
+          // Observe all started calls before releasing the writer. Calls are
+          // deadline-bounded; an unresponsive underlying broadcast stays pending.
+          for (const result of await Promise.all(tasks)) {
+            if (result.receipt) {
+              state.receipts[result.block.cid] = result.receipt;
+              delete state.pending[result.block.cid];
+            }
+          }
+          await persist();
+          if (failure) throw failure;
+        }
+        const final = await observeStatus();
+        quotaFor(final, 0, 0);
+        const receipts = await observeBulletinBlocks(graph.blocks, pipeline.concurrency, async block => {
+          const receipt = receiptFor(block, await call(signal, s => transport.lookup(block.cid, s)), final.head, budget.minimumLifetimeBlocks);
           verifyBulletinBlock(block.cid, await call(signal, s => transport.readBlock(block.cid, s)));
-          state.receipts[block.cid] = receipt;
-          state.pending = null;
-          await save(directory, `${name}.json`, state);
+          return receipt;
+        });
+        const completed = await observeStatus();
+        graph.blocks.forEach((block, i) => {
+          state.receipts[block.cid] = receiptFor(block, receipts[i], completed.head, budget.minimumLifetimeBlocks);
+        });
+        quotaFor(completed, 0, 0);
+        if (custody.activeJob === name) {
+          const finalNonce = await nonceAt(completed.head);
+          assert.equal(finalNonce.nonce, custody.nextNonce, 'Finalized account nonce differs from durable cursor; operator reconciliation required');
+          assert.ok(completed.authorization.expiresAt > finalNonce.head + budget.minimumLifetimeBlocks, 'Bulletin authorization unavailable or expiring');
+          for (const block of graph.blocks) receiptFor(block, state.receipts[block.cid], finalNonce.head, budget.minimumLifetimeBlocks);
         }
         signal.throwIfAborted();
-        const final = await observeStatus();
-        assert.ok(
-          nonnegative(final.authorization.remainingTransactions) >= BigInt(graph.blocks.length) &&
-            nonnegative(final.authorization.remainingRenewBytes) >= BigInt(graph.bytes),
-          'Bulletin renewal reserve unavailable'
-        );
-        for (const block of graph.blocks) {
-          state.receipts[block.cid] = receiptFor(block, await call(signal, s => transport.lookup(block.cid, s)), final.head, budget.minimumLifetimeBlocks);
-          verifyBulletinBlock(block.cid, await call(signal, s => transport.readBlock(block.cid, s)));
-        }
-        const completed = await observeStatus();
-        for (const block of graph.blocks) receiptFor(block, state.receipts[block.cid], completed.head, budget.minimumLifetimeBlocks);
-        assert.ok(
-          nonnegative(completed.authorization.remainingTransactions) >= BigInt(graph.blocks.length) &&
-            nonnegative(completed.authorization.remainingRenewBytes) >= BigInt(graph.bytes),
-          'Bulletin renewal reserve unavailable'
-        );
         owns();
-        assert.equal(Object.keys(state.receipts).length, graph.blocks.length, 'Incomplete Bulletin publication');
-        // All blocks are freshly checked above. This durable receipt inventory
-        // survives the upstream job's ready-state staging cleanup.
+        assert.equal(Object.keys(state.pending).length, 0, 'Pending writes remain');
         state.ready = true;
-        await save(directory, `${name}.json`, state);
+        await persist();
         custody.activeJob = null;
         await save(directory, 'owner.json', custody);
         return graph.root;
