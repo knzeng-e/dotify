@@ -38,10 +38,17 @@ isolates final append/end-of-stream timing in the shared managed reader.
 Cold audible startup and production retention remain open. This changes no
 deployed Dotify storage provider or production record.
 
-The next [finalization comparison is prepared locally](implementation/evidence/bulletin-finalization-control-2026-10-31.md)
-for lab 0.3.0: immediate versus near-end finalization, bounded source/buffer
-snapshots and a human cut marker. Ordinary Dotify playback stays unchanged.
-The candidate is not published and does not establish an audible fix.
+The [finalization comparison](implementation/evidence/bulletin-finalization-control-2026-10-31.md)
+is now [published as lab 0.3.0](implementation/evidence/bulletin-finalization-publication-2026-10-31.md):
+immediate versus near-end finalization, bounded source/buffer snapshots and a
+human cut marker. Four new Product blocks / 392,466 bytes were stored; all audio
+and five Product blocks were reused after retention checks. DotNS and exact
+artifact readback pass, the signer is removed, and 91 renewal transactions stay
+reserved without renewals being submitted. Ordinary Dotify playback is unchanged.
+The [paired physical iPhone controls](implementation/evidence/bulletin-finalization-mobile-2026-10-31.md)
+both have two human cut markers, despite moving the actual finish call from
+46.4 to 63.2 seconds. Redundant segment appends during demand resume are the next
+bookkeeping regression to address; publication establishes no audible fix.
 
 ## Current reconciliation, 2026-10-23
 
