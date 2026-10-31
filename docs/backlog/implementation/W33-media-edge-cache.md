@@ -19,7 +19,17 @@ Local controls prove continued segment reads beyond the initial buffer, report
 recovery and explicit larger-profile limits. No new storage, renewal, Product
 update or provider switch has occurred. Native long listening, cold audible
 startup, real network/background recovery and production retention remain open.
-The next network run requires an exact reviewed allowance/distribution budget.
+The next network run requires an exact reviewed allowance/distribution budget. The subsequent
+[owner-approved publication](evidence/bulletin-continuity-publication-2026-10-31.md)
+is now complete: 74 new stores, verified records/data and signer removal.
+The native mobile Wi-Fi run and paired 64-second embedded control both
+complete with audio heard, but both have an owner-reported cut near 46 seconds.
+First `playing` is 1,388 ms native and 94 ms embedded, not measured audible
+startup or a cold-cache comparison. Neither reports post-start waiting/stalled;
+continuity is not accepted. Native delivery is not necessary to reproduce the
+cut. The next controlled experiment instruments final append/end-of-stream
+in the shared managed reader before varying its timing. Other physical and
+production gates remain open; no production storage switch occurred.
 
 ## Agent assignment
 

@@ -23,14 +23,20 @@ are now published in the [combined 0.1.63 rollout](implementation/evidence/produ
 Physical-device and pilot acceptance remain separate; #341 records the
 activation corrections before another deployment is prepared.
 
-## Bulletin continuity follow-up, 2026-10-30
+## Bulletin continuity follow-up, 2026-10-31
 
 After the [eight-second mobile observations](implementation/evidence/bulletin-mobile-publication-2026-10-30.md),
-the [longer diagnostic preparation](implementation/evidence/bulletin-mobile-continuity-2026-10-30.md)
-adds a 64-second generated clip, explicit bounded limits, progress/read timing
-and manual network markers. Local browser controls pass; no longer native run,
-new publication or production storage activation is claimed. W32/W33 remain
-open for measured delivery and retention, with network authorization separate.
+the [64-second diagnostic is now published](implementation/evidence/bulletin-continuity-publication-2026-10-31.md)
+as `dotify-bulletin-lab.dot` 0.2.0. All audio and Product data, exact CAR and
+DotNS records were verified; the local signer is removed. The 74 new stores
+stay within the owner-approved budget, with 82 renewal transactions reserved.
+The native mobile report and paired bundled control both reach 64 seconds
+with sound heard, but both have an owner-reported cut near 46 seconds. First
+`playing` is 1,388 ms native and 94 ms embedded; this is not audible first sound
+or a cold-cache comparison. Continuity is not accepted. The next experiment
+isolates final append/end-of-stream timing in the shared managed reader.
+Cold audible startup and production retention remain open. This changes no
+deployed Dotify storage provider or production record.
 
 ## Current reconciliation, 2026-10-23
 

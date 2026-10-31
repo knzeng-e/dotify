@@ -1,0 +1,295 @@
+{
+  "schema": "dotify.bulletin.continuity-observation.v1",
+  "provenance": "Owner-supplied report and subjective observation; derived without report UUID, exact start timestamp or raw user agent.",
+  "source": "0da3a52827b1266675fb612119e9cd3ded4e7a91",
+  "sourceDirty": false,
+  "root": "bafykbzacecj2qvfpqevlm6pqkm24fjcmszi6qd5r3ywikxfxx5yhjqsyorot4",
+  "environment": {
+    "device": "iPhone",
+    "os": "iOS 18.7, derived from supplied user agent",
+    "hostVersion": null,
+    "hostVersionNote": "Not reconfirmed for this attempt; do not infer from earlier short tests.",
+    "network": "Wi-Fi, owner-reported",
+    "insideHost": true,
+    "reader": "managed",
+    "transport": "native-preimage",
+    "hostCache": "unknown; not cleared",
+    "pageCache": "empty per attempt"
+  },
+  "result": {
+    "fixtureDurationSeconds": 64,
+    "progressive": true,
+    "outcome": "ended",
+    "firstPlayingEventMs": 1388,
+    "endedEventMs": 65779,
+    "operatorHeardAudio": true,
+    "ownerReportedAudibleCuts": 1,
+    "audibleCutLocationSeconds": 46,
+    "audibleFirstSoundMeasured": false,
+    "productionAccessTested": false,
+    "uninterruptedContinuityAccepted": false,
+    "audibleCutLocationPrecision": "Approximate retrospective owner clarification supplied with the paired control."
+  },
+  "events": {
+    "initialWaitingMs": 678,
+    "playingMs": 1388,
+    "postStartWaitingCount": 0,
+    "stalledCount": 0,
+    "errorCount": 0,
+    "terminalPause": {
+      "elapsedMs": 65778,
+      "mediaSeconds": 64
+    },
+    "ended": {
+      "elapsedMs": 65779,
+      "mediaSeconds": 64
+    }
+  },
+  "progress": {
+    "columns": [
+      "elapsedMs",
+      "mediaSeconds",
+      "bufferedUntilMediaSeconds"
+    ],
+    "samples": [
+      [
+        1639,
+        0.231678917,
+        8
+      ],
+      [
+        5654,
+        4.246392047,
+        32.064
+      ],
+      [
+        9669,
+        8.261721754,
+        32.064
+      ],
+      [
+        13686,
+        12.278482773,
+        32.064
+      ],
+      [
+        17702,
+        16.294420147,
+        32.064
+      ],
+      [
+        21716,
+        20.308823249,
+        32.064
+      ],
+      [
+        25730,
+        24.322429461,
+        56.128
+      ],
+      [
+        29741,
+        28.33406987,
+        56.128
+      ],
+      [
+        33758,
+        32.350592795,
+        56.128
+      ],
+      [
+        37773,
+        36.366076654,
+        56.128
+      ],
+      [
+        41787,
+        40.379789591,
+        56.128
+      ],
+      [
+        45801,
+        44.393944147,
+        56.128
+      ],
+      [
+        50068,
+        48.394736136,
+        64
+      ],
+      [
+        54082,
+        52.409587514,
+        64
+      ],
+      [
+        58098,
+        56.42518778,
+        64
+      ],
+      [
+        62112,
+        60.43974982,
+        64
+      ]
+    ]
+  },
+  "reads": {
+    "count": 20,
+    "totalBytes": 778922,
+    "columns": [
+      "bytes",
+      "elapsedMs",
+      "attemptElapsedMs",
+      "mediaSeconds"
+    ],
+    "samples": [
+      [
+        271,
+        475,
+        478,
+        0
+      ],
+      [
+        7485,
+        174,
+        656,
+        0
+      ],
+      [
+        1067,
+        148,
+        834,
+        0
+      ],
+      [
+        780,
+        144,
+        979,
+        0
+      ],
+      [
+        48370,
+        293,
+        1383,
+        0
+      ],
+      [
+        48379,
+        158,
+        1569,
+        0.16120075
+      ],
+      [
+        48538,
+        150,
+        1730,
+        0.322866875
+      ],
+      [
+        48132,
+        155,
+        1896,
+        0.488288833
+      ],
+      [
+        48288,
+        166,
+        2074,
+        0.666365708
+      ],
+      [
+        48164,
+        159,
+        2245,
+        0.837721375
+      ],
+      [
+        47991,
+        160,
+        2416,
+        1.008518708
+      ],
+      [
+        48377,
+        160,
+        2586,
+        1.178864141
+      ],
+      [
+        48123,
+        461,
+        24194,
+        22.786924941
+      ],
+      [
+        48164,
+        199,
+        24404,
+        22.996449188
+      ],
+      [
+        48335,
+        209,
+        24625,
+        23.217331451
+      ],
+      [
+        47983,
+        192,
+        24827,
+        23.419944996
+      ],
+      [
+        48220,
+        199,
+        25038,
+        23.630830533
+      ],
+      [
+        48024,
+        199,
+        25250,
+        23.842772887
+      ],
+      [
+        48103,
+        446,
+        48269,
+        46.69586841
+      ],
+      [
+        46128,
+        173,
+        48452,
+        46.879400504
+      ]
+    ]
+  },
+  "offlineLocalCheck": {
+    "scope": "Offline local authenticated 96 kb/s fixture only; not iOS or audible continuity proof",
+    "renditionKbps": 96,
+    "segmentCount": 16,
+    "packetCount": 3001,
+    "checkedPacketDurationTransitions": 2999,
+    "packetTimestampDiscontinuities": 0,
+    "aacPrimingSamples": 1024,
+    "decodedMonoSamples": 3072000,
+    "sampleRateHz": 48000,
+    "windowMs": 100,
+    "interiorExcludesSecondsAtEachEnd": 1,
+    "minimumInteriorRms": 1118.552328719284,
+    "maximumInteriorRms": 1189.1737926672731,
+    "interiorSilentWindows": 0,
+    "method": "Authenticate and decrypt the local published-fixture bytes, concatenate init and 16 segments, ffprobe packet timing and ffmpeg PCM decode. The priming packet has Skip Samples 1024 and no reported duration; it is excluded from duration-transition checks. This cannot reproduce physical iOS playback.",
+    "networkReads": 0,
+    "networkWrites": 0,
+    "signerUsed": false
+  },
+  "interpretation": [
+    "Completion and sound heard are established by the supplied report; uninterrupted listening is not.",
+    "No post-start waiting/stalled event was reported. Refills completed while sampled buffered audio remained ahead; this does not locate the audible cut or rule out a transport/player interaction.",
+    "The fixed chord has no designed mid-track pause. Offline decoded audio has no silent 100 ms interior window; shorter artifacts and physical iOS behavior are not excluded.",
+    "Paired embedded control also completes with a cut near 46 seconds. See bulletin-continuity-control-wifi-2026-10-31.json; next isolate final-append/endOfStream timing in the common managed reader."
+  ]
+}
