@@ -6,12 +6,15 @@ import { join } from 'node:path';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
+const canary = process.argv.length === 3 && process.argv[2] === '--canary';
+if (process.argv.length > 2 && !canary) throw new Error('Unexpected rehearsal arguments');
+const tests = canary ? ['protected-canary.test.mjs', 'protected-socket.test.mjs'] : ['protected-release.test.mjs'];
 const cwd = await mkdtemp(join(tmpdir(), 'dotify-protected-rehearsal-'));
 try {
   const code = await new Promise((resolve, reject) => {
     const child = spawn(
       process.execPath,
-      ['--import', import.meta.resolve('tsx'), '--test', fileURLToPath(new URL('./protected-release.test.mjs', import.meta.url))],
+      ['--import', import.meta.resolve('tsx'), '--test', ...tests.map(name => fileURLToPath(new URL(name, import.meta.url)))],
       {
         cwd,
         env: {

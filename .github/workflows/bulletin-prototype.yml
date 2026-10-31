@@ -50,6 +50,8 @@ jobs:
         run: npm test --prefix research/bulletin-prototype
       - name: Rehearse protected publication and signed key delivery offline
         run: npm run test:protected --prefix research/bulletin-prototype
+      - name: Verify private canary custody, budgets and recovery offline
+        run: npm run test:protected-canary --prefix research/bulletin-prototype
       - name: Verify generated-only mobile packaging and local evidence recovery
         run: npm run test:mobile --prefix research/bulletin-prototype
       - name: Verify explicit continuity limits and a read-only transaction creator

@@ -600,3 +600,22 @@ submit its historical transaction. See
 [ADR 0040](../../docs/adr/0040-bulletin-direct-store-receipts.md) and the
 [transport evidence](../../docs/backlog/implementation/evidence/bulletin-media-transport-2026-10-31.md)
 for RPC trust, provider bounds, replaced-pointer failure and the next canary gate.
+
+## Private generated protected-storage canary
+
+`protected-canary.mjs` prepares a private eight-second chord using the real
+server encoder, derived key and permanent nonce custody. Its immutable review
+plan binds the exact bytes, graph, account, network, code and store budget.
+`publish` requires fresh owner approval, its digest, a verified private backup,
+exclusive account use and an explicit signer FD. Read commands accept no signer;
+`reconcile` may update local receipts but sends no stores. Production providers,
+DotNS and artist/runtime registration are untouched.
+
+Follow the [operator runbook](../../docs/operations/bulletin-protected-canary.md)
+and [ADR 0041](../../docs/adr/0041-private-bulletin-canary-package.md). Never upload
+the custody directory or its secret. Inspection backups cannot be used as writer
+directories; a stale nonce cursor is not safe restore state. The fixed previous
+91-slot / 20-MiB renewal floor is preserved in addition to the new graph reserve.
+No renewals are submitted or scheduled. Run `npm run test:protected-canary` for
+offline custody/recovery tests and an oversized-message loopback check. These
+checks prove neither live throughput nor real protected playback.
