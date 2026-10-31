@@ -53,8 +53,8 @@ from clean tested dev `1e286e5c`. Four new Product stores / 392,466 bytes reuse
 all existing audio and five Product blocks, with exact artifact/record readback
 and signer removal. The [corrected physical iPhone listens](implementation/evidence/bulletin-append-mobile-2026-10-31.md)
 confirm uninterrupted embedded and native Wi-Fi playback, plus a native listen
-during an owner-reported Wi-Fi-to-5G switch, on Polkadot app v0.10.0 (18).
-All three append 16 segments exactly once. Cache state is unknown: cold startup,
+during an owner-reported Wi-Fi-to-5G switch and an entirely 5G listen, on
+Polkadot app v0.10.0 (18). All four append 16 segments exactly once. Cache state is unknown: cold startup,
 uncached network recovery, protected access and retention remain separate gates.
 No production storage provider changes.
 

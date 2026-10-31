@@ -530,8 +530,9 @@ is removed. Keep 91 renewal transactions reserved, with no renewal submitted or
 scheduled. Recheck earlier-expiring dependencies before delayed tests. The
 [corrected physical iPhone listens](../../docs/backlog/implementation/evidence/bulletin-append-mobile-2026-10-31.md)
 confirm uninterrupted embedded control and native Wi-Fi playback, plus native
-playback during an owner-reported Wi-Fi-to-5G switch. All three append each of
+playback during an owner-reported Wi-Fi-to-5G switch and a complete 5G listen.
+All four append each of
 16 segments once. Preserve the raw switch report and the separately labelled
-control projections. Unknown Host cache and buffering limit these observations:
+control projections, plus the unmodified 5G report. Unknown Host cache and buffering limit these observations:
 cold startup, uncached network recovery, background interruption, protected
 artist access and recurring retention remain separate gates.

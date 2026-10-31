@@ -119,7 +119,8 @@ end-of-stream default is unchanged. The [corrected physical iPhone
 listens](../backlog/implementation/evidence/bulletin-append-mobile-2026-10-31.md)
 show 16 unique appends per run on Polkadot app 0.10.0 (18), with owner-confirmed
 uninterrupted embedded control, native Wi-Fi and native playback during a
-reported Wi-Fi-to-5G switch. Cache remains unknown; the switch occurs with about
+reported Wi-Fi-to-5G switch, plus a complete 5G listen. Cache remains unknown;
+the switch occurs with about
 33.56 seconds buffered ahead. This does not verify cold startup, uncached network
 recovery, background interruption or protected artist access. The [paired 0.3.0 observations](../backlog/implementation/evidence/bulletin-finalization-mobile-2026-10-31.md)
 remain the pre-correction evidence.

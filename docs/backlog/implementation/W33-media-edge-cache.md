@@ -56,7 +56,7 @@ audio reuse, independent byte/record readback and signer removal. Keep 91 renewa
 transactions reserved; none was submitted or scheduled. The [corrected iPhone
 listens](evidence/bulletin-append-mobile-2026-10-31.md) each append 16 segments once:
 the owner confirms uninterrupted embedded control, native Wi-Fi and native
-playback during a reported Wi-Fi-to-5G switch. Unknown Host cache and substantial
+playback during a reported Wi-Fi-to-5G switch, plus a complete 5G listen. Unknown Host cache and substantial
 buffering prevent a cold-start or uncached recovery claim. Protected artist
 access, background interruption and recurring retention remain open; no
 production storage switch is claimed.
