@@ -141,3 +141,11 @@ test('event count and missing metadata are refused before unbounded decoding', a
   });
   await assert.rejects(missing.nextNonce(signal()), /no metadata/);
 });
+
+test('a stale proxy body with the same height/parent but different roots is not a canonical receipt', async () => {
+  for (const field of ['stateRoot', 'extrinsicsRoot']) {
+    const f = rpcFixture();
+    f.state.body.block.header[field] = `0x${'77'.repeat(32)}`;
+    await assert.rejects(f.transport.lookupSubmission(fixture.query, signal()), /header differs/);
+  }
+});
