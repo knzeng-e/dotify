@@ -34,6 +34,14 @@ bounds and paged readers, ready for review. Activation requires a coordinated
 fresh contract/API/Web/Product generation; no retired-runtime fallback is kept.
 
 
+## Bulletin protected-canary preparation, 2026-11-01
+
+The [private operator package](evidence/bulletin-protected-package-2026-11-01.md)
+prepares an exact generated-only storage budget and keeps custody/nonce recovery
+explicit. Local tests and a read-only quota check pass; no signer or upload was
+used. Review, green CI, durable custody and new write approval are the next W33
+gates. Artist registration/access and protected Web/Host acceptance remain open.
+
 ## W39 isolated feasibility, 2026-10-29
 
 The owner requested the next backlog implementation while testing new releases.
