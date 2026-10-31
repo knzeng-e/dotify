@@ -518,4 +518,6 @@ production records are unchanged and the signer is removed. No renewal or
 provider switch occurred. Keep the fixture nonce ledger and 91 renewal
 transactions reserved. Before delayed tests, recheck the earlier-expiring reused
 icon and other dependencies. Next compare both embedded modes on the same
-physical iPhone, preserving cut markers and reports; no audible fix is claimed.
+physical iPhone, preserving cut markers and reports. The [first baseline](../../docs/backlog/implementation/evidence/bulletin-finalization-mobile-2026-10-31.md)
+now records two human cut markers; the near-end comparison is pending. No
+audible fix is claimed, and no player change follows from this observation alone.

@@ -35,8 +35,9 @@ The [lab 0.3.0 comparison](evidence/bulletin-finalization-control-2026-10-31.md)
 is now [published independently](evidence/bulletin-finalization-publication-2026-10-31.md)
 with four new Product stores / 392,466 bytes, retained audio reuse, exact artifact
 and record readback, and signer removal. The generated-only wrapper and bounded
-notebook change no ordinary caller behavior or production record. Paired physical
-iPhone comparison remains next; an audible fix is not established. Keep 91
+notebook change no ordinary caller behavior or production record. The physical
+iPhone [baseline now records two human cut markers](evidence/bulletin-finalization-mobile-2026-10-31.md);
+the near-end comparison remains pending and no audible fix is established. Keep 91
 renewal transactions reserved and recheck retained dependencies before delayed
 tests; no renewal was submitted or scheduled.
 

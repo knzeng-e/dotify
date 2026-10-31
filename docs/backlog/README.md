@@ -45,8 +45,9 @@ human cut marker. Four new Product blocks / 392,466 bytes were stored; all audio
 and five Product blocks were reused after retention checks. DotNS and exact
 artifact readback pass, the signer is removed, and 91 renewal transactions stay
 reserved without renewals being submitted. Ordinary Dotify playback is unchanged.
-The next gate is the paired physical iPhone experiment; publication establishes
-no audible fix.
+The [first physical iPhone baseline](implementation/evidence/bulletin-finalization-mobile-2026-10-31.md)
+has two human cut markers, the first before end-of-stream. The near-end paired
+experiment remains next; publication establishes no audible fix.
 
 ## Current reconciliation, 2026-10-23
 
