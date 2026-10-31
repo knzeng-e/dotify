@@ -99,19 +99,31 @@ Two owner-reported native eight-second listens and two completed decoder control
 are recorded above; background, longer listening and measured first-sound gates
 remain unverified.
 
-## Managed append completion correction, local candidate
+## Managed append completion correction, lab 0.3.1 published
 
 The [managed-reader correction](../backlog/implementation/evidence/managed-audio-append-commit-2026-10-31.md)
 keeps a completed native append present when demand stops before its completion
-callback. It changes the shared client pump, not a hosted service or access
-policy. The continuity lab candidate identifies itself as 0.3.1; this is not a
-publication. Keep the reviewed production end-of-stream default and existing
-generated fixture/nonce ledger. A later clean-source lab update requires fresh
-retention checks, an exact reviewed store/record budget and signer authorization.
-After publication, physical iPhone listening must confirm whether the cuts are
-removed; browser regressions alone do not accept audible continuity. The
-[paired 0.3.0 observations](https://github.com/knzeng-e/dotify/pull/362) remain the
-pre-correction evidence.
+callback. The [owner-approved publication](../backlog/implementation/evidence/bulletin-append-publication-2026-10-31.md)
+is complete at `dotify-bulletin-lab.dot` 0.3.1 from clean tested dev `1e286e5c`.
+Four new stores / 392,466 bytes reuse all 66 audio blocks and five Product blocks
+after finalized retention/CID checks. Independent node/gateway readback verifies
+the exact CAR and lab records. Main Dotify records remain identical, and the
+local signer is removed. No service, hosted setting or access policy changes.
+
+Keep 91 renewal transactions reserved; no renewal was submitted or scheduled.
+The reused icon expires before new content: recheck dependencies before delayed
+tests. Preserve the fixture nonce ledger and durable submission intents. An
+uncertain outcome requires reconciliation before retry; a missing reused
+dependency or later lab rollback requires a newly reviewed plan. The ordinary
+end-of-stream default is unchanged. The [corrected physical iPhone
+listens](../backlog/implementation/evidence/bulletin-append-mobile-2026-10-31.md)
+show 16 unique appends per run on Polkadot app 0.10.0 (18), with owner-confirmed
+uninterrupted embedded control, native Wi-Fi and native playback during a
+reported Wi-Fi-to-5G switch, plus a complete 5G listen. Cache remains unknown;
+the switch occurs with about
+33.56 seconds buffered ahead. This does not verify cold startup, uncached network
+recovery, background interruption or protected artist access. The [paired 0.3.0 observations](../backlog/implementation/evidence/bulletin-finalization-mobile-2026-10-31.md)
+remain the pre-correction evidence.
 
 ## Bulletin finalization comparison, published independently
 

@@ -517,8 +517,22 @@ CID checks. Independent readback verifies the exact CAR and lab records;
 production records are unchanged and the signer is removed. No renewal or
 provider switch occurred. Keep the fixture nonce ledger and 91 renewal
 transactions reserved. Before delayed tests, recheck the earlier-expiring reused
-icon and other dependencies. Next compare both embedded modes on the same
+icon and other dependencies. Both embedded modes were compared on the same
 physical iPhone, preserving cut markers and reports. The [paired controls](../../docs/backlog/implementation/evidence/bulletin-finalization-mobile-2026-10-31.md)
-both record two human cut markers despite delayed finalization. Redundant
-segment appends during demand resume are the next scoped regression. No
-audible fix is claimed, and no player change follows from this observation alone.
+both record two human cut markers despite delayed finalization. The reproduced
+redundant-append bookkeeping defect is corrected in #363.
+
+The [corrected lab 0.3.1 is now published](../../docs/backlog/implementation/evidence/bulletin-append-publication-2026-10-31.md)
+from clean tested dev `1e286e5c`, with four new Product blocks / 392,466 bytes,
+all retained audio and five Product blocks reused. Independent readback verifies
+the exact CAR and lab records; main Dotify records are unchanged and the signer
+is removed. Keep 91 renewal transactions reserved, with no renewal submitted or
+scheduled. Recheck earlier-expiring dependencies before delayed tests. The
+[corrected physical iPhone listens](../../docs/backlog/implementation/evidence/bulletin-append-mobile-2026-10-31.md)
+confirm uninterrupted embedded control and native Wi-Fi playback, plus native
+playback during an owner-reported Wi-Fi-to-5G switch and a complete 5G listen.
+All four append each of
+16 segments once. Preserve the raw switch report and the separately labelled
+control projections, plus the unmodified 5G report. Unknown Host cache and buffering limit these observations:
+cold startup, uncached network recovery, background interruption, protected
+artist access and recurring retention remain separate gates.

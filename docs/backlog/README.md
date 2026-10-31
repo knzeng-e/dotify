@@ -47,8 +47,16 @@ artifact readback pass, the signer is removed, and 91 renewal transactions stay
 reserved without renewals being submitted. Ordinary Dotify playback is unchanged.
 The [paired physical iPhone controls](implementation/evidence/bulletin-finalization-mobile-2026-10-31.md)
 both have two human cut markers, despite moving the actual finish call from
-46.4 to 63.2 seconds. Redundant segment appends during demand resume are the next
-bookkeeping regression to address; publication establishes no audible fix.
+46.4 to 63.2 seconds. The reproduced redundant-append bookkeeping defect is
+corrected in #363, now [published independently as lab 0.3.1](implementation/evidence/bulletin-append-publication-2026-10-31.md)
+from clean tested dev `1e286e5c`. Four new Product stores / 392,466 bytes reuse
+all existing audio and five Product blocks, with exact artifact/record readback
+and signer removal. The [corrected physical iPhone listens](implementation/evidence/bulletin-append-mobile-2026-10-31.md)
+confirm uninterrupted embedded and native Wi-Fi playback, plus a native listen
+during an owner-reported Wi-Fi-to-5G switch and an entirely 5G listen, on
+Polkadot app v0.10.0 (18). All four append 16 segments exactly once. Cache state is unknown: cold startup,
+uncached network recovery, protected access and retention remain separate gates.
+No production storage provider changes.
 
 ## Current reconciliation, 2026-10-23
 
