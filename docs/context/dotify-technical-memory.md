@@ -6,6 +6,12 @@
 > exploration is deferred, with no implementation commitment.
 
 
+## Owner priority: stabilize Bulletin, 2026-11-01
+
+Bulletin remains the active storage direction. [Capacity stays deferred research](../research/capacity-storage-evaluation-2026-11-01.md), with no integration, provider switch or live canary in the current delivery scope.
+
+The next bounded work is to finish the public-asset path in #376, then retire the old optional client-side Bulletin archival checkbox so artists do not select infrastructure or trigger a duplicate signer-dependent write. Conservation follows: account authorization and per-block retention are separate clocks; implement verified renewal scheduling/alerts for every dependency, plus coherent off-volume encrypted-data/key recovery and an honest artist-facing availability commitment. Reserved quota alone does not renew data. Preserve existing jobs, attempts, account cursors and immutable budgets; real writes and rollout retain their explicit reviewed bounds. Physical protected Web/Host publication/listening remains acceptance, not inferred from code or a healthy endpoint.
+
 ## Public assets follow-up, 2026-11-01
 
 The owner chose Bulletin covers/metadata after confirming the Pinata account's file cap. [ADR 0044](../adr/0044-bulletin-public-release-assets.md) prepares one cover/metadata pair through the existing private writer, with separate caps, the same durable account cursor, signed grants and renewed canonical authority checks. Host-aware reads use native preimages with existing API recovery; Web uses a bounded public image/JSON relay. This is not deployed or an audio-attempt reset. Exact write approval, failed-job recovery, physical protected acceptance and retention remain gates. Older preparation checkpoints below describe their historical state.

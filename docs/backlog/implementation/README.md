@@ -2,6 +2,12 @@
 
 Agent-ready work sequences for shipping a trustworthy musical commons on Product DevNet and ordinary web, then expanding discovery. Written 2026-09-05 against dev `bb3e2557215ee8628f4c0e107de6d1e984baaccf` and extended with W27 on 2026-09-22; agents must refresh the source before acting. This is a plan, not a claim that these features or branches already exist.
 
+## Owner priority: stabilize Bulletin, 2026-11-01
+
+Bulletin remains the active storage direction. [Capacity stays deferred research](../../research/capacity-storage-evaluation-2026-11-01.md), with no integration, provider switch or live canary in the current delivery scope.
+
+The next bounded work is to finish the public-asset path in #376, then retire the old optional client-side Bulletin archival checkbox so artists do not select infrastructure or trigger a duplicate signer-dependent write. Conservation follows: account authorization and per-block retention are separate clocks; implement verified renewal scheduling/alerts for every dependency, plus coherent off-volume encrypted-data/key recovery and an honest artist-facing availability commitment. Reserved quota alone does not renew data. Preserve existing jobs, attempts, account cursors and immutable budgets; real writes and rollout retain their explicit reviewed bounds. Physical protected Web/Host publication/listening remains acceptance, not inferred from code or a healthy endpoint.
+
 ## Current delivery correction, 2026-10-23
 
 Use the [current audit](evidence/backlog-reconciliation-2026-10-23.md) before

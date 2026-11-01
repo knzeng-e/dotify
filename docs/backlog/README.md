@@ -33,6 +33,12 @@ are now published in the [combined 0.1.63 rollout](implementation/evidence/produ
 Physical-device and pilot acceptance remain separate; #341 records the
 activation corrections before another deployment is prepared.
 
+## Owner priority: stabilize Bulletin, 2026-11-01
+
+Bulletin remains the active storage direction. [Capacity stays deferred research](../research/capacity-storage-evaluation-2026-11-01.md), with no integration, provider switch or live canary in the current delivery scope.
+
+The next bounded work is to finish the public-asset path in #376, then retire the old optional client-side Bulletin archival checkbox so artists do not select infrastructure or trigger a duplicate signer-dependent write. Conservation follows: account authorization and per-block retention are separate clocks; implement verified renewal scheduling/alerts for every dependency, plus coherent off-volume encrypted-data/key recovery and an honest artist-facing availability commitment. Reserved quota alone does not renew data. Preserve existing jobs, attempts, account cursors and immutable budgets; real writes and rollout retain their explicit reviewed bounds. Physical protected Web/Host publication/listening remains acceptance, not inferred from code or a healthy endpoint.
+
 ## Bulletin continuity follow-up, 2026-10-31
 
 After the [eight-second mobile observations](implementation/evidence/bulletin-mobile-publication-2026-10-30.md),
