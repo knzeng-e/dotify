@@ -4,6 +4,7 @@
 import assert from 'node:assert/strict';
 import { createBulletinRpcTransport } from '../../services/api/src/services/bulletinTransport.ts';
 import { verifyBulletinBlock, BULLETIN_GRAPH_MAX } from '../../services/api/src/services/bulletinGraph.ts';
+import { BULLETIN_FINALITY_MS } from '../../services/api/src/services/bulletinLimits.ts';
 import { watchFinalized } from './finalized-store.mjs';
 
 export function createPapiMediaTransport({ client, identity, signer = null, budget }) {
@@ -93,7 +94,7 @@ export function createPapiMediaTransport({ client, identity, signer = null, budg
           data: block.bytes,
           cid: { codec: BigInt(cid.code), hashing: { type: 'Blake2b256', value: undefined } }
         });
-        const position = await watchFinalized(tx, signer.createTransaction, intent.nonce, { timeoutMs: 25000, signal });
+        const position = await watchFinalized(tx, signer.createTransaction, intent.nonce, { timeoutMs: BULLETIN_FINALITY_MS, signal });
         issued.get(intent.nonce).block = position.block;
         const receipt = await transport.lookup(block.cid, signal);
         assert.ok(receipt && receipt.block === position.block && receipt.index === position.index, 'Finalized store differs from CID readback');

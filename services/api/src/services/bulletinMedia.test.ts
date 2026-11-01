@@ -122,6 +122,81 @@ async function fixture(t: TestContext, segments = 2, segmentBytes = 48) {
   return { root, key, scope, files, graph, directory, transport, options, store, job: `stream-${randomUUID()}` };
 }
 
+function mockDeadlineClock(t: TestContext) {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  t.mock.method(AbortSignal, 'timeout', (milliseconds: number) => {
+    const controller = new AbortController();
+    setTimeout(() => controller.abort(new DOMException('Deadline exceeded', 'TimeoutError')), milliseconds);
+    return controller.signal;
+  });
+}
+
+test('custody waits past its short read deadline for one exact signed store', async t => {
+  const c = await fixture(t);
+  mockDeadlineClock(t);
+  let release!: () => void;
+  const gate = new Promise<void>(resolve => {
+    release = resolve;
+  });
+  let waiting: AbortSignal | undefined;
+  const actualStore = c.transport.store.bind(c.transport);
+  const transport: BulletinMediaTransport = Object.assign(Object.create(c.transport), {
+    async store(block: BulletinBlock, intent: { nonce: number }, bounded: AbortSignal) {
+      if (!waiting) {
+        waiting = bounded;
+        await gate;
+        bounded.throwIfAborted();
+      }
+      return actualStore(block, intent);
+    }
+  });
+  let settled = false;
+  const writing = createBulletinMediaStore({ ...c.options, transport }).pin(c.files, c.job, signal());
+  void writing.then(
+    () => {
+      settled = true;
+    },
+    () => {
+      settled = true;
+    }
+  );
+  while (!waiting) await new Promise(resolve => setImmediate(resolve));
+  t.mock.timers.tick(40_000);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(waiting.aborted, false);
+  assert.equal(settled, false);
+  release();
+  assert.equal(await writing, c.graph.root);
+  assert.equal((await c.store.inventory(c.job)).ready, true);
+  assert.equal(c.transport.writes.length, c.graph.blocks.length);
+  assert.equal(new Set(c.transport.writes).size, c.graph.blocks.length);
+});
+
+test('an unresponsive store still expires at two minutes and preserves both pending nonces', async t => {
+  const c = await fixture(t);
+  mockDeadlineClock(t);
+  const submitted: AbortSignal[] = [];
+  const transport: BulletinMediaTransport = Object.assign(Object.create(c.transport), {
+    store(_block: BulletinBlock, _intent: { nonce: number }, bounded: AbortSignal) {
+      submitted.push(bounded);
+      return new Promise(() => {});
+    }
+  });
+  const store = createBulletinMediaStore({ ...c.options, transport });
+  const writing = assert.rejects(store.pin(c.files, c.job, signal()), { name: 'TimeoutError' });
+  while (submitted.length < 2) await new Promise(resolve => setImmediate(resolve));
+  t.mock.timers.tick(120_000);
+  await writing;
+  assert.ok(submitted.every(s => s.aborted));
+  const inventory = await store.inventory(c.job);
+  assert.equal(inventory.ready, false);
+  assert.equal(inventory.attemptedStores, 2);
+  assert.equal(Object.keys(inventory.pending).length, 2);
+  assert.equal(Object.keys(inventory.receipts).length, 0);
+  await assert.rejects(store.pin(c.files, c.job, signal()), /unresolved/i);
+  assert.equal(submitted.length, 2, 'Unknown transactions are not resubmitted after a longer deadline');
+});
+
 test('complete release exceeds canary file/block limits and retains inventory after restart', async t => {
   const c = await fixture(t, 45);
   assert.ok(c.files.length > 64 && c.graph.blocks.length > 128);

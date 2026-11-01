@@ -211,7 +211,7 @@ Before signed testing, review coherent private-state provisioning/restore,
 explicit signer identity, provider/client disposal and an exact generated-only
 budget. Provider activation and real protected Web/Host acceptance remain open.
 
-### Private generated canary operator: prepared, not published
+### Private generated canary operator: partial network run
 
 [ADR 0041](../adr/0041-private-bulletin-canary-package.md) and the
 [operator runbook](bulletin-protected-canary.md) add an isolated generated-only
@@ -229,11 +229,21 @@ floor are preserved alongside the new graph reserve. No renewals are sent.
 
 The [local candidate evidence](../backlog/implementation/evidence/bulletin-protected-package-2026-11-01.md)
 records 16 stores / 713,229 bytes proposed, private inspection backup and an
-actual signer-free quota check. No network upload, DotNS change, mount, secret,
-origin or deployed provider changed. Temporary candidates are not durable
-custody. Review, green CI, persistent custody/backup and new budget approval
-remain prerequisites to signing; real artist access and protected Web/Host
-acceptance remain separate gates.
+actual signer-free quota check. The authorized
+[first network run](../backlog/implementation/evidence/bulletin-protected-partial-run-2026-11-01.md)
+stored two objects / 80,988 bytes; exact receipts and authenticated readback are
+verified, with zero pending unknowns. The active private job retains its nonce
+cursor and 14-store / 632,241-byte remaining allowance. Temporary copies are
+inspection-only; never restore their older counters over live custody.
+
+The repair keeps RPC/custody reads at 25/30 seconds, allows 90 seconds for a
+finality watch within a 120-second store call, and retains the five-minute
+publication / ten-minute operator caps. Observation u64 quotas are decimal
+strings. A repaired publisher requires separate exact `--source-approval`
+after review and green CI; the original package digest/allowance is unchanged.
+Recheck quota and nonce before enabling its signer. No renewal, DotNS change,
+mount, origin or deployed provider changed; real protected Web/Host acceptance
+and recurring retention remain separate gates.
 
 ## Protected Bulletin rehearsal: local only
 

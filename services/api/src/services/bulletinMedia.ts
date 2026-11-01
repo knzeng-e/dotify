@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { open, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { buildBulletinMediaGraph, verifyBulletinBlock, type BulletinBlock } from './bulletinGraph.js';
+import { BULLETIN_CUSTODY_READ_MS, BULLETIN_STORE_MS } from './bulletinLimits.js';
 import {
   bulletinDependencies,
   bulletinWave,
@@ -83,10 +84,10 @@ export function createBulletinMediaStore(options: {
   owns();
   // A deadline stops waiting, not an already-broadcast transaction. The durable
   // account barrier and pending nonces protect retries even if it finishes late.
-  const call = async <T>(signal: AbortSignal, action: (bounded: AbortSignal) => Promise<T>): Promise<T> => {
+  const call = async <T>(signal: AbortSignal, action: (bounded: AbortSignal) => Promise<T>, timeoutMs = BULLETIN_CUSTODY_READ_MS): Promise<T> => {
     signal.throwIfAborted();
     owns();
-    const bounded = AbortSignal.any([signal, AbortSignal.timeout(30_000)]);
+    const bounded = AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)]);
     let abort: () => void = () => undefined;
     try {
       return await Promise.race([
@@ -319,7 +320,7 @@ export function createBulletinMediaStore(options: {
               tasks.push(
                 (async () => {
                   try {
-                    const submitted = await call(signal, s => transport.store(block, { nonce: writeNonce, afterBlock }, s));
+                    const submitted = await call(signal, s => transport.store(block, { nonce: writeNonce, afterBlock }, s), BULLETIN_STORE_MS);
                     const current = await observeStatus();
                     const receipt = receiptFor(block, await call(signal, s => transport.lookup(block.cid, s)), current.head, budget.minimumLifetimeBlocks);
                     assert.deepEqual(

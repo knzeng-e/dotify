@@ -381,6 +381,17 @@ jobs:
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium webkit firefox
 
+      # Nearby verifies decoded WebRTC energy through a real AudioContext, just
+      # like the three-engine streaming gate. Give both jobs an audio clock.
+      - name: Start a real audio service with a headless output
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y pulseaudio
+          pulseaudio --start --exit-idle-time=-1
+          pactl load-module module-null-sink sink_name=dotify_ci_audio
+          pactl set-default-sink dotify_ci_audio
+          pactl info
+
       - name: Fetch synthetic codec fixture from this commit
         uses: actions/download-artifact@v4
         with:

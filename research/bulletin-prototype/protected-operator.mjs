@@ -28,17 +28,33 @@ export class BoundedWebSocket extends WebSocket {
 }
 let stage = 'argument validation';
 export const protectedStage = () => stage;
+export function protectedFailureCategory(error) {
+  if (error?.name === 'TimeoutError' || error?.message === 'Finality deadline exceeded; submission outcome is unknown') return 'deadline exceeded';
+  if (error?.name === 'AbortError') return 'cancelled';
+  if (error?.code === 'ERR_ASSERTION') return 'validation failed';
+  return 'unclassified failure';
+}
 const repo = fileURLToPath(new URL('../../', import.meta.url));
-const git = args => execFileSync('git', ['-C', repo, ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+const git = (args, repository = repo) => execFileSync('git', ['-C', repository, ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
 const codePaths = ['research/bulletin-prototype', 'services/api/src', 'services/api/package.json', 'services/api/package-lock.json'];
-function cleanCode(implementation) {
-  git(['diff', '--exit-code', 'HEAD', '--', ...codePaths]);
-  assert.equal(git(['ls-files', '--others', '--exclude-standard', '--', ...codePaths]), '', 'Commit operator code before preparing a package');
+function cleanCode(implementation, repository = repo) {
+  git(['diff', '--exit-code', 'HEAD', '--', ...codePaths], repository);
+  assert.equal(git(['ls-files', '--others', '--exclude-standard', '--', ...codePaths], repository), '', 'Commit operator code before preparing a package');
   if (implementation) {
-    git(['merge-base', '--is-ancestor', implementation, 'HEAD']);
-    git(['diff', '--exit-code', implementation, 'HEAD', '--', ...codePaths]);
+    git(['merge-base', '--is-ancestor', implementation, 'HEAD'], repository);
+    git(['diff', '--exit-code', implementation, 'HEAD', '--', ...codePaths], repository);
   }
-  return git(['rev-parse', 'HEAD']);
+  return git(['rev-parse', 'HEAD'], repository);
+}
+export function reviewedProtectedSource(artifactImplementation, executionApproval = artifactImplementation, { repository = repo } = {}) {
+  assert.match(artifactImplementation, /^[0-9a-f]{40}$/);
+  assert.match(executionApproval, /^[0-9a-f]{40}$/);
+  assert.equal(git(['cat-file', '-t', executionApproval], repository), 'commit', 'Source approval must identify a commit');
+  // A repaired operator needs separate owner review. Never rewrite the immutable
+  // artifact plan or infer code approval from its previously approved byte budget.
+  git(['merge-base', '--is-ancestor', artifactImplementation, executionApproval], repository);
+  cleanCode(executionApproval, repository);
+  return executionApproval;
 }
 export function parseProtectedArgs(argv) {
   const [command, input, ...args] = argv;
@@ -54,19 +70,27 @@ export function parseProtectedArgs(argv) {
         : command === 'reconcile'
           ? ['--exclusive-account']
           : [];
+  const optional = command === 'publish' ? ['--source-approval'] : [];
   const options = {};
   for (let i = 0; i < args.length; i++) {
     const name = args[i];
-    assert.ok(expected.includes(name) && !(name in options), 'Unexpected or duplicate operator flag');
+    assert.ok([...expected, ...optional].includes(name) && !(name in options), 'Unexpected or duplicate operator flag');
     if (name === '--exclusive-account') options[name] = true;
     else {
       assert.ok(args[i + 1] && !args[i + 1].startsWith('--'), 'Missing operator flag value');
       options[name] = args[++i];
     }
   }
-  assert.deepEqual(Object.keys(options).sort(), [...expected].sort(), 'Required explicit operator flags are missing');
+  assert.deepEqual(
+    Object.keys(options)
+      .filter(name => !optional.includes(name))
+      .sort(),
+    [...expected].sort(),
+    'Required explicit operator flags are missing'
+  );
   if (command === 'publish') {
     assert.match(options['--approval'], /^[0-9a-f]{64}$/);
+    if (options['--source-approval']) assert.match(options['--source-approval'], /^[0-9a-f]{40}$/);
     assert.ok(
       /^[0-9]+$/.test(options['--signer-fd']) &&
         Number.isSafeInteger(Number(options['--signer-fd'])) &&
@@ -169,7 +193,15 @@ function sessionFor(plan, signer = null) {
   const client = createClient(getWsProvider(plan.endpoint, { websocketClass: BoundedWebSocket }));
   return createPapiMediaTransport({ client, identity: plan.identity, signer, budget: { maxBytes: plan.send.maxBytes, maxTransactions: plan.send.maxStores } });
 }
-export async function runProtected(argv) {
+export async function persistProtectedObservation(directory, command, report) {
+  assert.ok(['publish', 'reconcile'].includes(command), 'Invalid observation command');
+  // RPC allowances are u64 BigInts. Keep their decimal precision without
+  // changing the strict numeric nonce/receipt schemas in custody journals.
+  const serializable = JSON.parse(JSON.stringify(report, (_, value) => (typeof value === 'bigint' ? value.toString() : value)));
+  await save(directory, `observation-${command}.json`, serializable);
+  return serializable;
+}
+export async function runProtected(argv, { openSession = sessionFor } = {}) {
   assert.equal(process.env.DOTIFY_PROTECTED_OPERATOR, 'isolated', 'Use the credential-isolating protected-canary.mjs launcher');
   const { command, directory, options } = parseProtectedArgs(argv);
   if (command === 'prepare') {
@@ -179,6 +211,7 @@ export async function runProtected(argv) {
   stage = 'private package validation';
   const loaded = await loadProtected(directory),
     { plan, digest } = loaded;
+  let executionApproval;
   if (command === 'plan') {
     await packageState(directory, plan);
     return { digest, plan };
@@ -186,7 +219,7 @@ export async function runProtected(argv) {
   if (command === 'publish') {
     assert.equal(options['--approval'], digest, 'Approval digest differs from the exact reviewed package');
     stage = 'reviewed source validation';
-    cleanCode(plan.implementation);
+    executionApproval = reviewedProtectedSource(plan.implementation, options['--source-approval']);
     stage = 'backup validation';
     await backupMatches(resolve(options['--backup']), loaded);
   }
@@ -207,7 +240,8 @@ export async function runProtected(argv) {
       const start = performance.now();
       try {
         stage = 'network and quota preflight';
-        session = sessionFor(plan);
+        session = openSession(plan);
+        assert.equal(session.transport.writable, false, 'Preflight requires a read-only session');
         let transport = preservePriorReserve(session.transport, plan);
         const before = await checkProtected(transport, loaded, directory, signal);
         if (command === 'check') return { digest, before, signerUsed: false, stores: 0 };
@@ -217,7 +251,8 @@ export async function runProtected(argv) {
           session.close();
           stage = 'local signer identity';
           const createTransaction = localSigner(Number(options['--signer-fd']));
-          session = sessionFor(plan, { account: IDENTITY.account, createTransaction });
+          session = openSession(plan, { account: IDENTITY.account, createTransaction });
+          assert.equal(session.transport.writable, true, 'Publish requires an explicit writer session');
           transport = preservePriorReserve(session.transport, plan);
         }
         const storage = createBulletinMediaStore({
@@ -240,6 +275,8 @@ export async function runProtected(argv) {
           schema: 'dotify.bulletin.protected-observation.v1',
           digest,
           command,
+          artifactImplementation: plan.implementation,
+          ...(executionApproval ? { executionApproval } : {}),
           observedAt: new Date().toISOString(),
           root: plan.root,
           ready: inventory.ready,
@@ -257,8 +294,7 @@ export async function runProtected(argv) {
           renewalsSubmitted: 0
         };
         stage = 'observation persistence';
-        await save(directory, `observation-${command}.json`, report);
-        return report;
+        return persistProtectedObservation(directory, command, report);
       } finally {
         session?.close();
         process.removeListener('SIGINT', abort);

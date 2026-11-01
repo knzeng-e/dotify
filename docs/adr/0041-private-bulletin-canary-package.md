@@ -1,7 +1,7 @@
 # ADR 0041: keep the protected Bulletin canary in a private, immutable package
 
 - Date: 2026-11-01
-- Status: accepted for local/operator preparation; network execution awaits approval
+- Status: accepted; first authorized network run is partial, source repair pending
 - Scope: W33 / #288, with W32 / #287; follows [ADR 0040](0040-bulletin-direct-store-receipts.md)
 
 ## Decision
@@ -68,3 +68,20 @@ and audit its fresh readback. Then prepare real runtime registration, signed
 access and protected Web/Host acceptance separately. Representative-release
 costs, background interruption, uncached recovery, recurring retention and
 provider activation remain open. See the [operator runbook](../operations/bulletin-protected-canary.md).
+
+## November 1 network follow-up
+
+The subsequently authorized run stored two objects before stopping. Read-only
+recovery confirms both sender/nonces and authenticated ciphertext; 14 stores
+remain, with no unknown pending outcomes. The
+[partial-run evidence](../backlog/implementation/evidence/bulletin-protected-partial-run-2026-11-01.md)
+records the reporting defect and observed finality margin. Signed-store waits
+now have a longer bounded finality allowance than short state reads.
+
+Keep the artifact approval immutable. A necessary source repair requires a
+separate exact `--source-approval` revision descended from the artifact source,
+reviewed by the owner and identical to the clean execution checkout. Default
+invocations still require the original code. This permits a reviewed repair
+without re-encryption, copying stale journals or renewing the consumed budget.
+The observation records both revisions. It is not an automatic upgrade path or
+permission to sign; review, CI and explicit execution approval remain gates.
