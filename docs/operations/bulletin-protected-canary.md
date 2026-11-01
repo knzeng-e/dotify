@@ -78,8 +78,9 @@ The fixed runtime address is a model identity, not a deployed artist runtime.
 
 The operator sets a 20-MiB incoming WebSocket message limit before JSON parsing,
 plus fragment/chunk bounds, a handshake timeout and no compression or redirects.
-Server transport operations have a 25-second bound, custody calls 30 seconds,
-publication five minutes and the operator signal ten minutes. These bounds do
+RPC reads have a 25-second bound and custody reads 30 seconds. Signed stores
+allow 90 seconds for finality observation within a 120-second whole-store bound;
+publication remains five minutes and the operator signal ten minutes. These bounds do
 not retract a broadcast. Peak RSS is the entire process high-water mark, not
 only graph memory; elapsed time includes preflight/readback and is not first
 sound. RPC canonicality/finality remains trusted, not a light-client proof.
@@ -109,10 +110,30 @@ attempt/byte budget; starting a new process does not reset it. Exactly two
 stores may overlap; the directory root waits for every verified dependency.
 
 A successful observation records the digest/root, verified receipts, attempts,
-bytes, preflight counters, duration and RSS. It contains no key, signer input or
-raw provider exceptions. A failure names the controlled stage and leaves
+bytes, preflight counters, duration and RSS. u64 quota counters are decimal
+strings, preserving exact precision; custody nonce/receipt schemas remain numeric.
+It contains no key, signer input or raw provider exceptions. A failure names the
+controlled stage and category (deadline, cancellation, validation or unclassified), and leaves
 custody/journals for investigation. Do not interpret a timeout or interruption
 as proof that a transaction was never broadcast.
+
+### Resume with a reviewed source repair
+
+An artifact's original approval does not authorize modified publisher code.
+If a repair is needed, review the exact descendant commit, await green CI and
+obtain owner approval of that execution revision before enabling the signer.
+Then add `--source-approval EXACT_40_HEX_COMMIT` to the same `publish` command.
+The operator checks ancestry and a clean checkout with identical operator/API
+code. Omitting the flag retains the original strict source binding. This flag
+records a separately granted approval; it cannot grant permission by itself.
+
+Keep the original artifact, digest, backup and live journals. Never rewrite
+`plan.json`, re-encrypt, restore stale counters or enlarge the cumulative budget
+to run the fix. A signed observation records the original artifact implementation
+and approved execution revision. Read-side commands reject this publish flag.
+The [November 1 partial run](../backlog/implementation/evidence/bulletin-protected-partial-run-2026-11-01.md)
+has two confirmed stores and 14 remaining under its original allowance; its
+source repair requires review before continuation.
 
 ## Reconcile and audit without sending
 
@@ -165,8 +186,9 @@ folder on one disk is only a local rehearsal, not a resilient backup.
 
 ## Remaining acceptance
 
-This experiment uses generated audio and a private local key. A signed network
-run still needs explicit authorization. Real runtime registration, wallet-signed
+This experiment uses generated audio and a private local key. Each signed run
+needs explicit authorization of its cumulative allowance and execution source.
+Real runtime registration, wallet-signed
 key delivery through the canonical service, denied/revoked access and protected
 Web/Host playback must be accepted separately. Production media routing,
 representative-release costs, cold audible startup, background recovery and

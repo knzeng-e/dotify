@@ -116,10 +116,14 @@ Web/Host listening, recurring retention and provider activation remain open.
 immutable generated package, an exact 16-store / 713,229-byte plan, quiescent
 inspection backup and explicit publish/read-only reconciliation commands.
 Offline tests verify custody, allowance floors and lost-ack recovery; a real
-read-only preflight confirms quota without a signer. No upload, renewal, DotNS
-change or production activation occurred. Review, green CI, durable custody
-and fresh write approval precede signed testing; real registration/access,
-protected Web/Host listening and recurring retention remain open.
+read-only preflight confirms quota without a signer. The subsequently authorized
+[first network run](evidence/bulletin-protected-partial-run-2026-11-01.md) confirms
+two stores / 80,988 bytes, with both exact receipts reconciled and ciphertext
+authenticated. Fourteen stores remain under the original allowance. Report
+serialization and finality deadlines are repaired for review; continuation needs
+green CI and explicit approval of the repaired source without resetting custody
+or budgets. Real registration/access, protected Web/Host listening and recurring
+retention remain open. No renewal, DotNS or production provider changed.
 
 ## Agent assignment
 

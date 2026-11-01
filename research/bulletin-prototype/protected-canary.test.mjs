@@ -3,10 +3,19 @@ import test from 'node:test';
 import { mkdtemp, rm, readFile, writeFile, chmod, symlink, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { spawnSync } from 'node:child_process';
+import { spawnSync, execFileSync } from 'node:child_process';
 import { Socket } from 'node:net';
 import { prepareProtected, loadProtected, backupProtected, privateBytes, IDENTITY, PRIOR_RESERVE } from './protected-package.mjs';
-import { parseProtectedArgs, packageState, preservePriorReserve, checkProtected, backupMatches, runProtected } from './protected-operator.mjs';
+import {
+  parseProtectedArgs,
+  packageState,
+  preservePriorReserve,
+  checkProtected,
+  backupMatches,
+  runProtected,
+  reviewedProtectedSource,
+  protectedFailureCategory
+} from './protected-operator.mjs';
 import { createBulletinMediaStore } from '../../services/api/src/services/bulletinMedia.ts';
 import { SimulatedChain } from './simulated-chain.mjs';
 import { StreamingNonceLedger } from '../../services/api/src/services/streamingNonces.ts';
@@ -14,6 +23,15 @@ import { deriveContentKeyBytes } from '../../services/api/src/services/keyVault.
 import { parseStreamingManifest, decryptStreamingObject } from '../../services/api/src/services/streamingFormat.ts';
 const implementation = 'a'.repeat(40);
 const signal = () => new AbortController().signal;
+
+test('failure categories preserve a useful bounded reason without provider or signer payloads', () => {
+  assert.equal(protectedFailureCategory(new DOMException('secret payload', 'TimeoutError')), 'deadline exceeded');
+  assert.equal(protectedFailureCategory(new Error('Finality deadline exceeded; submission outcome is unknown')), 'deadline exceeded');
+  assert.equal(protectedFailureCategory(new DOMException('secret payload', 'AbortError')), 'cancelled');
+  assert.equal(protectedFailureCategory({ code: 'ERR_ASSERTION', message: 'secret payload' }), 'validation failed');
+  assert.equal(protectedFailureCategory(new Error('secret payload')), 'unclassified failure');
+  assert.equal(protectedFailureCategory(null), 'unclassified failure');
+});
 
 // All network behavior in this file is an explicit model. The executable launcher
 // is exercised separately below, with inherited fake credentials as tripwires.
@@ -157,6 +175,24 @@ test('generated protected package: immutable custody, exact allowance and fresh-
   };
   await assert.rejects(createBulletinMediaStore({ ...options, transport: readonly }).pin(files, plan.job, signal()), /read-only/);
   assert.equal(Object.keys((await packageState(directory, plan)).inventory.pending).length, 0);
+  const previousMarker = process.env.DOTIFY_PROTECTED_OPERATOR;
+  process.env.DOTIFY_PROTECTED_OPERATOR = 'isolated';
+  try {
+    const partial = await runProtected(['reconcile', directory, '--exclusive-account'], {
+      openSession(_plan, signer = null) {
+        assert.equal(signer, null);
+        return { transport: readonly, close() {}, attemptedTransactions: 0 };
+      }
+    });
+    assert.equal(partial.partial, true);
+    assert.equal(partial.ready, false);
+    assert.equal(partial.pending, 0);
+    assert.equal(partial.sessionStores, 0);
+    assert.equal(JSON.parse(await readFile(join(directory, 'observation-reconcile.json'), 'utf8')).partial, true);
+  } finally {
+    if (previousMarker === undefined) delete process.env.DOTIFY_PROTECTED_OPERATOR;
+    else process.env.DOTIFY_PROTECTED_OPERATOR = previousMarker;
+  }
   loseAck = false;
   await createBulletinMediaStore({ ...options, transport }).pin((await loadProtected(directory)).files, plan.job, signal());
   assert.equal(chain.stores.length, graph.blocks.length);
@@ -165,6 +201,44 @@ test('generated protected package: immutable custody, exact allowance and fresh-
   assert.equal(final.inventory.ready, true);
   assert.equal(final.owner.activeJob, null);
   assert.equal(chain.renewals.length, 0);
+  await t.test('actual read-only operator persists exact u64 quota counters after reconciliation', async () => {
+    const savedBytes = chain.authorization.remainingBytes;
+    chain.authorization.remainingBytes = 9007199254740993n;
+    const oldMarker = process.env.DOTIFY_PROTECTED_OPERATOR;
+    process.env.DOTIFY_PROTECTED_OPERATOR = 'isolated';
+    let closed = 0,
+      opened = 0;
+    try {
+      const report = await runProtected(['reconcile', directory, '--exclusive-account'], {
+        openSession(selected, signer = null) {
+          assert.equal(selected.root, plan.root);
+          assert.equal(signer, null);
+          opened++;
+          return {
+            transport: readonly,
+            close() {
+              closed++;
+            },
+            attemptedTransactions: 0
+          };
+        }
+      });
+      const persisted = JSON.parse(await readFile(join(directory, 'observation-reconcile.json'), 'utf8'));
+      assert.deepEqual(persisted, report);
+      assert.equal(persisted.before.authorization.remainingBytes, '9007199254740993');
+      assert.equal(typeof persisted.before.authorization.remainingRenewBytes, 'string');
+      assert.equal(typeof persisted.before.finalizedNonce, 'number');
+      assert.equal(persisted.ready, true);
+      assert.equal(persisted.sessionStores, 0);
+      assert.equal(chain.stores.length, graph.blocks.length);
+      assert.equal(opened, 1);
+      assert.equal(closed, 1);
+    } finally {
+      chain.authorization.remainingBytes = savedBytes;
+      if (oldMarker === undefined) delete process.env.DOTIFY_PROTECTED_OPERATOR;
+      else process.env.DOTIFY_PROTECTED_OPERATOR = oldMarker;
+    }
+  });
   await createBulletinMediaStore({ ...options, transport: readonly }).pin(files, plan.job, signal());
   assert.equal(chain.stores.length, graph.blocks.length, 'Re-audit sends no stores');
 
@@ -209,8 +283,10 @@ test('generated protected package: immutable custody, exact allowance and fresh-
 });
 
 test('operator parser rejects signer use on reads, ambiguous flags and missing approval/backup/exclusivity', () => {
-  for (const command of ['prepare', 'plan', 'backup', 'check', 'reconcile'])
+  for (const command of ['prepare', 'plan', 'backup', 'check', 'reconcile']) {
     assert.throws(() => parseProtectedArgs([command, '/tmp/example', '--signer-fd', '3']));
+    assert.throws(() => parseProtectedArgs([command, '/tmp/example', '--source-approval', 'b'.repeat(40)]));
+  }
   for (const flags of [
     [],
     ['--approval', 'a'.repeat(64)],
@@ -223,6 +299,56 @@ test('operator parser rejects signer use on reads, ambiguous flags and missing a
     'publish'
   );
   assert.equal(parseProtectedArgs(['reconcile', '/tmp/example', '--exclusive-account']).command, 'reconcile');
+  const publish = ['publish', '/tmp/example', '--approval', 'a'.repeat(64), '--backup', '/tmp/backup', '--exclusive-account', '--signer-fd', '3'];
+  assert.equal(parseProtectedArgs([...publish, '--source-approval', 'b'.repeat(40)]).options['--source-approval'], 'b'.repeat(40));
+  assert.throws(() => parseProtectedArgs([...publish, '--source-approval', 'HEAD']));
+  assert.throws(() => parseProtectedArgs([...publish, '--source-approval', 'b'.repeat(40), '--source-approval', 'b'.repeat(40)]));
+});
+
+test('a source repair requires an exact separately approved descendant without changing artifact custody', async t => {
+  const repository = await mkdtemp(join(tmpdir(), 'dotify-source-approval-'));
+  t.after(() => rm(repository, { recursive: true, force: true }));
+  const git = args =>
+    execFileSync('git', ['-C', repository, ...args], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+      env: { PATH: process.env.PATH, HOME: repository, GIT_CONFIG_NOSYSTEM: '1' }
+    }).trim();
+  git(['init']);
+  git(['config', 'user.name', 'Offline source test']);
+  git(['config', 'user.email', 'offline@example.invalid']);
+  await mkdir(join(repository, 'research/bulletin-prototype'), { recursive: true });
+  const source = join(repository, 'research/bulletin-prototype/operator.mjs');
+  await writeFile(source, 'original');
+  git(['add', '.']);
+  git(['commit', '-m', 'original artifact source']);
+  const original = git(['rev-parse', 'HEAD']);
+  assert.equal(reviewedProtectedSource(original, undefined, { repository }), original);
+  await writeFile(source, 'reviewed repair');
+  git(['add', '.']);
+  git(['commit', '-m', 'repair']);
+  const repaired = git(['rev-parse', 'HEAD']);
+  assert.throws(() => reviewedProtectedSource(original, undefined, { repository }), 'Old approval cannot select changed code');
+  assert.equal(reviewedProtectedSource(original, repaired, { repository }), repaired);
+  git(['tag', '-a', 'not-a-commit-object', '-m', 'tag object']);
+  assert.throws(() => reviewedProtectedSource(original, git(['rev-parse', 'not-a-commit-object']), { repository }), /identify a commit/);
+  assert.throws(() => reviewedProtectedSource(repaired, original, { repository }), 'Execution source cannot precede the artifact');
+  await writeFile(source, 'unreviewed edit');
+  assert.throws(() => reviewedProtectedSource(original, repaired, { repository }));
+  await writeFile(source, 'reviewed repair');
+  await writeFile(join(repository, 'research/bulletin-prototype/untracked.mjs'), 'unreviewed');
+  assert.throws(() => reviewedProtectedSource(original, repaired, { repository }));
+  await rm(join(repository, 'research/bulletin-prototype/untracked.mjs'));
+  await writeFile(join(repository, 'review.md'), 'Documentation-only successor');
+  git(['add', '.']);
+  git(['commit', '-m', 'evidence']);
+  assert.equal(reviewedProtectedSource(original, repaired, { repository }), repaired);
+  git(['checkout', '--orphan', 'unrelated']);
+  git(['rm', '-rf', '.']);
+  await writeFile(join(repository, 'other.txt'), 'unrelated');
+  git(['add', '.']);
+  git(['commit', '-m', 'unrelated source']);
+  assert.throws(() => reviewedProtectedSource(original, git(['rev-parse', 'HEAD']), { repository }));
 });
 
 test('isolating launcher rejects read-side FD and emits no inherited fake credentials', () => {

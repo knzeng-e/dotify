@@ -82,6 +82,57 @@ const finalEvent = {
 async function started(c) {
   while (!c.observer) await new Promise(r => setImmediate(r));
 }
+function clock(t) {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  // Native AbortSignal.timeout does not use the mocked global timer.
+  t.mock.method(AbortSignal, 'timeout', milliseconds => {
+    const controller = new AbortController();
+    setTimeout(() => controller.abort(new DOMException('Deadline exceeded', 'TimeoutError')), milliseconds);
+    return controller.signal;
+  });
+}
+
+test('store observation survives a 40-second finality delay while RPC reads remain short', async t => {
+  clock(t);
+  const c = context();
+  t.after(c.session.close);
+  const writing = c.session.transport.store(block, intent, signal());
+  await started(c);
+  t.mock.timers.tick(40_000);
+  await new Promise(r => setImmediate(r));
+  assert.equal(c.destroyed, 0);
+  assert.equal(c.unsubscribed, 0);
+  c.observer.next(finalEvent);
+  assert.deepEqual(await writing, fixture.receipt);
+  assert.equal(c.session.attemptedTransactions, 1);
+});
+
+test('a missing finality event remains bounded and cannot trigger another submission', async t => {
+  clock(t);
+  const c = context();
+  t.after(c.session.close);
+  const writing = assert.rejects(c.session.transport.store(block, intent, signal()), /Finality deadline/);
+  await started(c);
+  t.mock.timers.tick(90_000);
+  await writing;
+  assert.equal(c.unsubscribed, 1);
+  assert.equal(c.session.attemptedTransactions, 1);
+  await assert.rejects(c.session.transport.store(block, intent, signal()), /issued nonce/);
+  assert.equal(c.subscriptions, 1);
+});
+
+test('an unresponsive read still times out at 25 seconds and closes its dedicated client', async t => {
+  clock(t);
+  const c = context({ signer: null });
+  t.after(c.session.close);
+  c.client._request = () => new Promise(() => {});
+  const reading = assert.rejects(c.session.transport.status(signal()), { name: 'TimeoutError' });
+  await new Promise(r => setImmediate(r));
+  t.mock.timers.tick(25_000);
+  await reading;
+  assert.equal(c.destroyed, 1);
+  assert.equal(c.session.attemptedTransactions, 0);
+});
 
 test('read-only PAPI composition recovers an actual historical receipt without touching a signer', async () => {
   const c = context({ signer: null });

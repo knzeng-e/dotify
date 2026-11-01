@@ -6,6 +6,7 @@ import { CID } from 'multiformats/cid';
 import { z } from 'zod';
 import { identitySchema } from './bulletinMediaState.js';
 import { verifyBulletinBlock, type BulletinBlock } from './bulletinGraph.js';
+import { BULLETIN_RPC_READ_MS, BULLETIN_STORE_MS } from './bulletinLimits.js';
 import { bulletinBytes, bulletinHex, createBulletinCodecs, verifyBulletinSubmission, type BulletinCodecs } from './bulletinReceipt.js';
 import type {
   BulletinMediaTransport,
@@ -103,9 +104,9 @@ export function createBulletinRpcTransport(options: {
     const bytes = integer.min(1).max(RAW_MAX).parse(info.size);
     return { cid: input, bytes, block, index, expiresAt, finalized: true };
   };
-  const within = async <T>(owner: AbortSignal, read: (signal: AbortSignal) => Promise<T>): Promise<T> => {
+  const within = async <T>(owner: AbortSignal, read: (signal: AbortSignal) => Promise<T>, timeoutMs = BULLETIN_RPC_READ_MS): Promise<T> => {
     owner.throwIfAborted();
-    const signal = AbortSignal.any([owner, AbortSignal.timeout(25000)]);
+    const signal = AbortSignal.any([owner, AbortSignal.timeout(timeoutMs)]);
     let abort: () => void = () => undefined;
     try {
       return await Promise.race([
@@ -208,7 +209,7 @@ export function createBulletinRpcTransport(options: {
       integer.parse(intent.afterBlock);
       // The writer owns its exact session budget and cancellation. Its receipt
       // is independently checked through lookupSubmission by the custody store.
-      return within(signal, s => options.submit!(block, intent, s));
+      return within(signal, s => options.submit!(block, intent, s), BULLETIN_STORE_MS);
     }
   };
 }

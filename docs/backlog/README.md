@@ -224,15 +224,18 @@ No new publication or signer use occurred. Private-state/client composition,
 an approved protected-canary budget, measured throughput and recurring retention
 still precede any provider activation.
 
-## Private Bulletin canary preparation, 2026-11-01
+## Private Bulletin canary: partial network run, 2026-11-01
 
 The [private operator package](../adr/0041-private-bulletin-canary-package.md)
 binds generated encrypted audio, nonce custody, account and allowances to one
 review digest. Its [local evidence](implementation/evidence/bulletin-protected-package-2026-11-01.md)
 records 16 proposed stores / 713,229 bytes, offline recovery and a signer-free
-quota check. Nothing was uploaded. Green CI, review, durable custody and fresh
-write approval precede the storage canary; real protected Web/Host acceptance
-and recurring retention still precede provider activation.
+quota check. The authorized [first network run](implementation/evidence/bulletin-protected-partial-run-2026-11-01.md)
+stopped after two confirmed stores; read-only recovery authenticated both and
+left no unknown pending submissions. Fourteen stores remain. The reporting and
+finality repair needs review, green CI and exact source approval before resuming
+the unchanged artifact. Real protected Web/Host acceptance and recurring
+retention still precede provider activation.
 
 ## Production readiness rule
 
