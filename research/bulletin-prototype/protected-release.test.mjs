@@ -12,9 +12,10 @@ import { generatedWav } from './generated-source.mjs';
 import { buildDirectory, readPath } from './graph.mjs';
 import { blakeGraph } from './readdress-aac.mjs';
 import { SimulatedChain } from './simulated-chain.mjs';
-import { initializeBulletinMediaStore, createBulletinMediaStore } from '../../services/api/src/services/bulletinMedia.ts';
+import { initializeBulletinPublisher } from '../../services/api/src/services/bulletinPublisherProfile.ts';
+import { createStreamingPublicationStore } from '../../services/api/src/services/streamingPublicationStore.ts';
 import { buildBulletinMediaGraph } from '../../services/api/src/services/bulletinGraph.ts';
-import { StreamingJobs, initializeStreamingJobs } from '../../services/api/src/services/streamingJobs.ts';
+import { StreamingJobs } from '../../services/api/src/services/streamingJobs.ts';
 import { transcodeStreamingAudio } from '../../services/api/src/services/streamingTranscoder.ts';
 import { deriveContentKey, deriveContentKeyBytes } from '../../services/api/src/services/keyVault.ts';
 import { catalogSnapshotSchema } from '../../services/api/src/services/catalog/types.ts';
@@ -201,8 +202,8 @@ async function fixture(t) {
     vault.contentKeyMasterSecret = '';
   });
   const directory = join(process.cwd(), 'custody');
-  await initializeStreamingJobs(directory);
   const chain = new SimulatedChain();
+  chain.account = '5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca'; // Public identity only; storage signatures remain offline models.
   let nextNonce = 10;
   const submissions = new Map();
   const storeBlock = chain.store.bind(chain);
@@ -219,8 +220,36 @@ async function fixture(t) {
   const model = runtimeModel();
   const storageDirectory = join(process.cwd(), 'bulletin-publications');
   const identity = { genesis: chain.genesis, account: chain.account };
-  await initializeBulletinMediaStore(storageDirectory, identity);
-  const storage = createBulletinMediaStore({ directory: storageDirectory, identity, transport: chain, budget: { ...budget, minimumLifetimeBlocks: 100 } });
+  const profile = {
+    schema: 'dotify.bulletin.publisher.v1',
+    ...identity,
+    endpoint: 'wss://offline-bulletin.example',
+    directory: storageDirectory,
+    seedFile: join(process.cwd(), 'never-opened-storage.seed'),
+    budget: { ...budget, minimumLifetimeBlocks: 100 },
+    pipeline: { concurrency: 2, maxInFlightBytes: 512 * 1024 },
+    priorRenewalReserve: { transactions: 0, bytes: 0 }
+  };
+  const profileFile = join(process.cwd(), 'publisher-profile.json');
+  await writeFile(profileFile, JSON.stringify(profile), { mode: 0o600 });
+  await initializeBulletinPublisher(directory, profile);
+  const storage = await createStreamingPublicationStore(
+    { provider: 'bulletin', queue: directory, profileFile },
+    {
+      loadSigner: async () => ({
+        account: identity.account,
+        createTransaction: () => {
+          throw new Error('Offline rehearsal must never sign a storage transaction');
+        },
+        dispose() {}
+      }),
+      openSession: (_profile, _signer, reserve) => {
+        assert.deepEqual(reserve, { transactions: 0, bytes: 0 });
+        return { transport: chain, close() {} };
+      }
+    }
+  );
+  t.after(() => storage.close());
   let encodes = 0,
     graph,
     files,
@@ -236,6 +265,7 @@ async function fixture(t) {
       encodes++;
       return transcodeStreamingAudio({ master: bytes, signal });
     },
+    canDiscard: storage.canDiscard,
     pin: async (value, name, signal) => {
       signal.throwIfAborted();
       files = value;

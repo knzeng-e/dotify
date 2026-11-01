@@ -88,7 +88,7 @@ export async function waitForAudioPreparation(input: {
       }
       throw new AudioPreparationError(
         !canRetry
-          ? 'This preparation has reached its retry limit. Your draft is safe. Remove the failed preparation before trying again.'
+          ? 'This preparation has reached its retry limit. Your draft is safe. Please contact the Dotify operator to recover it.'
           : job.failure?.stage === 'storage' && job.failure.storageStatus === 403
             ? 'The storage service is refusing new uploads. Your prepared music is saved. Please try again after the service is restored.'
             : job.failure?.stage === 'storage'

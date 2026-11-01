@@ -136,7 +136,12 @@ the actual player to native Host raw preimages and the existing catalog-gated
 Web/API relay. Keys and access authority are unchanged; no new hosting service
 or live setting is introduced. [ADR 0042](../../adr/0042-bulletin-application-readers.md)
 records cancellation, resource bounds and the fresh internal deployment target.
-Next: production writer/custody composition, a fresh real runtime-bound private
+The next slice now connects the [artist publication writer](../../adr/0043-bulletin-artist-publication.md)
+to the existing private custody queue with explicit provider selection, private signer binding,
+retained-publication renewal floors and discard/prune protection for unresolved stores.
+It is not deployed; covers and metadata still use Pinata.
+
+Next: review this composition, then a fresh real runtime-bound private
 fixture and protected Web/Desktop/mobile acceptance. The completed model-scope
 canary is not a registered artist release. Keep W33 open for those gates,
 representative costs, cold audible startup and recurring retention. No production

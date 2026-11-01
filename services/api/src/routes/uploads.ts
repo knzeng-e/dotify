@@ -254,7 +254,13 @@ export function createUploadRoutes(deps: UploadRouteDeps = defaultDeps, jobs?: S
         return reply.status(204).send();
       } catch (error) {
         if (error instanceof StreamingJobError)
-          return reply.status(error.status).send({ error: 'Only a failed preparation can be removed by its artist.', code: error.code });
+          return reply.status(error.status).send({
+            error:
+              error.code === 'STREAMING_RECOVERY_REQUIRED'
+                ? 'Your music is saved. A previous storage operation needs to be checked before this preparation can be removed. Please contact the Dotify operator.'
+                : 'Only a failed preparation can be removed by its artist.',
+            code: error.code
+          });
         throw error;
       }
     });
@@ -268,7 +274,7 @@ export function createUploadRoutes(deps: UploadRouteDeps = defaultDeps, jobs?: S
           return reply.status(error.status).send({
             error:
               error.code === 'STREAMING_RETRY_LIMIT'
-                ? 'This preparation has reached its retry limit. Your draft is safe. Remove the failed preparation before trying again.'
+                ? 'This preparation has reached its retry limit. Your draft is safe. Please contact the Dotify operator to recover it.'
                 : 'Audio preparation could not be restarted. Your upload is still saved.',
             code: error.code
           });

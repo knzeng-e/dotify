@@ -107,6 +107,8 @@ export type StreamingJobDeps = {
   authority: (owner: string, runtime: string, chainId: number) => Promise<boolean>;
   transcode: (master: Buffer, signal?: AbortSignal) => Promise<EncodedStreamingAudio>;
   pin: (files: PinataFile[], name: string, signal: AbortSignal) => Promise<string>;
+  /** Reject deletion while a storage transaction or retained ciphertext needs reconciliation. */
+  canDiscard?: (name: string) => Promise<boolean>;
   /** Allowlisted diagnostics only. Never pass raw errors, source data or keys. */
   onFailure?: (failure: { jobId: string } & StreamingFailure) => void;
   now?: () => number;
@@ -319,6 +321,7 @@ export class StreamingJobs {
       const job = this.jobs.find(j => j.id === id && j.owner === owner.toLowerCase() && j.scope.chainId === chainId && j.state !== 'expired');
       if (!job) throw new StreamingJobError('STREAMING_JOB_NOT_FOUND', 404);
       if (job.state !== 'failed') throw new StreamingJobError('STREAMING_JOB_ACTIVE', 409);
+      if (this.deps.canDiscard && !(await this.deps.canDiscard(`stream-${job.id}`))) throw new StreamingJobError('STREAMING_RECOVERY_REQUIRED', 409);
       job.state = 'expired';
       this.failures.delete(job.id);
       await this.save();
@@ -328,7 +331,15 @@ export class StreamingJobs {
     });
   }
   private async prune() {
-    const old = this.jobs.filter(j => ['failed', 'ready'].includes(j.state) && j.updatedAt < this.now() - RETENTION_MS);
+    const old: StreamingJob[] = [];
+    for (const job of this.jobs) {
+      if (
+        ['failed', 'ready'].includes(job.state) &&
+        job.updatedAt < this.now() - RETENTION_MS &&
+        (!this.deps.canDiscard || (await this.deps.canDiscard(`stream-${job.id}`)))
+      )
+        old.push(job);
+    }
     // Persist tombstones before deleting files. A crash at any deletion point
     // is completed on startup without losing nonce reservations or admitting
     // a metadata entry whose encrypted source has disappeared.

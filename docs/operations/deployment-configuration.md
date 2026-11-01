@@ -9,7 +9,8 @@ PostgreSQL identity, secrets, Host permissions and contracts are unchanged.
 Keep failed jobs available for explicit artist recovery; never reset the nonce
 ledger to retry storage. The encoder and signaling were not restarted.
 See the [rollout record and rollback](../backlog/implementation/evidence/product-0.1.67-rollout-2026-10-29.md).
-Bulletin media storage remains an exploration, not a production setting.
+Bulletin is now an explicit opt-in audio publication capability; it is not activated in the deployed app.
+See the [artist publication preparation and recovery runbook](bulletin-artist-publication.md).
 
 ## Bulletin segmented-media prototype, not deployed
 
@@ -21,8 +22,9 @@ send the explicitly authorized synthetic canary to the pinned Bulletin DevNet:
 owner-selected account, a local signer descriptor and finalized metadata/raw CID
 readback; it has no automatic environment signer or public-pool fallback.
 See its [operator and recovery steps](../../research/bulletin-prototype/README.md#network-canary).
-Do not change Pinata/read origins or put the DotNS key in a server. Production
-SDK/protocol pins remain unchanged and there is no production enable flag.
+This historical prototype did not change Pinata/read origins or provision a server signer.
+For the current opt-in publication selector, SDK pins and server key boundary,
+use the [artist publication runbook](bulletin-artist-publication.md); do not copy the DotNS mnemonic into a server.
 The operator lock survives abrupt termination for explicit reconciliation;
 keep the private fixture/nonce ledger/receipts, and remove the temporary local
 signer after the run. Recurring renewal, real AAC, physical Host retrieval and
@@ -99,12 +101,13 @@ Two owner-reported native eight-second listens and two completed decoder control
 are recorded above; background, longer listening and measured first-sound gates
 remain unverified.
 
-## Bulletin media adapter: prepared, not selected
+## Bulletin media adapter and application composition
 
 The API now exports `createBulletinMediaStore`, its explicit first-provisioning
-function `initializeBulletinMediaStore`, and `createBulletinMediaReader`. No app
-composition, environment variable, mount, gateway origin or deployed provider is
-changed. See [ADR 0038](../adr/0038-bulletin-media-adapter.md) and the
+function `initializeBulletinMediaStore`, and `createBulletinMediaReader`. The initial adapter did not change app
+composition, environment variables, mounts, gateway origins or the deployed provider.
+The subsequent application writer is documented in the
+[artist publication runbook](bulletin-artist-publication.md). See [ADR 0038](../adr/0038-bulletin-media-adapter.md) and the
 [verification record](../backlog/implementation/evidence/bulletin-media-adapter-2026-10-31.md).
 
 Before activation, select one persistent, backed-up private directory outside

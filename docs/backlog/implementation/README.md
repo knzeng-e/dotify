@@ -40,9 +40,11 @@ The authorized private canary is complete: **16 stores / 713,229 bytes**, with
 independent sender/nonce readback and authenticated AAC decoding. The actual
 player now selects native Host reads or the existing Web/API relay for the same
 Bulletin ciphertext, with unchanged key authority. See [application evidence](evidence/bulletin-application-readers-2026-11-01.md)
-and [ADR 0042](../../adr/0042-bulletin-application-readers.md). Production writer
-composition, a fresh real-runtime scope, physical protected Web/Host acceptance
-and recurring retention remain next. The deployed app is unchanged; the target
+and [ADR 0042](../../adr/0042-bulletin-application-readers.md). The
+[artist publication composition](../../adr/0043-bulletin-artist-publication.md)
+now connects that read path to an explicit private-custody writer, with retained
+renewal floors and non-destructive recovery. Review/activation, a fresh real-runtime
+scope, physical protected Web/Host acceptance and recurring retention remain next. The deployed app is unchanged; the target
 is a fresh internal Bulletin catalogue, not retired-runtime compatibility.
 
 ## W39 isolated feasibility, 2026-10-29
