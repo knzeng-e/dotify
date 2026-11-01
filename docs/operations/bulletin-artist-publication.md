@@ -39,11 +39,15 @@ must be private, the file must be owned 0600, with no symlink or hard link.
 Do not copy the DotNS mnemonic into a server as an installation shortcut.
 Keep the key separate from inventories and encrypted-job snapshots.
 
-Build the API and explicitly initialize **new, absent** directories:
+Build the API from the repository checkout, then explicitly initialize **new,
+absent** directories inside the custody image as UID 1000:
 
 ```sh
+# Repository checkout
 npm run build --prefix services/api
-npm run bulletin:initialize --prefix services/api -- /app/.data/config/bulletin-profile.json /app/.data/streaming-bulletin
+
+# Inside the built custody image, working directory /app, UID 1000
+node dist/scripts/initializeBulletinPublisher.js /app/.data/config/bulletin-profile.json /app/.data/streaming-bulletin
 ```
 
 Initialization performs no network access and reads no signer. It refuses

@@ -39,9 +39,11 @@ checks remain in place. Covers and metadata still use Pinata.
 - Upload-route/app boundary subset: **30 tests passed**, including an explicit
   recovery-required discard response and rejection of an edge writer or an
   implicit provider switch.
-- Frontend preparation tests: **5 tests passed**; the retry-limit text directs
+- Frontend preparation tests: **6 tests passed**, including the artist-console
+  recovery action refusing deletion and displaying the operator guidance; the retry-limit text directs
   recovery to the operator instead of promising a safe forced reset. Targeted
-  ESLint and formatting checks pass.
+  ESLint and formatting checks pass. The existing server-rendered hook harness
+  emits React useLayoutEffect warnings; it is a test harness, not deployed SSR.
 
 The PAPI umbrella package adds its unused CLI transitively. An exact
 `write-package -> deepmerge-ts@8.0.0` override removes its newly introduced

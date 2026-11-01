@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { useArtistConsole, type UseArtistConsoleDeps } from './useArtistConsole';
+import { AudioPreparationError } from '../features/uploads/streamingPreparation';
 import { createEmptyReleaseMetadata } from '../features/catalog/releaseMetadata';
 
 import type { TransactionFeedback } from '../shared/types';
@@ -120,5 +121,24 @@ describe('publication preparation ownership', () => {
     expect(uploads.metadata).toHaveBeenCalledTimes(1);
     expect(feedbackStates[feedbackStates.length - 1]).toMatchObject({ tone: 'success', title: 'Release prepared' });
     expect(feedbackStates[feedbackStates.length - 1]!.operationId).not.toEqual(failed.operationId);
+
+    // A storage recovery barrier must reach the artist unchanged; reconnecting
+    // a wallet cannot reconcile an already-broadcast storage transaction.
+    deps.audioUploadRef!.current = null;
+    const discard = vi.fn(async () => {
+      throw Object.assign(new Error('Storage recovery required'), { code: 'STREAMING_RECOVERY_REQUIRED' });
+    });
+    uploads.audio.mockRejectedValueOnce(new AudioPreparationError('Preparation reached its retry limit', discard, false));
+    await artistConsole!.registerRights();
+    const needsRecovery = feedbackStates[feedbackStates.length - 1]!;
+    expect(needsRecovery.recoveryAction?.label).toBe('Discard failed preparation');
+    needsRecovery.recoveryAction!.run();
+    await vi.waitFor(() => {
+      const refusal = feedbackStates[feedbackStates.length - 1]!;
+      expect(refusal.title).toBe('Preparation is still saved');
+      expect(refusal.message).toContain('Dotify operator');
+      expect(refusal.message).not.toContain('Reconnect');
+    });
+    expect(discard).toHaveBeenCalledTimes(1);
   });
 });

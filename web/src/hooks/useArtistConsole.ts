@@ -1316,11 +1316,14 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
                           message: 'Your release draft is unchanged. Publish again to prepare your music.'
                         });
                       })
-                      .catch(() =>
+                      .catch((error: unknown) =>
                         setPublicationFeedback({
                           tone: 'error',
                           title: 'Preparation is still saved',
-                          message: 'The failed preparation could not be removed. Reconnect your artist account and try again.'
+                          message:
+                            (error as { code?: string } | null)?.code === 'STREAMING_RECOVERY_REQUIRED'
+                              ? 'Your prepared music is saved. A storage operation still needs checking. Please contact the Dotify operator to recover it.'
+                              : 'The failed preparation could not be removed. Reconnect your artist account and try again.'
                         })
                       );
                   }
