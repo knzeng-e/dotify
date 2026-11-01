@@ -257,6 +257,9 @@ Keep the first feedback loop small. When a measured result contradicts the plan,
 
 The [scoped pilot candidate](evidence/bulletin-runtime-pilot-preparation-2026-11-01.md)
 bounds private custody to one generated release and one durable job, including
-across restart. Product 0.1.68 is prepared, not deployed. Live writer activation,
-account provisioning, sufficient quota and protected Web/physical Host listening
-remain explicit gates. W33 stays open; no new service or broad migration is enabled.
+across restart. [Product 0.1.68, Web and the private pilot are now deployed](evidence/product-0.1.68-rollout-2026-11-01.md)
+from merged #373, with an explicit one-job budget and no new service. Next: register
+the generated protected release through the normal artist wallet, then verify
+access denial, entitled Web/physical Host listening and interruption recovery.
+Measured costs, off-volume recovery and recurring retention remain gates; W33
+stays open and broader artist publication is not enabled by this pilot.
