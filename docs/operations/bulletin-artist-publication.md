@@ -84,7 +84,10 @@ No new process, CDN, database or paid plan is provisioned by this change.
 
 ## Observe and recover
 
-Startup validates the profile binding, inventory, exclusive lock, finalized
+Startup first validates the isolated-worker origin (use `https://encoder.example`,
+not an `/encode` path) before acquiring a publisher lock or opening a signer.
+An invalid worker setting therefore cannot leave a crash lock behind. It then
+validates the profile binding, inventory, exclusive lock, finalized
 network identity/authorization and public signer identity. It submits nothing.
 Artist publication uses the existing job status/retry UI and final runtime
 signature. Verify an exact canonical audio reference and entitled playback,

@@ -21,7 +21,7 @@ checks remain in place. Covers and metadata still use Pinata.
 
 ## Local verification
 
-- Full API suite: **286 tests passed**, including existing media/access tests
+- Full API suite: **287 tests passed**, including existing media/access tests
   and the new profile, signer, exclusive ownership, reserve and cleanup cases.
   Local ephemeral HTTP listener tests required execution outside the filesystem
   sandbox; no live signer or Bulletin writes were used.
@@ -36,9 +36,12 @@ checks remain in place. Covers and metadata still use Pinata.
   nonce history. Entitlement, revocation, stale state, inactive release and room
   guest cases exercise the existing signed-key boundary. Storage/RPC/catalog
   responses remain simulated and outbound network use is forbidden.
-- Upload-route/app boundary subset: **30 tests passed**, including an explicit
+- Upload-route/app boundary subset: **31 tests passed**, including an explicit
   recovery-required discard response and rejection of an edge writer or an
-  implicit provider switch.
+  implicit provider switch. A regression test rejects an invalid worker URL
+  before attempting to read an absent publisher profile: it failed with a
+  profile `ENOENT` before the fix and now fails at worker validation, so no
+  publisher lock or signer can be acquired on this configuration-error path.
 - Frontend preparation tests: **6 tests passed**, including the artist-console
   recovery action refusing deletion and displaying the operator guidance; the retry-limit text directs
   recovery to the operator instead of promising a safe forced reset. Targeted

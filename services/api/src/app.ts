@@ -217,6 +217,9 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       if (config.NODE_ENV === 'production' && process.getuid?.() !== 1000)
         throw new Error('Streaming activation requires the reviewed non-root UID 1000 API image');
       if (config.UPLOAD_GLOBAL_CONCURRENCY > 2) throw new Error('Streaming publication requires UPLOAD_GLOBAL_CONCURRENCY at most 2');
+      // Validate pure worker configuration before acquiring durable publication
+      // ownership or opening a signer; a bad URL must not strand its lock.
+      const transcode = createStreamingWorkerClient(config.STREAMING_WORKER_URL, config.STREAMING_WORKER_TOKEN);
       const publication = await createStreamingPublicationStore({
         provider: config.STREAMING_AUDIO_STORAGE,
         queue: config.STREAMING_STATE_PATH,
@@ -230,7 +233,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
           const result = await checkArtistAuthority(owner);
           return result.allowed && result.runtime.toLowerCase() === runtime;
         },
-        transcode: createStreamingWorkerClient(config.STREAMING_WORKER_URL, config.STREAMING_WORKER_TOKEN),
+        transcode,
         pin: publication.pin,
         canDiscard: publication.canDiscard,
         onFailure: failure => app.log.warn({ code: 'STREAMING_PREPARATION_FAILED', ...failure }, 'Audio preparation needs attention')

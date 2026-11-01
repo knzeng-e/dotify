@@ -123,6 +123,32 @@ describe('bounded proxy identity diagnostics', () => {
 
 
 describe('Bulletin publisher activation boundary', () => {
+  it('rejects an invalid worker before opening publication custody or its signer', async () => {
+    const previous = {
+      API_ROLE: config.API_ROLE,
+      NODE_ENV: config.NODE_ENV,
+      STREAMING_AUDIO_STORAGE: config.STREAMING_AUDIO_STORAGE,
+      STREAMING_WORKER_URL: config.STREAMING_WORKER_URL,
+      STREAMING_WORKER_TOKEN: config.STREAMING_WORKER_TOKEN,
+      BULLETIN_PUBLICATION_PROFILE: config.BULLETIN_PUBLICATION_PROFILE,
+      UPLOAD_GLOBAL_CONCURRENCY: config.UPLOAD_GLOBAL_CONCURRENCY
+    };
+    try {
+      config.API_ROLE = 'combined';
+      config.NODE_ENV = 'test';
+      config.STREAMING_AUDIO_STORAGE = 'bulletin';
+      config.STREAMING_WORKER_URL = 'https://encoder.example/encode';
+      config.STREAMING_WORKER_TOKEN = 'offline-test-worker-token'.repeat(2);
+      config.UPLOAD_GLOBAL_CONCURRENCY = 2;
+      // Deliberately absent: even reading this profile would fail the test.
+      // Worker validation must precede all publisher acquisition/side effects.
+      config.BULLETIN_PUBLICATION_PROFILE = '/never-opened/bulletin-profile.json';
+      await assert.rejects(buildApp({ logging: false }), /Invalid isolated worker endpoint/);
+    } finally {
+      Object.assign(config, previous);
+    }
+  });
+
   it('rejects an edge writer, an incomplete configuration and an implicit provider switch before storage initialization', async () => {
     const previous = { API_ROLE: config.API_ROLE, STREAMING_AUDIO_STORAGE: config.STREAMING_AUDIO_STORAGE, BULLETIN_PUBLICATION_PROFILE: config.BULLETIN_PUBLICATION_PROFILE };
     try {
