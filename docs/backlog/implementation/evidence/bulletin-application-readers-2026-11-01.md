@@ -11,6 +11,9 @@ Refs #288 / W33 and #287 / W32. Design: [ADR 0042](../../../adr/0042-bulletin-ap
 
 - Integration base: tested `dev` `fdf27aec3dead9e76ad909f4fa7008d0bf8af2e2`;
   [CI 41264125115](https://github.com/knzeng-e/dotify/actions/runs/41264125115) passed.
+- Locally validated implementation: `f8ab63195fa9c7c2909bb2e6452a208e79dc7883`.
+  Local builds were verification builds from that working tree, not published
+  Product artifacts. The PR's final-SHA CI is separate evidence.
 - The owner reviewed/merged #370 and reactivated the signer for the remaining
   original allowance. Execution used clean reviewed repair
   `3e301b19a94f8e2d2ae0843d9785b36233058210`, whose tree equals the dev merge.
