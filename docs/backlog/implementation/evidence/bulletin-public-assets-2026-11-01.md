@@ -20,11 +20,12 @@ Web reads public assets through a fixed-path relay on the existing API. Native H
 
 ## Validation
 
-- Full API suite before the final timestamp-recovery refinement: 296 tests pass outside the sandbox; the sandbox refused the two local HTTP bind/disconnect tests. After that refinement, the targeted writer/relay/upload/config suite passes 32 tests, including timestamp-only metadata replay and role-aware readiness.
-- Writer/graph regression suite: 41 tests pass, including the existing uncertain-submission, nonce and audio ownership boundaries.
-- Client public-asset/Host/gateway/cache suite: 37 tests pass; Web production build passes.
-- API typecheck passes. Web lint has no errors and the two existing `App.tsx` hook warnings; Web build retains the existing large-chunk warning.
-- Final verification after composition with #375 is recorded on the PR. All data are synthetic and all store/signature transports in these tests are local fakes. No live Pinata/Bulletin upload, renewal, key transfer, filesystem reset or service change was performed.
+Integrated implementation `9deb8aef` includes the #375 prerequisite with its safe error diagnostics and exact-cap regression:
+
+- Full API suite: **301 tests pass**, including grants/authority, shared account cursors, uncertain-submission barriers, immutable asset limits, timestamp-only metadata replay, bounded public reads and role-aware readiness. Local HTTP bind/disconnect tests require execution outside the sandbox; the final full run passes there without external writes.
+- Full Web unit suite: **1,058 tests pass** across 138 files. Real DAG/native-reader tests verify selected-path reconstruction and rejection of private paths; transport tests prove no Pinata fallback, correct API recovery and cancellation.
+- API typecheck and Web production build pass. Web lint has no errors and the two existing `App.tsx` hook warnings; builds retain the existing large-chunk warning. The unit rendering harness emits existing server-render `useLayoutEffect` warnings.
+- Product build, manifest/link checks and final PR checks are recorded with the handoff. All data are synthetic and all store/signature transports in these tests are local fakes. No live Pinata/Bulletin upload, renewal, key transfer, filesystem reset or service change was performed.
 
 ## Remaining acceptance
 
