@@ -1,3 +1,5 @@
+import { dotifyManifestSchema } from '../services/releaseManifest.js';
+import { PublicAssetStorageError, type PublicAssetKind, type PublicAssetOwner } from '../services/bulletinPublicAssets.js';
 import { StreamingJobError, type StreamingJobs } from '../services/streamingJobs.js';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { blake2b } from '@noble/hashes/blake2';
@@ -36,89 +38,6 @@ const authorizationRequestSchema = z.object({
   purpose: z.enum(['audio', 'cover', 'metadata']),
   bytes: z.number().int().positive()
 });
-
-const dotifyManifestSchema = z
-  .object({
-    schema: z.literal('dotify.track.v2'),
-    createdAt: z.string().datetime(),
-    assets: z
-      .object({
-        audioCID: z.string().min(1),
-        coverCID: z.string(),
-        encrypted: z.boolean().optional(),
-        keyVersion: z.string().min(1).max(80).optional(),
-        previewCID: z.string().optional()
-      })
-      .strict(),
-    track: z
-      .object({
-        contentHash: z.string().regex(/^0x[0-9a-fA-F]{64}$/),
-        title: z.string().min(1).max(200),
-        artistName: z.string().min(1).max(200),
-        description: z.string().max(2000),
-        durationSeconds: z
-          .number()
-          .positive()
-          .max(24 * 60 * 60)
-          .nullable(),
-        accessMode: z.enum(['human-free', 'classic', 'free']),
-        priceDot: z.string(),
-        requiredPersonhood: z.string(),
-        zone: z.string()
-      })
-      .strict(),
-    editorial: z
-      .object({
-        releaseKind: z.enum(['single', 'album-track', 'ep-track', 'live', 'remix', 'other']),
-        projectTitle: z.string().max(200),
-        version: z.string().max(120),
-        releaseDate: z.string().regex(/^(|\d{4}|\d{4}-\d{2}-\d{2})$/, 'releaseDate must be empty, YYYY or YYYY-MM-DD'),
-        genres: z.array(z.string().min(1).max(80)).max(8),
-        languages: z.array(z.string().min(1).max(80)).max(8),
-        credits: z
-          .array(
-            z
-              .object({
-                name: z.string().min(1).max(200),
-                role: z.enum(['performer', 'writer', 'composer', 'producer', 'featured-artist', 'engineer', 'other'])
-              })
-              .strict()
-          )
-          .max(20),
-        label: z.string().max(200),
-        productionLocation: z.string().max(200),
-        explicitContent: z.boolean(),
-        isrc: z.string().max(15),
-        copyrightNotice: z.string().max(300),
-        masterNotice: z.string().max(300)
-      })
-      .strict(),
-    royalties: z
-      .array(
-        z
-          .object({
-            recipient: z.string().min(1),
-            bps: z.number().int().min(0).max(10000)
-          })
-          .strict()
-      )
-      .max(20),
-    settlement: z
-      .object({
-        target: z.literal('evm'),
-        royaltyBps: z.number().int().min(0).max(10000),
-        pricePlanck: z.string()
-      })
-      .strict(),
-    evm: z
-      .object({
-        txHash: z.string(),
-        contractAddress: z.string()
-      })
-      .strict()
-      .optional()
-  })
-  .strict();
 
 type PinFiles = (files: PinataFile[], name: string, keyvalues?: Record<string, string>, signal?: AbortSignal) => Promise<string>;
 type PinJson = (json: unknown, name: string, keyvalues?: Record<string, string>, signal?: AbortSignal) => Promise<string>;
@@ -171,6 +90,14 @@ function authorizationError(reply: FastifyReply, code: UploadAuthorizationErrorC
 }
 
 function handleUploadError(error: unknown, request: FastifyRequest, reply: FastifyReply, stage: 'cover' | 'metadata') {
+  if (error instanceof PublicAssetStorageError) {
+    request.log.warn({ code: 'UPLOAD_STORAGE_FAILED', failure: { stage } }, 'Public asset storage needs attention');
+    return reply.status(503).send({
+      code: 'UPLOAD_STORAGE_FAILED',
+      failure: { stage },
+      error: 'Storage could not confirm this asset. Your draft is safe. Please contact the Dotify operator before retrying.'
+    });
+  }
   if (error instanceof PinataUnconfiguredError) {
     return reply.status(503).send({ error: 'Upload service is not configured. Contact the operator.', code: 'UPLOAD_STORAGE_NOT_CONFIGURED' });
   }
@@ -230,7 +157,11 @@ function multipartLimitError(error: unknown): boolean {
   return message.toLowerCase().includes('file size limit') || message.includes('FST_MULTIPART');
 }
 
-export function createUploadRoutes(deps: UploadRouteDeps = defaultDeps, jobs?: StreamingJobs) {
+export function createUploadRoutes(
+  deps: UploadRouteDeps = defaultDeps,
+  jobs?: StreamingJobs,
+  publicAssets?: (files: PinataFile[], kind: PublicAssetKind, owner: PublicAssetOwner, signal: AbortSignal) => Promise<string>
+) {
   return async function uploadRoutes(app: FastifyInstance): Promise<void> {
     const sessionForJob = async (request: FastifyRequest, reply: FastifyReply) => {
       reply.header('Cache-Control', 'no-store');
@@ -456,17 +387,19 @@ export function createUploadRoutes(deps: UploadRouteDeps = defaultDeps, jobs?: S
 
         let cid: string;
         try {
-          cid = await deps.pinFiles(
-            cover.files,
-            `${lease.payload.address.slice(2, 10)}-${lease.payload.jti}-cover`,
-            {
-              app: 'dotify',
-              type: 'responsive-cover',
-              variants: '64,160,320,640',
-              original: 'preserved'
-            },
-            abort.signal
-          );
+          cid = publicAssets
+            ? await publicAssets(cover.files, 'cover', lease.payload, abort.signal)
+            : await deps.pinFiles(
+                cover.files,
+                `${lease.payload.address.slice(2, 10)}-${lease.payload.jti}-cover`,
+                {
+                  app: 'dotify',
+                  type: 'responsive-cover',
+                  variants: '64,160,320,640',
+                  original: 'preserved'
+                },
+                abort.signal
+              );
         } catch (error) {
           return handleUploadError(error, request, reply, 'cover');
         }
@@ -516,23 +449,25 @@ export function createUploadRoutes(deps: UploadRouteDeps = defaultDeps, jobs?: S
 
         let cid: string;
         try {
-          cid = await deps.pinJson(
-            manifest,
-            `${manifest.track.contentHash.slice(2, 10)}.json`,
-            {
-              app: 'dotify',
-              type: 'track-metadata',
-              contentHash: manifest.track.contentHash
-            },
-            abort.signal
-          );
+          cid = publicAssets
+            ? await publicAssets([{ path: 'release.json', bytes: Buffer.from(JSON.stringify(manifest)) }], 'metadata', lease.payload, abort.signal)
+            : await deps.pinJson(
+                manifest,
+                `${manifest.track.contentHash.slice(2, 10)}.json`,
+                {
+                  app: 'dotify',
+                  type: 'track-metadata',
+                  contentHash: manifest.track.contentHash
+                },
+                abort.signal
+              );
         } catch (error) {
           return handleUploadError(error, request, reply, 'metadata');
         }
 
         completed = await lease.complete(actualBytes);
         if (!completed) return reply.status(500).send({ error: 'Upload quota accounting failed.', code: 'UPLOAD_ACCOUNTING_FAILED' });
-        return reply.status(200).send({ ref: `ipfs://${cid}` });
+        return reply.status(200).send({ ref: `ipfs://${cid}${publicAssets ? '/release.json' : ''}` });
       } finally {
         abort.detach();
         if (!completed) await lease.abort();

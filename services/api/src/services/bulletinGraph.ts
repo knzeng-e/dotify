@@ -49,6 +49,26 @@ export async function buildBulletinMediaGraph(files: PinataFile[], signal: Abort
   const objects = [manifest.master, ...manifest.renditions.flatMap(r => [r.init, ...r.segments])];
   assert.equal(files.length, objects.length + 1, 'Unexpected streaming files');
   for (const object of objects) assert.equal(byPath.get(object.path)?.length, object.encryptedLength, 'Streaming object missing or incomplete');
+  const graph = await buildBulletinDirectoryGraph(files, signal);
+  return {
+    ...graph,
+    scope: { chainId: manifest.chainId, runtimeAddress: manifest.runtimeAddress, contentHash: manifest.contentHash, keyVersion: manifest.keyVersion },
+    generation: manifest.generation
+  };
+}
+
+/** Internal bounded UnixFS encoding shared by authenticated audio and public assets. */
+export async function buildBulletinDirectoryGraph(files: PinataFile[], signal: AbortSignal): Promise<Pick<BulletinGraph, 'root' | 'blocks' | 'bytes'>> {
+  signal.throwIfAborted();
+  assert.ok(files.length > 0 && files.length <= 773, 'Invalid directory file count');
+  assert.equal(new Set(files.map(file => file.path)).size, files.length, 'Duplicate directory path');
+  let total = 0;
+  for (const file of files) {
+    assert.ok(/^[a-zA-Z0-9_-]+(?:[./][a-zA-Z0-9_-]+)*$/.test(file.path) && !file.path.includes('..'), 'Unsafe directory path');
+    assert.ok(file.bytes instanceof Uint8Array && file.bytes.length > 0, 'Empty directory file');
+    total += file.bytes.length;
+    assert.ok(total <= 132 * 1024 * 1024, 'Directory exceeds byte bound');
+  }
   // Import exactly as the proven prototype, then readdress children first. This
   // preserves ciphertext, frame layout and all authenticated manifest fields.
   const source = new Map<string, Uint8Array>();
@@ -112,15 +132,8 @@ export async function buildBulletinMediaGraph(files: PinataFile[], signal: Abort
   assert.equal(mapped.size, source.size, 'Unreachable directory blocks');
   const bytes = blocks.reduce((sum, b) => sum + b.bytes.length, 0);
   assert.ok(bytes <= BULLETIN_GRAPH_MAX, 'Readdressed graph exceeds byte bound');
-  return {
-    root,
-    blocks,
-    bytes,
-    scope: { chainId: manifest.chainId, runtimeAddress: manifest.runtimeAddress, contentHash: manifest.contentHash, keyVersion: manifest.keyVersion },
-    generation: manifest.generation
-  };
+  return { root, blocks, bytes };
 }
-
 /** Bounded path resolution usable by the API with an injected raw-block source.
  * Every DAG edge and raw block is checked against its CID before reconstruction. */
 export async function readBulletinMediaPath(
@@ -132,11 +145,25 @@ export async function readBulletinMediaPath(
 ): Promise<Buffer> {
   assert.ok(Number.isSafeInteger(maxBytes) && maxBytes > 0 && maxBytes <= 1024 * 1024 + 16, 'Invalid media object bound');
   assert.ok(/^(manifest\.json|(?:96|160|320)\/(?:init|segment-(?:[01][0-9]{2}|2[0-4][0-9]|25[0-5]))\.bin)$/.test(path), 'Unsupported media path');
+  return readBulletinDirectoryPath(read, root, path, maxBytes, signal);
+}
+
+/** Callers must validate the semantic path and object limit before resolution. */
+export async function readBulletinDirectoryPath(
+  read: (cid: string, signal: AbortSignal) => Promise<Uint8Array>,
+  root: string,
+  path: string,
+  maxBytes: number,
+  signal: AbortSignal,
+  maxReads = 16
+): Promise<Buffer> {
+  assert.ok(Number.isSafeInteger(maxBytes) && maxBytes > 0 && maxBytes <= 6 * 1024 * 1024, 'Invalid directory object bound');
+  assert.ok(/^[a-zA-Z0-9_-]+(?:[./][a-zA-Z0-9_-]+)*$/.test(path) && !path.includes('..'), 'Unsafe directory path');
   let reads = 0,
     fetched = 0;
   const get = async (cid: CID) => {
     signal.throwIfAborted();
-    assert.ok(++reads <= 16, 'Media block-read bound exceeded');
+    assert.ok(++reads <= maxReads, 'Media block-read bound exceeded');
     const bytes = await read(cid.toString(), signal);
     signal.throwIfAborted();
     verifyBulletinBlock(cid.toString(), bytes);

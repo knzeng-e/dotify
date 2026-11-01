@@ -398,3 +398,15 @@ it('ends a stalled audio upload with a recoverable message instead of waiting fo
   expect(timeout).toHaveBeenCalledWith(5 * 60_000);
   expect(send).toHaveBeenCalledTimes(2);
 });
+
+it('routes Bulletin artwork and metadata through the API without Pinata or gateway fallback', async () => {
+  const { CID } = await import('multiformats/cid');
+  const { create } = await import('multiformats/hashes/digest');
+  const root = CID.createV1(0x70, create(0xb220, new Uint8Array(32))).toString();
+  const service = await loadPinataService({ VITE_DOTIFY_API_URL: 'https://api.example' });
+  expect(service.getGatewayUrlsForAssetRef(`ipfs://${root}/cover/640.webp`)).toEqual([`https://api.example/api/assets/ipfs/${root}/cover/640.webp`]);
+  expect(service.getGatewayUrlsForAssetRef(`https://arbitrary.example/ipfs/${root}/release.json`)).toEqual([
+    `https://api.example/api/assets/ipfs/${root}/release.json`
+  ]);
+  expect(service.getGatewayUrlsForAssetRef(`ipfs://${root}/archive/master.bin`)).toEqual([]);
+});

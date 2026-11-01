@@ -45,3 +45,32 @@ it('Bulletin media RPC is optional and never accepts credentials or client-selec
     assert(!result.stderr.includes('token=secret'));
   }
 });
+
+it('readiness does not demand a Pinata key on edges or a fully Bulletin custody path', () => {
+  const run = (values: Record<string, string>) =>
+    spawnSync(
+      process.execPath,
+      [
+        '--import',
+        'tsx',
+        '--input-type=module',
+        '-e',
+        "const {createDiagnostics}=await import('./src/services/diagnostics.ts'); const report=await createDiagnostics({getChainId:async()=>420420417,readArtistCount:async()=>0n,getCode:async()=>undefined,now:()=>0})();console.log(JSON.stringify(report.checks.pinata));"
+      ],
+      {
+        env: { ...process.env, PINATA_JWT: '', API_ROLE: 'combined', STREAMING_AUDIO_STORAGE: 'pinata', PUBLIC_ASSET_STORAGE: 'pinata', ...values },
+        encoding: 'utf8'
+      }
+    );
+  for (const values of [{ API_ROLE: 'edge' }, { API_ROLE: 'custody', STREAMING_AUDIO_STORAGE: 'bulletin', PUBLIC_ASSET_STORAGE: 'bulletin' }] as Record<
+    string,
+    string
+  >[]) {
+    const result = run(values);
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(JSON.parse(result.stdout).ok, true);
+  }
+  const mixed = run({ STREAMING_AUDIO_STORAGE: 'bulletin' });
+  assert.equal(mixed.status, 0, mixed.stderr);
+  assert.equal(JSON.parse(mixed.stdout).ok, false);
+});

@@ -1,3 +1,4 @@
+import { fetchBulletinPublicAsset } from './bulletinPublicAssets';
 import { fetchThroughGateways } from './gatewayRace';
 
 const CACHE = 'dotify-public-artwork-v1';
@@ -24,7 +25,7 @@ async function readSlot() {
 // session tokens or keys; no artist/wallet identity enters the cache key.
 export function artworkCacheKey(url: string): string | null {
   try {
-    const path = new URL(url).pathname.match(/^\/ipfs\/(b[a-z2-7]{20,}|Qm[1-9A-HJ-NP-Za-km-z]{44})(\/[^?#]*)?$/);
+    const path = new URL(url).pathname.match(/^(?:\/api\/assets)?\/ipfs\/(b[a-z2-7]{20,}|Qm[1-9A-HJ-NP-Za-km-z]{44})(\/[^?#]*)?$/);
     if (!path || /(?:\.mp3|\.wav|\.dav2|\.json|\.bin|\/audio)(?:$|\/)/i.test(path[2] ?? '')) return null;
     return `https://dotify.artwork.invalid/ipfs/${path[1]}${path[2] ?? ''}`;
   } catch {
@@ -96,19 +97,21 @@ export async function loadPublicArtwork(urls: string[]): Promise<string> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 30_000);
     try {
-      const response = await fetchThroughGateways(urls, {
-        signal: controller.signal,
-        hedgeDelayMs: 500,
-        timeoutMs: 8000,
-        init: { cache: 'force-cache' },
-        // Race complete image bodies: quick headers followed by a stalled body
-        // must not prevent another gateway from winning.
-        prepareResponse: async response => {
-          const image = await boundedImage(response);
-          return new Response(image, { headers: { 'content-type': image.type } });
-        },
-        label: 'cover'
-      });
+      const response = urls[0]?.includes('/api/assets/ipfs/')
+        ? await fetchBulletinPublicAsset(urls[0], controller.signal)
+        : await fetchThroughGateways(urls, {
+            signal: controller.signal,
+            hedgeDelayMs: 500,
+            timeoutMs: 8000,
+            init: { cache: 'force-cache' },
+            // Race complete image bodies: quick headers followed by a stalled body
+            // must not prevent another gateway from winning.
+            prepareResponse: async response => {
+              const image = await boundedImage(response);
+              return new Response(image, { headers: { 'content-type': image.type } });
+            },
+            label: 'cover'
+          });
       const blob = await boundedImage(response);
       if (disk && blob.size <= MAX_DISK_IMAGE_BYTES) {
         try {

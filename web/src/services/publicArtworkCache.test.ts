@@ -95,3 +95,11 @@ it('accepts a progressing original cover above 1 MiB without the headers timer c
   await vi.advanceTimersByTimeAsync(9001);
   await expect(result).resolves.toMatch(/^blob:/);
 });
+
+it('shares immutable Bulletin relay image paths and excludes release metadata', () => {
+  const root = `bafy${'e'.repeat(50)}`;
+  expect(artworkCacheKey(`https://api.example/api/assets/ipfs/${root}/cover/160.webp`)).toBe(
+    artworkCacheKey(`https://native.example/ipfs/${root}/cover/160.webp`)
+  );
+  expect(artworkCacheKey(`https://api.example/api/assets/ipfs/${root}/release.json`)).toBeNull();
+});

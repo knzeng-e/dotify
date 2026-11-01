@@ -41,6 +41,7 @@ let app: FastifyInstance | null = null;
 type BuildOptions = {
   jobs?: StreamingJobs | null;
   routeDeps?: Partial<UploadRouteDeps>;
+  publicAssets?: Parameters<typeof createUploadRoutes>[2];
   authorizationOptions?: Parameters<typeof createUploadAuthorizationService>[0];
   logs?: string[];
 };
@@ -92,7 +93,8 @@ async function buildApp(options: BuildOptions = {}): Promise<FastifyInstance> {
         : (options.jobs ??
             ({
               enqueue: async () => ({ id: '12345678-1234-4234-8234-123456789abc', state: 'queued', attempts: 0, updatedAt: Date.now() })
-            } as unknown as StreamingJobs))
+            } as unknown as StreamingJobs)),
+      options.publicAssets
     ),
     { prefix: '/api/uploads' }
   );
@@ -654,4 +656,46 @@ it('refuses audio publication without a streaming worker instead of producing an
   assert.equal(response.statusCode, 503);
   assert.equal(response.json().code, 'STREAMING_UNAVAILABLE');
   assert.equal(response.json().ref, undefined);
+});
+
+it('routes authorized public assets to Bulletin without touching Pinata and returns usable immutable paths', async () => {
+  const calls: Array<{ kind: string; owner: unknown; paths: string[] }> = [];
+  const server = await buildApp({
+    routeDeps: {
+      pinFiles: async () => {
+        throw new Error('Pinata must not be used');
+      },
+      pinJson: async () => {
+        throw new Error('Pinata must not be used');
+      }
+    },
+    publicAssets: async (files, kind, owner) => {
+      calls.push({ kind, owner, paths: files.map(file => file.path) });
+      return 'bulletin-root';
+    }
+  });
+  assert.equal((await server.inject({ method: 'POST', url: '/api/uploads/metadata', payload: validManifest })).statusCode, 401);
+  assert.equal(calls.length, 0);
+  let grant = (await authorize(server, 'cover', pngBytes.length)).json().uploadAuthorization;
+  const image = await server.inject({
+    method: 'POST',
+    url: '/api/uploads/cover',
+    headers: multipartHeaders(grant),
+    payload: multipartFile('cover', 'cover.png', 'image/png', pngBytes)
+  });
+  assert.equal(image.statusCode, 200);
+  assert.equal(image.json().ref, 'ipfs://bulletin-root/cover/640.webp');
+  grant = (await authorize(server, 'metadata', Buffer.byteLength(JSON.stringify(validManifest)))).json().uploadAuthorization;
+  const metadata = await server.inject({ method: 'POST', url: '/api/uploads/metadata', headers: { authorization: `Bearer ${grant}` }, payload: validManifest });
+  assert.equal(metadata.statusCode, 200);
+  assert.equal(metadata.json().ref, 'ipfs://bulletin-root/release.json');
+  assert.deepEqual(
+    calls.map(call => call.kind),
+    ['cover', 'metadata']
+  );
+  assert.deepEqual(calls[1].paths, ['release.json']);
+  const owner = calls[1].owner as { address: string; runtimeAddress: string; chainId: number };
+  assert.equal(owner.address, ADDRESS);
+  assert.equal(owner.runtimeAddress, RUNTIME);
+  assert.equal(owner.chainId, CHAIN_ID);
 });
