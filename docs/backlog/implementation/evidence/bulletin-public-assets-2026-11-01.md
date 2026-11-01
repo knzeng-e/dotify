@@ -25,7 +25,7 @@ Integrated implementation `9deb8aef` includes the #375 prerequisite with its saf
 - Full API suite: **301 tests pass**, including grants/authority, shared account cursors, uncertain-submission barriers, immutable asset limits, timestamp-only metadata replay, bounded public reads and role-aware readiness. Local HTTP bind/disconnect tests require execution outside the sandbox; the final full run passes there without external writes.
 - Full Web unit suite: **1,058 tests pass** across 138 files. Real DAG/native-reader tests verify selected-path reconstruction and rejection of private paths; transport tests prove no Pinata fallback, correct API recovery and cancellation.
 - API typecheck and Web production build pass. Web lint has no errors and the two existing `App.tsx` hook warnings; builds retain the existing large-chunk warning. The unit rendering harness emits existing server-render `useLayoutEffect` warnings.
-- Product build, manifest/link checks and final PR checks are recorded with the handoff. All data are synthetic and all store/signature transports in these tests are local fakes. No live Pinata/Bulletin upload, renewal, key transfer, filesystem reset or service change was performed.
+- Product DevNet frozen build and the offline backlog manifest check pass. The final private-policy-directory/20 s fetch-deadline refinement (`3f2f09dd`) passes all seven writer/relay tests and the 37 client transport/cache tests again. Live CI remains a PR gate. All data are synthetic and all store/signature transports in these tests are local fakes. No live Pinata/Bulletin upload, renewal, key transfer, filesystem reset or service change was performed.
 
 ## Remaining acceptance
 
