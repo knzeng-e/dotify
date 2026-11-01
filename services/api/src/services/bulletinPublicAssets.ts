@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { dotifyManifestSchema } from './releaseManifest.js';
 import { createHash } from 'node:crypto';
 import { open, rm } from 'node:fs/promises';
-import { join } from 'node:path';
+import { join, dirname, isAbsolute } from 'node:path';
 import { z } from 'zod';
 import { budgetSchema, load, privateDirectory, sync } from './bulletinMediaState.js';
 import { publicationBinding, type BulletinPublisherProfile } from './bulletinPublisherProfile.js';
@@ -39,7 +39,8 @@ export const publicAssetGeneration = (kind: PublicAssetKind) => `public-${kind}-
 export const isPublicAssetGeneration = (value: string) => value === publicAssetGeneration('cover') || value === publicAssetGeneration('metadata');
 const binding = (profile: BulletinPublisherProfile, policy: PublicAssetPolicy) => ({ ...publicationBinding(profile), policy });
 export async function readPublicAssetPolicy(file: string, profile: BulletinPublisherProfile): Promise<PublicAssetPolicy> {
-  assert.ok(file.startsWith('/'), 'Absolute public asset policy required');
+  assert.ok(isAbsolute(file), 'Absolute public asset policy required');
+  await privateDirectory(dirname(file));
   const policy = publicAssetPolicySchema.parse(await load(file));
   if (profile.pilotScope) assert.deepEqual(policy.scope, profile.pilotScope, 'Asset scope differs from audio pilot');
   assert.deepEqual(await load(join(profile.directory, 'public-assets.json')), binding(profile, policy), 'Public asset policy changed or was not initialized');

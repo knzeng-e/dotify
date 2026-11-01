@@ -18,7 +18,7 @@ export async function fetchBulletinPublicAsset(url: string, signal?: AbortSignal
   const value = url.split('/api/assets/ipfs/')[1];
   const asset = value && bulletinAssetLocation(value);
   if (!asset) throw new Error('Unsupported Bulletin artwork or release details.');
-  const owner = signal ?? AbortSignal.timeout(20_000);
+  const owner = signal ? AbortSignal.any([signal, AbortSignal.timeout(20_000)]) : AbortSignal.timeout(20_000);
   owner.throwIfAborted();
   try {
     const { readHostBulletinAsset } = await import('../features/catalog/bulletinHostMedia');
