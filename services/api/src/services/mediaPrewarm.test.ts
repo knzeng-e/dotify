@@ -37,6 +37,7 @@ it('does not warm inactive, unencrypted, old formats or failed requests indefini
     { active: false },
     { encrypted: false },
     { audioRef: `dotify:enc:v2:key-v2:ipfs://${cid}` },
+    { audioRef: 'dotify:enc:v3:key-v2:ipfs://bafykbzacec2bpys6cfd23kbnvg4p7fidf6laimhd5afshs32sgilt74gkybhw' },
     { audioRef: 'https://untrusted.example' }
   ])
     prewarm.observe(snapshot(overrides));

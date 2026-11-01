@@ -9,7 +9,7 @@ import { createRequire } from 'node:module';
 import { spawnSync } from 'node:child_process';
 import { Socket } from 'node:net';
 import { generatedWav } from './generated-source.mjs';
-import { buildDirectory, readPath, hostBlockReader } from './graph.mjs';
+import { buildDirectory, readPath } from './graph.mjs';
 import { blakeGraph } from './readdress-aac.mjs';
 import { SimulatedChain } from './simulated-chain.mjs';
 import { initializeBulletinMediaStore, createBulletinMediaStore } from '../../services/api/src/services/bulletinMedia.ts';
@@ -20,6 +20,10 @@ import { deriveContentKey, deriveContentKeyBytes } from '../../services/api/src/
 import { catalogSnapshotSchema } from '../../services/api/src/services/catalog/types.ts';
 import { createChainAccessService } from '../../services/api/src/services/chainAccess.ts';
 import { createKeyRoutes } from '../../services/api/src/routes/keys.ts';
+import { createMediaRoutes } from '../../services/api/src/routes/media.ts';
+import { createMediaDeliveryReader } from '../../services/api/src/services/mediaDelivery.ts';
+import { BULLETIN_MEDIA_GENESIS } from '../../services/api/src/services/bulletinHttpReader.ts';
+import { createBulletinHostMediaReader } from '../../web/src/features/catalog/bulletinHostMedia.ts';
 import {
   buildSignedRequestMessage,
   createWalletNonceChallenge,
@@ -117,6 +121,7 @@ function runtimeModel() {
   const access = createChainAccessService({ getClient: () => client, getDirectoryAddress: () => DIRECTORY, getChainId: () => CHAIN, catalog });
   return {
     access,
+    catalog,
     register(scope, ref) {
       registeredRef = ref;
       candidate = {
@@ -321,6 +326,23 @@ async function keyApi(c, t) {
     }),
     { prefix: '/api/tracks' }
   );
+  await app.register(
+    createMediaRoutes({
+      catalog: c.model.catalog,
+      reader: createMediaDeliveryReader({
+        bulletinRpcUrl: 'https://bulletin.offline.example',
+        fetchImpl: async (url, init) => {
+          assert.equal(url, 'https://bulletin.offline.example');
+          assert.equal(init.credentials, 'omit');
+          assert.equal(init.redirect, 'error');
+          const body = JSON.parse(init.body);
+          assert.ok(['chain_getBlockHash', 'bitswap_v1_get'].includes(body.method));
+          const result = body.method === 'chain_getBlockHash' ? BULLETIN_MEDIA_GENESIS : hex(await c.chain.readBlock(body.params[0]));
+          return Response.json({ jsonrpc: '2.0', id: 1, result });
+        }
+      })
+    })
+  );
   return {
     app,
     get derivations() {
@@ -330,10 +352,26 @@ async function keyApi(c, t) {
   };
 }
 
-async function assertPlayable(c, deliveredKey) {
+async function assertPlayable(c, deliveredKey, api) {
   c.chain.reads.length = 0;
-  const reader = hostBlockReader({ fetchBytes: async cid => ({ ok: true, value: await c.chain.readBlock(cid) }) });
-  const manifest = parseStreamingManifest((await readPath(reader, c.graph.root, 'manifest.json')).bytes);
+  const host = createBulletinHostMediaReader({
+    insideHost: () => true,
+    queryBytes: async (cid, options) => {
+      assert.deepEqual(options, { noReassemble: true, lookupTimeoutMs: 10_000 });
+      return { ok: true, value: await c.chain.readBlock(cid) };
+    }
+  });
+  // Both actual application adapters must deliver identical ciphertext. The
+  // private key comes only from the separately signed canonical access route.
+  const read = async (path, maximum) => {
+    const native = await host(c.graph.root, path, maximum, new AbortController().signal);
+    const web = await api.app.inject(`/api/media/${c.graph.root}/stream/${path}`);
+    assert.equal(web.statusCode, 200);
+    assert.equal(web.headers['cache-control'], 'no-store');
+    assert.deepEqual(Buffer.from(native), web.rawPayload, 'Host and Web must read the same Bulletin ciphertext');
+    return native;
+  };
+  const manifest = parseStreamingManifest(await read('manifest.json', 256 * 1024));
   verifyStreamingManifest(manifest, deliveredKey, c.scope);
   const archiveDependencies = new Set();
   await readPath(
@@ -347,7 +385,7 @@ async function assertPlayable(c, deliveredKey) {
   for (const rendition of manifest.renditions) {
     const clear = [];
     for (const object of [rendition.init, ...rendition.segments]) {
-      const bytes = (await readPath(reader, c.graph.root, object.path)).bytes;
+      const bytes = await read(object.path, object.encryptedLength);
       clear.push(decryptStreamingObject(bytes, deliveredKey, manifest, object));
     }
     const media = join(process.cwd(), `decoded-${rendition.bitrateKbps}.mp4`);
@@ -446,7 +484,7 @@ test('protected release: custody retry, canonical signed access, selective Bulle
     assert.equal(response.json().access, 'allowed');
     const key = Buffer.from(response.json().contentKey.slice(2), 'hex');
     try {
-      await assertPlayable(c, key);
+      await assertPlayable(c, key, api);
     } finally {
       key.fill(0);
     }

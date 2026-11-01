@@ -1,7 +1,7 @@
 # ADR 0041: keep the protected Bulletin canary in a private, immutable package
 
 - Date: 2026-11-01
-- Status: accepted; first authorized network run is partial, source repair pending
+- Status: accepted; authorized private canary completed and independently verified
 - Scope: W33 / #288, with W32 / #287; follows [ADR 0040](0040-bulletin-direct-store-receipts.md)
 
 ## Decision
@@ -85,3 +85,14 @@ invocations still require the original code. This permits a reviewed repair
 without re-encryption, copying stale journals or renewing the consumed budget.
 The observation records both revisions. It is not an automatic upgrade path or
 permission to sign; review, CI and explicit execution approval remain gates.
+
+## Completed continuation
+
+The owner reviewed and merged #370, then enabled the signer for the remaining
+original allowance. The same package now has 16 confirmed stores / 713,229 bytes,
+zero pending entries and an inactive account barrier. Independent canonical
+sender/nonce readback and private AAC authentication/decoding pass. No extra
+budget, renewal, runtime registration or DotNS operation was used. See
+[completed evidence](../backlog/implementation/evidence/bulletin-application-readers-2026-11-01.md)
+and [ADR 0042](0042-bulletin-application-readers.md) for the application read path
+and remaining real-runtime/physical acceptance gates.

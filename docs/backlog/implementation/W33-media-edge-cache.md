@@ -125,6 +125,23 @@ green CI and explicit approval of the repaired source without resetting custody
 or budgets. Real registration/access, protected Web/Host listening and recurring
 retention remain open. No renewal, DotNS or production provider changed.
 
+## Completed private canary and application readers, 2026-11-01
+
+After owner review/merge of #370, the continuation completed the unchanged
+16-store / 713,229-byte package. Independent readback verifies all sender/nonces,
+private manifest/media authentication and three AAC renditions; zero pending
+submissions remain and the signer is removed. The
+[application readers](evidence/bulletin-application-readers-2026-11-01.md) now wire
+the actual player to native Host raw preimages and the existing catalog-gated
+Web/API relay. Keys and access authority are unchanged; no new hosting service
+or live setting is introduced. [ADR 0042](../../adr/0042-bulletin-application-readers.md)
+records cancellation, resource bounds and the fresh internal deployment target.
+Next: production writer/custody composition, a fresh real runtime-bound private
+fixture and protected Web/Desktop/mobile acceptance. The completed model-scope
+canary is not a registered artist release. Keep W33 open for those gates,
+representative costs, cold audible startup and recurring retention. No production
+provider is activated; no permanent old-runtime compatibility is requested.
+
 ## Agent assignment
 
 Implement **W33** only. Read `AGENTS.md`, `docs/backlog/implementation/common.md`, and the files below before changing code. Follow the common execution contract, including the evidence/handoff record.

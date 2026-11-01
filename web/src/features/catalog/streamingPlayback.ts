@@ -5,7 +5,7 @@ import { readStreamingManifest, decryptStreamingMedia, type StreamingScope } fro
 import { readAudioBody } from './readAudioBody';
 import { getAudioGatewayUrls } from '../../services/pinata';
 import { pumpStreamingReadAhead } from './streamingPipeline';
-import { streamingObjectUrls } from './streamingTransport';
+import { isBulletinMediaRoot, streamingObjectUrls } from './streamingTransport';
 import type { StreamingStartupMetric } from './audioStartupTelemetry';
 type ReaderMetric = Pick<
   StreamingStartupMetric,
@@ -62,16 +62,41 @@ export async function fetchStreamingObject(
     warmBytes -= cached.bytes.length;
     warmObjects.delete(cacheKey);
   }
-  const urls = streamingObjectUrls(cid, path, {
-    edge: import.meta.env.VITE_DOTIFY_MEDIA_EDGE_URL,
-    api,
-    gateways: getAudioGatewayUrls(`${cid}/${path}`)
-  });
-  for (let attempt = 0; attempt < 2; attempt++)
+  const bulletin = isBulletinMediaRoot(cid);
+  let nativeAttempted = false;
+  if (bulletin && ['auto', 'required'].includes(import.meta.env.VITE_DOTIFY_HOST_MODE ?? 'off')) {
+    try {
+      const { readHostBulletinMedia } = await import('./bulletinHostMedia');
+      signal.throwIfAborted();
+      nativeAttempted = true;
+      const bytes = await readHostBulletinMedia(cid, path, maxBytes, signal);
+      if (bytes) {
+        if (exactLength && path !== 'manifest.json' && bytes.length !== maxBytes) throw new Error('Incomplete streaming object');
+        storeWarmObject(cacheKey, bytes);
+        observe?.({ gatewayUrl: 'polkadot:bulletin', gatewayRecovered: false, fromCache: false });
+        return bytes;
+      }
+      nativeAttempted = false;
+    } catch {
+      signal.throwIfAborted();
+    }
+  }
+  // Bulletin data must not spend gateway retry budgets on unrelated Pinata
+  // origins. The catalog-gated API is its Web path and native recovery path.
+  const urls = bulletin
+    ? api
+      ? [`${api}/api/media/${cid}/stream/${path}`]
+      : []
+    : streamingObjectUrls(cid, path, {
+        edge: import.meta.env.VITE_DOTIFY_MEDIA_EDGE_URL,
+        api,
+        gateways: getAudioGatewayUrls(`${cid}/${path}`)
+      });
+  for (let attempt = 0; attempt < (bulletin ? 1 : 2); attempt++)
     for (const [index, url] of urls.entries()) {
       signal.throwIfAborted();
       const controller = new AbortController();
-      const deadline = setTimeout(() => controller.abort(), import.meta.env.VITE_DOTIFY_MEDIA_EDGE_URL && index === 0 ? 3000 : 12_000);
+      const deadline = setTimeout(() => controller.abort(), !bulletin && import.meta.env.VITE_DOTIFY_MEDIA_EDGE_URL && index === 0 ? 3000 : 12_000);
       try {
         const response = await fetch(url, { signal: AbortSignal.any([signal, controller.signal]), credentials: 'omit' });
         if (response.status !== 200) {
@@ -81,7 +106,7 @@ export async function fetchStreamingObject(
         const bytes = await readAudioBody(response, AbortSignal.any([signal, controller.signal]), 12_000, maxBytes);
         if (exactLength && path !== 'manifest.json' && bytes.length !== maxBytes) throw new Error('Incomplete streaming object');
         storeWarmObject(cacheKey, bytes);
-        observe?.({ gatewayUrl: url, gatewayRecovered: attempt > 0 || index > 0, fromCache: false });
+        observe?.({ gatewayUrl: url, gatewayRecovered: nativeAttempted || attempt > 0 || index > 0, fromCache: false });
         return bytes;
       } catch {
         signal.throwIfAborted();
