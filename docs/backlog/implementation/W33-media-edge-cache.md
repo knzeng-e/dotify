@@ -208,3 +208,14 @@ bounds private custody to one generated release and one durable job, including
 across restart. Product 0.1.68 is prepared, not deployed. Live writer activation,
 account provisioning, sufficient quota and protected Web/physical Host listening
 remain explicit gates. W33 stays open; no new service or broad migration is enabled.
+
+
+## Pilot admission correction, 2026-11-01
+
+The [reported publication failure](evidence/bulletin-pilot-admission-fix-2026-11-01.md)
+exposes an independent Pinata cover error and a reproduced attempted-store
+budget defect before any Bulletin audio write. The correction separates the
+16-store cap from renewable quota without enlarging either; structured asset
+diagnostics and honest progress text distinguish the failure paths. Review,
+deployment, controlled recovery of the exhausted existing job and protected
+physical acceptance remain gates. No queue/nonce reset or new allowance is implied.
