@@ -1748,6 +1748,9 @@
             </p>
             </li>
             <li>
+              <p>Product 0.1.68 activates a bounded Bulletin publication pilot on the existing services, with the same Web and Host readers.
+                The <a href="backlog/implementation/evidence/product-0.1.68-rollout-2026-11-01.md">deployment record</a> separates verified delivery
+                from the next artist-approved protected publication and physical listening checks.</p>
               <p>Product 0.1.67 adds recoverable publication progress and explicit retries, preserving the current artist catalog.
                 The <a href="backlog/implementation/evidence/product-0.1.67-rollout-2026-10-29.md">deployment record</a>
                 separates verified delivery from the remaining real-device publication checks.</p>
@@ -1787,8 +1790,10 @@
                 The <a href="adr/0042-bulletin-application-readers.md">application readers</a> use native ciphertext retrieval in Polkadot app
                 and the existing API relay on Web, with unchanged artist access checks and no additional hosting service.
                 The <a href="adr/0043-bulletin-artist-publication.md">artist publication writer</a> can now select Bulletin in the existing private custody service, with explicit budgets and recovery protection.
-                A <a href="backlog/implementation/evidence/bulletin-runtime-pilot-preparation-2026-11-01.md">single-release pilot</a> bounds that first test to one generated track and a persistent publication allowance. Activation, physical protected-device acceptance, measured costs and recurring retention remain gates. A <a href="adr/0044-bulletin-public-release-assets.md">bounded cover and metadata path</a> is now prepared on the same Bulletin publisher, with native Host and existing API reads. It is not activated; the account’s Pinata file limit remains a live publication blocker until that reviewed cutover.
-                The deployed storage path remains unchanged while that coordinated switch is prepared.
+                The <a href="backlog/implementation/evidence/product-0.1.68-rollout-2026-11-01.md">deployed single-release pilot</a> admits one generated protected track and one persistent publication allowance.
+                Artist-approved registration, protected physical-device acceptance, measured costs, backup recovery and recurring retention remain gates.
+                Broader artist publication is not enabled by this pilot. Covers and metadata still use Pinata in the deployed app.
+                A <a href="adr/0044-bulletin-public-release-assets.md">bounded cover and metadata path</a> is prepared on the same Bulletin publisher, with native Host and existing API reads. It is not activated; the account’s Pinata file limit remains a live publication blocker until that reviewed cutover.
               </p>
             </li>
             <li>

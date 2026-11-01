@@ -1,8 +1,16 @@
 # Prepare Bulletin artist publication
 
-This is an opt-in capability in the existing private custody service, not a
-record of activation. Read [ADR 0043](../adr/0043-bulletin-artist-publication.md)
+This runbook describes the opt-in capability in the existing private custody service.
+The [2026-11-01 scoped activation](../backlog/implementation/evidence/product-0.1.68-rollout-2026-11-01.md)
+is a deployed one-job synthetic pilot, not a general artist-publication allowance. Read [ADR 0043](../adr/0043-bulletin-artist-publication.md)
 before provisioning. Do not reuse or reset the private-canary journals.
+
+“Private custody” means the existing `dotify-custody` server is reachable only
+over Fly’s internal network through authenticated Dotify API edges. It remains
+centrally operated infrastructure: Bulletin stores the encrypted bytes, while
+custody and the isolated encoder prepare them and the signed-key service still
+decides whether an account may receive a listening key. Network privacy does
+not make this service decentralized.
 
 ## Prepare a reviewable profile
 
@@ -78,13 +86,13 @@ and carries forward all prior retained/attempted publication obligations.
 The [runtime-pilot preparation](../backlog/implementation/evidence/bulletin-runtime-pilot-preparation-2026-11-01.md)
 records the generated source, proposed target, measured sizing and remaining gates.
 
-The owner selected the existing DotNS account for this internal pilot. If that
-choice is approved for deployment, its binary mini-secret file has the **same
-account authority**, not a storage-only cryptographic restriction. Install it
-only in private custody through a reviewed local-to-server channel; no mnemonic
-string, frontend variable, encoder key or public API key is needed. No key has
-been installed by this preparation. Separate accounts remain the recommended
-operational isolation for a public rollout.
+The owner approved reuse of the existing DotNS account for the
+[deployed internal pilot](../backlog/implementation/evidence/product-0.1.68-rollout-2026-11-01.md).
+Its binary mini-secret has the **same account authority**, not a storage-only
+cryptographic restriction. It is installed only in private custody through the
+reviewed local-to-server channel; no mnemonic string, frontend variable,
+encoder key or public API key is needed. Separate accounts remain the
+recommended operational isolation for a public rollout.
 
 ## Activate only after the reviewed network budget
 

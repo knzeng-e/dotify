@@ -2,7 +2,7 @@
 
 Read [ADR 0044](../adr/0044-bulletin-public-release-assets.md). This is a review candidate, not activation or permission to write. Keep the existing publisher/queue, nonce history, receipts and installed signer; never reinitialize them to add assets.
 
-1. Review #375 and the existing failed audio job's separate controlled recovery. The public-asset extension does not restore exhausted processing attempts.
+1. Include the merged #375 correction in the rollout and review the existing failed audio job's separate controlled recovery. The public-asset extension does not restore exhausted processing attempts.
 2. Prepare private 0700/0600 policy storage owned by custody UID 1000. Match the existing lowercase artist address and exact audio pilot scope. Choose separately reviewed attempted-store/byte ceilings for one cover and one metadata directory; count all raw/file/directory blocks and reserve future renewal transactions/bytes alongside every prior obligation. A source upload's byte grant does not include generated variants or DAG overhead.
 3. After stopping custody gracefully and verifying no other account writer is running, bind the additive policy. The initializer takes `publisher.lock` exclusively, refuses an existing asset binding, and never reads the key or contacts a network:
 

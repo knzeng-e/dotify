@@ -14,14 +14,16 @@ The owner chose Bulletin covers/metadata after confirming the Pinata account's f
 
 [ADR 0043](../adr/0043-bulletin-artist-publication.md) connects the authenticated
 artist audio queue to an explicitly selected Bulletin writer in private custody.
-It is not activated. Web and Host use the application readers from #371;
-server-side signed key access remains authoritative. Covers/metadata still use
-Pinata. Fresh real-runtime protected acceptance, representative release timings,
-backup recovery, costs and recurring retention remain gates. The
-[real-runtime pilot preparation](../backlog/implementation/evidence/bulletin-runtime-pilot-preparation-2026-11-01.md)
-adds an optional exact scope and one durable publication-job limit so its budget
-cannot repeat across new uploads. Product 0.1.68 is only a candidate; no new hosting
-service or permanent old-runtime layer is introduced.
+[Product 0.1.68 and its bounded pilot are deployed](../backlog/implementation/evidence/product-0.1.68-rollout-2026-11-01.md).
+The private writer admits one exact runtime/content scope and one durable job;
+its allowance cannot repeat across new uploads or restarts. Web and Host use the
+application readers from #371; server-side signed key access remains authoritative.
+Covers/metadata still use Pinata. Normal artist registration and real-runtime
+protected Web/physical Host listening, representative timings/costs, off-volume
+recovery and recurring retention remain gates. No audio is sent by the rollout
+itself, no broader artist allowance is activated, and no new hosting service or
+permanent old-runtime layer is introduced. The owner-approved server key reuses
+the DotNS account and retains its full authority; it is confined to private custody.
 
 ## Delivery checkpoint, 2026-10-26
 

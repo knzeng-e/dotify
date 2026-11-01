@@ -3345,6 +3345,43 @@ native/payment acceptance gates. Never delete jobs or permanent nonce
 reservations to make a deployment health check pass.
 
 
+## Scoped Bulletin writer activation, 2026-11-01
+
+[Product 0.1.68 rollout](../backlog/implementation/evidence/product-0.1.68-rollout-2026-11-01.md)
+activates one generated protected-release job on the existing private custody
+service and volume. The image/source match Web/Product; the two existing public
+API replicas only receive `BULLETIN_MEDIA_RPC_URL=https://bulletin-paseo.tservices.es:8443`.
+No public API or encoder receives the storage signer or publication profile.
+
+On custody, the selected provider is `STREAMING_AUDIO_STORAGE=bulletin`,
+`BULLETIN_PUBLICATION_PROFILE=/data/contributions/config/bulletin-pilot.json`, and
+`STREAMING_STATE_PATH=/data/contributions/streaming-bulletin-pilot`. The fresh
+inventory is `/data/contributions/bulletin-pilot-publications`; preserve the old
+`/data/contributions/streaming` queue for rollback. Keep one private writer,
+its existing encoder URL/token, and the 60s health-check grace for the bounded
+30s startup preflight. No CORS, SQL role, mount or machine-count change is needed.
+
+The approved binary mini-secret is UID 1000/0600 in a 0700 directory on the
+encrypted volume. Reusing the DotNS account conveys its full account authority.
+The pre-install snapshot excludes this new key; future whole-volume snapshots
+can include it. Keep inventory-only copies separate from key recovery material.
+Do not run another account writer during the pilot or reset nonce/profile
+histories to replenish its one-job, 16-attempt / 1 MiB allowance. The profile
+keeps a 125-slot / 34,578,537-byte prior renewal floor; renewals are not scheduled.
+
+Custody readiness passes all checks, including Pinata for cover/metadata. The
+role-agnostic public readiness endpoint still reports `ready: true` / HTTP 200
+with `status: degraded` because edges intentionally lack `PINATA_JWT`; it must
+not be interpreted as missing credentials on custody or fixed by copying those
+credentials to edges. A role-aware readiness diagnostic is a follow-up. Verify
+source identities, exclusive writer ownership, catalog-gated media and normal
+artist-signed publication before protected physical-device acceptance.
+
+Rollback restores the old Pinata selector **and old queue path**, preserving
+all Bulletin inventories, bindings and permanent nonces. Retain Bulletin reads,
+key custody and receipt monitoring for any published Bulletin release. Never
+overwrite newer security writes with the pre-deployment snapshot.
+
 ## Bulletin public assets candidate — 2026-11-01
 
 The [asset runbook](bulletin-public-assets.md) and [ADR 0044](../adr/0044-bulletin-public-release-assets.md) add optional custody-only `PUBLIC_ASSET_STORAGE=bulletin` plus `BULLETIN_PUBLIC_ASSET_POLICY`. Defaults remain Pinata. Assets require the existing Bulletin audio publisher, an explicitly initialized additive policy, unchanged private key placement and the same inventory/account nonce owner. No new service, subscription, key authority, CORS origin or Host permission is added. A reviewed budget must cover one cover and one metadata graph separately from audio, plus all renewal obligations. The initializer must run with custody stopped; it never repairs/replaces audio state.

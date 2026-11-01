@@ -1,5 +1,15 @@
 # Dotify Production Backlog
 
+## Current Bulletin deployment, 2026-11-01
+
+[Product 0.1.68 and the bounded private writer](implementation/evidence/product-0.1.68-rollout-2026-11-01.md)
+are deployed from merged #373. Web and Host readers share the same source; the
+pilot admits one generated protected release and one durable job. Ordinary
+artist-wallet registration, entitled Web/physical Host listening, recovery,
+measured costs and recurring retention still need evidence. No audio is sent by
+the rollout itself, and W33/#288 stays open. Earlier checkpoints below describe
+their dated state; they do not undo this scoped activation.
+
 Current reset follow-up: [streaming-only internal reset](streaming-only-reset.md) (#320). The owner retires the test catalog; older DAV1/DAV2 compatibility and migration plans are historical.
 
 This folder contains the execution backlog for moving Dotify from prototype to public testnet production readiness.
@@ -492,4 +502,4 @@ The philosophical line is simple: make the social listening experience as fricti
 
 ## Public Bulletin assets, 2026-11-01
 
-The owner selected completing [covers and metadata on Bulletin](implementation/evidence/bulletin-public-assets-2026-11-01.md) after confirming the Pinata free-plan file limit. The implementation reuses custody and its account nonce journal, with separate bounded asset allowances and native Host/existing API reads. It is not deployed: review #375, preserve/recover the failed audio job, review a new exact asset-write budget, then verify protected Web/Host publication and listening. No prior audio allowance or state is reset.
+The owner selected completing [covers and metadata on Bulletin](implementation/evidence/bulletin-public-assets-2026-11-01.md) after confirming the Pinata free-plan file limit. The implementation reuses custody and its account nonce journal, with separate bounded asset allowances and native Host/existing API reads. It is not deployed. The admission correction #375 is merged; preserve/recover the failed audio job, review a new exact asset-write budget, then verify protected Web/Host publication and listening. No prior audio allowance or state is reset.

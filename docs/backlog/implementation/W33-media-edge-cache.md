@@ -1,5 +1,16 @@
 # W33 - Serve encrypted media through a read-through edge cache
 
+## Current Bulletin pilot, 2026-11-01
+
+[Product 0.1.68 and the one-job private Bulletin writer are deployed](evidence/product-0.1.68-rollout-2026-11-01.md)
+from merged #373, with exact Product byte/record readback and matching Web/API
+source identities. No synthetic audio publication is implied by deployment.
+Next acceptance is normal artist registration and protected Web/Desktop/mobile
+listening, including denial and interruption recovery. Cold audible startup,
+representative costs, off-volume restore and recurring retention remain open.
+The older gateway experiment below is historical context, not a prerequisite
+to repeat before this owner-selected Bulletin path. #288 stays open.
+
 ## Current reconciliation, 2026-10-23
 
 #325 is merged. Edge-first authenticated ciphertext delivery and bounded
@@ -211,7 +222,7 @@ remain explicit gates. W33 stays open; no new service or broad migration is enab
 
 ## Public Bulletin assets, 2026-11-01
 
-The owner selected completing [covers and metadata on Bulletin](evidence/bulletin-public-assets-2026-11-01.md) after confirming the Pinata free-plan file limit. The implementation reuses custody and its account nonce journal, with separate bounded asset allowances and native Host/existing API reads. It is not deployed: review #375, preserve/recover the failed audio job, review a new exact asset-write budget, then verify protected Web/Host publication and listening. No prior audio allowance or state is reset.
+The owner selected completing [covers and metadata on Bulletin](evidence/bulletin-public-assets-2026-11-01.md) after confirming the Pinata free-plan file limit. The implementation reuses custody and its account nonce journal, with separate bounded asset allowances and native Host/existing API reads. It is not deployed. The admission correction #375 is merged; preserve/recover the failed audio job, review a new exact asset-write budget, then verify protected Web/Host publication and listening. No prior audio allowance or state is reset.
 
 ## Pilot admission correction, 2026-11-01
 
