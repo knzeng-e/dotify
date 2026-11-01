@@ -6,6 +6,10 @@
 > exploration is deferred, with no implementation commitment.
 
 
+## Public assets follow-up, 2026-11-01
+
+The owner chose Bulletin covers/metadata after confirming the Pinata account's file cap. [ADR 0044](../adr/0044-bulletin-public-release-assets.md) prepares one cover/metadata pair through the existing private writer, with separate caps, the same durable account cursor, signed grants and renewed canonical authority checks. Host-aware reads use native preimages with existing API recovery; Web uses a bounded public image/JSON relay. This is not deployed or an audio-attempt reset. Exact write approval, failed-job recovery, physical protected acceptance and retention remain gates. Older preparation checkpoints below describe their historical state.
+
 ## Bulletin publication checkpoint, 2026-11-01
 
 [ADR 0043](../adr/0043-bulletin-artist-publication.md) connects the authenticated

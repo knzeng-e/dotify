@@ -260,3 +260,7 @@ bounds private custody to one generated release and one durable job, including
 across restart. Product 0.1.68 is prepared, not deployed. Live writer activation,
 account provisioning, sufficient quota and protected Web/physical Host listening
 remain explicit gates. W33 stays open; no new service or broad migration is enabled.
+
+## Public Bulletin assets, 2026-11-01
+
+The owner selected completing [covers and metadata on Bulletin](evidence/bulletin-public-assets-2026-11-01.md) after confirming the Pinata free-plan file limit. The implementation reuses custody and its account nonce journal, with separate bounded asset allowances and native Host/existing API reads. It is not deployed: review #375, preserve/recover the failed audio job, review a new exact asset-write budget, then verify protected Web/Host publication and listening. No prior audio allowance or state is reset.

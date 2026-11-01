@@ -192,6 +192,8 @@ const envSchema = z.object({
   STREAMING_WORKER_TOKEN: z.string().min(32).optional(),
   STREAMING_AUDIO_STORAGE: z.enum(['pinata', 'bulletin']).default('pinata'),
   BULLETIN_PUBLICATION_PROFILE: optionalNonEmptyString,
+  PUBLIC_ASSET_STORAGE: z.enum(['pinata', 'bulletin']).default('pinata'),
+  BULLETIN_PUBLIC_ASSET_POLICY: optionalNonEmptyString,
   STREAMING_STATE_PATH: z.string().default('.data/streaming'),
   CATALOG_SNAPSHOT_PATH: z.string().default('.data/catalog.json'),
   // A stable epoch keeps sessions valid across redeploys; rotating it signs

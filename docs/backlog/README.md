@@ -489,3 +489,7 @@ release-evidence order is:
    designed.
 
 The philosophical line is simple: make the social listening experience as frictionless as a shared link, while keeping the artist-owned runtime and access policy as the invisible foundation.
+
+## Public Bulletin assets, 2026-11-01
+
+The owner selected completing [covers and metadata on Bulletin](implementation/evidence/bulletin-public-assets-2026-11-01.md) after confirming the Pinata free-plan file limit. The implementation reuses custody and its account nonce journal, with separate bounded asset allowances and native Host/existing API reads. It is not deployed: review #375, preserve/recover the failed audio job, review a new exact asset-write budget, then verify protected Web/Host publication and listening. No prior audio allowance or state is reset.

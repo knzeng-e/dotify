@@ -75,6 +75,8 @@ export function createBulletinMediaStore(options: {
   transport: BulletinMediaTransport;
   budget: BulletinBudget;
   pipeline?: Partial<BulletinPipelineLimits>;
+  /** Internal composition only; public inputs never choose a graph builder. */
+  buildGraph?: typeof buildBulletinMediaGraph;
 }) {
   const selected = identitySchema.parse(options.identity);
   const budget = budgetSchema.parse(options.budget);
@@ -141,7 +143,7 @@ export function createBulletinMediaStore(options: {
         await sync(directory);
         const custody = await owner();
         assert.ok(!custody.activeJob || custody.activeJob === name, 'A previous Bulletin job needs reconciliation');
-        const graph = await buildBulletinMediaGraph(files, signal);
+        const graph = await (options.buildGraph ?? buildBulletinMediaGraph)(files, signal);
         assert.ok(
           graph.blocks.every(b => b.bytes.length <= pipeline.maxInFlightBytes),
           'A block exceeds the in-flight byte bound'
@@ -248,9 +250,8 @@ export function createBulletinMediaStore(options: {
         await persist();
         assert.ok(transport.writable !== false || !missing.length, 'Bulletin transport is read-only');
         const neededBytes = missing.reduce((sum, b) => sum + b.bytes.length, 0);
-        const transactions = missing.length + graph.blocks.length;
         assert.ok(
-          state.attemptedStores + transactions <= budget.maxTransactions && state.attemptedBytes + neededBytes <= budget.maxBytes,
+          state.attemptedStores + missing.length <= budget.maxTransactions && state.attemptedBytes + neededBytes <= budget.maxBytes,
           'Bulletin job allowance exhausted'
         );
         const quotaFor = (current: BulletinStatus, count: number, bytes: number) => {
