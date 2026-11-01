@@ -6,6 +6,16 @@
 > exploration is deferred, with no implementation commitment.
 
 
+## Bulletin publication checkpoint, 2026-11-01
+
+[ADR 0043](../adr/0043-bulletin-artist-publication.md) connects the authenticated
+artist audio queue to an explicitly selected Bulletin writer in private custody.
+It is not activated. Web and Host use the application readers from #371;
+server-side signed key access remains authoritative. Covers/metadata still use
+Pinata. Fresh real-runtime protected acceptance, representative release timings,
+backup recovery, costs and recurring retention remain gates; no new hosting
+service or permanent old-runtime layer is introduced.
+
 ## Delivery checkpoint, 2026-10-26
 
 Use the [current backlog reconciliation](../backlog/implementation/evidence/backlog-reconciliation-2026-10-26.md)

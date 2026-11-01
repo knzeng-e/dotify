@@ -244,3 +244,23 @@ test('the selected transaction creator is stable if the caller later edits its o
   assert.deepEqual(await writing, fixture.receipt);
   c.session.close();
 });
+
+test('retained-publication reserves reduce the actual writer allowance before any subscription', async () => {
+  const c = context({ signer: null });
+  const raw = await c.session.transport.status(signal());
+  c.session.close();
+  const session = createPapiMediaTransport({
+    client: c.client,
+    identity,
+    signer: { account: identity.account, createTransaction: creator },
+    budget: { maxBytes: 1024, maxTransactions: 2 },
+    reserved: { transactions: raw.authorization.remainingTransactions, bytes: Number(raw.authorization.remainingRenewBytes) }
+  });
+  const effective = await session.transport.status(signal());
+  assert.equal(effective.authorization.remainingTransactions, 0);
+  assert.equal(effective.authorization.remainingRenewBytes, 0n);
+  await assert.rejects(session.transport.store(block, intent, signal()), /quota does not cover/);
+  assert.equal(c.subscriptions, 0);
+  assert.equal(session.attemptedTransactions, 0);
+  session.close();
+});

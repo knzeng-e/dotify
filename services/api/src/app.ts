@@ -1,11 +1,11 @@
 import { sharedState, assertSharedState } from './services/sharedState/index.js';
 import { SharedStateUnavailableError } from './services/sharedState/postgres.js';
 import { custodyTokenMatches, registerCustodyProxy } from './services/sharedState/custodyProxy.js';
+import { createStreamingPublicationStore } from './services/streamingPublicationStore.js';
 import { StreamingJobs } from './services/streamingJobs.js';
 import { createStreamingWorkerClient } from './services/streamingWorkerClient.js';
 import { deriveContentKeyBytes } from './services/keyVault.js';
 import { checkArtistAuthority } from './services/chainAccess.js';
-import { pinFilesToPinata } from './services/pinata.js';
 // Fastify app assembly, extracted from index.ts so tests can build the full
 // app (request IDs, error envelope, route registration) without listening.
 
@@ -75,6 +75,12 @@ export type BuildAppOptions = {
 };
 
 export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyInstance> {
+  if (config.STREAMING_AUDIO_STORAGE === 'bulletin') {
+    if (config.API_ROLE === 'edge' || (config.NODE_ENV === 'production' && config.API_ROLE !== 'custody'))
+      throw new Error('Bulletin publication belongs to the private custody role');
+    if (!config.STREAMING_WORKER_URL || !config.STREAMING_WORKER_TOKEN || !config.BULLETIN_PUBLICATION_PROFILE)
+      throw new Error('Bulletin publication requires an explicit profile and isolated worker');
+  } else if (config.BULLETIN_PUBLICATION_PROFILE) throw new Error('Select Bulletin audio storage explicitly before configuring its profile');
   await assertSharedState();
   const serverOptions: FastifyServerOptions = {
     logger: options.logging === false ? false : fastifyLoggerOptions,
@@ -211,6 +217,14 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       if (config.NODE_ENV === 'production' && process.getuid?.() !== 1000)
         throw new Error('Streaming activation requires the reviewed non-root UID 1000 API image');
       if (config.UPLOAD_GLOBAL_CONCURRENCY > 2) throw new Error('Streaming publication requires UPLOAD_GLOBAL_CONCURRENCY at most 2');
+      // Validate pure worker configuration before acquiring durable publication
+      // ownership or opening a signer; a bad URL must not strand its lock.
+      const transcode = createStreamingWorkerClient(config.STREAMING_WORKER_URL, config.STREAMING_WORKER_TOKEN);
+      const publication = await createStreamingPublicationStore({
+        provider: config.STREAMING_AUDIO_STORAGE,
+        queue: config.STREAMING_STATE_PATH,
+        profileFile: config.BULLETIN_PUBLICATION_PROFILE
+      });
       streaming = new StreamingJobs({
         directory: config.STREAMING_STATE_PATH,
         deriveKey: deriveContentKeyBytes,
@@ -219,12 +233,22 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
           const result = await checkArtistAuthority(owner);
           return result.allowed && result.runtime.toLowerCase() === runtime;
         },
-        transcode: createStreamingWorkerClient(config.STREAMING_WORKER_URL, config.STREAMING_WORKER_TOKEN),
-        pin: (files, name, signal) => pinFilesToPinata(files, name, { app: 'dotify', type: 'streaming-audio' }, signal),
+        transcode,
+        pin: publication.pin,
+        canDiscard: publication.canDiscard,
         onFailure: failure => app.log.warn({ code: 'STREAMING_PREPARATION_FAILED', ...failure }, 'Audio preparation needs attention')
       });
-      await streaming.start();
-      app.addHook('onClose', async () => streaming!.stop());
+      try {
+        await streaming.start();
+      } catch (error) {
+        await streaming.stop();
+        await publication.close();
+        throw error;
+      }
+      app.addHook('onClose', async () => {
+        await streaming!.stop();
+        await publication.close();
+      });
     }
     await app.register(createUploadRoutes(undefined, streaming), { prefix: '/api/uploads' });
   }

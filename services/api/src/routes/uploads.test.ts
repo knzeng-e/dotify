@@ -488,8 +488,10 @@ describe('asynchronous streaming upload boundary', () => {
     const root = await mkdtemp(path.join(tmpdir(), 'dotify-stream-upload-'));
     const directory = path.join(root, 'state');
     await initializeStreamingJobs(directory);
+    let removalAllowed = true;
     const jobs = new StreamingJobs({
       directory,
+      canDiscard: async () => removalAllowed,
       deriveKey: () => Buffer.alloc(32, 7),
       authority: async () => true,
       transcode: async () => {
@@ -557,6 +559,16 @@ describe('asynchronous streaming upload boundary', () => {
         409
       );
       await jobs.runNext();
+      removalAllowed = false;
+      const protectedRemoval = await server.inject({
+        method: 'POST',
+        url: `/api/uploads/audio/jobs/${owned.id}/discard`,
+        headers: { authorization: `Bearer ${SESSION_TOKEN}` }
+      });
+      assert.equal(protectedRemoval.statusCode, 409);
+      assert.equal(protectedRemoval.json().code, 'STREAMING_RECOVERY_REQUIRED');
+      assert.match(protectedRemoval.json().error, /music is saved/);
+      removalAllowed = true;
       assert.equal(
         (await server.inject({ method: 'POST', url: `/api/uploads/audio/jobs/${owned.id}/discard`, headers: { authorization: 'Bearer other-artist' } }))
           .statusCode,
