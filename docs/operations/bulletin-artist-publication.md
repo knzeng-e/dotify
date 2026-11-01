@@ -55,6 +55,37 @@ existing state. If provisioning is interrupted, inspect it; do not rerun the
 command over a used directory or delete nonce history to force a fresh start.
 The process must later see these exact paths, ownership and private permissions.
 
+## Bound a one-release pilot
+
+For a first real-runtime test, add an optional `pilotScope` with exactly
+`chainId`, lowercase `runtimeAddress`, lowercase `contentHash` and `keyVersion`
+to the reviewed profile. The publisher checks all four fields from the parsed
+streaming manifest before opening a write session. This is a storage allowance;
+it grants no listening rights and does not replace canonical runtime checks.
+
+A scoped profile owns **one durable publication job** for its lifetime. The
+same job can reconcile/retry within its existing attempt/byte caps. A second job
+is refused even for the same audio, after completion, queue cleanup or process
+restart: publication inventories retain the first job. Together with the
+per-job caps this bounds the whole pilot, rather than approving that allowance
+for every future upload. A rejected file can still incur local encoding work;
+no Bulletin write session is opened for it.
+
+The profile hash includes this restriction. Removing/changing it in place fails
+startup; do not erase bindings, inventories or nonce history to enlarge a test.
+A later broader activation requires a separately reviewed fresh profile/queue
+and carries forward all prior retained/attempted publication obligations.
+The [runtime-pilot preparation](../backlog/implementation/evidence/bulletin-runtime-pilot-preparation-2026-11-01.md)
+records the generated source, proposed target, measured sizing and remaining gates.
+
+The owner selected the existing DotNS account for this internal pilot. If that
+choice is approved for deployment, its binary mini-secret file has the **same
+account authority**, not a storage-only cryptographic restriction. Install it
+only in private custody through a reviewed local-to-server channel; no mnemonic
+string, frontend variable, encoder key or public API key is needed. No key has
+been installed by this preparation. Separate accounts remain the recommended
+operational isolation for a public rollout.
+
 ## Activate only after the reviewed network budget
 
 Configure on the private custody role only:

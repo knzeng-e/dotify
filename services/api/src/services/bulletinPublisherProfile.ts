@@ -9,6 +9,18 @@ import { budgetSchema, initializeBulletinMediaStore, integer, load, privateDirec
 import { pipelineSchema } from './bulletinPipeline.js';
 import { initializeStreamingJobs } from './streamingJobs.js';
 const absolute = z.string().refine(isAbsolute);
+// A one-release operator pilot, not an alternative source of access authority.
+const pilotScope = z
+  .object({
+    chainId: integer.min(1),
+    runtimeAddress: z.string().regex(/^0x[0-9a-f]{40}$/),
+    contentHash: z.string().regex(/^0x[0-9a-f]{64}$/),
+    keyVersion: z
+      .string()
+      .regex(/^dotify-content-key-v(?:[2-9]|[1-9][0-9]+)$/)
+      .max(80)
+  })
+  .strict();
 export const publisherProfileSchema = z
   .object({
     schema: z.literal('dotify.bulletin.publisher.v1'),
@@ -20,7 +32,10 @@ export const publisherProfileSchema = z
     budget: budgetSchema,
     pipeline: pipelineSchema,
     // Operator-declared obligations outside this publisher's own inventories.
-    priorRenewalReserve: z.object({ transactions: integer, bytes: integer }).strict()
+    priorRenewalReserve: z.object({ transactions: integer, bytes: integer }).strict(),
+    // When present, the immutable profile admits this scope and one durable job
+    // for its entire lifetime, including after restart/discard/completion.
+    pilotScope: pilotScope.optional()
   })
   .strict()
   .superRefine((value, ctx) => {

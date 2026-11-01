@@ -200,3 +200,11 @@ No change to encryption, access checks, or the streaming format. No account crea
 ## Handoff
 
 Write `docs/backlog/implementation/evidence/W33.md` using `evidence-template.md`.
+
+## Real-runtime pilot preparation, 2026-11-01
+
+The [scoped pilot candidate](evidence/bulletin-runtime-pilot-preparation-2026-11-01.md)
+bounds private custody to one generated release and one durable job, including
+across restart. Product 0.1.68 is prepared, not deployed. Live writer activation,
+account provisioning, sufficient quota and protected Web/physical Host listening
+remain explicit gates. W33 stays open; no new service or broad migration is enabled.

@@ -252,3 +252,11 @@ The playbook preparation itself has a separate backlog item. Future sequence bra
 The pilot must show real first sound, successful guest joins, recovery, successful support and understood value flows. Record device/host versions, sample counts, failures, and exact builds. W08/W13/W14 define proposed performance targets, which are goals rather than current measured claims. Mocked contract calls and synthetic audio cannot stand in for real settlement or real-device playback.
 
 Keep the first feedback loop small. When a measured result contradicts the plan, fix the observed problem and update the next prompt. The roadmap should serve the room, not become another room people get trapped in.
+
+## Real-runtime pilot preparation, 2026-11-01
+
+The [scoped pilot candidate](evidence/bulletin-runtime-pilot-preparation-2026-11-01.md)
+bounds private custody to one generated release and one durable job, including
+across restart. Product 0.1.68 is prepared, not deployed. Live writer activation,
+account provisioning, sufficient quota and protected Web/physical Host listening
+remain explicit gates. W33 stays open; no new service or broad migration is enabled.

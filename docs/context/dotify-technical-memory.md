@@ -13,7 +13,10 @@ artist audio queue to an explicitly selected Bulletin writer in private custody.
 It is not activated. Web and Host use the application readers from #371;
 server-side signed key access remains authoritative. Covers/metadata still use
 Pinata. Fresh real-runtime protected acceptance, representative release timings,
-backup recovery, costs and recurring retention remain gates; no new hosting
+backup recovery, costs and recurring retention remain gates. The
+[real-runtime pilot preparation](../backlog/implementation/evidence/bulletin-runtime-pilot-preparation-2026-11-01.md)
+adds an optional exact scope and one durable publication-job limit so its budget
+cannot repeat across new uploads. Product 0.1.68 is only a candidate; no new hosting
 service or permanent old-runtime layer is introduced.
 
 ## Delivery checkpoint, 2026-10-26

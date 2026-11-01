@@ -1,5 +1,18 @@
 # Deployment Configuration Runbook
 
+## Real-runtime Bulletin pilot: prepared, not deployed
+
+The [pilot candidate](../backlog/implementation/evidence/bulletin-runtime-pilot-preparation-2026-11-01.md)
+prepares Product 0.1.68 and a single scope-bound private-custody publication.
+The optional `pilotScope` profile admits one durable job, including across
+restart; its attempt/byte cap therefore bounds this pilot as a whole. No live
+provider, key, volume, quota, contract, client or API configuration has changed.
+The custody health-check grace is prepared at 60 seconds, allowing the bounded
+30-second read-only Bulletin startup preflight; health failures still block the
+rollout. Keep its existing single machine, volume and worker isolation.
+Activation still requires the reviewed budget, account provisioning and CI;
+follow the [publication runbook](bulletin-artist-publication.md).
+
 ## Publication recovery deployed in Product 0.1.67
 
 Merged #351 is deployed on Web, API/custody releases 36/5 and Product 0.1.67.
