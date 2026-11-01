@@ -243,8 +243,8 @@ export function buildReleasePublicationRoadmap(stage: ReleasePublicationStage, t
     const status = isComplete ? 'complete' : isActive && step.id === 'registry' && txHash ? 'submitted' : isActive ? 'active' : 'upcoming';
 
     return {
-      label: step.label,
-      detail: step.detail,
+      label: step.id === 'assets' && !isComplete ? 'Save your music' : step.label,
+      detail: step.id === 'assets' && !isComplete ? 'Protect the audio and save the cover before publication.' : step.detail,
       status,
       txHash: step.id === 'registry' && (isComplete || status === 'submitted') ? txHash : undefined
     };
@@ -258,7 +258,7 @@ export function buildReleaseRegistrationFailureMessage(input: { error: string; s
   if (input.submittedTxHash) {
     return `Your publication approval was submitted, but confirmation did not finish: ${input.error} Keep the proof reference and check your account activity before retrying. Dotify will not submit another release automatically.`;
   }
-  return `No release was published. Your music and draft are still here, so you can retry: ${input.error}`;
+  return `No release was published. Your music and draft are still here. ${input.error}`;
 }
 
 export type ArtistSetupState = 'Ready' | 'Registration needed' | 'Wallet needed';

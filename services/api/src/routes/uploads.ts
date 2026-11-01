@@ -89,19 +89,33 @@ function authorizationError(reply: FastifyReply, code: UploadAuthorizationErrorC
   return reply.status(status).send({ error: reason, code });
 }
 
-function handleUploadError(error: unknown, reply: FastifyReply) {
-  if (error instanceof PublicAssetStorageError)
-    return reply
-      .status(503)
-      .send({
-        code: 'UPLOAD_STORAGE_FAILED',
-        error: 'Storage could not confirm this asset. Your draft is safe. Please contact the Dotify operator before retrying.'
-      });
+function handleUploadError(error: unknown, request: FastifyRequest, reply: FastifyReply, stage: 'cover' | 'metadata') {
+  if (error instanceof PublicAssetStorageError) {
+    request.log.warn({ code: 'UPLOAD_STORAGE_FAILED', failure: { stage } }, 'Public asset storage needs attention');
+    return reply.status(503).send({
+      code: 'UPLOAD_STORAGE_FAILED',
+      failure: { stage },
+      error: 'Storage could not confirm this asset. Your draft is safe. Please contact the Dotify operator before retrying.'
+    });
+  }
   if (error instanceof PinataUnconfiguredError) {
     return reply.status(503).send({ error: 'Upload service is not configured. Contact the operator.', code: 'UPLOAD_STORAGE_NOT_CONFIGURED' });
   }
   if (error instanceof PinataError) {
-    return reply.status(502).send({ error: 'Upload to storage failed. Please try again.', code: 'UPLOAD_STORAGE_FAILED' });
+    const providerStatus = error.providerStatus;
+    const storageStatus =
+      typeof providerStatus === 'number' && Number.isInteger(providerStatus) && providerStatus >= 400 && providerStatus <= 599 ? providerStatus : undefined;
+    const failure = { stage, ...(storageStatus === undefined ? {} : { storageStatus }) };
+    // Provider messages/bodies can contain submitted data or credentials.
+    request.log.warn({ code: 'UPLOAD_STORAGE_FAILED', ...failure }, 'Release asset storage failed');
+    const asset = stage === 'cover' ? 'The cover' : 'The release details';
+    const message =
+      storageStatus === 401 || storageStatus === 403
+        ? `${asset} could not be saved. The storage account needs attention before you retry. Your draft is safe.`
+        : storageStatus === 429
+          ? `${asset} could not be saved because storage is busy. Your draft is safe; wait a moment before retrying.`
+          : `${asset} could not be saved because storage is unavailable. Your draft is safe; try again later.`;
+    return reply.status(502).send({ error: message, code: 'UPLOAD_STORAGE_FAILED', failure });
   }
   if (error instanceof Error && error.name === 'AbortError') {
     return reply.status(499).send({ error: 'Upload was cancelled before storage completed.', code: 'UPLOAD_CANCELLED' });
@@ -387,7 +401,7 @@ export function createUploadRoutes(
                 abort.signal
               );
         } catch (error) {
-          return handleUploadError(error, reply);
+          return handleUploadError(error, request, reply, 'cover');
         }
 
         completed = await lease.complete(fileBuffer.length);
@@ -448,7 +462,7 @@ export function createUploadRoutes(
                 abort.signal
               );
         } catch (error) {
-          return handleUploadError(error, reply);
+          return handleUploadError(error, request, reply, 'metadata');
         }
 
         completed = await lease.complete(actualBytes);

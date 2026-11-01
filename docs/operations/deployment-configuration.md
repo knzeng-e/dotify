@@ -3317,6 +3317,20 @@ coordinated factory/facet configuration. The earlier signaling/client repair
 works with the existing facet and can be rolled out independently. Local EVM
 gas reductions do not establish native Revive fee or storage-deposit savings.
 
+## Bulletin pilot admission correction candidate, 2026-11-01
+
+The [pilot diagnosis](../backlog/implementation/evidence/bulletin-pilot-admission-fix-2026-11-01.md)
+separates the per-job attempted-store cap from live account renewal reserves.
+No allowance/profile, secret, schema, mount or environment change is required.
+The API patch remains compatible with Product 0.1.68 and may roll out after
+review/CI without republishing Product; roadmap wording needs a later client
+publication. Preserve the failed pilot's
+three processing attempts and all ciphertext/inventory/nonce state; an exhausted
+job needs controlled recovery, not another upload or an in-place counter reset.
+Cover/metadata still require a functioning Pinata account. Their safe error
+response/log now identifies the asset stage and optional upstream HTTP status;
+this does not itself resolve provider admission or complete protected acceptance.
+
 ## Publication recovery candidate, 2026-10-29
 
 The [recovery investigation](../backlog/implementation/evidence/publication-preparation-recovery-2026-10-29.md)

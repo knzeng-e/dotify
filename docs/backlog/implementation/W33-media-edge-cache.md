@@ -212,3 +212,13 @@ remain explicit gates. W33 stays open; no new service or broad migration is enab
 ## Public Bulletin assets, 2026-11-01
 
 The owner selected completing [covers and metadata on Bulletin](evidence/bulletin-public-assets-2026-11-01.md) after confirming the Pinata free-plan file limit. The implementation reuses custody and its account nonce journal, with separate bounded asset allowances and native Host/existing API reads. It is not deployed: review #375, preserve/recover the failed audio job, review a new exact asset-write budget, then verify protected Web/Host publication and listening. No prior audio allowance or state is reset.
+
+## Pilot admission correction, 2026-11-01
+
+The [reported publication failure](evidence/bulletin-pilot-admission-fix-2026-11-01.md)
+exposes an independent Pinata cover error and a reproduced attempted-store
+budget defect before any Bulletin audio write. The correction separates the
+16-store cap from renewable quota without enlarging either; structured asset
+diagnostics and honest progress text distinguish the failure paths. Review,
+deployment, controlled recovery of the exhausted existing job and protected
+physical acceptance remain gates. No queue/nonce reset or new allowance is implied.

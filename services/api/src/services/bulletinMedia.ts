@@ -250,6 +250,8 @@ export function createBulletinMediaStore(options: {
         await persist();
         assert.ok(transport.writable !== false || !missing.length, 'Bulletin transport is read-only');
         const neededBytes = missing.reduce((sum, b) => sum + b.bytes.length, 0);
+        // The job cap counts attempted stores. Renewal slots belong to the
+        // live-account quota check below; they are reserved, never submitted here.
         assert.ok(
           state.attemptedStores + missing.length <= budget.maxTransactions && state.attemptedBytes + neededBytes <= budget.maxBytes,
           'Bulletin job allowance exhausted'

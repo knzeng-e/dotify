@@ -10,6 +10,7 @@ import { blake2b } from '@noble/hashes/blake2';
 import { createUploadRoutes, type UploadRouteDeps } from './uploads.js';
 import { createUploadAuthorizationService } from '../services/uploadAuthorizations.js';
 import { RELEASE_BOUND_CONTENT_KEY_VERSION } from '../services/keyVault.js';
+import { PinataError } from '../services/pinata.js';
 
 const ADDRESS = '0x1111111111111111111111111111111111111111' as const;
 const RUNTIME = '0x2222222222222222222222222222222222222222' as const;
@@ -42,6 +43,7 @@ type BuildOptions = {
   routeDeps?: Partial<UploadRouteDeps>;
   publicAssets?: Parameters<typeof createUploadRoutes>[2];
   authorizationOptions?: Parameters<typeof createUploadAuthorizationService>[0];
+  logs?: string[];
 };
 
 async function buildApp(options: BuildOptions = {}): Promise<FastifyInstance> {
@@ -81,7 +83,7 @@ async function buildApp(options: BuildOptions = {}): Promise<FastifyInstance> {
     ...options.routeDeps
   };
 
-  app = Fastify();
+  app = Fastify(options.logs ? { logger: { stream: { write: (line: string) => options.logs!.push(line) } } } : {});
   await app.register(multipart);
   await app.register(
     createUploadRoutes(
@@ -388,6 +390,35 @@ describe('authorized upload routes', () => {
     assert.equal(response.json().code, 'UPLOAD_CANCELLED');
     assert.equal((await authorize(server, 'cover', pngBytes.length)).statusCode, 200);
   });
+
+  it('identifies a blocked cover account without exposing provider errors or recommending blind retries', async () => {
+    const logs: string[] = [];
+    const server = await buildApp({
+      logs,
+      routeDeps: {
+        pinFiles: async () => {
+          throw new PinataError('do-not-log-provider-secret', 502, 403);
+        }
+      }
+    });
+    const grant = (await authorize(server, 'cover', pngBytes.length)).json().uploadAuthorization;
+    const response = await server.inject({
+      method: 'POST',
+      url: '/api/uploads/cover',
+      headers: multipartHeaders(grant),
+      payload: multipartFile('cover', 'cover.png', 'image/png', pngBytes)
+    });
+    assert.equal(response.statusCode, 502);
+    assert.equal(response.json().code, 'UPLOAD_STORAGE_FAILED');
+    assert.deepEqual(response.json().failure, { stage: 'cover', storageStatus: 403 });
+    assert.match(response.json().error, /cover.*storage account needs attention/i);
+    const diagnostic = logs.map(line => JSON.parse(line)).find(line => line.code === 'UPLOAD_STORAGE_FAILED');
+    assert.equal(diagnostic.storageStatus, 403);
+    assert.equal(diagnostic.stage, 'cover');
+    assert(!response.body.includes('do-not-log-provider-secret'));
+    assert(!logs.join('').includes('do-not-log-provider-secret'));
+    assert.equal((await authorize(server, 'cover', pngBytes.length)).statusCode, 200);
+  });
 });
 
 const validManifest = {
@@ -425,6 +456,31 @@ const validManifest = {
 };
 
 describe('POST /api/uploads/metadata', () => {
+  it('distinguishes throttled release details from cover failures and omits invalid provider status values', async () => {
+    let status = 429;
+    const server = await buildApp({
+      routeDeps: {
+        pinJson: async () => {
+          throw new PinataError('do-not-echo-provider-body', 502, status);
+        }
+      }
+    });
+    for (const selected of [429, 123456]) {
+      status = selected;
+      const grant = (await authorize(server, 'metadata', Buffer.byteLength(JSON.stringify(validManifest)))).json().uploadAuthorization;
+      const response = await server.inject({
+        method: 'POST',
+        url: '/api/uploads/metadata',
+        headers: { authorization: `Bearer ${grant}` },
+        payload: validManifest
+      });
+      assert.equal(response.statusCode, 502);
+      assert.deepEqual(response.json().failure, selected === 429 ? { stage: 'metadata', storageStatus: 429 } : { stage: 'metadata' });
+      assert.match(response.json().error, selected === 429 ? /release details.*storage is busy/i : /release details.*storage is unavailable/i);
+      assert(!response.body.includes('do-not-echo-provider-body'));
+    }
+  });
+
   it('accepts a valid manifest with a metadata-scoped authorization', async () => {
     const server = await buildApp();
     const bytes = Buffer.byteLength(JSON.stringify(validManifest));
