@@ -112,6 +112,18 @@ The backlog manifest and changed evidence/runbook links also pass. Node's
 mock-timer experimental warning is expected for clock-controlled tests. CI is
 recorded on the repair PR separately from these local results.
 
+The first repair CI run passed all Bulletin gates, API checking, the Product
+build, three-engine streaming and 285 core browser flows. Its later Nearby test
+failed on decoded guest audio energy (`0`, expected above `0.000001`), after
+signaling and guest admission succeeded. The general browser job lacked the
+PulseAudio null sink already used by the successful three-engine streaming job.
+The browser gate now starts that same headless audio service, providing a real
+audio output/clock for its `AudioContext` measurement. This addresses an
+environmental inconsistency; the available failure report alone does not prove
+it was the only possible cause of silence. The real WebRTC energy assertion,
+threshold, key-request denial and timeouts are unchanged; CI must reverify them.
+No production audio fixture or application playback behavior changes.
+
 Before continuation: review the repaired operator, await its green CI, approve
 the exact execution revision, recheck nonce/quota and activate the signer only
 when requested. Resume the same package within its remaining 14-store allowance;
