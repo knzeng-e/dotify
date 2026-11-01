@@ -9,9 +9,10 @@ The reported modal comes from `POST /api/uploads/cover`: custody request logs
 show HTTP 502. This route still uses Pinata. The old handler maps every
 `PinataError` to the same generic retry message and does not record the upstream
 status, so the historical event cannot establish a specific provider refusal.
-Read-only authentication succeeds; the account owner must check its actual plan
-and usage before attributing the failure to a limit. No diagnostic file upload,
-subscription change or deletion was performed.
+Read-only authentication succeeds. The account owner subsequently confirmed
+the free plan and its reached file limit. This establishes a separate provider
+admission blocker; the missing historical upstream status is still unknown.
+No diagnostic file upload, subscription change or deletion was performed.
 
 Separately, the admitted synthetic audio has a failed durable preparation:
 three processing attempts, a 16-block publication inventory, zero attempted
