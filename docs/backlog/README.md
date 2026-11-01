@@ -1,5 +1,15 @@
 # Dotify Production Backlog
 
+## Current Bulletin deployment, 2026-11-01
+
+[Product 0.1.68 and the bounded private writer](implementation/evidence/product-0.1.68-rollout-2026-11-01.md)
+are deployed from merged #373. Web and Host readers share the same source; the
+pilot admits one generated protected release and one durable job. Ordinary
+artist-wallet registration, entitled Web/physical Host listening, recovery,
+measured costs and recurring retention still need evidence. No audio is sent by
+the rollout itself, and W33/#288 stays open. Earlier checkpoints below describe
+their dated state; they do not undo this scoped activation.
+
 Current reset follow-up: [streaming-only internal reset](streaming-only-reset.md) (#320). The owner retires the test catalog; older DAV1/DAV2 compatibility and migration plans are historical.
 
 This folder contains the execution backlog for moving Dotify from prototype to public testnet production readiness.
