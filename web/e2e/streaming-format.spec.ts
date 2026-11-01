@@ -1,6 +1,11 @@
 import { test, expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
+import { CID } from 'multiformats/cid';
+import { create as digest } from 'multiformats/hashes/digest';
+import * as dagPB from '@ipld/dag-pb';
+import { UnixFS } from 'ipfs-unixfs';
+import { blake2b256 } from '@polkadot-apps/utils';
 
 const fixture = JSON.parse(readFileSync(process.env.DOTIFY_STREAMING_FIXTURE_PATH ?? path.join(process.cwd(), '.data/streaming-fixture.json'), 'utf8')) as {
   schema: string;
@@ -10,6 +15,33 @@ const fixture = JSON.parse(readFileSync(process.env.DOTIFY_STREAMING_FIXTURE_PAT
   files: Record<string, string>;
 };
 if (fixture.schema !== 'dotify.synthetic-streaming-fixture.v1') throw new Error('Synthetic codec fixture required');
+
+// Test-only public-key fixture. Artist/canary keys never enter browser bundles.
+const bulletinBlocks: Record<string, string> = {};
+const block = (code: number, bytes: Uint8Array) => {
+  const cid = CID.createV1(code, digest(0xb220, blake2b256(bytes)));
+  bulletinBlocks[cid.toString()] = Buffer.from(bytes).toString('base64');
+  return cid;
+};
+const directory = (links: Array<{ Name: string; Hash: CID }>) => {
+  const bytes: unknown = dagPB.encode(dagPB.prepare({ Data: new UnixFS({ type: 'directory' }).marshal(), Links: links }));
+  if (!(bytes instanceof Uint8Array)) throw new Error('Invalid test directory');
+  return block(0x70, bytes);
+};
+const bulletinRoot = directory([
+  { Name: 'manifest.json', Hash: block(0x55, Buffer.from(fixture.manifest, 'base64')) },
+  ...[96, 160, 320].map(bitrate => ({
+    Name: String(bitrate),
+    Hash: directory(
+      Object.entries(fixture.files)
+        .filter(([name]) => name.startsWith(`${bitrate}/`))
+        .map(([name, value]) => ({
+          Name: name.split('/')[1],
+          Hash: block(0x55, Buffer.from(value, 'base64'))
+        }))
+    )
+  }))
+]).toString();
 
 for (const bitrate of [96, 160, 320])
   test(`authenticated AAC ${bitrate} starts from init and one media segment`, async ({ page }) => {
@@ -105,77 +137,135 @@ test('browser authenticates identity/order and refuses archive playback', async 
   expect(result).toEqual({ tampered: true, wrongScope: true, reordered: true, archive: true });
 });
 
-test('publication player reads authenticated segments and shares normalized audio without archive access', async ({ page }) => {
-  const requests: string[] = [];
-  const edgeRequests: string[] = [];
-  await page.route('https://media.edge.test/**', async route => {
-    edgeRequests.push(route.request().url());
-    expect(route.request().headers().authorization).toBeUndefined();
-    expect(route.request().headers().cookie).toBeUndefined();
-    expect(route.request().headers().range).toBeUndefined();
-    await route.fulfill({ status: 404, headers: { 'access-control-allow-origin': '*' }, body: '' });
-  });
-  await page.route('**/publication-player', route =>
-    route.fulfill({ contentType: 'text/html', body: '<!doctype html><button id="play">Play</button><audio id="audio"></audio>' })
-  );
-  await page.route('**/api/media/**/stream/**', async route => {
-    const object = new URL(route.request().url()).pathname.split('/stream/')[1];
-    requests.push(object);
-    const value = object === 'manifest.json' ? fixture.manifest : fixture.files[object];
-    if (!value) return route.fulfill({ status: 404, headers: { 'access-control-allow-origin': '*' }, body: '' });
-    if (object.includes('segment-001') || object.includes('segment-002')) await new Promise(resolve => setTimeout(resolve, 300));
-    await route.fulfill({ headers: { 'content-type': 'application/octet-stream', 'access-control-allow-origin': '*' }, body: Buffer.from(value, 'base64') });
-  });
-  await page.goto('/publication-player');
-  await page.evaluate(async fixture => {
-    const playerPath = '/src/features/catalog/streamingPlayback.ts',
-      gainPath = '/src/features/player/audioNormalization.ts',
-      outputPath = '/src/features/player/hostAudioOutput.ts';
-    const player = (await import(playerPath)) as typeof import('../src/features/catalog/streamingPlayback');
-    const gain = (await import(gainPath)) as typeof import('../src/features/player/audioNormalization');
-    const output = (await import(outputPath)) as typeof import('../src/features/player/hostAudioOutput');
-    const audio = document.querySelector('audio')!;
-    const signal = new AbortController().signal;
-    const prepared = await player.createStreamingPlayback({
-      cid: 'Qm' + 'a'.repeat(44),
-      key: Uint8Array.from(fixture.keyHex.replace(/^0x/, '').match(/../g)!, part => parseInt(part, 16)),
-      scope: fixture.scope,
-      signal,
-      audio: () => audio,
-      onError: error => {
-        throw error;
-      }
+for (const provider of ['IPFS', 'Bulletin'])
+  test(`${provider} publication player reads authenticated segments and shares normalized audio without archive access`, async ({ page }) => {
+    const requests: string[] = [];
+    const edgeRequests: string[] = [];
+    await page.route('https://media.edge.test/**', async route => {
+      edgeRequests.push(route.request().url());
+      expect(route.request().headers().authorization).toBeUndefined();
+      expect(route.request().headers().cookie).toBeUndefined();
+      expect(route.request().headers().range).toBeUndefined();
+      await route.fulfill({ status: 404, headers: { 'access-control-allow-origin': '*' }, body: '' });
     });
-    audio.src = prepared.url;
-    audio.disableRemotePlayback = true;
-    gain.registerAudioGain(prepared.url, prepared.gainDb);
-    gain.attachAudioNormalization(audio);
-    document.querySelector('button')!.onclick = () => {
-      void Promise.all([output.resumeHostAudioOutput(audio), audio.play()]);
-    };
-    (window as typeof window & { publicationPlayer?: unknown }).publicationPlayer = { gainDb: prepared.gainDb, progressive: prepared.progressive };
-  }, fixture);
-  await page.click('#play');
-  await expect.poll(() => page.evaluate(() => document.querySelector('audio')!.currentTime)).toBeGreaterThan(0.2);
-  const result = await page.evaluate(async () => {
-    const modulePath = '/src/features/player/audioNormalization.ts';
-    const gain = (await import(modulePath)) as typeof import('../src/features/player/audioNormalization');
-    const audio = document.querySelector('audio')!;
-    const capture = gain.normalizedAudioCapture(audio);
-    const data = (window as typeof window & { publicationPlayer: { gainDb: number; progressive: boolean } }).publicationPlayer;
-    audio.muted = true;
-    capture?.sync();
-    return { ...data, capturedTracks: capture?.stream.getAudioTracks().filter(track => track.readyState === 'live').length, duration: audio.duration };
+    await page.route('**/publication-player', route =>
+      route.fulfill({ contentType: 'text/html', body: '<!doctype html><button id="play">Play</button><audio id="audio"></audio>' })
+    );
+    await page.route('**/api/media/**/stream/**', async route => {
+      const object = new URL(route.request().url()).pathname.split('/stream/')[1];
+      requests.push(object);
+      const value = object === 'manifest.json' ? fixture.manifest : fixture.files[object];
+      if (!value) return route.fulfill({ status: 404, headers: { 'access-control-allow-origin': '*' }, body: '' });
+      if (object.includes('segment-001') || object.includes('segment-002')) await new Promise(resolve => setTimeout(resolve, 300));
+      await route.fulfill({ headers: { 'content-type': 'application/octet-stream', 'access-control-allow-origin': '*' }, body: Buffer.from(value, 'base64') });
+    });
+    await page.goto('/publication-player');
+    await page.evaluate(
+      async ({ fixture, cid }) => {
+        const playerPath = '/src/features/catalog/streamingPlayback.ts',
+          gainPath = '/src/features/player/audioNormalization.ts',
+          outputPath = '/src/features/player/hostAudioOutput.ts';
+        const player = (await import(playerPath)) as typeof import('../src/features/catalog/streamingPlayback');
+        const gain = (await import(gainPath)) as typeof import('../src/features/player/audioNormalization');
+        const output = (await import(outputPath)) as typeof import('../src/features/player/hostAudioOutput');
+        const audio = document.querySelector('audio')!;
+        const signal = new AbortController().signal;
+        const prepared = await player.createStreamingPlayback({
+          cid,
+          key: Uint8Array.from(fixture.keyHex.replace(/^0x/, '').match(/../g)!, part => parseInt(part, 16)),
+          scope: fixture.scope,
+          signal,
+          audio: () => audio,
+          onError: error => {
+            throw error;
+          }
+        });
+        audio.src = prepared.url;
+        audio.disableRemotePlayback = true;
+        gain.registerAudioGain(prepared.url, prepared.gainDb);
+        gain.attachAudioNormalization(audio);
+        document.querySelector('button')!.onclick = () => {
+          void Promise.all([output.resumeHostAudioOutput(audio), audio.play()]);
+        };
+        (window as typeof window & { publicationPlayer?: unknown }).publicationPlayer = { gainDb: prepared.gainDb, progressive: prepared.progressive };
+      },
+      { fixture, cid: provider === 'Bulletin' ? bulletinRoot : 'Qm' + 'a'.repeat(44) }
+    );
+    await page.click('#play');
+    await expect.poll(() => page.evaluate(() => document.querySelector('audio')!.currentTime)).toBeGreaterThan(0.2);
+    const result = await page.evaluate(async () => {
+      const modulePath = '/src/features/player/audioNormalization.ts';
+      const gain = (await import(modulePath)) as typeof import('../src/features/player/audioNormalization');
+      const audio = document.querySelector('audio')!;
+      const capture = gain.normalizedAudioCapture(audio);
+      const data = (window as typeof window & { publicationPlayer: { gainDb: number; progressive: boolean } }).publicationPlayer;
+      audio.muted = true;
+      capture?.sync();
+      return { ...data, capturedTracks: capture?.stream.getAudioTracks().filter(track => track.readyState === 'live').length, duration: audio.duration };
+    });
+    expect(result.progressive).toBe(true);
+    expect(result.capturedTracks).toBe(1);
+    expect(result.duration).toBeGreaterThan(8);
+    expect(edgeRequests.some(url => url.endsWith('/manifest.json'))).toBe(provider === 'IPFS');
+    expect(edgeRequests.some(url => url.endsWith('/96/segment-000.bin'))).toBe(provider === 'IPFS');
+    expect(requests).toContain('manifest.json');
+    expect(requests).toContain('96/init.bin');
+    expect(requests).toContain('96/segment-000.bin');
+    expect(requests.some(path => path.startsWith('archive/'))).toBe(false);
   });
+
+test('actual Host Bulletin adapter feeds authenticated AAC into the publication player', async ({ page }) => {
+  await page.route('**/bulletin-player', route => route.fulfill({ contentType: 'text/html', body: '<button>Play</button><audio></audio>' }));
+  await page.goto('/bulletin-player');
+  const result = await page.evaluate(
+    async ({ fixture, root, blocks }) => {
+      const playerPath = '/src/features/catalog/streamingPlayback.ts';
+      const hostPath = '/src/features/catalog/bulletinHostMedia.ts';
+      const { createStreamingPlayback } = (await import(playerPath)) as typeof import('../src/features/catalog/streamingPlayback');
+      const { createBulletinHostMediaReader } = (await import(hostPath)) as typeof import('../src/features/catalog/bulletinHostMedia');
+      const paths: string[] = [];
+      const read = createBulletinHostMediaReader({
+        insideHost: () => true,
+        queryBytes: async cid => ({
+          ok: true,
+          value: Uint8Array.from(atob(blocks[cid]), character => character.charCodeAt(0))
+        })
+      });
+      const audio = document.querySelector('audio')!;
+      const prepared = await createStreamingPlayback({
+        cid: root,
+        key: Uint8Array.from(fixture.keyHex.replace(/^0x/, '').match(/../g)!, part => parseInt(part, 16)),
+        scope: fixture.scope,
+        signal: new AbortController().signal,
+        audio: () => audio,
+        onError: error => {
+          Reflect.set(window, '__bulletinError', error.message);
+        },
+        fetchObject: async (cid, path, max, signal) => {
+          paths.push(path);
+          const bytes = await read(cid, path, max, signal);
+          if (!bytes) throw new Error('Synthetic Host missing');
+          return bytes;
+        }
+      });
+      audio.src = prepared.url;
+      document.querySelector('button')!.onclick = () => {
+        void audio.play();
+      };
+      Reflect.set(window, '__bulletinPaths', paths);
+      return { progressive: prepared.progressive };
+    },
+    { fixture, root: bulletinRoot, blocks: bulletinBlocks }
+  );
   expect(result.progressive).toBe(true);
-  expect(result.capturedTracks).toBe(1);
-  expect(result.duration).toBeGreaterThan(8);
-  expect(edgeRequests.some(url => url.endsWith('/manifest.json'))).toBe(true);
-  expect(edgeRequests.some(url => url.endsWith('/96/segment-000.bin'))).toBe(true);
-  expect(requests).toContain('manifest.json');
-  expect(requests).toContain('96/init.bin');
-  expect(requests).toContain('96/segment-000.bin');
-  expect(requests.some(path => path.startsWith('archive/'))).toBe(false);
+  await page.click('button');
+  await expect.poll(() => page.locator('audio').evaluate(audio => audio.currentTime), { timeout: 15_000 }).toBeGreaterThan(4.1);
+  const paths = await page.evaluate(() => Reflect.get(window, '__bulletinPaths') as string[]);
+  expect(paths).toContain('manifest.json');
+  expect(paths).toContain('96/init.bin');
+  expect(paths).toContain('96/segment-000.bin');
+  expect(paths.some(name => name.startsWith('archive/'))).toBe(false);
+  expect(await page.evaluate(() => Reflect.get(window, '__bulletinError'))).toBeUndefined();
 });
 
 test('publication player refuses a bad key before reading any media or archive', async ({ page }) => {

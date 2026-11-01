@@ -71,6 +71,32 @@ const optionalTurnUrlList = z.preprocess(
 );
 
 const envSchema = z.object({
+  BULLETIN_MEDIA_RPC_URL: z.preprocess(
+    value => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+    z
+      .string()
+      .refine(value => {
+        try {
+          const url = new URL(value);
+          return (
+            url.protocol === 'https:' &&
+            !url.username &&
+            !url.password &&
+            !url.search &&
+            !url.hash &&
+            url.pathname === '/' &&
+            url.hostname !== 'localhost' &&
+            !url.hostname.endsWith('.localhost') &&
+            !url.hostname.endsWith('.local') &&
+            !/^[\d.]+$/.test(url.hostname) &&
+            !url.hostname.includes(':')
+          );
+        } catch {
+          return false;
+        }
+      }, 'BULLETIN_MEDIA_RPC_URL must be a public credential-free HTTPS RPC origin')
+      .optional()
+  ),
   MEDIA_EDGE_URL: z.preprocess(
     value => (typeof value === 'string' && value.trim() === '' ? undefined : value),
     z

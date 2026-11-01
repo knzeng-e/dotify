@@ -1,3 +1,5 @@
+import { CID } from 'multiformats/cid';
+
 /** Public ciphertext endpoints only: never accept a token-bearing cache URL. */
 export function mediaEdgeOrigin(value: string | undefined): string | undefined {
   if (!value?.trim()) return undefined;
@@ -28,4 +30,13 @@ export function streamingObjectUrls(cid: string, path: string, options: { edge?:
       ...options.gateways
     ])
   ];
+}
+/** Storage identity comes from the registered reference, never a user URL. */
+export function isBulletinMediaRoot(value: string): boolean {
+  try {
+    const cid = CID.parse(value);
+    return cid.version === 1 && cid.code === 0x70 && cid.multihash.code === 0xb220 && cid.multihash.digest.length === 32;
+  } catch {
+    return false;
+  }
 }

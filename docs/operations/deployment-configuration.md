@@ -2325,6 +2325,47 @@ See [activation, bounds, cost, purge and rollback](media-cdn.md) and
 is documented as Host CID storage/retrieval, not asserted to be an audio CDN or
 an ordinary-Web replacement. No account, plan or live configuration was changed.
 
+### Bulletin application read path, 2026-11-01
+
+[ADR 0042](../adr/0042-bulletin-application-readers.md) connects the actual player
+to BLAKE2b-addressed encrypted objects. Product builds in Host mode lazily use
+native Cloud Storage raw preimages. Ordinary Web and native recovery use the
+existing `/api/media/:cid/stream/*` route; both keep the ordinary key/access flow.
+No raw-block public endpoint, extra hosting service or browser secret is added.
+
+`BULLETIN_MEDIA_RPC_URL` is optional, **server-only**, and defaults to unset.
+A verified DevNet candidate is `https://bulletin-paseo.tservices.es:8443`.
+Only public credential-free HTTPS origins without paths/query/fragment are
+accepted; an explicit HTTPS port is allowed. The adapter sends only genesis
+lookup and raw-block reads, refuses redirects and pins genesis
+`0xe101f0fa4627d29a257645e02be86d80378fea1a2bf8fa6a918d150ebc760a59`.
+Configure the same value on each public API replica when activating the reader;
+existing API CORS origins and service topology remain unchanged. The setting
+selects **reads only**, not the publication worker's provider or signer.
+
+The API still admits only active catalog references and playback paths, with
+no-store responses. Verified ciphertext block caching is process-local,
+32 entries / 2 MiB / 30 seconds. Node responses, complete objects and concurrent
+reads remain bounded; caller disconnect cancels upstream fetches. In the Host,
+at most two actual SDK lookups can remain outstanding even when a caller stops
+waiting. Bulletin references do not retry Pinata/edge origins. Unset RPC means
+explicitly unavailable Web/recovery delivery; it cannot bypass key checks.
+
+Before activation, review the production writer's persistent custody and exact
+storage/retention allowance. A fresh real-runtime scope and signed access/key
+fixture must pass Web, Desktop and mobile protected playback and denial checks.
+Existing Pinata references keep the deployed development app working during
+preparation; the owner's target is a coordinated fresh Bulletin catalogue and
+runtime deployment. No historical-runtime migration layer is introduced.
+
+Before registered Bulletin content, rollback is the previous bundle with this
+setting unset. After registration, preserve a compatible reader or coordinate
+another fresh catalogue/runtime switch; simply removing the RPC origin would
+break Web access to those references. Do not delete retained data or repeat
+payments during a rollback. The [completed canary evidence](../backlog/implementation/evidence/bulletin-application-readers-2026-11-01.md)
+proves generated storage/readback, not production access, retention, cold first
+sound or representative-release costs. No live deployment setting changed here.
+
 ### First-sound candidate evidence
 
 Every ordinary Vite build now embeds its exact git SHA in

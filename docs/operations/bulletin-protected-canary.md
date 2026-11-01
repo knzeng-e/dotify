@@ -195,3 +195,14 @@ representative-release costs, cold audible startup, background recovery and
 recurring retention remain open. To stop the experiment, stop its operator;
 retain all custody and publication duties. No production rollback is needed
 because no provider is selected by this tooling.
+
+## Recorded run, November 1
+
+The original generated-only package is now complete: 16 stores / 713,229 bytes,
+16 independently verified sender/nonce receipts, no pending submissions, and
+three authenticated/decoded AAC renditions. The signer was removed. See the
+[completed application/readback evidence](../backlog/implementation/evidence/bulletin-application-readers-2026-11-01.md).
+The original store allowance is consumed; do not rerun it as a new budget.
+The 16 renewal slots remain reserved alongside the previous 91, without renewal
+being sent or scheduled. Real artist registration/private access and recurring
+retention require a separate reviewed plan.

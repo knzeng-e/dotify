@@ -224,18 +224,18 @@ No new publication or signer use occurred. Private-state/client composition,
 an approved protected-canary budget, measured throughput and recurring retention
 still precede any provider activation.
 
-## Private Bulletin canary: partial network run, 2026-11-01
+## Bulletin application readers and completed canary, 2026-11-01
 
-The [private operator package](../adr/0041-private-bulletin-canary-package.md)
-binds generated encrypted audio, nonce custody, account and allowances to one
-review digest. Its [local evidence](implementation/evidence/bulletin-protected-package-2026-11-01.md)
-records 16 proposed stores / 713,229 bytes, offline recovery and a signer-free
-quota check. The authorized [first network run](implementation/evidence/bulletin-protected-partial-run-2026-11-01.md)
-stopped after two confirmed stores; read-only recovery authenticated both and
-left no unknown pending submissions. Fourteen stores remain. The reporting and
-finality repair needs review, green CI and exact source approval before resuming
-the unchanged artifact. Real protected Web/Host acceptance and recurring
-retention still precede provider activation.
+The [completed private canary](implementation/evidence/bulletin-application-readers-2026-11-01.md)
+confirms **16 stores / 713,229 bytes**, all exact sender/nonces and authenticated
+three-rendition AAC readback. The actual player now has native Host delivery and
+an existing-API Web relay for the same Bulletin objects; keys still require
+canonical access. The reader integration prepared for review does not activate the
+production publisher. Next: prepare a fresh runtime-bound protected fixture,
+review custody/provider activation and test real Web/Desktop/mobile playback.
+Cold audible startup, representative costs and recurring retention remain open.
+The owner chose a fresh internal Bulletin catalogue rollout; the deployed
+Pinata app keeps working while that coordinated switch is prepared.
 
 ## Production readiness rule
 
