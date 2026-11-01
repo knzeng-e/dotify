@@ -87,6 +87,13 @@ documentation links, backlog synchronization and diff whitespace checks pass.
 The follow-up IPFS prewarmer guard skips Bulletin roots; its five targeted
 regression checks and API type checking pass as well.
 
+The first CI attempt exposed the isolated lab server's older dependency
+optimizer target: the SDK logger's top-level await could not compile there,
+then the failed startup retained its listener until the job deadline. The lab
+server now uses the application's existing `esnext` build/optimizer target.
+All six real AAC browser/server controls pass locally after that correction;
+loopback-only admission and native-no-fallback assertions are unchanged.
+
 Validation results and final implementation revision are recorded on the PR.
 
 ## Remaining activation gates

@@ -77,6 +77,9 @@ export async function serveFixture(directory) {
     envPrefix: 'CANARY_PUBLIC_',
     root: join(here, 'host'),
     publicDir: false,
+    // Match the application's SDK target, including its top-level await.
+    build: { target: 'esnext' },
+    optimizeDeps: { esbuildOptions: { target: 'esnext' } },
     resolve: {
       alias: {
         '@parity/product-sdk/cloud-storage': join(sdkDist, 'cloud-storage/index.js'),
