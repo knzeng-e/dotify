@@ -1,5 +1,14 @@
 import { encryptedMediaCid } from './encryptedMedia.js';
 import type { CatalogSnapshot } from './catalog/types.js';
+import { CID } from 'multiformats/cid';
+
+function isBulletinRoot(cid: string) {
+  try {
+    return CID.parse(cid).multihash.code === 0xb220;
+  } catch {
+    return false;
+  }
+}
 
 /** Ciphertext-only warming after durable confirmed catalog sync. Max 8 jobs /
  * minute, 2 concurrent jobs, 7 fixed objects/job and 3 attempts/CID/process.
@@ -60,7 +69,9 @@ export function createMediaPrewarmer(edge: string, fetchImpl: typeof fetch = fet
         snapshot.releases
           .filter(release => release.active && release.encrypted)
           .map(release => encryptedMediaCid(release.audioRef))
-          .filter((cid): cid is string => cid !== null)
+          // This configured edge warms IPFS content. Bulletin has its own
+          // native/API read path; do not probe unrelated Pinata origins.
+          .filter((cid): cid is string => cid !== null && !isBulletinRoot(cid))
           .slice(0, 2000)
       );
       for (const cid of seen.keys()) if (!current.has(cid)) seen.delete(cid);

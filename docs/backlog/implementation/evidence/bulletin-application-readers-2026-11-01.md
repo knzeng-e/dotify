@@ -84,6 +84,8 @@ streaming-browser checks in Chromium/WebKit. Lint has zero errors and the two
 existing `App.tsx` hook warnings; builds retain existing large-chunk,
 Browserslist-age and pure-annotation warnings. Changed source formatting,
 documentation links, backlog synchronization and diff whitespace checks pass.
+The follow-up IPFS prewarmer guard skips Bulletin roots; its five targeted
+regression checks and API type checking pass as well.
 
 Validation results and final implementation revision are recorded on the PR.
 

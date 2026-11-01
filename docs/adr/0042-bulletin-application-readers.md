@@ -20,6 +20,8 @@ object. No additional hosting service, RPC SDK or browser signer is introduced.
 Host failure can recover through this same API; Bulletin roots never spend
 retry time against unrelated Pinata/edge origins. Caller cancellation cannot
 start recovery work. An unconfigured API returns an explicit unavailable error.
+The existing IPFS edge prewarmer also skips Bulletin roots rather than issuing
+background probes to that unrelated origin.
 
 The player still obtains a key through the existing canonical release/access
 service, authenticates the manifest and decrypts each selected segment. A CID

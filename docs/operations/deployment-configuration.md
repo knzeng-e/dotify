@@ -2350,6 +2350,8 @@ reads remain bounded; caller disconnect cancels upstream fetches. In the Host,
 at most two actual SDK lookups can remain outstanding even when a caller stops
 waiting. Bulletin references do not retry Pinata/edge origins. Unset RPC means
 explicitly unavailable Web/recovery delivery; it cannot bypass key checks.
+The configured IPFS edge prewarmer skips Bulletin roots as well; this change
+does not add background Bulletin reads or another warming service.
 
 Before activation, review the production writer's persistent custody and exact
 storage/retention allowance. A fresh real-runtime scope and signed access/key
