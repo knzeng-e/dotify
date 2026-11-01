@@ -902,7 +902,37 @@ test('read-only recovery can finish a fully committed graph but cannot publish m
   assert.equal(d.transport.writes.length, 0);
 });
 
-test('exact allowance covers a bounded pipeline; changing quota halts before another wave', async t => {
+test('an exact store allowance publishes all 16 blocks and permits a read-only repeat while reserving renewals', async t => {
+  const c = await fixture(t);
+  assert.equal(c.graph.blocks.length, 16);
+  const options = { ...c.options, budget: { ...budget, maxTransactions: 16, maxBytes: c.graph.bytes } };
+  const store = createBulletinMediaStore(options);
+  c.transport.authorization.remainingTransactions = 32;
+  c.transport.authorization.remainingBytes = c.graph.bytes;
+  c.transport.authorization.remainingRenewBytes = c.graph.bytes;
+  await store.pin(c.files, c.job, signal());
+  assert.equal(c.transport.writes.length, 16);
+  assert.equal(c.transport.authorization.remainingTransactions, 16);
+  assert.equal((await store.inventory(c.job)).attemptedStores, 16);
+  await createBulletinMediaStore(options).pin(c.files, c.job, signal());
+  assert.equal(c.transport.writes.length, 16, 'A completed repeat must not replenish or consume store attempts');
+  assert.equal((await store.inventory(c.job)).ready, true);
+});
+
+test('store allowance and live renewal quota each refuse admission before a write', async t => {
+  for (const short of ['allowance', 'renewal-quota'] as const) {
+    const c = await fixture(t);
+    const store = createBulletinMediaStore({ ...c.options, budget: { ...budget, maxTransactions: c.graph.blocks.length - (short === 'allowance' ? 1 : 0) } });
+    c.transport.authorization.remainingTransactions = c.graph.blocks.length * 2 - (short === 'renewal-quota' ? 1 : 0);
+    await assert.rejects(store.pin(c.files, c.job, signal()), short === 'allowance' ? /allowance exhausted/ : /quota including renewal reserve/);
+    assert.equal(c.transport.writes.length, 0);
+    const inventory = await store.inventory(c.job);
+    assert.equal(inventory.attemptedStores, 0);
+    assert.deepEqual(inventory.pending, {});
+  }
+});
+
+test('exact account quota covers a bounded pipeline; changing quota halts before another wave', async t => {
   const c = await fixture(t);
   c.transport.authorization.remainingTransactions = 2 * c.graph.blocks.length;
   c.transport.authorization.remainingBytes = c.graph.bytes;

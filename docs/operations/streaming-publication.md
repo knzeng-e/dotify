@@ -171,6 +171,15 @@ and custody safely; do not erase them as part of an application rollback.
 
 ## Diagnosing a failed preparation
 
+Cover and release-metadata uploads can fail independently of the audio job.
+Their correction candidate preserves `UPLOAD_STORAGE_FAILED` / HTTP 502 and
+adds `failure.stage` plus an optional `failure.storageStatus` (400–599); custody
+logs the same allowlisted fields. Never log raw provider errors/bodies. A
+401/403 needs account/permission/usage inspection; do not infer which limit is
+responsible from the status alone. The client must not call music saved while
+its asset stage is incomplete. See the [pilot diagnosis and regression](../backlog/implementation/evidence/bulletin-pilot-admission-fix-2026-11-01.md).
+
+
 A storage failure does not imply an encoder failure. On the recovery candidate,
 owned job status may include `failure.stage` and `failure.storageStatus`.
 Custody logs `STREAMING_PREPARATION_FAILED` with only the job ID and those

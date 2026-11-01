@@ -190,6 +190,18 @@ describe('release publication disclosure helpers', () => {
     expect(complete?.every(step => step.status === 'complete')).toBe(true);
   });
 
+  it('does not claim music is saved before both assets complete', () => {
+    expect(buildReleasePublicationRoadmap('assets')?.[0]).toMatchObject({
+      label: 'Save your music',
+      detail: 'Protect the audio and save the cover before publication.',
+      status: 'active'
+    });
+    expect(buildReleasePublicationRoadmap('manifest')?.[0]).toMatchObject({ label: 'Music ready', status: 'complete' });
+    const blocked = buildReleaseRegistrationFailureMessage({ error: 'The storage account needs attention before you retry.' });
+    expect(blocked).not.toContain('so you can retry');
+    expect(blocked).toContain('draft are still here.');
+  });
+
   it('distinguishes recoverable draft failures from submitted transactions awaiting catalog evidence', () => {
     const draftFailure = buildReleaseRegistrationFailureMessage({ error: 'User rejected the request.' });
     const catalogFailure = buildReleaseRegistrationFailureMessage({
