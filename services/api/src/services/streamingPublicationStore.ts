@@ -6,6 +6,7 @@ import { createBulletinMediaStore, type BulletinMediaTransport } from './bulleti
 import { jobSchema, load, ownerSchema, privateDirectory, sync } from './bulletinMediaState.js';
 import { assertPublicationBinding, readBulletinPublisherProfile, type BulletinPublisherProfile } from './bulletinPublisherProfile.js';
 import { pinFilesToPinata, type PinataFile } from './pinata.js';
+import { parseStreamingManifest } from './streamingFormat.js';
 import type { BulletinSigner } from './bulletinPapiTransport.js';
 type Reserve = { transactions: number; bytes: number };
 export type PublicationStore = {
@@ -105,6 +106,13 @@ export async function createStreamingPublicationStore(
         await assertPublicationBinding(options.queue, profile);
         const { owner } = await inventories(profile);
         assert.ok(!owner.activeJob || owner.activeJob === name, 'Previous publication requires reconciliation');
+        if (profile.pilotScope) {
+          assert.ok(!owner.jobs.length || (owner.jobs.length === 1 && owner.jobs[0] === name), 'Bulletin pilot already owns its one publication');
+          const bytes = files.find(file => file.path === 'manifest.json')?.bytes;
+          assert.ok(bytes, 'Bulletin pilot manifest required');
+          const { chainId, runtimeAddress, contentHash, keyVersion } = parseStreamingManifest(bytes);
+          assert.deepEqual({ chainId, runtimeAddress, contentHash, keyVersion }, profile.pilotScope, 'Release is outside the Bulletin pilot scope');
+        }
         const reserved = await retainedPublicationReserve(profile, name);
         const session = selected.openSession(profile, signer!, reserved);
         activeSession = session;

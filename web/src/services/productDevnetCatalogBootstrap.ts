@@ -4,20 +4,71 @@ import type { CatalogApiResponse } from './catalog';
 export const PRODUCT_DEVNET_BOOTSTRAP_PRODUCT_ID = 'dotify-test01.dot';
 
 export const PRODUCT_DEVNET_BOOTSTRAP_CATALOG: CatalogApiResponse = {
-  items: [],
-  artists: [],
+  items: [
+    {
+      id: '0xdcF6b75E4185E99a830878D044dC76372c556819:0xda00c99152af2b9f057e92ae90a11741a0bd2ed29807806d25ccd833199f1eb3',
+      hash: '0xda00c99152af2b9f057e92ae90a11741a0bd2ed29807806d25ccd833199f1eb3',
+      runtimeAddress: '0xdcF6b75E4185E99a830878D044dC76372c556819',
+      artistAddress: '0xC3571714248588C6E19cDECe2778B75341b2c288',
+      tokenId: '1',
+      title: 'Adang Fobe',
+      artist: 'Lord Ékomy Ndong ☥',
+      description:
+        "\"Adang Fob\"  est une allégorie poétique et engagée, qui retrace la longue marche des peuples vers l'émancipation. À travers la figure mystique d'Adang Fob, un esprit de vérité et d'équité, l'artiste gabonais utilise la tradition orale et la métaphore pour dénoncer l'oppression politique et la persécution des justes. Ce morceau résonne ainsi comme un vibrant hommage à la mémoire, à la résilience et à la quête universelle de liberté.",
+      imageRef: 'ipfs://QmQEkYGFqbS7AV58HrTgqfwPpSeQJMh4MeeSY1RwWRtVhu/cover/640.webp',
+      coverVariants: ['ipfs://QmQEkYGFqbS7AV58HrTgqfwPpSeQJMh4MeeSY1RwWRtVhu/cover/640.webp'],
+      audioRef: 'dotify:enc:v3:key-v2:ipfs://QmNMeCfDZifNmmesCRcgN7eqVt1qufeUUpXNW15GfeiCVG',
+      metadataRef: 'ipfs://QmeJg5pyTUvRUwqUgcgPG6mvac94yuueDuf7t248uzSA9b',
+      bulletinRef: '',
+      artistContractRef: 'dotify:self-certified:0xda00c99152af2b9f057e92ae90a11741a0bd2ed29807806d25ccd833199f1eb3',
+      accessMode: 'free',
+      priceWei: '0',
+      priceDot: '0',
+      personhoodLevel: 'DIM1',
+      active: true,
+      encrypted: true,
+      royaltyBps: 10000,
+      royaltySplits: [
+        {
+          label: 'Primary recipient',
+          recipient: '0xC3571714248588C6E19cDECe2778B75341b2c288',
+          bps: 10000
+        }
+      ],
+      registeredAtBlock: 15045167,
+      sourceBlock: 15045167
+    }
+  ],
+  artists: [
+    {
+      artistAddress: '0xC3571714248588C6E19cDECe2778B75341b2c288',
+      runtimeAddress: '0xdcF6b75E4185E99a830878D044dC76372c556819',
+      name: 'Lord Ékomy Ndong ☥',
+      releaseCount: 1,
+      activeReleaseCount: 1,
+      latestReleaseBlock: 15045167
+    },
+    {
+      artistAddress: '0x2f6BF01a6708C927b288a53B9fE3f9edc689FF56',
+      runtimeAddress: '0x05C643A1eD0e75C8A3486410f13BC4597c2674D7',
+      name: '0x2f6BF01a6708C927b288a53B9fE3f9edc689FF56',
+      releaseCount: 0,
+      activeReleaseCount: 0,
+      latestReleaseBlock: 0
+    }
+  ],
   pagination: {
-    limit: 100,
+    limit: 5,
     nextCursor: null,
-    total: 0
+    total: 1
   },
   meta: {
     state: 'stale-cache',
     cacheAvailable: true,
-    indexedAt: '2026-10-29T00:12:01.688139+00:00',
-    lastIndexedBlock: 15040310,
-    chainHeadBlock: 15040310,
-    blockLag: 0,
+    indexedAt: '2026-11-01T13:15:08.266Z',
+    lastIndexedBlock: 15188788,
+    chainHeadBlock: 15188790,
+    blockLag: 2,
     staleAfterMs: 60000,
     lastErrorCode: null
   }

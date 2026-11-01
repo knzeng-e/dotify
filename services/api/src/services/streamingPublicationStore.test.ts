@@ -12,9 +12,12 @@ import { loadBulletinSigner } from './bulletinPublicationSession.js';
 import { BULLETIN_MEDIA_GENESIS } from './bulletinHttpReader.js';
 import { jobSchema, save } from './bulletinMediaState.js';
 import { initializeStreamingJobs, StreamingJobs } from './streamingJobs.js';
-import type { BulletinMediaTransport } from './bulletinMedia.js';
+import type { BulletinMediaTransport, BulletinSubmissionReceipt } from './bulletinMedia.js';
+import { blake2b } from '@noble/hashes/blake2';
+import { encodeStreamingRelease } from './streamingEncoder.js';
+import { StreamingNonceLedger } from './streamingNonces.js';
 
-async function setup(t: TestContext) {
+async function setup(t: TestContext, pilotScope?: BulletinPublisherProfile['pilotScope']) {
   const root = await mkdtemp(join(tmpdir(), 'dotify-publication-test-'));
   t.after(() => rm(root, { recursive: true, force: true }));
   const seed = Buffer.alloc(32, 47); // Only a generated, non-live test identity.
@@ -31,7 +34,8 @@ async function setup(t: TestContext) {
     seedFile: join(root, 'keys', 'storage.seed'),
     budget: { maxBytes: 1024 * 1024, maxTransactions: 64, minimumLifetimeBlocks: 100 },
     pipeline: { concurrency: 2, maxInFlightBytes: 512 * 1024 },
-    priorRenewalReserve: { transactions: 107, bytes: 20 * 1024 * 1024 }
+    priorRenewalReserve: { transactions: 107, bytes: 20 * 1024 * 1024 },
+    ...(pilotScope ? { pilotScope } : {})
   };
   const file = join(root, 'profile.json');
   await mkdir(join(root, 'keys'), { mode: 0o700 });
@@ -253,4 +257,94 @@ it('failed publication files cannot be discarded or pruned while recovery is req
   assert.equal(jobs.get(id, owner, 1)?.state, 'failed');
   assert.equal(await readFile(join(directory, 'jobs', id, 'source.bin'), 'utf8'), 'ciphertext-17byte');
   await jobs.stop();
+});
+
+it('a scoped pilot rejects other identities and new jobs before a write session; its original job remains retryable after restart', async t => {
+  const master = Buffer.from('generated test data only');
+  const scope = {
+    chainId: 420420417,
+    runtimeAddress: `0x${'22'.repeat(20)}`,
+    contentHash: `0x${Buffer.from(blake2b(master, { dkLen: 32 })).toString('hex')}`,
+    keyVersion: 'dotify-content-key-v2'
+  };
+  const c = await setup(t, scope);
+  const key = Buffer.alloc(32, 29);
+  const encoded = await encodeStreamingRelease({
+    master,
+    key,
+    scope,
+    ledger: new StreamingNonceLedger(join(c.queue, 'nonces')),
+    transcode: async () => ({
+      durationSeconds: 8,
+      integratedLufs: -18,
+      gainDb: 2,
+      renditions: ([96, 160, 320] as const).map(bitrateKbps => ({
+        bitrateKbps,
+        init: Buffer.from('structural fixture'),
+        segments: [Buffer.alloc(48, 1), Buffer.alloc(48, 2)]
+      }))
+    })
+  });
+  key.fill(0);
+  const files = encoded.files.map(f => ({ path: f.name, bytes: f.bytes }));
+  const original = 'stream-11111111-1111-4111-8111-111111111111';
+  const other = 'stream-22222222-2222-4222-8222-222222222222';
+  let store = await createStreamingPublicationStore(c.options, c.deps);
+  for (const patch of [
+    { chainId: 1 },
+    { runtimeAddress: `0x${'33'.repeat(20)}` },
+    { contentHash: `0x${'33'.repeat(32)}` },
+    { keyVersion: 'dotify-content-key-v3' }
+  ]) {
+    const changed = files.map(f => (f.path === 'manifest.json' ? { ...f, bytes: Buffer.from(JSON.stringify({ ...encoded.manifest, ...patch })) } : f));
+    await assert.rejects(store.pin(changed, original, new AbortController().signal), /outside the Bulletin pilot scope/);
+  }
+  assert(!c.events.includes('write-session'));
+  const stored = new Map<string, { bytes: Uint8Array; receipt: BulletinSubmissionReceipt }>();
+  let head = 1000;
+  c.transport.status = async () => ({
+    head,
+    authorization: { expiresAt: 2000, remainingBytes: 100_000_000, remainingTransactions: 1000, remainingRenewBytes: 100_000_000 }
+  });
+  c.transport.nextNonce = async () => ({ nonce: 10 + stored.size, head });
+  c.transport.store = async (block, intent) => {
+    assert(!stored.has(block.cid), 'A completed pilot retry must not store again');
+    const receipt: BulletinSubmissionReceipt = {
+      cid: block.cid,
+      bytes: block.bytes.length,
+      account: c.profile.account,
+      nonce: intent.nonce,
+      block: ++head,
+      index: stored.size,
+      expiresAt: 2000,
+      finalized: true
+    };
+    stored.set(block.cid, { bytes: block.bytes, receipt });
+    return receipt;
+  };
+  c.transport.lookup = async cid => {
+    const receipt = stored.get(cid)?.receipt;
+    if (!receipt) return null;
+    const { account: _account, nonce: _nonce, ...retained } = receipt;
+    return retained;
+  };
+  c.transport.lookupSubmission = async intent => stored.get(intent.cid)?.receipt ?? null;
+  c.transport.readBlock = async cid => {
+    const value = stored.get(cid);
+    assert(value);
+    return value.bytes;
+  };
+  const root = await store.pin(files, original, new AbortController().signal);
+  const writes = stored.size;
+  assert(writes > 0);
+  await store.close();
+  store = await createStreamingPublicationStore(c.options, c.deps);
+  c.events.length = 0;
+  await assert.rejects(store.pin(files, other, new AbortController().signal), /one publication/);
+  assert(!c.events.includes('write-session'));
+  assert.equal(await store.pin(files, original, new AbortController().signal), root);
+  assert.equal(stored.size, writes);
+  await store.close();
+  await writeFile(c.file, JSON.stringify({ ...c.profile, pilotScope: undefined }));
+  await assert.rejects(createStreamingPublicationStore(c.options, c.deps), /profile changed/);
 });
