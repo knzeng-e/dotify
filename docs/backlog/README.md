@@ -1,5 +1,17 @@
 # Dotify Production Backlog
 
+## Product 0.1.69 deployment, 2026-11-02
+
+The [verified rollout](implementation/evidence/product-0.1.69-rollout-2026-11-02.md) updates Web, Product and the existing API/custody
+services, and activates one bounded Bulletin cover/metadata policy without Pinata
+fallback. The artist no longer chooses an optional archive. The preserved synthetic
+audio job still has three exhausted attempts; controlled recovery of its saved
+encrypted output is next, before ordinary registration and protected physical-device
+acceptance. No allowance/counter reset, new service or key installation occurred.
+Conservation monitoring/renewal and off-volume restore remain open; Capacity stays
+deferred research. Older checkpoints below retain their dated meaning.
+
+
 ## Bulletin publication UX, 2026-11-02
 
 The [publication cleanup](implementation/evidence/bulletin-publication-ux-2026-11-02.md) removes the obsolete optional client archive

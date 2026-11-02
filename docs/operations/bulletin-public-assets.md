@@ -1,6 +1,6 @@
 # Prepare Bulletin covers and metadata
 
-Read [ADR 0044](../adr/0044-bulletin-public-release-assets.md). This is a review candidate, not activation or permission to write. Keep the existing publisher/queue, nonce history, receipts and installed signer; never reinitialize them to add assets.
+Read [ADR 0044](../adr/0044-bulletin-public-release-assets.md). The existing synthetic pilot is now activated in [Product 0.1.69](../backlog/implementation/evidence/product-0.1.69-rollout-2026-11-02.md). The procedure below is a runbook for explicitly approved operations, not permission to add or replace a policy. Keep the existing publisher/queue, nonce history, receipts and installed signer; never reinitialize them to add assets.
 
 1. Include the merged #375 correction in the rollout and review the existing failed audio job's separate controlled recovery. The public-asset extension does not restore exhausted processing attempts.
 2. Prepare private 0700/0600 policy storage owned by custody UID 1000. Match the existing lowercase artist address and exact audio pilot scope. Choose separately reviewed attempted-store/byte ceilings for one cover and one metadata directory; count all raw/file/directory blocks and reserve future renewal transactions/bytes alongside every prior obligation. A source upload's byte grant does not include generated variants or DAG overhead.
