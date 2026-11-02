@@ -153,3 +153,11 @@ Rollback: stop and await custody, preserve pending Bulletin state, then restore
 the old Pinata selector **and its old queue path**. Do not open a Bulletin-bound
 queue under Pinata or erase its profile to bypass the binding. Existing
 Bulletin releases still require their read path, key service and retention.
+
+## Exhausted job with saved authenticated output
+
+The [prepared-job recovery runbook](bulletin-prepared-job-recovery.md) adds a
+maintenance-only inspected continuation for the existing exhausted pilot. It
+keeps preparation attempts at three and reuses the original inventory, bytes
+and caps. Ordinary artist retry remains unchanged; there is no force-unlock,
+re-encoding fallback or counter reset. Implementation is not live execution.
