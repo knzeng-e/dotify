@@ -296,3 +296,13 @@ stays open and broader artist publication is not enabled by this pilot.
 ## Public Bulletin assets, 2026-11-01
 
 The owner selected completing [covers and metadata on Bulletin](evidence/bulletin-public-assets-2026-11-01.md) after confirming the Pinata free-plan file limit. The implementation reuses custody and its account nonce journal, with separate bounded asset allowances and native Host/existing API reads. It is not deployed. The admission correction #375 is merged; preserve/recover the failed audio job, review a new exact asset-write budget, then verify protected Web/Host publication and listening. No prior audio allowance or state is reset.
+
+## Prepared Bulletin recovery, 2026-11-02
+
+The [prepared-job recovery](evidence/bulletin-prepared-job-recovery-2026-11-02.md) adds a maintenance-only inspection and exact-plan continuation
+of an exhausted existing pilot. It authenticates saved output and reuses the
+original inventory/cumulative allowance without resetting three preparation
+attempts. This is implemented locally, not deployed or executed. Next: reviewed
+live recovery, artist registration and protected Web/physical Host listening,
+then conservation/renewals and off-volume restore. W33/#288 remains open;
+Capacity stays deferred research.

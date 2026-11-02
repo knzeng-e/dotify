@@ -3414,3 +3414,15 @@ overwrite newer security writes with the pre-deployment snapshot.
 The [asset runbook](bulletin-public-assets.md) and [ADR 0044](../adr/0044-bulletin-public-release-assets.md) add optional custody-only `PUBLIC_ASSET_STORAGE=bulletin` plus `BULLETIN_PUBLIC_ASSET_POLICY`. Defaults remain Pinata. Assets require the existing Bulletin audio publisher, an explicitly initialized additive policy, unchanged private key placement and the same inventory/account nonce owner. No new service, subscription, key authority, CORS origin or Host permission is added. A reviewed budget must cover one cover and one metadata graph separately from audio, plus all renewal obligations. The initializer must run with custody stopped; it never repairs/replaces audio state.
 
 Public edges use their existing read-only `BULLETIN_MEDIA_RPC_URL` for `/api/assets/ipfs/:cid/*`: fixed public paths, supported image/strict metadata validation, two active requests, 20 s deadline, 5 MiB original/1 MiB variant/50 KiB metadata object limits and 64 raw-read cap. Successful immutable reads cache for one day; errors do not. Studio previews intentionally precede catalog registration. Clients must deploy the new CID resolver before publishing the new references. Host-aware fetch/cache paths use native preimages with existing API recovery; there is no Pinata fallback for Bulletin assets. Readiness no longer asks public edges or a fully Bulletin custody path for Pinata credentials, but does not establish live storage quota or retention. Rollback preserves policy/inventories/cursors and keeps readers for existing references. No setting or deployed state was changed by this candidate.
+
+## Prepared Bulletin job recovery: implementation only, 2026-11-02
+
+The [operator recovery command](bulletin-prepared-job-recovery.md) is built into
+the API image and requires the existing private custody configuration. It adds
+no setting, service, secret or schema migration. Stop/await custody for exclusive
+ownership before inspecting/executing one saved pilot; preserve additive private
+`STREAMING_STATE_PATH/recoveries/` audits with the queue, inventories, profile
+bindings and permanent nonce ledger. Do not restore stale journals over newer
+broadcasts. Restart normal custody and verify readiness afterward. Live recovery,
+artist registration and protected Web/physical Host acceptance are not performed
+by this implementation. Ordinary three-attempt retry limits remain unchanged.
