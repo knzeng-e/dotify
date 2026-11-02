@@ -254,3 +254,12 @@ attempts. This is implemented locally, not deployed or executed. Next: reviewed
 live recovery, artist registration and protected Web/physical Host listening,
 then conservation/renewals and off-volume restore. W33/#288 remains open;
 Capacity stays deferred research.
+
+## Completed prepared-pilot recovery, 2026-11-02 21:49 UTC
+
+The [approved custody intervention](evidence/bulletin-prepared-recovery-rollout-2026-11-02.md)
+recovered the original synthetic job: 16 stores / 712,737 bytes, exact canonical
+receipts and authenticated readback, attempts still three, zero pending. Private
+and public readiness are restored. Next: artist wallet registration and protected
+Web/physical Host acceptance, then conservation/renewal and off-volume recovery.
+W33/#288 stays open; Product/Web remain 0.1.69.

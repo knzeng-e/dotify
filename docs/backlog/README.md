@@ -527,3 +527,10 @@ The owner selected completing [covers and metadata on Bulletin](implementation/e
 continues an exhausted pilot from authenticated saved output under its existing
 allowance. It does not reset attempts or execute a live recovery. W33/#288 stays
 open for that operation, registration, protected Web/Host acceptance and conservation.
+
+## Recovered Bulletin pilot, 2026-11-02 21:49 UTC
+
+The [original prepared job is ready](implementation/evidence/bulletin-prepared-recovery-rollout-2026-11-02.md):
+16 stores / 712,737 bytes, verified receipts/readback, attempts preserved and
+custody readiness restored. Artist registration, protected Web/Host acceptance
+and conservation/restore remain open under W33/#288.

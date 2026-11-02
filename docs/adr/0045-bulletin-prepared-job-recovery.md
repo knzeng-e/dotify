@@ -1,6 +1,6 @@
 # ADR 0045: Recover a prepared Bulletin job without reopening encoding retries
 
-- Status: accepted for implementation; live execution remains a release gate
+- Status: implemented; [original synthetic pilot recovered](../backlog/implementation/evidence/bulletin-prepared-recovery-rollout-2026-11-02.md)
 - Scope: W33 / #288, the exhausted one-release synthetic pilot
 - Related: [publication ownership](0043-bulletin-artist-publication.md), [direct-store reconciliation](0040-bulletin-direct-store-receipts.md)
 
@@ -74,7 +74,8 @@ rejected in favor of a deliberate, inspectable operator action under existing
 storage caps. A broader self-service recovery workflow can be designed later
 from production experience.
 
-This implementation does not execute the deployed job, renew data, register a
-release or prove physical protected playback. No service interruption or live
+The implementation itself performs no automatic recovery on deployment. The
+separately approved intervention recovered the original pilot; renewal, artist
+registration and physical protected playback remain distinct acceptance gates. No service interruption or live
 transaction is performed by tests. Use the [operator runbook](../operations/bulletin-prepared-job-recovery.md)
 and exact deployment review before a real recovery.

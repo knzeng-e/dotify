@@ -321,3 +321,12 @@ plan. Three preparation attempts, storage caps, account cursors and nonce histor
 are preserved. There is no new artist action or public route. This implementation
 is not live recovery; artist approval and protected Web/physical Host acceptance
 remain open, followed by retention/restore work.
+
+## Synthetic pilot recovery completed, 2026-11-02 21:49 UTC
+
+The [approved API-only intervention](../backlog/implementation/evidence/bulletin-prepared-recovery-rollout-2026-11-02.md)
+made the original job ready through 16 verified stores / 712,737 bytes. Attempts
+remain three; custody and public readiness are restored. Product/Web stay 0.1.69.
+The artist must still resume the existing draft and approve registration.
+Protected physical/Web acceptance, conservation/renewal and off-volume restore
+remain gates; no broader artist allowance or automatic renewal is enabled.

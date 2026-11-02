@@ -1,0 +1,258 @@
+{
+  "scope": "existing eight-second synthetic pilot; private custody only",
+  "image": "registry.fly.io/dotify-api@sha256:b65048ffaf3b67bf2eda578f7a638e9faf1e8c12926370446f8cd0ca8d380219",
+  "ci": "https://github.com/knzeng-e/dotify/actions/runs/41527211697",
+  "maximumAuthorizedStores": 16,
+  "maximumAuthorizedBytes": 712737,
+  "actualAttemptedStores": 16,
+  "actualAttemptedBytes": 712737,
+  "preparationCounterReset": false,
+  "reencoded": false,
+  "newAllowance": false,
+  "renewalsSubmitted": 0,
+  "dotnsSignatures": 0,
+  "artistRegistrationSubmitted": false,
+  "webProductVersionUnchanged": "0.1.69",
+  "privateReadiness": {
+    "status": 200,
+    "ready": true,
+    "diagnostics": "ok"
+  },
+  "publicReadiness": {
+    "status": 200,
+    "ready": true,
+    "diagnostics": "ok"
+  },
+  "snapshot": {
+    "id": "vs_Xvy48DyvJL46f6lVJL9w8",
+    "createdAt": "2026-11-02T21:37:43Z",
+    "status": "created"
+  },
+  "quotaAfter": {
+    "head": 1478126,
+    "authorization": {
+      "expiresAt": 1621405,
+      "remainingTransactions": 286,
+      "remainingBytes": "79086012",
+      "remainingRenewBytes": "106084254"
+    }
+  },
+  "accountNonceAfter": 1085,
+  "planSha256": "862a1438e0f8b33a08723156eca4b95175dc218786b7d9d3bae2dcb7ee550b22",
+  "remainingGates": [
+    "artist wallet registration",
+    "protected allowed/denied Web and physical Host listening",
+    "retained-dependency monitoring and bounded renewals",
+    "off-volume encrypted-data and key recovery",
+    "representative publication timings and costs"
+  ],
+  "schema": "dotify.bulletin.prepared-recovery.rollout.v1",
+  "source": "b7f539f8d94a02cdfae48090fe76891fff9b076d",
+  "observedAt": "2026-11-02T21:49:04.623Z",
+  "networkStoresSubmitted": 16,
+  "storageSignerUsedInPrivateCustody": true,
+  "desktopSignerUsed": false,
+  "readback": {
+    "schema": "dotify.bulletin.prepared-recovery.readback.v1",
+    "observedAt": "2026-11-02T21:49:04.623Z",
+    "source": "b7f539f8d94a02cdfae48090fe76891fff9b076d",
+    "jobId": "c346a96f-d7f9-421b-b4f3-32923753e3b4",
+    "attempts": 3,
+    "state": "ready",
+    "ref": "dotify:enc:v3:key-v2:ipfs://bafykbzacedt5ltqhhtsffynpcfusxpxd6dlifcfsoyl6cld53lacraduyo2lw",
+    "root": "bafykbzacedt5ltqhhtsffynpcfusxpxd6dlifcfsoyl6cld53lacraduyo2lw",
+    "graphBlocks": 16,
+    "graphBytes": 712737,
+    "authenticatedObjects": 10,
+    "manifestAuthenticated": true,
+    "allRawBlocksMatch": true,
+    "allCanonicalSenderNonceReceipts": true,
+    "firstNonce": 1069,
+    "nextNonce": 1085,
+    "head": 1478104,
+    "earliestExpiry": 1679653,
+    "pending": 0,
+    "activeJob": null,
+    "receipts": [
+      {
+        "cid": "bafk2bzacebgbsb3lbs74swblzhwf5ry7ncox3wxtn6tf3zadj6onkc6z6pbv6",
+        "bytes": 781,
+        "block": 1478053,
+        "index": 0,
+        "expiresAt": 1679653,
+        "finalized": true,
+        "account": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+        "nonce": 1069
+      },
+      {
+        "cid": "bafk2bzacebhomi27eufakv6gexbcdjw2rwvuzmc4yjbpblevzil74r553ibmk",
+        "bytes": 80323,
+        "block": 1478053,
+        "index": 1,
+        "expiresAt": 1679653,
+        "finalized": true,
+        "account": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+        "nonce": 1070
+      },
+      {
+        "cid": "bafk2bzaceahtfrlew5pgglh4rpsu4rpu7gzofxp6m4vurcv6ayeke6slajmvi",
+        "bytes": 80901,
+        "block": 1478059,
+        "index": 0,
+        "expiresAt": 1679659,
+        "finalized": true,
+        "account": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+        "nonce": 1071
+      },
+      {
+        "cid": "bafk2bzacebo4nrf5xvxggxvoecexx6xpiecv6pc5bemmybthoc4w25vhovone",
+        "bytes": 781,
+        "block": 1478059,
+        "index": 1,
+        "expiresAt": 1679659,
+        "finalized": true,
+        "account": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+        "nonce": 1072
+      },
+      {
+        "cid": "bafykbzacebjbbeyumk5izx2phqvyzm5asfpiutacyq3f3bgqboadxzfn6vmcg",
+        "bytes": 185,
+        "block": 1478065,
+        "index": 0,
+        "expiresAt": 1679665,
+        "finalized": true,
+        "account": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+        "nonce": 1073
+      },
+      {
+        "cid": "bafk2bzaceapjsqaobxuf7eruxreh6ogrelircsebpt7gedxpq2rih4lxtixa6",
+        "bytes": 96933,
+        "block": 1478065,
+        "index": 1,
+        "expiresAt": 1679665,
+        "finalized": true,
+        "account": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+        "nonce": 1074
+      },
+      {
+        "cid": "bafk2bzacebc7neahor56urexgxzxlokstnnhthi46wjz6gdmic6hq4tw6vmpq",
+        "bytes": 96540,
+        "block": 1478071,
+        "index": 0,
+        "expiresAt": 1679671,
+        "finalized": true,
+        "account": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+        "nonce": 1075
+      },
+      {
+        "cid": "bafk2bzacecytxc4jufmkmygjrfsonu7qdpfwa6nqt5dvk5oe3lsetpg5wlhx2",
+        "bytes": 781,
+        "block": 1478071,
+        "index": 1,
+        "expiresAt": 1679671,
+        "finalized": true,
+        "account": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+        "nonce": 1076
+      },
+      {
+        "cid": "bafykbzacedisrppq4lvuxcnnsrniv3o35zfkekqrdsstfmnykmkvowhxnl6ta",
+        "bytes": 185,
+        "block": 1478077,
+        "index": 0,
+        "expiresAt": 1679677,
+        "finalized": true,
+        "account": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+        "nonce": 1077
+      },
+      {
+        "cid": "bafk2bzacebijov5v45hibmloqyyjrzqf5iquvhrohvf4iqw7vm6v6u5wayrtw",
+        "bytes": 48419,
+        "block": 1478077,
+        "index": 1,
+        "expiresAt": 1679677,
+        "finalized": true,
+        "account": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+        "nonce": 1078
+      },
+      {
+        "cid": "bafk2bzacebihjk54zx6qwp42yry5nremzfbl2se6gldbevkzppyjapykypvc6",
+        "bytes": 48340,
+        "block": 1478083,
+        "index": 0,
+        "expiresAt": 1679683,
+        "finalized": true,
+        "account": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+        "nonce": 1079
+      },
+      {
+        "cid": "bafk2bzacea2jbwr6qb442rkk4inywftr2yt5nujxvkptopch56fobkvwpaooo",
+        "bytes": 256060,
+        "block": 1478084,
+        "index": 0,
+        "expiresAt": 1679684,
+        "finalized": true,
+        "account": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+        "nonce": 1080
+      },
+      {
+        "cid": "bafykbzacec4gqoohzzjitqmp2lejm35bilolxwduundvp2kqxignbjpkvchlq",
+        "bytes": 185,
+        "block": 1478091,
+        "index": 0,
+        "expiresAt": 1679691,
+        "finalized": true,
+        "account": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+        "nonce": 1081
+      },
+      {
+        "cid": "bafykbzacebf6amgbajdkeekpf4qxepdftbhnwfljnwm7bovuc47d465qiih6s",
+        "bytes": 62,
+        "block": 1478091,
+        "index": 1,
+        "expiresAt": 1679691,
+        "finalized": true,
+        "account": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+        "nonce": 1082
+      },
+      {
+        "cid": "bafk2bzacecd7deyklbyr4c52v527du2zyoeusbtxvjmtiry5fxpjcruycceiw",
+        "bytes": 1990,
+        "block": 1478097,
+        "index": 0,
+        "expiresAt": 1679697,
+        "finalized": true,
+        "account": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+        "nonce": 1083
+      },
+      {
+        "cid": "bafykbzacedt5ltqhhtsffynpcfusxpxd6dlifcfsoyl6cld53lacraduyo2lw",
+        "bytes": 271,
+        "block": 1478103,
+        "index": 0,
+        "expiresAt": 1679703,
+        "finalized": true,
+        "account": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+        "nonce": 1084
+      }
+    ],
+    "signerUsed": false,
+    "networkWrites": 0,
+    "productionAccessTested": false
+  },
+  "restoredState": {
+    "schema": "dotify.prepared-recovery.restored-state.v1",
+    "observedAt": "2026-11-02T21:52:35.922Z",
+    "state": "ready",
+    "attempts": 3,
+    "unrelatedJobsUnchanged": true,
+    "permanentNonceLedgerUnchanged": true,
+    "profilesUnchanged": true,
+    "auditId": "prepared-recovery-db6849cf-f382-4411-b302-e0bbd832c277.json",
+    "auditState": "ready",
+    "originalJobPreservedInAudit": true,
+    "normalReadyCleanupCompleted": true,
+    "encryptedOutputPreservedInCoherentBackup": true,
+    "signerRead": false,
+    "networkWrites": 0
+  }
+}
