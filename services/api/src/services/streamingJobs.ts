@@ -51,6 +51,7 @@ const jobSchema = z
     reason: z.enum(['PREPARATION_FAILED', 'RETRY_LIMIT']).optional()
   })
   .strict();
+export const streamingJobsSchema = z.object({ schema: z.literal('dotify.streaming.jobs.v1'), jobs: z.array(jobSchema).max(MAX_JOBS) }).strict();
 export type StreamingJob = z.infer<typeof jobSchema>;
 export type StreamingJobView = Pick<StreamingJob, 'id' | 'state' | 'attempts' | 'updatedAt' | 'reason'> & {
   failure?: StreamingFailure;
@@ -153,10 +154,7 @@ export class StreamingJobs {
     if (this.initialized) throw new Error('Streaming queue already started');
     const file = path.join(this.deps.directory, 'jobs.json');
     if ((await stat(file)).size > 256 * 1024) throw new Error('Streaming queue metadata exceeds budget');
-    const data = z
-      .object({ schema: z.literal('dotify.streaming.jobs.v1'), jobs: z.array(jobSchema).max(MAX_JOBS) })
-      .strict()
-      .parse(JSON.parse(await readFile(file, 'utf8')));
+    const data = streamingJobsSchema.parse(JSON.parse(await readFile(file, 'utf8')));
     const marker = JSON.parse(await readFile(path.join(this.deps.directory, 'nonces', 'ledger.json'), 'utf8'));
     if (marker.schema !== 'dotify.streaming.nonce-ledger.v1') throw new Error('Streaming nonce custody unavailable');
     this.jobs = data.jobs;

@@ -57,6 +57,25 @@ export async function retainedPublicationReserve(profile: BulletinPublisherProfi
   assert.ok(Number.isSafeInteger(reserve.transactions) && Number.isSafeInteger(reserve.bytes), 'Invalid accumulated renewal reserve');
   return reserve;
 }
+/** Shared by custody and offline recovery. Never remove another owner's lock. */
+export async function acquireBulletinPublisherLock(profile: BulletinPublisherProfile): Promise<() => Promise<void>> {
+  await privateDirectory(profile.directory);
+  const lock = await open(join(profile.directory, 'publisher.lock'), 'wx', 0o600);
+  const release = async () => {
+    await lock.close();
+    await rm(join(profile.directory, 'publisher.lock'));
+    await sync(profile.directory);
+  };
+  try {
+    await lock.writeFile(JSON.stringify({ pid: process.pid }));
+    await lock.sync();
+    await sync(profile.directory);
+    return release;
+  } catch (error) {
+    await release();
+    throw error;
+  }
+}
 export async function createStreamingPublicationStore(
   options: {
     provider: 'pinata' | 'bulletin';
@@ -64,6 +83,9 @@ export async function createStreamingPublicationStore(
     profileFile?: string;
     assetPolicyFile?: string;
     assetAuthority?: (owner: PublicAssetOwner) => Promise<boolean>;
+    /** Trusted operator composition: authenticate a saved recovery plan while
+     * holding the publisher lease, before the private signer is loaded. */
+    validateBeforeSigner?: () => Promise<void>;
   },
   deps?: PublisherDependencies
 ): Promise<PublicationStore> {
@@ -85,20 +107,15 @@ export async function createStreamingPublicationStore(
   const selected: PublisherDependencies = deps ?? { loadSigner: sessionModule!.loadBulletinSigner, openSession: sessionModule!.openBulletinPublicationSession };
   await privateDirectory(profile.directory);
   await assertPublicationBinding(options.queue, profile);
-  const lock = await open(join(profile.directory, 'publisher.lock'), 'wx', 0o600);
+  const unlock = await acquireBulletinPublisherLock(profile);
   let signer: BulletinSigner | undefined;
   let closed = false;
   let activeSession: ReturnType<PublisherDependencies['openSession']> | undefined;
   const release = async () => {
     signer?.dispose();
-    await lock.close();
-    await rm(join(profile.directory, 'publisher.lock'));
-    await sync(profile.directory);
+    await unlock();
   };
   try {
-    await lock.writeFile(JSON.stringify({ pid: process.pid }));
-    await lock.sync();
-    await sync(profile.directory);
     // Read-only preflight before opening the private key. Startup never signs.
     const reserve = await retainedPublicationReserve(profile);
     const preflight = selected.openSession(profile, null, reserve);
@@ -109,6 +126,7 @@ export async function createStreamingPublicationStore(
     } finally {
       preflight.close();
     }
+    await options.validateBeforeSigner?.();
     signer = await selected.loadSigner(profile);
     assert.equal(signer.account, profile.account, 'Publication signer identity changed');
   } catch (error) {

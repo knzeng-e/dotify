@@ -218,3 +218,12 @@ brand assets, README and public project presentation. Supporting copy must not
 replace it with a new slogan unless the owner explicitly changes the direction.
 
 Make music social again without dispossessing the artist.
+
+## Prepared Bulletin recovery, 2026-11-02
+
+[Maintenance-only recovery](../operations/bulletin-prepared-job-recovery.md)
+authenticates existing output and binds an operator continuation to an inspected
+plan. Three preparation attempts, storage caps, account cursors and nonce history
+are preserved. There is no new artist action or public route. This implementation
+is not live recovery; artist approval and protected Web/physical Host acceptance
+remain open, followed by retention/restore work.

@@ -244,3 +244,13 @@ budget defect before any Bulletin audio write. The correction separates the
 diagnostics and honest progress text distinguish the failure paths. Review,
 deployment, controlled recovery of the exhausted existing job and protected
 physical acceptance remain gates. No queue/nonce reset or new allowance is implied.
+
+## Prepared Bulletin recovery, 2026-11-02
+
+The [prepared-job recovery](evidence/bulletin-prepared-job-recovery-2026-11-02.md) adds a maintenance-only inspection and exact-plan continuation
+of an exhausted existing pilot. It authenticates saved output and reuses the
+original inventory/cumulative allowance without resetting three preparation
+attempts. This is implemented locally, not deployed or executed. Next: reviewed
+live recovery, artist registration and protected Web/physical Host listening,
+then conservation/renewals and off-volume restore. W33/#288 remains open;
+Capacity stays deferred research.

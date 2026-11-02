@@ -520,3 +520,10 @@ The philosophical line is simple: make the social listening experience as fricti
 ## Public Bulletin assets, 2026-11-01
 
 The owner selected completing [covers and metadata on Bulletin](implementation/evidence/bulletin-public-assets-2026-11-01.md) after confirming the Pinata free-plan file limit. The implementation reuses custody and its account nonce journal, with separate bounded asset allowances and native Host/existing API reads. It is not deployed. The admission correction #375 is merged; preserve/recover the failed audio job, review a new exact asset-write budget, then verify protected Web/Host publication and listening. No prior audio allowance or state is reset.
+
+## Prepared Bulletin job recovery, 2026-11-02
+
+[Operator recovery](implementation/evidence/bulletin-prepared-job-recovery-2026-11-02.md)
+continues an exhausted pilot from authenticated saved output under its existing
+allowance. It does not reset attempts or execute a live recovery. W33/#288 stays
+open for that operation, registration, protected Web/Host acceptance and conservation.
