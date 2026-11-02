@@ -83,3 +83,18 @@ describe('ordinary Host Bulletin media reader', () => {
     completions[2]({ ok: false });
   });
 });
+
+it('public Host reader resolves artwork and metadata but rejects audio paths before querying', async () => {
+  const c = fixture(new TextEncoder().encode('public metadata'));
+  const raw = c.raw;
+  const bytes: unknown = dagPB.encode({ Data: new UnixFS({ type: 'directory' }).marshal(), Links: [{ Name: 'release.json', Hash: raw }] });
+  if (!(bytes instanceof Uint8Array)) throw new Error('Invalid test directory');
+  const root = CID.createV1(0x70, digest(0xb220, blake2b256(bytes))).toString();
+  c.blocks.set(root, bytes);
+  const read = createBulletinHostMediaReader({ insideHost: () => true, queryBytes: c.queryBytes }, true);
+  expect(await read(root, 'release.json', 50 * 1024, new AbortController().signal)).toEqual(c.bytes);
+  c.queryBytes.mockClear();
+  for (const path of ['archive/master.bin', 'manifest.json', '160/segment-000.bin'])
+    await expect(read(root, path, 1024, new AbortController().signal)).rejects.toThrow('path');
+  expect(c.queryBytes).not.toHaveBeenCalled();
+});

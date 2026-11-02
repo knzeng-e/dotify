@@ -1,3 +1,5 @@
+import { PublicAssetStorageError } from './services/bulletinPublicAssets.js';
+import { createPublicAssetRoutes } from './routes/publicAssets.js';
 import { sharedState, assertSharedState } from './services/sharedState/index.js';
 import { SharedStateUnavailableError } from './services/sharedState/postgres.js';
 import { custodyTokenMatches, registerCustodyProxy } from './services/sharedState/custodyProxy.js';
@@ -81,6 +83,9 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     if (!config.STREAMING_WORKER_URL || !config.STREAMING_WORKER_TOKEN || !config.BULLETIN_PUBLICATION_PROFILE)
       throw new Error('Bulletin publication requires an explicit profile and isolated worker');
   } else if (config.BULLETIN_PUBLICATION_PROFILE) throw new Error('Select Bulletin audio storage explicitly before configuring its profile');
+  if (config.PUBLIC_ASSET_STORAGE === 'bulletin' && (config.STREAMING_AUDIO_STORAGE !== 'bulletin' || !config.BULLETIN_PUBLIC_ASSET_POLICY))
+    throw new Error('Bulletin public assets require the same private audio publisher and an explicit asset policy');
+  if (config.PUBLIC_ASSET_STORAGE !== 'bulletin' && config.BULLETIN_PUBLIC_ASSET_POLICY) throw new Error('Select Bulletin public assets explicitly');
   await assertSharedState();
   const serverOptions: FastifyServerOptions = {
     logger: options.logging === false ? false : fastifyLoggerOptions,
@@ -88,6 +93,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   };
   const app = Fastify(serverOptions);
   let streaming: StreamingJobs | undefined;
+  let publicAssets: Parameters<typeof createUploadRoutes>[2];
   // Five trusted-header samples per process, with no IP, token, wallet, room
   // or location attached. Use the same resolver as rate limiting, not a second
   // interpretation of the proxy headers. Direct/health probes consume no samples.
@@ -223,8 +229,27 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       const publication = await createStreamingPublicationStore({
         provider: config.STREAMING_AUDIO_STORAGE,
         queue: config.STREAMING_STATE_PATH,
-        profileFile: config.BULLETIN_PUBLICATION_PROFILE
+        profileFile: config.BULLETIN_PUBLICATION_PROFILE,
+        assetPolicyFile: config.BULLETIN_PUBLIC_ASSET_POLICY,
+        assetAuthority: async owner => {
+          if (owner.chainId !== config.DOTIFY_CHAIN_ID) return false;
+          const result = await checkArtistAuthority(owner.address);
+          return result.allowed && result.runtime.toLowerCase() === owner.runtimeAddress.toLowerCase();
+        }
       });
+      if (config.PUBLIC_ASSET_STORAGE === 'bulletin') {
+        if (!publication.pinAsset) {
+          await publication.close();
+          throw new Error('Public asset publisher unavailable');
+        }
+        publicAssets = async (files, kind, owner, signal) => {
+          try {
+            return await publication.pinAsset!(files, kind, owner, signal);
+          } catch {
+            throw new PublicAssetStorageError();
+          }
+        };
+      }
       streaming = new StreamingJobs({
         directory: config.STREAMING_STATE_PATH,
         deriveKey: deriveContentKeyBytes,
@@ -250,7 +275,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         await publication.close();
       });
     }
-    await app.register(createUploadRoutes(undefined, streaming), { prefix: '/api/uploads' });
+    await app.register(createUploadRoutes(undefined, streaming, publicAssets), { prefix: '/api/uploads' });
   }
   if (config.API_ROLE !== 'custody') {
     const catalog = options.catalog ?? defaultCatalogReadModel;
@@ -261,6 +286,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     });
     await app.register(createCatalogRoutes({ catalog }));
     await app.register(createMediaRoutes({ catalog }));
+    await app.register(createPublicAssetRoutes());
   }
   return app;
 }

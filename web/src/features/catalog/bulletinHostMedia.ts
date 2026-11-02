@@ -40,7 +40,7 @@ function check(value: unknown, message: string): asserts value {
   if (!value) throw new Error(message);
 }
 
-export function createBulletinHostMediaReader(deps: HostDeps) {
+export function createBulletinHostMediaReader(deps: HostDeps, publicAssets = false) {
   // SDK lookups cannot be cancelled externally. Count their actual lifetime,
   // including after an aborted caller, so retries cannot accumulate subscriptions.
   let activeLookups = 0;
@@ -84,15 +84,16 @@ export function createBulletinHostMediaReader(deps: HostDeps) {
     return bytes;
   }
   return async (root: string, path: string, maxBytes: number, owner: AbortSignal): Promise<Uint8Array | null> => {
-    check(isBulletinMediaRoot(root) && validPath.test(path), 'Unsupported Bulletin media path.');
-    check(Number.isSafeInteger(maxBytes) && maxBytes > 0 && maxBytes <= 1024 * 1024 + 16, 'Invalid Bulletin object bound.');
+    const publicPath = /^(?:release\.json|cover\/(?:placeholder|64|160|320|640)\.webp|cover\/original\.(?:jpg|png|webp|gif))$/;
+    check(isBulletinMediaRoot(root) && (publicAssets ? publicPath : validPath).test(path), 'Unsupported Bulletin media path.');
+    check(Number.isSafeInteger(maxBytes) && maxBytes > 0 && maxBytes <= (publicAssets ? 5 * 1024 * 1024 : 1024 * 1024 + 16), 'Invalid Bulletin object bound.');
     return bounded(
       async signal => {
         if (!(await bounded(async () => deps.insideHost(), signal, 1500))) return null;
         let reads = 0,
           fetched = 0;
         const get = async (cid: CID) => {
-          check(++reads <= 16, 'Bulletin block-read bound exceeded.');
+          check(++reads <= (publicAssets ? 64 : 16), 'Bulletin block-read bound exceeded.');
           const bytes = await block(cid, signal);
           fetched += bytes.length;
           check(fetched <= maxBytes + 64 * 1024, 'Bulletin read exceeds byte bound.');
@@ -138,7 +139,7 @@ export function createBulletinHostMediaReader(deps: HostDeps) {
   };
 }
 
-export const readHostBulletinMedia = createBulletinHostMediaReader({
+const hostDeps: HostDeps = {
   async insideHost() {
     const { isInsideContainer } = await import('@parity/product-sdk/host');
     return isInsideContainer();
@@ -147,4 +148,6 @@ export const readHostBulletinMedia = createBulletinHostMediaReader({
     const { queryBytes } = await import('@parity/product-sdk/cloud-storage');
     return queryBytes(cid, options);
   }
-});
+};
+export const readHostBulletinMedia = createBulletinHostMediaReader(hostDeps);
+export const readHostBulletinAsset = createBulletinHostMediaReader(hostDeps, true);

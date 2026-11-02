@@ -33,6 +33,12 @@ are now published in the [combined 0.1.63 rollout](implementation/evidence/produ
 Physical-device and pilot acceptance remain separate; #341 records the
 activation corrections before another deployment is prepared.
 
+## Owner priority: stabilize Bulletin, 2026-11-01
+
+Bulletin remains the active storage direction. [Capacity stays deferred research](../research/capacity-storage-evaluation-2026-11-01.md), with no integration, provider switch or live canary in the current delivery scope.
+
+The next bounded work is to finish the public-asset path in #376, then retire the old optional client-side Bulletin archival checkbox so artists do not select infrastructure or trigger a duplicate signer-dependent write. Conservation follows: account authorization and per-block retention are separate clocks; implement verified renewal scheduling/alerts for every dependency, plus coherent off-volume encrypted-data/key recovery and an honest artist-facing availability commitment. Reserved quota alone does not renew data. Preserve existing jobs, attempts, account cursors and immutable budgets; real writes and rollout retain their explicit reviewed bounds. Physical protected Web/Host publication/listening remains acceptance, not inferred from code or a healthy endpoint.
+
 ## Bulletin continuity follow-up, 2026-10-31
 
 After the [eight-second mobile observations](implementation/evidence/bulletin-mobile-publication-2026-10-30.md),
@@ -499,3 +505,7 @@ release-evidence order is:
    designed.
 
 The philosophical line is simple: make the social listening experience as frictionless as a shared link, while keeping the artist-owned runtime and access policy as the invisible foundation.
+
+## Public Bulletin assets, 2026-11-01
+
+The owner selected completing [covers and metadata on Bulletin](implementation/evidence/bulletin-public-assets-2026-11-01.md) after confirming the Pinata free-plan file limit. The implementation reuses custody and its account nonce journal, with separate bounded asset allowances and native Host/existing API reads. It is not deployed. The admission correction #375 is merged; preserve/recover the failed audio job, review a new exact asset-write budget, then verify protected Web/Host publication and listening. No prior audio allowance or state is reset.

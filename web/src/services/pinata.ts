@@ -1,3 +1,4 @@
+import { bulletinAssetUrl, fetchBulletinPublicAsset } from './bulletinPublicAssets';
 import { readPreparationId, waitForAudioPreparation, type AudioPreparationPhase } from '../features/uploads/streamingPreparation';
 // ---------------------------------------------------------------------------
 // Pinata / IPFS service — demo/local mode and production backend mode.
@@ -114,6 +115,8 @@ export function getGatewayUrl(cid: string): string {
 }
 
 export function getGatewayUrls(cid: string): string[] {
+  const bulletin = bulletinAssetUrl(cid, API_URL);
+  if (bulletin) return bulletin;
   const gateways = [GATEWAY, PINATA_PUBLIC_GATEWAY, ...(READ_GATEWAYS ?? []), ...FALLBACK_GATEWAYS].filter(gateway => !isRetiredGateway(gateway));
   return Array.from(new Set(gateways.map(gateway => `${gateway.replace(/\/$/, '')}/ipfs/${cid}`)));
 }
@@ -153,6 +156,8 @@ export function getGatewayUrlsForAssetRef(assetRef: string): string[] {
   const ipfsPath = extractIpfsPath(assetRef);
   if (!ipfsPath) return assetRef ? [assetRef] : [];
 
+  const bulletin = bulletinAssetUrl(ipfsPath, API_URL);
+  if (bulletin) return bulletin;
   const fallbackUrls = getGatewayUrls(ipfsPath);
   if (isRetiredGateway(assetRef) || (!assetRef.startsWith('http://') && !assetRef.startsWith('https://'))) return fallbackUrls;
   return Array.from(new Set([assetRef, ...fallbackUrls]));
@@ -172,12 +177,14 @@ function throwIfGatewayReadAborted(signal?: AbortSignal): void {
 
 export async function fetchIpfsCid(cid: string, options: GatewayReadOptions = {}): Promise<Response> {
   throwIfGatewayReadAborted(options.signal);
-  return fetchThroughGateways(getGatewayUrls(cid), { signal: options.signal, label: `IPFS CID ${cid}` });
+  return fetchAssetRef(`ipfs://${cid}`, options);
 }
 
 export async function fetchAssetRef(assetRef: string, options: GatewayReadOptions = {}): Promise<Response> {
   throwIfGatewayReadAborted(options.signal);
-  return fetchThroughGateways(getGatewayUrlsForAssetRef(assetRef), { signal: options.signal, label: `asset ${assetRef}` });
+  const urls = getGatewayUrlsForAssetRef(assetRef);
+  if (urls[0]?.includes('/api/assets/ipfs/')) return fetchBulletinPublicAsset(urls[0], options.signal);
+  return fetchThroughGateways(urls, { signal: options.signal, label: `asset ${assetRef}` });
 }
 
 // ---------------------------------------------------------------------------
