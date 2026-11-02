@@ -3,18 +3,11 @@
 // re-deriving the active EVM/Substrate identity and re-wiring getActiveWalletClient
 // by hand. Also owns the frozen RPC endpoint, the resolved expected chain id, and
 // the network-switch flow. Fail closed: the accessor throws outside the provider.
-//
-// Security posture preserved from App.tsx: dev accounts (Alice, Bob, ...) use a
-// universally known mnemonic and must never become a hidden fallback signer
-// outside local development, so devBulletinFallback is gated on import.meta.env.DEV.
-
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { zeroAddress } from 'viem';
-import type { PolkadotSigner } from 'polkadot-api';
 
 import { clearPreparedContentKeys, onSessionRevocationPending, retryPendingSessionRevocations, signOutOfDotifySession } from '../../services/keyService';
 import { useWallet, type ConnectedWallet, type WalletState } from '../../hooks/useWallet';
-import { devAccounts, type DevAccount } from '../../hooks/useDevAccounts';
 import { getDefaultEthRpcUrl } from '../../shared/config/network';
 import { resolveEvmChain, getWalletClient } from '../../shared/config/contracts';
 import { chainMismatchMessage } from '../../features/wallet/network';
@@ -28,14 +21,9 @@ type WalletContextValue = {
   activeEvmAddress: `0x${string}`;
   listenerEvmAddress: `0x${string}` | null;
   activeIdentityAddress: string | null;
-  activeSubstrateAddress: string | null;
-  activeSubstrateSigner: PolkadotSigner | null;
-  currentBulletinAccount: DevAccount;
   ethRpcUrl: string;
   expectedChainId: number | null;
   isSwitchingNetwork: boolean;
-  bulletinAccountIndex: number;
-  setBulletinAccountIndex: (index: number) => void;
   getActiveWalletClient: () => Promise<Awaited<ReturnType<typeof getWalletClient>>>;
   switchNetwork: () => Promise<void>;
   connectExtension: () => Promise<void>;
@@ -71,7 +59,6 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const runtimeAdapterConfig = useMemo(() => resolveRuntimeAdapterConfig(import.meta.env), []);
   const [expectedChainId, setExpectedChainId] = useState<number | null>(null);
   const [isSwitchingNetwork, setIsSwitchingNetwork] = useState(false);
-  const [bulletinAccountIndex, setBulletinAccountIndex] = useState(0);
 
   const connectedWallet = walletState.status === 'connected' ? walletState.wallet : null;
 
@@ -160,15 +147,11 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     lastConnectedAddressRef.current = currentAddress;
   }, [connectedAddress, showIncompleteLogout]);
 
-  const currentBulletinAccount = devAccounts[bulletinAccountIndex];
   const activeEvmAddress = connectedWallet?.evmAddress ?? zeroAddress;
   const listenerEvmAddress = canRequestProtectedPlayback(connectedWallet) ? (connectedWallet?.evmAddress ?? null) : null;
   // Local room-name persistence lowercases its key, so use the H160 identity
   // for both EVM wallets and Product accounts rather than case-sensitive SS58.
   const activeIdentityAddress = connectedWallet?.evmAddress ?? null;
-  const devBulletinFallback = import.meta.env.DEV ? currentBulletinAccount : null;
-  const activeSubstrateAddress = connectedWallet ? (connectedWallet.substrateAddress ?? null) : (devBulletinFallback?.address ?? null);
-  const activeSubstrateSigner = connectedWallet ? (connectedWallet.substrateSigner ?? null) : (devBulletinFallback?.signer ?? null);
 
   const getActiveWalletClient = useCallback(async (): Promise<Awaited<ReturnType<typeof getWalletClient>>> => {
     if (!connectedWallet) {
@@ -255,14 +238,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       activeEvmAddress,
       listenerEvmAddress,
       activeIdentityAddress,
-      activeSubstrateAddress,
-      activeSubstrateSigner,
-      currentBulletinAccount,
       ethRpcUrl,
       expectedChainId,
       isSwitchingNetwork,
-      bulletinAccountIndex,
-      setBulletinAccountIndex,
       getActiveWalletClient,
       switchNetwork,
       connectExtension,
@@ -279,13 +257,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       activeEvmAddress,
       listenerEvmAddress,
       activeIdentityAddress,
-      activeSubstrateAddress,
-      activeSubstrateSigner,
-      currentBulletinAccount,
       ethRpcUrl,
       expectedChainId,
       isSwitchingNetwork,
-      bulletinAccountIndex,
       getActiveWalletClient,
       switchNetwork,
       connectExtension,

@@ -61,15 +61,12 @@ export function mountPreparationRetry() {
       audioCID: '',
       coverCID: '',
       coverSource: '',
-      activeSubstrateAddress: null,
-      activeSubstrateSigner: null,
       artistTracks: [],
       setTransactionFeedback,
       transactionFeedback,
       refreshCatalogFromRegistry: async () => [],
       setAudioCID: () => {},
       setCoverCID: () => {},
-      uploadToBulletinEnabled: false,
       audioUploadRef,
       coverUploadRef
     });

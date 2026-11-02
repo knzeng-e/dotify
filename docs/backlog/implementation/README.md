@@ -1,5 +1,16 @@
 # Dotify implementation playbook
 
+## Bulletin publication UX, 2026-11-02
+
+The [publication cleanup](evidence/bulletin-publication-ux-2026-11-02.md) removes the obsolete optional client archive
+and development-signer choice. The upload service remains authoritative for
+storage routing; artist approval, access checks and bounded publication allowances
+are unchanged. The server-side public-asset path is merged in #376; this cleanup
+does not activate it. The owner selected Bulletin stabilization first; Capacity
+remains deferred research. Next: reviewed public-asset activation and pilot
+recovery, then conservation inventory, bounded renewal and off-volume restore.
+
+
 Agent-ready work sequences for shipping a trustworthy musical commons on Product DevNet and ordinary web, then expanding discovery. Written 2026-09-05 against dev `bb3e2557215ee8628f4c0e107de6d1e984baaccf` and extended with W27 on 2026-09-22; agents must refresh the source before acting. This is a plan, not a claim that these features or branches already exist.
 
 ## Owner priority: stabilize Bulletin, 2026-11-01

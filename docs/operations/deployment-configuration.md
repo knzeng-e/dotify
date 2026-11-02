@@ -1,5 +1,18 @@
 # Deployment Configuration Runbook
 
+## Artist publication UX, 2026-11-02
+
+The obsolete optional client Bulletin archive has been removed. Operators must
+select storage through the existing server configuration; there is no artist
+checkbox or extra Substrate/development signer for storage. The normal artist
+publication approval remains required. No environment variable, mount, CORS,
+service count or durable allowance changes in this cleanup. It does not activate
+#376 or recover/reset the failed pilot job. During rollout, verify the access
+step has no archive selector and that the actual metadata reference still reaches
+artist-approved registration and catalog confirmation on Web and Product.
+See [scope and remaining gates](../backlog/implementation/evidence/bulletin-publication-ux-2026-11-02.md).
+
+
 ## Real-runtime Bulletin pilot: prepared, not deployed
 
 The [pilot candidate](../backlog/implementation/evidence/bulletin-runtime-pilot-preparation-2026-11-01.md)

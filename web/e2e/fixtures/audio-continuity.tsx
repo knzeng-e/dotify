@@ -61,7 +61,6 @@ function Harness() {
     getActiveWalletClient: async () => {
       throw new Error('No wallet allowed');
     },
-    setBulletinManifestRef: noop,
     setAccessMode: noop,
     setPriceDot: noop,
     setPersonhoodLevel: noop,

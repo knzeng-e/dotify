@@ -34,14 +34,11 @@ describe('useArtistConsole publication guard', () => {
       audioCID: '',
       coverCID: '',
       coverSource: '',
-      activeSubstrateAddress: null,
-      activeSubstrateSigner: null,
       artistTracks: [],
       setTransactionFeedback,
       refreshCatalogFromRegistry,
       setAudioCID,
       setCoverCID,
-      uploadToBulletinEnabled: false,
       audioUploadRef: { current: null },
       coverUploadRef: { current: null }
     };

@@ -21,7 +21,7 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
   const { ethRpcUrl, listenerEvmAddress, connectedWallet, getActiveWalletClient } = useWalletContext();
   const { openWalletModal, setTransactionFeedback } = useUiFeedback();
   const { activeView, navigateToView } = useNavigation();
-  const { setTitle, setAccessMode, setPriceDot, setPersonhoodLevel, setArtistName, setDescription, bulletinManifestRef } = useReleaseForm();
+  const { setTitle, setAccessMode, setPriceDot, setPersonhoodLevel, setArtistName, setDescription } = useReleaseForm();
   const directoryAddress = deployments.directory;
 
   const catalog = useCatalog({
@@ -35,9 +35,6 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
     activeView,
     navigateToView,
     getActiveWalletClient,
-    setBulletinManifestRef: ref => {
-      bulletinManifestRef.current = ref;
-    },
     setAccessMode,
     setPriceDot,
     setPersonhoodLevel,
