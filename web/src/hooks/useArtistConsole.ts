@@ -27,6 +27,7 @@ import {
   releaseRoyaltySplitPreflightError,
   type ReleasePublicationStage
 } from '../features/artist-studio/releaseForm';
+import { normalizeReleaseDetails, releaseDetailsPreflightError } from '../features/artist-studio/releaseDetails';
 import { resolvePreparedAudioUploadForRuntime } from '../features/uploads/preparedAudioUpload';
 import { resolvePreparedUpload, type PreparedUploadRef } from '../features/uploads/preparedUpload';
 import { createRuntimeReader } from '../features/runtime/runtimeReaderProvider';
@@ -798,6 +799,9 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
     resolvedCoverCID: string,
     resolvedAudioRef: string
   ): DotifyTrackManifest {
+    const details = normalizeReleaseDetails({ title, artistName, description });
+    const detailsError = releaseDetailsPreflightError(details);
+    if (detailsError) throw new Error(detailsError);
     const keyVersion = protectedAudioUploadToKeyVersion(resolvedAudioRef);
     return {
       schema: 'dotify.track.v2',
@@ -810,9 +814,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
       },
       track: {
         contentHash,
-        title: title.trim() || 'Untitled',
-        artistName: artistName.trim() || 'Unknown artist',
-        description: description.trim(),
+        ...details,
         durationSeconds,
         accessMode,
         priceDot: priceDotForAccessMode(accessMode, priceDot),
@@ -852,6 +854,20 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
 
     if (!fileHash) {
       setRightsStatus('Select an audio file');
+      return;
+    }
+
+    // Validate before runtime reads, signatures, encoding or storage. Keep any
+    // prepared upload refs intact so correcting text never discards the music.
+    const details = normalizeReleaseDetails({ title, artistName, description });
+    const detailsError = releaseDetailsPreflightError(details);
+    if (detailsError) {
+      setRightsStatus(detailsError);
+      setTransactionFeedback({
+        tone: 'error',
+        title: 'Complete your release details',
+        message: `${detailsError} Open Details to make the change. Your music and cover stay saved.`
+      });
       return;
     }
 
@@ -1040,9 +1056,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
           artistAddress: activeEvmAddress,
           runtimeAddress: targetRuntimeAddress,
           hash: fileHash,
-          title,
-          artistName,
-          description,
+          ...details,
           accessMode,
           priceDot,
           personhoodLevel,
@@ -1060,9 +1074,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
               artistAddress: activeEvmAddress,
               runtimeAddress: E2E_ARTIST_COLLISION_RUNTIME,
               hash: fileHash,
-              title,
-              artistName,
-              description,
+              ...details,
               accessMode,
               priceDot,
               personhoodLevel,
@@ -1166,9 +1178,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
 
       const txHash = await runtimeWriter.registerTrack(targetRuntimeAddress, {
         contentHash: fileHash,
-        title,
-        artistName,
-        description,
+        ...details,
         imageRef: ipfsCoverRef,
         audioRef: ipfsAudioRef,
         metadataRef: ipfsMetadataRef,

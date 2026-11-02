@@ -144,7 +144,7 @@ export function ArtistConsole() {
   const artistPublicationQuarantined = artistConsole.artistPublicationQuarantined;
   const hasArtistRuntime = Boolean(artistConsole.artistRuntimeAddress);
   const artistStudioLocked = artistPublicationQuarantined || deriveArtistStudioLocked(artistRegistrationAvailable, hasArtistRuntime);
-  const canReviewRelease = deriveCanReviewRelease({ fileHash, title, audioSource });
+  const canReviewRelease = deriveCanReviewRelease({ fileHash, title, artistName, description, audioSource });
 
   const onOpenTrack = openTrack;
   const onSetReleaseStep = setReleaseStep;
@@ -441,6 +441,7 @@ export function ArtistConsole() {
             isRegistering={isRegistering}
             canReviewRelease={canReviewRelease}
             artistName={artistName}
+            onUpdateArtistName={onUpdateArtistName}
             activeEvmAddress={activeEvmAddress}
             artistRuntimeAddress={artistRuntimeAddress}
             onSetReleaseStep={onSetReleaseStep}

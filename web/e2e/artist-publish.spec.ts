@@ -267,6 +267,30 @@ test('a pending room authority lookup cannot leak into another contribution scop
   await expect(policy.getByLabel('Room authority address', { exact: true })).toHaveValue('');
 });
 
+test('an existing artist can repair a missing name before saving release metadata', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await createArtistProfile(page);
+  await completeReleaseDraft(page);
+  await page.getByRole('button', { name: '2 Details', exact: true }).click();
+  const name = page.getByTestId('release-artist-name-input');
+  await expect(name).toHaveValue('E2E Artist');
+  await name.fill('   ');
+  await page.getByRole('button', { name: '4 Review', exact: true }).click();
+  await expect(page.getByTestId('publish-release-button')).toBeDisabled();
+  await expect(page.getByRole('alert')).toContainText('Add your artist name before publishing.');
+  await page.screenshot({ path: test.info().outputPath('missing-name.png'), fullPage: true });
+  expect((await readArtistPublishState(page))?.uploadRequests).toEqual({ audio: 1, cover: 1, metadata: 0 });
+  expect((await readArtistPublishState(page))?.registerTrackTransactions).toBe(0);
+  await page.getByRole('button', { name: 'Complete release details' }).click();
+  await name.fill(' Thot Nzeng ');
+  await page.getByRole('button', { name: '4 Review', exact: true }).click();
+  await expect(page.getByTestId('release-preflight-panel')).toContainText('By Thot Nzeng');
+  await page.getByTestId('publish-release-button').click();
+  await expect(page.getByRole('dialog')).toContainText('Release published');
+  expect((await readArtistPublishState(page))?.uploadRequests).toEqual({ audio: 1, cover: 1, metadata: 1 });
+  expect((await readArtistPublishState(page))?.registerTrackTransactions).toBe(1);
+});
+
 test('artist can create a runtime, publish a release, and see it in the listener catalog', async ({ page }, info) => {
   await createArtistProfile(page);
   await completeReleaseDraft(page);

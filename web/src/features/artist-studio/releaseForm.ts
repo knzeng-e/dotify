@@ -4,6 +4,7 @@
 // step list) so the wizard navigation and gating are testable in isolation.
 
 import type { AccessMode, PersonhoodLevel, ReleaseRoyaltySplitDraft, ReleaseStep, TransactionFeedback, TransactionFeedbackFact } from '../../shared/types';
+import { releaseDetailsPreflightError, type ReleaseDetails } from './releaseDetails';
 import { shortenAddress } from '../../shared/utils/format';
 
 export const ROYALTY_BPS_DENOMINATOR = 10_000;
@@ -63,9 +64,9 @@ export function previousReleaseStep(current: ReleaseStep): ReleaseStep {
   return previous.id;
 }
 
-/** A release can reach review once it has a hashed audio file with a title. */
-export function canReviewRelease(input: { fileHash: string; title: string; audioSource: string | null }): boolean {
-  return Boolean(input.fileHash && input.title.trim() && input.audioSource);
+/** Review may be visited freely; publishing requires complete release details. */
+export function canReviewRelease(input: ReleaseDetails & { fileHash: string; audioSource: string | null }): boolean {
+  return Boolean(input.fileHash && input.audioSource && !releaseDetailsPreflightError(input));
 }
 
 /** Total configured royalty basis points, including the artist's primary share. */

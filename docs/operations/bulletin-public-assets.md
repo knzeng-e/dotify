@@ -39,3 +39,18 @@ A repeat of the same bytes addresses the same job, reconciles its pending transa
 Never clear an unresolved intent, delete locks without establishing exclusive ownership, reset counters or create a second job to retry a failed asset. A failed asset can block the shared account writer until canonical reconciliation. Error responses contain no provider body or credential. Pinata authentication/usage is irrelevant when both audio and public assets select Bulletin; readiness says this is a configuration observation, not a live quota/retention proof.
 
 Rollback admission before rolling code back. Keep the additive policy, all inventories and account cursors intact, even if the client/asset selector is restored. Previously issued Bulletin references still need the new reader, so retain compatible API readers while clients use them. Old publisher code treats any public inventory as a claimed audio pilot job and may fail closed; do not erase it to work around that. A pre-asset whole-volume restore would also discard newer security/nonce state and is not a rollback procedure. Coherent off-volume backup/recovery and recurring renewals remain production gates.
+
+## A required release detail was discovered after storage
+
+The studio must validate title, artist name and About this track before
+metadata storage or registration approval, and save the same trimmed text in metadata and registry.
+See the [artist-name regression and current pilot state](../backlog/implementation/evidence/publication-artist-name-2026-11-02.md).
+
+For an already stored manifest, do not promise that editing and retrying can
+replace the first metadata graph. `preservePublicMetadata` permits a changed
+timestamp only; substantive changes fail closed. The current one-graph pilot
+needs an explicitly reviewed revision allowance and exact old/new identity plan.
+Preserve the audio, cover, original metadata receipts/counters, queue, permanent
+reservations and shared account cursor. Deleting `public-metadata-input.json`,
+reinitializing the policy or restoring an old snapshot is not a repair. No
+live metadata revision is implemented or authorized by the frontend fix.

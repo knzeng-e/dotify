@@ -1,5 +1,10 @@
 # W33 - Serve encrypted media through a read-through edge cache
 
+## Artist-name publication correction, 2026-11-02
+
+The [reported late registration rejection](evidence/publication-artist-name-2026-11-02.md) is corrected before metadata storage: required artist name/title/note, an editable name in Details, and matching trimmed metadata/registration. The existing synthetic pilot already has finalized audio, cover and metadata; its saved manifest says `Unknown artist`. The owner selected `Thot Nzeng`. That immutable manifest needs a separately reviewed and authorized revision while preserving its receipts and all prepared assets. This frontend PR does not replace it, reset a budget or deploy. W33 remains open for repair, real registration/listening and conservation.
+
+
 ## Bulletin publication UX, 2026-11-02
 
 The [publication cleanup](evidence/bulletin-publication-ux-2026-11-02.md) removes the obsolete optional client archive
