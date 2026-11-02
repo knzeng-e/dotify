@@ -172,7 +172,6 @@ export function buildReleasePublicationFacts(input: {
   personhoodLevel: PersonhoodLevel;
   artistRecipient: string;
   runtimeAddress: string | null;
-  uploadToBulletinEnabled: boolean;
 }): TransactionFeedbackFact[] {
   return [
     {
@@ -197,7 +196,6 @@ export function buildReleasePublicationFacts(input: {
 export function buildReleaseTechnicalFacts(input: {
   artistRecipient: string;
   runtimeAddress: string | null;
-  uploadToBulletinEnabled: boolean;
   additionalSplits?: ReleaseRoyaltySplitDraft[];
 }): TransactionFeedbackFact[] {
   const facts: TransactionFeedbackFact[] = [
@@ -214,10 +212,6 @@ export function buildReleaseTechnicalFacts(input: {
     {
       label: 'Release storage',
       value: 'Protected audio and release details use IPFS-backed references.'
-    },
-    {
-      label: 'Public archive',
-      value: input.uploadToBulletinEnabled ? 'Bulletin archival enabled' : 'Bulletin archival off'
     }
   ];
 

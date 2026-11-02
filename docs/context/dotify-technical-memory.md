@@ -1,5 +1,16 @@
 # Dotify technical memory
 
+## Bulletin publication UX, 2026-11-02
+
+The [publication cleanup](../backlog/implementation/evidence/bulletin-publication-ux-2026-11-02.md) removes the obsolete optional client archive
+and development-signer choice. The upload service remains authoritative for
+storage routing; artist approval, access checks and bounded publication allowances
+are unchanged. The server-side public-asset path is merged in #376; this cleanup
+does not activate it. The owner selected Bulletin stabilization first; Capacity
+remains deferred research. Next: reviewed public-asset activation and pilot
+recovery, then conservation inventory, bounded renewal and off-volume restore.
+
+
 > 2026-10-28 owner decision: retire the optional 3D renderer and Three.js.
 > Radar and List remain the supported discovery views. Historical 3D delivery
 > notes below are evidence, not a request to restore it. Immersive metaverse
@@ -46,7 +57,8 @@ Dotify currently uses:
 - Socket.IO signaling server for rooms;
 - WebRTC host-to-listener audio transport;
 - Pinata/IPFS for audio, cover, and metadata references;
-- optional Paseo Bulletin Chain archival publication;
+- server-selected Bulletin publication under an explicit operator allowance;
+- no artist-facing optional archive or development-signer choice;
 - Paseo Asset Hub EVM contracts;
 - artist-owned SmartRuntime model;
 - ArtistRuntimeFactory and ArtistDirectory;

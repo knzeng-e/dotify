@@ -67,8 +67,8 @@ is used as:
 - the `contentHash` argument in `musicRegRegister()`;
 - the key in access checks on the artist runtime;
 - the key-derivation input;
-- the canonical identifier for IPFS metadata, Bulletin archival, and room
-  metadata.
+- the content identifier carried in the release manifest and room metadata,
+  independently of the configured storage provider.
 
 If the content changes, the hash changes. You cannot substitute a different
 audio file for a registered track without creating a different content hash.

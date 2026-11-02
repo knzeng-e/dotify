@@ -14,7 +14,7 @@ join through an invitation without obtaining source files or content keys.
 | IPFS and pinning      | Encrypted audio, public covers and metadata.                                                          | Content addressing is not a promise of permanent availability.                          |
 | Signaling             | Membership, scoped discovery, conversation, presence and WebRTC negotiation.                          | Current single-process room state is ephemeral. No public enumeration of private rooms. |
 | WebRTC / TURN         | Host-to-guest media delivery.                                                                         | Guests can record what they hear; this is not absolute DRM.                             |
-| Bulletin / DotNS      | Product app distribution and optional metadata archival.                                              | Publication and retention depend on the relevant network and operator setup.            |
+| Bulletin / DotNS      | Product app distribution; bounded, server-selected encrypted media storage.                                              | Publication and retention depend on the relevant network and operator setup.            |
 
 These boundaries make components replaceable, but do not eliminate dependencies.
 An unavailable key service can prevent new protected playback; a failed

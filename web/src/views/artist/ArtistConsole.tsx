@@ -86,8 +86,6 @@ export function ArtistConsole() {
     personhoodLevel,
     setPersonhoodLevel,
     setCoverFile,
-    uploadToBulletinEnabled,
-    setUploadToBulletinEnabled,
     assetAction,
     setAssetAction,
     artistTab,
@@ -95,8 +93,7 @@ export function ArtistConsole() {
     releaseStep,
     setReleaseStep
   } = useReleaseForm();
-  const { connectedWallet, activeEvmAddress, activeSubstrateAddress, expectedChainId, getActiveWalletClient, bulletinAccountIndex, setBulletinAccountIndex } =
-    useWalletContext();
+  const { connectedWallet, activeEvmAddress, expectedChainId, getActiveWalletClient } = useWalletContext();
   const catalog = useCatalogContext();
   const session = useSessionContext();
   const { artistConsole, totalRoyaltyWei } = useArtistStudio();
@@ -117,7 +114,6 @@ export function ArtistConsole() {
   const royaltyStatus = artistConsole.royaltyStatus;
   const isRefreshingRoyalties = artistConsole.isRefreshingRoyalties;
   const expandedRoyaltyPaymentId = artistConsole.expandedRoyaltyPaymentId;
-  const bulletinManifestRef = artistConsole.bulletinManifestRef;
   const audioSource = catalog.audioSource;
   const fileHash = catalog.fileHash;
   const coverSource = catalog.coverSource;
@@ -174,8 +170,6 @@ export function ArtistConsole() {
   const onRemoveRoyaltySplit = (id: string) => {
     setAdditionalRoyaltySplits(current => current.filter(split => split.id !== id));
   };
-  const onSetUploadToBulletinEnabled = setUploadToBulletinEnabled;
-  const onSetBulletinAccountIndex = setBulletinAccountIndex;
   const onUpdateArtistName = (name: string) => artistConsole.updateArtistName(name, setArtistName);
   const onRefreshArtistRuntime = () => {
     void artistConsole.refreshArtistRuntime(true);
@@ -443,16 +437,12 @@ export function ArtistConsole() {
             nativePaymentSymbol={nativePaymentSymbol}
             royaltyBps={royaltyBps}
             additionalRoyaltySplits={additionalRoyaltySplits}
-            uploadToBulletinEnabled={uploadToBulletinEnabled}
             rightsStatus={rightsStatus}
             isRegistering={isRegistering}
             canReviewRelease={canReviewRelease}
             artistName={artistName}
-            connectedWallet={connectedWallet}
             activeEvmAddress={activeEvmAddress}
             artistRuntimeAddress={artistRuntimeAddress}
-            activeSubstrateAddress={activeSubstrateAddress}
-            bulletinAccountIndex={bulletinAccountIndex}
             onSetReleaseStep={onSetReleaseStep}
             onGoToPreviousStep={onGoToPreviousStep}
             onGoToNextStep={onGoToNextStep}
@@ -468,8 +458,6 @@ export function ArtistConsole() {
             onAddRoyaltySplit={onAddRoyaltySplit}
             onUpdateRoyaltySplit={onUpdateRoyaltySplit}
             onRemoveRoyaltySplit={onRemoveRoyaltySplit}
-            onSetUploadToBulletinEnabled={onSetUploadToBulletinEnabled}
-            onSetBulletinAccountIndex={onSetBulletinAccountIndex}
             onRegisterRights={onRegisterRights}
           />
         )}
@@ -526,10 +514,7 @@ export function ArtistConsole() {
               fileHash={fileHash}
               audioCID={audioCID}
               coverCID={coverCID}
-              bulletinManifestRef={bulletinManifestRef}
               trackInfo={trackInfo}
-              uploadToBulletinEnabled={uploadToBulletinEnabled}
-              activeSubstrateAddress={activeSubstrateAddress}
             />
           </details>
         )}

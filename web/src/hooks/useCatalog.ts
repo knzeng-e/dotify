@@ -280,7 +280,6 @@ export type UseCatalogDeps = {
   activeView: View;
   navigateToView: (view: 'listen' | 'player' | 'rooms') => void;
   getActiveWalletClient: () => Promise<Awaited<ReturnType<typeof import('../shared/config/contracts').getWalletClient>>>;
-  setBulletinManifestRef: (ref: string) => void;
   setAccessMode: (mode: AccessMode) => void;
   setPriceDot: (price: string) => void;
   setPersonhoodLevel: (level: PersonhoodLevel) => void;
@@ -309,7 +308,6 @@ export function useCatalog(deps: UseCatalogDeps) {
     activeView,
     navigateToView,
     getActiveWalletClient,
-    setBulletinManifestRef,
     setAccessMode,
     setPriceDot,
     setPersonhoodLevel,
@@ -955,7 +953,6 @@ export function useCatalog(deps: UseCatalogDeps) {
       setArtistName(track.artist);
       setDescription(track.description);
       setCoverSource(track.imageRef);
-      setBulletinManifestRef(track.metadataRef);
       internalSetFileHash(track.hash);
       setAccessMode(track.accessMode);
       setPriceDot(track.priceDot);

@@ -7,6 +7,8 @@ import { createEmptyReleaseMetadata } from '../features/catalog/releaseMetadata'
 import type { TransactionFeedback } from '../shared/types';
 import type { BackendUploadIdentity, ProtectedAudioUpload } from '../services/pinata';
 const uploads = vi.hoisted(() => ({ audio: vi.fn(), cover: vi.fn(), metadata: vi.fn() }));
+const archive = vi.hoisted(() => ({ checkBulletinAuthorization: vi.fn(), encodeBulletinJson: vi.fn(), uploadToBulletin: vi.fn() }));
+vi.mock('./useBulletin', () => archive);
 vi.mock('../services/pinata', async importOriginal => ({
   ...(await importOriginal<typeof import('../services/pinata')>()),
   isBackendConfigured: () => false,
@@ -53,17 +55,18 @@ describe('publication preparation ownership', () => {
       audioCID: '',
       coverCID: '',
       coverSource: '',
-      activeSubstrateAddress: null,
-      activeSubstrateSigner: null,
       artistTracks: [],
       setTransactionFeedback,
       refreshCatalogFromRegistry,
       setAudioCID,
       setCoverCID,
-      uploadToBulletinEnabled: false,
       audioUploadRef: { current: null },
       coverUploadRef: { current: null }
     };
+
+    // A stale caller must not restore the retired direct-upload/signing path.
+    // This wallet intentionally has no Substrate signer.
+    Object.assign(deps, { uploadToBulletinEnabled: true, activeSubstrateAddress: null, activeSubstrateSigner: null });
 
     function Harness() {
       captured.current = useArtistConsole(deps);
@@ -121,6 +124,9 @@ describe('publication preparation ownership', () => {
     expect(uploads.metadata).toHaveBeenCalledTimes(1);
     expect(feedbackStates[feedbackStates.length - 1]).toMatchObject({ tone: 'success', title: 'Release prepared' });
     expect(feedbackStates[feedbackStates.length - 1]!.operationId).not.toEqual(failed.operationId);
+    expect(archive.checkBulletinAuthorization).not.toHaveBeenCalled();
+    expect(archive.encodeBulletinJson).not.toHaveBeenCalled();
+    expect(archive.uploadToBulletin).not.toHaveBeenCalled();
 
     // A storage recovery barrier must reach the artist unchanged; reconnecting
     // a wallet cannot reconcile an already-broadcast storage transaction.

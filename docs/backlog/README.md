@@ -1,5 +1,16 @@
 # Dotify Production Backlog
 
+## Bulletin publication UX, 2026-11-02
+
+The [publication cleanup](implementation/evidence/bulletin-publication-ux-2026-11-02.md) removes the obsolete optional client archive
+and development-signer choice. The upload service remains authoritative for
+storage routing; artist approval, access checks and bounded publication allowances
+are unchanged. The server-side public-asset path is merged in #376; this cleanup
+does not activate it. The owner selected Bulletin stabilization first; Capacity
+remains deferred research. Next: reviewed public-asset activation and pilot
+recovery, then conservation inventory, bounded renewal and off-volume restore.
+
+
 ## Current Bulletin deployment, 2026-11-01
 
 [Product 0.1.68 and the bounded private writer](implementation/evidence/product-0.1.68-rollout-2026-11-01.md)

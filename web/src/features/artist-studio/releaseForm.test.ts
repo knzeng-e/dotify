@@ -100,8 +100,7 @@ describe('release publication disclosure helpers', () => {
       nativePaymentSymbol: 'PAS',
       personhoodLevel: 'DIM1',
       artistRecipient: '0x1111111111111111111111111111111111111111',
-      runtimeAddress: '0x2222222222222222222222222222222222222222',
-      uploadToBulletinEnabled: true
+      runtimeAddress: '0x2222222222222222222222222222222222222222'
     });
 
     expect(facts.map(fact => fact.label)).toEqual(['Listening access', 'Access price', 'Network fee', 'Published when']);
@@ -110,17 +109,17 @@ describe('release publication disclosure helpers', () => {
     expect(facts).not.toEqual(expect.arrayContaining([expect.objectContaining({ label: 'Artist space record' })]));
   });
 
-  it('keeps addresses, storage, and archive state in technical details', () => {
+  it('keeps addresses and storage references in technical details', () => {
     const facts = buildReleaseTechnicalFacts({
       artistRecipient: '0x1111111111111111111111111111111111111111',
       runtimeAddress: '0x2222222222222222222222222222222222222222',
-      uploadToBulletinEnabled: true,
       additionalSplits: [{ id: 'producer', label: 'Producer', recipient: '0x3333333333333333333333333333333333333333', bps: 2_000 }]
     });
 
     expect(facts).toContainEqual({ label: 'Artist account', value: '0x111111...111111', code: true });
     expect(facts).toContainEqual({ label: 'Artist space record', value: '0x222222...222222', code: true });
-    expect(facts).toContainEqual({ label: 'Public archive', value: 'Bulletin archival enabled' });
+    expect(facts).toContainEqual({ label: 'Release storage', value: 'Protected audio and release details use IPFS-backed references.' });
+    expect(facts.map(fact => fact.label)).not.toContain('Public archive');
     expect(facts).toContainEqual({ label: 'Producer address', value: '0x333333...333333', code: true });
   });
 

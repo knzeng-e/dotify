@@ -4,7 +4,6 @@ import { getAddress, isAddress } from 'viem';
 import { getPublicClient, getWalletClient, resolveEvmChain } from '../shared/config/contracts';
 import { createViemRuntimeReader } from '../features/runtime/viemRuntimeAdapter';
 import type { EarningsHistoryState } from '../features/artist-studio/earnings';
-import { checkBulletinAuthorization, encodeBulletinJson, uploadToBulletin } from './useBulletin';
 import {
   protectedAudioUploadToCID,
   protectedAudioUploadToKeyVersion,
@@ -64,7 +63,6 @@ import type {
   TransactionFeedback
 } from '../shared/types';
 import type { ConnectedWallet } from './useWallet';
-import type { PolkadotSigner } from 'polkadot-api';
 import { runSerializedRefresh, type RefreshGate } from './useVisibleRefresh';
 import { usePublicationConfirmation } from '../features/artist-studio/usePublicationConfirmation';
 
@@ -121,10 +119,6 @@ function artistRuntimeBootstrapRoadmap(
       txHash: status === 'complete' ? confirmedTxHashes[index] : undefined
     };
   });
-}
-
-function createBulletinManifestRef(hash: `0x${string}`) {
-  return `paseo-bulletin:dotify-manifest:${hash}`;
 }
 
 function normalizeRoyaltyBps(value: number, label: string): number {
@@ -231,8 +225,6 @@ export type UseArtistConsoleDeps = {
   audioCID: string;
   coverCID: string;
   coverSource: string;
-  activeSubstrateAddress: string | null;
-  activeSubstrateSigner: PolkadotSigner | null;
   artistTracks: CatalogTrack[];
   transactionFeedback?: TransactionFeedback | null;
   onReleasePublished?: (account: `0x${string}`) => void;
@@ -240,7 +232,6 @@ export type UseArtistConsoleDeps = {
   refreshCatalogFromRegistry: (hash?: `0x${string}`, options?: { fresh?: boolean }) => Promise<CatalogTrack[]>;
   setAudioCID: (cid: string) => void;
   setCoverCID: (cid: string) => void;
-  uploadToBulletinEnabled: boolean;
   audioUploadRef: PreparedUploadRef<ProtectedAudioUpload>;
   coverUploadRef: PreparedUploadRef;
 };
@@ -266,15 +257,12 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
     additionalRoyaltySplits,
     audioSource,
     coverFile,
-    activeSubstrateAddress,
-    activeSubstrateSigner,
     artistTracks,
     transactionFeedback,
     setTransactionFeedback,
     refreshCatalogFromRegistry,
     setAudioCID,
     setCoverCID,
-    uploadToBulletinEnabled,
     audioUploadRef,
     coverUploadRef
   } = deps;
@@ -295,7 +283,6 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
   const [isRefreshingRoyalties, setIsRefreshingRoyalties] = useState(false);
   const [isClaimingRoyalties, setIsClaimingRoyalties] = useState(false);
   const [expandedRoyaltyPaymentId, setExpandedRoyaltyPaymentId] = useState<string | null>(null);
-  const [bulletinManifestRef, setBulletinManifestRef] = useState('');
   const [isRegistering, setIsRegistering] = useState(false);
   const [releaseActionId, setReleaseActionId] = useState<string | null>(null);
   const publication = usePublicationConfirmation({
@@ -394,7 +381,6 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
     return buildReleaseTechnicalFacts({
       artistRecipient: activeEvmAddress,
       runtimeAddress,
-      uploadToBulletinEnabled,
       additionalSplits: additionalRoyaltySplits
     });
   }
@@ -1118,56 +1104,6 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
         return;
       }
 
-      if (uploadToBulletinEnabled) {
-        if (!activeSubstrateAddress || !activeSubstrateSigner) {
-          const message =
-            'Bulletin archival requires a Substrate signer. Disable the Bulletin archival option unless you are using a local development signer.';
-          setRightsStatus(message);
-          setPublicationFeedback({
-            tone: 'error',
-            title: 'Bulletin signer missing',
-            message,
-            technicalFacts: releasePublicationTechnicalFacts(runtimeAddress),
-            steps: buildReleasePublicationRoadmap(publicationStage)
-          });
-          return;
-        }
-
-        const manifestPayload = encodeBulletinJson(manifest);
-        setRightsStatus('Checking Bulletin authorization for metadata JSON');
-        setPublicationFeedback({
-          tone: 'pending',
-          title: 'Authorizing Bulletin upload',
-          message: 'Checking whether the selected Bulletin account can publish this manifest.',
-          technicalFacts: releasePublicationTechnicalFacts(runtimeAddress),
-          steps: buildReleasePublicationRoadmap(publicationStage)
-        });
-        const authorized = await checkBulletinAuthorization(activeSubstrateAddress, manifestPayload.bytes.length);
-        if (!authorized) {
-          const message = 'Bulletin account is not authorized';
-          setRightsStatus(message);
-          setPublicationFeedback({
-            tone: 'error',
-            title: 'Bulletin upload blocked',
-            message,
-            technicalFacts: releasePublicationTechnicalFacts(runtimeAddress),
-            steps: buildReleasePublicationRoadmap(publicationStage)
-          });
-          return;
-        }
-
-        setRightsStatus('Publishing metadata JSON to Bulletin Chain');
-        setPublicationFeedback({
-          tone: 'pending',
-          title: 'Publishing manifest',
-          message: 'Writing the compact rights manifest to Bulletin Chain.',
-          technicalFacts: releasePublicationTechnicalFacts(runtimeAddress),
-          steps: buildReleasePublicationRoadmap(publicationStage)
-        });
-        const bulletinUpload = await uploadToBulletin(manifestPayload.bytes, activeSubstrateSigner);
-        setBulletinManifestRef(createBulletinManifestRef(bulletinUpload.contentHash));
-      }
-
       if (!factoryAddress || !directoryAddress) {
         setRightsStatus('Rights staged');
         setPublicationFeedback({
@@ -1609,8 +1545,6 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
     isClaimingRoyalties,
     expandedRoyaltyPaymentId,
     setExpandedRoyaltyPaymentId,
-    bulletinManifestRef,
-    setBulletinManifestRef,
     isRegistering: isRegistering || publication.pending,
     releaseActionId,
     artistRegistrationAvailable,

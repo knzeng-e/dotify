@@ -112,6 +112,8 @@ async function completeReleaseDraft(page: Page, options: { royaltySharePercent?:
   await page.getByLabel('Contributor 1 role', { exact: true }).selectOption('producer');
 
   await page.getByRole('button', { name: 'Continue' }).click();
+  await expect(page.getByRole('checkbox', { name: /Bulletin archive/i })).toHaveCount(0);
+  await expect(page.getByRole('combobox', { name: /archive signer/i })).toHaveCount(0);
   await page.getByTestId('release-access-select').selectOption('classic');
   await page.getByTestId('release-price-input').fill('0.75');
   await page.getByTestId('release-royalty-input').fill(royaltySharePercent);

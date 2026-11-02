@@ -29,7 +29,7 @@ type ArtistStudioValue = {
 const ArtistStudioContext = createContext<ArtistStudioValue | null>(null);
 
 export function ArtistStudioProvider({ children }: { children: ReactNode }) {
-  const { activeEvmAddress, connectedWallet, ethRpcUrl, expectedChainId, activeSubstrateAddress, activeSubstrateSigner } = useWalletContext();
+  const { activeEvmAddress, connectedWallet, ethRpcUrl, expectedChainId } = useWalletContext();
   const { setTransactionFeedback, transactionFeedback } = useUiFeedback();
   const {
     title,
@@ -43,7 +43,6 @@ export function ArtistStudioProvider({ children }: { children: ReactNode }) {
     royaltyBps,
     additionalRoyaltySplits,
     coverFile,
-    uploadToBulletinEnabled,
     setArtistTab
   } = useReleaseForm();
   const catalog = useCatalogContext();
@@ -71,8 +70,6 @@ export function ArtistStudioProvider({ children }: { children: ReactNode }) {
     audioCID: catalog.audioCID,
     coverCID: catalog.coverCID,
     coverSource: catalog.coverSource,
-    activeSubstrateAddress,
-    activeSubstrateSigner,
     artistTracks: catalog.allCatalogTracks,
     setTransactionFeedback,
     transactionFeedback,
@@ -85,7 +82,6 @@ export function ArtistStudioProvider({ children }: { children: ReactNode }) {
     refreshCatalogFromRegistry: catalog.refreshCatalogFromRegistry,
     setAudioCID: catalog.setAudioCID,
     setCoverCID: catalog.setCoverCID,
-    uploadToBulletinEnabled,
     audioUploadRef: catalog.audioUploadRef,
     coverUploadRef: catalog.coverUploadRef
   });

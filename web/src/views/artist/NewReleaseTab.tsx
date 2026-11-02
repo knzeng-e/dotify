@@ -2,7 +2,6 @@ import { BadgeCheck, Disc3, FileAudio, Library, Plus, Trash2, Upload } from 'luc
 import { CoverImage } from '../../components/CoverImage';
 import { PanelTitle } from '../../shared/ui/PanelTitle';
 import { accessModeLabelFromState, shorten } from '../../shared/utils/format';
-import { devAccounts } from '../../hooks/useDevAccounts';
 import {
   buildReleasePublicationFacts,
   buildReleaseTechnicalFacts,
@@ -37,16 +36,12 @@ type NewReleaseTabProps = {
   nativePaymentSymbol: string;
   royaltyBps: number;
   additionalRoyaltySplits: ReleaseRoyaltySplitDraft[];
-  uploadToBulletinEnabled: boolean;
   rightsStatus: string;
   isRegistering: boolean;
   canReviewRelease: boolean;
   artistName: string;
-  connectedWallet: { label: string } | null;
   activeEvmAddress: string | null;
   artistRuntimeAddress: string | null;
-  activeSubstrateAddress: string | null;
-  bulletinAccountIndex: number;
   onSetReleaseStep: (step: ReleaseStep) => void;
   onGoToPreviousStep: () => void;
   onGoToNextStep: () => void;
@@ -62,8 +57,6 @@ type NewReleaseTabProps = {
   onAddRoyaltySplit: () => void;
   onUpdateRoyaltySplit: (id: string, patch: Partial<ReleaseRoyaltySplitDraft>) => void;
   onRemoveRoyaltySplit: (id: string) => void;
-  onSetUploadToBulletinEnabled: (enabled: boolean) => void;
-  onSetBulletinAccountIndex: (index: number) => void;
   onRegisterRights: () => void;
 };
 
@@ -85,16 +78,12 @@ export function NewReleaseTab({
   nativePaymentSymbol,
   royaltyBps,
   additionalRoyaltySplits,
-  uploadToBulletinEnabled,
   rightsStatus,
   isRegistering,
   canReviewRelease,
   artistName,
-  connectedWallet,
   activeEvmAddress,
   artistRuntimeAddress,
-  activeSubstrateAddress,
-  bulletinAccountIndex,
   onSetReleaseStep,
   onGoToPreviousStep,
   onGoToNextStep,
@@ -110,8 +99,6 @@ export function NewReleaseTab({
   onAddRoyaltySplit,
   onUpdateRoyaltySplit,
   onRemoveRoyaltySplit,
-  onSetUploadToBulletinEnabled,
-  onSetBulletinAccountIndex,
   onRegisterRights
 }: NewReleaseTabProps) {
   const releaseStepIndex = RELEASE_STEPS.findIndex(step => step.id === releaseStep);
@@ -135,13 +122,11 @@ export function NewReleaseTab({
     nativePaymentSymbol,
     personhoodLevel,
     artistRecipient: activeEvmAddress ?? '',
-    runtimeAddress: artistRuntimeAddress,
-    uploadToBulletinEnabled
+    runtimeAddress: artistRuntimeAddress
   });
   const releaseTechnicalFacts = buildReleaseTechnicalFacts({
     artistRecipient: activeEvmAddress ?? '',
     runtimeAddress: artistRuntimeAddress,
-    uploadToBulletinEnabled,
     additionalSplits: additionalRoyaltySplits
   });
 
@@ -586,41 +571,6 @@ export function NewReleaseTab({
                 </strong>
               </div>
             </div>
-            <details className='artist-technical-disclosure release-technical-options'>
-              <summary>Advanced publishing options</summary>
-              <label className='toggle-row'>
-                <input
-                  type='checkbox'
-                  checked={uploadToBulletinEnabled}
-                  onChange={event => onSetUploadToBulletinEnabled(event.target.checked)}
-                  disabled={artistStudioLocked}
-                />
-                <span>Also write the release record to the public Bulletin archive.</span>
-              </label>
-              {uploadToBulletinEnabled &&
-                (connectedWallet ? (
-                  <div className='technical-option-row'>
-                    <span>Archive signer</span>
-                    <code>{activeSubstrateAddress ? `${activeSubstrateAddress.slice(0, 8)}…` : 'No Substrate signer'}</code>
-                  </div>
-                ) : (
-                  <label>
-                    <span>Development archive signer</span>
-                    <select
-                      className='field'
-                      value={bulletinAccountIndex}
-                      onChange={event => onSetBulletinAccountIndex(Number(event.target.value))}
-                      disabled={artistStudioLocked}
-                    >
-                      {devAccounts.map((account, index) => (
-                        <option key={account.name} value={index}>
-                          {account.name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                ))}
-            </details>
             <div className='rights-status'>
               {accessMode === 'free'
                 ? 'Everyone can listen without an account or payment.'
