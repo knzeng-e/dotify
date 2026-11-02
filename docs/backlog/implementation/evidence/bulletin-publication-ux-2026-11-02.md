@@ -43,7 +43,26 @@ are relaxed. No live upload, deployment, renewal or Capacity call is required.
 
 ## Validation
 
-Pending final local checks; results are recorded before review.
+Validated on `ae48afda`, rebased onto `dev` `b8e18ca8` (including #376):
+
+- `npm run test:unit`: **138 files / 1,058 tests pass**, including the obsolete
+  flag/no-Substrate-signer regression and canonical asset-reference tests.
+- `npm run test:e2e -- e2e/artist-publish.spec.ts`: **22 pass**. Covers artist
+  registration, one upload per asset, listener visibility, upload/transaction
+  failures, delayed confirmation, disconnect recovery, mobile return and
+  320/390/430/1440px navigation with enlarged text. Listening-step assertions
+  confirm no archive checkbox or development-signer selector remains.
+- `npm run build` and `npm run build:product-devnet:frozen`: pass. These build
+  checks do not publish or change the Product identity.
+- `npm run lint`: zero errors, two existing App effect-dependency warnings.
+  Existing large-bundle warnings remain. Changed TypeScript files pass Prettier;
+  changed documentation has no unresolved local links; `git diff --check` passes.
+
+An initial browser run before the rebase had one timeout while creating the
+artist profile: the consent checkbox was unchecked before the profile button
+could be activated. It failed before any upload. The complete run on the final
+base passes without changing consent behavior or weakening an assertion.
+No physical Host, live storage, registration, renewal or deployment was tested.
 
 ## Next gates
 
