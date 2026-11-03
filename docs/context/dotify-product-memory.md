@@ -1,5 +1,19 @@
 # Dotify product memory
 
+## Product 0.1.69 deployment, 2026-11-02
+
+The [verified rollout](../backlog/implementation/evidence/product-0.1.69-rollout-2026-11-02.md) updates Web, Product and the existing API/custody
+services, and activates one bounded Bulletin cover/metadata policy without Pinata
+fallback. The artist no longer chooses an optional archive. At this rollout, the
+synthetic audio job still needed controlled recovery with its three attempts
+preserved. [The subsequent recovery record](https://github.com/knzeng-e/dotify/pull/380)
+confirms ready audio; merged #382 prepares the remaining name-only metadata repair,
+without activating it. Registration and protected physical-device acceptance remain
+open. No allowance/counter reset, new service or key installation occurred.
+Conservation monitoring/renewal and off-volume restore remain open; Capacity stays
+deferred research. Older checkpoints below retain their dated meaning.
+
+
 > 2026-10-28 owner decision: retire the optional 3D renderer and Three.js.
 > Radar and List remain the supported discovery views. Historical 3D delivery
 > notes below are evidence, not a request to restore it. Immersive metaverse

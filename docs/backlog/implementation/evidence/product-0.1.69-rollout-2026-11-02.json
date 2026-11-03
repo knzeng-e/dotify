@@ -1,0 +1,87 @@
+{
+  "schema": "dotify.product.rollout.v1",
+  "version": [
+    0,
+    1,
+    69
+  ],
+  "source": "84baeb490d64d1d1143b936386e463f477272f98",
+  "ci": "https://github.com/knzeng-e/dotify/actions/runs/41373492215",
+  "product": {
+    "root": "bafybeialkhzoyxypvkua7p5lgjinaq754c5ynfgkl7jtshcentwp4zdfey",
+    "carBytes": 9400268,
+    "carSha256": "bf8d05bd34cae81f05b636697967a66465f37ea58a30705876988e8394201a65",
+    "innerBlocksVerified": 99,
+    "filesCompared": 71,
+    "outerBlocksVerified": 20,
+    "newStores": 12,
+    "newBytes": 3544427,
+    "reusedBlocks": 8,
+    "dotnsSignatures": 2,
+    "gateway": {
+      "status": 200,
+      "bytes": 9400268,
+      "sha256": "bf8d05bd34cae81f05b636697967a66465f37ea58a30705876988e8394201a65"
+    },
+    "assetHubBlock": "15213181",
+    "labUnchanged": true,
+    "earliestDependencyExpiryBlock": 1477259,
+    "quotaHead": 1466939
+  },
+  "serverImage": "registry.fly.io/dotify-api@sha256:28d6e07726f468ae182dd8f4d9c015a1c79040cd9b7cd421c5a44a8dedbd041c",
+  "web": {
+    "sourceMatched": "84baeb490d64d1d1143b936386e463f477272f98",
+    "entryScripts": [
+      "https://muzinga.netlify.app/assets/index-DiVtwz61.js"
+    ],
+    "status": 200
+  },
+  "readiness": {
+    "edge": "ok",
+    "custody": "ok",
+    "bothReady": true
+  },
+  "policy": {
+    "owner": "0x2f6bf01a6708c927b288a53b9fe3f9edc689ff56",
+    "scope": {
+      "chainId": 420420417,
+      "runtimeAddress": "0x05c643a1ed0e75c8a3486410f13bc4597c2674d7",
+      "contentHash": "0x66aae2bdd5859205f46c62291d93d6d5618e56201a507c2b9f5277823edafd35",
+      "keyVersion": "dotify-content-key-v2"
+    },
+    "cover": {
+      "maxBytes": 524288,
+      "maxTransactions": 16,
+      "minimumLifetimeBlocks": 100
+    },
+    "metadata": {
+      "maxBytes": 65536,
+      "maxTransactions": 4,
+      "minimumLifetimeBlocks": 100
+    }
+  },
+  "audioProvider": "bulletin",
+  "publicAssetProvider": "bulletin",
+  "preservedAudio": {
+    "id": "c346a96f-d7f9-421b-b4f3-32923753e3b4",
+    "state": "failed",
+    "attempts": 3,
+    "attemptedStores": 0,
+    "attemptedBytes": 0,
+    "pending": 0,
+    "receipts": 0
+  },
+  "quotaAfter": {
+    "expiresAt": 1621405,
+    "remainingTransactions": 302,
+    "remainingBytes": "79798749",
+    "remainingRenewBytes": "106084254"
+  },
+  "snapshot": "vs_qZXaDBXZ2Aa5tzl0P9laZ",
+  "localSignerRemoved": true,
+  "newKeyInstallation": false,
+  "renewalsSubmitted": false,
+  "physicalPlaybackTested": false,
+  "operatorSha256": "11d30455f07d26bab41feec49042e38b3220fa5cd053a50486f298720fc67be2",
+  "coordinatorSha256": "baca981c3883571c756d30c8fcbd74eb5b9645e757969a5170b9724d28de865a"
+}

@@ -1,5 +1,21 @@
 # Deployment Configuration Runbook
 
+## Active 0.1.69 Bulletin asset policy, 2026-11-02
+
+[Rollout evidence](../backlog/implementation/evidence/product-0.1.69-rollout-2026-11-02.md) records the pinned
+image/source, owner-approved maintenance, snapshot, policy binding and readiness.
+On custody, `PUBLIC_ASSET_STORAGE=bulletin` and
+`BULLETIN_PUBLIC_ASSET_POLICY=/data/contributions/config/bulletin-assets.json`
+now accompany the unchanged audio profile/queue. The immutable policy admits one
+cover (16 stores / 512 KiB) and one metadata graph (4 / 64 KiB) for the existing
+synthetic scope. Edges retain read-only RPC access and no storage signer/policy.
+Both roles report ready/ok. No CORS origin, volume, service count or session epoch
+changed. At deployment, the failed audio job remained at attempts=3; its subsequent
+[controlled recovery](https://github.com/knzeng-e/dotify/pull/380) preserves that count.
+This rollout itself did not recover the job.
+Preserve all bindings, cursors and inventories on rollback.
+
+
 ## Artist publication UX, 2026-11-02
 
 The obsolete optional client Bulletin archive has been removed. Operators must

@@ -10,6 +10,20 @@ The [bounded repair](evidence/bulletin-metadata-name-repair-2026-11-03.md) follo
 The [reported late registration rejection](evidence/publication-artist-name-2026-11-02.md) is corrected before metadata storage: required artist name/title/note, an editable name in Details, and matching trimmed metadata/registration. The existing synthetic pilot already has finalized audio, cover and metadata; its saved manifest says `Unknown artist`. The owner selected `Thot Nzeng`. That immutable manifest needs a separately reviewed and authorized revision while preserving its receipts and all prepared assets. This frontend PR does not replace it, reset a budget or deploy. W33 remains open for repair, real registration/listening and conservation.
 
 
+## Product 0.1.69 deployment, 2026-11-02
+
+The [verified rollout](evidence/product-0.1.69-rollout-2026-11-02.md) updates Web, Product and the existing API/custody
+services, and activates one bounded Bulletin cover/metadata policy without Pinata
+fallback. The artist no longer chooses an optional archive. At this rollout, the
+synthetic audio job still needed controlled recovery with its three attempts
+preserved. [The subsequent recovery record](https://github.com/knzeng-e/dotify/pull/380)
+confirms ready audio; merged #382 prepares the remaining name-only metadata repair,
+without activating it. Registration and protected physical-device acceptance remain
+open. No allowance/counter reset, new service or key installation occurred.
+Conservation monitoring/renewal and off-volume restore remain open; Capacity stays
+deferred research. Older checkpoints below retain their dated meaning.
+
+
 ## Bulletin publication UX, 2026-11-02
 
 The [publication cleanup](evidence/bulletin-publication-ux-2026-11-02.md) removes the obsolete optional client archive
