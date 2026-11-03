@@ -32,6 +32,16 @@ Policy shape (replace every placeholder; **not an approved allowance**):
 5. Public edges retain read-only `BULLETIN_MEDIA_RPC_URL`, no publisher policy/key. The existing API origin/CORS permissions suffice: no new Host origin or service is needed. Deploy the new Web/Product client resolver before publishing Bulletin artwork/metadata references; old clients may try generic gateways. This deliberately does not add permanent old-runtime support.
 6. Verify source/version, readiness, authenticated upload grants, actual graph sizes, receipts/sender/nonces, retention and canonical references. Read every variant and `release.json` on Web/Desktop/mobile, including the unpublished studio preview and a slow/missing Host read. Complete ordinary artist-wallet registration and protected listening/payment tests. A successful public asset upload proves none of those protected-access outcomes.
 
+## Exact pilot repair admitted, 2026-11-03
+
+The [0.1.70 intervention](../backlog/implementation/evidence/product-0.1.70-rollout-2026-11-03.md)
+installed the owner-approved `metadata-name-repair.json` for **Thot Nzeng**.
+The original ready audio, cover and metadata inventories remain. The corrected
+metadata still needs its ordinary authenticated artist request (two blocks /
+1,101 bytes), followed by explicit wallet registration. Do not run admission or
+prepared-audio recovery again for this pilot. The generic operator procedure below
+is not authority to add another exception or enlarge either graph's allowance.
+
 ## Failures and rollback
 
 A repeat of the same bytes addresses the same job, reconciles its pending transactions and reuses verified receipts within the original cap. A different cover/metadata graph is refused in this one-release pilot. The first admitted graph owns its kind even when an upload response is lost or a store fails. The first strict metadata input is durably preserved in `public-metadata-input.json`. When the app rebuilds a retry timestamp, the writer reuses the first bytes only if every other field is unchanged. Actual metadata changes remain a different graph and require operator review. Recurring editing/multi-release admission is a later scope.

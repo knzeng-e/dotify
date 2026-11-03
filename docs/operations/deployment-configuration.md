@@ -1,5 +1,29 @@
 # Deployment Configuration Runbook
 
+## Product 0.1.70 and bounded metadata-repair admission, 2026-11-03
+
+[Verified rollout](../backlog/implementation/evidence/product-0.1.70-rollout-2026-11-03.md)
+records the exact candidate, image, owner-approved maintenance and independent
+readback. Existing API roles use source `5c25685d`; the installed
+`metadata-name-repair.json` admits one name-only graph for the existing pilot.
+Preserve this permit, all old inventories/policies, queue attempts and permanent
+nonce state in coherent backups. It is neither a generic edit permission nor a
+new audio/publication allowance. Registry approval and protected acceptance remain
+artist/device actions after the normal authenticated metadata request.
+
+Netlify `muzinga` now uses production branch `release/product-0.1.70`, frozen at
+`5c25685db3ed6b0f21e14e3c3c60c2b4da4c66dd`. A separate record branch avoids
+an unreviewed Web redeploy when editing rollout documentation. Build command,
+base/publish directories, environment settings, preview policy and auto-publishing
+are otherwise preserved. No database/session, CORS, mount, service count or key
+placement changes. Readback and rollback must retain issued Bulletin references;
+never delete a permit, reset counters or restore stale nonce/security state.
+The earliest reused Product dependency expires at block **1,532,185**, a margin
+of 42,257 blocks at the final observed head (1,489,928). This precedes the pilot
+media's expiry. Conservation must track every app/media dependency as well as
+account authorization; a new root does not renew reused children. No renewal
+was submitted in this operation.
+
 ## Active 0.1.69 Bulletin asset policy, 2026-11-02
 
 [Rollout evidence](../backlog/implementation/evidence/product-0.1.69-rollout-2026-11-02.md) records the pinned

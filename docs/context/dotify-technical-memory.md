@@ -1,5 +1,16 @@
 # Dotify technical memory
 
+## Product 0.1.70 and exact repair admission, 2026-11-03
+
+The [verified rollout](../backlog/implementation/evidence/product-0.1.70-rollout-2026-11-03.md) deploys the required artist-name checks and admits
+one exact **Thot Nzeng** metadata repair for the preserved synthetic pilot.
+Audio, cover, old metadata, receipts and original allowances remain intact;
+no re-encoding or attempt reset occurs. The permit itself sends no metadata and
+registers no release. Next: resume the saved draft through normal artist upload
+and wallet approval, then verify protected Web/physical Host allowed and denied
+listening. Conservation/renewals and off-volume restore remain W33 gates.
+Older dated checkpoints below retain their historical meaning.
+
 ## Product 0.1.69 deployment, 2026-11-02
 
 The [verified rollout](../backlog/implementation/evidence/product-0.1.69-rollout-2026-11-02.md) updates Web, Product and the existing API/custody

@@ -1,5 +1,16 @@
 # W33 - Serve encrypted media through a read-through edge cache
 
+## Product 0.1.70 and exact repair admission, 2026-11-03
+
+The [verified rollout](evidence/product-0.1.70-rollout-2026-11-03.md) deploys the required artist-name checks and admits
+one exact **Thot Nzeng** metadata repair for the preserved synthetic pilot.
+Audio, cover, old metadata, receipts and original allowances remain intact;
+no re-encoding or attempt reset occurs. The permit itself sends no metadata and
+registers no release. Next: resume the saved draft through normal artist upload
+and wallet approval, then verify protected Web/physical Host allowed and denied
+listening. Conservation/renewals and off-volume restore remain W33 gates.
+Older dated checkpoints below retain their historical meaning.
+
 ## Exact metadata-name repair candidate, 2026-11-03
 
 The [bounded repair](evidence/bulletin-metadata-name-repair-2026-11-03.md) follows merged #381: inspect and admit one exact name-only metadata graph, preserve old receipts/caps and ready audio/cover, then publish through normal authenticated custody. Canonical finalized/latest checks refuse an already registered release. This is implementation only; maintenance, admission, additional stores and client rollout still need review and authorization. W33 remains open for real registration/listening and conservation.
