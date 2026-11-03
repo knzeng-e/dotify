@@ -1,5 +1,29 @@
 # W33 - Serve encrypted media through a read-through edge cache
 
+## Exact metadata-name repair candidate, 2026-11-03
+
+The [bounded repair](evidence/bulletin-metadata-name-repair-2026-11-03.md) follows merged #381: inspect and admit one exact name-only metadata graph, preserve old receipts/caps and ready audio/cover, then publish through normal authenticated custody. Canonical finalized/latest checks refuse an already registered release. This is implementation only; maintenance, admission, additional stores and client rollout still need review and authorization. W33 remains open for real registration/listening and conservation.
+
+
+## Artist-name publication correction, 2026-11-02
+
+The [reported late registration rejection](evidence/publication-artist-name-2026-11-02.md) is corrected before metadata storage: required artist name/title/note, an editable name in Details, and matching trimmed metadata/registration. The existing synthetic pilot already has finalized audio, cover and metadata; its saved manifest says `Unknown artist`. The owner selected `Thot Nzeng`. That immutable manifest needs a separately reviewed and authorized revision while preserving its receipts and all prepared assets. This frontend PR does not replace it, reset a budget or deploy. W33 remains open for repair, real registration/listening and conservation.
+
+
+## Product 0.1.69 deployment, 2026-11-02
+
+The [verified rollout](evidence/product-0.1.69-rollout-2026-11-02.md) updates Web, Product and the existing API/custody
+services, and activates one bounded Bulletin cover/metadata policy without Pinata
+fallback. The artist no longer chooses an optional archive. At this rollout, the
+synthetic audio job still needed controlled recovery with its three attempts
+preserved. [The subsequent recovery record](https://github.com/knzeng-e/dotify/pull/380)
+confirms ready audio; merged #382 prepares the remaining name-only metadata repair,
+without activating it. Registration and protected physical-device acceptance remain
+open. No allowance/counter reset, new service or key installation occurred.
+Conservation monitoring/renewal and off-volume restore remain open; Capacity stays
+deferred research. Older checkpoints below retain their dated meaning.
+
+
 ## Bulletin publication UX, 2026-11-02
 
 The [publication cleanup](evidence/bulletin-publication-ux-2026-11-02.md) removes the obsolete optional client archive
@@ -260,6 +284,9 @@ Capacity stays deferred research.
 The [approved custody intervention](evidence/bulletin-prepared-recovery-rollout-2026-11-02.md)
 recovered the original synthetic job: 16 stores / 712,737 bytes, exact canonical
 receipts and authenticated readback, attempts still three, zero pending. Private
-and public readiness are restored. Next: artist wallet registration and protected
-Web/physical Host acceptance, then conservation/renewal and off-volume recovery.
+and public readiness are restored. The later registration attempt exposed the
+stored artist-name defect; merged #381/#382 prepare its client guard and bounded
+metadata repair, still awaiting rollout and separate activation/write approval.
+Then verify artist wallet registration and protected Web/physical Host acceptance,
+followed by conservation/renewal and off-volume recovery.
 W33/#288 stays open; Product/Web remain 0.1.69.

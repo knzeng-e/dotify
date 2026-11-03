@@ -34,3 +34,11 @@ See the [activation runbook](../operations/bulletin-public-assets.md) and [verif
 ## Owner sequencing decision, 2026-11-01
 
 Stabilize Bulletin publication and conservation before introducing another storage backend. [Capacity is deferred research](../research/capacity-storage-evaluation-2026-11-01.md); its PreviewNet health response is not delivery acceptance. Retiring the old client archival checkbox and implementing monitored renewal/authorization/restore remain subsequent scoped work, not features delivered by this asset PR. Do not turn this decision into an automatic renewal allowance or a new live experiment.
+
+## Proposed name-only repair, 2026-11-03
+
+[ADR 0045](0045-bounded-metadata-name-repair.md) adds an explicitly admitted,
+exact-manifest exception for the existing unpublished `Unknown artist` defect.
+It preserves the first graph and its attempted-store/renewal obligations, adds
+one separate exact additional cap, and refuses other edits or registered tracks.
+It is not activated or a generic permission to edit public metadata.

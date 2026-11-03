@@ -1,6 +1,6 @@
 # Prepare Bulletin covers and metadata
 
-Read [ADR 0044](../adr/0044-bulletin-public-release-assets.md). This is a review candidate, not activation or permission to write. Keep the existing publisher/queue, nonce history, receipts and installed signer; never reinitialize them to add assets.
+Read [ADR 0044](../adr/0044-bulletin-public-release-assets.md). The existing synthetic pilot is now activated in [Product 0.1.69](../backlog/implementation/evidence/product-0.1.69-rollout-2026-11-02.md). The procedure below is a runbook for explicitly approved operations, not permission to add or replace a policy. Keep the existing publisher/queue, nonce history, receipts and installed signer; never reinitialize them to add assets.
 
 1. Include the merged #375 correction in the rollout and review the existing failed audio job's separate controlled recovery. The public-asset extension does not restore exhausted processing attempts.
 2. Prepare private 0700/0600 policy storage owned by custody UID 1000. Match the existing lowercase artist address and exact audio pilot scope. Choose separately reviewed attempted-store/byte ceilings for one cover and one metadata directory; count all raw/file/directory blocks and reserve future renewal transactions/bytes alongside every prior obligation. A source upload's byte grant does not include generated variants or DAG overhead.
@@ -39,3 +39,76 @@ A repeat of the same bytes addresses the same job, reconciles its pending transa
 Never clear an unresolved intent, delete locks without establishing exclusive ownership, reset counters or create a second job to retry a failed asset. A failed asset can block the shared account writer until canonical reconciliation. Error responses contain no provider body or credential. Pinata authentication/usage is irrelevant when both audio and public assets select Bulletin; readiness says this is a configuration observation, not a live quota/retention proof.
 
 Rollback admission before rolling code back. Keep the additive policy, all inventories and account cursors intact, even if the client/asset selector is restored. Previously issued Bulletin references still need the new reader, so retain compatible API readers while clients use them. Old publisher code treats any public inventory as a claimed audio pilot job and may fail closed; do not erase it to work around that. A pre-asset whole-volume restore would also discard newer security/nonce state and is not a rollback procedure. Coherent off-volume backup/recovery and recurring renewals remain production gates.
+
+## A required release detail was discovered after storage
+
+The studio must validate title, artist name and About this track before
+metadata storage or registration approval, and save the same trimmed text in metadata and registry.
+See the [artist-name regression and current pilot state](../backlog/implementation/evidence/publication-artist-name-2026-11-02.md).
+
+For an already stored manifest, do not promise that editing and retrying can
+replace the first metadata graph. `preservePublicMetadata` permits a changed
+timestamp only; substantive changes fail closed. The current one-graph pilot
+needs an explicitly reviewed revision allowance and exact old/new identity plan.
+Preserve the audio, cover, original metadata receipts/counters, queue, permanent
+reservations and shared account cursor. Deleting `public-metadata-input.json`,
+reinitializing the policy or restoring an old snapshot is not a repair. No
+live metadata revision is implemented or authorized by the frontend fix.
+
+## Exact artist-name repair
+
+[ADR 0045](../adr/0045-bounded-metadata-name-repair.md) prepares a single exception
+for the pre-registration `Unknown artist` defect. This procedure is not an
+approved intervention or network budget. Merge/review and green exact-source CI
+must precede preparation of the deployment/maintenance package.
+
+1. Review the old/new roots, exact artist-selected name and extra attempted-store
+   cap. Reserve renewals for the new graph **in addition** to every old dependency.
+   The observed synthetic manifest produces two new blocks / 1,101 bytes; live
+   quota, expiry and canonical unregistered state must be checked afresh.
+2. Obtain explicit maintenance and new-write approval for this exact candidate.
+   Stop custody gracefully, verify exclusive account ownership and preserve a
+   coherent backup of queue, publisher state, permanent nonce/key custody and
+   profiles. Do not restore an old snapshot over newer account progress.
+3. Inside the reviewed custody image, with its usual environment and UID 1000,
+   inspect without opening a signer:
+
+   ```sh
+   node dist/scripts/prepareMetadataNameRepair.js inspect 'Thot Nzeng'
+   ```
+
+   Inspection takes a temporary publisher lease, requires no writer/pending
+   barriers, verifies the existing ready metadata graph and current canonical
+   artist/runtime/unregistered state, and returns a plan plus `planSha256`.
+   Review both roots, full name-only manifest, exact additional cap and snapshot.
+   If anything changed, inspect again; never substitute a stale plan hash.
+4. After review and approval, admit precisely that plan:
+
+   ```sh
+   node dist/scripts/prepareMetadataNameRepair.js admit 'Thot Nzeng' INSPECTED_PLAN_SHA256
+   ```
+
+   This command installs only the immutable permit; it submits **zero** storage
+   or wallet transactions. A duplicate or partial existing permit is refused.
+   Keep `public-metadata-input.json`, the original asset policy and every receipt
+   intact. No preparation attempt is reset.
+5. Restart reviewed custody and verify readiness/version and the permit binding.
+   The artist completes the name in release Details using #381, retaining the
+   original title, note, cover, audio, access and royalty choices. A client retry
+   may regenerate its timestamp; custody reuses the exact approved metadata bytes.
+   Normal signed upload grants initiate the two bounded stores, then the artist
+   approves ordinary registry publication in their wallet.
+6. Independently verify sender/nonce receipts, exact new metadata bytes/root,
+   zero uncertain intents, preserved old inventories/caps and normal readiness.
+   Verify the on-chain metadata reference and protected Web/physical Host allowed
+   and denied listening. Storage success alone does not establish those gates.
+
+If an account nonce or inventory changes between inspection and admission, the
+hash refuses it. If registration is already visible at finalized **or latest**
+state, metadata repair is refused. These reads are observations, not a cross-chain
+reservation; avoid independent artist registrations during intervention. A wallet
+race can leave orphan metadata, never silently edit an existing registry record.
+Unknown storage submissions retain their normal reconciliation barrier and stay
+charged. Keep the new permit with all inventories in future backups. Missing,
+corrupt or changed permits fail closed; neither rollback nor an operator retry
+may delete the marker or replenish either graph's allowance.

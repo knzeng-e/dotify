@@ -294,10 +294,10 @@ jobs:
       - name: Fail on ABI drift
         working-directory: .
         run: |
-          drift="$(git status --porcelain -- web/src/generated/contracts)"
+          drift="$(git status --porcelain -- web/src/generated/contracts services/api/src/generated)"
           if [ -n "${drift}" ]; then
             printf '%s\n' "${drift}"
-            git diff -- web/src/generated/contracts
+            git diff -- web/src/generated/contracts services/api/src/generated
             exit 1
           fi
 

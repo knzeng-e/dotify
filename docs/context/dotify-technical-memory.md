@@ -1,5 +1,19 @@
 # Dotify technical memory
 
+## Product 0.1.69 deployment, 2026-11-02
+
+The [verified rollout](../backlog/implementation/evidence/product-0.1.69-rollout-2026-11-02.md) updates Web, Product and the existing API/custody
+services, and activates one bounded Bulletin cover/metadata policy without Pinata
+fallback. The artist no longer chooses an optional archive. At this rollout, the
+synthetic audio job still needed controlled recovery with its three attempts
+preserved. [The subsequent recovery record](https://github.com/knzeng-e/dotify/pull/380)
+confirms ready audio; merged #382 prepares the remaining name-only metadata repair,
+without activating it. Registration and protected physical-device acceptance remain
+open. No allowance/counter reset, new service or key installation occurred.
+Conservation monitoring/renewal and off-volume restore remain open; Capacity stays
+deferred research. Older checkpoints below retain their dated meaning.
+
+
 ## Bulletin publication UX, 2026-11-02
 
 The [publication cleanup](../backlog/implementation/evidence/bulletin-publication-ux-2026-11-02.md) removes the obsolete optional client archive
@@ -327,6 +341,8 @@ remain open, followed by retention/restore work.
 The [approved API-only intervention](../backlog/implementation/evidence/bulletin-prepared-recovery-rollout-2026-11-02.md)
 made the original job ready through 16 verified stores / 712,737 bytes. Attempts
 remain three; custody and public readiness are restored. Product/Web stay 0.1.69.
-The artist must still resume the existing draft and approve registration.
+The subsequent artist-name rejection is addressed by merged #381/#382, awaiting
+client rollout and separately authorized metadata repair. Then the artist can
+resume the preserved draft and approve registration.
 Protected physical/Web acceptance, conservation/renewal and off-volume restore
 remain gates; no broader artist allowance or automatic renewal is enabled.

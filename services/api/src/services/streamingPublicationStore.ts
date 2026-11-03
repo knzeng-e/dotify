@@ -11,10 +11,12 @@ import {
   type PublicAssetKind,
   type PublicAssetOwner
 } from './bulletinPublicAssets.js';
-import { open, rm } from 'node:fs/promises';
 import { join } from 'node:path';
+import { readMetadataRepair, repairedMetadataFiles, assertRepairInventories } from './bulletinMetadataRepair.js';
+import { acquireBulletinPublisherLock } from './bulletinPublisherLock.js';
+export { acquireBulletinPublisherLock } from './bulletinPublisherLock.js';
 import { createBulletinMediaStore, type BulletinMediaTransport } from './bulletinMedia.js';
-import { jobSchema, load, ownerSchema, privateDirectory, sync } from './bulletinMediaState.js';
+import { jobSchema, load, ownerSchema, privateDirectory } from './bulletinMediaState.js';
 import { assertPublicationBinding, readBulletinPublisherProfile, type BulletinPublisherProfile } from './bulletinPublisherProfile.js';
 import { pinFilesToPinata, type PinataFile } from './pinata.js';
 import { parseStreamingManifest } from './streamingFormat.js';
@@ -57,25 +59,7 @@ export async function retainedPublicationReserve(profile: BulletinPublisherProfi
   assert.ok(Number.isSafeInteger(reserve.transactions) && Number.isSafeInteger(reserve.bytes), 'Invalid accumulated renewal reserve');
   return reserve;
 }
-/** Shared by custody and offline recovery. Never remove another owner's lock. */
-export async function acquireBulletinPublisherLock(profile: BulletinPublisherProfile): Promise<() => Promise<void>> {
-  await privateDirectory(profile.directory);
-  const lock = await open(join(profile.directory, 'publisher.lock'), 'wx', 0o600);
-  const release = async () => {
-    await lock.close();
-    await rm(join(profile.directory, 'publisher.lock'));
-    await sync(profile.directory);
-  };
-  try {
-    await lock.writeFile(JSON.stringify({ pid: process.pid }));
-    await lock.sync();
-    await sync(profile.directory);
-    return release;
-  } catch (error) {
-    await release();
-    throw error;
-  }
-}
+
 export async function createStreamingPublicationStore(
   options: {
     provider: 'pinata' | 'bulletin';
@@ -83,6 +67,7 @@ export async function createStreamingPublicationStore(
     profileFile?: string;
     assetPolicyFile?: string;
     assetAuthority?: (owner: PublicAssetOwner) => Promise<boolean>;
+    metadataRepairAuthority?: (owner: PublicAssetOwner, contentHash: string) => Promise<boolean>;
     /** Trusted operator composition: authenticate a saved recovery plan while
      * holding the publisher lease, before the private signer is loaded. */
     validateBeforeSigner?: () => Promise<void>;
@@ -109,6 +94,7 @@ export async function createStreamingPublicationStore(
   await assertPublicationBinding(options.queue, profile);
   const unlock = await acquireBulletinPublisherLock(profile);
   let signer: BulletinSigner | undefined;
+  let admittedRepair: Awaited<ReturnType<typeof readMetadataRepair>> = null;
   let closed = false;
   let activeSession: ReturnType<PublisherDependencies['openSession']> | undefined;
   const release = async () => {
@@ -116,6 +102,16 @@ export async function createStreamingPublicationStore(
     await unlock();
   };
   try {
+    if (assetPolicy) {
+      admittedRepair = await readMetadataRepair(profile, assetPolicy, AbortSignal.timeout(30_000));
+      const { jobs } = await inventories(profile);
+      if (admittedRepair) {
+        assert.ok(options.metadataRepairAuthority, 'Canonical unregistered-release check required for metadata repair');
+        assertRepairInventories(admittedRepair, jobs);
+      } else {
+        assert.ok(jobs.filter(job => job.generation === publicAssetGeneration('metadata')).length <= 1, 'Metadata repair permit missing');
+      }
+    }
     // Read-only preflight before opening the private key. Startup never signs.
     const reserve = await retainedPublicationReserve(profile);
     const preflight = selected.openSession(profile, null, reserve);
@@ -145,9 +141,15 @@ export async function createStreamingPublicationStore(
       signal.throwIfAborted();
       await assertPublicationBinding(options.queue, profile);
       const { owner, jobs } = await inventories(profile);
+      let effectiveAssetPolicy = assetPolicy;
       if (asset) {
         assert.ok(assetPolicy, 'Public assets are not activated');
         await readPublicAssetPolicy(options.assetPolicyFile!, profile);
+        assert.deepEqual(
+          await readMetadataRepair(profile, assetPolicy, signal),
+          admittedRepair,
+          'Metadata repair permit changed; restart after reviewed maintenance'
+        );
         assertPublicAssetOwner(assetPolicy, asset.owner);
         assert.ok(await options.assetAuthority!(asset.owner), 'Artist authority changed before public asset storage');
         assert.ok(
@@ -155,13 +157,24 @@ export async function createStreamingPublicationStore(
           'Previous publication requires reconciliation'
         );
         if (asset.kind === 'metadata') {
-          await buildPublicAssetGraph(files, asset.kind, assetPolicy, signal);
-          files = await preservePublicMetadata(profile.directory, files);
+          if (admittedRepair) {
+            assertRepairInventories(admittedRepair, jobs);
+            assert.ok(await options.metadataRepairAuthority!(asset.owner, assetPolicy.scope.contentHash), 'Metadata repair requires an unregistered release');
+            files = repairedMetadataFiles(admittedRepair, files);
+            effectiveAssetPolicy = { ...assetPolicy, metadata: admittedRepair.budget };
+          } else {
+            await buildPublicAssetGraph(files, asset.kind, assetPolicy, signal);
+            files = await preservePublicMetadata(profile.directory, files);
+          }
         }
-        const graph = await buildPublicAssetGraph(files, asset.kind, assetPolicy, signal);
+        const graph = await buildPublicAssetGraph(files, asset.kind, effectiveAssetPolicy!, signal);
         name = publicAssetJob(asset.kind, graph.root);
         const sameKind = jobs.filter(job => job.generation === publicAssetGeneration(asset.kind));
-        assert.ok(!sameKind.length || (sameKind.length === 1 && sameKind[0].job === name), 'Public asset pilot already owns this asset');
+        if (asset.kind === 'metadata' && admittedRepair) {
+          assert.equal(graph.root, admittedRepair.newRoot, 'Repaired metadata root changed');
+        } else {
+          assert.ok(!sameKind.length || (sameKind.length === 1 && sameKind[0].job === name), 'Public asset pilot already owns this asset');
+        }
       }
       assert.ok(!owner.activeJob || owner.activeJob === name, 'Previous publication requires reconciliation');
       if (!asset && profile.pilotScope) {
@@ -172,7 +185,7 @@ export async function createStreamingPublicationStore(
         const { chainId, runtimeAddress, contentHash, keyVersion } = parseStreamingManifest(bytes);
         assert.deepEqual({ chainId, runtimeAddress, contentHash, keyVersion }, profile.pilotScope, 'Release is outside the Bulletin pilot scope');
       }
-      const selectedProfile = asset ? { ...profile, budget: assetPolicy![asset.kind] } : profile;
+      const selectedProfile = asset ? { ...profile, budget: effectiveAssetPolicy![asset.kind] } : profile;
       const reserved = await retainedPublicationReserve(profile, name);
       const session = selected.openSession(selectedProfile, signer!, reserved);
       activeSession = session;
@@ -183,7 +196,9 @@ export async function createStreamingPublicationStore(
           transport: session.transport,
           budget: selectedProfile.budget,
           pipeline: profile.pipeline,
-          ...(asset ? { buildGraph: (input: PinataFile[], bounded: AbortSignal) => buildPublicAssetGraph(input, asset.kind, assetPolicy!, bounded) } : {})
+          ...(asset
+            ? { buildGraph: (input: PinataFile[], bounded: AbortSignal) => buildPublicAssetGraph(input, asset.kind, effectiveAssetPolicy!, bounded) }
+            : {})
         }).pin(files, name, signal);
       } finally {
         session.close();

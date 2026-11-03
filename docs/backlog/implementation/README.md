@@ -1,5 +1,19 @@
 # Dotify implementation playbook
 
+## Product 0.1.69 deployment, 2026-11-02
+
+The [verified rollout](evidence/product-0.1.69-rollout-2026-11-02.md) updates Web, Product and the existing API/custody
+services, and activates one bounded Bulletin cover/metadata policy without Pinata
+fallback. The artist no longer chooses an optional archive. At this rollout, the
+synthetic audio job still needed controlled recovery with its three attempts
+preserved. [The subsequent recovery record](https://github.com/knzeng-e/dotify/pull/380)
+confirms ready audio; merged #382 prepares the remaining name-only metadata repair,
+without activating it. Registration and protected physical-device acceptance remain
+open. No allowance/counter reset, new service or key installation occurred.
+Conservation monitoring/renewal and off-volume restore remain open; Capacity stays
+deferred research. Older checkpoints below retain their dated meaning.
+
+
 ## Bulletin publication UX, 2026-11-02
 
 The [publication cleanup](evidence/bulletin-publication-ux-2026-11-02.md) removes the obsolete optional client archive
@@ -300,6 +314,9 @@ Capacity stays deferred research.
 The [approved custody intervention](evidence/bulletin-prepared-recovery-rollout-2026-11-02.md)
 recovered the original synthetic job: 16 stores / 712,737 bytes, exact canonical
 receipts and authenticated readback, attempts still three, zero pending. Private
-and public readiness are restored. Next: artist wallet registration and protected
-Web/physical Host acceptance, then conservation/renewal and off-volume recovery.
+and public readiness are restored. The later registration attempt exposed the
+stored artist-name defect; merged #381/#382 prepare its client guard and bounded
+metadata repair, still awaiting rollout and separate activation/write approval.
+Then verify artist wallet registration and protected Web/physical Host acceptance,
+followed by conservation/renewal and off-volume recovery.
 W33/#288 stays open; Product/Web remain 0.1.69.
