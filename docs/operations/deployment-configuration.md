@@ -3425,3 +3425,19 @@ metadata and registration agree. The existing synthetic pilot's already stored
 `Unknown artist` manifest requires separate bounded revision preparation and
 approval; a client rollout alone cannot repair that immutable graph. Preserve
 all ready audio/cover state, old receipts and cumulative budgets.
+
+
+## Exact pre-registration metadata-name repair candidate — 2026-11-03
+
+[ADR 0045](../adr/0045-bounded-metadata-name-repair.md) and the
+[operator procedure](bulletin-public-assets.md#exact-artist-name-repair) add
+`prepareMetadataNameRepair.js inspect|admit` to the custody image. No new env,
+service, origin, key placement or schema migration is needed. The additive
+`metadata-name-repair.json` lives beside existing publisher inventories and must
+join coherent backups. Keep the old public metadata sidecar, all receipts/caps,
+permanent nonce state and original policy unchanged. Admission requires stopped
+custody and an exact inspected hash; stores require their separate reviewed
+allowance and normal authenticated artist request. Missing/corrupt permits or
+canonical-check failures refuse work; rollback cannot reset either graph. The
+frontend #381 guard needs its own normal Web/Product rollout. No live maintenance,
+admission or write is performed by this candidate.
