@@ -3429,6 +3429,17 @@ broadcasts. Restart normal custody and verify readiness afterward. Live recovery
 artist registration and protected Web/physical Host acceptance are not performed
 by this implementation. Ordinary three-attempt retry limits remain unchanged.
 
+## Prepared-pilot recovery completed, 2026-11-02 21:49 UTC
+
+The [approved API-only intervention](../backlog/implementation/evidence/bulletin-prepared-recovery-rollout-2026-11-02.md)
+updates only custody to merged #379 / `b7f539f8`. Its normal command is restored,
+with HTTP 200 / ready / ok, and the original job is ready with attempts still
+three. Images on the public API edges and Product/Web 0.1.69 are unchanged.
+Profiles, mounts, key installation, origins and session settings are preserved.
+Keep the new ready audit and current receipt/account journals in backups; do
+not rerun recovery or restore stale state over the 16 finalized stores.
+Artist registration, protected listening and recurring conservation remain open.
+
 
 ## Release-text preflight candidate — 2026-11-02
 

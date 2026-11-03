@@ -3,7 +3,9 @@
 Use this only for the existing failed pilot job with three consumed preparation
 attempts. It reuses saved encrypted audio; it does not re-encode or reset retries.
 See [ADR 0045](../adr/0045-bulletin-prepared-job-recovery.md) for authority and crash
-boundaries. This command is implemented, **not yet deployed or run on live custody**.
+boundaries. The [2026-11-02 intervention](../backlog/implementation/evidence/bulletin-prepared-recovery-rollout-2026-11-02.md)
+deployed this command and recovered the original synthetic pilot. That job is
+now ready: do not execute recovery again for it. General runbook steps follow.
 
 ## Prepare maintenance
 
