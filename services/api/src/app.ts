@@ -1,3 +1,4 @@
+import { checkUnregisteredRelease } from './services/unregisteredRelease.js';
 import { PublicAssetStorageError } from './services/bulletinPublicAssets.js';
 import { createPublicAssetRoutes } from './routes/publicAssets.js';
 import { sharedState, assertSharedState } from './services/sharedState/index.js';
@@ -231,6 +232,11 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         queue: config.STREAMING_STATE_PATH,
         profileFile: config.BULLETIN_PUBLICATION_PROFILE,
         assetPolicyFile: config.BULLETIN_PUBLIC_ASSET_POLICY,
+        metadataRepairAuthority: (owner, contentHash) =>
+          checkUnregisteredRelease({
+            owner: owner.address.toLowerCase(),
+            scope: { chainId: owner.chainId, runtimeAddress: owner.runtimeAddress.toLowerCase(), contentHash }
+          }),
         assetAuthority: async owner => {
           if (owner.chainId !== config.DOTIFY_CHAIN_ID) return false;
           const result = await checkArtistAuthority(owner.address);

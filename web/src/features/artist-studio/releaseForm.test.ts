@@ -40,11 +40,14 @@ describe('release step machine', () => {
 });
 
 describe('canReviewRelease', () => {
-  it('requires a file hash, a non-empty title, and an audio source', () => {
-    expect(canReviewRelease({ fileHash: '0xabc', title: 'Song', audioSource: 'blob:x' })).toBe(true);
-    expect(canReviewRelease({ fileHash: '', title: 'Song', audioSource: 'blob:x' })).toBe(false);
-    expect(canReviewRelease({ fileHash: '0xabc', title: '   ', audioSource: 'blob:x' })).toBe(false);
-    expect(canReviewRelease({ fileHash: '0xabc', title: 'Song', audioSource: null })).toBe(false);
+  it('requires music and contract-valid release details', () => {
+    const valid = { fileHash: '0xabc', title: 'Song', artistName: 'Artist', description: 'A story', audioSource: 'blob:x' };
+    expect(canReviewRelease(valid)).toBe(true);
+    for (const field of ['fileHash', 'title', 'artistName', 'description'] as const) {
+      expect(canReviewRelease({ ...valid, [field]: '' })).toBe(false);
+    }
+    expect(canReviewRelease({ ...valid, artistName: '   ' })).toBe(false);
+    expect(canReviewRelease({ ...valid, audioSource: null })).toBe(false);
   });
 });
 

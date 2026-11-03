@@ -10,7 +10,9 @@ now accompany the unchanged audio profile/queue. The immutable policy admits one
 cover (16 stores / 512 KiB) and one metadata graph (4 / 64 KiB) for the existing
 synthetic scope. Edges retain read-only RPC access and no storage signer/policy.
 Both roles report ready/ok. No CORS origin, volume, service count or session epoch
-changed. The failed audio job remains at attempts=3; deployment is not its recovery.
+changed. At deployment, the failed audio job remained at attempts=3; its subsequent
+[controlled recovery](https://github.com/knzeng-e/dotify/pull/380) preserves that count.
+This rollout itself did not recover the job.
 Preserve all bindings, cursors and inventories on rollback.
 
 
@@ -3426,3 +3428,32 @@ bindings and permanent nonce ledger. Do not restore stale journals over newer
 broadcasts. Restart normal custody and verify readiness afterward. Live recovery,
 artist registration and protected Web/physical Host acceptance are not performed
 by this implementation. Ordinary three-attempt retry limits remain unchanged.
+
+
+## Release-text preflight candidate — 2026-11-02
+
+The [artist-name correction](../backlog/implementation/evidence/publication-artist-name-2026-11-02.md)
+adds shared Web/Product required-text validation before publication metadata uploads. No environment,
+service, storage policy, CORS or hosting setting changes. Before deploying, verify
+that an existing runtime with an empty locally cached artist name can fill it in
+Details, that publication is disabled while text is invalid, and that corrected
+metadata and registration agree. The existing synthetic pilot's already stored
+`Unknown artist` manifest requires separate bounded revision preparation and
+approval; a client rollout alone cannot repair that immutable graph. Preserve
+all ready audio/cover state, old receipts and cumulative budgets.
+
+
+## Exact pre-registration metadata-name repair candidate — 2026-11-03
+
+[ADR 0045](../adr/0045-bounded-metadata-name-repair.md) and the
+[operator procedure](bulletin-public-assets.md#exact-artist-name-repair) add
+`prepareMetadataNameRepair.js inspect|admit` to the custody image. No new env,
+service, origin, key placement or schema migration is needed. The additive
+`metadata-name-repair.json` lives beside existing publisher inventories and must
+join coherent backups. Keep the old public metadata sidecar, all receipts/caps,
+permanent nonce state and original policy unchanged. Admission requires stopped
+custody and an exact inspected hash; stores require their separate reviewed
+allowance and normal authenticated artist request. Missing/corrupt permits or
+canonical-check failures refuse work; rollback cannot reset either graph. The
+frontend #381 guard needs its own normal Web/Product rollout. No live maintenance,
+admission or write is performed by this candidate.
