@@ -14,6 +14,7 @@ import {
   royaltySplitRemaining,
   royaltySplitTotal
 } from '../../features/artist-studio/releaseForm';
+import { releaseDetailsErrors } from '../../features/artist-studio/releaseDetails';
 import { RELEASE_CREDIT_ROLE_OPTIONS, RELEASE_KIND_OPTIONS, releaseKindLabel } from '../../features/catalog/releaseMetadata';
 import type { AccessMode, AssetAction, PersonhoodLevel, ReleaseEditorialMetadata, ReleaseRoyaltySplitDraft, ReleaseStep } from '../../shared/types';
 import type { ChangeEvent } from 'react';
@@ -40,6 +41,7 @@ type NewReleaseTabProps = {
   isRegistering: boolean;
   canReviewRelease: boolean;
   artistName: string;
+  onUpdateArtistName: (name: string) => void;
   activeEvmAddress: string | null;
   artistRuntimeAddress: string | null;
   onSetReleaseStep: (step: ReleaseStep) => void;
@@ -82,6 +84,7 @@ export function NewReleaseTab({
   isRegistering,
   canReviewRelease,
   artistName,
+  onUpdateArtistName,
   activeEvmAddress,
   artistRuntimeAddress,
   onSetReleaseStep,
@@ -109,7 +112,9 @@ export function NewReleaseTab({
   const isDirectSupportAccess = accessMode === 'classic';
   const royaltyFieldsDisabled = artistStudioLocked;
   const royaltySplitError = releaseRoyaltySplitPreflightError(accessMode, royaltyBps, additionalRoyaltySplits);
-  const releaseCanPublish = canReviewRelease && !royaltySplitError;
+  const detailsErrors = releaseDetailsErrors({ title, artistName, description });
+  const hasDetailsErrors = Object.keys(detailsErrors).length > 0;
+  const releaseCanPublish = canReviewRelease && !hasDetailsErrors && !royaltySplitError;
   const releaseValueFlowRows = buildReleaseValueFlowRows({
     accessMode,
     artistRecipient: activeEvmAddress ?? '',
@@ -199,26 +204,49 @@ export function NewReleaseTab({
           <div className='wizard-panel release-metadata-editor'>
             <div className='fields-grid'>
               <label>
-                <span>Title</span>
+                <span>Title (required)</span>
                 <input
                   className='field'
                   data-testid='release-title-input'
+                  required
+                  aria-invalid={Boolean(detailsErrors.title)}
+                  aria-describedby={detailsErrors.title ? 'release-title-error' : undefined}
                   value={title}
                   onChange={event => onSetTitle(event.target.value)}
                   disabled={artistStudioLocked}
                 />
+                {detailsErrors.title && <small id='release-title-error'>{detailsErrors.title}</small>}
               </label>
               <label>
-                <span>About this track</span>
+                <span>Artist name (required)</span>
+                <input
+                  className='field'
+                  data-testid='release-artist-name-input'
+                  value={artistName}
+                  onChange={event => onUpdateArtistName(event.target.value)}
+                  disabled={artistStudioLocked}
+                  required
+                  aria-invalid={Boolean(detailsErrors.artistName)}
+                  aria-describedby={detailsErrors.artistName ? 'release-artist-name-error' : 'release-artist-name-hint'}
+                />
+                <small id='release-artist-name-hint'>The name listeners will see on this release.</small>
+                {detailsErrors.artistName && <small id='release-artist-name-error'>{detailsErrors.artistName}</small>}
+              </label>
+              <label>
+                <span>About this track (required)</span>
                 <textarea
                   className='field textarea-field'
                   data-testid='release-description-input'
+                  required
+                  aria-invalid={Boolean(detailsErrors.description)}
+                  aria-describedby={detailsErrors.description ? 'release-description-error' : undefined}
                   value={description}
                   placeholder='Share the story, context or intention behind this track.'
                   onChange={event => onSetDescription(event.target.value)}
                   disabled={artistStudioLocked}
                   maxLength={2000}
                 />
+                {detailsErrors.description && <small id='release-description-error'>{detailsErrors.description}</small>}
               </label>
             </div>
 
@@ -583,6 +611,17 @@ export function NewReleaseTab({
 
         {releaseStep === 'review' && (
           <div className='wizard-panel release-review'>
+            {(!fileHash || !audioSource) && <p className='error-box'>Add an audio file before publishing.</p>}
+            {hasDetailsErrors && (
+              <div className='error-box' role='alert'>
+                {Object.entries(detailsErrors).map(([field, message]) => (
+                  <p key={field}>{message}</p>
+                ))}
+                <button className='secondary-action compact-action' type='button' onClick={() => onSetReleaseStep('metadata')}>
+                  Complete release details
+                </button>
+              </div>
+            )}
             <section className='release-review-summary' data-testid='release-preflight-panel' aria-label='Release review'>
               <div className='release-review-heading'>
                 <span>Final review</span>
@@ -631,7 +670,6 @@ export function NewReleaseTab({
               </dl>
             </details>
             <p className='rights-status'>Nothing is published until you approve it and Dotify confirms the release is visible in the catalog.</p>
-            {!canReviewRelease && <p className='error-box'>Add an audio file and title before publishing.</p>}
             {royaltySplitError && <p className='error-box'>{royaltySplitError}</p>}
           </div>
         )}

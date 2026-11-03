@@ -3412,3 +3412,16 @@ bindings and permanent nonce ledger. Do not restore stale journals over newer
 broadcasts. Restart normal custody and verify readiness afterward. Live recovery,
 artist registration and protected Web/physical Host acceptance are not performed
 by this implementation. Ordinary three-attempt retry limits remain unchanged.
+
+
+## Release-text preflight candidate — 2026-11-02
+
+The [artist-name correction](../backlog/implementation/evidence/publication-artist-name-2026-11-02.md)
+adds shared Web/Product required-text validation before publication metadata uploads. No environment,
+service, storage policy, CORS or hosting setting changes. Before deploying, verify
+that an existing runtime with an empty locally cached artist name can fill it in
+Details, that publication is disabled while text is invalid, and that corrected
+metadata and registration agree. The existing synthetic pilot's already stored
+`Unknown artist` manifest requires separate bounded revision preparation and
+approval; a client rollout alone cannot repair that immutable graph. Preserve
+all ready audio/cover state, old receipts and cumulative budgets.
