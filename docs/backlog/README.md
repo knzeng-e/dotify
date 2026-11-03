@@ -1,5 +1,10 @@
 # Dotify Production Backlog
 
+## Exact metadata-name repair candidate, 2026-11-03
+
+The [bounded repair](implementation/evidence/bulletin-metadata-name-repair-2026-11-03.md) follows merged #381: inspect and admit one exact name-only metadata graph, preserve old receipts/caps and ready audio/cover, then publish through normal authenticated custody. Canonical finalized/latest checks refuse an already registered release. This is implementation only; maintenance, admission, additional stores and client rollout still need review and authorization. W33 remains open for real registration/listening and conservation.
+
+
 ## Artist-name publication correction, 2026-11-02
 
 The [reported late registration rejection](implementation/evidence/publication-artist-name-2026-11-02.md) is corrected before metadata storage: required artist name/title/note, an editable name in Details, and matching trimmed metadata/registration. The existing synthetic pilot already has finalized audio, cover and metadata; its saved manifest says `Unknown artist`. The owner selected `Thot Nzeng`. That immutable manifest needs a separately reviewed and authorized revision while preserving its receipts and all prepared assets. This frontend PR does not replace it, reset a budget or deploy. W33 remains open for repair, real registration/listening and conservation.

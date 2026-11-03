@@ -54,3 +54,61 @@ Preserve the audio, cover, original metadata receipts/counters, queue, permanent
 reservations and shared account cursor. Deleting `public-metadata-input.json`,
 reinitializing the policy or restoring an old snapshot is not a repair. No
 live metadata revision is implemented or authorized by the frontend fix.
+
+## Exact artist-name repair
+
+[ADR 0045](../adr/0045-bounded-metadata-name-repair.md) prepares a single exception
+for the pre-registration `Unknown artist` defect. This procedure is not an
+approved intervention or network budget. Merge/review and green exact-source CI
+must precede preparation of the deployment/maintenance package.
+
+1. Review the old/new roots, exact artist-selected name and extra attempted-store
+   cap. Reserve renewals for the new graph **in addition** to every old dependency.
+   The observed synthetic manifest produces two new blocks / 1,101 bytes; live
+   quota, expiry and canonical unregistered state must be checked afresh.
+2. Obtain explicit maintenance and new-write approval for this exact candidate.
+   Stop custody gracefully, verify exclusive account ownership and preserve a
+   coherent backup of queue, publisher state, permanent nonce/key custody and
+   profiles. Do not restore an old snapshot over newer account progress.
+3. Inside the reviewed custody image, with its usual environment and UID 1000,
+   inspect without opening a signer:
+
+   ```sh
+   node dist/scripts/prepareMetadataNameRepair.js inspect 'Thot Nzeng'
+   ```
+
+   Inspection takes a temporary publisher lease, requires no writer/pending
+   barriers, verifies the existing ready metadata graph and current canonical
+   artist/runtime/unregistered state, and returns a plan plus `planSha256`.
+   Review both roots, full name-only manifest, exact additional cap and snapshot.
+   If anything changed, inspect again; never substitute a stale plan hash.
+4. After review and approval, admit precisely that plan:
+
+   ```sh
+   node dist/scripts/prepareMetadataNameRepair.js admit 'Thot Nzeng' INSPECTED_PLAN_SHA256
+   ```
+
+   This command installs only the immutable permit; it submits **zero** storage
+   or wallet transactions. A duplicate or partial existing permit is refused.
+   Keep `public-metadata-input.json`, the original asset policy and every receipt
+   intact. No preparation attempt is reset.
+5. Restart reviewed custody and verify readiness/version and the permit binding.
+   The artist completes the name in release Details using #381, retaining the
+   original title, note, cover, audio, access and royalty choices. A client retry
+   may regenerate its timestamp; custody reuses the exact approved metadata bytes.
+   Normal signed upload grants initiate the two bounded stores, then the artist
+   approves ordinary registry publication in their wallet.
+6. Independently verify sender/nonce receipts, exact new metadata bytes/root,
+   zero uncertain intents, preserved old inventories/caps and normal readiness.
+   Verify the on-chain metadata reference and protected Web/physical Host allowed
+   and denied listening. Storage success alone does not establish those gates.
+
+If an account nonce or inventory changes between inspection and admission, the
+hash refuses it. If registration is already visible at finalized **or latest**
+state, metadata repair is refused. These reads are observations, not a cross-chain
+reservation; avoid independent artist registrations during intervention. A wallet
+race can leave orphan metadata, never silently edit an existing registry record.
+Unknown storage submissions retain their normal reconciliation barrier and stay
+charged. Keep the new permit with all inventories in future backups. Missing,
+corrupt or changed permits fail closed; neither rollback nor an operator retry
+may delete the marker or replenish either graph's allowance.
