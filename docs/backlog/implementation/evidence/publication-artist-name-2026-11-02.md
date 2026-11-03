@@ -105,3 +105,13 @@ preparation began. The fixture now supplies a valid synthetic note. Production
 validation, retry assertions and timeouts are unchanged. All four publication
 review/recovery cases pass locally, including current-draft/account revalidation
 and preservation of another task's dialog; fixture formatting and diff checks pass.
+
+The next full run confirms both repaired retry cases and passes 285 cases, but
+exposes an independent Tip hover measurement race at 430 px: viewport `y` changes
+by 12 px while `x`, width and height remain equal. Player mount scrolling can
+outlive visibility; the screenshot/hover sequence compared different viewport
+positions. The test now waits for fonts and compares exact document coordinates
+before/after hover, retaining viewport-fit, 44 px target, color, contrast, focus,
+tip/payment and unchanged-access assertions. All four widths (320, 390, 430 and
+1440 px) pass three repetitions, **12/12**. No product CSS, timeouts or acceptance
+tolerances change.
