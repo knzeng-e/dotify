@@ -95,3 +95,13 @@ registration or physical Host test.
 Keep W33 open for the existing-manifest repair, real wallet registration,
 protected allowed/denied Web and physical Host listening, representative
 publication costs/startup, recurring retention and off-volume recovery.
+
+## CI fixture correction — 2026-11-03
+
+The first full CI browser run passed 284 cases and failed the two preparation
+retry cases in `publication-review.spec.ts`. Their hook harness supplied an empty
+track note, so required-text validation correctly stopped before the simulated
+preparation began. The fixture now supplies a valid synthetic note. Production
+validation, retry assertions and timeouts are unchanged. All four publication
+review/recovery cases pass locally, including current-draft/account revalidation
+and preservation of another task's dialog; fixture formatting and diff checks pass.

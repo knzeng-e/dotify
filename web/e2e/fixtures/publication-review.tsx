@@ -48,7 +48,8 @@ export function mountPreparationRetry() {
       fileHash: hash,
       title: 'Review regression',
       artistName: 'Review artist',
-      description: '',
+      // Valid release text lets this harness reach the preparation/retry boundary.
+      description: 'A synthetic release for publication recovery checks.',
       releaseMetadata: createEmptyReleaseMetadata(),
       durationSeconds: null,
       accessMode: 'classic',
