@@ -325,3 +325,18 @@ test('an expired unsigned confirmation offers a direct retry without paying auto
   await expect(page.getByTestId('full-playback-state')).toBeVisible();
   expect((await readClassicUnlockState(page))?.paymentAttempts).toBe(2);
 });
+
+// This checks the real catalog selection/access coordinator. The fixture's
+// key/media adapter is deterministic; native/API transport is tested separately.
+test('Bulletin reference without a direct URL reaches protected playback only after access passes', async ({ page }) => {
+  await page.goto('/?e2eClassic=bulletin-source');
+  await page.getByTestId('track-card-open').click();
+  await expect(page.getByTestId('locked-player-state')).toContainText('Locked');
+  expect((await readClassicUnlockState(page))?.fullKeyRequests ?? 0).toBe(0);
+  await openClassicSupport(page);
+  await page.getByTestId('classic-unlock-button').click();
+  await expect(page.getByTestId('unlock-transaction-status')).toContainText('Access verified');
+  await expect.poll(async () => (await readClassicUnlockState(page))?.fullKeyRequests ?? 0).toBeGreaterThan(0);
+  expect((await readClassicUnlockState(page))?.deniedFullKeyRequests).toBe(0);
+  await expect(page.locator('audio').first()).toHaveAttribute('src', /^data:audio\/wav/);
+});

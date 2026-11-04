@@ -1,5 +1,9 @@
 # W33 - Serve encrypted media through a read-through edge cache
 
+## Bulletin playback selection correction, 2026-11-04
+
+The [registered-release silence](evidence/bulletin-playback-source-2026-11-04.md) comes from a client selection guard requiring a direct gateway URL before protected preparation. The candidate admits encrypted references through the existing authenticated reader in both explicit and standby selection. It preserves the published release and all access checks; client rollout and physical listening remain acceptance gates.
+
 ## Fresh publication trial active, 2026-11-04
 
 [The clean publication trial](evidence/bulletin-fresh-pilot-activation-2026-11-04.md) replaces recovery of the abandoned draft
@@ -36,6 +40,7 @@ registers no release. Next: resume the saved draft through normal artist upload
 and wallet approval, then verify protected Web/physical Host allowed and denied
 listening. Conservation/renewals and off-volume restore remain W33 gates.
 Older dated checkpoints below retain their historical meaning.
+
 
 ## Exact metadata-name repair candidate, 2026-11-03
 
