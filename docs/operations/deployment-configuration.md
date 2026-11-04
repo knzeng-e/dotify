@@ -1,5 +1,16 @@
 # Deployment Configuration Runbook
 
+## Protected playback account-lifetime candidate, 2026-11-05
+
+The [client correction](../backlog/implementation/evidence/bulletin-protected-account-lifetime-2026-11-05.md)
+retires an attached/in-flight account-bound source on identity change, with an
+explicit authorization recheck after reconnect. It changes no environment, CORS,
+key placement, grants, storage admission, service role or deployment version.
+0.1.72 remains deployed. After delivery of matching clients, use the
+[acceptance procedure](bulletin-protected-playback-acceptance.md) for unentitled
+access, sign-out and recovery on the existing release. Preserve all server
+receipts/counters and distinguish physical outcomes from fixture tests.
+
 ## Product 0.1.72 client publication, 2026-11-04
 
 [Verified client rollout](../backlog/implementation/evidence/product-0.1.72-rollout-2026-11-04.md)

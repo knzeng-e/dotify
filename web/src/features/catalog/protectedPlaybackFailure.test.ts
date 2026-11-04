@@ -44,6 +44,7 @@ describe('protected playback failure', () => {
     expect(isTransientProtectedPlaybackFailure('unknown')).toBe(false);
     expect(classifyProtectedPlaybackFailure(new KeyServiceError('bad signature', 'SIGNATURE_INVALID'))).toBe('unknown');
     expect(isTransientProtectedPlaybackFailure('account-required')).toBe(false);
+    expect(isTransientProtectedPlaybackFailure('account-changed')).toBe(false);
   });
 
   it('gives every kind plain copy without infrastructure vocabulary', () => {
@@ -53,6 +54,7 @@ describe('protected playback failure', () => {
       'access-not-confirmed',
       'audio-unavailable',
       'account-required',
+      'account-changed',
       'session-interrupted',
       'unknown'
     ];

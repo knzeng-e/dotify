@@ -6,6 +6,7 @@ type ClassicUnlockE2eState = {
   paid: boolean;
   accessGranted: boolean;
   paymentAttempts?: number;
+  completedKeyRequests?: number;
 };
 
 declare global {
@@ -339,4 +340,107 @@ test('Bulletin reference without a direct URL reaches protected playback only af
   await expect.poll(async () => (await readClassicUnlockState(page))?.fullKeyRequests ?? 0).toBeGreaterThan(0);
   expect((await readClassicUnlockState(page))?.deniedFullKeyRequests).toBe(0);
   await expect(page.locator('audio').first()).toHaveAttribute('src', /^data:audio\/wav/);
+});
+
+async function unlockBulletinFixture(page: Page, scenario: string) {
+  await page.goto(`/?e2eClassic=${scenario}`);
+  await page.getByTestId('track-card-open').click();
+  await openClassicSupport(page);
+  await page.getByTestId('classic-unlock-button').click();
+  await expect(page.getByTestId('unlock-transaction-status')).toContainText('Access verified');
+  await page.getByRole('button', { name: 'Close', exact: true }).click();
+}
+
+test('Bulletin key refusal never attaches audio despite positive runtime readback', async ({ page }) => {
+  await unlockBulletinFixture(page, 'bulletin-key-denied');
+  await expect(page.getByTestId('playback-failure')).toHaveAttribute('data-kind', 'access-not-confirmed', { timeout: 10_000 });
+  expect((await readClassicUnlockState(page))?.fullKeyRequests).toBe(3);
+  await expect(page.locator('audio[src]')).toHaveCount(0);
+  expect((await readClassicUnlockState(page))?.paymentAttempts).toBe(1);
+});
+
+test('disconnect retires an opened protected Bulletin source', async ({ page }) => {
+  await unlockBulletinFixture(page, 'bulletin-source');
+  await expect(page.locator('audio').first()).toHaveAttribute('src', /^data:audio\/wav/);
+  await page.getByRole('button', { name: 'Disconnect wallet', exact: true }).click();
+  await expect(page.locator('.status-pill.wallet-pill')).toContainText('Connect');
+  await expect(page.locator('audio[src]')).toHaveCount(0);
+  await expect(page.getByTestId('playback-failure')).toHaveAttribute('data-kind', 'account-required');
+  expect((await readClassicUnlockState(page))?.paymentAttempts).toBe(1);
+});
+
+test('a late Bulletin key cannot reopen audio after disconnect', async ({ page }) => {
+  await unlockBulletinFixture(page, 'bulletin-key-pending');
+  await expect.poll(async () => (await readClassicUnlockState(page))?.fullKeyRequests).toBe(1);
+  await page.getByRole('button', { name: 'Disconnect wallet', exact: true }).click();
+  await expect(page.locator('.status-pill.wallet-pill')).toContainText('Connect');
+  await page.evaluate(() => window.dispatchEvent(new Event('dotify:e2e:release-key')));
+  await expect.poll(async () => (await readClassicUnlockState(page))?.completedKeyRequests).toBe(1);
+  await expect(page.getByTestId('playback-failure')).toHaveAttribute('data-kind', 'account-required');
+  await expect(page.locator('audio[src]')).toHaveCount(0);
+  expect((await readClassicUnlockState(page))?.fullKeyRequests).toBe(1);
+});
+
+test('switching accounts retires the old source without automatically paying or requesting another key', async ({ page }) => {
+  await unlockBulletinFixture(page, 'bulletin-account-switch');
+  await expect(page.locator('audio').first()).toHaveAttribute('src', /^data:audio\/wav/);
+  const requests = (await readClassicUnlockState(page))?.fullKeyRequests;
+  await page.evaluate(() => window.dispatchEvent(new Event('dotify:e2e:change-account')));
+  await expect(page.locator('.status-pill.wallet-pill')).toContainText('E2E other account');
+  await expect(page.locator('audio[src]')).toHaveCount(0);
+  const failure = page.getByTestId('playback-failure');
+  await expect(failure).toHaveAttribute('data-kind', 'account-changed');
+  await failure.getByRole('button', { name: 'Try again', exact: true }).click();
+  await expect(page.getByTestId('locked-player-state')).toContainText('Locked');
+  await expect(page.locator('audio[src]')).toHaveCount(0);
+  expect((await readClassicUnlockState(page))?.paymentAttempts).toBe(1);
+  expect((await readClassicUnlockState(page))?.fullKeyRequests).toBe(requests);
+});
+
+test('a wallet network change ends protected playback without an automatic retry', async ({ page }) => {
+  await unlockBulletinFixture(page, 'bulletin-network-switch');
+  await expect(page.locator('audio').first()).toHaveAttribute('src', /^data:audio\/wav/);
+  const requests = (await readClassicUnlockState(page))?.fullKeyRequests;
+  await page.evaluate(() => window.dispatchEvent(new Event('dotify:e2e:change-account')));
+  await expect(page.getByTestId('playback-failure')).toHaveAttribute('data-kind', 'account-changed');
+  await expect(page.locator('audio[src]')).toHaveCount(0);
+  expect((await readClassicUnlockState(page))?.fullKeyRequests).toBe(requests);
+});
+
+test('profile-only updates preserve the authorized source', async ({ page }) => {
+  await unlockBulletinFixture(page, 'bulletin-profile-refresh');
+  await expect(page.locator('audio').first()).toHaveAttribute('src', /^data:audio\/wav/);
+  await page.evaluate(() => window.dispatchEvent(new Event('dotify:e2e:change-account')));
+  await expect(page.locator('.status-pill.wallet-pill')).toContainText('Updated profile label');
+  await expect(page.locator('audio').first()).toHaveAttribute('src', /^data:audio\/wav/);
+  await expect(page.getByTestId('playback-failure')).toHaveCount(0);
+});
+
+test('disconnect preserves a Free Bulletin source that needs no account', async ({ page }) => {
+  await page.goto('/?e2eClassic=bulletin-free');
+  await page.getByTestId('track-card-open').click();
+  await expect(page.locator('audio').first()).toHaveAttribute('src', /^data:audio\/wav/);
+  await page.getByRole('button', { name: 'Disconnect wallet', exact: true }).click();
+  await expect(page.locator('.status-pill.wallet-pill')).toContainText('Connect');
+  await expect(page.locator('audio').first()).toHaveAttribute('src', /^data:audio\/wav/);
+  await expect(page.getByTestId('playback-failure')).toHaveCount(0);
+  expect((await readClassicUnlockState(page))?.paymentAttempts ?? 0).toBe(0);
+});
+
+test('reconnecting needs an explicit access recheck and never repeats payment', async ({ page }) => {
+  await unlockBulletinFixture(page, 'bulletin-source');
+  await expect(page.locator('audio').first()).toHaveAttribute('src', /^data:audio\/wav/);
+  await page.getByRole('button', { name: 'Disconnect wallet', exact: true }).click();
+  const failure = page.getByTestId('playback-failure');
+  await expect(failure).toHaveAttribute('data-kind', 'account-required');
+  await failure.getByRole('button', { name: 'Try again', exact: true }).click();
+  await page.getByRole('button', { name: /Use browser wallet/ }).click();
+  await expect(failure).toHaveAttribute('data-kind', 'account-changed');
+  await expect(page.locator('audio[src]')).toHaveCount(0);
+  expect((await readClassicUnlockState(page))?.fullKeyRequests).toBe(1);
+  await failure.getByRole('button', { name: 'Try again', exact: true }).click();
+  await expect(page.locator('audio').first()).toHaveAttribute('src', /^data:audio\/wav/);
+  await expect(failure).toHaveCount(0);
+  expect((await readClassicUnlockState(page))?.paymentAttempts).toBe(1);
+  expect((await readClassicUnlockState(page))?.fullKeyRequests).toBe(2);
 });

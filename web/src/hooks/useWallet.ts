@@ -15,7 +15,7 @@
 import type { PolkadotSigner } from 'polkadot-api';
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { createWalletClient, custom, type WalletClient, type Chain } from 'viem';
-import { createClassicUnlockE2eWallet, isClassicUnlockE2e, shouldAllowClassicUnlockAccountLoss } from '../e2e/classicUnlockMock';
+import { classicUnlockE2eScenario, createClassicUnlockE2eWallet, isClassicUnlockE2e, shouldAllowClassicUnlockAccountLoss } from '../e2e/classicUnlockMock';
 import {
   createArtistPublishE2eWallet,
   isArtistPublishE2e,
@@ -199,12 +199,26 @@ export function useWallet() {
   const [productHostStatus, setProductHostStatus] = useState<ProductHostStatus>(() => (productHostConfig.mode === 'off' ? 'off' : 'checking'));
   const [hasLegacyPasskeyData, setHasLegacyPasskeyData] = useState(hasLegacyPasskeyCredential);
 
+  useEffect(() => {
+    if (!isClassicUnlockE2e || !['bulletin-account-switch', 'bulletin-network-switch', 'bulletin-profile-refresh'].includes(classicUnlockE2eScenario())) return;
+    const changeAccount = () => {
+      const wallet = createClassicUnlockE2eWallet();
+      if (classicUnlockE2eScenario() === 'bulletin-account-switch') {
+        setState({ status: 'connected', wallet: createClassicUnlockE2eWallet('0x0000000000000000000000000000000000001002') });
+      } else if (classicUnlockE2eScenario() === 'bulletin-network-switch') {
+        setState({ status: 'connected', wallet: { ...wallet, chainId: 1 } });
+      } else setState({ status: 'connected', wallet: { ...wallet, label: 'Updated profile label' } });
+    };
+    window.addEventListener('dotify:e2e:change-account', changeAccount);
+    return () => window.removeEventListener('dotify:e2e:change-account', changeAccount);
+  }, []);
+
   const connectionAttemptRef = useRef(0);
   const connectedMethod = state.status === 'connected' ? state.wallet.method : null;
 
   const connectExtension = useCallback(async () => {
     const attempt = ++connectionAttemptRef.current;
-    if (isClassicUnlockE2e && new URLSearchParams(location.search).get('e2eGift') === 'connect') {
+    if (isClassicUnlockE2e && (new URLSearchParams(location.search).get('e2eGift') === 'connect' || classicUnlockE2eScenario().startsWith('bulletin-'))) {
       setState({ status: 'connected', wallet: createClassicUnlockE2eWallet() });
       return;
     }
