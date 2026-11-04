@@ -273,3 +273,16 @@ price and artwork before ordinary Publish. Ready audio and the exact name-only
 permit remain intact. The rollout itself publishes only the app; the artist still
 submits corrected metadata and approves registry publication. Protected Web and
 physical Host acceptance, conservation/renewals and off-volume recovery remain gates.
+
+
+## Clean publication trial replaces draft repair, 2026-11-04
+
+The owner could not find an unpublished release to resume. A retained audio job
+is not a recoverable studio draft, and the next cover refusal precedes the new
+metadata recovery offer. The [fresh trial](../backlog/implementation/evidence/bulletin-fresh-pilot-activation-2026-11-04.md)
+now admits one normal New release independently of the abandoned graph. Old state
+is preserved and inactive; the artist selects the generated eight-second fixture,
+chooses details/cover, then signs ordinary publication. This is a bounded test,
+not successful registration or general multi-release readiness. Prioritize a
+successful end-to-end flow; ordinary draft editing and usage-based admission must
+remove the need for operator intervention on routine artist choices.

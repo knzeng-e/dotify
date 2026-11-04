@@ -1,0 +1,108 @@
+{
+  "schema": "dotify.bulletin.fresh-pilot-activation.v1",
+  "source": "e2dd614862a8d9e3c5373689f58195b069130c07",
+  "productVersion": "0.1.71",
+  "observedAt": "2026-11-04T16:06:03.830Z",
+  "ownerApproved": true,
+  "ownerConfirmedAppClosed": true,
+  "budget": {
+    "maxTransactions": 36,
+    "maxBytes": 1638400,
+    "audio": {
+      "maxBytes": 1048576,
+      "maxTransactions": 16,
+      "minimumLifetimeBlocks": 100
+    },
+    "cover": {
+      "maxBytes": 524288,
+      "maxTransactions": 16,
+      "minimumLifetimeBlocks": 100
+    },
+    "metadata": {
+      "maxBytes": 65536,
+      "maxTransactions": 4,
+      "minimumLifetimeBlocks": 100
+    },
+    "priorRenewalReserve": {
+      "transactions": 215,
+      "bytes": 63639252
+    },
+    "additionalRenewalReserve": {
+      "transactions": 36,
+      "bytes": 1638400
+    },
+    "minimumTransactionsBefore": 287,
+    "minimumRenewBytesBefore": 65277652
+  },
+  "snapshot": {
+    "id": "vs_7OYm1emDyJXtAZ0Yvo8",
+    "size": 11605648,
+    "volume_size": 1073741824,
+    "digest": "1b0d3cf13009084b7d0316a621945084de0166badee082542dc2503bb77fba22",
+    "created_at": "2026-11-04T16:01:40Z",
+    "status": "created",
+    "retention_days": 14,
+    "volumeId": "vol_491jo391o8leqe5r"
+  },
+  "active": {
+    "ready": true,
+    "source": "e2dd614862a8d9e3c5373689f58195b069130c07",
+    "profile": "/data/contributions/config/bulletin-fresh-20261104.json",
+    "queue": "/data/contributions/streaming-fresh-20261104",
+    "jobs": 0,
+    "active": null,
+    "nonce": 1120,
+    "repairPermit": false
+  },
+  "scope": {
+    "chainId": 420420417,
+    "runtimeAddress": "0x05c643a1ed0e75c8a3486410f13bc4597c2674d7",
+    "contentHash": "0x66aae2bdd5859205f46c62291d93d6d5618e56201a507c2b9f5277823edafd35",
+    "keyVersion": "dotify-content-key-v2"
+  },
+  "artist": "0x2f6bf01a6708c927b288a53b9fe3f9edc689ff56",
+  "storageAccount": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+  "maintenanceStores": 0,
+  "maintenanceRegistryWrites": 0,
+  "maintenanceDotnsWrites": 0,
+  "provisioningSignerRead": false,
+  "keyPlacementChanged": false,
+  "oldPermanentFilesVerified": 14,
+  "oldStateUnchanged": true,
+  "oldStateMapSha256": "9a54c95b05e0989edbd51842c1315ba4c900843fc6bb773fd53423a8b88d83f8",
+  "permanentNonceReservationsCopied": 4,
+  "nonceCopiesVerified": true,
+  "canonicalNonceBeforeAndAfter": 1120,
+  "quotaBefore": {
+    "expiresAt": 1621405,
+    "remainingTransactions": 336,
+    "remainingBytes": "176783298",
+    "remainingRenewBytes": "147302602"
+  },
+  "quotaAfter": {
+    "expiresAt": 1621405,
+    "remainingTransactions": 336,
+    "remainingBytes": "176783298",
+    "remainingRenewBytes": "147302602"
+  },
+  "unregisteredArtistAuthorityVerified": true,
+  "provisionSource": "bulletin-fresh-provision-2026-11-04.mjs",
+  "provisionSourceSha256": "cd11f21c82f40adb284c3e69b9edb7849e4e8e548ed30a30f8c83fc7365d8840",
+  "sourceCi": "https://github.com/knzeng-e/dotify/actions/runs/41821943011",
+  "localRehearsal": {
+    "oldDifferentCoverRefused": true,
+    "freshDifferentCoverAccepted": true,
+    "freshMetadataAccepted": true,
+    "nonceCollisionRefused": true,
+    "retryDuplicates": 0,
+    "realSignerUsed": false,
+    "networkWrites": 0
+  },
+  "remainingGates": [
+    "actual ordinary publication and artist-wallet registration",
+    "protected Web/Desktop/mobile allowed and denied playback",
+    "publication admission suitable for ordinary draft edits and multiple releases",
+    "dependency conservation and bounded renewal",
+    "coherent off-volume data/key restore"
+  ]
+}

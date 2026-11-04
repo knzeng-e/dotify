@@ -373,3 +373,15 @@ Custody had stopped after losing its database lease before deployment; same-imag
 restart restored inspection. Investigate supervised recovery separately while
 preserving fail-closed shared-writer ownership. Conservation of reused app blocks
 (expiry 1,532,185), protected acceptance and off-volume restore remain open.
+
+
+## Fresh Bulletin publication trial active, 2026-11-04
+
+[New empty publisher/queue paths](../backlog/implementation/evidence/bulletin-fresh-pilot-activation-2026-11-04.md)
+replace the abandoned repair draft as the active target. Same source/image and
+installed signer; Product/Web remain 0.1.71. Owner-approved cap: audio 16/1 MiB,
+cover 16/512 KiB, metadata 4/64 KiB. Four permanent encryption reservations are
+copied and verified, account floor is 1120, and 14 old small state files remain
+byte-identical. No musical or registry/DotNS write occurs during maintenance.
+The artist starts a normal New release. General draft editing/multi-release
+admission, protected acceptance, conservation and off-volume restore remain gaps.

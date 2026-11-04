@@ -1,5 +1,34 @@
 # Deployment Configuration Runbook
 
+## Active fresh Bulletin trial, 2026-11-04
+
+[The verified fresh admission](../backlog/implementation/evidence/bulletin-fresh-pilot-activation-2026-11-04.md)
+now supersedes the abandoned name-repair draft as the active publication target.
+Custody keeps the existing image/source and signer; only these three paths change:
+`BULLETIN_PUBLICATION_PROFILE=/data/contributions/config/bulletin-fresh-20261104.json`,
+`BULLETIN_PUBLIC_ASSET_POLICY=/data/contributions/config/bulletin-fresh-20261104-assets.json`,
+`STREAMING_STATE_PATH=/data/contributions/streaming-fresh-20261104`.
+Both storage selectors remain `bulletin`; Product/Web stay 0.1.71 and both edges
+retain their existing proxy/read configuration. Preserve these machine path overrides
+on subsequent custody updates; the generic manifest defaults are not this active
+pilot configuration. No key, CORS, grant or contract change.
+
+The new publisher directory is `/data/contributions/bulletin-fresh-20261104-publications`.
+It admits the same generated eight-second audio, one newly selected cover and one
+new manifest, within the owner-approved cumulative 36-store / 1,638,400-byte cap.
+Old jobs/attempts/receipts/permit remain preserved and inactive. Snapshot
+`vs_7OYm1emDyJXtAZ0Yvo8` precedes activation. All 14 old small state files and
+four copied encryption reservations are independently verified; the new account
+cursor is anchored at finalized nonce 1120. Do not delete old state, reset a nonce,
+blindly re-enable the old queue or roll back a volume over later reservations.
+
+The post-start queue is empty and custody is ready. The artist starts a new release
+with the supplied eight-second fixture; successful registration and protected
+physical/Web listening remain unverified. Future ordinary draft editing needs
+usage-based admission, not another exact-graph operator repair. Retention remains
+separate: no renewal or scheduler is enabled by this maintenance.
+
+
 ## Prepared-release recovery rollout, 2026-11-04
 
 [Current rollout](../backlog/implementation/evidence/product-0.1.71-rollout-2026-11-04.md)
