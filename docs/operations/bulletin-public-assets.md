@@ -1,5 +1,18 @@
 # Prepare Bulletin covers and metadata
 
+## Current fresh trial, 2026-11-04
+
+[Fresh admission evidence](../backlog/implementation/evidence/bulletin-fresh-pilot-activation-2026-11-04.md)
+records a new approved empty publisher/queue, using the existing source and key.
+The abandoned pilot's audio, cover, metadata and repair permit remain intact but
+inactive. This is a distinct trial, not reinitialization of the old binding or a
+way to reset its budgets. New active paths and the complete 36-store / 1,638,400-byte
+cap are in the deployment runbook. Every old encryption reservation is copied and
+verified, and the new account cursor starts at finalized nonce 1120. The exact
+name-only repair instructions below remain historical procedures, not the current
+artist action. Start an ordinary New release with the supplied eight-second file.
+
+
 Read [ADR 0044](../adr/0044-bulletin-public-release-assets.md). The existing synthetic pilot is now activated in [Product 0.1.69](../backlog/implementation/evidence/product-0.1.69-rollout-2026-11-02.md). The procedure below is a runbook for explicitly approved operations, not permission to add or replace a policy. Keep the existing publisher/queue, nonce history, receipts and installed signer; never reinitialize them to add assets.
 
 1. Include the merged #375 correction in the rollout and review the existing failed audio job's separate controlled recovery. The public-asset extension does not restore exhausted processing attempts.
@@ -31,6 +44,16 @@ Policy shape (replace every placeholder; **not an approved allowance**):
 4. On **custody only**, select `PUBLIC_ASSET_STORAGE=bulletin` and set `BULLETIN_PUBLIC_ASSET_POLICY` to that policy file. Keep `STREAMING_AUDIO_STORAGE=bulletin` and its existing `BULLETIN_PUBLICATION_PROFILE`. Missing/mismatched policy, signing identity, canonical authority or publication binding fails closed. No Pinata fallback exists in this mode. The policy and its copy in the inventory directory must remain unchanged; a changed file does not enlarge an admitted asset's allowance.
 5. Public edges retain read-only `BULLETIN_MEDIA_RPC_URL`, no publisher policy/key. The existing API origin/CORS permissions suffice: no new Host origin or service is needed. Deploy the new Web/Product client resolver before publishing Bulletin artwork/metadata references; old clients may try generic gateways. This deliberately does not add permanent old-runtime support.
 6. Verify source/version, readiness, authenticated upload grants, actual graph sizes, receipts/sender/nonces, retention and canonical references. Read every variant and `release.json` on Web/Desktop/mobile, including the unpublished studio preview and a slow/missing Host read. Complete ordinary artist-wallet registration and protected listening/payment tests. A successful public asset upload proves none of those protected-access outcomes.
+
+## Exact pilot repair admitted, 2026-11-03
+
+The [0.1.70 intervention](../backlog/implementation/evidence/product-0.1.70-rollout-2026-11-03.md)
+installed the owner-approved `metadata-name-repair.json` for **Thot Nzeng**.
+The original ready audio, cover and metadata inventories remain. The corrected
+metadata still needs its ordinary authenticated artist request (two blocks /
+1,101 bytes), followed by explicit wallet registration. Do not run admission or
+prepared-audio recovery again for this pilot. The generic operator procedure below
+is not authority to add another exception or enlarge either graph's allowance.
 
 ## Failures and rollback
 

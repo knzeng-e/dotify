@@ -1,6 +1,6 @@
 # 0045 — One exact pre-registration artist-name repair
 
-Date: 2026-11-03. Status: proposed implementation; not activated. Refs W33/#288,
+Date: 2026-11-03. Status: implemented; [one exact pilot permit admitted](../backlog/implementation/evidence/product-0.1.70-rollout-2026-11-03.md); corrected metadata publication and artist registration remain acceptance gates. Refs W33/#288,
 [the observed rejection](../backlog/implementation/evidence/publication-artist-name-2026-11-02.md)
 and [ADR 0044](0044-bulletin-public-release-assets.md).
 

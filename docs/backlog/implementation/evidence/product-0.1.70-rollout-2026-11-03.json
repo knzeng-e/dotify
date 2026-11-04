@@ -1,0 +1,307 @@
+{
+  "schema": "dotify.product-rollout-checkpoint.v1",
+  "source": "5c25685db3ed6b0f21e14e3c3c60c2b4da4c66dd",
+  "base": "16f834b589d40962f17dfb07a6bfdde080225f06",
+  "productVersion": [
+    0,
+    1,
+    70
+  ],
+  "stage": "Web, API/custody and Product independently verified; exact metadata permit admitted; normal artist upload and registration pending",
+  "exactSourceCi": {
+    "id": 41675787558,
+    "conclusion": "success"
+  },
+  "baseCi": {
+    "id": 41675229276,
+    "conclusion": "success"
+  },
+  "image": "registry.fly.io/dotify-api@sha256:b01d0391c888ef1cb9c41eddb51bcacfec95ded34cc210dd21ae51385c40abf7",
+  "snapshot": {
+    "id": "vs_ByDpoRDyJNpBSv7DpVG02",
+    "size": 59510874,
+    "volume_size": 1073741824,
+    "digest": "9139af92500e3c830f217bb29f1e5b55ca0dbe0144361b73ef7bccc8d8338f5b",
+    "created_at": "2026-11-03T16:48:53Z",
+    "status": "created",
+    "retention_days": 14
+  },
+  "coherentBackup": {
+    "schema": "dotify.metadata-repair.backup.v1",
+    "observedAt": "2026-11-03T16:56:19.680Z",
+    "backup": "/data/contributions/recovery-backups/metadata-0.1.70-1793724978375",
+    "source": "5c25685db3ed6b0f21e14e3c3c60c2b4da4c66dd",
+    "queueFiles": 174,
+    "publisherFiles": 7,
+    "queueSha256": "9180558541a418f328c6b38dadad63e8547d585e115c854d7ed9f0ae21983ffb",
+    "publisherSha256": "29d8e253bf609c2c5a6a2c060d9628e308a7dcaa40f9f7451d3994ec26f6b331",
+    "signerCopied": false,
+    "contentKeyCopied": false,
+    "offVolume": false
+  },
+  "metadataAdmission": {
+    "permitVerified": true,
+    "artistName": "Thot Nzeng",
+    "oldRoot": "bafykbzacecahgvcz7wh4i7xozrdqphf5sr2jwgduxdsi2vouhxqmmos7gjhly",
+    "newRoot": "bafykbzacebluyf4rmu6mkwra2efvrfrjmj5zapclathgknwi3avkimykqw6ug",
+    "budget": {
+      "maxTransactions": 2,
+      "maxBytes": 1101,
+      "minimumLifetimeBlocks": 100
+    },
+    "originalInventories": 3,
+    "nextNonce": 1095,
+    "attempts": 3,
+    "storesSubmitted": 0
+  },
+  "metadataPlanSha256": "228415c90a3e061574495567a5974024896cea68f61213f577144de245e3bc72",
+  "custodyReadiness": {
+    "ready": true,
+    "status": 200,
+    "version": {
+      "version": "0.1.0",
+      "commitSha": "5c25685db3ed6b0f21e14e3c3c60c2b4da4c66dd"
+    }
+  },
+  "web": {
+    "observedAt": "2026-11-03T16:59:53.877843+00:00",
+    "origin": "https://muzinga.netlify.app",
+    "status": 200,
+    "source": "5c25685db3ed6b0f21e14e3c3c60c2b4da4c66dd",
+    "entry": "./assets/index-Bf0_2jBF.js",
+    "entryBytes": 1117109,
+    "entrySha256": "e8b0155c7fdef3def7db7835b86a7596df7af7593eac81538df9f961d4a020ed",
+    "netlifyDeployId": "6aea12a8bb14afb0641f7b7b",
+    "netlifyProductionBranch": "release/product-0.1.70",
+    "servedSourceMatches": true,
+    "canonicalEntryUrl": "https://muzinga.netlify.app/assets/index-Bf0_2jBF.js"
+  },
+  "productPublished": true,
+  "metadataStoresSubmitted": 0,
+  "renewalsSubmitted": 0,
+  "artistRegisteredByOperator": false,
+  "productionAccessTested": false,
+  "preserved": {
+    "audioReady": true,
+    "coverReady": true,
+    "originalMetadataRetained": true,
+    "audioAttempts": 3,
+    "originalNextNonce": 1095
+  },
+  "remaining": [
+    "Renewal planning/monitoring: reused Product dependencies expire before newly stored blocks; earliest block 1532185",
+    "Normal artist-authenticated corrected metadata upload (2 blocks / 1101 bytes)",
+    "Artist wallet registry approval",
+    "Protected Web/Desktop/mobile allowed and denied playback",
+    "Conservation/renewal monitoring and off-volume restoration"
+  ],
+  "completedAt": "2026-11-03T17:44:31.806Z",
+  "product": {
+    "car": {
+      "bytes": 9402390,
+      "sha256": "9e20bfa734da691e196dd50cb2fd62704d524e91d515f5827dd9edc164f52527"
+    },
+    "storageRoot": "bafybeicg7qzdapmxdon5hern3qmdguut26htc5i6rpvxpludzptu4tuiyy",
+    "outerBlocksVerified": 20,
+    "newStores": 13,
+    "newBytes": 3582498,
+    "reusedBlocks": 7,
+    "dotnsSignatures": 2,
+    "firstNonce": 1095,
+    "nextNonce": 1108,
+    "labUnchanged": true,
+    "records": {
+      "dotify-test01.dot": {
+        "owner": "0xe3e3a0916d27c5174313f16E1507a286985a8Ac8",
+        "resolver": "0x7e75491ecfb04900EB05ee63CABA2B33900aABB5",
+        "contenthash": "0xe3010170122046fc32303d971b9bd3922ddc18335293d78f31751e8beb77ae83cbe74e4e88c6",
+        "record": "{\"$v\":1,\"displayName\":\"Dotify\",\"description\":\"Shared musical presence with artist-owned access and value flows.\",\"icon\":{\"cid\":\"bafk2bzacebh4rknk6x7zl4pul7t3ff7y2pglpk5x4q2k3nxnql5ebizvgluxk\",\"format\":\"png\"}}"
+      },
+      "app.dotify-test01.dot": {
+        "owner": "0xe3e3a0916d27c5174313f16E1507a286985a8Ac8",
+        "resolver": "0x7e75491ecfb04900EB05ee63CABA2B33900aABB5",
+        "contenthash": "0xe3010170122046fc32303d971b9bd3922ddc18335293d78f31751e8beb77ae83cbe74e4e88c6",
+        "record": "{\"$v\":1,\"kind\":\"app\",\"appVersion\":[0,1,70]}"
+      },
+      "dotify-bulletin-lab.dot": {
+        "owner": "0xe3e3a0916d27c5174313f16E1507a286985a8Ac8",
+        "resolver": "0x7e75491ecfb04900EB05ee63CABA2B33900aABB5",
+        "contenthash": "0xe30101701220431f7ac8486f5e9b7f5778e58d65daa485eff8bdaf26ff8d81f086ac8a567e2a",
+        "record": "{\"$v\":1,\"displayName\":\"Dotify First note lab\",\"description\":\"Generated 64-second audio continuity diagnostic. No artist music, wallet or payment.\",\"icon\":{\"cid\":\"bafk2bzacebh4rknk6x7zl4pul7t3ff7y2pglpk5x4q2k3nxnql5ebizvgluxk\",\"format\":\"png\"}}"
+      },
+      "app.dotify-bulletin-lab.dot": {
+        "owner": "0xe3e3a0916d27c5174313f16E1507a286985a8Ac8",
+        "resolver": "0x7e75491ecfb04900EB05ee63CABA2B33900aABB5",
+        "contenthash": "0xe30101701220431f7ac8486f5e9b7f5778e58d65daa485eff8bdaf26ff8d81f086ac8a567e2a",
+        "record": "{\"$v\":1,\"kind\":\"app\",\"appVersion\":[0,3,1]}"
+      }
+    },
+    "gateway": {
+      "status": 200,
+      "bytes": 9402390,
+      "sha256": "9e20bfa734da691e196dd50cb2fd62704d524e91d515f5827dd9edc164f52527"
+    },
+    "earliestDependencyExpiry": 1532185,
+    "expiryMarginAtFinalizedHead": 42257,
+    "receipts": [
+      {
+        "cid": "bafkreibj2d6db765qlfneieyuhr2ou32kol2x2if3lufnzy3juc2fkjj3m",
+        "bytes": 25499,
+        "nonce": 1095,
+        "receipt": {
+          "block": 1489851,
+          "index": 0,
+          "expiresAt": 1691451
+        }
+      },
+      {
+        "cid": "bafkreigyzugescrwrxkw4fw6gp3a3a6o5aehqw4kpkfxvh2gtpxhb5y5fi",
+        "bytes": 296,
+        "nonce": 1096,
+        "receipt": {
+          "block": 1489857,
+          "index": 0,
+          "expiresAt": 1691457
+        }
+      },
+      {
+        "cid": "bafkreifs453cxiblje6wz5sv7eextq3vwnjb6isyejbvszquda2za5vwoi",
+        "bytes": 262183,
+        "nonce": 1097,
+        "receipt": {
+          "block": 1489863,
+          "index": 0,
+          "expiresAt": 1691463
+        }
+      },
+      {
+        "cid": "bafkreia3upvxk7qgfiwrgu7y3tn2pedxdzqte3qxw7lgt3iaw4bemtjt6u",
+        "bytes": 262183,
+        "nonce": 1098,
+        "receipt": {
+          "block": 1489865,
+          "index": 0,
+          "expiresAt": 1691465
+        }
+      },
+      {
+        "cid": "bafkreidefetx4tfs72s7o4atazcsdkxv36icd23dpaveljplzmrhk5o6t4",
+        "bytes": 262183,
+        "nonce": 1099,
+        "receipt": {
+          "block": 1489870,
+          "index": 0,
+          "expiresAt": 1691470
+        }
+      },
+      {
+        "cid": "bafkreicsdo2t3shusjnykrl2a3lob42xalvm62rpv7ctabwh7ubozlta2i",
+        "bytes": 262183,
+        "nonce": 1100,
+        "receipt": {
+          "block": 1489876,
+          "index": 0,
+          "expiresAt": 1691476
+        }
+      },
+      {
+        "cid": "bafkreihwfwfer74ghwudlizevrwfhhctpn3vxre3as4yhcctfthnna5im4",
+        "bytes": 83340,
+        "nonce": 1101,
+        "receipt": {
+          "block": 1489881,
+          "index": 0,
+          "expiresAt": 1691481
+        }
+      },
+      {
+        "cid": "bafkreihc6bcztekmgbl3hxzwrolij2ta3ghiylkpafxnuq2g6lgljz33tu",
+        "bytes": 956343,
+        "nonce": 1102,
+        "receipt": {
+          "block": 1489888,
+          "index": 0,
+          "expiresAt": 1691488
+        }
+      },
+      {
+        "cid": "bafkreiaeqkzovmfuytuqgbcmyeydiy2zlenaazz5zpfq6zjngfjkntoyr4",
+        "bytes": 1024540,
+        "nonce": 1103,
+        "receipt": {
+          "block": 1489894,
+          "index": 0,
+          "expiresAt": 1691494
+        }
+      },
+      {
+        "cid": "bafkreigotjjgeu4y5atijjzvnucd5ayah5zshfdawus46qylg357rjmqiq",
+        "bytes": 400294,
+        "nonce": 1104,
+        "receipt": {
+          "block": 1489900,
+          "index": 0,
+          "expiresAt": 1691500
+        }
+      },
+      {
+        "cid": "bafkreifhrsz7mt5kxam5hfrs4duz3uw7komr5vxnrjwlbkwtou6pfmbkii",
+        "bytes": 6600,
+        "nonce": 1105,
+        "receipt": {
+          "block": 1489906,
+          "index": 0,
+          "expiresAt": 1691506
+        }
+      },
+      {
+        "cid": "bafybeicg7qzdapmxdon5hern3qmdguut26htc5i6rpvxpludzptu4tuiyy",
+        "bytes": 905,
+        "nonce": 1106,
+        "receipt": {
+          "block": 1489911,
+          "index": 0,
+          "expiresAt": 1691511
+        }
+      },
+      {
+        "cid": "bafk2bzacebh4rknk6x7zl4pul7t3ff7y2pglpk5x4q2k3nxnql5ebizvgluxk",
+        "bytes": 35949,
+        "nonce": 1107,
+        "receipt": {
+          "block": 1489917,
+          "index": 0,
+          "expiresAt": 1691517
+        }
+      }
+    ]
+  },
+  "signerCleanup": {
+    "removed": true,
+    "checkedAt": "2026-11-03T17:44:31.941Z",
+    "valueDisplayed": false,
+    "emptyAfterPublicationVerified": true,
+    "verifiedAt": "2026-11-03T17:45:05.535968+00:00"
+  },
+  "quotaAfter": {
+    "head": 1489928,
+    "hash": "0x0ba16a91f86719dbc94f000855bc8f9c4a3365feba6e2f817d7a4a754255d56e",
+    "authorization": {
+      "expiresAt": 1621405,
+      "remainingTransactions": 263,
+      "remainingBytes": "75481756",
+      "remainingRenewBytes": "106084254"
+    }
+  },
+  "releaseStillUnregisteredAfterProduct": true,
+  "postPublicationCustodyAudit": {
+    "originalInventoryHashesPreserved": true,
+    "originalAudioJobPreserved": true,
+    "profilePolicyPreserved": true,
+    "permitPresent": true,
+    "activeJob": null,
+    "durableCursor": 1095,
+    "attempts": 3,
+    "originalInventories": 3
+  }
+}

@@ -1,5 +1,108 @@
 # Deployment Configuration Runbook
 
+## Product 0.1.72 client publication, 2026-11-04
+
+[Verified client rollout](../backlog/implementation/evidence/product-0.1.72-rollout-2026-11-04.md)
+publishes merged #385 from exact tested source `018011d405a3921c8a0cfda82ff9839d841e5d0d`.
+Web and Product 0.1.72 are delivered, with 12 new app stores / 3,557,283 bytes,
+eight retained blocks and two DotNS signing requests. Independent readback
+reconstructs the exact CAR and Web entry. The local signer is removed.
+Netlify production branch is frozen `release/product-0.1.72`; all other build,
+environment and preview settings are preserved. Record changes stay on a separate
+branch. Do not push operational notes to the frozen production branch.
+
+API/custody remain source `e2dd6148` and the active fresh-pilot paths below.
+No restart, policy/grant/CORS/key change, media upload or renewal occurred.
+The fresh release is already registered at block 15,321,680 as Thot Nzeng /
+Dotify-Bulletin-pilot-8s / 1.42 PAS; replay it through normal authenticated access.
+The owner confirms all eight seconds audible on Web, Desktop and mobile.
+Denied/interrupted access remains untested in this rollout. Preserve all receipts,
+allowances and account/encryption nonce history. Reused app dependencies still
+expire independently as early as block 1,532,185; reserve/monitor them alongside
+media and authorization expiry. This publication enables no renewal scheduler.
+The earlier sections retain their dated meaning.
+
+## Active fresh Bulletin trial, 2026-11-04
+
+[The verified fresh admission](../backlog/implementation/evidence/bulletin-fresh-pilot-activation-2026-11-04.md)
+now supersedes the abandoned name-repair draft as the active publication target.
+Custody keeps the existing image/source and signer; only these three paths change:
+`BULLETIN_PUBLICATION_PROFILE=/data/contributions/config/bulletin-fresh-20261104.json`,
+`BULLETIN_PUBLIC_ASSET_POLICY=/data/contributions/config/bulletin-fresh-20261104-assets.json`,
+`STREAMING_STATE_PATH=/data/contributions/streaming-fresh-20261104`.
+Both storage selectors remain `bulletin`; Product/Web stay 0.1.71 and both edges
+retain their existing proxy/read configuration. Preserve these machine path overrides
+on subsequent custody updates; the generic manifest defaults are not this active
+pilot configuration. No key, CORS, grant or contract change.
+
+The new publisher directory is `/data/contributions/bulletin-fresh-20261104-publications`.
+It admits the same generated eight-second audio, one newly selected cover and one
+new manifest, within the owner-approved cumulative 36-store / 1,638,400-byte cap.
+Old jobs/attempts/receipts/permit remain preserved and inactive. Snapshot
+`vs_7OYm1emDyJXtAZ0Yvo8` precedes activation. All 14 old small state files and
+four copied encryption reservations are independently verified; the new account
+cursor is anchored at finalized nonce 1120. Do not delete old state, reset a nonce,
+blindly re-enable the old queue or roll back a volume over later reservations.
+
+The post-start queue is empty and custody is ready. The artist starts a new release
+with the supplied eight-second fixture; successful registration and protected
+physical/Web listening remain unverified. Future ordinary draft editing needs
+usage-based admission, not another exact-graph operator repair. Retention remains
+separate: no renewal or scheduler is enabled by this maintenance.
+
+
+## Prepared-release recovery rollout, 2026-11-04
+
+[Current rollout](../backlog/implementation/evidence/product-0.1.71-rollout-2026-11-04.md)
+records API/custody, Web and Product 0.1.71 source `e2dd6148`, with exact artifact,
+DotNS and gateway readback. Product finalized 12 new stores / 3,556,058 bytes and
+two DotNS signing requests, reusing eight retained blocks. The signer is removed.
+Netlify production branch is frozen `release/product-0.1.71`; base,
+build/publish commands, environment and preview/auto-publishing policy are unchanged.
+The older 0.1.70 branch entry below is a dated checkpoint.
+
+Custody and both edges are ready on the pinned current image. The actual attached
+encrypted volume is `vol_491jo391o8leqe5r`, snapshot
+`vs_6bq7Ba7jyA9fXZz9R7Y9`. Read the current machine mount before snapshotting;
+the earlier volume identifier is retired. All original pilot inventory hashes,
+three preparation attempts, permits and security/nonce state are preserved.
+No new policy, key installation, grant, CORS, contract or service is introduced.
+Custody was already stopped after losing its database ownership lease; restarting
+it restored inspection before this update. Investigate recovery supervision as a
+separate follow-up; never bypass the ownership lease to make readiness green.
+
+The recovery preview restores admitted title/note/price/cover only after an explicit
+artist choice and sends no write. Ordinary Publish still owns storage and wallet
+approval. Verify that path on the preserved draft now that matching clients are published;
+ready services alone do not prove registration or protected physical listening.
+Rollback retains the exact permit, receipts, counters, issued references and nonce
+history. Do not rerun ready-audio recovery or restore stale security state.
+
+
+## Product 0.1.70 and bounded metadata-repair admission, 2026-11-03
+
+[Verified rollout](../backlog/implementation/evidence/product-0.1.70-rollout-2026-11-03.md)
+records the exact candidate, image, owner-approved maintenance and independent
+readback. Existing API roles use source `5c25685d`; the installed
+`metadata-name-repair.json` admits one name-only graph for the existing pilot.
+Preserve this permit, all old inventories/policies, queue attempts and permanent
+nonce state in coherent backups. It is neither a generic edit permission nor a
+new audio/publication allowance. Registry approval and protected acceptance remain
+artist/device actions after the normal authenticated metadata request.
+
+Netlify `muzinga` now uses production branch `release/product-0.1.70`, frozen at
+`5c25685db3ed6b0f21e14e3c3c60c2b4da4c66dd`. A separate record branch avoids
+an unreviewed Web redeploy when editing rollout documentation. Build command,
+base/publish directories, environment settings, preview policy and auto-publishing
+are otherwise preserved. No database/session, CORS, mount, service count or key
+placement changes. Readback and rollback must retain issued Bulletin references;
+never delete a permit, reset counters or restore stale nonce/security state.
+The earliest reused Product dependency expires at block **1,532,185**, a margin
+of 42,257 blocks at the final observed head (1,489,928). This precedes the pilot
+media's expiry. Conservation must track every app/media dependency as well as
+account authorization; a new root does not renew reused children. No renewal
+was submitted in this operation.
+
 ## Active 0.1.69 Bulletin asset policy, 2026-11-02
 
 [Rollout evidence](../backlog/implementation/evidence/product-0.1.69-rollout-2026-11-02.md) records the pinned

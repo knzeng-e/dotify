@@ -1,5 +1,55 @@
 # Dotify Production Backlog
 
+## Registered Bulletin playback published, 2026-11-04
+
+[Web and Product 0.1.72](implementation/evidence/product-0.1.72-rollout-2026-11-04.md) publish merged #385 from exact tested source
+`018011d4`. Independent block/CAR/DotNS/Web readback passes; 12 app stores /
+3,557,283 bytes, eight reused blocks and two signing requests stay within the
+owner-approved cap. The local signer is removed. The fresh eight-second release
+is already registered as **Thot Nzeng**, at block 15,321,680 / 1.42 PAS; this
+client-only rollout preserves its audio, metadata and access checks. API/custody
+remain source `e2dd6148`, with no restart or policy change. The owner confirms hearing all eight seconds on Web, Desktop and mobile.
+Next: protected denial/interruption, dependency conservation and coherent
+off-volume recovery. W33/#288 remains open.
+Older dated checkpoints below describe their state at that time.
+
+## Fresh publication trial active, 2026-11-04
+
+[The clean publication trial](implementation/evidence/bulletin-fresh-pilot-activation-2026-11-04.md) replaces recovery of the abandoned draft
+as the next artist action. Custody selects new empty queue/publisher/asset paths
+under the approved 36-store / 1,638,400-byte cap for the original synthetic
+8-second file. All old attempts/receipts/permits remain inactive and intact;
+account floor 1120 and all four encryption reservations are carried forward.
+Independent readiness/state readback passes; maintenance sends zero content or
+registry/DotNS writes. Product/Web remain 0.1.71. Next: ordinary New release and
+artist-wallet registration, then protected acceptance and conservation. General
+editable-draft/multi-release admission is still a production gap.
+
+
+## Prepared-release recovery rollout, 2026-11-04
+
+[The current rollout](implementation/evidence/product-0.1.71-rollout-2026-11-04.md) deploys merged #384 to API/custody, Web and Product 0.1.71
+from `e2dd6148`, with green exact-source CI and independent artifact/record readback.
+Product used 12 new stores / 3,556,058 bytes, reused eight blocks, made two DotNS
+signing requests and removed the local signer.
+Recovery explicitly previews/restores the saved details, price and artwork,
+then leaves storage and wallet approval to ordinary Publish. Pilot inventories,
+three preparation attempts and the exact name-only permit remain unchanged.
+Real registration, protected physical/Web acceptance and conservation remain W33
+gates. The reused app dependencies expire earlier than pilot media; track both.
+
+
+## Product 0.1.70 and exact repair admission, 2026-11-03
+
+The [verified rollout](implementation/evidence/product-0.1.70-rollout-2026-11-03.md) deploys the required artist-name checks and admits
+one exact **Thot Nzeng** metadata repair for the preserved synthetic pilot.
+Audio, cover, old metadata, receipts and original allowances remain intact;
+no re-encoding or attempt reset occurs. The permit itself sends no metadata and
+registers no release. Next: resume the saved draft through normal artist upload
+and wallet approval, then verify protected Web/physical Host allowed and denied
+listening. Conservation/renewals and off-volume restore remain W33 gates.
+Older dated checkpoints below retain their historical meaning.
+
 ## Exact metadata-name repair candidate, 2026-11-03
 
 The [bounded repair](implementation/evidence/bulletin-metadata-name-repair-2026-11-03.md) follows merged #381: inspect and admit one exact name-only metadata graph, preserve old receipts/caps and ready audio/cover, then publish through normal authenticated custody. Canonical finalized/latest checks refuse an already registered release. This is implementation only; maintenance, admission, additional stores and client rollout still need review and authorization. W33 remains open for real registration/listening and conservation.
