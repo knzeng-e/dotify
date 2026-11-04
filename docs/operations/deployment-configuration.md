@@ -1,5 +1,9 @@
 # Deployment Configuration Runbook
 
+## Product 0.1.72 client candidate, 2026-11-04
+
+Prepared from merged #385 for Web and Product only. Existing API/custody, keys, pilot policies, contracts and registered media are unchanged. No server restart or media publication is planned. Exact artifact budget, green CI, owner approval and signer activation precede publication; physical listening remains to verify.
+
 ## Active 0.1.69 Bulletin asset policy, 2026-11-02
 
 [Rollout evidence](../backlog/implementation/evidence/product-0.1.69-rollout-2026-11-02.md) records the pinned

@@ -6,6 +6,38 @@ export const PRODUCT_DEVNET_BOOTSTRAP_PRODUCT_ID = 'dotify-test01.dot';
 export const PRODUCT_DEVNET_BOOTSTRAP_CATALOG: CatalogApiResponse = {
   items: [
     {
+      id: '0x05C643A1eD0e75C8A3486410f13BC4597c2674D7:0x66aae2bdd5859205f46c62291d93d6d5618e56201a507c2b9f5277823edafd35',
+      hash: '0x66aae2bdd5859205f46c62291d93d6d5618e56201a507c2b9f5277823edafd35',
+      runtimeAddress: '0x05C643A1eD0e75C8A3486410f13BC4597c2674D7',
+      artistAddress: '0x2f6BF01a6708C927b288a53B9fE3f9edc689FF56',
+      tokenId: '1',
+      title: 'Dotify-Bulletin-pilot-8s',
+      artist: 'Thot Nzeng',
+      description: 'Testing Bulletin Publishing',
+      imageRef: 'dotify:cover:0x66aae2bdd5859205f46c62291d93d6d5618e56201a507c2b9f5277823edafd35',
+      coverVariants: ['dotify:cover:0x66aae2bdd5859205f46c62291d93d6d5618e56201a507c2b9f5277823edafd35'],
+      audioRef: 'dotify:enc:v3:key-v2:ipfs://bafykbzacebebgmpnya5b5z3itktp653a4ru2fnzdaqpxjcq7kk2xpvcs23xlg',
+      metadataRef: 'ipfs://bafykbzacedwrk35v6yvt4fjhzwwf3apl7nddzsmtzdyxrihfxg6cstfhgnyfw/release.json',
+      bulletinRef: '',
+      artistContractRef: 'dotify:self-certified:0x66aae2bdd5859205f46c62291d93d6d5618e56201a507c2b9f5277823edafd35',
+      accessMode: 'classic',
+      priceWei: '1420000000000000000',
+      priceDot: '1.42',
+      personhoodLevel: 'DIM1',
+      active: true,
+      encrypted: true,
+      royaltyBps: 10000,
+      royaltySplits: [
+        {
+          label: 'Primary recipient',
+          recipient: '0x2f6BF01a6708C927b288a53B9fE3f9edc689FF56',
+          bps: 10000
+        }
+      ],
+      registeredAtBlock: 15321680,
+      sourceBlock: 15321680
+    },
+    {
       id: '0xdcF6b75E4185E99a830878D044dC76372c556819:0xda00c99152af2b9f057e92ae90a11741a0bd2ed29807806d25ccd833199f1eb3',
       hash: '0xda00c99152af2b9f057e92ae90a11741a0bd2ed29807806d25ccd833199f1eb3',
       runtimeAddress: '0xdcF6b75E4185E99a830878D044dC76372c556819',
@@ -51,23 +83,23 @@ export const PRODUCT_DEVNET_BOOTSTRAP_CATALOG: CatalogApiResponse = {
     {
       artistAddress: '0x2f6BF01a6708C927b288a53B9fE3f9edc689FF56',
       runtimeAddress: '0x05C643A1eD0e75C8A3486410f13BC4597c2674D7',
-      name: '0x2f6BF01a6708C927b288a53B9fE3f9edc689FF56',
-      releaseCount: 0,
-      activeReleaseCount: 0,
-      latestReleaseBlock: 0
+      name: 'Thot Nzeng',
+      releaseCount: 1,
+      activeReleaseCount: 1,
+      latestReleaseBlock: 15321680
     }
   ],
   pagination: {
-    limit: 5,
+    limit: 100,
     nextCursor: null,
-    total: 1
+    total: 2
   },
   meta: {
     state: 'stale-cache',
     cacheAvailable: true,
-    indexedAt: '2026-11-01T13:15:08.266Z',
-    lastIndexedBlock: 15188788,
-    chainHeadBlock: 15188790,
+    indexedAt: '2026-11-04T21:07:21.175Z',
+    lastIndexedBlock: 15329878,
+    chainHeadBlock: 15329880,
     blockLag: 2,
     staleAfterMs: 60000,
     lastErrorCode: null
