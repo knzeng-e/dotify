@@ -2,9 +2,10 @@
 
 ## Prepared-release recovery rollout, 2026-11-04
 
-[The current rollout](evidence/product-0.1.71-rollout-2026-11-04.md) deploys merged #384 to API/custody and Web
-from `e2dd6148`. Product 0.1.71 is prepared and CI-verified, awaiting its bounded
-publication/signature; deployed Product remains 0.1.70 at this checkpoint.
+[The current rollout](evidence/product-0.1.71-rollout-2026-11-04.md) deploys merged #384 to API/custody, Web and Product 0.1.71
+from `e2dd6148`, with green exact-source CI and independent artifact/record readback.
+Product used 12 new stores / 3,556,058 bytes, reused eight blocks, made two DotNS
+signing requests and removed the local signer.
 Recovery explicitly previews/restores the saved details, price and artwork,
 then leaves storage and wallet approval to ordinary Publish. Pilot inventories,
 three preparation attempts and the exact name-only permit remain unchanged.

@@ -1,5 +1,15 @@
 # Dotify implementation playbook
 
+## Prepared-release recovery published, 2026-11-04
+
+[Product 0.1.71 rollout](evidence/product-0.1.71-rollout-2026-11-04.md) verifies
+matching API/custody, Web and Product delivery, with preserved ready audio,
+original inventories and the exact name-only permit. Explicit form restoration
+precedes a separate ordinary Publish and wallet action. Artist registration,
+protected Web/physical Host acceptance, dependency conservation and off-volume
+recovery remain W33/#288 gates; no renewal is performed by this rollout.
+
+
 ## Product 0.1.70 and exact repair admission, 2026-11-03
 
 The [verified rollout](evidence/product-0.1.70-rollout-2026-11-03.md) deploys the required artist-name checks and admits

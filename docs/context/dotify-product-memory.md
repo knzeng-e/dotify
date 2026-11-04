@@ -263,3 +263,13 @@ client rollout and separately authorized metadata repair. Then the artist can
 resume the preserved draft and approve registration.
 Protected physical/Web acceptance, conservation/renewal and off-volume restore
 remain gates; no broader artist allowance or automatic renewal is enabled.
+
+
+## Prepared-release recovery published, 2026-11-04
+
+[Product 0.1.71, Web and existing services](../backlog/implementation/evidence/product-0.1.71-rollout-2026-11-04.md)
+now let the artist preview and explicitly restore the original prepared details,
+price and artwork before ordinary Publish. Ready audio and the exact name-only
+permit remain intact. The rollout itself publishes only the app; the artist still
+submits corrected metadata and approves registry publication. Protected Web and
+physical Host acceptance, conservation/renewals and off-volume recovery remain gates.

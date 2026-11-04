@@ -361,9 +361,10 @@ remain gates; no broader artist allowance or automatic renewal is enabled.
 
 ## Prepared-release recovery rollout, 2026-11-04
 
-[API/custody and Web](../backlog/implementation/evidence/product-0.1.71-rollout-2026-11-04.md)
-serve exact source `e2dd6148`; Product 0.1.71 is prepared, pending its separate
-bounded signature/publication. The original audio remains ready at three attempts,
+[API/custody, Web and Product 0.1.71](../backlog/implementation/evidence/product-0.1.71-rollout-2026-11-04.md)
+serve exact source `e2dd6148`. Product finalized 12 stores / 3,556,058 bytes,
+reused eight blocks and made two DotNS signing requests. Independent exact
+CAR/record/gateway readback passes; the local signer is removed. The original audio remains ready at three attempts,
 all original inventory hashes and the name-only repair permit are unchanged.
 Explicit recovery previews/restores the admitted title, note, cover and 1.21 PAS
 price, then requires an ordinary Publish and wallet action. No new admission,

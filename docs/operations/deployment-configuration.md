@@ -3,9 +3,10 @@
 ## Prepared-release recovery rollout, 2026-11-04
 
 [Current rollout](../backlog/implementation/evidence/product-0.1.71-rollout-2026-11-04.md)
-records API/custody and Web source `e2dd6148`; Product 0.1.71 is prepared but still
-awaits its separate bounded publication/signature. Product remains 0.1.70 at this
-checkpoint. Netlify production branch is frozen `release/product-0.1.71`; base,
+records API/custody, Web and Product 0.1.71 source `e2dd6148`, with exact artifact,
+DotNS and gateway readback. Product finalized 12 new stores / 3,556,058 bytes and
+two DotNS signing requests, reusing eight retained blocks. The signer is removed.
+Netlify production branch is frozen `release/product-0.1.71`; base,
 build/publish commands, environment and preview/auto-publishing policy are unchanged.
 The older 0.1.70 branch entry below is a dated checkpoint.
 
@@ -21,7 +22,7 @@ separate follow-up; never bypass the ownership lease to make readiness green.
 
 The recovery preview restores admitted title/note/price/cover only after an explicit
 artist choice and sends no write. Ordinary Publish still owns storage and wallet
-approval. Verify that path on the preserved draft after the matching client rollout;
+approval. Verify that path on the preserved draft now that matching clients are published;
 ready services alone do not prove registration or protected physical listening.
 Rollback retains the exact permit, receipts, counters, issued references and nonce
 history. Do not rerun ready-audio recovery or restore stale security state.
