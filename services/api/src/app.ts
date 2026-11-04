@@ -1,3 +1,4 @@
+import { PreparedReleaseConflictError } from './services/bulletinMetadataRepair.js';
 import { checkUnregisteredRelease } from './services/unregisteredRelease.js';
 import { PublicAssetStorageError } from './services/bulletinPublicAssets.js';
 import { createPublicAssetRoutes } from './routes/publicAssets.js';
@@ -251,7 +252,8 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         publicAssets = async (files, kind, owner, signal) => {
           try {
             return await publication.pinAsset!(files, kind, owner, signal);
-          } catch {
+          } catch (error) {
+            if (error instanceof PreparedReleaseConflictError) throw error;
             throw new PublicAssetStorageError();
           }
         };

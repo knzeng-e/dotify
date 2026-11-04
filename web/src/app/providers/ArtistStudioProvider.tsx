@@ -1,3 +1,6 @@
+import { PreparedReleaseReview } from '../../components/PreparedReleaseReview';
+import { preparedReleaseForm } from '../../features/artist-studio/preparedReleaseRecovery';
+import { usePreparedReleaseRecovery } from '../../features/artist-studio/usePreparedReleaseRecovery';
 // Artist-studio provider - wraps the useArtistConsole hook (runtime registration,
 // rights, royalties) and the royalty summary derivations. The hook keeps its
 // dependency-injection signature; the wiring App.tsx used to do (wallet identity,
@@ -31,6 +34,7 @@ const ArtistStudioContext = createContext<ArtistStudioValue | null>(null);
 export function ArtistStudioProvider({ children }: { children: ReactNode }) {
   const { activeEvmAddress, connectedWallet, ethRpcUrl, expectedChainId } = useWalletContext();
   const { setTransactionFeedback, transactionFeedback } = useUiFeedback();
+  const releaseForm = useReleaseForm();
   const {
     title,
     artistName,
@@ -44,10 +48,11 @@ export function ArtistStudioProvider({ children }: { children: ReactNode }) {
     additionalRoyaltySplits,
     coverFile,
     setArtistTab
-  } = useReleaseForm();
+  } = releaseForm;
   const catalog = useCatalogContext();
 
   const artistConsole = useArtistConsole({
+    onReviewPreparedRelease: release => recovery.review(release),
     activeEvmAddress,
     connectedWallet,
     ethRpcUrl,
@@ -86,6 +91,51 @@ export function ArtistStudioProvider({ children }: { children: ReactNode }) {
     coverUploadRef: catalog.coverUploadRef
   });
 
+  const recovery = usePreparedReleaseRecovery(
+    {
+      owner: activeEvmAddress,
+      runtimeAddress: artistConsole.artistRuntimeAddress,
+      chainId: connectedWallet?.chainId ?? expectedChainId,
+      contentHash: catalog.fileHash,
+      connected: Boolean(connectedWallet)
+    },
+    release => {
+      const saved = preparedReleaseForm(release);
+      releaseForm.setTitle(saved.title);
+      releaseForm.setArtistName(saved.artistName);
+      releaseForm.setDescription(saved.description);
+      releaseForm.setDurationSeconds(saved.durationSeconds);
+      releaseForm.setReleaseMetadata(saved.releaseMetadata);
+      releaseForm.setAccessMode(saved.accessMode);
+      releaseForm.setPriceDot(saved.priceDot);
+      releaseForm.setPersonhoodLevel(saved.personhoodLevel);
+      releaseForm.setRoyaltyBps(saved.royaltyBps);
+      releaseForm.setAdditionalRoyaltySplits(saved.additionalRoyaltySplits);
+      releaseForm.setCoverFile(null);
+      catalog.coverUploadRef.current = Promise.resolve(release.manifest.assets.coverCID);
+      catalog.setCoverCID(release.manifest.assets.coverCID);
+      catalog.setCoverSource(release.manifest.assets.coverCID);
+      catalog.setTrackInfo(previous =>
+        previous
+          ? {
+              ...previous,
+              title: saved.title,
+              artist: saved.artistName,
+              description: saved.description,
+              imageRef: release.manifest.assets.coverCID,
+              priceDot: saved.priceDot,
+              accessMode: saved.accessMode,
+              duration: saved.durationSeconds ?? 0
+            }
+          : previous
+      );
+      releaseForm.setArtistTab('new');
+      releaseForm.setReleaseStep('review');
+      artistConsole.setRightsStatus('Prepared release restored. Review it before publishing.');
+    },
+    () => setTransactionFeedback(null)
+  );
+
   const settledRoyaltyPayments = artistConsole.royaltyPayments.filter(payment => payment.settlement === 'paid' || payment.settlement === 'claimed');
   const totalRoyaltyWei = settledRoyaltyPayments.reduce((total, payment) => total + payment.amountWei, 0n);
   const uniqueRoyaltyListeners = new Set(artistConsole.royaltyPayments.map(payment => payment.listener.toLowerCase())).size;
@@ -96,7 +146,19 @@ export function ArtistStudioProvider({ children }: { children: ReactNode }) {
     [artistConsole, totalRoyaltyWei, uniqueRoyaltyListeners, paidRoyaltyTracks]
   );
 
-  return <ArtistStudioContext.Provider value={value}>{children}</ArtistStudioContext.Provider>;
+  return (
+    <ArtistStudioContext.Provider value={value}>
+      {children}
+      {recovery.candidate && (
+        <PreparedReleaseReview
+          release={recovery.candidate}
+          symbol={catalog.nativeRuntimePaymentAsset.symbol}
+          onCancel={recovery.cancel}
+          onConfirm={recovery.confirm}
+        />
+      )}
+    </ArtistStudioContext.Provider>
+  );
 }
 
 export function useArtistStudio(): ArtistStudioValue {

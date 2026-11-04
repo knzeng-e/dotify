@@ -1,5 +1,32 @@
 # Deployment Configuration Runbook
 
+## Prepared-release recovery rollout, 2026-11-04
+
+[Current rollout](../backlog/implementation/evidence/product-0.1.71-rollout-2026-11-04.md)
+records API/custody and Web source `e2dd6148`; Product 0.1.71 is prepared but still
+awaits its separate bounded publication/signature. Product remains 0.1.70 at this
+checkpoint. Netlify production branch is frozen `release/product-0.1.71`; base,
+build/publish commands, environment and preview/auto-publishing policy are unchanged.
+The older 0.1.70 branch entry below is a dated checkpoint.
+
+Custody and both edges are ready on the pinned current image. The actual attached
+encrypted volume is `vol_491jo391o8leqe5r`, snapshot
+`vs_6bq7Ba7jyA9fXZz9R7Y9`. Read the current machine mount before snapshotting;
+the earlier volume identifier is retired. All original pilot inventory hashes,
+three preparation attempts, permits and security/nonce state are preserved.
+No new policy, key installation, grant, CORS, contract or service is introduced.
+Custody was already stopped after losing its database ownership lease; restarting
+it restored inspection before this update. Investigate recovery supervision as a
+separate follow-up; never bypass the ownership lease to make readiness green.
+
+The recovery preview restores admitted title/note/price/cover only after an explicit
+artist choice and sends no write. Ordinary Publish still owns storage and wallet
+approval. Verify that path on the preserved draft after the matching client rollout;
+ready services alone do not prove registration or protected physical listening.
+Rollback retains the exact permit, receipts, counters, issued references and nonce
+history. Do not rerun ready-audio recovery or restore stale security state.
+
+
 ## Product 0.1.70 and bounded metadata-repair admission, 2026-11-03
 
 [Verified rollout](../backlog/implementation/evidence/product-0.1.70-rollout-2026-11-03.md)
@@ -3492,3 +3519,16 @@ allowance and normal authenticated artist request. Missing/corrupt permits or
 canonical-check failures refuse work; rollback cannot reset either graph. The
 frontend #381 guard needs its own normal Web/Product rollout. No live maintenance,
 admission or write is performed by this candidate.
+
+## Prepared release recovery candidate — 2026-11-04
+
+[The recovery candidate](../backlog/implementation/evidence/prepared-release-recovery-2026-11-04.md)
+adds an authenticated metadata HTTP 409 with a public, scope-bound saved snapshot.
+No environment, CORS, grant, service, storage mount, budget or key placement changes.
+Roll out the API/custody first, then the matching Web/Product clients. Verify the
+same ready pilot produces a recovery preview, cancel preserves its form, confirm
+restores original details/price/cover, and only a later Publish invokes the existing
+bounded writer and wallet. Invalid identity or response must offer no restoration.
+Retain the exact admitted permit and all original receipts/attempts on rollout or
+rollback; this is not another admission or a request to replay deployment commands.
+Local tests are not live registration, protected listening or retention evidence.

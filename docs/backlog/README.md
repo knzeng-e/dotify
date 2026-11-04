@@ -1,5 +1,17 @@
 # Dotify Production Backlog
 
+## Prepared-release recovery rollout, 2026-11-04
+
+[The current rollout](implementation/evidence/product-0.1.71-rollout-2026-11-04.md) deploys merged #384 to API/custody and Web
+from `e2dd6148`. Product 0.1.71 is prepared and CI-verified, awaiting its bounded
+publication/signature; deployed Product remains 0.1.70 at this checkpoint.
+Recovery explicitly previews/restores the saved details, price and artwork,
+then leaves storage and wallet approval to ordinary Publish. Pilot inventories,
+three preparation attempts and the exact name-only permit remain unchanged.
+Real registration, protected physical/Web acceptance and conservation remain W33
+gates. The reused app dependencies expire earlier than pilot media; track both.
+
+
 ## Product 0.1.70 and exact repair admission, 2026-11-03
 
 The [verified rollout](implementation/evidence/product-0.1.70-rollout-2026-11-03.md) deploys the required artist-name checks and admits
@@ -569,3 +581,7 @@ The [original prepared job is ready](implementation/evidence/bulletin-prepared-r
 16 stores / 712,737 bytes, verified receipts/readback, attempts preserved and
 custody readiness restored. Artist registration, protected Web/Host acceptance
 and conservation/restore remain open under W33/#288.
+
+## Prepared release recovery candidate, 2026-11-04
+
+The [lost-draft diagnosis and recovery](implementation/evidence/prepared-release-recovery-2026-11-04.md) preserve the admitted name-only manifest while offering explicit restoration of its original details, price and cover. Same-audio conflicts return a typed authenticated 409 before stores; preview/cancel/confirm do not publish. Local controls cover identity changes and unchanged budgets. API and Web/Product rollout, artist registration, protected listening and conservation remain open; #288 is not closed.

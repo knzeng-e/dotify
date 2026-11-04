@@ -1,3 +1,4 @@
+import { PreparedReleaseConflictError } from '../services/bulletinMetadataRepair.js';
 import { dotifyManifestSchema } from '../services/releaseManifest.js';
 import { PublicAssetStorageError, type PublicAssetKind, type PublicAssetOwner } from '../services/bulletinPublicAssets.js';
 import { StreamingJobError, type StreamingJobs } from '../services/streamingJobs.js';
@@ -90,6 +91,15 @@ function authorizationError(reply: FastifyReply, code: UploadAuthorizationErrorC
 }
 
 function handleUploadError(error: unknown, request: FastifyRequest, reply: FastifyReply, stage: 'cover' | 'metadata') {
+  if (error instanceof PreparedReleaseConflictError && stage === 'metadata') {
+    request.log.info({ code: 'UPLOAD_PREPARED_RELEASE_CONFLICT', fields: error.fields }, 'Prepared release differs from draft');
+    return reply.header('Cache-Control', 'no-store').status(409).send({
+      code: 'UPLOAD_PREPARED_RELEASE_CONFLICT',
+      error: error.message,
+      fields: error.fields,
+      preparedRelease: error.preparedRelease
+    });
+  }
   if (error instanceof PublicAssetStorageError) {
     request.log.warn({ code: 'UPLOAD_STORAGE_FAILED', failure: { stage } }, 'Public asset storage needs attention');
     return reply.status(503).send({

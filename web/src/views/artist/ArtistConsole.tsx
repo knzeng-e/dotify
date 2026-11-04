@@ -264,11 +264,13 @@ export function ArtistConsole() {
 
       const uploadPromise = uploadFileToPinata(file, file.name, { app: 'dotify', type: 'cover' }, uploadIdentity)
         .then(cid => {
+          if (catalog.coverUploadRef.current !== uploadPromise) return cid;
           catalog.setCoverCID(cid);
           artistConsole.setRightsStatus(uploadStatusMessage('cover', 'uploaded'));
           return cid;
         })
         .catch(() => {
+          if (catalog.coverUploadRef.current !== uploadPromise) return '';
           artistConsole.setRightsStatus(uploadStatusMessage('cover', 'failed'));
           return '';
         });

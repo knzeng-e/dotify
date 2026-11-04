@@ -1,3 +1,4 @@
+import { PreparedReleaseConflictError } from '../services/bulletinMetadataRepair.js';
 import { StreamingJobs, initializeStreamingJobs } from '../services/streamingJobs.js';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -698,4 +699,33 @@ it('routes authorized public assets to Bulletin without touching Pinata and retu
   assert.equal(owner.address, ADDRESS);
   assert.equal(owner.runtimeAddress, RUNTIME);
   assert.equal(owner.chainId, CHAIN_ID);
+});
+
+it('returns a non-cacheable recovery offer only after metadata authorization and releases its lease', async () => {
+  let calls = 0;
+  const logs: string[] = [];
+  const preparedRelease = { owner: ADDRESS, runtimeAddress: RUNTIME, chainId: CHAIN_ID, manifest: validManifest };
+  const server = await buildApp({
+    logs,
+    publicAssets: async () => {
+      calls++;
+      throw new PreparedReleaseConflictError(preparedRelease as ConstructorParameters<typeof PreparedReleaseConflictError>[0], ['title', 'cover']);
+    }
+  });
+  const request = (grant?: string) =>
+    server.inject({ method: 'POST', url: '/api/uploads/metadata', headers: grant ? { authorization: `Bearer ${grant}` } : {}, payload: validManifest });
+  const denied = await request();
+  assert.equal(denied.statusCode, 401);
+  assert.equal(calls, 0);
+  assert.ok(!denied.body.includes('preparedRelease'));
+  const grant = (await authorize(server, 'metadata', Buffer.byteLength(JSON.stringify(validManifest)))).json().uploadAuthorization;
+  const conflict = await request(grant);
+  assert.equal(conflict.statusCode, 409);
+  assert.equal(conflict.headers['cache-control'], 'no-store');
+  assert.deepEqual(conflict.json().preparedRelease, preparedRelease);
+  assert.deepEqual(conflict.json().fields, ['title', 'cover']);
+  assert.equal(conflict.json().code, 'UPLOAD_PREPARED_RELEASE_CONFLICT');
+  assert.ok(logs.every(line => !line.includes('preparedRelease') && !line.includes('Soul')));
+  const next = await authorize(server, 'metadata', Buffer.byteLength(JSON.stringify(validManifest)));
+  assert.equal(next.statusCode, 200);
 });
