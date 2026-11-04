@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 for (const width of [390, 1280]) {
-  test(`prepared release recovery requires explicit confirmation and preserves cancel at ${width}px`, async ({ page }) => {
+  test(`prepared release recovery requires explicit confirmation and preserves cancel at ${width}px`, async ({ page }, testInfo) => {
     await page.setViewportSize({ width, height: 850 });
     // The recovery preview reads public artwork only. No live network required.
     await page.route('**/api/assets/**', route => route.fulfill({ status: 404 }));
@@ -16,7 +16,7 @@ for (const width of [390, 1280]) {
     await expect(page.getByTestId('restores')).toHaveText('0');
     expect(await dialog.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
     await page.emulateMedia({ reducedMotion: 'reduce' });
-    await page.screenshot({ animations: 'disabled', path: `/private/tmp/dotify-prepared-release-${width}.png`, fullPage: true });
+    await page.screenshot({ animations: 'disabled', path: testInfo.outputPath(`prepared-release-${width}.png`), fullPage: true });
     await page.getByRole('button', { name: 'Keep current draft', exact: true }).last().click();
     await expect(page.getByTestId('draft')).toHaveText('Current unsaved values');
     await page.getByRole('button', { name: 'Show conflict' }).click();
