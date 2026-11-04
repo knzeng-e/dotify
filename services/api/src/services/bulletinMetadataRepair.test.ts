@@ -3,7 +3,7 @@ import { it, type TestContext } from 'node:test';
 import { readFile, readdir, writeFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { assetFixture } from './bulletinPublicAssets.fixture.js';
-import { prepareMetadataNameRepair } from './bulletinMetadataRepair.js';
+import { PreparedReleaseConflictError, prepareMetadataNameRepair } from './bulletinMetadataRepair.js';
 import { createStreamingPublicationStore } from './streamingPublicationStore.js';
 import { load, ownerSchema, jobSchema } from './bulletinMediaState.js';
 import type { PublisherDependencies } from './streamingPublicationStore.js';
@@ -80,7 +80,7 @@ it('rejects unapproved changes and an already registered runtime before any repl
     { ...value, track: { ...value.track, title: 'Another title' } },
     { ...value, royalties: [{ recipient: c.owner.address, bps: 10000 }] }
   ]) {
-    await assert.rejects(store.pinAsset!(files(changed), 'metadata', c.owner, signal()), /exact approved metadata repair/);
+    await assert.rejects(store.pinAsset!(files(changed), 'metadata', c.owner, signal()), PreparedReleaseConflictError);
   }
   assert.equal(c.writes, writes);
   await store.close();
@@ -223,4 +223,49 @@ it('refuses corrupt or changed permits before signer load or publication, and ne
     prepareMetadataNameRepair(input, async () => true),
     /already started/
   );
+});
+
+it('offers the saved snapshot without writes, but never for another owner, runtime, chain or audio', async t => {
+  const { c, options, input, snapshot } = await fixture(t);
+  const inspected = await prepareMetadataNameRepair(input, async () => true);
+  await prepareMetadataNameRepair({ ...input, admitPlan: inspected.planSha256 }, async () => true);
+  const store = await createStreamingPublicationStore(options, c.deps);
+  try {
+    const before = await snapshot();
+    const writes = c.writes;
+    const expected = inspected.plan.repair.manifest;
+    const draft = {
+      ...expected,
+      assets: { ...expected.assets, coverCID: '' },
+      track: { ...expected.track, title: 'filename', description: 'New note', priceDot: '1.2' }
+    };
+    await assert.rejects(store.pinAsset!(files(draft), 'metadata', c.owner, signal()), error => {
+      assert.ok(error instanceof PreparedReleaseConflictError);
+      assert.deepEqual(error.fields, ['title', 'description', 'cover', 'listening access or price']);
+      assert.deepEqual(error.preparedRelease, { owner: c.owner.address, runtimeAddress: c.owner.runtimeAddress, chainId: c.owner.chainId, manifest: expected });
+      return true;
+    });
+    const requests = [
+      [draft, { ...c.owner, address: '0x' + '99'.repeat(20) }],
+      [draft, { ...c.owner, runtimeAddress: '0x' + '99'.repeat(20) }],
+      [draft, { ...c.owner, chainId: c.owner.chainId + 1 }],
+      [{ ...draft, track: { ...draft.track, contentHash: '0x' + '99'.repeat(32) } }, c.owner],
+      [{ ...draft, assets: { ...draft.assets, audioCID: 'different-audio' } }, c.owner],
+      [{ ...draft, assets: { ...draft.assets, keyVersion: 'dotify-content-key-v3' } }, c.owner]
+    ] as const;
+    for (const [manifest, owner] of requests) {
+      await assert.rejects(store.pinAsset!(files(manifest), 'metadata', owner, signal()), error => {
+        assert.ok(!(error instanceof PreparedReleaseConflictError));
+        return true;
+      });
+    }
+    assert.equal(c.writes, writes);
+    assert.deepEqual(await snapshot(), before);
+    assert.equal(await store.pinAsset!(files(expected), 'metadata', c.owner, signal()), inspected.plan.repair.newRoot);
+    assert.equal(c.writes, writes + 2);
+    await store.pinAsset!(files(expected), 'metadata', c.owner, signal());
+    assert.equal(c.writes, writes + 2);
+  } finally {
+    await store.close();
+  }
 });

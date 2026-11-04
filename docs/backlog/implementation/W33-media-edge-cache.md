@@ -290,3 +290,7 @@ metadata repair, still awaiting rollout and separate activation/write approval.
 Then verify artist wallet registration and protected Web/physical Host acceptance,
 followed by conservation/renewal and off-volume recovery.
 W33/#288 stays open; Product/Web remain 0.1.69.
+
+## Prepared release recovery candidate, 2026-11-04
+
+The [lost-draft diagnosis and recovery](evidence/prepared-release-recovery-2026-11-04.md) preserve the admitted name-only manifest while offering explicit restoration of its original details, price and cover. Same-audio conflicts return a typed authenticated 409 before stores; preview/cancel/confirm do not publish. Local controls cover identity changes and unchanged budgets. API and Web/Product rollout, artist registration, protected listening and conservation remain open; #288 is not closed.

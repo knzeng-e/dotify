@@ -1,3 +1,4 @@
+import { PreparedReleaseRecoveryError, type PreparedRelease } from '../features/artist-studio/preparedReleaseRecovery';
 import { AUDIO_PREPARATION_LABELS, AudioPreparationError } from '../features/uploads/streamingPreparation';
 import { useLayoutEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from 'react';
 import { getAddress, isAddress } from 'viem';
@@ -229,6 +230,7 @@ export type UseArtistConsoleDeps = {
   artistTracks: CatalogTrack[];
   transactionFeedback?: TransactionFeedback | null;
   onReleasePublished?: (account: `0x${string}`) => void;
+  onReviewPreparedRelease?: (release: PreparedRelease) => void;
   setTransactionFeedback: Dispatch<SetStateAction<TransactionFeedback | null>>;
   refreshCatalogFromRegistry: (hash?: `0x${string}`, options?: { fresh?: boolean }) => Promise<CatalogTrack[]>;
   setAudioCID: (cid: string) => void;
@@ -1235,47 +1237,49 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
       setPublicationFeedback({
         tone: 'error',
         title: 'Publication needs attention',
-        ...(registrationError instanceof AudioPreparationError && !submittedRegistrationTxHash && registrationError.canRetry
-          ? {
-              recoveryAction: {
-                label: 'Retry preparation',
-                run: () => {
-                  // The artist may have edited the draft or changed accounts
-                  // while preparation ran in the background. Revalidate the
-                  // current context rather than the failed attempt's closure.
-                  void latestRegisterRights.current();
-                }
-              }
-            }
-          : registrationError instanceof AudioPreparationError && registrationError.discard && !submittedRegistrationTxHash
+        ...(registrationError instanceof PreparedReleaseRecoveryError && !submittedRegistrationTxHash && deps.onReviewPreparedRelease
+          ? { recoveryAction: { label: 'Review prepared release', run: () => deps.onReviewPreparedRelease?.(registrationError.preparedRelease) } }
+          : registrationError instanceof AudioPreparationError && !submittedRegistrationTxHash && registrationError.canRetry
             ? {
                 recoveryAction: {
-                  label: 'Discard failed preparation',
+                  label: 'Retry preparation',
                   run: () => {
-                    void registrationError.discard!()
-                      .then(() => {
-                        audioUploadRef.current = null;
-                        setRightsStatus('Ready to prepare your music again');
-                        setPublicationFeedback({
-                          tone: 'success',
-                          title: 'Ready to try again',
-                          message: 'Your release draft is unchanged. Publish again to prepare your music.'
-                        });
-                      })
-                      .catch((error: unknown) =>
-                        setPublicationFeedback({
-                          tone: 'error',
-                          title: 'Preparation is still saved',
-                          message:
-                            (error as { code?: string } | null)?.code === 'STREAMING_RECOVERY_REQUIRED'
-                              ? 'Your prepared music is saved. A storage operation still needs checking. Please contact the Dotify operator to recover it.'
-                              : 'The failed preparation could not be removed. Reconnect your artist account and try again.'
-                        })
-                      );
+                    // The artist may have edited the draft or changed accounts
+                    // while preparation ran in the background. Revalidate the
+                    // current context rather than the failed attempt's closure.
+                    void latestRegisterRights.current();
                   }
                 }
               }
-            : {}),
+            : registrationError instanceof AudioPreparationError && registrationError.discard && !submittedRegistrationTxHash
+              ? {
+                  recoveryAction: {
+                    label: 'Discard failed preparation',
+                    run: () => {
+                      void registrationError.discard!()
+                        .then(() => {
+                          audioUploadRef.current = null;
+                          setRightsStatus('Ready to prepare your music again');
+                          setPublicationFeedback({
+                            tone: 'success',
+                            title: 'Ready to try again',
+                            message: 'Your release draft is unchanged. Publish again to prepare your music.'
+                          });
+                        })
+                        .catch((error: unknown) =>
+                          setPublicationFeedback({
+                            tone: 'error',
+                            title: 'Preparation is still saved',
+                            message:
+                              (error as { code?: string } | null)?.code === 'STREAMING_RECOVERY_REQUIRED'
+                                ? 'Your prepared music is saved. A storage operation still needs checking. Please contact the Dotify operator to recover it.'
+                                : 'The failed preparation could not be removed. Reconnect your artist account and try again.'
+                          })
+                        );
+                    }
+                  }
+                }
+              : {}),
         message: buildReleaseRegistrationFailureMessage({
           error: message,
           submittedTxHash: submittedRegistrationTxHash,

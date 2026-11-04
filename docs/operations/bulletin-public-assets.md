@@ -112,3 +112,17 @@ Unknown storage submissions retain their normal reconciliation barrier and stay
 charged. Keep the new permit with all inventories in future backups. Missing,
 corrupt or changed permits fail closed; neither rollback nor an operator retry
 may delete the marker or replenish either graph's allowance.
+
+## Restoring a lost prepared form
+
+The [2026-11-04 recovery candidate](../backlog/implementation/evidence/prepared-release-recovery-2026-11-04.md)
+addresses a ready audio job whose editor lost its original title, note, cover,
+price or other details. Do not re-admit a wider repair or reset the job to fit the
+new form. With the recovery API and clients deployed, a same-audio conflict offers
+`Review prepared release`. The artist inspects the stored values and chooses
+`Use prepared release` or keeps the current form; publication is a separate action.
+The existing exact permit and ordinary signed grants remain required. A different
+audio identity, failed canonical checks or malformed snapshot gets no restore offer.
+No grant or network quota is replenished by a conflict. A new cover selected before
+metadata may still hit the separate one-cover policy; this recovery does not admit
+another cover. Physical publication acceptance remains to be verified after rollout.

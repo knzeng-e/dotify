@@ -1,6 +1,7 @@
 // One additive, exact-manifest repair of the pre-registration Unknown artist bug.
 // No signer, network store, queue reset or mutable metadata alias lives here.
 import assert from 'node:assert/strict';
+import { isDeepStrictEqual } from 'node:util';
 import { createHash } from 'node:crypto';
 import { lstat, open } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -38,6 +39,23 @@ const repairSchema = z
   })
   .strict();
 type Repair = z.infer<typeof repairSchema>;
+
+/** Public draft data only. Constructed after the publisher verifies the owner,
+ * canonical runtime, unregistered release, inventories and immutable permit. */
+export class PreparedReleaseConflictError extends Error {
+  constructor(
+    readonly preparedRelease: {
+      owner: string;
+      runtimeAddress: string;
+      chainId: number;
+      manifest: z.infer<typeof dotifyManifestSchema>;
+    },
+    readonly fields: string[]
+  ) {
+    super(`This prepared release has different ${fields.join(', ')}. Review its saved details before publishing. Your current draft is unchanged.`);
+    this.name = 'PreparedReleaseConflictError';
+  }
+}
 
 async function deriveRepair(profile: BulletinPublisherProfile, policy: PublicAssetPolicy, name: string, signal: AbortSignal): Promise<Repair> {
   assert.ok(profile.pilotScope, 'Metadata repair requires the existing one-release pilot');
@@ -84,7 +102,38 @@ export async function readMetadataRepair(profile: BulletinPublisherProfile, poli
 export function repairedMetadataFiles(repair: Repair, files: PinataFile[]): PinataFile[] {
   assert.ok(files.length === 1 && files[0].path === 'release.json' && files[0].bytes.length <= 50 * 1024, 'Invalid repaired metadata input');
   const input = dotifyManifestSchema.parse(JSON.parse(Buffer.from(files[0].bytes).toString('utf8')));
-  assert.deepEqual(content(input), content(repair.manifest), 'Release details differ from the exact approved metadata repair');
+  const expected = repair.manifest;
+  // A different audio identity must never receive this release's recovery data.
+  assert.equal(input.track.contentHash, expected.track.contentHash, 'Repaired release identity differs');
+  assert.deepEqual({ ...input.assets, coverCID: '' }, { ...expected.assets, coverCID: '' }, 'Repaired audio identity differs');
+  if (!isDeepStrictEqual(content(input), content(expected))) {
+    const comparisons: Array<[string, unknown, unknown]> = [
+      ['title', input.track.title, expected.track.title],
+      ['artist name', input.track.artistName, expected.track.artistName],
+      ['description', input.track.description, expected.track.description],
+      ['cover', input.assets.coverCID, expected.assets.coverCID],
+      [
+        'listening access or price',
+        [input.track.accessMode, input.track.priceDot, input.track.requiredPersonhood, input.settlement],
+        [expected.track.accessMode, expected.track.priceDot, expected.track.requiredPersonhood, expected.settlement]
+      ],
+      [
+        'release details',
+        [input.editorial, input.track.durationSeconds, input.track.zone, input.evm],
+        [expected.editorial, expected.track.durationSeconds, expected.track.zone, expected.evm]
+      ],
+      ['revenue split', input.royalties, expected.royalties]
+    ];
+    throw new PreparedReleaseConflictError(
+      {
+        owner: repair.policy.owner,
+        runtimeAddress: repair.policy.scope.runtimeAddress,
+        chainId: repair.policy.scope.chainId,
+        manifest: structuredClone(expected)
+      },
+      comparisons.filter(([, a, b]) => !isDeepStrictEqual(a, b)).map(([field]) => field)
+    );
+  }
   return manifestFiles(repair.manifest);
 }
 
