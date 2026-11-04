@@ -1,5 +1,18 @@
 # Dotify implementation playbook
 
+## Registered Bulletin playback published, 2026-11-04
+
+[Web and Product 0.1.72](evidence/product-0.1.72-rollout-2026-11-04.md) publish merged #385 from exact tested source
+`018011d4`. Independent block/CAR/DotNS/Web readback passes; 12 app stores /
+3,557,283 bytes, eight reused blocks and two signing requests stay within the
+owner-approved cap. The local signer is removed. The fresh eight-second release
+is already registered as **Thot Nzeng**, at block 15,321,680 / 1.42 PAS; this
+client-only rollout preserves its audio, metadata and access checks. API/custody
+remain source `e2dd6148`, with no restart or policy change. Next: play that same
+release and record protected Web/physical Host sound, then denial/interruption,
+dependency conservation and coherent off-volume recovery. W33/#288 remains open.
+Older dated checkpoints below describe their state at that time.
+
 ## Prepared-release recovery published, 2026-11-04
 
 [Product 0.1.71 rollout](evidence/product-0.1.71-rollout-2026-11-04.md) verifies

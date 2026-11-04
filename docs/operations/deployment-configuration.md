@@ -1,5 +1,26 @@
 # Deployment Configuration Runbook
 
+## Product 0.1.72 client publication, 2026-11-04
+
+[Verified client rollout](../backlog/implementation/evidence/product-0.1.72-rollout-2026-11-04.md)
+publishes merged #385 from exact tested source `018011d405a3921c8a0cfda82ff9839d841e5d0d`.
+Web and Product 0.1.72 are delivered, with 12 new app stores / 3,557,283 bytes,
+eight retained blocks and two DotNS signing requests. Independent readback
+reconstructs the exact CAR and Web entry. The local signer is removed.
+Netlify production branch is frozen `release/product-0.1.72`; all other build,
+environment and preview settings are preserved. Record changes stay on a separate
+branch. Do not push operational notes to the frozen production branch.
+
+API/custody remain source `e2dd6148` and the active fresh-pilot paths below.
+No restart, policy/grant/CORS/key change, media upload or renewal occurred.
+The fresh release is already registered at block 15,321,680 as Thot Nzeng /
+Dotify-Bulletin-pilot-8s / 1.42 PAS; replay it through normal authenticated access.
+Audible protected acceptance remains owner/device work. Preserve all receipts,
+allowances and account/encryption nonce history. Reused app dependencies still
+expire independently as early as block 1,532,185; reserve/monitor them alongside
+media and authorization expiry. This publication enables no renewal scheduler.
+The earlier sections retain their dated meaning.
+
 ## Active fresh Bulletin trial, 2026-11-04
 
 [The verified fresh admission](../backlog/implementation/evidence/bulletin-fresh-pilot-activation-2026-11-04.md)
