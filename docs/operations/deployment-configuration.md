@@ -15,7 +15,8 @@ API/custody remain source `e2dd6148` and the active fresh-pilot paths below.
 No restart, policy/grant/CORS/key change, media upload or renewal occurred.
 The fresh release is already registered at block 15,321,680 as Thot Nzeng /
 Dotify-Bulletin-pilot-8s / 1.42 PAS; replay it through normal authenticated access.
-Audible protected acceptance remains owner/device work. Preserve all receipts,
+The owner confirms all eight seconds audible on Web, Desktop and mobile.
+Denied/interrupted access remains untested in this rollout. Preserve all receipts,
 allowances and account/encryption nonce history. Reused app dependencies still
 expire independently as early as block 1,532,185; reserve/monitor them alongside
 media and authorization expiry. This publication enables no renewal scheduler.

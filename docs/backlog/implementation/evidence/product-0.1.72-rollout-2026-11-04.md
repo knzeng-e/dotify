@@ -7,7 +7,7 @@ from `018011d405a3921c8a0cfda82ff9839d841e5d0d`, frozen branch
 is green (attempt 2). [Structured public receipts](product-0.1.72-rollout-2026-11-04.json)
 record the artifact, writes, records, quota, unchanged release and readbacks.
 The already registered musical release is preserved; replay it instead of
-publishing it again. Audible protected acceptance is still awaiting the owner.
+publishing it again. The owner confirms hearing all eight seconds on Web, Desktop and mobile.
 
 ## Why the clients changed
 
@@ -91,10 +91,12 @@ download, then only that same-source job was rerun successfully, without changin
 artifacts or budget.
 
 Desktop reload opens the expected two-release catalog in a disconnected session;
-no wallet action or protected playback was performed by that UI check. The owner
-is asked to reopen the app and play the existing eight-second release with the
-usual artist account on Web/Desktop/mobile. Record observed version, sound and
-any error; do not infer audible success from hashes, readiness or the UI alone.
+no wallet action or protected playback was performed by that UI check. After reopening the clients, the owner reports: “web + Desktop + Mobile -> Succès.
+J'ai entendu les 8 secondes”. This confirms the reported protected artist listening
+path on all three clients for this release. It is operator-reported listening,
+without independent sound capture, per-device build telemetry or startup timing;
+it does not establish paid listener settlement, denied access or interruption
+behavior. Earlier managed-reader diagnostic results remain separate evidence.
 Protected denial/interruption, recurring dependency conservation, off-volume
 recovery, representative costs and general editable/multi-release admission
 remain W33 production gates. A rollback must preserve all newer receipts and

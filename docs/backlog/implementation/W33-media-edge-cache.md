@@ -8,9 +8,9 @@
 owner-approved cap. The local signer is removed. The fresh eight-second release
 is already registered as **Thot Nzeng**, at block 15,321,680 / 1.42 PAS; this
 client-only rollout preserves its audio, metadata and access checks. API/custody
-remain source `e2dd6148`, with no restart or policy change. Next: play that same
-release and record protected Web/physical Host sound, then denial/interruption,
-dependency conservation and coherent off-volume recovery. W33/#288 remains open.
+remain source `e2dd6148`, with no restart or policy change. The owner confirms hearing all eight seconds on Web, Desktop and mobile.
+Next: protected denial/interruption, dependency conservation and coherent
+off-volume recovery. W33/#288 remains open.
 Older dated checkpoints below describe their state at that time.
 
 ## Bulletin playback selection correction, 2026-11-04

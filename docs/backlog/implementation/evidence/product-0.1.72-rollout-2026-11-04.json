@@ -662,8 +662,23 @@
     "keyTransfers": 0
   },
   "remainingAcceptance": [
-    "Owner audible confirmation on Web, Desktop and mobile",
     "Protected denial and interruption scenarios",
     "Dependency renewal monitoring and coherent off-volume recovery"
-  ]
+  ],
+  "ownerAudibleAcceptance": {
+    "reportedOn": "2026-11-04",
+    "accountContext": "usual artist account requested; no new payment or publication requested",
+    "clients": [
+      "Web",
+      "Desktop",
+      "Mobile"
+    ],
+    "durationSeconds": 8,
+    "outcome": "Owner reports success and heard the eight seconds on all three clients.",
+    "exactReply": "web + Desktop + Mobile -> Succès. J'ai entendu les 8 secondes",
+    "independentAudibleCapture": false,
+    "perDeviceBuildTelemetryCollected": false,
+    "startupMeasured": false,
+    "denialOrInterruptionTested": false
+  }
 }
