@@ -1358,3 +1358,54 @@
   font-size: var(--text-sm);
   line-height: 1.5;
 }
+
+/* The artist explicitly chooses whether to restore the saved release. */
+.prepared-release-review {
+  text-align: left;
+}
+.prepared-release-heading {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  margin: 1.5rem 0;
+}
+.prepared-release-heading img {
+  width: 96px;
+  height: 96px;
+  object-fit: cover;
+  border-radius: 12px;
+  flex: 0 0 auto;
+}
+.prepared-release-heading h3 {
+  margin: 0.3rem 0;
+  overflow-wrap: anywhere;
+}
+.prepared-release-heading p {
+  margin: 0.3rem 0;
+}
+.prepared-release-story {
+  margin: 1.5rem 0;
+}
+.prepared-release-story p {
+  white-space: pre-wrap;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+.prepared-release-address {
+  display: block;
+  font-size: 0.8rem;
+  overflow-wrap: anywhere;
+  opacity: 0.8;
+}
+
+.prepared-release-review .transaction-facts dd {
+  display: block;
+}
+.prepared-release-confirm {
+  background: var(--action);
+  border-color: var(--action);
+  color: var(--on-action);
+}
+.prepared-release-confirm:hover {
+  background: var(--action-hover);
+}

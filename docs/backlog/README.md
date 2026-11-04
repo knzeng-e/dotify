@@ -558,3 +558,7 @@ The [original prepared job is ready](implementation/evidence/bulletin-prepared-r
 16 stores / 712,737 bytes, verified receipts/readback, attempts preserved and
 custody readiness restored. Artist registration, protected Web/Host acceptance
 and conservation/restore remain open under W33/#288.
+
+## Prepared release recovery candidate, 2026-11-04
+
+The [lost-draft diagnosis and recovery](implementation/evidence/prepared-release-recovery-2026-11-04.md) preserve the admitted name-only manifest while offering explicit restoration of its original details, price and cover. Same-audio conflicts return a typed authenticated 409 before stores; preview/cancel/confirm do not publish. Local controls cover identity changes and unchanged budgets. API and Web/Product rollout, artist registration, protected listening and conservation remain open; #288 is not closed.

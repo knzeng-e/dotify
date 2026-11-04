@@ -410,3 +410,25 @@ it('routes Bulletin artwork and metadata through the API without Pinata or gatew
   ]);
   expect(service.getGatewayUrlsForAssetRef(`ipfs://${root}/archive/master.bin`)).toEqual([]);
 });
+
+it('exposes a typed prepared-release offer on 409 without retrying or accepting a mismatched audio snapshot', async () => {
+  const { preparedReleaseFixture: fixture } = await import('../features/artist-studio/preparedReleaseRecovery.fixture');
+  const { uploadMetadataToBackend } = await loadPinataService({ VITE_DOTIFY_API_URL: 'https://api.test' });
+  sessionMocks.ensureDotifySessionForSigner.mockResolvedValue('artist-session');
+  const owner = fixture.owner as `0x${string}`;
+  const fetchMock = vi.spyOn(globalThis, 'fetch');
+  for (const valid of [true, false]) {
+    const candidate = structuredClone(fixture);
+    if (!valid) candidate.manifest.assets.audioCID = 'another-audio';
+    fetchMock
+      .mockResolvedValueOnce(Response.json({ uploadAuthorization: 'metadata-capability' }))
+      .mockResolvedValueOnce(
+        Response.json({ code: 'UPLOAD_PREPARED_RELEASE_CONFLICT', error: 'Review saved title and cover', preparedRelease: candidate }, { status: 409 })
+      );
+    await expect(
+      uploadMetadataToBackend(fixture.manifest, { chainId: fixture.chainId, signer: { address: owner, signMessage: vi.fn() } })
+    ).rejects.toMatchObject({ name: valid ? 'PreparedReleaseRecoveryError' : 'Error', message: 'Review saved title and cover' });
+  }
+  expect(fetchMock).toHaveBeenCalledTimes(4);
+  expect(fetchMock.mock.calls.filter(([url]) => String(url).endsWith('/metadata'))).toHaveLength(2);
+});

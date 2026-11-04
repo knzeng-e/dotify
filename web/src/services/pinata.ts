@@ -1,3 +1,4 @@
+import { parsePreparedRelease, PreparedReleaseRecoveryError } from '../features/artist-studio/preparedReleaseRecovery';
 import { bulletinAssetUrl, fetchBulletinPublicAsset } from './bulletinPublicAssets';
 import { readPreparationId, waitForAudioPreparation, type AudioPreparationPhase } from '../features/uploads/streamingPreparation';
 // ---------------------------------------------------------------------------
@@ -448,8 +449,14 @@ export async function uploadMetadataToBackend(manifest: DotifyTrackManifest, ide
   });
 
   if (!res.ok) {
-    const msg = await parseBackendError(res, `Metadata upload failed (${res.status})`);
-    throw new Error(msg);
+    const body = (await res.json().catch(() => null)) as (BackendUploadErrorBody & { preparedRelease?: unknown }) | null;
+    const message = formatBackendUploadError(body, `Metadata upload failed (${res.status})`);
+    const owner = identity?.signer?.address ?? identity?.walletClient?.account?.address;
+    if (res.status === 409 && body?.code === 'UPLOAD_PREPARED_RELEASE_CONFLICT' && owner && identity) {
+      const prepared = parsePreparedRelease(body.preparedRelease, manifest, owner, identity.chainId);
+      if (prepared) throw new PreparedReleaseRecoveryError(prepared, message);
+    }
+    throw new Error(message);
   }
 
   const data = (await res.json()) as { ref: string };

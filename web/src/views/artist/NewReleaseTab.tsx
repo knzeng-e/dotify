@@ -193,7 +193,7 @@ export function NewReleaseTab({
                 <span>{fileHash ? shorten(fileHash, 18) : 'Add an audio file to start your release.'}</span>
               </div>
               <div>
-                <strong>{coverSource.startsWith('blob:') ? 'Cover ready' : 'Generated cover'}</strong>
+                <strong>{coverCID || coverSource.startsWith('blob:') ? 'Cover ready' : 'Generated cover'}</strong>
                 <span>{coverCID ? shorten(coverCID, 18) : 'You can add your own cover before publishing.'}</span>
               </div>
             </div>
