@@ -1013,7 +1013,9 @@ export function useCatalog(deps: UseCatalogDeps) {
         }
       }
 
-      if (hasAccess && track.localUrl) {
+      // Encrypted references are resolved by the authenticated streaming reader.
+      // Bulletin roots deliberately have no direct public-asset gateway URL.
+      if (hasAccess && (track.encrypted || track.localUrl)) {
         let failureKind: ProtectedPlaybackFailureKind | null = null;
         if (warmSource) audioUrl = warmSource;
         else if (track.encrypted) {
@@ -1045,7 +1047,7 @@ export function useCatalog(deps: UseCatalogDeps) {
             }
           }
         } else {
-          audioUrl = track.localUrl;
+          audioUrl = track.localUrl ?? null;
         }
         if (!isTrackSelectionCurrent(selection)) return { playbackMode: 'full', audioSource: audioSourceRef.current };
 
@@ -1595,7 +1597,7 @@ export function useCatalog(deps: UseCatalogDeps) {
   async function prepareNextPlayback(track: CatalogTrack, signal: AbortSignal) {
     const identity = standbyIdentity(track);
     const current = () => !signal.aborted && standbyIdentity(track) === identity;
-    if (!current() || track.active === false || !track.localUrl) return;
+    if (!current() || track.active === false || (!track.encrypted && !track.localUrl)) return;
     // Do not expose even a paused media URL before its runtime policy passes.
     // These sources use the authoritative check on explicit selection instead.
     if (!track.encrypted && isPolicyManagedTrack(track)) return;

@@ -13,17 +13,23 @@ export const E2E_CLASSIC_HASH = '0x111111111111111111111111111111111111111111111
 export const E2E_CLASSIC_TX_HASH = '0x2222222222222222222222222222222222222222222222222222222222222222' as const;
 export const E2E_CLASSIC_AUDIO_URL = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=';
 
+// Match a catalogued Bulletin track: a streaming identity, no direct URL.
+const bulletinSourceScenario =
+  isClassicUnlockE2e && typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('e2eClassic') === 'bulletin-source';
+
 export const E2E_CLASSIC_TRACK: CatalogTrack = {
   id: `${E2E_CLASSIC_RUNTIME}:${E2E_CLASSIC_HASH}`,
   zone: 'E2E',
   title: 'Deterministic Classic Unlock',
   artist: 'Dotify Test Artist',
   artistAddress: '0x0000000000000000000000000000000000000a71',
-  audioRef: 'dotify:enc:v3:key-v2:ipfs://Qm5xzsjUGVDnGMtfq5NAwBBGxVEJnkiYjMtHPTtv9qz855',
+  audioRef: bulletinSourceScenario
+    ? 'dotify:enc:v3:key-v2:ipfs://bafykbzacec2bpys6cfd23kbnvg4p7fidf6laimhd5afshs32sgilt74gkybhw'
+    : 'dotify:enc:v3:key-v2:ipfs://Qm5xzsjUGVDnGMtfq5NAwBBGxVEJnkiYjMtHPTtv9qz855',
   imageRef:
     'data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20640%20640%22%3E%3Crect%20width%3D%22640%22%20height%3D%22640%22%20fill%3D%22%23071326%22/%3E%3Ccircle%20cx%3D%22480%22%20cy%3D%22140%22%20r%3D%22220%22%20fill%3D%22%2300E5A0%22%20opacity%3D%22.58%22/%3E%3Ccircle%20cx%3D%22160%22%20cy%3D%22510%22%20r%3D%22200%22%20fill%3D%22%23B8F012%22%20opacity%3D%22.54%22/%3E%3C/svg%3E',
   priceDot: '0.5',
-  localUrl: E2E_CLASSIC_AUDIO_URL,
+  localUrl: bulletinSourceScenario ? undefined : E2E_CLASSIC_AUDIO_URL,
   duration: 42,
   hash: E2E_CLASSIC_HASH,
   description: 'A deterministic Classic track used only by the e2e unlock flow.',
