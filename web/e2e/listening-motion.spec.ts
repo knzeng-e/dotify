@@ -1,4 +1,14 @@
 import { expect, test, type Page } from '@playwright/test';
+
+test.beforeEach(async ({ page }) => {
+  // Catalog hover prefetch can inspect the two synthetic protected entries.
+  // They have no real manifests; do not depend on external gateway CORS/uptime.
+  for (const root of ['QmafmXF11dKMXto7s39giJoRBJdZ3yvVtYx5fCCEVnW3qF', 'Qm5xzsjUGVDnGMtfq5NAwBBGxVEJnkiYjMtHPTtv9qz855']) {
+    await page.route(`**/ipfs/${root}/manifest.json`, route =>
+      route.fulfill({ status: 404, json: { error: 'Synthetic manifest unavailable' }, headers: { 'access-control-allow-origin': '*' } })
+    );
+  }
+});
 async function solo(page: Page) {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/?e2eRoom=public&e2eSync=on&e2eAutoplay=on');
@@ -126,3 +136,50 @@ test('minimizing a live room retains membership and the same host audio source',
   await expect(page.getByTestId('room-code')).toHaveText(code);
   await expectSource(page);
 });
+
+for (const newerIntent of ['tab', 'back'] as const) {
+  test(`delayed player capture cannot override a newer ${newerIntent} navigation or push history`, async ({ page }) => {
+    await solo(page);
+    await page.getByRole('button', { name: 'Back to Music', exact: true }).click();
+    await expect(page.locator('html')).not.toHaveAttribute('data-player-motion');
+    const nav = page.getByRole('navigation', { name: 'Main navigation' });
+    await nav.getByRole('button', { name: 'Rooms', exact: true }).click();
+    await nav.getByRole('button', { name: 'Music', exact: true }).click();
+    // Hold the browser snapshot deterministically, then deliver its callback
+    // after the newer route. No production timing switch is introduced.
+    await page.evaluate(() => {
+      Object.defineProperty(document, 'startViewTransition', {
+        configurable: true,
+        value: (update: () => void) => {
+          let finish!: () => void;
+          const done = new Promise<void>(resolve => {
+            finish = resolve;
+          });
+          Reflect.set(window, '__releasePlayerCapture__', () => {
+            update();
+            finish();
+          });
+          return { ready: Promise.resolve(), finished: done, updateCallbackDone: done, skipTransition() {} };
+        }
+      });
+    });
+    await page.locator('.player-dock-art').click();
+    await expect(page.locator('html')).toHaveAttribute('data-player-motion', 'open');
+    const destination = newerIntent === 'tab' ? 'you' : 'rooms';
+    if (newerIntent === 'tab') await nav.getByRole('button', { name: 'You', exact: true }).click();
+    else await page.goBack();
+    await expect(page.locator(`.content-${destination}`)).toBeVisible();
+    const entries = await page.evaluate(() => history.length);
+    await page.evaluate(() => Reflect.get(window, '__releasePlayerCapture__')());
+    await expect(page.locator(`.content-${destination}`)).toBeVisible();
+    await expect(page.locator('.player-stage')).toHaveCount(0);
+    await expect(page.locator('html')).not.toHaveAttribute('data-player-motion');
+    expect(await page.evaluate(() => history.length)).toBe(entries);
+    expect(await page.evaluate(() => history.state.dotifyView)).toBe(destination);
+    if (newerIntent === 'back') {
+      await page.goForward();
+      await expect(page.locator('.content-listen')).toBeVisible();
+    }
+    await expectSource(page);
+  });
+}

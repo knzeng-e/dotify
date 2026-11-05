@@ -8,26 +8,41 @@ type MotionPort = {
   start(update: () => void): Transition;
 };
 
-/** Explicit UI navigation only. Reversed gestures cannot replay an older route. */
+/** Explicit UI navigation only. New route intent retires delayed captures. */
 export function createPlayerMotion(port: MotionPort) {
-  let pending: { token: symbol; commit(): void; transition: Transition } | null = null;
-  return (direction: 'open' | 'close', update: () => void) => {
+  let pending: { token: symbol; commit(): void; cancel(): void; transition: Transition } | null = null;
+  let applying = false;
+  const invalidate = () => {
+    // The animated callback goes through the same ordinary navigation provider.
+    // It must not cancel itself while synchronously applying its own route.
+    if (applying || !pending) return;
+    const retired = pending;
+    pending = null;
+    retired.cancel();
+    port.direction(null);
+    try {
+      retired.transition.skipTransition();
+    } catch {
+      /* A partial Host must not prevent the newer intent. */
+    }
+  };
+  const navigate = (direction: 'open' | 'close', update: () => void) => {
     if (pending) {
       // The platform still calls an update after skipTransition. Complete it
       // once before the newer intent, then make its delayed callback harmless.
       pending.commit();
-      try {
-        pending.transition.skipTransition();
-      } catch {
-        /* A partial Host must not prevent the newer intent. */
-      }
-      pending = null;
+      invalidate();
     }
     let committed = false;
+    let cancelled = false;
     const commit = () => {
-      if (!committed) {
-        committed = true;
+      if (committed || cancelled) return;
+      committed = true;
+      applying = true;
+      try {
         update();
+      } finally {
+        applying = false;
       }
     };
     if (!port.available() || port.immediate()) {
@@ -39,7 +54,14 @@ export function createPlayerMotion(port: MotionPort) {
     port.direction(direction);
     try {
       const transition = port.start(commit);
-      pending = { token, commit, transition };
+      pending = {
+        token,
+        commit,
+        cancel: () => {
+          cancelled = true;
+        },
+        transition
+      };
       void transition.ready?.catch(() => {});
       void transition.updateCallbackDone.catch(commit);
       void transition.finished
@@ -56,6 +78,7 @@ export function createPlayerMotion(port: MotionPort) {
       commit();
     }
   };
+  return Object.assign(navigate, { invalidate });
 }
 
 const navigate = createPlayerMotion({
@@ -70,4 +93,9 @@ const navigate = createPlayerMotion({
 
 export function animatePlayerNavigation(direction: 'open' | 'close', update: () => void) {
   navigate(direction, () => flushSync(update));
+}
+
+/** Called before every ordinary route intent, including browser Back/Forward. */
+export function invalidatePlayerNavigation() {
+  navigate.invalidate();
 }

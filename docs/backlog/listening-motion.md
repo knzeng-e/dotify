@@ -19,7 +19,8 @@ and background inertness. A pull-down handle may dismiss Queue, while list scrol
 seek bars and forms remain ordinary controls. No gesture submits a transaction,
 requests a key, changes a queue order, starts playback or leaves a room.
 
-Verify Chromium/WebKit, rapid reversed navigation, fallback/reduced motion,
+Verify Chromium/WebKit, rapid reversed navigation, delayed captures superseded by
+ordinary tabs/profile/portal navigation and browser Back/Forward, fallback/reduced motion,
 Back/Escape/focus and short safe-area layouts. Preserve solo and room audio while
 minimizing/reopening. Record exact-Host physical feel after matching rollout;
 no deployment or storage/service/policy change belongs to this implementation.

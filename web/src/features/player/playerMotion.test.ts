@@ -86,3 +86,54 @@ it('a rejected platform update promise applies the pending route and releases it
   f.commits[0]();
   expect(change).toHaveBeenCalledTimes(1);
 });
+
+it('ordinary route intent drops the delayed callback and its rejected-promise fallback without committing history', async () => {
+  const f = fixture(),
+    navigate = createPlayerMotion(f.port),
+    pushHistory = vi.fn();
+  navigate('open', pushHistory);
+  navigate.invalidate();
+  expect(f.skip).toHaveBeenCalledTimes(1);
+  expect(f.direction).toHaveBeenLastCalledWith(null);
+  f.commits[0]();
+  f.updates[0].reject(new Error('Capture skipped after Back'));
+  f.finishes[0].reject(new Error('Capture skipped after Back'));
+  await Promise.resolve();
+  await Promise.resolve();
+  expect(pushHistory).not.toHaveBeenCalled();
+});
+
+it('retired completion cannot clear a newer animation, even if skipping throws', async () => {
+  const f = fixture(),
+    navigate = createPlayerMotion(f.port),
+    stale = vi.fn(),
+    latest = vi.fn();
+  navigate('open', stale);
+  f.skip.mockImplementation(() => {
+    throw new Error('Partial Host');
+  });
+  expect(() => navigate.invalidate()).not.toThrow();
+  navigate('open', latest);
+  f.commits[0]();
+  f.finishes[0].resolve();
+  await Promise.resolve();
+  await Promise.resolve();
+  expect(stale).not.toHaveBeenCalled();
+  expect(f.direction).toHaveBeenLastCalledWith('open');
+  f.commits[1]();
+  expect(latest).toHaveBeenCalledTimes(1);
+});
+
+it('the navigation provider cannot cancel the animation applying its own synchronous route', () => {
+  const f = fixture(),
+    navigate = createPlayerMotion(f.port),
+    change = vi.fn(() => navigate.invalidate());
+  navigate('open', change);
+  f.commits[0]();
+  expect(change).toHaveBeenCalledTimes(1);
+  expect(f.skip).not.toHaveBeenCalled();
+  expect(f.direction).toHaveBeenLastCalledWith('open');
+  navigate.invalidate();
+  expect(f.skip).toHaveBeenCalledTimes(1);
+  expect(f.direction).toHaveBeenLastCalledWith(null);
+});
