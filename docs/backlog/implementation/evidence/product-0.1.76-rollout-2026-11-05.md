@@ -5,7 +5,8 @@
 `9dc9708e07f99f3b02e4c7aa7b3686e59f9f8f2a` (#397/#398).
 [Exact-source CI](https://github.com/knzeng-e/dotify/actions/runs/42032408117) and [merged dev CI](https://github.com/knzeng-e/dotify/actions/runs/42031562226) pass.
 [Structured proof](product-0.1.76-rollout-2026-11-05.json) contains the public receipts and readback.
-Refs #395, #396 and W33/#288; delivery does not close physical acceptance.
+Refs #395, #396 and W33/#288; owner-confirmed foreground delivery is recorded below,
+with lifecycle, presentation and conservation acceptance still separate.
 The [0.1.75 record](product-0.1.75-rollout-2026-11-05.md) retains its own device feedback.
 
 ## Delivered behavior and tradeoff
@@ -86,18 +87,24 @@ Rollback to the independently verified 0.1.75 graph requires fresh dependency
 readback/retention checks and a separately bounded DotNS update; it restores the
 reported mobile-host limitation and must preserve all newer nonce/receipt state.
 
-## Matching acceptance remains open
+## Physical foreground result and remaining acceptance
 
-Confirm About Dotify **0.1.76**, then host a Room on the phone in foreground with
-the existing eight-second release. Pause while Web/Desktop guests join, then
-explicitly play and require actual sound at both guests. Test host pause/resume,
-guest local mute and explicit reconnect. Exercise Next with an eligible existing
-track if available, and background hosting separately. Inspect Room queue,
-suggestions and release details for matching drag/Back/keyboard/focus behavior
-without changing room/audio ownership. No new publication or purchase is needed.
+The owner replies **“Web : oui, Desktop : oui.”** to the matching 0.1.76 test:
+the phone hosts in foreground/unlocked, guests join while paused, then the
+existing eight-second release starts explicitly. This confirms reported audible
+music at both Web and Desktop guests, resolving the reported foreground-silence
+symptom in that scenario. The Polkadot app version was not restated in this reply.
+No new deployment, musical write or policy change is performed to record it.
+
+Still verify physical host pause/resume and Next, guest local mute/disconnect and
+explicit recovery; test background hosting separately. Inspect Room queue,
+suggestions and release details for drag/Back/keyboard/focus behavior without
+changing room/audio ownership. No new publication or purchase is needed.
+#395 remains open for those lifecycle checks; #396 retains matching panel
+acceptance. This is not a cold-start measurement or general device certification.
 
 Automated evidence includes 1,088 unit tests, real normalized WebRTC energy in
 Chromium and managed-only authenticated AAC Blob received-energy in WebKit.
-Matching physical mobile capture is not inferred from those engines. #395/#396
-stay open until matching evidence; W33 also retains signed denial/account changes,
-conservation/alerts and coherent off-volume recovery.
+The owner's audible result is distinct from those automated engine checks.
+W33 also retains signed denial/account changes, conservation/alerts and coherent
+off-volume recovery; custody's fatal-exit/supervision defect remains a follow-up.

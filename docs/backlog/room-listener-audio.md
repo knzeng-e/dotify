@@ -60,3 +60,13 @@ that acceptance; deployment/signing is separate from code review.
 
 Review follow-up: a real media-clock regression verifies same-track re-preparation
 retains position, while opening a different track still starts normally.
+
+
+## Physical foreground result, 2026-11-05
+
+After [Web/Product 0.1.76 delivery](implementation/evidence/product-0.1.76-rollout-2026-11-05.md),
+the owner confirms **“Web : oui, Desktop : oui.”** for the requested foreground
+phone-host test with the existing eight-second release. Both guest types hear
+the music. The app version was not restated. This accepts that reported path;
+physical pause/resume/Next, guest mute/disconnect/recovery and background hosting
+remain separate checks. Keep #395 open for that remaining lifecycle acceptance.

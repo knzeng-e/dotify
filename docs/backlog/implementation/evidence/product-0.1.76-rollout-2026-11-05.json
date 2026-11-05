@@ -701,11 +701,30 @@
     "conservationCliActivated": false
   },
   "remainingAcceptance": [
-    "physical mobile foreground host to Web/Desktop guests with actual received sound",
+    "physical mobile-host pause/resume/next, guest local mute/disconnect and explicit recovery",
     "matching Room queue/suggestions/details dismissal and keyboard/focus",
     "background hosting tested separately",
     "signed unentitled-listener denial and account switching",
     "complete retained inventory, bounded renewals/alerts and coherent off-volume recovery",
     "custody fatal-lease-loss exit and supervision correction"
-  ]
+  ],
+  "physicalForegroundAcceptance": {
+    "date": "2026-11-05",
+    "evidenceKind": "owner-reported audible playback",
+    "rolloutUnderTest": "0.1.76",
+    "protocol": "Existing eight-second release; phone hosts foreground/unlocked; pause while Web/Desktop guests join, then explicit playback",
+    "reportedResults": {
+      "webGuestHeardAudio": true,
+      "desktopGuestHeardAudio": true
+    },
+    "ownerReply": "Web : oui, Desktop : oui.",
+    "polkadotAppVersionRestated": false,
+    "independentAudibleEnergyMeasured": false,
+    "doesNotEstablish": [
+      "background hosting",
+      "physical pause/resume/next and guest mute/disconnect recovery",
+      "cold startup latency",
+      "matching Room panel gestures and focus"
+    ]
+  }
 }
