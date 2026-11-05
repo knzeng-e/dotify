@@ -4,9 +4,9 @@ Refs W33/#288. **Web and Product 0.1.73 are published and independently verified
 from `560e7332f2fabe7b849ba829fb0543688a7447b1`, frozen branch `release/product-0.1.73`, based on merged
 #386 / dev `71c9736f`. [Exact-source CI](https://github.com/knzeng-e/dotify/actions/runs/41945194955) passed on its first attempt.
 [Structured receipts](product-0.1.73-rollout-2026-11-05.json) preserve the public artifact, submission and
-readback evidence. The owner confirms Web disconnect stops the sound and explicit
-recovery works. Signed denial, account switching and Desktop/mobile interruption
-acceptance remain open.
+readback evidence. The owner confirms disconnect stops the sound and explicit
+recovery works on Web, Polkadot app Desktop and mobile. Signed denial, account
+switching and room-guest silence on host disconnect remain open.
 
 ## Behavior and authority
 
@@ -93,13 +93,30 @@ eight seconds audible on Web/Desktop/mobile. In response to the new Web
 0.1.73 procedure (refresh, play as artist, disconnect before eight seconds,
 reconnect without automatic playback, then explicitly retry), the owner reports
 **“arrêt OK / reprise OK”**. This accepts the reported Web stop and explicit
-recovery path. There is no independent per-device build/sound capture, timing,
-device/OS/network report or account-switch observation. It does not establish
-Desktop/mobile interruption, room-guest silence or signed unentitled denial.
-For the remaining comparisons, follow the
+recovery path. The owner subsequently reports **“Mobile : arrêt OK / reprise OK”**
+and **“Desktop : arrêt OK / reprise OK”** in response to the same procedure for
+Polkadot app 0.1.73. All three clients therefore have owner-reported audible stop
+and explicit recovery. On mobile, disconnect currently requires returning from
+the full player to Music; direct account access from Player is not implemented.
+There is no independent per-device build/sound capture, timing or new device/OS/
+network report. Account switching, room-guest silence and signed unentitled
+denial are not established. For the remaining comparisons, follow the
 [physical procedure](../../../operations/bulletin-protected-playback-acceptance.md),
 recording version, role and audible result; never approve a payment for denial.
 Conservation, off-volume recovery, costs and general admission remain W33 gates.
 Rollback only matching client records/branch; retain all newer receipts and nonce
 state. 0.1.72 also predates this interruption correction and is not a secure
 substitute for accepting its new lifecycle behavior.
+
+## Owner feedback queued for the next iteration
+
+[Listening controls and discovery](../../listening-controls-and-discovery.md)
+([#388](https://github.com/knzeng-e/dotify/issues/388)) records three requested
+follow-ups: account/disconnect access inside the mobile player; actual current
+track/release/artist details accessible inside a room; and lock-screen current
+artwork with previous/next controls instead of the observed ±10-second buttons.
+The room is a discovery surface: inspecting its track must not leave the room,
+interrupt listening, request a guest key/payment or grant host control. Native
+artwork/button acceptance needs per-Host/OS evidence. These are planned tasks,
+not changes included in 0.1.73. They accompany Bulletin stabilization without
+closing the access, retention and off-volume recovery gates.

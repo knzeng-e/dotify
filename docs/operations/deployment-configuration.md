@@ -16,8 +16,10 @@ The signer is removed. Account-bound protected sources and pending preparation
 retire on disconnect or identity change; reconnect requires explicit normal
 access checks. Use the existing registered eight-second release and the
 [physical acceptance procedure](bulletin-protected-playback-acceptance.md).
-The owner confirms Web sound stops on disconnect and explicit recovery works;
-Desktop/mobile interruption, account switching and signed denial remain open.
+The owner confirms sound stops on disconnect and explicit recovery works on
+Web, Desktop and mobile. Account switching, room-guest silence and signed denial
+remain open. Mobile Player account access, room current-track discovery and
+native lock-screen artwork/actions are planned separately in #388.
 
 Preserve all server receipts, queues, account cursors and encryption reservations.
 Reserve 291 future renewals / 84,178,313 bytes across retained obligations. No

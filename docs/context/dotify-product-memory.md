@@ -9,11 +9,17 @@ Free/profile-only playback is preserved. Independent Web/CAR/DotNS readback pass
 12 app stores / 3,557,988 bytes, eight reuses and two signing requests stay within
 the approved cap. The local signer is removed; API/custody, media, admission and
 keys are unchanged. The public Free route rejects Classic with NOT_FREE and no
-key; this is not a signed unentitled-listener test. The owner confirms Web
-sound stops on disconnect and explicit recovery works ("arrêt OK / reprise OK").
-Desktop/mobile interruption and account switching remain unverified. Reserve 291 renewals / 84,178,313 bytes; no renewal is
+key; this is not a signed unentitled-listener test. The owner confirms sound
+stops on disconnect and explicit recovery works on Web, Desktop and mobile.
+Account switching, signed denial and room-guest silence remain unverified.
+Reserve 291 renewals / 84,178,313 bytes; no renewal is
 submitted and earliest reused expiry remains block 1,532,185. W33 stays open for
 physical access/interruption, conservation and coherent off-volume recovery.
+
+Next iteration: [#388 listening controls and discovery](../backlog/listening-controls-and-discovery.md) records the
+owner's mobile Player disconnect, room track-details and lock-screen artwork/
+previous-next requests. These are planned alongside Bulletin stabilization;
+no implementation or native rendering guarantee is claimed.
 
 ## Registered Bulletin playback published, 2026-11-04
 

@@ -721,7 +721,7 @@
   },
   "remainingAcceptance": [
     "physical signed unentitled-listener denial",
-    "physical disconnect and explicit recovery on Desktop/mobile; account switching on all clients",
+    "physical account switching on all clients and room-guest silence on host disconnect",
     "all dependency conservation and authorization monitoring",
     "coherent off-volume restoration",
     "representative costs and broader admission"
@@ -730,19 +730,55 @@
     "priorVersion": "0.1.72",
     "allThreeClientsHeardEightSeconds": true,
     "version73InterruptionAcceptance": {
-      "client": "Web",
       "requestedVersion": "0.1.73",
-      "accountRole": "artist",
-      "ownerReport": "arr\u00eat OK / reprise OK",
-      "soundStoppedOnDisconnect": true,
-      "explicitRecoverySucceeded": true,
-      "automaticRestartReported": false,
-      "evidenceType": "owner report in response to disconnect/reconnect procedure",
+      "evidenceType": "owner reports in response to the per-client disconnect/reconnect procedure",
+      "clients": {
+        "Web": {
+          "client": "Web",
+          "requestedVersion": "0.1.73",
+          "accountRole": "artist",
+          "ownerReport": "arr\u00eat OK / reprise OK",
+          "soundStoppedOnDisconnect": true,
+          "explicitRecoverySucceeded": true,
+          "automaticRestartReported": false,
+          "evidenceType": "owner report in response to disconnect/reconnect procedure",
+          "independentPerDeviceBuildTelemetry": false,
+          "deviceOsNetworkReported": false,
+          "accountSwitchTested": false,
+          "signedUnentitledListenerTested": false,
+          "desktopMobileInterruptionTested": false
+        },
+        "ProductDesktop": {
+          "accountRole": "artist",
+          "ownerReport": "Desktop : arr\u00eat OK / reprise OK",
+          "soundStoppedOnDisconnect": true,
+          "explicitRecoverySucceeded": true,
+          "automaticRestartReported": false
+        },
+        "ProductMobile": {
+          "accountRole": "artist",
+          "ownerReport": "Mobile : arr\u00eat OK / reprise OK",
+          "soundStoppedOnDisconnect": true,
+          "explicitRecoverySucceeded": true,
+          "automaticRestartReported": false,
+          "disconnectPath": "return from Player to Music, then Disconnect; account control not directly visible in Player"
+        }
+      },
       "independentPerDeviceBuildTelemetry": false,
       "deviceOsNetworkReported": false,
       "accountSwitchTested": false,
       "signedUnentitledListenerTested": false,
-      "desktopMobileInterruptionTested": false
+      "roomGuestSilenceTested": false
     }
+  },
+  "nextIterationUx": {
+    "issue": 388,
+    "scopeDoc": "docs/backlog/listening-controls-and-discovery.md",
+    "state": "planned; not implemented or deployed",
+    "items": [
+      "mobile player account/disconnect access",
+      "current room track details and artist discovery",
+      "lock-screen current artwork and previous/next controls with native evidence"
+    ]
   }
 }

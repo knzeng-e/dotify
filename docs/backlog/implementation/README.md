@@ -1,5 +1,16 @@
 # Dotify implementation playbook
 
+## Cross-client acceptance and next listening iteration, 2026-11-05
+
+The owner confirms audible stop on disconnect and explicit recovery in 0.1.73 on
+Web, Polkadot app Desktop and mobile. [#388](../listening-controls-and-discovery.md) tracks the next requested
+iteration: account/disconnect access inside the mobile player, current release/
+artist discovery inside the room, and lock-screen cover plus previous/next
+controls. Implement against current tested dev, preserve account/access/room
+boundaries, and record actual native behavior. This work is planned alongside
+Bulletin stabilization; signed denial, account switching, room-guest silence,
+conservation and coherent off-volume recovery remain separate W33 gates.
+
 ## Protected account interruption candidate, 2026-11-05
 
 The [account-lifetime correction](evidence/bulletin-protected-account-lifetime-2026-11-05.md) stops an account-bound local source and
