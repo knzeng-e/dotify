@@ -309,6 +309,8 @@ test('publication compatibility playback uses authenticated AAC when both stream
     const modulePath = '/src/features/catalog/streamingPlayback.ts';
     const player = (await import(modulePath)) as typeof import('../src/features/catalog/streamingPlayback');
     const paths: string[] = [];
+    let activeReads = 0,
+      peakReads = 0;
     const audio = document.querySelector('audio')!;
     const prepared = await player.createStreamingPlayback({
       cid: 'Qm' + 'a'.repeat(44),
@@ -319,6 +321,10 @@ test('publication compatibility playback uses authenticated AAC when both stream
       onError: () => {},
       fetchObject: async (_cid, path) => {
         paths.push(path);
+        activeReads++;
+        peakReads = Math.max(peakReads, activeReads);
+        await new Promise(resolve => setTimeout(resolve, 20));
+        activeReads--;
         const encoded = path === 'manifest.json' ? fixture.manifest : fixture.files[path];
         return Uint8Array.from(atob(encoded), char => char.charCodeAt(0));
       }
@@ -327,12 +333,20 @@ test('publication compatibility playback uses authenticated AAC when both stream
     document.querySelector('button')!.onclick = () => {
       void audio.play();
     };
-    return { progressive: prepared.progressive, paths };
+    return { progressive: prepared.progressive, paths, peakReads };
   }, fixture);
   expect(result.progressive).toBe(false);
+  expect(result.peakReads).toBeGreaterThan(1);
+  expect(result.peakReads).toBeLessThanOrEqual(4);
   expect(result.paths.some(path => path.startsWith('archive/'))).toBe(false);
   await page.click('button');
   await expect.poll(() => page.evaluate(() => document.querySelector('audio')!.currentTime)).toBeGreaterThan(0.2);
+  const expectedDuration = JSON.parse(Buffer.from(fixture.manifest, 'base64').toString()).durationSeconds as number;
+  await expect.poll(() => page.evaluate(() => document.querySelector('audio')!.duration)).toBeCloseTo(expectedDuration, 0);
+  await page.evaluate(duration => {
+    document.querySelector('audio')!.currentTime = Math.max(0, duration - 1);
+  }, expectedDuration);
+  await expect.poll(() => page.evaluate(() => document.querySelector('audio')!.currentTime)).toBeGreaterThan(expectedDuration - 0.7);
 });
 
 test('the reader starts at 96, upgrades on measured headroom and downshifts after congestion', async ({ page }) => {
