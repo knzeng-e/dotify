@@ -1,5 +1,17 @@
 # Dotify technical memory
 
+## Continuous listening published in 0.1.75, 2026-11-05
+
+[Web and Product 0.1.75](../backlog/implementation/evidence/product-0.1.75-rollout-2026-11-05.md) deliver merged #391/#393 from frozen source
+`e095f427`. Exact-source CI and independent Web/block/CAR/DotNS readback
+pass; the local signer is removed. Player/Queue motion, title-adjacent room
+discovery and room-branded system context are delivered. API/custody, media and
+policies are unchanged; no restart or renewal occurs. Reserve
+331 renewals / 103,099,297 bytes. Matching
+physical #392/#388 acceptance remains open. W33 retains protected denial and
+conservation/recovery gates; the merged read-only conservation CLI is not
+activated/deployed by this client rollout.
+
 ## Listening controls published in 0.1.74, 2026-11-05
 
 [Web and Product 0.1.74](../backlog/implementation/evidence/product-0.1.74-rollout-2026-11-05.md) deliver merged #389 from frozen source `e8d3be90`.

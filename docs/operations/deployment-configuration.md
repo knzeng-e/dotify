@@ -1,5 +1,17 @@
 # Deployment Configuration Runbook
 
+## Continuous listening published in 0.1.75, 2026-11-05
+
+[Web and Product 0.1.75](../backlog/implementation/evidence/product-0.1.75-rollout-2026-11-05.md) deliver merged #391/#393 from frozen source
+`e095f427`. Exact-source CI and independent Web/block/CAR/DotNS readback
+pass; the local signer is removed. Player/Queue motion, title-adjacent room
+discovery and room-branded system context are delivered. API/custody, media and
+policies are unchanged; no restart or renewal occurs. Reserve
+331 renewals / 103,099,297 bytes. Matching
+physical #392/#388 acceptance remains open. W33 retains protected denial and
+conservation/recovery gates; the merged read-only conservation CLI is not
+activated/deployed by this client rollout.
+
 ## Listening controls published in 0.1.74, 2026-11-05
 
 [Web and Product 0.1.74](../backlog/implementation/evidence/product-0.1.74-rollout-2026-11-05.md) deliver merged #389 from frozen source `e8d3be90`.
@@ -760,12 +772,12 @@ checkpoint: quiesce the elected writer, force a full reindex with the rollback
 binary and verify fresh canonical evidence before reopening key delivery.
 W36's prohibition on reverting shared auth/custody to local state still applies.
 
-## Listening motion candidate, 2026-11-05
+## Listening motion acceptance, 2026-11-05
 
 [The bounded motion iteration](../backlog/listening-motion.md) adds only explicit
-player expansion/collapse and the existing Queue's sheet presentation. No
-service/environment/CORS/storage/native Host change or deployment is required.
-Before matching client delivery, check motion and unsupported/reduced-motion
+player expansion/collapse and the existing Queue's sheet presentation, now
+published in Web/Product 0.1.75. No service deployment or environment/CORS/storage/
+native Host configuration change is required. On matching clients, check motion and unsupported/reduced-motion
 fallback, queue Close/Escape/Back/focus, handle-only drag vs ordinary list scroll,
 rapid reversed navigation and unchanged persistent audio/access behavior on Web
 and physical Polkadot app. See [design and evidence](../explanation/listening-motion.md).
@@ -3675,13 +3687,13 @@ rollback; this is not another admission or a request to replay deployment comman
 Local tests are not live registration, protected listening or retention evidence.
 
 
-## Room system-context candidate, 2026-11-05
+## Room system-context acceptance, 2026-11-05
 
 The [room-system refinement](../backlog/implementation/evidence/room-system-context-2026-11-05.md)
 records physical 0.1.74 mobile acceptance and prepares title-adjacent room details,
 room metadata and a branded system-artwork footer. No service, environment, CORS,
 origin, storage policy or native Host configuration changes are needed. The
-candidate is not deployed. After normal matching client delivery, inspect native
+candidate is published in Web/Product 0.1.75 as recorded above. Inspect native
 artwork/metadata updates on join, presence change, pause, reconnect, room exit and
 disconnect; confirm title/artist and host/guest transport authority stay correct.
 Actual OS glyphs, app icon and background refresh are outside the web API's
