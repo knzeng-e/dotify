@@ -82,8 +82,8 @@ These still need evidence per OS/Polkadot app version.
 - Chromium: 50 scenarios pass across Classic access, continuous player, room
   joins, player presence and the new controls. The live-room discovery test
   passes again after the final explicit snapshot-field copy and guest metadata
-  guard: host changes update an open guest sheet, artist navigation preserves
-  audible remote playback, and guest content-key requests remain zero.
+  guard: host changes update an open guest sheet, artist navigation keeps
+  the remote media element playing, and guest content-key requests remain zero.
 - WebKit: four focused scenarios pass at 320/390/430px and with a delayed public
   image response. Actual browser decoding confirms the generated descriptor is
   a 640×640 PNG. Disconnect keeps the Player view while clearing protected audio,
@@ -99,7 +99,9 @@ These still need evidence per OS/Polkadot app version.
 Controlled browser probes observe real application action registration and PNG
 image decoding, not a native lock screen. Room scenarios use real local signaling
 and WebRTC with synthetic audio and no live wallet, key service or blockchain
-transaction. The Previous-history test explicitly seeks to the intro first:
+transaction. The remote-media assertion checks a live `srcObject`, not paused
+and not ended; it does not measure acoustic continuity. The Previous-history
+test explicitly seeks to the intro first:
 after three seconds, Previous intentionally restarts the current track, so
 wall-clock delays must not select the wrong branch in a history regression.
 
