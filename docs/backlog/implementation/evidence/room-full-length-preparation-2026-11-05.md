@@ -100,6 +100,16 @@ unchanged. Unit tests cover complete index references, payload preservation/no
 mutation and malformed/unsupported index rejection. Local Firefox cannot launch
 its headless graphics process; Linux WebKit and Firefox remain remote CI checks.
 
+A later core-flow run passed all 31 streaming-engine cases and all 38 active
+audio-continuity cases, then exhausted the unrelated 30-second combined mobile
+account/artwork scenario at 320 px. The button was visible, enabled and stable;
+the trace-free job cannot prove which earlier step consumed the budget. Three
+parallel local runs pass at about 22 seconds each, including cold startup,
+unlock, artwork decoding and screenshot work. That scenario now has a bounded
+60-second total budget while account opening/disconnect each retain a stricter
+six-second limit. WebKit listening tests retain failure traces for diagnosis;
+no production timeout or UI behavior changes.
+
 After matching delivery: use the existing full-length release, verify preparation
 and actual Web/Desktop guest audio from the mobile host, then pause/resume, Next,
 guest local mute/disconnect and same-track position. Background/cold-start
