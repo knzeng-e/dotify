@@ -1,6 +1,7 @@
-import { createWalletClient, http } from 'viem';
+import { createWalletClient, http, type Address, type Hash } from 'viem';
 import type { Chain } from 'viem';
 import type { RuntimeReadPort, RuntimeWritePort } from '../features/runtime/runtimePorts';
+import { KeyServiceError } from '../services/keyService';
 import { SupportNotSubmittedError } from '../features/payments/supportPayment';
 import type { ConnectedWallet } from '../hooks/useWallet';
 import type { CatalogTrack } from '../shared/types';
@@ -14,8 +15,10 @@ export const E2E_CLASSIC_TX_HASH = '0x222222222222222222222222222222222222222222
 export const E2E_CLASSIC_AUDIO_URL = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=';
 
 // Match a catalogued Bulletin track: a streaming identity, no direct URL.
-const bulletinSourceScenario =
-  isClassicUnlockE2e && typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('e2eClassic') === 'bulletin-source';
+export function classicUnlockE2eScenario(): string {
+  return typeof window === 'undefined' ? '' : (new URLSearchParams(window.location.search).get('e2eClassic') ?? '');
+}
+const bulletinSourceScenario = isClassicUnlockE2e && classicUnlockE2eScenario().startsWith('bulletin-');
 
 export const E2E_CLASSIC_TRACK: CatalogTrack = {
   id: `${E2E_CLASSIC_RUNTIME}:${E2E_CLASSIC_HASH}`,
@@ -37,7 +40,7 @@ export const E2E_CLASSIC_TRACK: CatalogTrack = {
   metadataRef: 'e2e:classic-unlock',
   royaltyBps: 7000,
   durationLabel: '0:42',
-  accessMode: 'classic',
+  accessMode: classicUnlockE2eScenario() === 'bulletin-free' ? 'free' : 'classic',
   source: 'artist',
   royaltySplits: [
     {
@@ -57,6 +60,7 @@ export type ClassicUnlockE2eState = {
   paid: boolean;
   accessGranted: boolean;
   paymentAttempts?: number;
+  completedKeyRequests?: number;
 };
 
 declare global {
@@ -73,6 +77,14 @@ export function getClassicUnlockE2eState(): ClassicUnlockE2eState {
   return window.__DOTIFY_E2E_CLASSIC_UNLOCK__;
 }
 
+export function classicUnlockE2eHasAccess(listener: string | null): boolean {
+  return listener?.toLowerCase() === E2E_CLASSIC_LISTENER.toLowerCase() && getClassicUnlockE2eState().accessGranted;
+}
+
+export function classicUnlockE2eHasPaid(listener: string | null): boolean {
+  return listener?.toLowerCase() === E2E_CLASSIC_LISTENER.toLowerCase() && getClassicUnlockE2eState().paid;
+}
+
 export function shouldDenyClassicUnlockAfterPaymentReadback(): boolean {
   if (typeof window === 'undefined') return false;
   return new URLSearchParams(window.location.search).get('e2eClassic') === 'paid-without-access';
@@ -81,7 +93,7 @@ export function shouldDenyClassicUnlockAfterPaymentReadback(): boolean {
 export function shouldAllowClassicUnlockAccountLoss(): boolean {
   if (typeof window === 'undefined') return false;
   const scenario = new URLSearchParams(window.location.search).get('e2eClassic');
-  return scenario === 'account-loss' || scenario === 'intent-account-loss';
+  return scenario === 'account-loss' || scenario === 'intent-account-loss' || Boolean(scenario?.startsWith('bulletin-'));
 }
 
 export function recordClassicUnlockFullKeyRequest(authorized: boolean) {
@@ -90,15 +102,27 @@ export function recordClassicUnlockFullKeyRequest(authorized: boolean) {
   if (!authorized) state.deniedFullKeyRequests += 1;
 }
 
-export function createClassicUnlockE2eWallet(): ConnectedWallet {
+// Controlled key-service faults; never selected without the build-time E2E flag.
+export async function requestClassicUnlockE2eKey(authorized: boolean): Promise<Uint8Array | null> {
+  recordClassicUnlockFullKeyRequest(authorized);
+  if (classicUnlockE2eScenario() === 'bulletin-key-denied') throw new KeyServiceError('Access denied', 'LISTENER_ACCESS_REQUIRED');
+  if (classicUnlockE2eScenario() === 'bulletin-key-pending') {
+    await new Promise<void>(resolve => window.addEventListener('dotify:e2e:release-key', () => resolve(), { once: true }));
+  }
+  const state = getClassicUnlockE2eState();
+  state.completedKeyRequests = (state.completedKeyRequests ?? 0) + 1;
+  return authorized ? new Uint8Array(32).fill(7) : null;
+}
+
+export function createClassicUnlockE2eWallet(address: `0x${string}` = E2E_CLASSIC_LISTENER): ConnectedWallet {
   return {
     method: 'extension',
-    label: 'E2E wallet',
-    evmAddress: E2E_CLASSIC_LISTENER,
+    label: address === E2E_CLASSIC_LISTENER ? 'E2E wallet' : 'E2E other account',
+    evmAddress: address,
     chainId: 420420417,
     createEvmClient: (chain: Chain, rpcUrl: string) =>
       createWalletClient({
-        account: E2E_CLASSIC_LISTENER,
+        account: address,
         chain,
         transport: http(rpcUrl)
       })
@@ -109,7 +133,11 @@ export function createClassicUnlockE2eWallet(): ConnectedWallet {
 // ports exercise the production support coordinator, rather than faking its UI.
 export function classicSupportE2ePorts(reader: RuntimeReadPort, writer: RuntimeWritePort) {
   return {
-    reader: { ...reader, hasPaid: async () => getClassicUnlockE2eState().paid, canAccess: async () => getClassicUnlockE2eState().accessGranted },
+    reader: {
+      ...reader,
+      hasPaid: async (_runtime: Address, _hash: Hash, listener: Address) => classicUnlockE2eHasPaid(listener),
+      canAccess: async (_runtime: Address, _hash: Hash, listener: Address) => classicUnlockE2eHasAccess(listener)
+    },
     writer: {
       ...writer,
       inspectPayment: async () => ({ availableBalance: 2_000_000_000_000_000_000n, estimatedFee: 10_000_000_000_000_000n }),

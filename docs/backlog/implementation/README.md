@@ -1,5 +1,14 @@
 # Dotify implementation playbook
 
+## Protected account interruption candidate, 2026-11-05
+
+The [account-lifetime correction](evidence/bulletin-protected-account-lifetime-2026-11-05.md) stops an account-bound local source and
+its pending preparation when the listener or network identity changes. Reopening
+requires normal access checks and an explicit action; Free listening and profile
+updates retain their source. Controlled tests distinguish runtime/key refusal
+from successful artist listening. This candidate is not deployed; physical
+acceptance and conservation remain W33 gates.
+
 ## Registered Bulletin playback published, 2026-11-04
 
 [Web and Product 0.1.72](evidence/product-0.1.72-rollout-2026-11-04.md) publish merged #385 from exact tested source

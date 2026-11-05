@@ -70,9 +70,10 @@ import {
   E2E_CLASSIC_HASH,
   E2E_CLASSIC_TRACK,
   classicSupportE2ePorts,
-  getClassicUnlockE2eState,
+  classicUnlockE2eHasAccess,
+  classicUnlockE2eHasPaid,
   isClassicUnlockE2e,
-  recordClassicUnlockFullKeyRequest
+  requestClassicUnlockE2eKey
 } from '../e2e/classicUnlockMock';
 import { getArtistPublishE2eTracks, isArtistPublishE2e, isArtistPublishE2eTrack } from '../e2e/artistPublishMock';
 import {
@@ -115,6 +116,7 @@ type ActiveTrackSelection = {
   source: string;
   startedAt: number;
   pending: boolean;
+  requiresAccount: boolean;
   terminalReported: boolean;
   startupDeadline?: ReturnType<typeof setTimeout>;
 };
@@ -400,7 +402,6 @@ export function useCatalog(deps: UseCatalogDeps) {
   const activeViewRef = useRef(activeView);
   const activeTrackSelectionRef = useRef<ActiveTrackSelection | null>(null);
   const nextTrackSelectionIdRef = useRef(0);
-  const e2eClassicAccessGrantedRef = useRef(false);
   // 'room_host' when the selected track streams into a room; room listeners
   // never request keys at all (they only receive the WebRTC stream).
   const keyRequestPurposeRef = useRef<KeyRequestPurpose>('individual');
@@ -487,7 +488,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     pendingTrackMediaSourceRef.current = null;
   }
 
-  function beginTrackSelection(source: string, startedAt: number) {
+  function beginTrackSelection(source: string, startedAt: number, requiresAccount: boolean) {
     // A new choice ends the previous in-flight attempt. Publish its terminal
     // event before the next playback intent so evidence correlation does not
     // strand an interrupted attempt in "Timing active".
@@ -504,6 +505,7 @@ export function useCatalog(deps: UseCatalogDeps) {
       source,
       startedAt,
       pending: true,
+      requiresAccount,
       terminalReported: false
     };
     activeTrackSelectionRef.current = selection;
@@ -585,7 +587,7 @@ export function useCatalog(deps: UseCatalogDeps) {
 
   async function checkTrackAccess(track: CatalogTrack, listenerAddress: `0x${string}` | null): Promise<boolean> {
     if (isClassicUnlockE2e && track.id === E2E_CLASSIC_TRACK.id) {
-      return e2eClassicAccessGrantedRef.current;
+      return track.accessMode === 'free' || classicUnlockE2eHasAccess(listenerAddress);
     }
     if (isArtistPublishE2eTrack(track)) {
       return Boolean(listenerAddress && track.artistAddress?.toLowerCase() === listenerAddress.toLowerCase());
@@ -611,7 +613,7 @@ export function useCatalog(deps: UseCatalogDeps) {
 
   async function checkTrackPaidAccess(track: CatalogTrack, listenerAddress: `0x${string}` | null): Promise<boolean> {
     if (isClassicUnlockE2e && track.id === E2E_CLASSIC_TRACK.id) {
-      return getClassicUnlockE2eState().paid;
+      return classicUnlockE2eHasPaid(listenerAddress);
     }
     if (isArtistPublishE2eTrack(track)) {
       return false;
@@ -735,9 +737,7 @@ export function useCatalog(deps: UseCatalogDeps) {
    */
   async function resolveServerContentKey(contentHash: `0x${string}`, release?: ContentKeyReleaseIdentity): Promise<Uint8Array | null> {
     if (isClassicUnlockE2e && contentHash.toLowerCase() === E2E_CLASSIC_HASH.toLowerCase()) {
-      const authorized = e2eClassicAccessGrantedRef.current;
-      recordClassicUnlockFullKeyRequest(authorized);
-      return authorized ? new Uint8Array(32).fill(7) : null;
+      return requestClassicUnlockE2eKey(E2E_CLASSIC_TRACK.accessMode === 'free' || classicUnlockE2eHasAccess(listenerEvmAddress));
     }
 
     // Room-join e2e: only the host ever reaches this path for the protected
@@ -892,7 +892,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     showAccessGateOnDenied = false
   ): Promise<TrackSelectionResult> {
     const selectionStartedAt = nowMs();
-    const selection = beginTrackSelection(track.id, selectionStartedAt);
+    const selection = beginTrackSelection(track.id, selectionStartedAt, isPolicyManagedTrack(track) && track.accessMode !== 'free');
     // Resolve the destination purpose before comparing a prepared identity.
     // A solo candidate cannot be adopted for a room-host request (or vice versa).
     keyRequestPurposeRef.current = socketEmit ? 'room_host' : 'individual';
@@ -1281,7 +1281,6 @@ export function useCatalog(deps: UseCatalogDeps) {
       setCatalogPaidAccessByTrackId(previous => ({ ...previous, [track.id]: true }));
     }
     if (result.status === 'verified' || result.status === 'existing-access') {
-      if (isClassicUnlockE2e && track.id === E2E_CLASSIC_TRACK.id) e2eClassicAccessGrantedRef.current = true;
       setCatalogAccessByTrackId(previous => ({ ...previous, [track.id]: true }));
       showPaymentFeedback(
         result.status === 'verified'
@@ -1429,13 +1428,13 @@ export function useCatalog(deps: UseCatalogDeps) {
           nextCatalog.map(track => [
             track.id,
             track.id === E2E_CLASSIC_TRACK.id
-              ? e2eClassicAccessGrantedRef.current
+              ? classicUnlockE2eHasAccess(listenerEvmAddress)
               : Boolean(listenerEvmAddress && track.artistAddress?.toLowerCase() === listenerEvmAddress.toLowerCase())
           ])
         )
       );
       setCatalogPaidAccessByTrackId(
-        Object.fromEntries(nextCatalog.map(track => [track.id, track.id === E2E_CLASSIC_TRACK.id && getClassicUnlockE2eState().paid]))
+        Object.fromEntries(nextCatalog.map(track => [track.id, track.id === E2E_CLASSIC_TRACK.id && classicUnlockE2eHasPaid(listenerEvmAddress)]))
       );
       setCatalogStatus(
         nextCatalog.length > 0 ? `Loaded ${nextCatalog.length} deterministic e2e track${nextCatalog.length === 1 ? '' : 's'}` : 'No e2e tracks registered yet'
@@ -1537,18 +1536,39 @@ export function useCatalog(deps: UseCatalogDeps) {
   }
 
   const preparationSigner = connectedWallet?.keyRequestSigner;
-  const preparationIdentity = `${connectedWallet?.evmAddress}:${connectedWallet?.chainId}:${preparationSigner?.signatureScheme}:${preparationSigner?.signatureScheme === 'product-sr25519-v1' ? preparationSigner.productPublicKey : ''}`;
+  const preparationIdentity = `${connectedWallet?.method}:${listenerEvmAddress?.toLowerCase()}:${connectedWallet?.chainId}:${ethRpcUrl}:${preparationSigner?.signatureScheme}:${preparationSigner?.signatureScheme === 'product-sr25519-v1' ? preparationSigner.productPublicKey : ''}`;
   const preparationLifetime = useRef(new AbortController());
   const preparationIdentityRef = useRef(preparationIdentity);
   useLayoutEffect(() => {
+    const identityChanged = preparationIdentityRef.current !== preparationIdentity;
     preparationIdentityRef.current = preparationIdentity;
     standbyAudio.clear();
+    if (identityChanged) {
+      // Prepared grants are cleared by WalletProvider. A URL/decoder already
+      // opened by the old account must end too, before a late key can attach.
+      const selection = activeTrackSelectionRef.current;
+      if (selection?.requiresAccount && (selection.pending || audioSourceRef.current)) {
+        if (localAudioRef.current) retireHostAudio(localAudioRef.current);
+        clearObjectUrls(); // Aborts the producer, retires decoded URLs and standby.
+        setResolvedAudioSource(null);
+        setAudioRecovery(null);
+        setAudioStartupStatus(null);
+        setAccessGate(null);
+        setCatalogAccessByTrackId({});
+        setCatalogPaidAccessByTrackId({});
+        setPlaybackFailure({ trackId: selection.source, kind: listenerEvmAddress ? 'account-changed' : 'account-required' });
+      } else if (listenerEvmAddress) {
+        setPlaybackFailure(previous => (previous?.kind === 'account-required' ? { ...previous, kind: 'account-changed' } : previous));
+      }
+    }
     const lifetime = new AbortController();
     preparationLifetime.current = lifetime;
     return () => {
       lifetime.abort();
       standbyAudio.clear();
     };
+    // Identity primitives own this lifetime; profile labels and render closures do not.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [preparationIdentity, standbyAudio]);
 
   async function prepareQueuedContentKeys(tracks: CatalogTrack[], signal: AbortSignal) {

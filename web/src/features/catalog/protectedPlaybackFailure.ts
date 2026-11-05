@@ -13,6 +13,7 @@ export type ProtectedPlaybackFailureKind =
   | 'access-not-confirmed'
   | 'audio-unavailable'
   | 'account-required'
+  | 'account-changed'
   | 'session-interrupted'
   | 'unknown';
 
@@ -79,6 +80,12 @@ export function protectedPlaybackFailureCopy(kind: ProtectedPlaybackFailureKind)
         title: 'Listening was not confirmed',
         message: 'Dotify asks for one signature to prove this account may listen. Nothing is paid by signing.',
         action: 'Confirm and listen'
+      };
+    case 'account-changed':
+      return {
+        title: 'Account changed',
+        message: 'Reopen this track to check listening access for your current account. Nothing is paid automatically.',
+        action: 'Try again'
       };
     case 'account-required':
       return {
