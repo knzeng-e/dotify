@@ -3509,6 +3509,19 @@ the existing flow re-reads and resumes the pending runtime. Verify the directory
 entry, artist ownership and cleared pending state after the user's approval.
 See the [native replay and validation evidence](../backlog/implementation/evidence/product-artist-bootstrap-2026-10-22.md).
 
+## Managed AAC room-host validation candidate, 2026-11-05
+
+[The mobile capture candidate](../backlog/room-listener-audio.md) changes only the
+client reader: managed-only engines use the existing authenticated bounded AAC
+Blob for room hosting. Solo remains progressive; standard MSE hosting is unchanged.
+No service, environment, CORS, storage, key or policy change is required. Before
+acceptance, use matching Web/Product builds and verify **mobile host to Web and
+Desktop guests**, first foregrounded/unlocked, then backgrounded separately.
+Hear audio, pause/resume, next and guest-local mute; peer connectivity and a
+healthy endpoint alone do not prove capture. Record startup cost of the complete
+96 kb/s rendition and failure on cancellation/access loss. Do not infer physical
+acceptance from desktop WebKit automation.
+
 ## Room-tip authority configuration correction, 2026-10-22
 
 A current runtime can still lack room policy configuration. Connected hosts with
