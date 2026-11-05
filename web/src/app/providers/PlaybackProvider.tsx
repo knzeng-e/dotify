@@ -62,7 +62,9 @@ export function PlaybackProvider({ children }: { children: ReactNode }) {
     const showAccessGateOnDenied = session.mode === 'host' && Boolean(session.roomId);
     setPlayerDismissed(false);
     checkpoint.clear();
-    void catalog.openTrack(track, session.socketEmit, session.setLocalStreamReady, session.closeHostPeers, showAccessGateOnDenied);
+    void catalog.openTrack(track, session.socketEmit, session.setLocalStreamReady, session.closeHostPeers, showAccessGateOnDenied, {
+      forRoomCapture: Boolean(session.roomId)
+    });
   }
 
   const playback = usePlayback({

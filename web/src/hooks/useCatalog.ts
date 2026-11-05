@@ -404,6 +404,7 @@ export function useCatalog(deps: UseCatalogDeps) {
   const nextTrackSelectionIdRef = useRef(0);
   // 'room_host' when the selected track streams into a room; room listeners
   // never request keys at all (they only receive the WebRTC stream).
+  const roomCaptureRef = useRef(false);
   const keyRequestPurposeRef = useRef<KeyRequestPurpose>('individual');
 
   useEffect(() => {
@@ -795,6 +796,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     options?: { key: Uint8Array; audio: () => HTMLAudioElement; speculative: true },
     onAuthorized?: () => void
   ): Promise<string> {
+    const forRoomCapture = roomCaptureRef.current;
     throwIfAborted(signal);
     if (isClassicUnlockE2e && contentHash.toLowerCase() === E2E_CLASSIC_HASH.toLowerCase()) {
       const serverKey = await resolveServerContentKey(contentHash, release);
@@ -851,6 +853,7 @@ export function useCatalog(deps: UseCatalogDeps) {
         signal: controllerSignal,
         onMetric: metric,
         audio: options?.audio ?? (() => localAudioRef.current),
+        forRoomCapture,
         bufferAheadSeconds: options ? () => (options.audio().isConnected ? 30 : 4) : undefined,
         onError: () => {
           if ((!options?.speculative || options.audio().isConnected) && isCurrent()) {
@@ -889,13 +892,15 @@ export function useCatalog(deps: UseCatalogDeps) {
     socketEmit?: RoomTrackEmitter,
     setLocalStreamReady?: (ready: boolean) => void,
     closeHostPeers?: () => void,
-    showAccessGateOnDenied = false
+    showAccessGateOnDenied = false,
+    playbackOptions: { forRoomCapture?: boolean } = {}
   ): Promise<TrackSelectionResult> {
     const selectionStartedAt = nowMs();
     const selection = beginTrackSelection(track.id, selectionStartedAt, isPolicyManagedTrack(track) && track.accessMode !== 'free');
     // Resolve the destination purpose before comparing a prepared identity.
     // A solo candidate cannot be adopted for a room-host request (or vice versa).
-    keyRequestPurposeRef.current = socketEmit ? 'room_host' : 'individual';
+    roomCaptureRef.current = playbackOptions.forRoomCapture === true;
+    keyRequestPurposeRef.current = playbackOptions.forRoomCapture || socketEmit ? 'room_host' : 'individual';
     // Transfer ownership before pausing the outgoing element triggers speculative
     // cancellation. A protected candidate still requires a live W34 grant.
     const canAdopt =
@@ -1103,10 +1108,11 @@ export function useCatalog(deps: UseCatalogDeps) {
     socketEmit?: RoomTrackEmitter,
     setLocalStreamReady?: (ready: boolean) => void,
     closeHostPeers?: () => void,
-    showAccessGateOnDenied = false
+    showAccessGateOnDenied = false,
+    playbackOptions: { forRoomCapture?: boolean } = {}
   ) {
     navigateToView('player');
-    return selectTrack(track, socketEmit, setLocalStreamReady, closeHostPeers, showAccessGateOnDenied);
+    return selectTrack(track, socketEmit, setLocalStreamReady, closeHostPeers, showAccessGateOnDenied, playbackOptions);
   }
 
   const prefetchTrackAudio = useCallback((track: CatalogTrack): void => {
@@ -1603,6 +1609,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     return JSON.stringify([
       preparationIdentityRef.current,
       keyRequestPurposeRef.current,
+      roomCaptureRef.current,
       track.source,
       track.encrypted,
       track.id,

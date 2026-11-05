@@ -1,5 +1,11 @@
 import { expect, it, vi } from 'vitest';
-import { configureStreamingAudioElement, ownManagedAudioUrl, streamingMediaSource } from './streamingMediaSource';
+import {
+  configureStreamingAudioElement,
+  ownManagedAudioUrl,
+  streamingMediaSource,
+  roomCaptureNeedsCompatibility,
+  isManagedAudioUrl
+} from './streamingMediaSource';
 const ctor = (supported: boolean) => ({ isTypeSupported: () => supported }) as unknown as typeof MediaSource;
 it('prefers standard AAC, otherwise selects managed AAC and only then compatibility', () => {
   const standard = ctor(true),
@@ -23,4 +29,17 @@ it('configures only owned managed URLs and retires their attachment contract', (
   const retired = fresh();
   configureStreamingAudioElement(retired as unknown as HTMLAudioElement, 'blob:managed');
   expect(retired.disableRemotePlayback).toBe(false);
+});
+
+it('selects bounded compatibility for managed room capture, preserving solo and standard readers', () => {
+  const mobile = { ManagedMediaSource: ctor(true) };
+  expect(roomCaptureNeedsCompatibility(true, mobile)).toBe(true);
+  expect(roomCaptureNeedsCompatibility(false, mobile)).toBe(false);
+  expect(roomCaptureNeedsCompatibility(true, { ...mobile, MediaSource: ctor(true) })).toBe(false);
+  expect(roomCaptureNeedsCompatibility(true, {})).toBe(false);
+  const controller = new AbortController();
+  ownManagedAudioUrl('blob:solo-managed', controller.signal);
+  expect(isManagedAudioUrl('blob:solo-managed')).toBe(true);
+  controller.abort();
+  expect(isManagedAudioUrl('blob:solo-managed')).toBe(false);
 });

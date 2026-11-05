@@ -394,3 +394,88 @@ test('the reader starts at 96, upgrades on measured headroom and downshifts afte
   });
   await expect.poll(() => page.locator('audio').evaluate(audio => audio.currentTime)).toBeGreaterThan(14.1);
 });
+
+test('managed room capture authenticates a complete AAC Blob and transmits measurable audio', async ({ page, browserName }) => {
+  test.skip(browserName !== 'webkit', 'ManagedMediaSource hosting is a WebKit capability; standard Chromium capture has its own room energy regression.');
+  await page.route('**/room-codec', route =>
+    route.fulfill({ contentType: 'text/html', body: '<!doctype html><title>Room capture</title><button>Start room capture</button><audio></audio>' })
+  );
+  await page.goto('/room-codec');
+  const result = await page.evaluate(async fixture => {
+    const playbackPath = '/src/features/catalog/streamingPlayback.ts',
+      gainPath = '/src/features/player/audioNormalization.ts';
+    const { createStreamingPlayback } = (await import(playbackPath)) as typeof import('../src/features/catalog/streamingPlayback');
+    const gain = (await import(gainPath)) as typeof import('../src/features/player/audioNormalization');
+    const real = (window as Window & { ManagedMediaSource?: typeof MediaSource }).ManagedMediaSource ?? window.MediaSource;
+    Object.defineProperty(window, 'MediaSource', { configurable: true, value: undefined });
+    Object.defineProperty(window, 'ManagedMediaSource', { configurable: true, value: real });
+    const bytes = (value: string) => Uint8Array.from(atob(value), char => char.charCodeAt(0));
+    const audio = document.querySelector('audio')!;
+    const paths: string[] = [];
+    const prepared = await createStreamingPlayback({
+      cid: 'Qm' + 'a'.repeat(44),
+      key: Uint8Array.from(fixture.keyHex.match(/../g)!, value => parseInt(value, 16)),
+      scope: fixture.scope,
+      signal: new AbortController().signal,
+      audio: () => audio,
+      forRoomCapture: true,
+      onError: error => {
+        throw error;
+      },
+      fetchObject: async (_cid, path) => {
+        paths.push(path);
+        return bytes(path === 'manifest.json' ? fixture.manifest : fixture.files[path]);
+      }
+    });
+    gain.registerAudioGain(prepared.url, prepared.gainDb);
+    audio.src = prepared.url;
+    gain.attachAudioNormalization(audio);
+    const capture = gain.normalizedAudioCapture(audio)!;
+    const sender = new RTCPeerConnection({ iceServers: [] }),
+      receiver = new RTCPeerConnection({ iceServers: [] });
+    const gathered = (peer: RTCPeerConnection) =>
+      new Promise<void>(resolve => {
+        if (peer.iceGatheringState === 'complete') resolve();
+        else
+          peer.addEventListener('icegatheringstatechange', () => {
+            if (peer.iceGatheringState === 'complete') resolve();
+          });
+      });
+    const context = new AudioContext(),
+      analyser = context.createAnalyser();
+    const output = context.createGain();
+    output.gain.value = 0;
+    analyser.connect(output).connect(context.destination);
+    receiver.ontrack = event => context.createMediaStreamSource(event.streams[0]).connect(analyser);
+    capture.stream.getTracks().forEach(track => sender.addTrack(track, capture.stream));
+    await sender.setLocalDescription(await sender.createOffer());
+    await gathered(sender);
+    await receiver.setRemoteDescription(sender.localDescription!);
+    await receiver.setLocalDescription(await receiver.createAnswer());
+    await gathered(receiver);
+    await sender.setRemoteDescription(receiver.localDescription!);
+    const samples = new Float32Array(analyser.fftSize);
+    Reflect.set(window, '__aacRoom', {
+      sender,
+      receiver,
+      context,
+      audio,
+      capture,
+      meter: () => {
+        analyser.getFloatTimeDomainData(samples);
+        return Math.sqrt(samples.reduce((sum, x) => sum + x * x, 0) / samples.length);
+      }
+    });
+    document.querySelector('button')!.onclick = () => {
+      void capture.resume();
+      void context.resume();
+      void audio.play();
+    };
+    return { progressive: prepared.progressive, paths };
+  }, fixture);
+  expect(result.progressive).toBe(false);
+  expect(result.paths).toContain('96/segment-000.bin');
+  expect(result.paths.some(path => /^(archive|160|320)\//.test(path))).toBe(false);
+  await page.getByRole('button', { name: 'Start room capture' }).click();
+  await expect.poll(() => page.evaluate(() => Reflect.get(window, '__aacRoom').meter()), { timeout: 12000 }).toBeGreaterThan(0.01);
+});

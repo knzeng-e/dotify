@@ -1,0 +1,57 @@
+# Mobile-host room audio delivery
+
+Issue #395 · P1 · Production spine · Next · Work.
+
+The owner reports that a mobile host hears local music but Desktop/Web guests
+receive silence, including with the phone unlocked and app foregrounded. Hosting
+from Web/Desktop works for receivers on all three surfaces. This is not yet
+attributed to 0.1.75 or to Bulletin. Successful peer negotiation is insufficient
+proof of audible delivery.
+
+Trace real source capture, normalization and WebRTC sender energy before changing
+receiver behavior. Add deterministic received-energy tests rather than relying
+on live tracks alone. Preserve host-only source/key access, pause/mute ownership,
+source retirement and fail-closed access interruption. Never request microphone
+permission as an incidental music-capture workaround.
+
+Physical mobile Host to Web/Desktop acceptance remains required after matching
+rollout. No service restart, musical upload, signing or allowance is authorized
+by this implementation ticket.
+
+## Candidate design
+
+Managed-only AAC readers now prepare the authenticated 96 kb/s compatibility
+Blob **when explicitly opening a room or selecting the room's next track**.
+Solo playback remains progressive; standard MediaSource readers keep their
+existing room path. A currently playing managed source must be prepared again
+before becoming a host; standby identity includes capture intent so a solo
+managed element cannot be adopted accidentally. First room preparation requests
+`room_host` key purpose, even before a signaling emitter exists.
+
+This targets [WebKit #266922](https://bugs.webkit.org/show_bug.cgi?id=266922):
+MediaSource can play natively without delivering samples through
+MediaElementAudioSourceNode. It is a diagnosis consistent with the owner report,
+not yet a measured root cause on that phone. No microphone, new relay, clear
+public URL, archive/master read or guest key request is introduced.
+
+The compatibility reader authenticates the same manifest, identity, gain and
+every segment before exposing a local URL. Existing cancellation, source
+retirement, wallet/access invalidation and the 40 MiB clear-buffer cap apply.
+The tradeoff is waiting for the full 96 kb/s rendition before mobile hosting,
+with bounded extra memory; it does not promise progressive start for that path.
+
+## Evidence and remaining acceptance
+
+Local: 1,088 unit tests, frontend build/lint; authenticated AAC parsing and denial
+checks on Chromium/WebKit, plus WebKit managed-only AAC Blob → normalization →
+real WebRTC received-energy measurement. Chromium exercises real normalized
+media in two room contexts, pause/local mute and source retirement. The AAC
+managed test targets WebKit; simulating a nonexistent managed capability in
+Chromium is not a supported acceptance target. PCM-only WebKit probes did not
+provide a reliable signal and are not claimed as mobile AAC evidence.
+
+After matching rollout: mobile host **foreground/unlocked first**, Web/Desktop
+guests, existing protected release, explicit start, pause/resume, next, guest
+local mute and disconnect. Then test background separately. Require sound at the
+guest, not merely connected peers or advancing clocks. #395 remains open until
+that acceptance; deployment/signing is separate from code review.
