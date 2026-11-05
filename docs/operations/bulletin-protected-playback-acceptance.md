@@ -4,8 +4,9 @@ Use the existing registered `Dotify-Bulletin-pilot-8s` release by **Thot Nzeng**
 [0.1.72 evidence](../backlog/implementation/evidence/product-0.1.72-rollout-2026-11-04.md)
 already records successful owner listening on Web, Desktop and mobile. The
 [account-lifetime correction](../backlog/implementation/evidence/bulletin-protected-account-lifetime-2026-11-05.md)
-is an implementation candidate; its new interruption behavior requires matching
-published clients before physical acceptance.
+is now [published in Web and Product 0.1.73](../backlog/implementation/evidence/product-0.1.73-rollout-2026-11-05.md).
+Verify About Dotify shows 0.1.73 (reopen the Host tab, or refresh Web) before
+recording its new interruption behavior. Physical acceptance is still open.
 
 Do not create another release or buy access to perform a denied-access check.
 Keep receipts, custody queues and nonce state. No operator signer, new quota,

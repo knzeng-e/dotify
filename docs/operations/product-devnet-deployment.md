@@ -1,5 +1,19 @@
 # Deploy Dotify To Product DevNet
 
+## Product 0.1.73 published with protected account lifetime, 2026-11-05
+
+Exact tested source `560e7332f2fabe7b849ba829fb0543688a7447b1` publishes executable
+`[0,1,73]` at root/app CID
+`bafybeihwap3ymedmpxkcyqhadyicu3ixkdmzzkv47mrq63yhqz32xpe2cm`.
+Finalized records, all 20 outer dependencies, reconstructed 99-block CAR and Web
+entry bytes verify. The local signer is removed. No service/media/key change or
+renewal is included. Reopen Product and confirm **You → About Dotify → 0.1.73**
+before the [denial/interruption comparison](bulletin-protected-playback-acceptance.md)
+on the existing eight-second release. See the
+[rollout evidence](../backlog/implementation/evidence/product-0.1.73-rollout-2026-11-05.md) for write caps,
+retention obligations and acceptance limits. Preserve all newer receipts and
+nonce state during any rollback; 0.1.72 predates this account-lifetime correction.
+
 ## Product 0.1.67 publication recovery, 2026-10-29
 
 Published clean packaging `89c2595788c96350df40a128aa7bb2a63d20226c` at root/app
