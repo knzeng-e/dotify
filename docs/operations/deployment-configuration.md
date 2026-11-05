@@ -3639,3 +3639,16 @@ bounded writer and wallet. Invalid identity or response must offer no restoratio
 Retain the exact admitted permit and all original receipts/attempts on rollout or
 rollback; this is not another admission or a request to replay deployment commands.
 Local tests are not live registration, protected listening or retention evidence.
+
+
+## Room system-context candidate, 2026-11-05
+
+The [room-system refinement](../backlog/implementation/evidence/room-system-context-2026-11-05.md)
+records physical 0.1.74 mobile acceptance and prepares title-adjacent room details,
+room metadata and a branded system-artwork footer. No service, environment, CORS,
+origin, storage policy or native Host configuration changes are needed. The
+candidate is not deployed. After normal matching client delivery, inspect native
+artwork/metadata updates on join, presence change, pause, reconnect, room exit and
+disconnect; confirm title/artist and host/guest transport authority stay correct.
+Actual OS glyphs, app icon and background refresh are outside the web API's
+control. Test physical devices; browser registration is not native UI evidence.
