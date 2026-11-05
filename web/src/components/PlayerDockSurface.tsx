@@ -1,3 +1,4 @@
+import { animatePlayerNavigation } from '../features/player/playerMotion';
 import { useCatalogContext } from '../app/providers/CatalogProvider';
 import { useNavigation } from '../app/providers/NavigationProvider';
 import { usePlaybackContext } from '../app/providers/PlaybackProvider';
@@ -27,7 +28,7 @@ export function PlayerDockSurface({ onStartRoom }: { onStartRoom?: () => void })
       socketStatus={session.socketStatus}
       locked={Boolean(session.mode !== 'listener' && track && track.accessMode === 'classic' && catalog.catalogAccessByTrackId[track.id] !== true)}
       audioStartupStatus={catalog.audioStartupStatus}
-      onOpenPlayer={() => navigateToView('player')}
+      onOpenPlayer={() => animatePlayerNavigation('open', () => navigateToView('player'))}
       onStartRoom={onStartRoom}
       onClose={closePlayer}
     />

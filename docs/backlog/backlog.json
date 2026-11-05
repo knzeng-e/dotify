@@ -742,6 +742,16 @@
       "track": "Cultural propagation",
       "phase": "Now",
       "note": "Native gifts/tips and recovery are implemented. #324 adds reviewed room policy/authority handling; server/facet activation and real native receipt/chat/policy acceptance remain. No operator-funded test or artist policy write is implied."
+    },
+    {
+      "id": "listening-motion",
+      "doc": "docs/backlog/listening-motion.md",
+      "issue": 392,
+      "kind": "work",
+      "priority": "P2",
+      "track": "Production spine",
+      "phase": "Next",
+      "note": "Owner-requested bounded mobile motion: explicit dock/player transitions and Queue sheet, preserving audio, access, history/focus and reduced motion. Candidate only; physical Host feel follows matching rollout."
     }
   ]
 }

@@ -737,6 +737,17 @@ checkpoint: quiesce the elected writer, force a full reindex with the rollback
 binary and verify fresh canonical evidence before reopening key delivery.
 W36's prohibition on reverting shared auth/custody to local state still applies.
 
+## Listening motion candidate, 2026-11-05
+
+[The bounded motion iteration](../backlog/listening-motion.md) adds only explicit
+player expansion/collapse and the existing Queue's sheet presentation. No
+service/environment/CORS/storage/native Host change or deployment is required.
+Before matching client delivery, check motion and unsupported/reduced-motion
+fallback, queue Close/Escape/Back/focus, handle-only drag vs ordinary list scroll,
+rapid reversed navigation and unchanged persistent audio/access behavior on Web
+and physical Polkadot app. See [design and evidence](../explanation/listening-motion.md).
+Do not infer native gesture feel from screenshots or browser registration alone.
+
 ## W35 client deployment, 2026-10-28
 
 W35 adds no secret, Host permission, server API, contract or persistent server
