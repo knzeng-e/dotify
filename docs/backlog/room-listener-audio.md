@@ -24,9 +24,11 @@ Managed-only AAC readers now prepare the authenticated 96 kb/s compatibility
 Blob **when explicitly opening a room or selecting the room's next track**.
 Solo playback remains progressive; standard MediaSource readers keep their
 existing room path. A currently playing managed source must be prepared again
-before becoming a host; standby identity includes capture intent so a solo
+before becoming a host, preserving its current position through the existing
+audio-continuation mechanism; standby identity includes capture intent so a solo
 managed element cannot be adopted accidentally. First room preparation requests
-`room_host` key purpose, even before a signaling emitter exists.
+`room_host` key purpose, even before a signaling emitter exists. Successful unlock restoration retains room
+capture intent instead of reverting to managed streaming.
 
 This targets [WebKit #266922](https://bugs.webkit.org/show_bug.cgi?id=266922):
 MediaSource can play natively without delivering samples through
@@ -55,3 +57,6 @@ guests, existing protected release, explicit start, pause/resume, next, guest
 local mute and disconnect. Then test background separately. Require sound at the
 guest, not merely connected peers or advancing clocks. #395 remains open until
 that acceptance; deployment/signing is separate from code review.
+
+Review follow-up: a real media-clock regression verifies same-track re-preparation
+retains position, while opening a different track still starts normally.

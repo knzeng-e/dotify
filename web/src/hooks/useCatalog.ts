@@ -893,8 +893,10 @@ export function useCatalog(deps: UseCatalogDeps) {
     setLocalStreamReady?: (ready: boolean) => void,
     closeHostPeers?: () => void,
     showAccessGateOnDenied = false,
-    playbackOptions: { forRoomCapture?: boolean } = {}
+    playbackOptions: { forRoomCapture?: boolean; preserveCurrentPosition?: boolean } = {}
   ): Promise<TrackSelectionResult> {
+    const continuation =
+      playbackOptions.preserveCurrentPosition && selectedTrackIdRef.current === track.id ? captureAudioContinuation(localAudioRef.current, '') : null;
     const selectionStartedAt = nowMs();
     const selection = beginTrackSelection(track.id, selectionStartedAt, isPolicyManagedTrack(track) && track.accessMode !== 'free');
     // Resolve the destination purpose before comparing a prepared identity.
@@ -1073,6 +1075,7 @@ export function useCatalog(deps: UseCatalogDeps) {
       pendingTrackMediaSourceRef.current = sourceAlreadyReady ? null : audioUrl;
       waitsForMediaReadiness = Boolean(audioUrl && !sourceAlreadyReady);
       setResolvedAudioSource(audioUrl);
+      if (audioUrl && continuation) setAudioContinuation({ ...continuation, source: audioUrl });
       setAudioSourcePending(false);
       if (audioUrl) armAudioStartupDeadline(selection);
       if (!audioUrl) setAudioStartupStatus(null);
@@ -1109,7 +1112,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     setLocalStreamReady?: (ready: boolean) => void,
     closeHostPeers?: () => void,
     showAccessGateOnDenied = false,
-    playbackOptions: { forRoomCapture?: boolean } = {}
+    playbackOptions: { forRoomCapture?: boolean; preserveCurrentPosition?: boolean } = {}
   ) {
     navigateToView('player');
     return selectTrack(track, socketEmit, setLocalStreamReady, closeHostPeers, showAccessGateOnDenied, playbackOptions);
@@ -1301,7 +1304,7 @@ export function useCatalog(deps: UseCatalogDeps) {
       if (shouldRestoreUnlockedTrack()) {
         navigateToView('player');
         try {
-          await selectTrack(track, socketEmit, setLocalStreamReady, closeHostPeers);
+          await selectTrack(track, socketEmit, setLocalStreamReady, closeHostPeers, false, { forRoomCapture: roomCaptureRef.current });
         } catch {
           showPaymentFeedback({
             tone: 'error',

@@ -199,3 +199,27 @@ test('room colors stay consistent between desktop and mobile in either system th
     await page.screenshot({ path: testInfo.outputPath(`mobile-colors-${colorScheme}.png`), animations: 'disabled' });
   }
 });
+
+test('re-preparing a playing managed source for a room retains its position', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/?e2eRoom=public&e2eSync=on&e2eCapture=web-audio&e2eAutoplay=on');
+  await page.getByRole('button', { name: /^Play E2E Public Room Track by/ }).click();
+  const audio = page.locator('audio.native-player-source').first();
+  await expect(audio).toHaveJSProperty('paused', false);
+  await audio.evaluate(async (audio: HTMLAudioElement) => {
+    // The E2E PCM source supplies the real media clock; ownership marks the
+    // managed → compatibility selection branch without a device/user-agent fake.
+    const modulePath = '/src/features/catalog/streamingMediaSource.ts';
+    const { ownManagedAudioUrl } = await import(modulePath);
+    ownManagedAudioUrl(audio.getAttribute('src')!, new AbortController().signal);
+    audio.currentTime = 23;
+    Reflect.set(window, '__beforeRoomCapture', audio);
+  });
+  await page.getByRole('button', { name: 'Open a room', exact: true }).click();
+  await page.getByLabel('Your name or nickname').fill('Continuing host');
+  await page.getByRole('button', { name: 'Open the room', exact: true }).click();
+  await expect(page.getByTestId('room-code')).toHaveText(/[A-Z0-9]{4,}/);
+  await expect.poll(() => audio.evaluate((audio: HTMLAudioElement) => audio.currentTime)).toBeGreaterThanOrEqual(23);
+  await expect(audio).toHaveJSProperty('paused', false);
+  expect(await audio.evaluate(audio => audio !== Reflect.get(window, '__beforeRoomCapture'))).toBe(true);
+});
