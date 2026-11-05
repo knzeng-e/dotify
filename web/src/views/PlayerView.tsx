@@ -1,3 +1,4 @@
+import { animatePlayerNavigation } from '../features/player/playerMotion';
 import { PlayerTransport } from '../components/PlayerTransport';
 import { HostLineup } from '../components/HostLineup';
 import { PlayerQueueDialog } from '../components/PlayerQueueDialog';
@@ -121,7 +122,12 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
     void catalog.payForTrackAccess(track, session.socketEmit, session.setLocalStreamReady, session.closeHostPeers);
   };
   const onShowSupportWalletModal = () => openWalletModal('support');
-  const onNavigateToListen = () => navigateToView('listen');
+  const onNavigateToListen = () => {
+    // Cancelling an uncompleted join/create stays immediate; presentation must
+    // not give a late room acknowledgement time to win that navigation.
+    if (!roomId && sessionAction !== 'idle') navigateToView('listen');
+    else animatePlayerNavigation('close', () => navigateToView('listen'));
+  };
   const onOpenArtist = (name: string) => {
     setPublicArtistName(name);
     window.scrollTo({ top: 0, behavior: 'smooth' });

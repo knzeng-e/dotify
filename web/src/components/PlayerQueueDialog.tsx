@@ -1,4 +1,5 @@
-import { ArrowRight, Play, X } from 'lucide-react';
+import { useQueueSheet } from '../features/player/useQueueSheet';
+import { ArrowRight, Pause, Play, X } from 'lucide-react';
 import { useCatalogContext, usePlaybackContext } from '../app/providers';
 import { catalogAccessAriaLabel } from '../shared/utils/format';
 import { trackHasAccess } from '../features/access/accessPolicy';
@@ -8,6 +9,7 @@ import { Dialog } from './Dialog';
 // This is the controller's next selection, not a separate queue or autoplay
 // policy. Opening any release still uses the normal access-checked path.
 export function PlayerQueueDialog({ onClose }: { onClose: () => void }) {
+  const sheet = useQueueSheet(onClose);
   const catalog = useCatalogContext();
   const { playback, openTrack } = usePlaybackContext();
   const next = playback.repeatEnabled ? undefined : catalog.catalogTracks.find(track => track.id === playback.nextTrackId);
@@ -15,17 +17,39 @@ export function PlayerQueueDialog({ onClose }: { onClose: () => void }) {
   const tracks = catalog.catalogTracks.filter(track => track.id !== current?.id && track.id !== next?.id);
   const choices = next ? [next, ...tracks] : tracks;
   return (
-    <Dialog historyDismiss labelledBy='player-queue-title' className='player-queue-dialog' onClose={onClose}>
+    <Dialog
+      historyDismiss
+      labelledBy='player-queue-title'
+      className='player-queue-dialog'
+      backdropClassName='player-queue-backdrop'
+      dataAttributes={{ closing: sheet.closing }}
+      onClose={sheet.close}
+    >
+      <button className='queue-sheet-handle' type='button' aria-label='Collapse queue' title='Pull down or tap to close' {...sheet.handle} />
       <div className='modal-header'>
         <h2 id='player-queue-title'>Queue</h2>
-        <button className='modal-close' type='button' onClick={onClose} aria-label='Close queue'>
+        <button className='modal-close' type='button' onClick={sheet.close} aria-label='Close queue'>
           <X size={18} />
         </button>
       </div>
       {current && (
-        <p className='queue-current'>
-          {playback.repeatEnabled ? 'Repeating' : 'Now playing'}: {current.title}
-        </p>
+        <div className='queue-now-playing'>
+          <CoverImage src={current.imageRef} alt='' fallbackLabel={current.title} sizes='48px' />
+          <div>
+            <small>{playback.repeatEnabled ? 'Repeating' : 'Now playing'}</small>
+            <p className='queue-current'>{current.title}</p>
+            <span>{current.artist}</span>
+          </div>
+          <button
+            type='button'
+            className='icon-action'
+            disabled={!playback.canUseTransport}
+            onClick={() => void playback.togglePlay()}
+            aria-label={playback.transport.playing ? 'Pause current track' : 'Play current track'}
+          >
+            {playback.transport.playing ? <Pause size={20} /> : <Play size={20} />}
+          </button>
+        </div>
       )}
       <ul className='player-queue-list'>
         {choices.map((track, index) => (
@@ -34,6 +58,7 @@ export function PlayerQueueDialog({ onClose }: { onClose: () => void }) {
             <button
               type='button'
               onClick={() => {
+                if (sheet.closing) return;
                 onClose();
                 openTrack(track);
               }}
