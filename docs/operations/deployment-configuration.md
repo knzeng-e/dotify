@@ -1,5 +1,16 @@
 # Deployment Configuration Runbook
 
+## Product 0.1.73 client publication candidate, 2026-11-05
+
+Merged #386 retires account-bound protected playback on disconnect or identity
+change and requires an explicit authorization recheck after reconnect. This
+release candidate updates only Web and Product; API/custody, musical assets,
+storage admission, grants, CORS and keys are unchanged. The existing registered
+eight-second release is the acceptance target. No service restart or renewal is
+included. Build and verify the frozen candidate, exact-source CI, app store budget
+and DotNS/Host compatibility before publication; keep operational evidence on a
+separate record branch afterward. Physical denial/interruption remains to verify.
+
 ## Protected playback account-lifetime candidate, 2026-11-05
 
 The [client correction](../backlog/implementation/evidence/bulletin-protected-account-lifetime-2026-11-05.md)
