@@ -1,5 +1,27 @@
 # Dotify technical memory
 
+## Listening controls published in 0.1.74, 2026-11-05
+
+[Web and Product 0.1.74](../backlog/implementation/evidence/product-0.1.74-rollout-2026-11-05.md) deliver merged #389 from frozen source `e8d3be90`.
+Independent Web/block/CAR/DotNS readback and exact-source CI pass; the signer is
+removed. Mobile-player account access, live room release/artist discovery and
+corrected system artwork/actions are delivered. API/custody, music, access policy
+and the independent lab are unchanged; no renewal or restart occurs. Reserve
+311 renewals / 93,634,213 bytes. Physical native #388 acceptance remains open;
+W33 retains signed denial, account switching, room-guest silence, conservation
+and coherent off-volume recovery. The read-only conservation implementation in
+this PR is a separate candidate, not part of the deployed client/API source.
+
+## Conservation assessment candidate, 2026-11-05
+
+[The operator command](../operations/bulletin-conservation.md) keeps conservation
+separate from publishing: explicit dependency plan → one finalized metadata
+snapshot → per-block/account/quota severity. Supports Product SHA-256 and media
+BLAKE2b without loosening media readers; shared CID sizes must agree. Existing
+reserve floors are preserved; unknown reads are critical. No signer, automatic
+renewal, alert schedule or live activation. Complete inventory, retrievable bytes
+and coherent off-volume key/data restoration remain W33/#288 gates.
+
 ## Protected account interruption published, 2026-11-05
 
 [Web and Product 0.1.73](../backlog/implementation/evidence/product-0.1.73-rollout-2026-11-05.md) deliver merged #386 from exact tested
