@@ -1,15 +1,31 @@
 # Deployment Configuration Runbook
 
-## Protected playback account-lifetime candidate, 2026-11-05
+## Product 0.1.73 client publication, 2026-11-05
 
-The [client correction](../backlog/implementation/evidence/bulletin-protected-account-lifetime-2026-11-05.md)
-retires an attached/in-flight account-bound source on identity change, with an
-explicit authorization recheck after reconnect. It changes no environment, CORS,
-key placement, grants, storage admission, service role or deployment version.
-0.1.72 remains deployed. After delivery of matching clients, use the
-[acceptance procedure](bulletin-protected-playback-acceptance.md) for unentitled
-access, sign-out and recovery on the existing release. Preserve all server
-receipts/counters and distinguish physical outcomes from fixture tests.
+[Verified rollout](../backlog/implementation/evidence/product-0.1.73-rollout-2026-11-05.md) delivers merged
+#386 from exact source `560e7332f2fabe7b849ba829fb0543688a7447b1`. Web and
+`dotify-test01.dot` now serve 0.1.73; the Netlify production branch is frozen
+`release/product-0.1.73`. All other build/public environment/preview settings and
+API/custody remain unchanged. No service restart, media/registry write, policy/
+grant/CORS/key change, domain purchase or renewal occurs. Keep later record edits
+off that frozen branch.
+
+Twelve app stores / 3,557,988 bytes, eight reused blocks and two DotNS signing
+requests are independently verified against the CAR, records and public Web bytes.
+The signer is removed. Account-bound protected sources and pending preparation
+retire on disconnect or identity change; reconnect requires explicit normal
+access checks. Use the existing registered eight-second release and the
+[physical acceptance procedure](bulletin-protected-playback-acceptance.md).
+The owner confirms sound stops on disconnect and explicit recovery works on
+Web, Desktop and mobile. Account switching, room-guest silence and signed denial
+remain open. Mobile Player account access, room current-track discovery and
+native lock-screen artwork/actions are planned separately in #388.
+
+Preserve all server receipts, queues, account cursors and encryption reservations.
+Reserve 291 future renewals / 84,178,313 bytes across retained obligations. No
+scheduler is activated; reused dependency expiry still starts at block 1,532,185
+and account authorization expiry remains block 1,621,405. Reuse/root updates do
+not renew children. The dated sections below retain their historical meaning.
 
 ## Product 0.1.72 client publication, 2026-11-04
 

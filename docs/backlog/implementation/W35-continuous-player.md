@@ -48,3 +48,11 @@ The implementation also covers measured rendition selection, Media Session,
 account/network-scoped local position/queue resume and identifier-free continuity
 aggregates in first-sound exports. See [evidence and remaining gates](evidence/W35.md).
 This checkpoint is not a deployment or a physical Host background claim.
+
+## Owner follow-up, 2026-11-05
+
+[#388](../listening-controls-and-discovery.md) records the next listening UX
+iteration after the owner confirmed 0.1.73 disconnect/recovery on all three
+clients. Track mobile Player account access, room current-track discovery and
+physical lock-screen artwork/previous-next behavior in that new item; do not
+replay delivered W28/W35 scope or infer native support from action registration.

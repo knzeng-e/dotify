@@ -116,3 +116,11 @@ Write `docs/backlog/implementation/evidence/W28.md` using
 `evidence-template.md`. Include the base SHA, implementation SHA, PR, captures,
 known risks, test results, and recommended follow-up split. Keep Project 5 as
 the workflow-status source.
+
+## Owner follow-up, 2026-11-05
+
+[#388](../listening-controls-and-discovery.md) records the next listening UX
+iteration after the owner confirmed 0.1.73 disconnect/recovery on all three
+clients. Track mobile Player account access, room current-track discovery and
+physical lock-screen artwork/previous-next behavior in that new item; do not
+replay delivered W28/W35 scope or infer native support from action registration.

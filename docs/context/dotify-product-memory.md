@@ -1,13 +1,25 @@
 # Dotify product memory
 
-## Protected account interruption candidate, 2026-11-05
+## Protected account interruption published, 2026-11-05
 
-The [account-lifetime correction](../backlog/implementation/evidence/bulletin-protected-account-lifetime-2026-11-05.md) stops an account-bound local source and
-its pending preparation when the listener or network identity changes. Reopening
-requires normal access checks and an explicit action; Free listening and profile
-updates retain their source. Controlled tests distinguish runtime/key refusal
-from successful artist listening. This candidate is not deployed; physical
-acceptance and conservation remain W33 gates.
+[Web and Product 0.1.73](../backlog/implementation/evidence/product-0.1.73-rollout-2026-11-05.md) deliver merged #386 from exact tested
+source `560e7332`. Disconnect/account/network changes retire the old protected
+source and producer; reopening requires explicit normal authorization checks.
+Free/profile-only playback is preserved. Independent Web/CAR/DotNS readback passes;
+12 app stores / 3,557,988 bytes, eight reuses and two signing requests stay within
+the approved cap. The local signer is removed; API/custody, media, admission and
+keys are unchanged. The public Free route rejects Classic with NOT_FREE and no
+key; this is not a signed unentitled-listener test. The owner confirms sound
+stops on disconnect and explicit recovery works on Web, Desktop and mobile.
+Account switching, signed denial and room-guest silence remain unverified.
+Reserve 291 renewals / 84,178,313 bytes; no renewal is
+submitted and earliest reused expiry remains block 1,532,185. W33 stays open for
+physical access/interruption, conservation and coherent off-volume recovery.
+
+Next iteration: [#388 listening controls and discovery](../backlog/listening-controls-and-discovery.md) records the
+owner's mobile Player disconnect, room track-details and lock-screen artwork/
+previous-next requests. These are planned alongside Bulletin stabilization;
+no implementation or native rendering guarantee is claimed.
 
 ## Registered Bulletin playback published, 2026-11-04
 
