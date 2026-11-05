@@ -9,8 +9,9 @@ Free/profile-only playback is preserved. Independent Web/CAR/DotNS readback pass
 12 app stores / 3,557,988 bytes, eight reuses and two signing requests stay within
 the approved cap. The local signer is removed; API/custody, media, admission and
 keys are unchanged. The public Free route rejects Classic with NOT_FREE and no
-key; this is not a signed unentitled-listener test. New physical interruption
-acceptance remains open. Reserve 291 renewals / 84,178,313 bytes; no renewal is
+key; this is not a signed unentitled-listener test. The owner confirms Web
+sound stops on disconnect and explicit recovery works ("arrêt OK / reprise OK").
+Desktop/mobile interruption and account switching remain unverified. Reserve 291 renewals / 84,178,313 bytes; no renewal is
 submitted and earliest reused expiry remains block 1,532,185. W33 stays open for
 physical access/interruption, conservation and coherent off-volume recovery.
 

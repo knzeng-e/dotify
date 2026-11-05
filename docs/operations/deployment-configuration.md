@@ -15,8 +15,9 @@ requests are independently verified against the CAR, records and public Web byte
 The signer is removed. Account-bound protected sources and pending preparation
 retire on disconnect or identity change; reconnect requires explicit normal
 access checks. Use the existing registered eight-second release and the
-[physical acceptance procedure](bulletin-protected-playback-acceptance.md);
-physical denial/interruption is not yet accepted for this version.
+[physical acceptance procedure](bulletin-protected-playback-acceptance.md).
+The owner confirms Web sound stops on disconnect and explicit recovery works;
+Desktop/mobile interruption, account switching and signed denial remain open.
 
 Preserve all server receipts, queues, account cursors and encryption reservations.
 Reserve 291 future renewals / 84,178,313 bytes across retained obligations. No

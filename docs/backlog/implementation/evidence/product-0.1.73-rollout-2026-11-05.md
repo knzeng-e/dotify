@@ -4,7 +4,9 @@ Refs W33/#288. **Web and Product 0.1.73 are published and independently verified
 from `560e7332f2fabe7b849ba829fb0543688a7447b1`, frozen branch `release/product-0.1.73`, based on merged
 #386 / dev `71c9736f`. [Exact-source CI](https://github.com/knzeng-e/dotify/actions/runs/41945194955) passed on its first attempt.
 [Structured receipts](product-0.1.73-rollout-2026-11-05.json) preserve the public artifact, submission and
-readback evidence. Physical denial/interruption acceptance remains open.
+readback evidence. The owner confirms Web disconnect stops the sound and explicit
+recovery works. Signed denial, account switching and Desktop/mobile interruption
+acceptance remain open.
 
 ## Behavior and authority
 
@@ -87,8 +89,14 @@ remain; this rollout adds no new application behavior beyond #386.
 The deployed public Free key route refuses this Classic release with `NOT_FREE`
 and no key. This verifies that specific policy boundary; it does **not** prove a
 real signed unentitled-listener rejection. The prior 0.1.72 owner report confirms
-eight seconds audible on Web/Desktop/mobile. It does **not** accept the new
-0.1.73 disconnect/account-switch behavior. Follow the
+eight seconds audible on Web/Desktop/mobile. In response to the new Web
+0.1.73 procedure (refresh, play as artist, disconnect before eight seconds,
+reconnect without automatic playback, then explicitly retry), the owner reports
+**“arrêt OK / reprise OK”**. This accepts the reported Web stop and explicit
+recovery path. There is no independent per-device build/sound capture, timing,
+device/OS/network report or account-switch observation. It does not establish
+Desktop/mobile interruption, room-guest silence or signed unentitled denial.
+For the remaining comparisons, follow the
 [physical procedure](../../../operations/bulletin-protected-playback-acceptance.md),
 recording version, role and audible result; never approve a payment for denial.
 Conservation, off-volume recovery, costs and general admission remain W33 gates.

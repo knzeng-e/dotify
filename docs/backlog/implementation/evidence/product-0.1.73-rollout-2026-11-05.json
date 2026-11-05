@@ -721,7 +721,7 @@
   },
   "remainingAcceptance": [
     "physical signed unentitled-listener denial",
-    "physical disconnect/account switch and explicit recovery on Web/Desktop/mobile",
+    "physical disconnect and explicit recovery on Desktop/mobile; account switching on all clients",
     "all dependency conservation and authorization monitoring",
     "coherent off-volume restoration",
     "representative costs and broader admission"
@@ -729,6 +729,20 @@
   "ownerAudibleAcceptance": {
     "priorVersion": "0.1.72",
     "allThreeClientsHeardEightSeconds": true,
-    "version73InterruptionAccepted": false
+    "version73InterruptionAcceptance": {
+      "client": "Web",
+      "requestedVersion": "0.1.73",
+      "accountRole": "artist",
+      "ownerReport": "arr\u00eat OK / reprise OK",
+      "soundStoppedOnDisconnect": true,
+      "explicitRecoverySucceeded": true,
+      "automaticRestartReported": false,
+      "evidenceType": "owner report in response to disconnect/reconnect procedure",
+      "independentPerDeviceBuildTelemetry": false,
+      "deviceOsNetworkReported": false,
+      "accountSwitchTested": false,
+      "signedUnentitledListenerTested": false,
+      "desktopMobileInterruptionTested": false
+    }
   }
 }
