@@ -1,5 +1,26 @@
 # Dotify implementation playbook
 
+## Listening controls published in 0.1.74, 2026-11-05
+
+[Web and Product 0.1.74](evidence/product-0.1.74-rollout-2026-11-05.md) deliver merged #389 from frozen source `e8d3be90`.
+Independent Web/block/CAR/DotNS readback and exact-source CI pass; the signer is
+removed. Mobile-player account access, live room release/artist discovery and
+corrected system artwork/actions are delivered. API/custody, music, access policy
+and the independent lab are unchanged; no renewal or restart occurs. Reserve
+311 renewals / 93,634,213 bytes. Physical native #388 acceptance remains open;
+W33 retains signed denial, account switching, room-guest silence, conservation
+and coherent off-volume recovery. The read-only conservation implementation in
+this PR is a separate candidate, not part of the deployed client/API source.
+
+## Conservation assessment candidate, 2026-11-05
+
+The [first read-only conservation slice](../../operations/bulletin-conservation.md)
+checks declared dependencies, account expiry and renewal quota at one finalized
+block, preserving prior obligations. No renewal or monitoring job is activated.
+Next: reconcile all retained app/lab/media graphs, verify live metadata/payloads,
+then bounded renewal/alerts and coherent off-volume restoration. W33/#288 stays
+open; broad editable publication and public pilot acceptance are later gates.
+
 ## Cross-client acceptance and next listening iteration, 2026-11-05
 
 The owner confirms audible stop on disconnect and explicit recovery in 0.1.73 on

@@ -1,15 +1,38 @@
 # Deployment Configuration Runbook
 
-## Listening controls candidate, 2026-11-05
+## Listening controls published in 0.1.74, 2026-11-05
+
+[Web and Product 0.1.74](../backlog/implementation/evidence/product-0.1.74-rollout-2026-11-05.md) deliver merged #389 from frozen source `e8d3be90`.
+Independent Web/block/CAR/DotNS readback and exact-source CI pass; the signer is
+removed. Mobile-player account access, live room release/artist discovery and
+corrected system artwork/actions are delivered. API/custody, music, access policy
+and the independent lab are unchanged; no renewal or restart occurs. Reserve
+311 renewals / 93,634,213 bytes. Physical native #388 acceptance remains open;
+W33 retains signed denial, account switching, room-guest silence, conservation
+and coherent off-volume recovery. The read-only conservation implementation in
+this PR is a separate candidate, not part of the deployed client/API source.
+
+## Read-only conservation candidate, 2026-11-05
+
+The [conservation command](bulletin-conservation.md) assesses a reviewed dependency
+plan against one finalized Bulletin snapshot. It distinguishes per-block and
+account expiry, verifies Product SHA-256/media BLAKE2b metadata, deduplicates shared
+blocks and preserves the existing global renewal reserve floor. Unknown reads
+are critical. No signer, seed/config load, submission, scheduler, public endpoint
+or service restart is introduced. It requires an explicit private plan and RPC;
+no live monitoring is activated by this PR. Metadata checks are not payload
+retrievability, inventory-completeness or off-volume restoration proofs. W33/#288
+remains open for those gates, bounded renewals and operator alert activation.
+
+## Listening controls acceptance procedure, 2026-11-05
 
 The [#388 client candidate](../backlog/implementation/evidence/listening-controls-and-discovery-2026-11-05.md)
 adds account access in the mobile player, current-room release/artist discovery,
-and corrected Media Session artwork/actions. It is not deployed; Web and Product
-remain 0.1.73. No environment variable, CORS/origin, service, mount, secret,
+and corrected Media Session artwork/actions. It is published in Web/Product 0.1.74 as recorded above. No environment variable, CORS/origin, service, mount, secret,
 storage-policy, key or contract change is required. No media upload, renewal or
 service restart is performed by this implementation.
 
-After review and a normal matching Web/Product rollout, verify:
+On the verified 0.1.74 rollout, verify:
 
 - Narrow mobile layouts, safe areas and enlarged text keep the account sheet
   accessible directly in the Player; Disconnect stops protected audio and
