@@ -715,5 +715,29 @@
     "physical room host/guest controls remain authoritative",
     "signed unentitled-listener denial, account switching and room-guest silence",
     "complete dependency inventory, bounded renewals/alerts and coherent off-volume recovery"
-  ]
+  ],
+  "ownerFeedback": {
+    "date": "2026-11-05",
+    "polkadotApp": "0.10.0 (18)",
+    "accepted": [
+      "smooth player and solo queue motion without interruption",
+      "room information beside title",
+      "room context and Dotify lock-screen artwork"
+    ],
+    "openFailure": {
+      "issue": 395,
+      "host": "mobile, foreground and unlocked",
+      "localAudioAudible": true,
+      "silentReceivers": [
+        "Desktop",
+        "Web"
+      ],
+      "webAndDesktopHostingWorksFor": [
+        "mobile",
+        "Desktop",
+        "Web"
+      ]
+    },
+    "presentationFollowup": 396
+  }
 }

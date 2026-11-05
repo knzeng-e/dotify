@@ -81,3 +81,17 @@ Prior 0.1.74 device acceptance remains historical evidence, not acceptance of th
 new transitions/footer. #392/#388 remain open for these matching checks. W33
 retains signed denial, account switching, room-guest silence, complete retained
 inventory, bounded renewal/alerts and coherent off-volume restoration.
+
+## Owner physical feedback after publication, 2026-11-05
+
+On Polkadot app **v0.10.0 (18)** the owner confirms smooth player/solo Queue
+motion without audio interruption, Room information beside the title, and Room
+context plus Dotify lock-screen artwork. This accepts those reported surfaces,
+not every scenario in the preceding checklist.
+
+A separate failure remains: a mobile host hears local audio but Desktop/Web
+guests receive silence, even while the phone is unlocked and the app foregrounded.
+Web/Desktop hosts deliver audible audio to all three receiver types. This is
+tracked in #395; do not infer a 0.1.75 regression or a Bulletin failure from the
+report. #396 tracks matching Room queue/suggestion/detail sheet presentation.
+No service/policy/media write or redeployment occurred while recording feedback.
