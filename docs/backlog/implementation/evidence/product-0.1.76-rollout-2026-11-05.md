@@ -108,3 +108,20 @@ Chromium and managed-only authenticated AAC Blob received-energy in WebKit.
 The owner's audible result is distinct from those automated engine checks.
 W33 also retains signed denial/account changes, conservation/alerts and coherent
 off-volume recovery; custody's fatal-exit/supervision defect remains a follow-up.
+
+## Full-length follow-up, 2026-11-05
+
+The owner subsequently reports that **Adang Fobe** plays solo but stalls while
+opening a Room, then shows the audio-unavailable error. The 32-second recording
+shows solo audio followed by ongoing preparation; the terminal error is supplied
+in a separate screenshot. No exact failure duration or phone transport trace is
+captured. The public registered manifest describes 283.1 seconds, 72 init/media
+objects and 3,550,124 clear bytes at 96 kb/s; this diagnostic read requests no key.
+
+The delivered compatibility reader awaits each object serially under the
+existing 60-second post-authorization startup budget. Controlled latency
+reproduces exhaustion for a track with this segment count; this is consistent
+with the report, not a measured account of each request on the phone. A bounded
+parallel-reader correction is being tested separately. The eight-second result
+remains valid for that excerpt and does not certify full-length Room hosting.
+#395 remains open; no new deployment, content upload or access bypass is included.

@@ -7,7 +7,8 @@
 the local signer is removed. Managed-only room hosts use authenticated complete
 96 kb/s AAC with the existing buffer cap, while solo stays progressive. Room
 queue/suggestions/details share listening-sheet motion and access-gate ownership.
-The owner confirms foreground mobile-host sound at both Web and Desktop guests.
+The owner confirms foreground mobile-host sound at Web/Desktop guests on the
+eight-second release; full-length Room preparation still fails (#395).
 Physical lifecycle/background checks (#395) and matching panel acceptance (#396)
 remain open. Reserve 351 renewals /
 112,567,204 bytes; no renewal or conservation activation occurs.

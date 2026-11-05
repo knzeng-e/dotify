@@ -701,6 +701,7 @@
     "conservationCliActivated": false
   },
   "remainingAcceptance": [
+    "full-length mobile-host preparation and audible delivery, not inferred from the eight-second success",
     "physical mobile-host pause/resume/next, guest local mute/disconnect and explicit recovery",
     "matching Room queue/suggestions/details dismissal and keyboard/focus",
     "background hosting tested separately",
@@ -726,5 +727,20 @@
       "cold startup latency",
       "matching Room panel gestures and focus"
     ]
+  },
+  "fullLengthFollowup": {
+    "date": "2026-11-05",
+    "track": "Adang Fobe",
+    "ownerReport": "Solo playback works; opening a mobile-hosted room keeps preparing then reports audio-unavailable.",
+    "videoSeconds": 32.295238,
+    "videoShows": "Solo playback followed by ongoing preparation; the separate screenshot shows the terminal error.",
+    "publicManifestRead": {
+      "reportedDurationSeconds": 283.1,
+      "rendition96Objects": 72,
+      "reportedClearBytes": 3550124,
+      "keyRequested": false
+    },
+    "phoneTransportTraceCaptured": false,
+    "candidateStatus": "A bounded parallel compatibility reader is being tested separately; not deployed."
   }
 }
