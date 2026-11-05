@@ -3675,6 +3675,17 @@ rollback; this is not another admission or a request to replay deployment comman
 Local tests are not live registration, protected listening or retention evidence.
 
 
+## Listening-sheet validation candidate, 2026-11-05
+
+[The shared listening sheets](../backlog/listening-overlay-motion.md) extend the
+Queue presentation to Room Up next/suggestions and release details. No new
+service, environment, CORS, storage or policy setting is required. After matching
+Web/Product delivery, check mobile drag, Back/Escape, keyboard-safe search and
+preserved drafts; closing a sheet must keep the room/audio and restore focus.
+Test Play next into denied access: the queue must close before the access dialog
+opens. Automatic access interruption stays immediate. Desktop WebKit checks do
+not replace physical Polkadot app acceptance.
+
 ## Room system-context candidate, 2026-11-05
 
 The [room-system refinement](../backlog/implementation/evidence/room-system-context-2026-11-05.md)

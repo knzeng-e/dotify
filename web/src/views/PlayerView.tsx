@@ -1,6 +1,7 @@
 import { animatePlayerNavigation } from '../features/player/playerMotion';
 import { PlayerTransport } from '../components/PlayerTransport';
-import { HostLineup } from '../components/HostLineup';
+import { RoomViewSwitcher } from '../components/RoomViewSwitcher';
+import { RoomQueueDialog } from '../components/RoomQueueDialog';
 import { PlayerQueueDialog } from '../components/PlayerQueueDialog';
 import { RoomShareDialog } from '../components/RoomShareDialog';
 import { NearbyControls } from '../components/NearbyControls';
@@ -19,13 +20,10 @@ import {
   KeyRound,
   Library,
   LogOut,
-  ListMusic,
-  MessageCircle,
   Radio,
   RefreshCw,
   Share2,
   ShieldCheck,
-  Users,
   X
 } from 'lucide-react';
 import { PanelTitle } from '../shared/ui/PanelTitle';
@@ -35,7 +33,6 @@ import { Avatar, AvatarStack } from '../components/Presence';
 import { AccessGateOverlay } from '../components/AccessGateOverlay';
 import { RoomChat } from '../components/RoomChat';
 import { RoomReactions } from '../components/RoomReactions';
-import { RoomRequests } from '../components/RoomRequests';
 import { RoomQrCode } from '../components/RoomQrCode';
 import { Dialog } from '../components/Dialog';
 import { isPolicyManagedTrack, trackHasAccess } from '../features/access/accessPolicy';
@@ -145,11 +142,12 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
   const [roomDetailsOpen, setRoomDetailsOpen] = useState(false);
   const roomDetailsTrack = roomId ? roomReleaseDetails(trackInfo, catalog.catalogTracks) : null;
   const [queueOpen, setQueueOpen] = useState(false);
-  const [roomPanel, setRoomPanel] = useState<'chat' | 'queue' | 'people'>('chat');
+  const [roomPanel, setRoomPanel] = useState<'chat' | 'people'>('chat');
   const [chatUnread, setChatUnread] = useState(0);
   const [chatMentions, setChatMentions] = useState(0);
   useEffect(() => {
     setRoomPanel('chat');
+    setQueueOpen(false);
     setShareOpen(false);
     setRoomDetailsOpen(false);
     setChatUnread(0);
@@ -420,74 +418,16 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
           </div>
         )}
       {roomId && (
-        <div className='room-panel-switch' role='tablist' aria-label='Room views'>
-          {(['chat', 'queue', 'people'] as const).map(panel => (
-            <button
-              key={panel}
-              type='button'
-              role='tab'
-              id={`room-tab-${panel}`}
-              aria-controls={`room-panel-${panel}`}
-              aria-selected={roomPanel === panel}
-              title={panel === 'chat' ? 'Chat' : panel === 'queue' ? 'Up next & suggestions' : 'People'}
-              tabIndex={roomPanel === panel ? 0 : -1}
-              onClick={() => setRoomPanel(panel)}
-              onKeyDown={event => {
-                const tabs = Array.from(event.currentTarget.parentElement!.querySelectorAll<HTMLButtonElement>('[role="tab"]')).filter(
-                  tab => tab.getClientRects().length > 0
-                );
-                const index = tabs.indexOf(event.currentTarget);
-                const next =
-                  event.key === 'ArrowRight'
-                    ? (index + 1) % tabs.length
-                    : event.key === 'ArrowLeft'
-                      ? (index + tabs.length - 1) % tabs.length
-                      : event.key === 'Home'
-                        ? 0
-                        : event.key === 'End'
-                          ? tabs.length - 1
-                          : -1;
-                if (next < 0) return;
-                event.preventDefault();
-                tabs[next].click();
-                tabs[next].focus();
-              }}
-            >
-              {panel === 'chat' ? (
-                <>
-                  <MessageCircle size={21} aria-hidden='true' />
-                  <span className='sr-only'>Chat</span>
-                </>
-              ) : panel === 'queue' ? (
-                <>
-                  <ListMusic size={21} aria-hidden='true' />
-                  <span className='sr-only'>Queue</span>
-                </>
-              ) : (
-                <>
-                  <Users size={18} aria-hidden='true' />
-                  <span className='sr-only'>{session.socketStatus === 'online' ? 'People · ' : 'People'}</span>
-                  {session.socketStatus === 'online' && <span className='room-people-count'>{presenceCount}</span>}
-                </>
-              )}
-              {panel === 'chat' && chatUnread > 0 && (
-                <span className='room-request-count' aria-label={`${chatUnread} unread messages`}>
-                  {chatUnread > 99 ? '99+' : chatUnread}
-                </span>
-              )}
-              {panel === 'chat' && chatMentions > 0 && (
-                <span className='room-mention-count' aria-label={`${chatMentions} unread mentions`}>
-                  @{chatMentions}
-                </span>
-              )}
-              {panel === 'queue' && session.requestQueue.length > 0 && (
-                <span className='room-request-count' aria-label={`${session.requestQueue.length} requests`}>
-                  {session.requestQueue.length}
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
+        <RoomViewSwitcher
+          active={roomPanel}
+          onSelect={setRoomPanel}
+          onOpenQueue={() => setQueueOpen(true)}
+          unread={chatUnread}
+          mentions={chatMentions}
+          requests={session.requestQueue.length}
+          online={session.socketStatus === 'online'}
+          people={presenceCount}
+        />
       )}
       <div className='player-stage'>
         <div className='player-cover-column'>
@@ -892,17 +832,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
         {roomId && (
           <div className='room-social-column'>
             <div id='room-panel-chat' className='room-conversation-pane' role='tabpanel' aria-labelledby='room-tab-chat' hidden={roomPanel !== 'chat'}>
-              <RoomChat key={roomId} active={roomPanel === 'chat'} onUnreadChange={setChatUnread} onMentionChange={setChatMentions} />
-            </div>
-            <div
-              id='room-panel-queue'
-              className='room-conversation-pane room-queue-pane'
-              role='tabpanel'
-              aria-labelledby='room-tab-queue'
-              hidden={roomPanel !== 'queue'}
-            >
-              <HostLineup key={`lineup:${roomId}`} />
-              <RoomRequests key={`requests:${roomId}`} />
+              <RoomChat key={roomId} active={!queueOpen && roomPanel === 'chat'} onUnreadChange={setChatUnread} onMentionChange={setChatMentions} />
             </div>
           </div>
         )}
@@ -972,6 +902,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
         />
       )}
       {queueOpen && !roomId && <PlayerQueueDialog onClose={() => setQueueOpen(false)} />}
+      {roomId && <RoomQueueDialog key={roomId} open={queueOpen} onClose={() => setQueueOpen(false)} />}
     </section>
   );
 }

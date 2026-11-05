@@ -158,12 +158,14 @@ for (const [width, height] of sizes) {
       await guest.getByRole('button', { name: 'Join and listen', exact: true }).click();
       await expect(guest.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20_000 });
       await capture(guest, info, 'guest');
-      await guest.getByRole('tab', { name: 'Queue', exact: true }).click();
+      await guest.getByRole('button', { name: 'Queue', exact: true }).click();
       await expect(guest.locator('.host-lineup')).toBeVisible();
       await expect(guest.getByLabel('Add from the catalog')).toHaveCount(0);
       await guest.getByLabel('Request a track', { exact: true }).fill('E2E Public');
       await guest.getByRole('button', { name: /^Suggest E2E Public Room Track by/ }).click();
       await capture(guest, info, 'room-queue');
+      if (await guest.getByRole('button', { name: 'Close room queue', exact: true }).isVisible())
+        await guest.getByRole('button', { name: 'Close room queue', exact: true }).click();
       await guest.getByRole('tab', { name: 'Chat', exact: true }).click();
       await guest.getByLabel('Message the room', { exact: true }).fill('A shared listening moment');
       if (width <= 768) {
@@ -280,6 +282,7 @@ test('release details disclose access without opening audio or requesting a paym
   await expect(dialog).toContainText('does not transfer copyright');
   await expect(dialog.locator('.release-listening-section')).not.toHaveAttribute('open', '');
   await expect(dialog.locator('.release-provenance')).not.toHaveAttribute('open', '');
+  await dialog.getByRole('button', { name: 'Close release details' }).focus();
   await page.keyboard.press('Tab');
   await expect(dialog.getByText('Listening & support', { exact: true })).toBeFocused();
   await page.keyboard.press('Enter');

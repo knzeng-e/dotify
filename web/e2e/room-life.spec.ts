@@ -60,13 +60,14 @@ test('typing, mentions, replies, pins and muted activity coexist with room playb
     await expect(page.getByRole('button', { name: 'Room activity', exact: true })).toHaveAttribute('aria-pressed', 'false');
     await expect(page.getByRole('log')).not.toContainText('Mina joined.');
     await page.getByRole('button', { name: 'Room activity', exact: true }).click();
-    await page.getByRole('tab', { name: /Queue/ }).click();
+    await page.getByRole('button', { name: /Queue/ }).click();
     await guest.getByLabel('Message the room').fill('@Room');
     await guest.getByRole('button', { name: '@Room host', exact: true }).click();
     await guest.getByLabel('Message the room').press('End');
     await guest.getByLabel('Message the room').pressSequentially('hello!');
     await guest.getByRole('button', { name: 'Send message' }).click();
     await expect(page.locator('#room-tab-chat').getByLabel('1 unread mentions')).toHaveText('@1');
+    await page.getByRole('button', { name: 'Close room queue', exact: true }).click();
     await page.locator('#room-tab-chat').click();
     await page.getByRole('button', { name: 'Message actions for Mina' }).click();
     await page.getByRole('button', { name: 'Reply to Mina' }).click();
