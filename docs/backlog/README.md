@@ -1,5 +1,19 @@
 # Dotify Production Backlog
 
+## Mobile room capture delivered in 0.1.76, 2026-11-05
+
+[Web and Product 0.1.76](implementation/evidence/product-0.1.76-rollout-2026-11-05.md) publish merged #397/#398 from frozen source
+`e195e3ab`. CI and independent Web/CAR/Bulletin/DotNS checks pass;
+the local signer is removed. Managed-only room hosts use authenticated complete
+96 kb/s AAC with the existing buffer cap, while solo stays progressive. Room
+queue/suggestions/details share listening-sheet motion and access-gate ownership.
+Physical mobile-host sound at Web/Desktop guests and matching panel acceptance
+remain #395/#396 gates. Reserve 351 renewals /
+112,567,204 bytes; no renewal or conservation activation occurs.
+API/custody source/media/policies are unchanged. An already-stopped custody
+instance was restored during preparation after database-lock loss; the code-0
+exit/supervisor defect remains a separate reliability follow-up.
+
 ## Continuous listening published in 0.1.75, 2026-11-05
 
 [Web and Product 0.1.75](implementation/evidence/product-0.1.75-rollout-2026-11-05.md) deliver merged #391/#393 from frozen source

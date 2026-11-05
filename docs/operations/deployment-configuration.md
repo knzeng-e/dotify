@@ -1,5 +1,19 @@
 # Deployment Configuration Runbook
 
+## Mobile room capture delivered in 0.1.76, 2026-11-05
+
+[Web and Product 0.1.76](../backlog/implementation/evidence/product-0.1.76-rollout-2026-11-05.md) publish merged #397/#398 from frozen source
+`e195e3ab`. CI and independent Web/CAR/Bulletin/DotNS checks pass;
+the local signer is removed. Managed-only room hosts use authenticated complete
+96 kb/s AAC with the existing buffer cap, while solo stays progressive. Room
+queue/suggestions/details share listening-sheet motion and access-gate ownership.
+Physical mobile-host sound at Web/Desktop guests and matching panel acceptance
+remain #395/#396 gates. Reserve 351 renewals /
+112,567,204 bytes; no renewal or conservation activation occurs.
+API/custody source/media/policies are unchanged. An already-stopped custody
+instance was restored during preparation after database-lock loss; the code-0
+exit/supervisor defect remains a separate reliability follow-up.
+
 ## Continuous listening published in 0.1.75, 2026-11-05
 
 [Web and Product 0.1.75](../backlog/implementation/evidence/product-0.1.75-rollout-2026-11-05.md) deliver merged #391/#393 from frozen source
@@ -3509,10 +3523,10 @@ the existing flow re-reads and resumes the pending runtime. Verify the directory
 entry, artist ownership and cleared pending state after the user's approval.
 See the [native replay and validation evidence](../backlog/implementation/evidence/product-artist-bootstrap-2026-10-22.md).
 
-## Managed AAC room-host validation candidate, 2026-11-05
+## Managed AAC room-host acceptance, 2026-11-05
 
-[The mobile capture candidate](../backlog/room-listener-audio.md) changes only the
-client reader: managed-only engines use the existing authenticated bounded AAC
+[The mobile capture correction](../backlog/room-listener-audio.md), published in
+Web/Product 0.1.76, changes only the client reader: managed-only engines use the existing authenticated bounded AAC
 Blob for room hosting. Solo remains progressive; standard MSE hosting is unchanged.
 No service, environment, CORS, storage, key or policy change is required. Before
 acceptance, use matching Web/Product builds and verify **mobile host to Web and
@@ -3700,13 +3714,13 @@ rollback; this is not another admission or a request to replay deployment comman
 Local tests are not live registration, protected listening or retention evidence.
 
 
-## Listening-sheet validation candidate, 2026-11-05
+## Listening-sheet acceptance, 2026-11-05
 
 [The shared listening sheets](../backlog/listening-overlay-motion.md) extend the
 Queue presentation to Room Up next/suggestions and release details. No new
-service, environment, CORS, storage or policy setting is required. After matching
-Web/Product delivery, check mobile drag, Back/Escape, keyboard-safe search and
-preserved drafts; closing a sheet must keep the room/audio and restore focus.
+service, environment, CORS, storage or policy setting is required. The matching
+Web/Product 0.1.76 clients are published. Check mobile drag, Back/Escape,
+keyboard-safe search and preserved drafts; closing a sheet must keep the room/audio and restore focus.
 Test explicit and automatic/system Next into denied access: contextual sheets
 must close before the access dialog opens and remain closed after dismissal. Automatic access interruption stays immediate. Desktop WebKit checks do
 not replace physical Polkadot app acceptance.
