@@ -8,7 +8,8 @@ stays open for publication and physical validation.
 
 Base: tested `dev` `609d0d975583858c6793aac5904391065a4d509e`, whose Web tree
 matches the already verified 0.1.73 candidate. Base dev CI 41957906904 is green.
-Implementation commit: `0cacee6b028b95be8150f646383cefaefade709f`.
+Initial implementation: `0cacee6b028b95be8150f646383cefaefade709f`.
+CI layout correction: `d9b6269cea769a52937d323c274547644fb0c013` (checks below).
 
 ## Account access during listening
 
@@ -23,7 +24,8 @@ the merged #386 path, and reconnect does not autoplay or pay.
 
 ## Discovery belongs to the current room
 
-The player transport now exposes About this release to room hosts and guests.
+The room cover now exposes About this release to room hosts and guests,
+without adding a fourth button to the compact transport row.
 `roomReleaseDetails` enriches only the current room hash/runtime identity with a
 matching catalog release. A missing/ambiguous match remains a labelled host
 snapshot; an unrelated solo selection is never substituted. Only explicit
@@ -110,6 +112,34 @@ Synthetic-fixture captures, inspected from the passing Chromium run:
 | Player account, 320px | Room discovery, 390px | Current release sheet, 390px |
 | --- | --- | --- |
 | ![Account control in the mobile player](assets/listening-controls-2026-11-05/player-account-320.png) | ![Room discovery entry and account control](assets/listening-controls-2026-11-05/room-discovery-entry-mobile.png) | ![Current release and artist details while the room remains active](assets/listening-controls-2026-11-05/room-current-release-mobile.png) |
+
+## CI room-layout correction
+
+The first complete CI core-flow run found seven layout regressions that the
+initial focused set did not include: the 320×568 room conversation and six
+small/zoomed/transitioning keyboard viewports. Adding the release-info action
+wrapped the compact transport controls; adding the account control could also
+wrap the host header. Their extra height displaced the composer below the
+visible viewport. This was a client layout regression, not an intermittent
+runner or storage failure.
+
+`PlayerView` now opens room details from the existing cover footprint with an
+info cue and accessible button. `player-presence.css` keeps the compact header
+on one line and switches the invite to its icon at narrow container widths,
+including narrowed visual viewports. Account, room exit and share remain
+separate controls; no touch target or existing geometry assertion is reduced.
+The workspace test also checks that account/discovery controls are visible,
+inside the viewport and at least 44×44px. Dialog, audio and guest boundaries are
+unchanged. The seven original failures pass locally after this correction.
+The expanded local run passes all 51 Chromium workspace/room-join/player/account
+scenarios. WebKit passes six keyboard-layout regressions and the four focused
+account/artwork scenarios. Web and frozen Product DevNet builds, changed-file
+lint, formatting and whitespace checks pass. Full GitHub CI is required again
+for the corrected head.
+
+Inspected corrected layouts: [320px room](assets/listening-controls-2026-11-05/room-conversation-320.png)
+and [narrowed visual viewport above the simulated keyboard](assets/listening-controls-2026-11-05/room-keyboard-zoomed.png).
+These are controlled browser layout captures, not physical keyboard evidence.
 
 ## Deployment and remaining gates
 
