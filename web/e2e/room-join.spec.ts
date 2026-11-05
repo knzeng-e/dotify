@@ -151,13 +151,13 @@ test('host lineup is shared, advances on track end, and Previous follows real hi
     const host = await hostContext.newPage();
     const roomId = await openHostRoom(host, 'public', PUBLIC_TITLE, { captureMode: 'web-audio', catalogSequence: true });
 
-    await host.getByRole('tab', { name: 'Queue', exact: true }).click();
+    await host.getByRole('button', { name: 'Queue', exact: true }).click();
     await host.getByRole('textbox', { name: 'Find a track to add next' }).fill('Second room track');
     await host.getByRole('button', { name: 'Add to queue Second room track by Dotify Room Host' }).click();
     await expect(host.locator('.host-lineup')).toContainText('Second room track');
 
     const listener = await joinAsListener(listenerContext, roomId, { storedDisplayName: 'Echo' });
-    await listener.getByRole('tab', { name: 'Queue', exact: true }).click();
+    await listener.getByRole('button', { name: 'Queue', exact: true }).click();
     await expect(listener.locator('.host-lineup summary')).toContainText('Second room track');
     await Promise.all([
       host.screenshot({ path: testInfo.outputPath('host-lineup-desktop.png'), fullPage: true }),
@@ -168,6 +168,7 @@ test('host lineup is shared, advances on track end, and Previous follows real hi
     await expect(listener.locator('.track-copy h2')).toHaveText('Second room track', { timeout: 20_000 });
     await expect(listener.locator('.host-lineup summary')).toContainText('Nothing queued');
 
+    await host.getByRole('button', { name: 'Close room queue', exact: true }).click();
     await host.getByRole('button', { name: 'Previous track' }).click();
     await expect(listener.locator('.track-copy h2')).toHaveText(PUBLIC_TITLE, { timeout: 20_000 });
   } finally {
@@ -182,7 +183,7 @@ test('rapid host Next commands consume distinct lineup entries', async ({ browse
     const host = await hostContext.newPage();
     await openHostRoom(host, 'public', PUBLIC_TITLE, { catalogSequence: true });
 
-    await host.getByRole('tab', { name: 'Queue', exact: true }).click();
+    await host.getByRole('button', { name: 'Queue', exact: true }).click();
     await host.getByRole('textbox', { name: 'Find a track to add next' }).fill('Second room track');
     await host.getByRole('button', { name: 'Add to queue Second room track by Dotify Room Host' }).click();
     await host.getByRole('textbox', { name: 'Find a track to add next' }).fill(PROTECTED_TITLE);
@@ -334,6 +335,8 @@ test('public room: listener joins via link, hears full playback, no wallet, no c
     await expect(secondListener.locator('.listener-list')).toContainText('Nomad', { timeout: 20_000 });
     await expect(secondListener.locator('.listener-list')).toContainText('Zed', { timeout: 20_000 });
 
+    if (await listener.getByRole('button', { name: 'Close room queue', exact: true }).isVisible())
+      await listener.getByRole('button', { name: 'Close room queue', exact: true }).click();
     await listener.getByRole('tab', { name: /People/ }).click();
     await listener.getByLabel('Your name or nickname').fill('Nia');
     await listener.getByRole('button', { name: 'Update room name' }).click();
@@ -621,6 +624,8 @@ test('host explicitly closes: the room is removed and the listener sees a clear 
     await host.getByRole('button', { name: 'Open the room', exact: true }).click();
     await expect(host.getByTestId('room-code')).toHaveText(/[A-Z0-9]{4,}/, { timeout: 15_000 });
     await expect(host.locator('.player-stage .cover')).toHaveAttribute('data-live', 'true');
+    if (await host.getByRole('button', { name: 'Close room queue', exact: true }).isVisible())
+      await host.getByRole('button', { name: 'Close room queue', exact: true }).click();
     await host.getByRole('tab', { name: /People/ }).click();
     await host.getByRole('button', { name: 'Close room' }).click();
 

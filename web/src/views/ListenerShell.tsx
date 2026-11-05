@@ -1,3 +1,4 @@
+import { isManagedAudioUrl } from '../features/catalog/streamingMediaSource';
 import { useRoomDiscovery } from '../features/rooms/useRoomDiscovery';
 import { useRoomViewport } from '../features/rooms/useRoomViewport';
 // Listener shell - the full listener-facing render tree (top bar, nav rail,
@@ -199,7 +200,7 @@ export function ListenerShell() {
         ? (roomId: string) => session.enableNearbyForRoom(roomId, visibility.radiusKm, visibility.worldwide)
         : undefined;
     const trackInfo = catalogTrackToTrackInfo(track);
-    const isCurrentReadyTrack = track.id === catalog.selectedTrackId && Boolean(catalog.audioSource);
+    const isCurrentReadyTrack = track.id === catalog.selectedTrackId && Boolean(catalog.audioSource) && !isManagedAudioUrl(catalog.audioSource);
     if (isCurrentReadyTrack) {
       if (!playback.transport.playing) void playback.togglePlay();
       prepareLocalStream();
@@ -211,7 +212,9 @@ export function ListenerShell() {
     // source changes so a previous solo Pause does not keep the room track
     // silent. Transport Next/Previous still preserves pause independently.
     playback.requestAutoplay();
-    const selection = await catalog.openTrack(track, undefined, undefined, undefined, true).catch(() => null);
+    const selection = await catalog
+      .openTrack(track, undefined, undefined, undefined, true, { forRoomCapture: true, preserveCurrentPosition: track.id === catalog.selectedTrackId })
+      .catch(() => null);
     if (creationSignal.aborted) return;
     session.createSession(trackInfo, 'full', undefined, { audioSourceHint: selection?.audioSource ?? null, onCreated, creationSignal, profile });
   }

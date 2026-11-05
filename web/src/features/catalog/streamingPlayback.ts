@@ -1,4 +1,4 @@
-import { streamingMediaSource, ownManagedAudioUrl, STREAMING_AAC_MIME, type ManagedAudioSource } from './streamingMediaSource';
+import { streamingMediaSource, roomCaptureNeedsCompatibility, ownManagedAudioUrl, STREAMING_AAC_MIME, type ManagedAudioSource } from './streamingMediaSource';
 import { pumpManagedAudio } from './managedStreaming';
 import { AdaptiveStreaming } from './adaptiveStreaming';
 import { readStreamingManifest, decryptStreamingMedia, type StreamingScope } from './streamingFormat';
@@ -174,6 +174,7 @@ export async function createStreamingPlayback(input: {
   audio: () => HTMLAudioElement | null;
   onError: (error: unknown) => void;
   bufferAheadSeconds?: () => number;
+  forRoomCapture?: boolean;
   fetchObject?: typeof fetchStreamingObject;
   onMetric?: (metric: ReaderMetric) => void;
   // Research may observe/wrap the same producer; ordinary playback always uses the default.
@@ -231,7 +232,7 @@ export async function createStreamingPlayback(input: {
     return clear;
   };
   const capability = streamingMediaSource();
-  if (!capability) {
+  if (!capability || roomCaptureNeedsCompatibility(input.forRoomCapture === true)) {
     emit({ phase: 'compatibility-reader' });
     // Same authenticated rendition, never the archival master or a different key.
     const parts: Uint8Array[] = [];

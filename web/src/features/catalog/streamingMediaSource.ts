@@ -45,3 +45,15 @@ export function configureStreamingAudioElement(audio: HTMLAudioElement, url: str
     audio.setAttribute('disableRemotePlayback', '');
   }
 }
+
+/** Managed streaming can play locally on iOS without supplying Web Audio samples.
+ * Room capture uses the same authenticated AAC rendition as a bounded Blob.
+ * Solo playback retains progressive managed streaming. No microphone is used.
+ */
+export function roomCaptureNeedsCompatibility(forRoomCapture: boolean, capabilities: Capabilities = globalThis as Capabilities): boolean {
+  return forRoomCapture && streamingMediaSource(capabilities)?.kind === 'managed';
+}
+
+export function isManagedAudioUrl(url: string | null): boolean {
+  return Boolean(url && managedUrls.has(url));
+}

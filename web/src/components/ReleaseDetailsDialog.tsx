@@ -1,6 +1,6 @@
 import { Coins, ShieldCheck, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { Dialog } from './Dialog';
+import { ListeningSheet } from './ListeningSheet';
 import { CoverImage } from './CoverImage';
 import { buildClassicAccessReceipt } from '../features/access/accessPromise';
 import { releaseCreditRoleLabel, releaseDateLabel, releaseKindLabel } from '../features/catalog/releaseMetadata';
@@ -86,198 +86,204 @@ export function ReleaseDetailsDialog({
       : [];
 
   return (
-    <Dialog historyDismiss className='release-details-dialog' labelledBy='release-details-title' onClose={onClose} size='default'>
-      <div className='modal-header release-details-header'>
-        <div>
-          <span className='sr-only' id='release-details-title'>
-            About this release
-          </span>
-          <span className='release-details-kicker'>Release</span>
-          <h2>{track.title}</h2>
-        </div>
-        <button className='modal-close' type='button' onClick={onClose} aria-label='Close release details'>
-          <X size={18} />
-        </button>
-      </div>
-
-      <div className='release-details-hero'>
-        <CoverImage src={track.imageRef} alt={`Cover of ${track.title}`} fallbackLabel={track.title} />
-        <div className='release-details-identity'>
-          <p className='release-details-artist'>{track.artist}</p>
-          {onOpenArtist && track.artist && (
-            <button type='button' className='text-action' onClick={onOpenArtist}>
-              Explore this artist
+    <ListeningSheet className='release-details-dialog' labelledBy='release-details-title' onClose={onClose} handleLabel='Collapse release details'>
+      {close => (
+        <>
+          <div className='modal-header release-details-header'>
+            <div>
+              <span className='sr-only' id='release-details-title'>
+                About this release
+              </span>
+              <span className='release-details-kicker'>Release</span>
+              <h2>{track.title}</h2>
+            </div>
+            <button className='modal-close' type='button' onClick={close} aria-label='Close release details'>
+              <X size={18} />
             </button>
-          )}
-          <div className='release-details-chips'>
-            {editorial && <span>{releaseKindLabel(editorial.releaseKind)}</span>}
-            {editorial?.releaseDate && <span>{releaseDateLabel(editorial.releaseDate)}</span>}
-            {editorial?.explicitContent && <span>Explicit</span>}
           </div>
-          <p className='release-access-summary'>
-            {track.accessMode === 'classic' && release?.active !== false ? (
-              <Coins size={18} aria-hidden='true' />
-            ) : (
-              <ShieldCheck size={18} aria-hidden='true' />
-            )}
-            <span className='sr-only'>{track.accessMode === 'classic' ? 'Listening price: ' : 'Listening access: '}</span>
-            <span>{access}</span>
-          </p>
-        </div>
-      </div>
 
-      {roomContext && (
-        <p className='release-metadata-status'>
-          You’re still listening in the room.{' '}
-          {release ? 'Explore without interrupting the music.' : 'These track details were shared by the host; a matching catalog release is not available.'}
-        </p>
-      )}
-
-      {track.description && (
-        <section className='release-details-section release-story-section'>
-          <h3>About this track</h3>
-          <p className='release-story'>{track.description}</p>
-        </section>
-      )}
-
-      {releaseFacts.length > 0 && (
-        <section className='release-details-section'>
-          <h3>Release details</h3>
-          <dl className='release-editorial-facts'>
-            {releaseFacts.map(fact => (
-              <div key={fact.label}>
-                <dt>{fact.label}</dt>
-                <dd>{fact.value}</dd>
+          <div className='release-details-hero'>
+            <CoverImage src={track.imageRef} alt={`Cover of ${track.title}`} fallbackLabel={track.title} />
+            <div className='release-details-identity'>
+              <p className='release-details-artist'>{track.artist}</p>
+              {onOpenArtist && track.artist && (
+                <button type='button' className='text-action' onClick={onOpenArtist}>
+                  Explore this artist
+                </button>
+              )}
+              <div className='release-details-chips'>
+                {editorial && <span>{releaseKindLabel(editorial.releaseKind)}</span>}
+                {editorial?.releaseDate && <span>{releaseDateLabel(editorial.releaseDate)}</span>}
+                {editorial?.explicitContent && <span>Explicit</span>}
               </div>
-            ))}
-          </dl>
-        </section>
-      )}
-
-      {editorial?.credits.length ? (
-        <section className='release-details-section'>
-          <div className='release-section-heading'>
-            <h3>Credits</h3>
-            <span>Provided by the artist</span>
+              <p className='release-access-summary'>
+                {track.accessMode === 'classic' && release?.active !== false ? (
+                  <Coins size={18} aria-hidden='true' />
+                ) : (
+                  <ShieldCheck size={18} aria-hidden='true' />
+                )}
+                <span className='sr-only'>{track.accessMode === 'classic' ? 'Listening price: ' : 'Listening access: '}</span>
+                <span>{access}</span>
+              </p>
+            </div>
           </div>
-          <ul className='release-credits-list'>
-            {editorial.credits.map((credit, index) => (
-              <li key={`${credit.name}-${credit.role}-${index}`}>
-                <span>{credit.name}</span>
-                <small>{releaseCreditRoleLabel(credit.role)}</small>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
 
-      {editorial && (editorial.copyrightNotice || editorial.masterNotice || editorial.isrc) && (
-        <section className='release-details-section release-notices'>
-          <h3>Release notices</h3>
-          {editorial.copyrightNotice && <p>{editorial.copyrightNotice}</p>}
-          {editorial.masterNotice && <p>{editorial.masterNotice}</p>}
-          {editorial.isrc && (
-            <p>
-              <strong>ISRC</strong> {editorial.isrc}
+          {roomContext && (
+            <p className='release-metadata-status'>
+              You’re still listening in the room.{' '}
+              {release
+                ? 'Explore without interrupting the music.'
+                : 'These track details were shared by the host; a matching catalog release is not available.'}
             </p>
           )}
-        </section>
-      )}
 
-      {metadataState === 'loading' && (
-        <p className='release-metadata-status' role='status'>
-          Loading the artist’s release details…
-        </p>
-      )}
-      {metadataState === 'unavailable' && track.metadataRef && (
-        <p className='release-metadata-status'>Additional release details could not load. The listening price and access conditions are still available.</p>
-      )}
+          {track.description && (
+            <section className='release-details-section release-story-section'>
+              <h3>About this track</h3>
+              <p className='release-story'>{track.description}</p>
+            </section>
+          )}
 
-      <details className='release-listening-section'>
-        <summary>Listening &amp; support</summary>
-        <div className='release-listening-content'>
-          <dl className='transaction-facts'>
-            <div>
-              <dt>Solo listening</dt>
-              <dd>{access}</dd>
-            </div>
-            <div>
-              <dt>In a room</dt>
-              <dd>The host unlocks the track. Guests listen without an account.</dd>
-            </div>
-          </dl>
-          <p>Listening access does not transfer copyright or permission to redistribute the recording.</p>
-          {track.accessMode === 'classic' && (
-            <div>
-              <h4>Where an access payment goes</h4>
-              {release && release.royaltySplits.length ? (
-                <ul className='release-payment-splits'>
-                  {buildClassicAccessReceipt(release, { symbol: nativePaymentSymbol }).recipients.map((recipient, index) => (
-                    <li key={`${recipient.label}-${index}`}>
-                      <span>{recipient.label}</span>
-                      <strong>{recipient.value}</strong>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p>Payment recipients are shown in the confirmed quote before payment.</p>
+          {releaseFacts.length > 0 && (
+            <section className='release-details-section'>
+              <h3>Release details</h3>
+              <dl className='release-editorial-facts'>
+                {releaseFacts.map(fact => (
+                  <div key={fact.label}>
+                    <dt>{fact.label}</dt>
+                    <dd>{fact.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
+          )}
+
+          {editorial?.credits.length ? (
+            <section className='release-details-section'>
+              <div className='release-section-heading'>
+                <h3>Credits</h3>
+                <span>Provided by the artist</span>
+              </div>
+              <ul className='release-credits-list'>
+                {editorial.credits.map((credit, index) => (
+                  <li key={`${credit.name}-${credit.role}-${index}`}>
+                    <span>{credit.name}</span>
+                    <small>{releaseCreditRoleLabel(credit.role)}</small>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+
+          {editorial && (editorial.copyrightNotice || editorial.masterNotice || editorial.isrc) && (
+            <section className='release-details-section release-notices'>
+              <h3>Release notices</h3>
+              {editorial.copyrightNotice && <p>{editorial.copyrightNotice}</p>}
+              {editorial.masterNotice && <p>{editorial.masterNotice}</p>}
+              {editorial.isrc && (
+                <p>
+                  <strong>ISRC</strong> {editorial.isrc}
+                </p>
               )}
-              <p>Tips are voluntary and do not unlock listening.</p>
-            </div>
+            </section>
           )}
-        </div>
-      </details>
 
-      <details className='release-provenance'>
-        <summary>Release records</summary>
-        <p>Technical catalog references. Artist-entered credits are declarations, not independent proof of copyright ownership.</p>
-        <dl className='transaction-facts'>
-          <div>
-            <dt>Content hash</dt>
-            <dd>
-              <code>{track.hash}</code>
-            </dd>
-          </div>
-          {track.metadataRef && (
-            <div>
-              <dt>Metadata</dt>
-              <dd>
-                <code>{track.metadataRef}</code>
-              </dd>
-            </div>
+          {metadataState === 'loading' && (
+            <p className='release-metadata-status' role='status'>
+              Loading the artist’s release details…
+            </p>
           )}
-          {release?.artistAddress && (
-            <div>
-              <dt>Artist account</dt>
-              <dd>
-                <code>{release.artistAddress}</code>
-              </dd>
-            </div>
+          {metadataState === 'unavailable' && track.metadataRef && (
+            <p className='release-metadata-status'>Additional release details could not load. The listening price and access conditions are still available.</p>
           )}
-          {release?.registeredAtBlock !== undefined && (
-            <div>
-              <dt>Registered block</dt>
-              <dd>{release.registeredAtBlock}</dd>
+
+          <details className='release-listening-section'>
+            <summary>Listening &amp; support</summary>
+            <div className='release-listening-content'>
+              <dl className='transaction-facts'>
+                <div>
+                  <dt>Solo listening</dt>
+                  <dd>{access}</dd>
+                </div>
+                <div>
+                  <dt>In a room</dt>
+                  <dd>The host unlocks the track. Guests listen without an account.</dd>
+                </div>
+              </dl>
+              <p>Listening access does not transfer copyright or permission to redistribute the recording.</p>
+              {track.accessMode === 'classic' && (
+                <div>
+                  <h4>Where an access payment goes</h4>
+                  {release && release.royaltySplits.length ? (
+                    <ul className='release-payment-splits'>
+                      {buildClassicAccessReceipt(release, { symbol: nativePaymentSymbol }).recipients.map((recipient, index) => (
+                        <li key={`${recipient.label}-${index}`}>
+                          <span>{recipient.label}</span>
+                          <strong>{recipient.value}</strong>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p>Payment recipients are shown in the confirmed quote before payment.</p>
+                  )}
+                  <p>Tips are voluntary and do not unlock listening.</p>
+                </div>
+              )}
             </div>
-          )}
-          {release?.txHash && (
-            <div>
-              <dt>Transaction</dt>
-              <dd>
-                <code>{release.txHash}</code>
-              </dd>
-            </div>
-          )}
-          {release?.royaltySplits.map((split, index) => (
-            <div key={`${split.recipient}-${index}`}>
-              <dt>{split.label || 'Recipient'}</dt>
-              <dd>
-                <code>{split.recipient}</code>
-              </dd>
-            </div>
-          ))}
-        </dl>
-      </details>
-    </Dialog>
+          </details>
+
+          <details className='release-provenance'>
+            <summary>Release records</summary>
+            <p>Technical catalog references. Artist-entered credits are declarations, not independent proof of copyright ownership.</p>
+            <dl className='transaction-facts'>
+              <div>
+                <dt>Content hash</dt>
+                <dd>
+                  <code>{track.hash}</code>
+                </dd>
+              </div>
+              {track.metadataRef && (
+                <div>
+                  <dt>Metadata</dt>
+                  <dd>
+                    <code>{track.metadataRef}</code>
+                  </dd>
+                </div>
+              )}
+              {release?.artistAddress && (
+                <div>
+                  <dt>Artist account</dt>
+                  <dd>
+                    <code>{release.artistAddress}</code>
+                  </dd>
+                </div>
+              )}
+              {release?.registeredAtBlock !== undefined && (
+                <div>
+                  <dt>Registered block</dt>
+                  <dd>{release.registeredAtBlock}</dd>
+                </div>
+              )}
+              {release?.txHash && (
+                <div>
+                  <dt>Transaction</dt>
+                  <dd>
+                    <code>{release.txHash}</code>
+                  </dd>
+                </div>
+              )}
+              {release?.royaltySplits.map((split, index) => (
+                <div key={`${split.recipient}-${index}`}>
+                  <dt>{split.label || 'Recipient'}</dt>
+                  <dd>
+                    <code>{split.recipient}</code>
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </details>
+        </>
+      )}
+    </ListeningSheet>
   );
 }

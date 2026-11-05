@@ -13,6 +13,7 @@ type DialogProps = {
   labelledBy: string;
   initialFocus?: 'dialog' | 'first';
   onClose?: () => void;
+  open?: boolean;
   size?: 'compact' | 'default' | 'wide';
   tone?: 'pending' | 'success' | 'error';
 };
@@ -36,6 +37,7 @@ export function Dialog({
   historyDismiss = false,
   labelledBy,
   initialFocus = 'first',
+  open = true,
   onClose,
   size = 'default',
   tone
@@ -53,10 +55,11 @@ export function Dialog({
   }, [onClose]);
 
   useEffect(() => {
-    if (historyDismiss && dismissible) return openSheetHistory(() => onCloseRef.current?.());
-  }, [historyDismiss, dismissible]);
+    if (open && historyDismiss && dismissible) return openSheetHistory(() => onCloseRef.current?.());
+  }, [open, historyDismiss, dismissible]);
 
   useEffect(() => {
+    if (!open) return;
     const previousActive = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const previousOverflow = document.body.style.overflow;
     const appRoot = document.getElementById('root');
@@ -122,12 +125,14 @@ export function Dialog({
       }
       previousActive?.focus({ preventScroll: true });
     };
-  }, [dismissible, initialFocus]);
+  }, [open, dismissible, initialFocus]);
 
   const modal = (
     <div
       className={['modal-backdrop', backdropClassName].filter(Boolean).join(' ')}
       role='presentation'
+      hidden={!open}
+      style={open ? undefined : { display: 'none' }}
       onClick={event => {
         if (dismissible && event.target === event.currentTarget) onCloseRef.current?.();
       }}

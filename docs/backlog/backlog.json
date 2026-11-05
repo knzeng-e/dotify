@@ -25,6 +25,16 @@
   },
   "items": [
     {
+      "id": "room-listener-audio",
+      "doc": "docs/backlog/room-listener-audio.md",
+      "issue": 395,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Next",
+      "note": "Mobile host hears local music but Web/Desktop guests receive silence, even foregrounded; reverse hosting works. Require measured capture and received energy, preserving access boundaries; physical acceptance remains."
+    },
+    {
       "id": "listening-controls-and-discovery",
       "doc": "docs/backlog/listening-controls-and-discovery.md",
       "issue": 388,
@@ -742,6 +752,16 @@
       "track": "Cultural propagation",
       "phase": "Now",
       "note": "Native gifts/tips and recovery are implemented. #324 adds reviewed room policy/authority handling; server/facet activation and real native receipt/chat/policy acceptance remain. No operator-funded test or artist policy write is implied."
+    },
+    {
+      "id": "listening-overlay-motion",
+      "doc": "docs/backlog/listening-overlay-motion.md",
+      "issue": 396,
+      "kind": "work",
+      "priority": "P2",
+      "track": "Production spine",
+      "phase": "Next",
+      "note": "Share listening-sheet presentation across Room queue/suggestions and release details, preserving drafts, history/focus, keyboard geometry and persistent audio. Physical acceptance follows matching rollout."
     },
     {
       "id": "listening-motion",
