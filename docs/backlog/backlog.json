@@ -25,6 +25,16 @@
   },
   "items": [
     {
+      "id": "room-listener-audio",
+      "doc": "docs/backlog/room-listener-audio.md",
+      "issue": 395,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Next",
+      "note": "Mobile host hears local music but Web/Desktop guests receive silence, even foregrounded; reverse hosting works. Require measured capture and received energy, preserving access boundaries; physical acceptance remains."
+    },
+    {
       "id": "listening-controls-and-discovery",
       "doc": "docs/backlog/listening-controls-and-discovery.md",
       "issue": 388,
