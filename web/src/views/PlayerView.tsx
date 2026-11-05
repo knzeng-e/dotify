@@ -532,6 +532,21 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
                 fetchPriority='high'
                 sizes='(max-width: 760px) calc(100vw - 40px), 440px'
               />
+              <span className='sound-bars' aria-hidden='true'>
+                <i />
+                <i />
+                <i />
+                <i />
+              </span>
+              {ritualKey !== 0 && <span className='unlock-ritual' key={ritualKey} aria-hidden='true' />}
+            </div>
+          </div>
+        </div>
+
+        <div className='player-main-column'>
+          <div className='track-copy'>
+            <div className='player-track-heading'>
+              <h2>{streamTitle}</h2>
               {roomId && roomDetailsTrack && (
                 <button
                   className='room-release-details-trigger'
@@ -548,20 +563,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
                   <Info size={18} aria-hidden='true' />
                 </button>
               )}
-              <span className='sound-bars' aria-hidden='true'>
-                <i />
-                <i />
-                <i />
-                <i />
-              </span>
-              {ritualKey !== 0 && <span className='unlock-ritual' key={ritualKey} aria-hidden='true' />}
             </div>
-          </div>
-        </div>
-
-        <div className='player-main-column'>
-          <div className='track-copy'>
-            <h2>{streamTitle}</h2>
             <div className='track-attribution'>
               {streamArtist && (
                 <button className='player-artist-link' type='button' onClick={() => onOpenArtist(streamArtist)} title={`View ${streamArtist}`}>

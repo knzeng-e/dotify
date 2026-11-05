@@ -1,3 +1,4 @@
+import { writeFile } from 'node:fs/promises';
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
 import { installMediaSessionProbe, readMediaSessionProbe } from './fixtures/mediaSessionProbe';
 
@@ -56,6 +57,15 @@ test('room release discovery follows the live track without leaving or requestin
     const roomId = await openHostRoom(host, 'public', PUBLIC_TITLE, { catalogSequence: true, captureMode: 'web-audio', autoplay: true, sync: true });
     const guest = await joinAsListener(guestContext, roomId, { storedDisplayName: 'Discoverer' });
     await expectRemoteAudioPlaying(guest);
+    await expect.poll(async () => (await readMediaSessionProbe(guest)).album).toContain('Dotify · Room live · 2 here');
+    await expect.poll(async () => (await readMediaSessionProbe(guest)).artwork[0]?.src).toMatch(/^data:image\/png;base64,/);
+    expect((await readMediaSessionProbe(guest)).artist).toBe('Dotify Room Host');
+    const roomArtwork = (await readMediaSessionProbe(guest)).artwork[0];
+    const artworkBytes = Buffer.from(roomArtwork.src.split(',')[1], 'base64');
+    await writeFile(testInfo.outputPath('room-system-artwork.png'), artworkBytes);
+    await testInfo.attach('room-system-artwork', { body: artworkBytes, contentType: 'image/png' });
+    await expect.poll(async () => (await readMediaSessionProbe(host)).album).toContain('2 here');
+
     await guest.screenshot({ path: testInfo.outputPath('room-discovery-entry-mobile.png'), fullPage: true, animations: 'disabled' });
     await host.getByRole('button', { name: 'About this release', exact: true }).click();
     await expect(host.getByRole('dialog')).toContainText(PUBLIC_TITLE);
@@ -86,6 +96,9 @@ test('room release discovery follows the live track without leaving or requestin
     await guest.getByRole('button', { name: 'Return to your room', exact: true }).click();
     await expect(guest.getByTestId('room-code')).toHaveText(roomId);
     expect((await readRoomJoinState(guest))?.keyRequests).toBe(0);
+    await guest.getByRole('button', { name: 'Leave', exact: true }).click();
+    await expect.poll(async () => (await readMediaSessionProbe(guest)).album ?? '').toBe('');
+    await expect.poll(async () => (await readMediaSessionProbe(host)).album).toContain('1 here');
   } finally {
     await hostContext.close();
     await guestContext.close();
