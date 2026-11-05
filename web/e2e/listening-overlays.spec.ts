@@ -80,7 +80,8 @@ test('room queue search stays above a reduced keyboard viewport and keeps its dr
     Object.defineProperty(window.visualViewport, 'offsetTop', { configurable: true, value: 24 });
     window.visualViewport!.dispatchEvent(new Event('resize'));
   });
-  await expect.poll(() => search.evaluate(node => node.getBoundingClientRect().bottom)).toBeLessThanOrEqual(318);
+  // FormViewport deliberately ignores scroll corrections below one CSS pixel.
+  await expect.poll(() => search.evaluate(node => node.getBoundingClientRect().bottom)).toBeLessThanOrEqual(319);
   await expect.poll(() => sheet.evaluate(node => node.getBoundingClientRect().bottom)).toBeLessThanOrEqual(334);
   await search.press('Escape');
   await expect(sheet).toBeHidden();
@@ -91,4 +92,25 @@ test('room queue search stays above a reduced keyboard viewport and keeps its dr
   });
   await page.getByRole('button', { name: 'Queue', exact: true }).click();
   await expect(search).toHaveValue('Keep this draft');
+});
+
+test('automatic next into denied access dismisses the queue before the access dialog owns focus', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/?e2eRoom=unauthorized&e2eSync=on&e2eAutoplay=on');
+  await page.getByRole('button', { name: 'Open a room', exact: true }).click();
+  await page.getByRole('button', { name: 'Select E2E Public Room Track', exact: true }).click();
+  await page.getByLabel('Your name or nickname').fill('Access host');
+  await page.getByRole('button', { name: 'Open the room', exact: true }).click();
+  await page.getByRole('button', { name: 'Queue', exact: true }).click();
+  await page.getByRole('textbox', { name: 'Find a track to add next', exact: true }).fill('Protected');
+  await page.getByRole('button', { name: 'Add to queue E2E Protected Room Track by Dotify Room Host', exact: true }).click();
+  await page.locator('audio').first().dispatchEvent('ended');
+  await expect(page.getByTestId('access-warning')).toBeVisible();
+  await expect(page.getByRole('dialog', { name: 'Room queue', exact: true })).toBeHidden();
+  await expect(page.getByRole('dialog')).toHaveCount(1);
+  await page.getByRole('button', { name: 'Not now', exact: true }).click();
+  await expect(page.locator('#root')).not.toHaveAttribute('inert', '');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Queue', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'Room queue', exact: true })).toBeVisible();
 });

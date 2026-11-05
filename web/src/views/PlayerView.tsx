@@ -142,6 +142,15 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
   const [roomDetailsOpen, setRoomDetailsOpen] = useState(false);
   const roomDetailsTrack = roomId ? roomReleaseDetails(trackInfo, catalog.catalogTracks) : null;
   const [queueOpen, setQueueOpen] = useState(false);
+  const accessGateOpen = Boolean(catalog.accessGate);
+  useEffect(() => {
+    if (!accessGateOpen) return;
+    setQueueOpen(false);
+    setDetailsTrack(null);
+    setRoomDetailsOpen(false);
+    setShareOpen(false);
+    setIsQrProjectorOpen(false);
+  }, [accessGateOpen]);
   const [roomPanel, setRoomPanel] = useState<'chat' | 'people'>('chat');
   const [chatUnread, setChatUnread] = useState(0);
   const [chatMentions, setChatMentions] = useState(0);
@@ -867,11 +876,11 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
         </div>
       </div>
 
-      {qrProjectorDialog}
-      {detailsTrack && !roomId && (
+      {!accessGateOpen && qrProjectorDialog}
+      {!accessGateOpen && detailsTrack && !roomId && (
         <ReleaseDetailsDialog track={detailsTrack} nativePaymentSymbol={nativePaymentAsset.symbol} onClose={() => setDetailsTrack(null)} />
       )}
-      {roomDetailsOpen && roomDetailsTrack && roomId && (
+      {!accessGateOpen && roomDetailsOpen && roomDetailsTrack && roomId && (
         <ReleaseDetailsDialog
           track={roomDetailsTrack}
           roomContext
@@ -883,7 +892,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
           }}
         />
       )}
-      {shareOpen && roomId && sessionLink && (
+      {!accessGateOpen && shareOpen && roomId && sessionLink && (
         <RoomShareDialog
           roomId={roomId}
           link={sessionLink}
@@ -901,8 +910,8 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
           onClose={() => setShareOpen(false)}
         />
       )}
-      {queueOpen && !roomId && <PlayerQueueDialog onClose={() => setQueueOpen(false)} />}
-      {roomId && <RoomQueueDialog key={roomId} open={queueOpen} onClose={() => setQueueOpen(false)} />}
+      {!accessGateOpen && queueOpen && !roomId && <PlayerQueueDialog onClose={() => setQueueOpen(false)} />}
+      {roomId && <RoomQueueDialog key={roomId} open={queueOpen && !accessGateOpen} onClose={() => setQueueOpen(false)} />}
     </section>
   );
 }

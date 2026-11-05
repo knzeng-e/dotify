@@ -3682,8 +3682,8 @@ Queue presentation to Room Up next/suggestions and release details. No new
 service, environment, CORS, storage or policy setting is required. After matching
 Web/Product delivery, check mobile drag, Back/Escape, keyboard-safe search and
 preserved drafts; closing a sheet must keep the room/audio and restore focus.
-Test Play next into denied access: the queue must close before the access dialog
-opens. Automatic access interruption stays immediate. Desktop WebKit checks do
+Test explicit and automatic/system Next into denied access: contextual sheets
+must close before the access dialog opens and remain closed after dismissal. Automatic access interruption stays immediate. Desktop WebKit checks do
 not replace physical Polkadot app acceptance.
 
 ## Room system-context candidate, 2026-11-05

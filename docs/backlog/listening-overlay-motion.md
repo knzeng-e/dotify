@@ -14,6 +14,9 @@ no history, inertness, body scroll lock or focus. Visible sheets retain the same
 Dialog history/focus boundary and 200 ms exit, with immediate reduced motion.
 Only the handle drags; forms, lists and transport controls remain ordinary.
 Choosing Play next dismisses immediately before access-related UI may open.
+An automatic/system Next that opens an access gate hides contextual sheets in
+the same render and clears their open state, preventing competing focus/inertness
+owners and avoiding an unexpected reopening after the gate is dismissed.
 
 Release details in player, Room and catalog share the same responsive sheet.
 Artwork/metadata inspection does not acquire a guest key or leave a room.
