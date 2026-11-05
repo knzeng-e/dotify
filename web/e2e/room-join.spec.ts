@@ -1,4 +1,5 @@
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
+import { installMediaSessionProbe, readMediaSessionProbe } from './fixtures/mediaSessionProbe';
 
 // Room-join and host-access playback e2e (Sprint 1, Ticket 07).
 //
@@ -45,6 +46,52 @@ declare global {
 const PROTECTED_TITLE = 'E2E Protected Room Track';
 const PUBLIC_TITLE = 'E2E Public Room Track';
 
+test('room release discovery follows the live track without leaving or requesting a guest key', async ({ browser }, testInfo) => {
+  const hostContext = await browser.newContext();
+  const guestContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  try {
+    const host = await hostContext.newPage();
+    await installMediaSessionProbe(host);
+    await installMediaSessionProbe(guestContext);
+    const roomId = await openHostRoom(host, 'public', PUBLIC_TITLE, { catalogSequence: true, captureMode: 'web-audio', autoplay: true, sync: true });
+    const guest = await joinAsListener(guestContext, roomId, { storedDisplayName: 'Discoverer' });
+    await expectRemoteAudioPlaying(guest);
+    await guest.screenshot({ path: testInfo.outputPath('room-discovery-entry-mobile.png'), fullPage: true, animations: 'disabled' });
+    await host.getByRole('button', { name: 'About this release', exact: true }).click();
+    await expect(host.getByRole('dialog')).toContainText(PUBLIC_TITLE);
+    await host.getByRole('button', { name: 'Close release details' }).click();
+    await guest.getByRole('button', { name: 'About this release', exact: true }).click();
+    await expect(guest.getByRole('dialog')).toContainText(PUBLIC_TITLE);
+    await expect(guest.getByRole('dialog')).toContainText('You’re still listening in the room');
+    await expect.poll(async () => (await readMediaSessionProbe(guest)).actions).not.toContain('nexttrack');
+    expect((await readMediaSessionProbe(guest)).actions).not.toContain('previoustrack');
+    expect((await readMediaSessionProbe(guest)).actions).not.toContain('seekto');
+    await guest.screenshot({ path: testInfo.outputPath('room-current-release-mobile.png'), fullPage: true, animations: 'disabled' });
+    await expect.poll(async () => (await readMediaSessionProbe(host)).actions).toContain('nexttrack');
+    expect((await readMediaSessionProbe(host)).actions).not.toContain('seekforward');
+    expect((await readMediaSessionProbe(host)).actions).not.toContain('seekbackward');
+    await host.evaluate(() => Reflect.get(window, '__TEST_MUSIC_SESSION__').handlers.nexttrack({ action: 'nexttrack' }));
+    await expect(guest.locator('.track-copy h2')).not.toHaveText(PUBLIC_TITLE);
+    await expect(guest.getByRole('dialog').locator('h2')).toHaveText(await guest.locator('.track-copy h2').innerText());
+    await expect(guest.getByTestId('room-code')).toHaveText(roomId);
+    await expectRemoteAudioPlaying(guest);
+    expect((await readRoomJoinState(guest))?.keyRequests).toBe(0);
+    await expect(guest.getByRole('dialog').getByRole('button', { name: /pay|unlock|leave/i })).toHaveCount(0);
+    await guest.getByRole('button', { name: 'Close release details' }).click();
+    await expect(guest.getByTestId('room-code')).toHaveText(roomId);
+    await guest.getByRole('button', { name: 'About this release', exact: true }).click();
+    await guest.getByRole('button', { name: 'Explore this artist' }).click();
+    await expect(guest.getByRole('heading', { name: 'Dotify Room Host', exact: true })).toBeVisible();
+    await expectRemoteAudioPlaying(guest);
+    await guest.getByRole('button', { name: 'Return to your room', exact: true }).click();
+    await expect(guest.getByTestId('room-code')).toHaveText(roomId);
+    expect((await readRoomJoinState(guest))?.keyRequests).toBe(0);
+  } finally {
+    await hostContext.close();
+    await guestContext.close();
+  }
+});
+
 type HostScenario = 'public' | 'protected-authorized' | 'protected-unauthorized';
 type HostCaptureMode = 'synthetic' | 'web-audio';
 
@@ -62,13 +109,14 @@ async function openHostRoom(
   page: Page,
   scenario: HostScenario,
   trackTitle: string,
-  options: { captureMode?: HostCaptureMode; offerDelayMs?: number; catalogSequence?: boolean; autoplay?: boolean } = {}
+  options: { captureMode?: HostCaptureMode; offerDelayMs?: number; catalogSequence?: boolean; autoplay?: boolean; sync?: boolean } = {}
 ) {
   const params = new URLSearchParams({ e2eRoom: scenario });
   if (options.captureMode) params.set('e2eCapture', options.captureMode);
   if (options.offerDelayMs) params.set('e2eOfferDelayMs', String(options.offerDelayMs));
   if (options.catalogSequence) params.set('e2eCatalog', 'sequence');
   if (options.autoplay) params.set('e2eAutoplay', 'on');
+  if (options.sync) params.set('e2eSync', 'on');
   await page.goto(`/?${params.toString()}`);
   // Open the room straight from the create-room modal so an unauthorized
   // protected track does not raise an access-gate overlay over the player
@@ -460,6 +508,9 @@ test('protected room with authorized host: host gets the key, listener streams f
 
     // Switching back also preserves the receiver. Source replacement retires
     // the old Web Audio graph only after its sender has moved to the new track.
+    // Previous intentionally restarts after three seconds; choose the intro
+    // here so this test exercises history even on a busy browser worker.
+    await host.getByRole('slider', { name: 'Seek', exact: true }).fill('0');
     await host.getByRole('button', { name: 'Previous track' }).click();
     await host.getByRole('button', { name: 'Play', exact: true }).click();
     await expect(listener.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20_000 });

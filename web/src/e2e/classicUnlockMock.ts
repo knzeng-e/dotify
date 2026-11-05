@@ -30,7 +30,11 @@ export const E2E_CLASSIC_TRACK: CatalogTrack = {
     ? 'dotify:enc:v3:key-v2:ipfs://bafykbzacec2bpys6cfd23kbnvg4p7fidf6laimhd5afshs32sgilt74gkybhw'
     : 'dotify:enc:v3:key-v2:ipfs://Qm5xzsjUGVDnGMtfq5NAwBBGxVEJnkiYjMtHPTtv9qz855',
   imageRef:
-    'data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20640%20640%22%3E%3Crect%20width%3D%22640%22%20height%3D%22640%22%20fill%3D%22%23071326%22/%3E%3Ccircle%20cx%3D%22480%22%20cy%3D%22140%22%20r%3D%22220%22%20fill%3D%22%2300E5A0%22%20opacity%3D%22.58%22/%3E%3Ccircle%20cx%3D%22160%22%20cy%3D%22510%22%20r%3D%22200%22%20fill%3D%22%23B8F012%22%20opacity%3D%22.54%22/%3E%3C/svg%3E',
+    classicUnlockE2eScenario() === 'bulletin-generated-cover'
+      ? `dotify:cover:${E2E_CLASSIC_HASH}`
+      : classicUnlockE2eScenario() === 'bulletin-delayed-cover'
+        ? 'ipfs://QmQEkYGFqbS7AV58HrTgqfwPpSeQJMh4MeeSY1RwWRtVhu/cover/640.webp'
+        : 'data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20640%20640%22%3E%3Crect%20width%3D%22640%22%20height%3D%22640%22%20fill%3D%22%23071326%22/%3E%3Ccircle%20cx%3D%22480%22%20cy%3D%22140%22%20r%3D%22220%22%20fill%3D%22%2300E5A0%22%20opacity%3D%22.58%22/%3E%3Ccircle%20cx%3D%22160%22%20cy%3D%22510%22%20r%3D%22200%22%20fill%3D%22%23B8F012%22%20opacity%3D%22.54%22/%3E%3C/svg%3E',
   priceDot: '0.5',
   localUrl: bulletinSourceScenario ? undefined : E2E_CLASSIC_AUDIO_URL,
   duration: 42,

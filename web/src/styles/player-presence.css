@@ -326,7 +326,7 @@
     color: var(--ink-soft);
     font-size: var(--text-sm);
   }
-  .solo-player-header button {
+  .solo-player-header .icon-action {
     width: var(--touch-target);
     height: var(--touch-target);
     color: var(--ink);
@@ -339,6 +339,30 @@
     height: var(--icon-primary);
     flex-shrink: 0;
   }
+}
+
+.player-account-trigger {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 var(--touch-target);
+  width: var(--touch-target);
+  min-height: var(--touch-target);
+  padding: 0;
+}
+.player-account-trigger svg {
+  flex-shrink: 0;
+}
+.player-account-trigger[data-connected='true']::after {
+  position: absolute;
+  right: 0.4rem;
+  bottom: 0.4rem;
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 50%;
+  background: var(--action);
+  content: '';
 }
 @media (max-width: 768px) and (max-height: 680px) {
   .player-view-grid:not(.player-room-mode) .cover-card {

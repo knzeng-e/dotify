@@ -6,7 +6,7 @@ import { buildClassicAccessReceipt } from '../features/access/accessPromise';
 import { releaseCreditRoleLabel, releaseDateLabel, releaseKindLabel } from '../features/catalog/releaseMetadata';
 import { nativeRuntimeAmountLabel } from '../features/payments/paymentModel';
 import { fetchTrackManifest, type DotifyTrackManifest } from '../services/pinata';
-import type { CatalogTrack } from '../shared/types';
+import type { CatalogTrack, TrackInfo } from '../shared/types';
 
 function durationLabel(seconds: number | undefined): string | null {
   if (!seconds || !Number.isFinite(seconds) || seconds <= 0) return null;
@@ -14,38 +14,59 @@ function durationLabel(seconds: number | undefined): string | null {
   return `${Math.floor(rounded / 60)}:${String(rounded % 60).padStart(2, '0')}`;
 }
 
-export function ReleaseDetailsDialog({ track, nativePaymentSymbol, onClose }: { track: CatalogTrack; nativePaymentSymbol: string; onClose: () => void }) {
-  const [manifest, setManifest] = useState<DotifyTrackManifest | null>(null);
-  const [metadataState, setMetadataState] = useState<'loading' | 'ready' | 'unavailable'>(track.metadataRef ? 'loading' : 'unavailable');
+export function ReleaseDetailsDialog({
+  track,
+  nativePaymentSymbol,
+  onClose,
+  roomContext = false,
+  onOpenArtist
+}: {
+  track: CatalogTrack | TrackInfo;
+  nativePaymentSymbol: string;
+  onClose: () => void;
+  roomContext?: boolean;
+  onOpenArtist?: () => void;
+}) {
+  const release = 'id' in track ? track : null;
+  const [metadata, setMetadata] = useState<{
+    ref: string | undefined;
+    manifest: DotifyTrackManifest | null;
+    state: 'loading' | 'ready' | 'unavailable';
+  }>({ ref: track.metadataRef, manifest: null, state: track.metadataRef ? 'loading' : 'unavailable' });
+  const manifest = metadata.ref === track.metadataRef ? metadata.manifest : null;
+  const metadataState = metadata.ref === track.metadataRef ? metadata.state : track.metadataRef ? 'loading' : 'unavailable';
   const editorial = manifest?.editorial ?? null;
   const duration = durationLabel(manifest?.track.durationSeconds ?? track.duration);
   const access =
-    track.active === false
+    release?.active === false
       ? 'Release unavailable'
       : track.accessMode === 'classic'
-        ? nativeRuntimeAmountLabel(track.priceDot, { symbol: nativePaymentSymbol })
+        ? track.priceDot
+          ? nativeRuntimeAmountLabel(track.priceDot, { symbol: nativePaymentSymbol })
+          : 'Listening price unavailable'
         : track.accessMode === 'free'
           ? 'Free for everyone'
-          : track.personhoodLevel === 'DIM2'
-            ? 'Free with extended human verification'
-            : 'Free with basic human verification';
+          : track.accessMode !== 'human-free'
+            ? 'Listening terms unavailable'
+            : track.personhoodLevel === 'DIM2'
+              ? 'Free with extended human verification'
+              : 'Free with basic human verification';
 
   useEffect(() => {
-    setManifest(null);
     if (!track.metadataRef) {
-      setMetadataState('unavailable');
+      setMetadata({ ref: track.metadataRef, manifest: null, state: 'unavailable' });
       return;
     }
     const controller = new AbortController();
-    setMetadataState('loading');
+    const ref = track.metadataRef;
+    setMetadata({ ref, manifest: null, state: 'loading' });
     void fetchTrackManifest(track.metadataRef, { signal: controller.signal })
       .then(next => {
         if (controller.signal.aborted) return;
-        setManifest(next);
-        setMetadataState('ready');
+        setMetadata({ ref, manifest: next, state: 'ready' });
       })
       .catch(() => {
-        if (!controller.signal.aborted) setMetadataState('unavailable');
+        if (!controller.signal.aborted) setMetadata({ ref, manifest: null, state: 'unavailable' });
       });
     return () => controller.abort();
   }, [track.metadataRef]);
@@ -83,18 +104,34 @@ export function ReleaseDetailsDialog({ track, nativePaymentSymbol, onClose }: { 
         <CoverImage src={track.imageRef} alt={`Cover of ${track.title}`} fallbackLabel={track.title} />
         <div className='release-details-identity'>
           <p className='release-details-artist'>{track.artist}</p>
+          {onOpenArtist && track.artist && (
+            <button type='button' className='text-action' onClick={onOpenArtist}>
+              Explore this artist
+            </button>
+          )}
           <div className='release-details-chips'>
             {editorial && <span>{releaseKindLabel(editorial.releaseKind)}</span>}
             {editorial?.releaseDate && <span>{releaseDateLabel(editorial.releaseDate)}</span>}
             {editorial?.explicitContent && <span>Explicit</span>}
           </div>
           <p className='release-access-summary'>
-            {track.accessMode === 'classic' && track.active !== false ? <Coins size={18} aria-hidden='true' /> : <ShieldCheck size={18} aria-hidden='true' />}
+            {track.accessMode === 'classic' && release?.active !== false ? (
+              <Coins size={18} aria-hidden='true' />
+            ) : (
+              <ShieldCheck size={18} aria-hidden='true' />
+            )}
             <span className='sr-only'>{track.accessMode === 'classic' ? 'Listening price: ' : 'Listening access: '}</span>
             <span>{access}</span>
           </p>
         </div>
       </div>
+
+      {roomContext && (
+        <p className='release-metadata-status'>
+          You’re still listening in the room.{' '}
+          {release ? 'Explore without interrupting the music.' : 'These track details were shared by the host; a matching catalog release is not available.'}
+        </p>
+      )}
 
       {track.description && (
         <section className='release-details-section release-story-section'>
@@ -173,9 +210,9 @@ export function ReleaseDetailsDialog({ track, nativePaymentSymbol, onClose }: { 
           {track.accessMode === 'classic' && (
             <div>
               <h4>Where an access payment goes</h4>
-              {track.royaltySplits.length ? (
+              {release && release.royaltySplits.length ? (
                 <ul className='release-payment-splits'>
-                  {buildClassicAccessReceipt(track, { symbol: nativePaymentSymbol }).recipients.map((recipient, index) => (
+                  {buildClassicAccessReceipt(release, { symbol: nativePaymentSymbol }).recipients.map((recipient, index) => (
                     <li key={`${recipient.label}-${index}`}>
                       <span>{recipient.label}</span>
                       <strong>{recipient.value}</strong>
@@ -209,29 +246,29 @@ export function ReleaseDetailsDialog({ track, nativePaymentSymbol, onClose }: { 
               </dd>
             </div>
           )}
-          {track.artistAddress && (
+          {release?.artistAddress && (
             <div>
               <dt>Artist account</dt>
               <dd>
-                <code>{track.artistAddress}</code>
+                <code>{release.artistAddress}</code>
               </dd>
             </div>
           )}
-          {track.registeredAtBlock !== undefined && (
+          {release?.registeredAtBlock !== undefined && (
             <div>
               <dt>Registered block</dt>
-              <dd>{track.registeredAtBlock}</dd>
+              <dd>{release.registeredAtBlock}</dd>
             </div>
           )}
-          {track.txHash && (
+          {release?.txHash && (
             <div>
               <dt>Transaction</dt>
               <dd>
-                <code>{track.txHash}</code>
+                <code>{release.txHash}</code>
               </dd>
             </div>
           )}
-          {track.royaltySplits.map((split, index) => (
+          {release?.royaltySplits.map((split, index) => (
             <div key={`${split.recipient}-${index}`}>
               <dt>{split.label || 'Recipient'}</dt>
               <dd>

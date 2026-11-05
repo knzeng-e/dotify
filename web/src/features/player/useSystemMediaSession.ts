@@ -1,51 +1,85 @@
 import { useLayoutEffect, useEffect, useRef } from 'react';
-import type { TrackInfo } from '../../shared/types';
 import type { PlaybackControls } from '../../hooks/usePlayback';
-import { getGatewayUrl } from '../../services/pinata';
 import { bindMediaSession } from './systemMediaSession';
+import { resolveSystemArtwork, systemArtworkCandidates, type SystemMediaTrack } from './systemArtwork';
 
-export function useSystemMediaSession(playback: PlaybackControls, track: TrackInfo | null, enabled: boolean) {
+export function useSystemMediaSession(playback: PlaybackControls, track: SystemMediaTrack | null, enabled: boolean) {
   const latest = useRef(playback);
+  const active = useRef(enabled);
   useLayoutEffect(() => {
     latest.current = playback;
-  }, [playback]);
-  useEffect(() => {
+    active.current = enabled;
+  }, [playback, enabled]);
+  useLayoutEffect(() => {
     const session = navigator.mediaSession;
     if (!session || !enabled) return;
     return bindMediaSession(session, {
-      play: () => latest.current.setPlaying(true),
-      pause: () => latest.current.setPlaying(false),
-      ...(playback.canSkip ? { next: () => latest.current.skip('next'), previous: () => latest.current.skip('previous') } : {}),
+      play: () => {
+        if (active.current) latest.current.setPlaying(true);
+      },
+      pause: () => {
+        if (active.current) latest.current.setPlaying(false);
+      },
+      ...(playback.canSkip
+        ? {
+            next: () => {
+              if (active.current) latest.current.skip('next');
+            },
+            previous: () => {
+              if (active.current) latest.current.skip('previous');
+            }
+          }
+        : {}),
       ...(playback.canSeek
         ? {
             seek: (time: number) => {
               const duration = latest.current.transport.duration;
-              if (duration > 0) latest.current.seekToProgress((100 * time) / duration);
+              if (active.current && duration > 0) latest.current.seekToProgress((100 * time) / duration);
             }
           }
-        : {}),
-      position: () => latest.current.transport.currentTime
+        : {})
     });
   }, [enabled, playback.canSkip, playback.canSeek]);
+  const title = track?.title;
+  const artist = track?.artist;
+  const imageRef = track?.imageRef;
   useEffect(() => {
     const session = navigator.mediaSession;
     if (!session) return;
+    const controller = new AbortController();
     try {
-      session.metadata =
-        enabled && track && typeof MediaMetadata !== 'undefined'
-          ? new MediaMetadata({ title: track.title, artist: track.artist, artwork: track.imageRef ? [{ src: getGatewayUrl(track.imageRef) }] : [] })
+      const metadata =
+        enabled && title !== undefined && typeof MediaMetadata !== 'undefined'
+          ? new MediaMetadata({ title, artist, artwork: systemArtworkCandidates(imageRef) })
           : null;
+      session.metadata = metadata;
+      if (metadata) {
+        void resolveSystemArtwork({ title: title!, artist: artist ?? '', imageRef }, controller.signal)
+          .then(artwork => {
+            if (!controller.signal.aborted && active.current && session.metadata === metadata) {
+              session.metadata = new MediaMetadata({ title, artist, artwork });
+            }
+          })
+          .catch(() => {
+            /* Artwork must never delay or interrupt audio. */
+          });
+      }
     } catch {
       session.metadata = null;
     }
     return () => {
+      controller.abort();
       session.metadata = null;
     };
-  }, [enabled, track]);
+  }, [enabled, title, artist, imageRef]);
   useEffect(() => {
     const session = navigator.mediaSession;
     if (!session) return;
-    session.playbackState = !enabled ? 'none' : playback.transport.playing ? 'playing' : 'paused';
+    try {
+      session.playbackState = !enabled ? 'none' : playback.transport.playing ? 'playing' : 'paused';
+    } catch {
+      /* A partial Host implementation must not interrupt audio. */
+    }
     const { duration, currentTime } = playback.transport;
     try {
       session.setPositionState(

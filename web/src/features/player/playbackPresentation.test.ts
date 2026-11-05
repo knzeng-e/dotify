@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { CatalogTrack, TrackInfo } from '../../shared/types';
-import { playbackTrack, playbackTrackDetails, roomPlaybackPresentation } from './playbackPresentation';
+import { playbackTrack, playbackTrackDetails, roomPlaybackPresentation, roomReleaseDetails } from './playbackPresentation';
 
 const solo = {
   title: 'Solo track',
@@ -44,6 +44,35 @@ describe('playback metadata authority', () => {
       priceDot: '4.2',
       description: 'Room access note'
     });
+  });
+});
+
+describe('room release discovery', () => {
+  const hash = `0x${'1'.repeat(64)}` as const;
+  const firstRuntime = '0x0000000000000000000000000000000000000001' as const;
+  const secondRuntime = '0x0000000000000000000000000000000000000002' as const;
+  const first = { ...solo, source: 'artist', id: `${firstRuntime}:${hash}`, hash } as CatalogTrack;
+  const second = { ...first, id: `${secondRuntime}:${hash}`, title: 'Another release' };
+  const snapshot = { ...room, hash, runtimeAddress: firstRuntime };
+
+  it('enriches only the room hash/runtime, independently of a personal selection', () => {
+    expect(roomReleaseDetails(snapshot, [second, first])).toBe(first);
+    expect(roomReleaseDetails(null, [first])).toBeNull();
+    expect(roomReleaseDetails({ ...snapshot, title: '' }, [first])).toBeNull();
+  });
+  it('keeps a useful host snapshot for missing or ambiguous catalog identity', () => {
+    expect(roomReleaseDetails({ ...snapshot, runtimeAddress: undefined }, [first, second])?.title).toBe('Room track');
+    expect(roomReleaseDetails({ ...snapshot, runtimeAddress: secondRuntime }, [first])?.title).toBe('Room track');
+    expect(roomReleaseDetails({ ...snapshot, hash: '' }, [first])?.title).toBe('Room track');
+    // Extra wire fields cannot make an unverified host snapshot a CatalogTrack.
+    const extraFields = { ...snapshot, id: 'not-a-catalog-release', royaltySplits: [] };
+    expect(roomReleaseDetails(extraFields, [])).not.toHaveProperty('id');
+    expect(roomReleaseDetails(extraFields, [])).not.toHaveProperty('royaltySplits');
+  });
+  it('does not follow arbitrary room-provided metadata URLs', () => {
+    expect(roomReleaseDetails({ ...snapshot, metadataRef: 'https://private.test/key' }, [])?.metadataRef).toBeUndefined();
+    const ref = `ipfs://bafy${'a'.repeat(50)}/release.json`;
+    expect(roomReleaseDetails({ ...snapshot, metadataRef: ref }, [])?.metadataRef).toBe(ref);
   });
 });
 

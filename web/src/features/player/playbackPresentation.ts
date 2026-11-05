@@ -1,5 +1,36 @@
 import type { AccessMode, CatalogTrack, Mode, SocketStatus, TrackInfo } from '../../shared/types';
 import { playbackStatusLabel, type AudioStatus } from './playbackStatus';
+import { runtimeAddressFromTrackId } from '../catalog/trackModel';
+
+/** Public discovery only: never use this enrichment as an access/payment decision. */
+export function roomReleaseDetails(roomTrack: TrackInfo | null, tracks: CatalogTrack[]): CatalogTrack | TrackInfo | null {
+  if (!roomTrack?.title.trim()) return null;
+  const matches = roomTrack.hash
+    ? tracks.filter(
+        track =>
+          track.hash.toLowerCase() === roomTrack.hash.toLowerCase() &&
+          (!roomTrack.runtimeAddress || runtimeAddressFromTrackId(track)?.toLowerCase() === roomTrack.runtimeAddress.toLowerCase())
+      )
+    : [];
+  if (matches.length === 1) return matches[0];
+  // An unknown/ambiguous room release still has a useful snapshot. Do not
+  // borrow another selection or follow an arbitrary host-provided HTTP URL.
+  return {
+    title: roomTrack.title,
+    artist: roomTrack.artist,
+    duration: roomTrack.duration,
+    updatedAt: roomTrack.updatedAt,
+    imageRef: roomTrack.imageRef,
+    hash: roomTrack.hash,
+    runtimeAddress: roomTrack.runtimeAddress,
+    bulletinRef: roomTrack.bulletinRef,
+    description: roomTrack.description,
+    accessMode: roomTrack.accessMode,
+    priceDot: roomTrack.priceDot,
+    personhoodLevel: roomTrack.personhoodLevel,
+    metadataRef: /^ipfs:\/\/[A-Za-z0-9]+(?:\/(?:release|metadata)\.json)?$/.test(roomTrack.metadataRef ?? '') ? roomTrack.metadataRef : undefined
+  };
+}
 
 /** Room metadata is a complete snapshot, never a patch over a solo selection. */
 export function playbackTrack(mode: Mode, trackInfo: TrackInfo | null, selectedTrack: CatalogTrack | undefined) {
