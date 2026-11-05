@@ -7,7 +7,7 @@ import { RoomTrackSearch } from './RoomTrackSearch';
 // The host curates one ephemeral playback order and the signaling server mirrors
 // its public metadata to everyone in the room. Access checks and source loading
 // still happen only when the existing player opens a track.
-export function HostLineup() {
+export function HostLineup({ onPlayNext }: { onPlayNext?: () => void }) {
   const catalog = useCatalogContext();
   const session = useSessionContext();
   const { playback } = usePlaybackContext();
@@ -69,7 +69,14 @@ export function HostLineup() {
           </ol>
           {isHost && (
             <div className='host-lineup-actions'>
-              <button type='button' className='secondary-action' onClick={() => playback.skip('next')}>
+              <button
+                type='button'
+                className='secondary-action'
+                onClick={() => {
+                  onPlayNext?.();
+                  playback.skip('next');
+                }}
+              >
                 <SkipForward size={16} /> Play next
               </button>
               <button type='button' className='quiet-action' onClick={playback.clearLineup}>

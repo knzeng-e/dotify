@@ -18,11 +18,11 @@ html[data-player-motion='open']::view-transition-new(root) {
   animation: listening-rise 320ms cubic-bezier(0.22, 0.8, 0.3, 1) both;
 }
 html[data-player-motion='close']::view-transition-old(root) {
-  animation: listening-lower 280ms cubic-bezier(0.4, 0, 0.7, 0.3) both;
+  animation: listening-lower 320ms cubic-bezier(0.22, 0.8, 0.3, 1) both;
   z-index: 2;
 }
 html[data-player-motion='close']::view-transition-new(root) {
-  animation: listening-reveal 280ms ease both;
+  animation: listening-reveal 320ms ease both;
 }
 @keyframes listening-rise {
   from {
@@ -58,10 +58,40 @@ html[data-player-motion='close']::view-transition-new(root) {
 .queue-sheet-handle {
   display: none;
 }
-.player-queue-backdrop {
+.listening-sheet-backdrop {
   backdrop-filter: blur(8px);
+  animation: listening-backdrop-in 200ms ease both;
 }
-.player-queue-dialog[data-closing='true'] {
+.listening-sheet {
+  animation: listening-panel-in 280ms cubic-bezier(0.22, 0.8, 0.3, 1) both;
+}
+@keyframes listening-backdrop-in {
+  from {
+    background-color: transparent;
+    backdrop-filter: blur(0);
+  }
+}
+@keyframes listening-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(1.5rem) scale(0.985);
+  }
+}
+.room-queue-intro {
+  color: var(--ink-soft);
+  margin-block: 0 1.5rem;
+}
+.room-queue-sheet .host-lineup {
+  margin-bottom: 1.25rem;
+}
+.room-queue-sheet .room-requests-panel {
+  min-height: auto;
+}
+.room-queue-sheet .room-chat-list {
+  max-height: 30svh;
+}
+
+.listening-sheet[data-closing='true'] {
   pointer-events: none;
   animation: queue-lower 200ms ease-in both;
 }
@@ -72,17 +102,17 @@ html[data-player-motion='close']::view-transition-new(root) {
   }
 }
 @media (max-width: 48rem) {
-  .modal-backdrop.player-queue-backdrop {
+  .modal-backdrop.listening-sheet-backdrop {
     align-items: end;
     padding: max(0.5rem, var(--safe-top)) 0 0;
   }
-  .modal-backdrop > .player-queue-dialog {
+  .modal-backdrop > .listening-sheet {
     width: 100%;
-    max-height: min(88svh, calc(100dvh - var(--safe-top) - 0.5rem));
+    max-height: min(88svh, calc(var(--form-viewport-height, 100dvh) - var(--safe-top) - 0.5rem));
     border-radius: 1.5rem 1.5rem 0 0;
     padding: 0 1.25rem max(1.25rem, var(--safe-bottom));
     overscroll-behavior: contain;
-    transform: translateY(var(--queue-pull, 0px));
+    transform: translateY(var(--sheet-pull, 0px));
     transition: transform 200ms cubic-bezier(0.22, 0.8, 0.3, 1);
     animation: queue-rise 280ms cubic-bezier(0.22, 0.8, 0.3, 1) both;
   }
@@ -104,13 +134,13 @@ html[data-player-motion='close']::view-transition-new(root) {
     border-radius: 1rem;
     background: var(--muted);
   }
-  .player-queue-dialog[data-presented='true'] {
+  .listening-sheet[data-presented='true'] {
     animation: none;
   }
-  .player-queue-dialog[data-pulling='true'] {
+  .listening-sheet[data-pulling='true'] {
     transition: none;
   }
-  .modal-backdrop > .player-queue-dialog[data-closing='true'] {
+  .modal-backdrop > .listening-sheet[data-closing='true'] {
     animation: queue-dismiss 200ms ease-in both;
   }
   @keyframes queue-rise {
@@ -123,7 +153,7 @@ html[data-player-motion='close']::view-transition-new(root) {
   }
   @keyframes queue-dismiss {
     from {
-      transform: translateY(var(--queue-pull, 0px));
+      transform: translateY(var(--sheet-pull, 0px));
     }
     to {
       transform: translateY(100%);
@@ -135,7 +165,8 @@ html[data-player-motion='close']::view-transition-new(root) {
   html[data-player-motion]::view-transition-group(*),
   html[data-player-motion]::view-transition-old(*),
   html[data-player-motion]::view-transition-new(*),
-  .modal-backdrop > .player-queue-dialog {
+  .listening-sheet-backdrop,
+  .modal-backdrop > .listening-sheet {
     animation: none;
     transition: none;
   }
@@ -176,4 +207,17 @@ html[data-player-motion='close']::view-transition-new(root) {
 .queue-now-playing > button svg {
   width: 20px;
   height: 20px;
+}
+
+.room-view-tabs {
+  display: contents;
+}
+.room-panel-switch #room-tab-chat {
+  order: 1;
+}
+.room-panel-switch #room-tab-queue {
+  order: 2;
+}
+.room-panel-switch #room-tab-people {
+  order: 3;
 }
