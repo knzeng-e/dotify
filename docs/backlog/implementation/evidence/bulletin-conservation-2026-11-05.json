@@ -1,0 +1,344 @@
+{
+  "schema": "dotify.bulletin.conservation-evidence.v1",
+  "observedAt": "2026-11-05",
+  "scope": "Previous Product 0.1.73 dependencies only; not a complete obligation inventory",
+  "plan": {
+    "schema": "dotify.bulletin.conservation-plan.v1",
+    "identity": {
+      "genesis": "0xe101f0fa4627d29a257645e02be86d80378fea1a2bf8fa6a918d150ebc760a59",
+      "account": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca"
+    },
+    "retainedReserve": {
+      "transactions": 311,
+      "bytes": "93634213"
+    },
+    "warningBlocks": 25000,
+    "criticalBlocks": 5000,
+    "sources": [
+      {
+        "id": "app:0.1.73",
+        "kind": "application",
+        "root": "bafybeihwap3ymedmpxkcyqhadyicu3ixkdmzzkv47mrq63yhqz32xpe2cm",
+        "blocks": [
+          {
+            "cid": "bafkreigx4tvg2pnox7venqsrpwe72j3cnptpe75btybmxc2eyex6x6zwmm",
+            "bytes": 25499
+          },
+          {
+            "cid": "bafkreiawxxtaiw7mdyalgoqyqwsvq3ggx3v2xgs62xkugxvpx4e4ktaot4",
+            "bytes": 296
+          },
+          {
+            "cid": "bafkreid62fxho2bmwdtm4cj7n7qluburbnjsxvxeqs7lgtjajoauhddaba",
+            "bytes": 262183
+          },
+          {
+            "cid": "bafkreifocypkrecw4o7an23t54s3indytl7fqiw3qam7aydmifeyct7q4q",
+            "bytes": 262183
+          },
+          {
+            "cid": "bafkreifcjoek7nfamrmk6zoeqrdzwjpb5izaaw7w6hbup5uqsrkxfkpknm",
+            "bytes": 262183
+          },
+          {
+            "cid": "bafkreic2bb6ky5cehdrh4h2fceyl64djsmtcvn7cwallerbv4uq52m57ra",
+            "bytes": 262183
+          },
+          {
+            "cid": "bafkreie7whvc7a33gqqrosgxnxbw54uwmgdukjjsgepihp46dvrem7gl3y",
+            "bytes": 93911
+          },
+          {
+            "cid": "bafkreifsc4356vqxteq6bzqyb2izkza234h5ifgjzwkaod2l3kp6dcrgha",
+            "bytes": 962187
+          },
+          {
+            "cid": "bafkreiaqw3736dby7fbj7bprgqnylolk5xv3iw32mvcvplojauecn754m4",
+            "bytes": 881923
+          },
+          {
+            "cid": "bafkreifxktisancsexm3xlxwqkbgktc7zzdl6esom5q7a5lcly2ud2pv2y",
+            "bytes": 880931
+          },
+          {
+            "cid": "bafkreifbzcb3z5ww5rcpawwl65majfatnnopmtxewo7e7yetyjrynpub5e",
+            "bytes": 868519
+          },
+          {
+            "cid": "bafkreifmxpegwzacog6hx2etifypiipw5p6sbg67ujcjcez5evzx3gelwm",
+            "bytes": 716226
+          },
+          {
+            "cid": "bafkreiglaydriq6evdoq5yrcw2nptznsrmkymvlq6e62bhcud6mtgxmfw4",
+            "bytes": 716226
+          },
+          {
+            "cid": "bafkreidoxhouezbtrclwmqj7v2io54odfyjarprdq5ywbhvd6n3cdgdmce",
+            "bytes": 830734
+          },
+          {
+            "cid": "bafkreigkmk243jncatqlwfimk2emrbltumg5qm2ja6x2x526xvdklhoroi",
+            "bytes": 957144
+          },
+          {
+            "cid": "bafkreieara4zdzc6sjrzbwbieoibc3dtymuqeyzy3ozxs7d7iramak2csy",
+            "bytes": 1024607
+          },
+          {
+            "cid": "bafkreidlatqxeh6seaushrlnrt3fpcwf67n44ev5kjf352r64szbgdgsqu",
+            "bytes": 400294
+          },
+          {
+            "cid": "bafkreicsj3kqighiuo3nbind6egswbjhzbq7imzk7c5ite3cy2czenp7um",
+            "bytes": 6600
+          },
+          {
+            "cid": "bafybeihwap3ymedmpxkcyqhadyicu3ixkdmzzkv47mrq63yhqz32xpe2cm",
+            "bytes": 905
+          },
+          {
+            "cid": "bafk2bzacebh4rknk6x7zl4pul7t3ff7y2pglpk5x4q2k3nxnql5ebizvgluxk",
+            "bytes": 35949
+          }
+        ]
+      }
+    ]
+  },
+  "report": {
+    "schema": "dotify.bulletin.conservation-report.v1",
+    "identity": {
+      "genesis": "0xe101f0fa4627d29a257645e02be86d80378fea1a2bf8fa6a918d150ebc760a59",
+      "account": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca"
+    },
+    "head": 1511018,
+    "blockHash": "0x27f9e1d3eff3562b1ffabae3e5d4ff8fb3e22fc82df826cf99f3f47253496d35",
+    "severity": "warning",
+    "scope": "declared-dependencies",
+    "verification": "finalized-storage-metadata",
+    "bytesRetrievabilityTested": false,
+    "backupRestoreTested": false,
+    "writes": 0,
+    "sourceCount": 1,
+    "uniqueBlocks": 20,
+    "earliestBlockExpiry": 1532185,
+    "accountExpiry": 1621405,
+    "accountSeverity": "ok",
+    "authorization": {
+      "expiresAt": 1621405,
+      "remainingTransactions": 502,
+      "remainingRenewBytes": "210941854"
+    },
+    "quotaSufficient": true,
+    "requiredRenewalReserve": {
+      "transactions": 311,
+      "bytes": "93634213"
+    },
+    "blocks": [
+      {
+        "cid": "bafkreigx4tvg2pnox7venqsrpwe72j3cnptpe75btybmxc2eyex6x6zwmm",
+        "bytes": 25499,
+        "sources": [
+          "app:0.1.73"
+        ],
+        "state": "retained",
+        "severity": "ok",
+        "expiresAt": 1710185
+      },
+      {
+        "cid": "bafkreiawxxtaiw7mdyalgoqyqwsvq3ggx3v2xgs62xkugxvpx4e4ktaot4",
+        "bytes": 296,
+        "sources": [
+          "app:0.1.73"
+        ],
+        "state": "retained",
+        "severity": "ok",
+        "expiresAt": 1710191
+      },
+      {
+        "cid": "bafkreid62fxho2bmwdtm4cj7n7qluburbnjsxvxeqs7lgtjajoauhddaba",
+        "bytes": 262183,
+        "sources": [
+          "app:0.1.73"
+        ],
+        "state": "retained",
+        "severity": "ok",
+        "expiresAt": 1710196
+      },
+      {
+        "cid": "bafkreifocypkrecw4o7an23t54s3indytl7fqiw3qam7aydmifeyct7q4q",
+        "bytes": 262183,
+        "sources": [
+          "app:0.1.73"
+        ],
+        "state": "retained",
+        "severity": "ok",
+        "expiresAt": 1710202
+      },
+      {
+        "cid": "bafkreifcjoek7nfamrmk6zoeqrdzwjpb5izaaw7w6hbup5uqsrkxfkpknm",
+        "bytes": 262183,
+        "sources": [
+          "app:0.1.73"
+        ],
+        "state": "retained",
+        "severity": "ok",
+        "expiresAt": 1710207
+      },
+      {
+        "cid": "bafkreic2bb6ky5cehdrh4h2fceyl64djsmtcvn7cwallerbv4uq52m57ra",
+        "bytes": 262183,
+        "sources": [
+          "app:0.1.73"
+        ],
+        "state": "retained",
+        "severity": "ok",
+        "expiresAt": 1710213
+      },
+      {
+        "cid": "bafkreie7whvc7a33gqqrosgxnxbw54uwmgdukjjsgepihp46dvrem7gl3y",
+        "bytes": 93911,
+        "sources": [
+          "app:0.1.73"
+        ],
+        "state": "retained",
+        "severity": "ok",
+        "expiresAt": 1710219
+      },
+      {
+        "cid": "bafkreifsc4356vqxteq6bzqyb2izkza234h5ifgjzwkaod2l3kp6dcrgha",
+        "bytes": 962187,
+        "sources": [
+          "app:0.1.73"
+        ],
+        "state": "retained",
+        "severity": "warning",
+        "expiresAt": 1532185
+      },
+      {
+        "cid": "bafkreiaqw3736dby7fbj7bprgqnylolk5xv3iw32mvcvplojauecn754m4",
+        "bytes": 881923,
+        "sources": [
+          "app:0.1.73"
+        ],
+        "state": "retained",
+        "severity": "ok",
+        "expiresAt": 1552420
+      },
+      {
+        "cid": "bafkreifxktisancsexm3xlxwqkbgktc7zzdl6esom5q7a5lcly2ud2pv2y",
+        "bytes": 880931,
+        "sources": [
+          "app:0.1.73"
+        ],
+        "state": "retained",
+        "severity": "ok",
+        "expiresAt": 1552428
+      },
+      {
+        "cid": "bafkreifbzcb3z5ww5rcpawwl65majfatnnopmtxewo7e7yetyjrynpub5e",
+        "bytes": 868519,
+        "sources": [
+          "app:0.1.73"
+        ],
+        "state": "retained",
+        "severity": "ok",
+        "expiresAt": 1552434
+      },
+      {
+        "cid": "bafkreifmxpegwzacog6hx2etifypiipw5p6sbg67ujcjcez5evzx3gelwm",
+        "bytes": 716226,
+        "sources": [
+          "app:0.1.73"
+        ],
+        "state": "retained",
+        "severity": "warning",
+        "expiresAt": 1532187
+      },
+      {
+        "cid": "bafkreiglaydriq6evdoq5yrcw2nptznsrmkymvlq6e62bhcud6mtgxmfw4",
+        "bytes": 716226,
+        "sources": [
+          "app:0.1.73"
+        ],
+        "state": "retained",
+        "severity": "warning",
+        "expiresAt": 1534151
+      },
+      {
+        "cid": "bafkreidoxhouezbtrclwmqj7v2io54odfyjarprdq5ywbhvd6n3cdgdmce",
+        "bytes": 830734,
+        "sources": [
+          "app:0.1.73"
+        ],
+        "state": "retained",
+        "severity": "ok",
+        "expiresAt": 1661423
+      },
+      {
+        "cid": "bafkreigkmk243jncatqlwfimk2emrbltumg5qm2ja6x2x526xvdklhoroi",
+        "bytes": 957144,
+        "sources": [
+          "app:0.1.73"
+        ],
+        "state": "retained",
+        "severity": "ok",
+        "expiresAt": 1710226
+      },
+      {
+        "cid": "bafkreieara4zdzc6sjrzbwbieoibc3dtymuqeyzy3ozxs7d7iramak2csy",
+        "bytes": 1024607,
+        "sources": [
+          "app:0.1.73"
+        ],
+        "state": "retained",
+        "severity": "ok",
+        "expiresAt": 1710232
+      },
+      {
+        "cid": "bafkreidlatqxeh6seaushrlnrt3fpcwf67n44ev5kjf352r64szbgdgsqu",
+        "bytes": 400294,
+        "sources": [
+          "app:0.1.73"
+        ],
+        "state": "retained",
+        "severity": "ok",
+        "expiresAt": 1710238
+      },
+      {
+        "cid": "bafkreicsj3kqighiuo3nbind6egswbjhzbq7imzk7c5ite3cy2czenp7um",
+        "bytes": 6600,
+        "sources": [
+          "app:0.1.73"
+        ],
+        "state": "retained",
+        "severity": "ok",
+        "expiresAt": 1710243
+      },
+      {
+        "cid": "bafybeihwap3ymedmpxkcyqhadyicu3ixkdmzzkv47mrq63yhqz32xpe2cm",
+        "bytes": 905,
+        "sources": [
+          "app:0.1.73"
+        ],
+        "state": "retained",
+        "severity": "ok",
+        "expiresAt": 1710249
+      },
+      {
+        "cid": "bafk2bzacebh4rknk6x7zl4pul7t3ff7y2pglpk5x4q2k3nxnql5ebizvgluxk",
+        "bytes": 35949,
+        "sources": [
+          "app:0.1.73"
+        ],
+        "state": "retained",
+        "severity": "ok",
+        "expiresAt": 1691517
+      }
+    ]
+  },
+  "signerLoaded": false,
+  "networkWrites": 0,
+  "monitoringActivated": false,
+  "payloadRead": false,
+  "backupRestored": false
+}

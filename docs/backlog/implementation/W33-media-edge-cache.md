@@ -1,5 +1,16 @@
 # W33 - Serve encrypted media through a read-through edge cache
 
+## Conservation inventory candidate, 2026-11-05
+
+The [read-only operator slice](../../operations/bulletin-conservation.md) checks
+each declared app/media dependency and the account at one finalized block.
+Shared CIDs are deduplicated, mismatches/unknowns fail closed and the prior reserve
+floor cannot decrease. Automated captured-runtime/offline CLI checks cover both
+hash algorithms, independent clocks, quota and input/privacy failures. No writer,
+scheduler or deployment is activated. Live complete-inventory/payload evidence,
+alerts, bounded renewals and coherent off-volume restoration remain required;
+this is partial W33/#288 implementation, not closure or an availability promise.
+
 ## Protected account interruption published, 2026-11-05
 
 [Web and Product 0.1.73](evidence/product-0.1.73-rollout-2026-11-05.md) deliver merged #386 from exact tested

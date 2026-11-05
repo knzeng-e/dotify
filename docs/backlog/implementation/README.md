@@ -1,5 +1,14 @@
 # Dotify implementation playbook
 
+## Conservation assessment candidate, 2026-11-05
+
+The [first read-only conservation slice](../../operations/bulletin-conservation.md)
+checks declared dependencies, account expiry and renewal quota at one finalized
+block, preserving prior obligations. No renewal or monitoring job is activated.
+Next: reconcile all retained app/lab/media graphs, verify live metadata/payloads,
+then bounded renewal/alerts and coherent off-volume restoration. W33/#288 stays
+open; broad editable publication and public pilot acceptance are later gates.
+
 ## Cross-client acceptance and next listening iteration, 2026-11-05
 
 The owner confirms audible stop on disconnect and explicit recovery in 0.1.73 on

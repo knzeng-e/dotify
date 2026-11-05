@@ -1,5 +1,17 @@
 # Deployment Configuration Runbook
 
+## Read-only conservation candidate, 2026-11-05
+
+The [conservation command](bulletin-conservation.md) assesses a reviewed dependency
+plan against one finalized Bulletin snapshot. It distinguishes per-block and
+account expiry, verifies Product SHA-256/media BLAKE2b metadata, deduplicates shared
+blocks and preserves the existing global renewal reserve floor. Unknown reads
+are critical. No signer, seed/config load, submission, scheduler, public endpoint
+or service restart is introduced. It requires an explicit private plan and RPC;
+no live monitoring is activated by this PR. Metadata checks are not payload
+retrievability, inventory-completeness or off-volume restoration proofs. W33/#288
+remains open for those gates, bounded renewals and operator alert activation.
+
 ## Listening controls candidate, 2026-11-05
 
 The [#388 client candidate](../backlog/implementation/evidence/listening-controls-and-discovery-2026-11-05.md)

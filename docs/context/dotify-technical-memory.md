@@ -1,5 +1,15 @@
 # Dotify technical memory
 
+## Conservation assessment candidate, 2026-11-05
+
+[The operator command](../operations/bulletin-conservation.md) keeps conservation
+separate from publishing: explicit dependency plan → one finalized metadata
+snapshot → per-block/account/quota severity. Supports Product SHA-256 and media
+BLAKE2b without loosening media readers; shared CID sizes must agree. Existing
+reserve floors are preserved; unknown reads are critical. No signer, automatic
+renewal, alert schedule or live activation. Complete inventory, retrievable bytes
+and coherent off-volume key/data restoration remain W33/#288 gates.
+
 ## Protected account interruption published, 2026-11-05
 
 [Web and Product 0.1.73](../backlog/implementation/evidence/product-0.1.73-rollout-2026-11-05.md) deliver merged #386 from exact tested
