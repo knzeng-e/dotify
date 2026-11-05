@@ -14,6 +14,7 @@ import {
   Check,
   ExternalLink,
   Headphones,
+  Info,
   KeyRound,
   Library,
   LogOut,
@@ -525,6 +526,22 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
                 fetchPriority='high'
                 sizes='(max-width: 760px) calc(100vw - 40px), 440px'
               />
+              {roomId && roomDetailsTrack && (
+                <button
+                  className='room-release-details-trigger'
+                  type='button'
+                  aria-label='About this release'
+                  title='About this release'
+                  onClick={() => {
+                    // Auto-joined invitations can retain the Rooms history entry.
+                    // Closing the sheet must return to the visible room player.
+                    navigateToView('player', { replace: true });
+                    setRoomDetailsOpen(true);
+                  }}
+                >
+                  <Info size={18} aria-hidden='true' />
+                </button>
+              )}
               <span className='sound-bars' aria-hidden='true'>
                 <i />
                 <i />
@@ -627,20 +644,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
           duration={transportDuration}
           listener={isRoomGuest}
           onOpenQueue={!roomId ? () => setQueueOpen(true) : undefined}
-          onOpenDetails={
-            roomId
-              ? roomDetailsTrack
-                ? () => {
-                    // An auto-joined invitation can retain the Rooms history state.
-                    // Closing this sheet must return to the current player view.
-                    navigateToView('player', { replace: true });
-                    setRoomDetailsOpen(true);
-                  }
-                : undefined
-              : selectedTrack
-                ? () => setDetailsTrack(selectedTrack)
-                : undefined
-          }
+          onOpenDetails={!roomId && selectedTrack ? () => setDetailsTrack(selectedTrack) : undefined}
         />
         {roomId && <RoomReactions key={roomId} selfId={ownSocketId} />}
         {roomId && (
