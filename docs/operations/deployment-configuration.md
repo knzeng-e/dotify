@@ -1,5 +1,32 @@
 # Deployment Configuration Runbook
 
+## Listening controls candidate, 2026-11-05
+
+The [#388 client candidate](../backlog/implementation/evidence/listening-controls-and-discovery-2026-11-05.md)
+adds account access in the mobile player, current-room release/artist discovery,
+and corrected Media Session artwork/actions. It is not deployed; Web and Product
+remain 0.1.73. No environment variable, CORS/origin, service, mount, secret,
+storage-policy, key or contract change is required. No media upload, renewal or
+service restart is performed by this implementation.
+
+After review and a normal matching Web/Product rollout, verify:
+
+- Narrow mobile layouts, safe areas and enlarged text keep the account sheet
+  accessible directly in the Player; Disconnect stops protected audio and
+  reconnect requires explicit playback.
+- Room hosts and guests can inspect the live release and public artist profile
+  while audio and membership remain active. Guests do not request keys/payments
+  or receive host next/previous/seek authority.
+- On physical devices, the locked/backgrounded player shows the current title,
+  artist and cover, with previous/next when the eligible queue permits it.
+  Disconnect/dismissal retires metadata and actions. Record the OS, browser or
+  Polkadot app version and deployed build; controlled browser probes alone do
+  not prove the native display or lifecycle.
+
+Keep #388 open through those delivery/device checks. Existing protected access,
+room-guest silence, Bulletin conservation and off-volume recovery gates remain
+separate. The dated rollout records below describe completed operations.
+
 ## Product 0.1.73 client publication, 2026-11-05
 
 [Verified rollout](../backlog/implementation/evidence/product-0.1.73-rollout-2026-11-05.md) delivers merged
@@ -19,7 +46,8 @@ access checks. Use the existing registered eight-second release and the
 The owner confirms sound stops on disconnect and explicit recovery works on
 Web, Desktop and mobile. Account switching, room-guest silence and signed denial
 remain open. Mobile Player account access, room current-track discovery and
-native lock-screen artwork/actions are planned separately in #388.
+native lock-screen artwork/actions are tracked separately in #388; see the
+client candidate above for its implementation and remaining device gates.
 
 Preserve all server receipts, queues, account cursors and encryption reservations.
 Reserve 291 future renewals / 84,178,313 bytes across retained obligations. No

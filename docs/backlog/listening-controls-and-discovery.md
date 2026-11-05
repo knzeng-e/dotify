@@ -2,11 +2,11 @@
 
 - GitHub issue: [#388](https://github.com/knzeng-e/dotify/issues/388).
 - Priority: P1. Track: Production spine. Phase: Next. Type: Work.
-- Workflow status: GitHub Project 5; implementation has not started.
+- Workflow status: GitHub Project 5; client implementation candidate ready for review. Deployment and physical native acceptance remain open.
 
 Owner feedback during Product 0.1.73 acceptance, 2026-11-05. The owner confirms audible stop on disconnect and explicit recovery on Web, Polkadot app Desktop and mobile. Three usability gaps should be addressed in the next iteration alongside Bulletin stabilization.
 
-Local scope: `docs/backlog/listening-controls-and-discovery.md`. Follow-up to delivered W28/#223 and W35/#290; related reliability/access work remains W33/#288. This ticket records requested work, not shipped behavior.
+Local scope: `docs/backlog/listening-controls-and-discovery.md`. Follow-up to delivered W28/#223 and W35/#290; related reliability/access work remains W33/#288. The [client implementation evidence](implementation/evidence/listening-controls-and-discovery-2026-11-05.md) records the candidate and controlled tests. Web/Product remain deployed as 0.1.73; the acceptance groups below stay open through matching delivery and physical validation.
 
 ## Work and acceptance
 

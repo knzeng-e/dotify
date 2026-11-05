@@ -6,10 +6,11 @@ The owner confirms audible stop on disconnect and explicit recovery in 0.1.73 on
 Web, Polkadot app Desktop and mobile. [#388](listening-controls-and-discovery.md) tracks the next requested
 iteration: account/disconnect access inside the mobile player, current release/
 artist discovery inside the room, and lock-screen cover plus previous/next
-controls. Implement against current tested dev, preserve account/access/room
-boundaries, and record actual native behavior. This work is planned alongside
-Bulletin stabilization; signed denial, account switching, room-guest silence,
-conservation and coherent off-volume recovery remain separate W33 gates.
+controls. The [client candidate](implementation/evidence/listening-controls-and-discovery-2026-11-05.md) is implemented and locally tested against
+current tested dev, preserving account/access/room boundaries. It awaits review,
+matching delivery and physical native acceptance; deployed clients remain
+0.1.73. Signed denial, account switching, room-guest silence, conservation and
+coherent off-volume recovery remain separate W33 gates.
 
 ## Registered Bulletin playback published, 2026-11-04
 
