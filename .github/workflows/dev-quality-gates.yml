@@ -411,6 +411,10 @@ jobs:
       - name: Verify encrypted audio continuity
         run: npm run test:audio-continuity -- --project chromium
 
+      - name: Verify WebKit listening controls and artwork
+        working-directory: web
+        run: npx playwright test --config playwright.listening-webkit.config.ts
+
       - name: Verify Product host identity
         working-directory: web
         run: npx playwright test --config playwright.product-identity.config.ts --project=chromium --workers=2

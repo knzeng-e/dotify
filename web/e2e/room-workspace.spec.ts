@@ -11,6 +11,15 @@ async function hostRoom(page: Page) {
 }
 
 async function expectConversationFits(page: Page) {
+  for (const name of ['Connect account', 'About this release']) {
+    const control = page.getByRole('button', { name, exact: true });
+    await expect(control).toBeVisible();
+    const box = (await control.boundingBox())!;
+    expect(box.width).toBeGreaterThanOrEqual(44);
+    expect(box.height).toBeGreaterThanOrEqual(44);
+    expect(box.x).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width).toBeLessThanOrEqual(page.viewportSize()!.width);
+  }
   const bounds = await page.evaluate(() => {
     const player = document.querySelector('.player-stage')!.getBoundingClientRect();
     const composer = document.querySelector('#room-panel-chat .room-chat-form')!.getBoundingClientRect();

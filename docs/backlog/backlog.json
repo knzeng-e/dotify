@@ -32,7 +32,7 @@
       "priority": "P1",
       "track": "Production spine",
       "phase": "Next",
-      "note": "Owner-requested next-iteration follow-up after 0.1.73 disconnect/recovery acceptance on Web/Desktop/mobile: direct mobile Player account access, room current-track discovery and physical lock-screen artwork/previous-next behavior. Planned only; preserve access, room authority and Bulletin conservation boundaries."
+      "note": "Owner-requested next-iteration follow-up after 0.1.73 disconnect/recovery acceptance on Web/Desktop/mobile: direct mobile Player account access, room current-track discovery and physical lock-screen artwork/previous-next behavior. Client candidate implemented and locally tested; review, matching delivery and physical native acceptance remain open. Preserve access, room authority and Bulletin conservation boundaries."
     },
     {
       "id": "room-galaxy-restoration",

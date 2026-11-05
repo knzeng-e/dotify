@@ -18,8 +18,11 @@ physical access/interruption, conservation and coherent off-volume recovery.
 
 Next iteration: [#388 listening controls and discovery](../backlog/listening-controls-and-discovery.md) records the
 owner's mobile Player disconnect, room track-details and lock-screen artwork/
-previous-next requests. These are planned alongside Bulletin stabilization;
-no implementation or native rendering guarantee is claimed.
+previous-next requests. The [client implementation candidate](../backlog/implementation/evidence/listening-controls-and-discovery-2026-11-05.md) reuses the existing account sheet,
+current room identity and shared playback ownership. Public artwork is resolved
+for Media Session and relative-seek actions are cleared. Local automated checks
+pass; review, matching delivery and physical lock-screen evidence remain open.
+No service/storage policy or deployed version changes.
 
 ## Registered Bulletin playback published, 2026-11-04
 

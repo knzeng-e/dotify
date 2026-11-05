@@ -4,6 +4,7 @@ import { PlayerQueueDialog } from '../components/PlayerQueueDialog';
 import { RoomShareDialog } from '../components/RoomShareDialog';
 import { NearbyControls } from '../components/NearbyControls';
 import { ReleaseDetailsDialog } from '../components/ReleaseDetailsDialog';
+import { PlayerAccountButton } from '../components/PlayerAccountButton';
 import { ArtistDonationButton } from '../components/ArtistDonationButton';
 import { HostContributions } from '../components/HostContributions';
 import {
@@ -13,6 +14,7 @@ import {
   Check,
   ExternalLink,
   Headphones,
+  Info,
   KeyRound,
   Library,
   LogOut,
@@ -38,7 +40,7 @@ import { Dialog } from '../components/Dialog';
 import { isPolicyManagedTrack, trackHasAccess } from '../features/access/accessPolicy';
 import { isChosenDisplayName } from '../features/identity/walletIdentity';
 import { roomHostDisplayName, roomListenerSyncLabel, roomPresenceCount, roomPresencePreview } from '../features/rooms/roomState';
-import { playbackTrack, playbackTrackDetails } from '../features/player/playbackPresentation';
+import { playbackTrack, playbackTrackDetails, roomReleaseDetails } from '../features/player/playbackPresentation';
 import { playbackStatusLabel } from '../features/player/playbackStatus';
 import { nativeRuntimeAmountLabel } from '../features/payments/paymentModel';
 import { protectedPlaybackFailureCopy } from '../features/catalog/protectedPlaybackFailure';
@@ -134,6 +136,8 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
   const [isQrProjectorOpen, setIsQrProjectorOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [detailsTrack, setDetailsTrack] = useState<CatalogTrack | null>(null);
+  const [roomDetailsOpen, setRoomDetailsOpen] = useState(false);
+  const roomDetailsTrack = roomId ? roomReleaseDetails(trackInfo, catalog.catalogTracks) : null;
   const [queueOpen, setQueueOpen] = useState(false);
   const [roomPanel, setRoomPanel] = useState<'chat' | 'queue' | 'people'>('chat');
   const [chatUnread, setChatUnread] = useState(0);
@@ -141,6 +145,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
   useEffect(() => {
     setRoomPanel('chat');
     setShareOpen(false);
+    setRoomDetailsOpen(false);
     setChatUnread(0);
     setChatMentions(0);
   }, [roomId]);
@@ -278,6 +283,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
             <ChevronDown size={24} />
           </button>
           <span>Now playing</span>
+          <PlayerAccountButton />
         </header>
       )}
       {roomId && (
@@ -366,6 +372,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
               </span>
             )}
           </button>
+          <PlayerAccountButton />
         </div>
       )}
       {roomId &&
@@ -519,6 +526,22 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
                 fetchPriority='high'
                 sizes='(max-width: 760px) calc(100vw - 40px), 440px'
               />
+              {roomId && roomDetailsTrack && (
+                <button
+                  className='room-release-details-trigger'
+                  type='button'
+                  aria-label='About this release'
+                  title='About this release'
+                  onClick={() => {
+                    // Auto-joined invitations can retain the Rooms history entry.
+                    // Closing the sheet must return to the visible room player.
+                    navigateToView('player', { replace: true });
+                    setRoomDetailsOpen(true);
+                  }}
+                >
+                  <Info size={18} aria-hidden='true' />
+                </button>
+              )}
               <span className='sound-bars' aria-hidden='true'>
                 <i />
                 <i />
@@ -909,6 +932,18 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
       {qrProjectorDialog}
       {detailsTrack && !roomId && (
         <ReleaseDetailsDialog track={detailsTrack} nativePaymentSymbol={nativePaymentAsset.symbol} onClose={() => setDetailsTrack(null)} />
+      )}
+      {roomDetailsOpen && roomDetailsTrack && roomId && (
+        <ReleaseDetailsDialog
+          track={roomDetailsTrack}
+          roomContext
+          nativePaymentSymbol={nativePaymentAsset.symbol}
+          onClose={() => setRoomDetailsOpen(false)}
+          onOpenArtist={() => {
+            setRoomDetailsOpen(false);
+            onOpenArtist(roomDetailsTrack.artist);
+          }}
+        />
       )}
       {shareOpen && roomId && sessionLink && (
         <RoomShareDialog

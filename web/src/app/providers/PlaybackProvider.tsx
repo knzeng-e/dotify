@@ -1,5 +1,6 @@
 import { useListeningCheckpoint } from '../../features/player/useListeningCheckpoint';
 import { useSystemMediaSession } from '../../features/player/useSystemMediaSession';
+import { playbackTrack } from '../../features/player/playbackPresentation';
 import { useWalletContext } from './WalletProvider';
 import type { ListeningCheckpoint } from '../../features/player/listeningCheckpoint';
 // Playback provider - wraps the usePlayback hook (media elements + transport
@@ -101,7 +102,13 @@ export function PlaybackProvider({ children }: { children: ReactNode }) {
   const resumeTrack = checkpoint.offer
     ? catalog.catalogTracks.find(track => track.id === checkpoint.offer!.trackId && track.hash === checkpoint.offer!.hash && track.active !== false)
     : null;
-  useSystemMediaSession(playback, catalog.trackInfo, Boolean(catalog.trackInfo) && (!playerDismissed || Boolean(session.roomId)));
+  useSystemMediaSession(
+    playback,
+    playbackTrack(session.mode, catalog.trackInfo, selectedTrack),
+    (playback.canUseTransport || catalog.trackSelectionPending || catalog.audioSourcePending) &&
+      (session.mode === 'listener' || !catalog.playbackFailure) &&
+      (!playerDismissed || Boolean(session.roomId))
+  );
 
   function resumeListening() {
     if (!resumeTrack || !checkpoint.offer || session.roomId) return;

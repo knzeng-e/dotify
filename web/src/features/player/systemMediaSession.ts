@@ -4,7 +4,6 @@ export type SystemMediaControls = {
   next?: () => void;
   previous?: () => void;
   seek?: (seconds: number) => void;
-  position: () => number;
 };
 
 /** Unsupported actions are individually optional; no global feature flag. */
@@ -18,13 +17,13 @@ export function bindMediaSession(session: MediaSession, controls: SystemMediaCon
       ? {
           seekto: (event: MediaSessionActionDetails) => {
             if (Number.isFinite(event.seekTime)) controls.seek!(event.seekTime!);
-          },
-          seekbackward: (event: MediaSessionActionDetails) => controls.seek!(controls.position() - (event.seekOffset ?? 10)),
-          seekforward: (event: MediaSessionActionDetails) => controls.seek!(controls.position() + (event.seekOffset ?? 10))
+          }
         }
       : {})
   };
   const actions: MediaSessionAction[] = ['play', 'pause', 'nexttrack', 'previoustrack', 'seekto', 'seekbackward', 'seekforward'];
+  // Music navigation uses track boundaries. Clear relative-seek handlers left
+  // by an earlier source; foreground/absolute timeline seeking stays available.
   for (const action of actions) {
     try {
       session.setActionHandler(action, handlers[action] ?? null);
