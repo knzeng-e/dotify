@@ -6,6 +6,7 @@ import { readAudioBody } from './readAudioBody';
 import { getAudioGatewayUrls } from '../../services/pinata';
 import { pumpStreamingReadAhead } from './streamingPipeline';
 import { readCompatibilityAudio, type CompatibilityAudioProgress } from './compatibilityAudio';
+import { compatibilityMp4 } from './compatibilityMp4';
 import { isBulletinMediaRoot, streamingObjectUrls } from './streamingTransport';
 import type { StreamingStartupMetric } from './audioStartupTelemetry';
 type ReaderMetric = Pick<
@@ -242,7 +243,7 @@ export async function createStreamingPlayback(input: {
       throw error;
     });
     input.signal.throwIfAborted();
-    return { url: URL.createObjectURL(new Blob(parts, { type: 'audio/mp4' })), gainDb: context.manifest.gainDb, progressive: false };
+    return { url: URL.createObjectURL(new Blob(compatibilityMp4(parts), { type: 'audio/mp4' })), gainDb: context.manifest.gainDb, progressive: false };
   }
   const source = new capability.ctor();
   const url = URL.createObjectURL(source);

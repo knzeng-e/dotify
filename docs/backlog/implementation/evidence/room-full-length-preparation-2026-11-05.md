@@ -69,17 +69,36 @@ on Chromium. Test keys are public synthetic values; no artist key/content is use
 The same codec tests remain in CI with its ordinary synthetic fixture; the
 283.1-second variant is local evidence, not a claimed remote/physical result.
 
-CI follow-up: the first W35 run passed 30 cases but failed the new immediate
-compatibility-duration assertion on Linux WebKit: `audio.duration` reported
-4.01 seconds for the 24.2-second fragmented AAC fixture. The regression now
-lets the complete rendition play naturally, requires `ended` and a final media
-clock matching the authenticated manifest, and checks that no media error
-occurred. Its test-only deadline follows fixture duration plus bounded overhead;
-the production startup deadline is unchanged. This detects actual truncation
-without treating initial container metadata or a seek as full-playback proof.
-The exact CI fixture passes natural completion on local Chromium and macOS
-WebKit. Local Firefox cannot launch its headless graphics process, so its
-updated result and Linux WebKit remain remote CI checks.
+## CI-discovered standalone-container correction
+
+The first W35 run passed 30 cases but Linux WebKit reported only 4.01 seconds
+for the 24.2-second compatibility fixture. Replacing the immediate metadata/seek
+assertion with natural completion confirmed an actual early end at 4.87 seconds.
+macOS WebKit and Chromium play the same concatenated bytes completely, so local
+codec evidence alone did not expose this platform difference.
+
+The encoder emits one `sidx` (segment index) per DASH segment. Concatenating those
+as a standalone MP4 leaves each index describing only a short subsegment.
+`compatibilityMp4.ts` replaces them with one complete index after all objects
+have authenticated. It reuses each original `moof`/`mdat` payload byte in order,
+without decoding or re-encoding samples, changing server content or bypassing
+integrity checks. Only the local compatibility Blob changes; progressive readers
+retain their original fragments.
+
+This is deliberately limited to the existing FFmpeg DASH profile: one version-1
+local index, one `moof`/`mdat` pair, contiguous timestamps, matching track and
+timescale, and moof-relative data offsets. Malformed, external, discontinuous or
+unsupported layouts fail before exposing a Blob. Box counts and lengths are
+bounded. The replacement output is smaller than the authenticated input, so it
+does not enlarge the existing 40 MiB budget. No new dependency, encoder setting,
+service configuration or stored asset is introduced.
+
+The browser regression now requires natural completion, a final media clock
+matching the authenticated manifest and no media error. Its test-only deadline
+follows fixture duration plus bounded overhead; production deadlines are
+unchanged. Unit tests cover complete index references, payload preservation/no
+mutation and malformed/unsupported index rejection. Local Firefox cannot launch
+its headless graphics process; Linux WebKit and Firefox remain remote CI checks.
 
 After matching delivery: use the existing full-length release, verify preparation
 and actual Web/Desktop guest audio from the mobile host, then pause/resume, Next,

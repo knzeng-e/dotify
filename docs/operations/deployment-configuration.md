@@ -3729,3 +3729,10 @@ Desktop guests. Verify progress, cancellation/track change, same-track position,
 pause/resume and expiry/failure recovery; background remains a separate test.
 Use the current registered audio, not a new publication. Record startup time and
 cache conditions honestly. The 0.1.76 eight-second success is not this acceptance.
+
+The compatibility Blob also replaces DASH per-segment indexes with one complete
+local MP4 index, preserving authenticated sample bytes and failing closed on
+unsupported container layouts. Progressive readers and stored assets do not
+change. Browser CI must verify natural completion against the authenticated
+fixture duration on Linux WebKit as well as Chromium/Firefox; initial metadata
+or a short advancing clock does not prove complete playback.
