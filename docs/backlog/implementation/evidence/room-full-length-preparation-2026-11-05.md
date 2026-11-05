@@ -69,6 +69,18 @@ on Chromium. Test keys are public synthetic values; no artist key/content is use
 The same codec tests remain in CI with its ordinary synthetic fixture; the
 283.1-second variant is local evidence, not a claimed remote/physical result.
 
+CI follow-up: the first W35 run passed 30 cases but failed the new immediate
+compatibility-duration assertion on Linux WebKit: `audio.duration` reported
+4.01 seconds for the 24.2-second fragmented AAC fixture. The regression now
+lets the complete rendition play naturally, requires `ended` and a final media
+clock matching the authenticated manifest, and checks that no media error
+occurred. Its test-only deadline follows fixture duration plus bounded overhead;
+the production startup deadline is unchanged. This detects actual truncation
+without treating initial container metadata or a seek as full-playback proof.
+The exact CI fixture passes natural completion on local Chromium and macOS
+WebKit. Local Firefox cannot launch its headless graphics process, so its
+updated result and Linux WebKit remain remote CI checks.
+
 After matching delivery: use the existing full-length release, verify preparation
 and actual Web/Desktop guest audio from the mobile host, then pause/resume, Next,
 guest local mute/disconnect and same-track position. Background/cold-start

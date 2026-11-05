@@ -298,6 +298,8 @@ test('publication player refuses a bad key before reading any media or archive',
 });
 
 test('publication compatibility playback uses authenticated AAC when both streaming APIs are absent', async ({ page }) => {
+  const expectedDuration = JSON.parse(Buffer.from(fixture.manifest, 'base64').toString()).durationSeconds as number;
+  test.setTimeout(expectedDuration * 1000 + 20_000);
   await page.route('**/publication-compatibility', route =>
     route.fulfill({ contentType: 'text/html', body: '<!doctype html><button>Play</button><audio></audio>' })
   );
@@ -341,12 +343,15 @@ test('publication compatibility playback uses authenticated AAC when both stream
   expect(result.paths.some(path => path.startsWith('archive/'))).toBe(false);
   await page.click('button');
   await expect.poll(() => page.evaluate(() => document.querySelector('audio')!.currentTime)).toBeGreaterThan(0.2);
-  const expectedDuration = JSON.parse(Buffer.from(fixture.manifest, 'base64').toString()).durationSeconds as number;
-  await expect.poll(() => page.evaluate(() => document.querySelector('audio')!.duration)).toBeCloseTo(expectedDuration, 0);
-  await page.evaluate(duration => {
-    document.querySelector('audio')!.currentTime = Math.max(0, duration - 1);
-  }, expectedDuration);
-  await expect.poll(() => page.evaluate(() => document.querySelector('audio')!.currentTime)).toBeGreaterThan(expectedDuration - 0.7);
+  // A fragmented MP4 can initially report only its first fragment's duration
+  // (Linux WebKit reported 4.01 for this 24.2-second fixture). Verify the whole
+  // rendition actually plays to completion, rather than seeking against that
+  // preliminary estimate. Early truncation still fails the final clock check.
+  await expect
+    .poll(() => page.evaluate(() => document.querySelector('audio')!.ended), { timeout: expectedDuration * 1000 + 10_000 })
+    .toBe(true);
+  expect(await page.evaluate(() => document.querySelector('audio')!.currentTime)).toBeCloseTo(expectedDuration, 0);
+  await expect(page.locator('audio')).toHaveJSProperty('error', null);
 });
 
 test('the reader starts at 96, upgrades on measured headroom and downshifts after congestion', async ({ page }) => {
