@@ -20,6 +20,21 @@ async function expectConversationFits(page: Page) {
     expect(box.x).toBeGreaterThanOrEqual(0);
     expect(box.x + box.width).toBeLessThanOrEqual(page.viewportSize()!.width);
   }
+  const heading = await page.locator('.player-track-heading').evaluate(element => {
+    const title = element.querySelector('h2')!.getBoundingClientRect();
+    const info = element.querySelector('button')!.getBoundingClientRect();
+    return { titleRight: title.right, infoLeft: info.left, infoTop: info.top, titleBottom: title.bottom };
+  });
+  expect(heading.infoLeft).toBeGreaterThanOrEqual(heading.titleRight);
+  expect(heading.infoTop).toBeLessThan(heading.titleBottom);
+  await expect(page.locator('.cover .room-release-details-trigger')).toHaveCount(0);
+  expect(
+    await page.locator('.track-copy').evaluate(element => {
+      const info = element.querySelector('.room-release-details-trigger')!.getBoundingClientRect();
+      const tip = element.querySelector('.contribution-action')?.getBoundingClientRect();
+      return !tip || info.right <= tip.left || tip.right <= info.left || info.bottom <= tip.top || tip.bottom <= info.top;
+    })
+  ).toBe(true);
   const bounds = await page.evaluate(() => {
     const player = document.querySelector('.player-stage')!.getBoundingClientRect();
     const composer = document.querySelector('#room-panel-chat .room-chat-form')!.getBoundingClientRect();

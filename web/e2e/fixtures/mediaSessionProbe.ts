@@ -23,6 +23,8 @@ export async function readMediaSessionProbe(page: Page) {
     const media = Reflect.get(window, '__TEST_MUSIC_SESSION__');
     return {
       title: media.metadata?.title ?? null,
+      artist: media.metadata?.artist ?? null,
+      album: media.metadata?.album ?? null,
       artwork: (media.metadata?.artwork ?? []) as MediaImage[],
       actions: Object.keys(media.handlers).filter(action => media.handlers[action] !== null),
       state: media.playbackState
