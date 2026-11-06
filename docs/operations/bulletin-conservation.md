@@ -1,5 +1,7 @@
 # Check declared Bulletin retention
 
+The separately approved [0.1.78 application rollout](../backlog/implementation/evidence/product-0.1.78-rollout-2026-11-06.md) performs bounded immediate one-off renewal of its retained dependencies, with durable intents and independent canonical expiry/byte readback. It does not add a writer to this read-only command, activate a scheduler or conserve every historical graph. Its cumulative future floor is 391 transactions / 131,511,566 bytes; older example floors below are not current defaults.
+
 This operator command checks **every declared dependency**, account authorization
 and renewal quota at one finalized block. A fresh app/root does not renew its
 children. The command has no signer, submission method, scheduler or automatic

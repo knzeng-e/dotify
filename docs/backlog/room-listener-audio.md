@@ -2,6 +2,10 @@
 
 Issue #395 · P1 · Production spine · Next · Work.
 
+## Matching lifecycle delivery, 2026-11-06
+
+[Web/Product 0.1.78](implementation/evidence/product-0.1.78-rollout-2026-11-06.md) deliver merged #400. Source CI and independent delivery/complete canonical application retention pass. Physical full-length startup, native lock/unlock sound and explicit recovery remain pending. The bounded one-off app dependency renewals do not activate general conservation. Keep #395 open; the previous foreground result is not background acceptance.
+
 ## Matching delivery, 2026-11-06
 
 [Web/Product 0.1.77](implementation/evidence/product-0.1.77-rollout-2026-11-06.md) deliver merged #399: bounded four-object reads, verified preparation progress and a complete AAC index. Source CI and independent delivery checks pass. The owner confirms eventual full-length phone-host sound at both guest types, but startup remains slow with intermittent errors/retries, and locking the phone silences host and guests until unlock. Keep #395 open for reliable startup and lifecycle/background delivery. Earlier dated results below retain their original scope.

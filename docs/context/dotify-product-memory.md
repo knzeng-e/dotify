@@ -1,5 +1,18 @@
 # Dotify product memory
 
+## Room lifecycle delivered in 0.1.78, 2026-11-06
+
+[Web and Product 0.1.78](../backlog/implementation/evidence/product-0.1.78-rollout-2026-11-06.md) publish merged #400 from frozen source
+`6898863d`. Both CIs and independent Web/CAR/finalized-retention/DotNS readback pass;
+the signer is removed. Failed preparation cannot create a silent Room; observed
+output interruption pauses at position with visible explicit recovery. Solo and
+Room share rounded Dotify petal artwork without tiny room text. Physical startup,
+lock/unlock and artwork acceptance remain open in #395/#388.
+This bounded application-only operation uses 14 stores / 5,259,623 bytes and
+6 immediate renewals / 4,214,282 bytes, one operation per dependency.
+Preserve 391 future renewals / 131,511,566 bytes. No automatic renewal, musical
+write, API/custody change or service restart. Older checkpoints remain dated facts.
+
 ## Full-length Room correction delivered in 0.1.77, 2026-11-06
 
 [Web and Product 0.1.77](../backlog/implementation/evidence/product-0.1.77-rollout-2026-11-06.md) publish merged #399 from frozen source
