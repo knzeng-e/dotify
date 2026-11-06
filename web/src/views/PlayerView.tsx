@@ -216,7 +216,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
   const showManualAudioStart = Boolean(
     mode === 'listener' && roomId && remoteReady && (status === 'autoplay-blocked' || /manual|tap play/i.test(sessionStatus))
   );
-  const showHostOutputInterruption = mode === 'host' && status === 'output-interrupted';
+  const showHostOutputInterruption = mode === 'host' && (status === 'output-interrupted' || status === 'autoplay-blocked');
   const showAudioRetry = Boolean(mode === 'listener' && roomId && !productHostWebRtcUnavailable && (!remoteReady || status === 'no-audio'));
   // Authorized, but no sound: name the cause and retry in place. Guests never
   // request a key, so this only concerns the solo listener or the room host.

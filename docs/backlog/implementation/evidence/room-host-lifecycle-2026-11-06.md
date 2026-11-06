@@ -47,7 +47,10 @@ native entitlement. See the [Audio Session draft](https://w3c.github.io/audio-se
 After the graph has run, an observed suspended/interrupted/closed state freezes
 the currently playing media element at its position and silences both legs.
 The persistent player displays **Audio interrupted · tap Play to resume**; Room
-controls offer **Resume audio**. The normal explicit Play path resumes the graph
+controls offer **Resume audio**, also when native autoplay is refused after
+preparation. That refusal previously left its message hidden in the Room; the
+new regression reproduces the hidden message before the correction and verifies
+explicit recovery with the same source in Chromium and WebKit. The normal explicit Play path resumes the graph
 and the element. Visibility, pageshow and later context recovery never invoke
 play, so they cannot override voluntary Pause, access/account invalidation,
 source retirement or room exit. A suspended initial graph is not mistaken for
