@@ -4,7 +4,7 @@ Issue #395 · P1 · Production spine · Next · Work.
 
 ## Matching delivery, 2026-11-06
 
-[Web/Product 0.1.77](implementation/evidence/product-0.1.77-rollout-2026-11-06.md) deliver merged #399: bounded four-object reads, verified preparation progress and a complete AAC index. Source CI and independent delivery checks pass. Physical full-length phone-host preparation and audible Web/Desktop guest delivery remain pending; keep #395 open for these and lifecycle/background checks. Earlier dated results below retain their original scope.
+[Web/Product 0.1.77](implementation/evidence/product-0.1.77-rollout-2026-11-06.md) deliver merged #399: bounded four-object reads, verified preparation progress and a complete AAC index. Source CI and independent delivery checks pass. The owner confirms eventual full-length phone-host sound at both guest types, but startup remains slow with intermittent errors/retries, and locking the phone silences host and guests until unlock. Keep #395 open for reliable startup and lifecycle/background delivery. Earlier dated results below retain their original scope.
 
 The owner reports that a mobile host hears local music but Desktop/Web guests
 receive silence, including with the phone unlocked and app foregrounded. Hosting
@@ -84,3 +84,18 @@ phone-host test with the existing eight-second release. Both guest types hear
 the music. The app version was not restated. This accepts that reported path;
 physical pause/resume/Next, guest mute/disconnect/recovery and background hosting
 remain separate checks. Keep #395 open for that remaining lifecycle acceptance.
+
+## Full-length foreground result and background failure, 2026-11-06
+
+The owner reports eventual sound with **Adang Fobe** on two tests and confirms
+Web/Desktop guests hear it. Startup still takes a long time after Room opening,
+sometimes shows audio-slow/unavailable, and required repeated retries. Locking
+the phone silences both host and guests; unlocking restores sound. Background
+clock advancement is reported, not independently measured. See the
+[matching delivery feedback](implementation/evidence/product-0.1.77-rollout-2026-11-06.md#owner-full-length-feedback-2026-11-06).
+
+Next diagnosis must separate authenticated download, local media readiness and
+capture/context activation. Record per-attempt timings and context/session state,
+media/context clocks and outgoing energy across lock/unlock. Do not infer
+readiness from Room visibility or connected peers, treat foreground success as
+background acceptance, or weaken access/deadlines to hide failure. #395 stays open.

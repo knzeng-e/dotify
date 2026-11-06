@@ -6,7 +6,8 @@ source `0587442dbbbe75e10e44fffbb692ebdabdcc0edf` on `release/product-0.1.77`, b
 [Exact-source CI](https://github.com/knzeng-e/dotify/actions/runs/42195158354) and
 [merged dev CI](https://github.com/knzeng-e/dotify/actions/runs/42193657375) pass.
 [Structured evidence](product-0.1.77-rollout-2026-11-06.json) contains public receipts and independent readback.
-Refs #395 and W33/#288; physical full-length mobile-host acceptance is **pending**.
+Refs #395 and W33/#288; the owner confirms eventual full-length foreground delivery,
+but startup reliability and locked/background hosting remain **open**.
 The [0.1.76 record](product-0.1.76-rollout-2026-11-05.md) preserves the confirmed
 eight-second listen and subsequent full-track failure without conflating them.
 
@@ -100,4 +101,39 @@ No new publication or purchase is needed. Next validate host pause/resume/Next,
 guest local mute/disconnect/recovery and same-track position. Background and
 cold-start checks remain separate. Keep #395 open; #396 retains matching panel
 acceptance, and W33 retains denial/account switching, conservation/alerts and
-coherent off-volume recovery. No full-track physical success is claimed here.
+coherent off-volume recovery. The owner result below now confirms eventual foreground delivery, with material startup and background failures still open.
+
+## Owner full-length feedback, 2026-11-06
+
+Replying to the matching 0.1.77 **Adang Fobe** test request, the owner confirms
+**“Préparation : OK”**, **“Web : oui”** and **“Desktop : oui”**. Sound eventually
+arrived on two tests. The owner did not independently restate About/app version,
+network, exact elapsed preparation time or uninterrupted full-track completion.
+This confirms reported foreground full-length-source delivery to both guest
+types, not reliable startup or all lifecycle acceptance.
+
+After Room opening, audio still takes a long time and sometimes shows
+**“The audio is slow to arrive. Your access is confirmed, but the audio file could
+not be loaded right now”**. The owner retried several times before sound arrived.
+Do not classify this as an accepted preparation delay: correlate ordered-byte
+progress, fetch/authentication completion, Blob creation, media readiness,
+AudioContext resume and capture activation with the existing attempt generation
+and deadline. Distinguish room/signaling readiness from audible-source readiness;
+measure before changing timeouts or introducing caches or new storage writes.
+
+Locking the phone silences **both host and guests**; unlocking restores sound.
+The owner reports playback seems to continue in background, but neither media
+and context clocks nor outgoing audio energy were captured. The code routes the
+local monitor and outgoing WebRTC leg through a shared AudioContext
+(`audioNormalization.ts`, with a similar fallback in `useSession.ts`). Suspension
+or interruption of that graph is consistent with both outputs falling silent,
+not yet a measured cause. [WebKit background AudioContext history](https://bugs.webkit.org/show_bug.cgi?id=261554)
+is supporting context, not proof of the behavior of the current Host/iOS version.
+Capture context/session state, both clocks and sender energy across lock/unlock;
+separate client behavior from native Host background policy. Preserve explicit
+pause, disconnect/access interruption, mute ownership and source retirement.
+No microphone permission or synthetic keepalive is justified by this report.
+
+#395 remains open for reliable full-length startup, locked/background delivery
+and the remaining host/guest lifecycle controls. This feedback changes no
+runtime, deployment, content, policy, allowance or renewal state.

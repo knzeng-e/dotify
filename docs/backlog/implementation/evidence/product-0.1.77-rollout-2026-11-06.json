@@ -711,10 +711,29 @@
     "mergedDevCiPassed": true
   },
   "remainingAcceptance": [
-    "Physical full-length mobile-host preparation and audible Web/Desktop guest delivery on 0.1.77.",
+    "Make full-length phone-host startup reliable: intermittent slow/unavailable errors and repeated retries remain despite eventual foreground Web/Desktop success.",
     "Host pause/resume/Next, guest mute/disconnect/recovery and same-track position.",
-    "Background/cold-start separately; matching Room panel acceptance #396.",
+    "Locked/background host currently silences host and guests; diagnose media/context clocks, session state and sender energy, preserving access and pause ownership. Cold-start and matching Room panels #396 remain separate.",
     "W33 signed denial/account switching, complete dependency conservation/alerts and coherent off-volume restore.",
     "Separate custody fatal-exit/supervision reliability follow-up."
-  ]
+  ],
+  "physicalFullLengthAcceptance": {
+    "reportedAtDate": "2026-11-06",
+    "source": "Owner reply to matching 0.1.77 full-length Adang Fobe test request; About version and app version not independently restated.",
+    "preparationEventuallySucceeded": true,
+    "successfulAttemptsReported": 2,
+    "guestWebAudible": true,
+    "guestDesktopAudible": true,
+    "startupStable": false,
+    "startupObservation": "After Room opens, long delay, intermittent audio-slow/unavailable message, repeated manual retries, eventual sound on two tests. No timing or transport trace supplied.",
+    "backgroundAccepted": false,
+    "lockObservation": "Locking host phone silences both host and listeners; audible playback returns after unlocking. Owner reports playback appears to continue in background; no media/context-clock or sender-energy measurement proves advancement.",
+    "hostPlatform": "phone",
+    "guestPlatforms": [
+      "Web",
+      "Desktop"
+    ],
+    "networkNotRestated": true,
+    "conclusion": "Foreground full-length delivery confirmed, startup reliability and locked/background hosting remain open in #395."
+  }
 }

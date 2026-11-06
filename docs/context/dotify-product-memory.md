@@ -7,8 +7,10 @@
 is removed. Complete mobile Room preparation uses at most four authenticated
 reads and a complete local AAC index, preserving payloads, access checks,
 existing deadlines and the 40 MiB cap; solo remains progressive.
-Physical full-length mobile-host Web/Desktop acceptance and lifecycle checks
-remain open in #395, separately from the confirmed eight-second 0.1.76 listen.
+The owner confirms eventual full-length phone-host sound at Web/Desktop guests,
+but startup still has delays/errors/retries and locking the phone silences both
+host and guests until unlock. Reliable startup, background and lifecycle checks
+remain open in #395; the eight-second 0.1.76 result stays separate.
 Reserve 371 future renewals / 122,037,661 bytes; no renewal/scheduler is activated.
 API/custody, musical assets and policies are unchanged; no service restart occurs.
 Older dated checkpoints retain their state at that time.
