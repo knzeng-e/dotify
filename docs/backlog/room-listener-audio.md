@@ -2,6 +2,10 @@
 
 Issue #395 · P1 · Production spine · Next · Work.
 
+## Matching delivery, 2026-11-06
+
+[Web/Product 0.1.77](implementation/evidence/product-0.1.77-rollout-2026-11-06.md) deliver merged #399: bounded four-object reads, verified preparation progress and a complete AAC index. Source CI and independent delivery checks pass. Physical full-length phone-host preparation and audible Web/Desktop guest delivery remain pending; keep #395 open for these and lifecycle/background checks. Earlier dated results below retain their original scope.
+
 The owner reports that a mobile host hears local music but Desktop/Web guests
 receive silence, including with the phone unlocked and app foregrounded. Hosting
 from Web/Desktop works for receivers on all three surfaces. This is not yet

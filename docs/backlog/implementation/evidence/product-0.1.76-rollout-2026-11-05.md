@@ -125,3 +125,5 @@ with the report, not a measured account of each request on the phone. A bounded
 parallel-reader correction is being tested separately. The eight-second result
 remains valid for that excerpt and does not certify full-length Room hosting.
 #395 remains open; no new deployment, content upload or access bypass is included.
+
+The [0.1.77 delivery](product-0.1.77-rollout-2026-11-06.md) publishes the bounded preparation and complete-index correction on 2026-11-06. Independent delivery checks pass; matching physical full-length acceptance remains pending.

@@ -1,5 +1,18 @@
 # Dotify Production Backlog
 
+## Full-length Room correction delivered in 0.1.77, 2026-11-06
+
+[Web and Product 0.1.77](implementation/evidence/product-0.1.77-rollout-2026-11-06.md) publish merged #399 from frozen source
+`0587442d`. CI and independent Web/block/CAR/DotNS checks pass; the local signer
+is removed. Complete mobile Room preparation uses at most four authenticated
+reads and a complete local AAC index, preserving payloads, access checks,
+existing deadlines and the 40 MiB cap; solo remains progressive.
+Physical full-length mobile-host Web/Desktop acceptance and lifecycle checks
+remain open in #395, separately from the confirmed eight-second 0.1.76 listen.
+Reserve 371 future renewals / 122,037,661 bytes; no renewal/scheduler is activated.
+API/custody, musical assets and policies are unchanged; no service restart occurs.
+Older dated checkpoints retain their state at that time.
+
 ## Mobile room capture delivered in 0.1.76, 2026-11-05
 
 [Web and Product 0.1.76](implementation/evidence/product-0.1.76-rollout-2026-11-05.md) publish merged #397/#398 from frozen source
