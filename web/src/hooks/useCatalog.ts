@@ -107,6 +107,7 @@ const AUDIO_STARTUP_TIMEOUT_MS = 60_000;
 export type TrackSelectionResult = {
   playbackMode: RoomPlaybackMode;
   audioSource: string | null;
+  preparationFailed?: boolean;
 };
 
 type ActiveTrackSelection = {
@@ -993,7 +994,7 @@ export function useCatalog(deps: UseCatalogDeps) {
       // have no key grant and must always take the ordinary runtime check.
       if (!freeKeyChecksAccess && isPolicyManagedTrack(track) && (!track.encrypted || (!preparedGrant && !warmSource))) {
         hasAccess = await checkTrackAccess(track, listenerEvmAddress);
-        if (!isTrackSelectionCurrent(selection)) return { playbackMode: 'full', audioSource: audioSourceRef.current };
+        if (!isTrackSelectionCurrent(selection)) return { playbackMode: 'full', audioSource: audioSourceRef.current, preparationFailed: true };
         const smokeRuntime = runtimeAddressFromTrackId(track);
         if (
           runtimeAdapterConfig.kind === 'product-cdm' &&
@@ -1014,7 +1015,7 @@ export function useCatalog(deps: UseCatalogDeps) {
             isCurrent: () => isTrackSelectionCurrent(selection) && supportAccountRef.current === accountAtRead
           });
           if (!isTrackSelectionCurrent(selection) || supportAccountRef.current !== accountAtRead)
-            return { playbackMode: 'full', audioSource: audioSourceRef.current };
+            return { playbackMode: 'full', audioSource: audioSourceRef.current, preparationFailed: true };
         }
         setCatalogAccessByTrackId(previous => ({ ...previous, [track.id]: hasAccess }));
         if (!hasAccess) {
@@ -1071,7 +1072,7 @@ export function useCatalog(deps: UseCatalogDeps) {
         } else {
           audioUrl = track.localUrl ?? null;
         }
-        if (!isTrackSelectionCurrent(selection)) return { playbackMode: 'full', audioSource: audioSourceRef.current };
+        if (!isTrackSelectionCurrent(selection)) return { playbackMode: 'full', audioSource: audioSourceRef.current, preparationFailed: true };
 
         if (freeKeyChecksAccess)
           setCatalogAccessByTrackId(previous => ({ ...previous, [track.id]: freeKeyAccessConfirmed && failureKind !== 'access-not-confirmed' }));
@@ -1084,7 +1085,7 @@ export function useCatalog(deps: UseCatalogDeps) {
         }
       }
 
-      if (!isTrackSelectionCurrent(selection)) return { playbackMode: 'full', audioSource: audioSourceRef.current };
+      if (!isTrackSelectionCurrent(selection)) return { playbackMode: 'full', audioSource: audioSourceRef.current, preparationFailed: true };
       if (!audioUrl) reportSelectionFailure(hasAccess ? 'selection-failed' : 'access-denied');
       const sourceAlreadyReady = Boolean(
         audioUrl && audioSourceRef.current === audioUrl && localAudioRef.current && localAudioRef.current.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA
@@ -1108,7 +1109,7 @@ export function useCatalog(deps: UseCatalogDeps) {
         // streams nothing (kept on the wire for protocol compatibility).
         socketEmit('room:playback-mode', { playbackMode: 'full' });
       }
-      return { playbackMode: 'full', audioSource: audioUrl };
+      return { playbackMode: 'full', audioSource: audioUrl, preparationFailed: hasAccess && !audioUrl };
     } catch (error) {
       reportSelectionFailure('selection-failed');
       throw error;

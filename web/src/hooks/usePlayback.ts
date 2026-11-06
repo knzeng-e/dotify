@@ -237,7 +237,7 @@ export function usePlayback(deps: UsePlaybackDeps) {
       }));
       setStatus(previous => {
         if (!audio.paused) return audio.readyState < HTMLMediaElement.HAVE_FUTURE_DATA ? 'buffering' : 'playing';
-        if (previous === 'autoplay-blocked' || previous === 'no-audio') return previous;
+        if (previous === 'output-interrupted' || previous === 'autoplay-blocked' || previous === 'no-audio') return previous;
         return mode === 'host' ? 'ready' : remoteReady ? 'ready' : previous;
       });
     },
@@ -785,6 +785,18 @@ export function usePlayback(deps: UsePlaybackDeps) {
     [onHostMediaSettled, reportHostPlaybackError, startupForAudio, syncFromAudio]
   );
 
+  const handleHostOutputInterrupted = useCallback(
+    (audio: HTMLAudioElement) => {
+      if (audio !== localAudioRef.current || mode !== 'host') return;
+      userPausedRef.current = true;
+      autoplayIntentRef.current = false;
+      syncFromAudio(audio);
+      onEmitPlayerState(true);
+      setStatus('output-interrupted');
+    },
+    [localAudioRef, mode, syncFromAudio, onEmitPlayerState]
+  );
+
   const handleHostError = useCallback(
     (audio: HTMLAudioElement): boolean => {
       const startup = startupForAudio(audio);
@@ -853,6 +865,7 @@ export function usePlayback(deps: UsePlaybackDeps) {
     handleHostPlaying,
     handleHostWaiting,
     handleHostError,
+    handleHostOutputInterrupted,
     requestAutoplay,
     stop,
     markNoAudio

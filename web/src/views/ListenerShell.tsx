@@ -216,6 +216,12 @@ export function ListenerShell() {
       .openTrack(track, undefined, undefined, undefined, true, { forRoomCapture: true, preserveCurrentPosition: track.id === catalog.selectedTrackId })
       .catch(() => null);
     if (creationSignal.aborted) return;
+    // A failed/cancelled source is not a prepared room. Preserve access-gated
+    // room creation, but do not publish a silent room after a transport failure.
+    if (!selection || selection.preparationFailed) {
+      session.cancelRoomCreation();
+      return;
+    }
     session.createSession(trackInfo, 'full', undefined, { audioSourceHint: selection?.audioSource ?? null, onCreated, creationSignal, profile });
   }
 

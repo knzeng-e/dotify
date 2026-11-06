@@ -28,6 +28,8 @@ for (const width of [320, 390, 430]) {
     await expect.poll(async () => (await readMediaSessionProbe(page)).title).toBe('Deterministic Classic Unlock');
     await expect.poll(async () => (await readMediaSessionProbe(page)).artwork[0]?.src).toMatch(/^data:image\/png;base64,/);
     const png = (await readMediaSessionProbe(page)).artwork[0];
+    expect((await readMediaSessionProbe(page)).album).toBe('Dotify');
+    await testInfo.attach('solo-system-artwork', { body: Buffer.from(png.src.split(',')[1], 'base64'), contentType: 'image/png' });
     expect(png).toMatchObject({ sizes: '640x640', type: 'image/png' });
     expect(
       await page.evaluate(async src => {
@@ -91,7 +93,7 @@ test('a public artwork response arriving after disconnect cannot restore system 
   await expect(page.locator('audio[src]')).toHaveCount(0);
 });
 
-test('room system artwork retains attribution and retires room context on exit', async ({ page }, testInfo) => {
+test('room system artwork keeps track attribution and a stable Dotify signature without room text', async ({ page }, testInfo) => {
   await installMediaSessionProbe(page);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/?e2eRoom=public&e2eAutoplay=on&e2eSync=on');
@@ -99,12 +101,12 @@ test('room system artwork retains attribution and retires room context on exit',
   await page.getByRole('button', { name: 'Select E2E Public Room Track' }).click();
   await page.getByLabel('Your name or nickname').fill('Room host');
   await page.getByRole('button', { name: 'Open the room', exact: true }).click();
-  await expect.poll(async () => (await readMediaSessionProbe(page)).album).toContain('Dotify · Hosting live · 1 here');
+  await expect.poll(async () => (await readMediaSessionProbe(page)).album).toBe('Dotify');
   await expect.poll(async () => (await readMediaSessionProbe(page)).artwork[0]?.src).toMatch(/^data:image\/png;base64,/);
   const session = await readMediaSessionProbe(page);
   expect(session.title).toBe('E2E Public Room Track');
   expect(session.artist).toBe('Dotify Room Host');
   await testInfo.attach('room-system-artwork', { body: Buffer.from(session.artwork[0].src.split(',')[1], 'base64'), contentType: 'image/png' });
   await page.getByRole('button', { name: 'Close room', exact: true }).click();
-  await expect.poll(async () => (await readMediaSessionProbe(page)).album ?? '').toBe('');
+  await expect.poll(async () => (await readMediaSessionProbe(page)).album ?? '').toBe('Dotify');
 });

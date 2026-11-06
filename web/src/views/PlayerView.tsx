@@ -216,6 +216,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
   const showManualAudioStart = Boolean(
     mode === 'listener' && roomId && remoteReady && (status === 'autoplay-blocked' || /manual|tap play/i.test(sessionStatus))
   );
+  const showHostOutputInterruption = mode === 'host' && status === 'output-interrupted';
   const showAudioRetry = Boolean(mode === 'listener' && roomId && !productHostWebRtcUnavailable && (!remoteReady || status === 'no-audio'));
   // Authorized, but no sound: name the cause and retry in place. Guests never
   // request a key, so this only concerns the solo listener or the room host.
@@ -391,6 +392,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
       {roomId &&
         (session.socketStatus !== 'online' ||
           showManualAudioStart ||
+          showHostOutputInterruption ||
           showAudioRetry ||
           productHostWebRtcUnavailable ||
           error ||
@@ -400,6 +402,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
             <span>
               {error ||
                 (playbackFailure ? `${playbackFailure.title}. ${playbackFailure.message}` : '') ||
+                (showHostOutputInterruption ? playbackStatusLabel(status, mode) : '') ||
                 (/reconnecting/i.test(sessionStatus) ? 'Reconnecting to the listening moment.' : '') ||
                 (session.socketStatus !== 'online'
                   ? 'Reconnecting to the room. Your draft stays here.'
@@ -416,6 +419,10 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
             ) : playbackFailure && !error ? (
               <button type='button' onClick={onRetryPlayback}>
                 {playbackFailure.action}
+              </button>
+            ) : showHostOutputInterruption ? (
+              <button type='button' onClick={() => playback.setPlaying(true)}>
+                Resume audio
               </button>
             ) : (
               (showManualAudioStart || showAudioRetry) && (

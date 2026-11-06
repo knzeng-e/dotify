@@ -758,3 +758,10 @@ test('native WebKit managed AAC starts while a later segment is still unavailabl
   await playing(page, 1);
   expect(probe.keyRequests()).toBe(1);
 });
+
+test('failed complete preparation cannot be advertised as a prepared Room source', async ({ page }) => {
+  await setup(page, 'failed-startup', true);
+  await expect(page.getByTestId('state')).toHaveAttribute('data-failure', 'audio-unavailable');
+  await expect(page.getByTestId('state')).toHaveAttribute('data-preparation-failed', 'true');
+  await expect(page.locator('audio[src]')).toHaveCount(0);
+});

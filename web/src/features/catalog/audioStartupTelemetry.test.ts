@@ -1,3 +1,4 @@
+import { serializeAudioDiagnostics } from './audioStartupTelemetry';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   streamingStartupPhaseLabel,
@@ -48,6 +49,7 @@ describe('audio startup telemetry', () => {
 
     expect(getAudioStartupTelemetrySnapshot()).toEqual({
       continuity: { nextLatencyMs: [], playingMs: 0, waitingMs: 0, rebufferRatio: 0 },
+      output: [],
       streaming: [streamingMetric],
       host: [hostMetric],
       latestMediaPlayingMs: 820.2
@@ -64,6 +66,7 @@ describe('audio startup telemetry', () => {
 
     expect(target.__DOTIFY_AUDIO_STARTUP__?.snapshot()).toEqual({
       continuity: { nextLatencyMs: [], playingMs: 0, waitingMs: 0, rebufferRatio: 0 },
+      output: [],
       streaming: [streamingMetric],
       host: [hostMetric],
       latestMediaPlayingMs: 820.2
@@ -89,4 +92,31 @@ describe('audio startup telemetry', () => {
     expect(streamingStartupPhaseLabel({ phase: 'first-object-ready' })).toBe('Loading your track…');
     expect(streamingStartupPhaseLabel({ phase: 'error' })).toBe('Audio unavailable');
   });
+});
+
+it('exports support timings without source identifiers or arbitrary transport detail', () => {
+  const serialized = serializeAudioDiagnostics(
+    {
+      streaming: [
+        {
+          ...streamingMetric,
+          audioRef: 'PRIVATE-AUDIO',
+          cid: 'PRIVATE-CID',
+          gatewayUrl: 'https://private-origin.invalid',
+          detail: 'PRIVATE-DETAIL',
+          objectPath: 'PRIVATE-PATH'
+        }
+      ],
+      host: [{ ...hostMetric, source: 'PRIVATE-SOURCE', attemptId: 'PRIVATE-ATTEMPT' }],
+      output: [],
+      latestMediaPlayingMs: 0
+    },
+    'PRIVATE-BUILD-INPUT'
+  );
+  expect(serialized).not.toContain('PRIVATE');
+  expect(serialized).not.toContain('private-origin');
+  const diagnostic = JSON.parse(serialized);
+  expect(diagnostic.schema).toBe('dotify.audio-diagnostics.v1');
+  expect(diagnostic.host[0]).toMatchObject({ phase: 'media-playing', elapsedMs: 820.2 });
+  expect(diagnostic.buildSha).toBeNull();
 });

@@ -1,3 +1,4 @@
+import { audioOutputObservations, clearAudioOutputObservations, type AudioOutputObservation } from '../player/audioOutputLifecycle';
 import { playbackContinuity } from '../player/playbackContinuity';
 export type StreamingStartupPhase =
   | 'prepared-source-adopted'
@@ -8,6 +9,7 @@ export type StreamingStartupPhase =
   | 'first-object-ready'
   | 'first-segment-decrypted'
   | 'first-segment-appended'
+  | 'compatibility-ready'
   | 'compatibility-reader'
   | 'error';
 
@@ -44,6 +46,7 @@ export type HostAudioStartupMetric = {
 };
 
 export type AudioStartupTelemetrySnapshot = {
+  output?: AudioOutputObservation[];
   continuity?: ReturnType<typeof playbackContinuity.snapshot>;
   streaming: StreamingStartupMetric[];
   host: HostAudioStartupMetric[];
@@ -78,6 +81,7 @@ const streamingPhases = new Set<StreamingStartupPhase>([
   'first-segment-decrypted',
   'first-segment-appended',
   'compatibility-reader',
+  'compatibility-ready',
   'error'
 ]);
 const hostPhases = new Set<HostAudioStartupMetric['phase']>(['playback-intent', 'source-selected', 'metadata-ready', 'media-playing', 'error']);
@@ -157,6 +161,7 @@ function pushBounded<T>(items: T[], item: T): T[] {
 
 export function clearAudioStartupTelemetry(): void {
   playbackContinuity.reset();
+  clearAudioOutputObservations();
   streamingMetrics = [];
   hostMetrics = [];
 }
@@ -185,10 +190,48 @@ export function getAudioStartupTelemetrySnapshot(): AudioStartupTelemetrySnapsho
   const latestMediaPlaying = [...hostMetrics].reverse().find(metric => metric.phase === 'media-playing');
   return {
     continuity: playbackContinuity.snapshot(),
+    output: audioOutputObservations(),
     streaming: [...streamingMetrics],
     host: [...hostMetrics],
     latestMediaPlayingMs: latestMediaPlaying?.elapsedMs ?? null
   };
+}
+
+/** Explicit support export: never serialize source URLs, CIDs or arbitrary error detail. */
+export function serializeAudioDiagnostics(snapshot: AudioStartupTelemetrySnapshot, buildSha?: string | null): string {
+  return JSON.stringify(
+    {
+      schema: 'dotify.audio-diagnostics.v1',
+      buildSha: /^[a-f0-9]{40}$/i.test(buildSha ?? '') ? buildSha : null,
+      observedAt: new Date().toISOString(),
+      streaming: snapshot.streaming.slice(-160).map(({ phase, elapsedMs, timestamp, objectPath, fromCache, errorKind }) => ({
+        phase,
+        elapsedMs,
+        timestamp,
+        fromCache,
+        errorKind,
+        objectPath: /^(manifest\.json|(?:96|160|320)\/(?:init|segment-[0-9]{3})\.bin)$/.test(objectPath ?? '') ? objectPath : undefined
+      })),
+      host: snapshot.host.slice(-160).map(({ phase, elapsedMs, timestamp, terminalReason }) => ({ phase, elapsedMs, timestamp, terminalReason })),
+      output: (snapshot.output ?? [])
+        .slice(-96)
+        .map(({ generation, event, timestamp, contextState, contextSeconds, mediaSeconds, paused, readyState, visibility, sessionType, sessionState }) => ({
+          generation,
+          event,
+          timestamp,
+          contextState,
+          contextSeconds,
+          mediaSeconds,
+          paused,
+          readyState,
+          visibility,
+          sessionType,
+          sessionState
+        }))
+    },
+    null,
+    2
+  );
 }
 
 export function streamingStartupPhaseLabel(metric: Pick<StreamingStartupMetric, 'phase'>): string {
