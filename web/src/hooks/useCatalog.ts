@@ -854,6 +854,12 @@ export function useCatalog(deps: UseCatalogDeps) {
         onMetric: metric,
         audio: options?.audio ?? (() => localAudioRef.current),
         forRoomCapture,
+        onPreparationProgress: progress => {
+          if (!options?.speculative && isCurrent() && !controllerSignal.aborted && progress.totalBytes > 0) {
+            const percent = Math.min(100, Math.floor((100 * progress.completedBytes) / progress.totalBytes));
+            setAudioStartupStatus(`${forRoomCapture ? 'Preparing room audio' : 'Preparing audio'} · ${percent}%`);
+          }
+        },
         bufferAheadSeconds: options ? () => (options.audio().isConnected ? 30 : 4) : undefined,
         onError: () => {
           if ((!options?.speculative || options.audio().isConnected) && isCurrent()) {
@@ -1024,6 +1030,9 @@ export function useCatalog(deps: UseCatalogDeps) {
       // Bulletin roots deliberately have no direct public-asset gateway URL.
       if (hasAccess && (track.encrypted || track.localUrl)) {
         let failureKind: ProtectedPlaybackFailureKind | null = null;
+        // A confirmed key grant is access evidence; an unfinished media download
+        // must not turn the UI hint back into a denial. This hint grants no key.
+        let freeKeyAccessConfirmed = Boolean(warmSource);
         if (warmSource) audioUrl = warmSource;
         else if (track.encrypted) {
           // Transient failures (service out of reach, access not propagated
@@ -1039,7 +1048,13 @@ export function useCatalog(deps: UseCatalogDeps) {
                 selection.controller.signal,
                 () => isTrackSelectionCurrent(selection),
                 undefined,
-                () => armAudioStartupDeadline(selection)
+                () => {
+                  armAudioStartupDeadline(selection);
+                  if (freeKeyChecksAccess && isTrackSelectionCurrent(selection)) {
+                    freeKeyAccessConfirmed = true;
+                    setCatalogAccessByTrackId(previous => ({ ...previous, [track.id]: true }));
+                  }
+                }
               );
               failureKind = null;
               break;
@@ -1058,6 +1073,9 @@ export function useCatalog(deps: UseCatalogDeps) {
         }
         if (!isTrackSelectionCurrent(selection)) return { playbackMode: 'full', audioSource: audioSourceRef.current };
 
+        if (freeKeyChecksAccess)
+          setCatalogAccessByTrackId(previous => ({ ...previous, [track.id]: freeKeyAccessConfirmed && failureKind !== 'access-not-confirmed' }));
+
         if (!audioUrl && track.encrypted) {
           // Access is granted but the key, the audio, or decryption failed. The
           // player names the cause and offers a retry in place.
@@ -1067,7 +1085,6 @@ export function useCatalog(deps: UseCatalogDeps) {
       }
 
       if (!isTrackSelectionCurrent(selection)) return { playbackMode: 'full', audioSource: audioSourceRef.current };
-      if (freeKeyChecksAccess) setCatalogAccessByTrackId(previous => ({ ...previous, [track.id]: Boolean(audioUrl) }));
       if (!audioUrl) reportSelectionFailure(hasAccess ? 'selection-failed' : 'access-denied');
       const sourceAlreadyReady = Boolean(
         audioUrl && audioSourceRef.current === audioUrl && localAudioRef.current && localAudioRef.current.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA

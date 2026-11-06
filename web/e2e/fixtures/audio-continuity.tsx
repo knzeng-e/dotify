@@ -121,6 +121,7 @@ function Harness() {
         data-status={playback.status}
         data-pending={catalog.trackSelectionPending}
         data-failure={catalog.playbackFailure?.kind ?? ''}
+        data-preparation={catalog.audioStartupStatus ?? ''}
         data-time={playback.transport.currentTime}
         data-playing={playback.transport.playing}
         data-access={String(catalog.catalogAccessByTrackId[catalog.selectedTrackId])}

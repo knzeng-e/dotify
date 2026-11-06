@@ -20,6 +20,9 @@ async function unlockFixture(page: Page, scenario: string) {
 
 for (const width of [320, 390, 430]) {
   test(`mobile player account access and generated system artwork at ${width}px`, async ({ page }, testInfo) => {
+    // Cold Vite/WebKit startup, unlock, artwork decoding and screenshots share
+    // this scenario budget. Keep account actions bounded independently below.
+    test.setTimeout(60_000);
     await page.setViewportSize({ width, height: 844 });
     await unlockFixture(page, 'bulletin-generated-cover');
     await expect.poll(async () => (await readMediaSessionProbe(page)).title).toBe('Deterministic Classic Unlock');
@@ -43,10 +46,10 @@ for (const width of [320, 390, 430]) {
       })
     ).toBe(true);
     await page.screenshot({ path: testInfo.outputPath(`player-account-${width}.png`), fullPage: true, animations: 'disabled' });
-    await account.click();
+    await account.click({ timeout: 6_000 });
     const sheet = page.getByRole('dialog');
     await expect(sheet).toContainText('Connected');
-    await sheet.getByRole('button', { name: 'Disconnect', exact: true }).click();
+    await sheet.getByRole('button', { name: 'Disconnect', exact: true }).click({ timeout: 6_000 });
     await expect(page.getByRole('region', { name: 'Player', exact: true })).toBeVisible();
     await expect(page.locator('.solo-player-header').getByRole('button', { name: 'Connect account' })).toBeVisible();
     await expect(page.locator('audio[src]')).toHaveCount(0);

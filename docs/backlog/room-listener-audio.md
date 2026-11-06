@@ -18,6 +18,16 @@ Physical mobile Host to Web/Desktop acceptance remains required after matching
 rollout. No service restart, musical upload, signing or allowance is authorized
 by this implementation ticket.
 
+## Full-length preparation follow-up, 2026-11-05
+
+The owner confirms 0.1.76 reaches Web/Desktop guests on the eight-second release,
+but **Adang Fobe** (4 min 43) plays solo and stalls when opening a mobile-hosted
+Room, eventually showing audio-unavailable. [The bounded preparation correction](implementation/evidence/room-full-length-preparation-2026-11-05.md)
+addresses serial complete-rendition reads under the existing 60-second startup
+budget. Keep #395 open for matching full-length and lifecycle acceptance; the
+short excerpt does not certify those paths. No musical upload or deployment is
+included in this follow-up.
+
 ## Candidate design
 
 Managed-only AAC readers now prepare the authenticated 96 kb/s compatibility
