@@ -1170,11 +1170,43 @@
     "exactSourceAttempt": 1
   },
   "remainingAcceptance": [
-    "Physical full-length mobile-host startup and lock/unlock: actual local and Web/Desktop guest sound, media position and visible explicit recovery; support diagnostic capture if needed, with export currently behind the disabled readiness panel.",
+    "Broader physical lifecycle: extended background/cold-start and position-preserving explicit recovery under an actual interruption. The owner confirms preparation without retry and host/guest sound through the requested short lock test.",
     "Dotify-branded system artwork in solo and Room on the physical Host.",
     "User-accessible diagnostic export without enabling the whole readiness/debug panel; current production profiles keep that panel disabled.",
     "Host pause/resume/Next, guest mute/disconnect/recovery, cold start and same-track position.",
     "W33 signed denial/account switching, complete historical dependency inventory/alerts/recurring conservation and coherent off-volume restore.",
     "Separate custody fatal-exit/supervision reliability follow-up."
-  ]
+  ],
+  "ownerAcceptance": {
+    "recordedAt": "2026-11-06T22:28:39.030724+00:00",
+    "kind": "owner-reported physical listening",
+    "requestedVersion": [
+      0,
+      1,
+      78
+    ],
+    "versionRestated": false,
+    "requestedTrack": "Adang Fobe",
+    "preparationWithoutRetry": true,
+    "hostAndGuestsAudibleDuringLock": true,
+    "guestClientsRequested": [
+      "Web",
+      "Desktop"
+    ],
+    "separateGuestResultsProvided": false,
+    "requestedLockSeconds": [
+      10,
+      15
+    ],
+    "measuredLockSeconds": null,
+    "rawAnswers": {
+      "preparation": "oui",
+      "hostAndGuestsDuringLock": "oui. Merci \u00e7a semble fonctionner correctement"
+    },
+    "artworkConfirmation": null,
+    "explicitInterruptionRecoveryExercised": false,
+    "networkRestated": false,
+    "polkadotAppVersionRestated": false,
+    "scope": "The requested startup and short locked-phone host/guest listening check succeeds. No full-song completion, extended background duration, forced interruption/recovery or artwork confirmation is inferred."
+  }
 }

@@ -2,9 +2,19 @@
 
 Issue #395 · P1 · Production spine · Next · Work.
 
+## Owner startup and short-lock acceptance, 2026-11-06
+
+In the requested 0.1.78 Adang Fobe test, the owner confirms preparation without
+retry and audible sound at host and guests during phone lock. The protocol asked
+for Web/Desktop guests and 10–15 seconds locked; actual duration, app version,
+network and per-guest results are not restated. This is positive physical evidence
+for that startup/short-lock path, not full-song or extended background acceptance.
+Explicit interruption recovery and artwork are not reported in this reply. See
+[the dated record](implementation/evidence/product-0.1.78-rollout-2026-11-06.md#owner-startup-and-short-lock-acceptance--2026-11-06).
+
 ## Matching lifecycle delivery, 2026-11-06
 
-[Web/Product 0.1.78](implementation/evidence/product-0.1.78-rollout-2026-11-06.md) deliver merged #400. Source CI and independent delivery/complete canonical application retention pass. Physical full-length startup, native lock/unlock sound and explicit recovery remain pending. The bounded one-off app dependency renewals do not activate general conservation. Keep #395 open; the previous foreground result is not background acceptance.
+[Web/Product 0.1.78](implementation/evidence/product-0.1.78-rollout-2026-11-06.md) deliver merged #400. Source CI and independent delivery/complete canonical application retention pass. The owner confirms preparation without retry and host/guest sound through the requested short phone-lock test. Extended background/cold-start and explicit recovery under an actual interruption remain separate checks. The bounded one-off app dependency renewals do not activate general conservation. Keep #395 open; the previous foreground result is not background acceptance.
 
 ## Matching delivery, 2026-11-06
 

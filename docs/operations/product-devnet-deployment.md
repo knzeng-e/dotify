@@ -6,8 +6,9 @@
 `6898863d`. Both CIs and independent Web/CAR/finalized-retention/DotNS readback pass;
 the signer is removed. Failed preparation cannot create a silent Room; observed
 output interruption pauses at position with visible explicit recovery. Solo and
-Room share rounded Dotify petal artwork without tiny room text. Physical startup,
-lock/unlock and artwork acceptance remain open in #395/#388.
+Room share rounded Dotify petal artwork without tiny room text. The owner confirms
+startup without retry and host/guest sound during the requested short phone lock.
+Broader lifecycle/recovery and artwork checks remain open in #395/#388.
 This bounded application-only operation uses 14 stores / 5,259,623 bytes and
 6 immediate renewals / 4,214,282 bytes, one operation per dependency.
 Preserve 391 future renewals / 131,511,566 bytes. No automatic renewal, musical

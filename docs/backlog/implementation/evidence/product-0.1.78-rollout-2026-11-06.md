@@ -6,8 +6,9 @@ source `6898863de55a4a99d4a7a7b86fb1b86a2414e39f` on `release/product-0.1.78`, b
 [Exact-source CI](https://github.com/knzeng-e/dotify/actions/runs/42263916065) and
 [merged dev CI](https://github.com/knzeng-e/dotify/actions/runs/42261396140) pass.
 [Structured evidence](product-0.1.78-rollout-2026-11-06.json) contains the public receipts and independent
-readback. Refs #395, #388 and W33/#288. Matching physical startup/background
-acceptance remains **pending**; historical 0.1.77 owner feedback stays separate.
+readback. Refs #395, #388 and W33/#288. The owner confirms preparation without
+retry and audible host/guest sound during the requested short phone-lock test.
+Broader lifecycle/artwork acceptance remains open; 0.1.77 feedback stays separate.
 
 ## Delivered behavior
 
@@ -107,10 +108,20 @@ ended/timed-out finality, independent extension and per-CID/combined caps. Six
 actual runtime renewal calls encode with a fake creator; two exact DotNS calls
 reach a refusing test signer before the real authorized operation.
 
-Next physical check: reopen About 0.1.78, prepare existing **Adang Fobe** on the
-phone, join with refreshed Web/Desktop guests and explicitly start. Verify actual
-sound and preparation behavior, then lock/unlock and observe clocks/recovery.
-Record any interruption/recovery; diagnostic export is currently gated by the
-disabled readiness panel. Verify branded artwork in solo and Room. No new
-upload or purchase. Keep #395 open; foreground delivery, uninterrupted background
-sound and explicit interruption recovery are distinct acceptance outcomes.
+## Owner startup and short-lock acceptance — 2026-11-06
+
+In response to the matching 0.1.78 **Adang Fobe** test, the owner confirms
+preparation completes without relaunching, and answers **“oui”** that both host
+and guests continue hearing sound while the phone is locked: **“Merci ça semble
+fonctionner correctement.”** This accepts the reported startup and short-lock
+listening path and improves on the separately preserved 0.1.77 failure.
+
+The requested protocol used Web/Desktop guests and a 10–15-second lock. The
+response does not restate the actual duration, network, installed app version
+or individual guest results. No interruption/recovery exercise or solo/Room
+artwork result is reported. Do not infer full-song completion, extended native
+background support or a measured diagnosis from this successful observation.
+Remaining physical gates cover broader lifecycle/cold start, explicit recovery
+under an actual interruption and branded artwork; W33 conservation/access/recovery
+gates remain independent. No new publication, signing or service operation is
+performed to record this feedback.
