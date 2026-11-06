@@ -5,6 +5,8 @@ import { readStreamingManifest, decryptStreamingMedia, type StreamingScope } fro
 import { readAudioBody } from './readAudioBody';
 import { getAudioGatewayUrls } from '../../services/pinata';
 import { pumpStreamingReadAhead } from './streamingPipeline';
+import { readCompatibilityAudio, type CompatibilityAudioProgress } from './compatibilityAudio';
+import { compatibilityMp4 } from './compatibilityMp4';
 import { isBulletinMediaRoot, streamingObjectUrls } from './streamingTransport';
 import type { StreamingStartupMetric } from './audioStartupTelemetry';
 type ReaderMetric = Pick<
@@ -175,6 +177,7 @@ export async function createStreamingPlayback(input: {
   onError: (error: unknown) => void;
   bufferAheadSeconds?: () => number;
   forRoomCapture?: boolean;
+  onPreparationProgress?: (progress: CompatibilityAudioProgress) => void;
   fetchObject?: typeof fetchStreamingObject;
   onMetric?: (metric: ReaderMetric) => void;
   // Research may observe/wrap the same producer; ordinary playback always uses the default.
@@ -235,19 +238,12 @@ export async function createStreamingPlayback(input: {
   if (!capability || roomCaptureNeedsCompatibility(input.forRoomCapture === true)) {
     emit({ phase: 'compatibility-reader' });
     // Same authenticated rendition, never the archival master or a different key.
-    const parts: Uint8Array[] = [];
-    let size = 0;
-    for (const object of [rendition.init, ...rendition.segments]) {
-      const bytes = await read(object, input.signal).catch(error => {
-        failure(error);
-        throw error;
-      });
-      size += bytes.length;
-      if (size > 40 * 1024 * 1024) throw new Error('Audio compatibility buffer exceeds budget');
-      parts.push(bytes);
-    }
+    const parts = await readCompatibilityAudio([rendition.init, ...rendition.segments], read, input.signal, input.onPreparationProgress).catch(error => {
+      failure(error);
+      throw error;
+    });
     input.signal.throwIfAborted();
-    return { url: URL.createObjectURL(new Blob(parts, { type: 'audio/mp4' })), gainDb: context.manifest.gainDb, progressive: false };
+    return { url: URL.createObjectURL(new Blob(compatibilityMp4(parts), { type: 'audio/mp4' })), gainDb: context.manifest.gainDb, progressive: false };
   }
   const source = new capability.ctor();
   const url = URL.createObjectURL(source);

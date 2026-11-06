@@ -214,9 +214,24 @@ test('exhausted segment readers end the loading state and another track can play
   await page.getByRole('button', { name: 'Select b', exact: true }).click();
   await playing(page);
 });
+test('authorized compatibility preparation reports progress without marking Free access locked', async ({ page }) => {
+  const probe = await setup(page, 'held-startup', true);
+  try {
+    await expect(page.getByTestId('state')).toHaveAttribute('data-pending', 'true');
+    await expect(page.getByTestId('state')).toHaveAttribute('data-access', 'true');
+    await expect(page.getByTestId('state')).toHaveAttribute('data-preparation', /^Preparing audio · \d+%$/);
+    expect(await audio(page).getAttribute('src')).toBeNull();
+    probe.release();
+    await playing(page);
+  } finally {
+    probe.release();
+  }
+});
+
 test('failure before metadata settles pending and permits a new selection', async ({ page }) => {
   await setup(page, 'failed-startup');
   await expect(page.getByTestId('state')).toHaveAttribute('data-pending', 'false');
+  await expect(page.getByTestId('state')).toHaveAttribute('data-access', 'true');
   await expect(page.getByTestId('state')).toHaveAttribute('data-failure', /.+/);
   await page.getByRole('button', { name: 'Select b', exact: true }).click();
   await playing(page);

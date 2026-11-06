@@ -3738,3 +3738,29 @@ artwork/metadata updates on join, presence change, pause, reconnect, room exit a
 disconnect; confirm title/artist and host/guest transport authority stay correct.
 Actual OS glyphs, app icon and background refresh are outside the web API's
 control. Test physical devices; browser registration is not native UI evidence.
+
+
+## Full-length mobile Room preparation validation, 2026-11-05
+
+The [reader correction](../backlog/implementation/evidence/room-full-length-preparation-2026-11-05.md)
+keeps the existing 60-second post-authorization deadline, per-object transport
+bounds and 40 MiB retained compatibility buffer. It admits at most four
+independent authenticated reads, collects them in media order and reports
+verified-byte progress. No service, environment, CORS, quota, key or storage
+setting changes. The software must still authenticate the whole rendition before
+exposing its local Blob. Confirmed Free-key access is displayed independently
+from pending media preparation; a new denied request still clears that hint.
+
+After review and matching Web/Product delivery, test an existing full-length
+release from solo into foreground mobile hosting, then actual sound at Web and
+Desktop guests. Verify progress, cancellation/track change, same-track position,
+pause/resume and expiry/failure recovery; background remains a separate test.
+Use the current registered audio, not a new publication. Record startup time and
+cache conditions honestly. The 0.1.76 eight-second success is not this acceptance.
+
+The compatibility Blob also replaces DASH per-segment indexes with one complete
+local MP4 index, preserving authenticated sample bytes and failing closed on
+unsupported container layouts. Progressive readers and stored assets do not
+change. Browser CI must verify natural completion against the authenticated
+fixture duration on Linux WebKit as well as Chromium/Firefox; initial metadata
+or a short advancing clock does not prove complete playback.
