@@ -2,7 +2,7 @@ import { Clipboard, Download, Play, RefreshCcw, Square } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 import { useUiFeedback } from '../app/providers/UiFeedbackProvider';
-import { clearAudioStartupTelemetry, getAudioStartupTelemetrySnapshot } from '../features/catalog/audioStartupTelemetry';
+import { clearAudioStartupTelemetry, getAudioStartupTelemetrySnapshot, serializeAudioDiagnostics } from '../features/catalog/audioStartupTelemetry';
 import {
   FIRST_SOUND_FLOWS,
   FIRST_SOUND_CACHE_STATES,
@@ -240,6 +240,19 @@ export function FirstSoundEvidencePanel({ context }: FirstSoundEvidencePanelProp
       pushNotice({ tone: 'success', title: 'First-sound evidence copied', message: 'The sanitized candidate-bound JSON is on the clipboard.' });
     } catch {
       pushNotice({ tone: 'error', title: 'Copy failed', message: 'The host blocked clipboard access. Download the JSON instead.' });
+    }
+  }
+
+  async function copyAudioDiagnostics() {
+    try {
+      await navigator.clipboard.writeText(serializeAudioDiagnostics(getAudioStartupTelemetrySnapshot(), context.buildSha));
+      pushNotice({
+        tone: 'success',
+        title: 'Audio diagnostics copied',
+        message: 'Local timings and output states copied without track URLs, accounts or keys.'
+      });
+    } catch {
+      pushNotice({ tone: 'error', title: 'Copy failed', message: 'The host blocked clipboard access. Try again from your browser.' });
     }
   }
 
@@ -482,6 +495,10 @@ export function FirstSoundEvidencePanel({ context }: FirstSoundEvidencePanelProp
         <button className='secondary-action compact-action' type='button' disabled={!candidateActive || !draft?.samples.length} onClick={downloadEvidence}>
           <Download size={15} />
           Download
+        </button>
+        <button className='secondary-action compact-action' type='button' onClick={() => void copyAudioDiagnostics()}>
+          <Clipboard size={15} />
+          Copy audio diagnostics
         </button>
         <button className='secondary-action compact-action' type='button' onClick={resetEvidence}>
           <RefreshCcw size={15} />

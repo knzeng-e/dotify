@@ -1,10 +1,19 @@
 import { expect, test } from '@playwright/test';
 
-test('room receiver gets measurable normalized media audio, not only a live silent track', async ({ browser }) => {
+test('normalized Room output pauses on context suspension and recovers only through explicit Play', async ({ browser }) => {
   const hostContext = await browser.newContext();
   const guestContext = await browser.newContext();
   try {
     const host = await hostContext.newPage();
+    await host.addInitScript(() => {
+      const Original = window.AudioContext;
+      window.AudioContext = class extends Original {
+        createMediaElementSource(element: HTMLMediaElement) {
+          Reflect.set(window, '__roomOutputContext', this);
+          return super.createMediaElementSource(element);
+        }
+      };
+    });
     await host.goto('/?e2eRoom=public&e2eSync=on&e2eCapture=web-audio&e2eAutoplay=on');
     // Exercise the production normalized graph, which encrypted streaming
     // sources register before PersistentAudio attaches them. No real key/media.
@@ -51,6 +60,28 @@ test('room receiver gets measurable normalized media audio, not only a live sile
     });
     await expect.poll(() => guest.evaluate(() => Reflect.get(window, '__normalizedRoomEnergy')()), { timeout: 10_000 }).toBeGreaterThan(0.01);
     expect(await guest.evaluate(() => window.__DOTIFY_E2E_ROOM_JOIN__?.keyRequests ?? 0)).toBe(0);
+    const position = await host
+      .locator('audio')
+      .first()
+      .evaluate((audio: HTMLAudioElement) => audio.currentTime);
+    await host.evaluate(async () => {
+      await Reflect.get(window, '__roomOutputContext').suspend();
+    });
+    await expect(host.locator('audio').first()).toHaveJSProperty('paused', true);
+    await expect(host.getByText('Audio interrupted · tap Play to resume', { exact: true }).first()).toBeVisible();
+    await expect.poll(() => guest.evaluate(() => Reflect.get(window, '__normalizedRoomEnergy')()), { timeout: 10_000 }).toBeLessThan(0.002);
+    const stoppedAt = await host
+      .locator('audio')
+      .first()
+      .evaluate((audio: HTMLAudioElement) => audio.currentTime);
+    expect(stoppedAt - position).toBeLessThan(1);
+    await host.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+    await expect(host.locator('audio').first()).toHaveJSProperty('paused', true);
+    await host.locator('.player-transport').getByRole('button', { name: 'Play', exact: true }).first().click();
+    await expect.poll(() => guest.evaluate(() => Reflect.get(window, '__normalizedRoomEnergy')()), { timeout: 10_000 }).toBeGreaterThan(0.01);
+    await host.locator('.player-transport').getByRole('button', { name: 'Pause', exact: true }).first().click();
+    await host.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+    await expect(host.locator('audio').first()).toHaveJSProperty('paused', true);
   } finally {
     await hostContext.close();
     await guestContext.close();

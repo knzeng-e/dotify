@@ -1,4 +1,4 @@
-import { registerHostAudioOutput } from './hostAudioOutput';
+import { registerHostAudioOutput, resumeHostAudioOutput } from './hostAudioOutput';
 const gains = new Map<string, number>();
 const captures = new WeakMap<HTMLMediaElement, { stream: MediaStream; sync: () => void; resume: () => Promise<void> }>();
 export function registerAudioGain(url: string, gainDb: number) {
@@ -33,7 +33,7 @@ export function attachAudioNormalization(audio: HTMLAudioElement) {
   const events = ['playing', 'play', 'pause', 'seeking', 'seeked', 'volumechange', 'ended', 'canplay'];
   for (const event of events) audio.addEventListener(event, sync);
   sync();
-  captures.set(audio, { stream: destination.stream, sync, resume: () => context.resume() });
+  captures.set(audio, { stream: destination.stream, sync, resume: () => resumeHostAudioOutput(audio) });
   registerHostAudioOutput(audio, {
     context,
     sync,

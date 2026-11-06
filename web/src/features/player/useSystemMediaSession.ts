@@ -1,10 +1,9 @@
-import { systemRoomAlbum, type SystemRoomContext } from './systemRoomContext';
-import { useLayoutEffect, useEffect, useMemo, useRef } from 'react';
+import { useLayoutEffect, useEffect, useRef } from 'react';
 import type { PlaybackControls } from '../../hooks/usePlayback';
 import { bindMediaSession } from './systemMediaSession';
 import { resolveSystemArtwork, systemArtworkCandidates, type SystemMediaTrack } from './systemArtwork';
 
-export function useSystemMediaSession(playback: PlaybackControls, track: SystemMediaTrack | null, enabled: boolean, room: SystemRoomContext | null = null) {
+export function useSystemMediaSession(playback: PlaybackControls, track: SystemMediaTrack | null, enabled: boolean) {
   const latest = useRef(playback);
   const active = useRef(enabled);
   useLayoutEffect(() => {
@@ -44,14 +43,7 @@ export function useSystemMediaSession(playback: PlaybackControls, track: SystemM
   const title = track?.title;
   const artist = track?.artist;
   const imageRef = track?.imageRef;
-  const label = room?.label,
-    presence = room?.presence,
-    attribution = room?.attribution;
-  const context = useMemo(
-    () => (label !== undefined ? { label, presence: presence ?? '', attribution: attribution ?? '' } : null),
-    [label, presence, attribution]
-  );
-  const album = systemRoomAlbum(context);
+  const album = 'Dotify';
   useEffect(() => {
     const session = navigator.mediaSession;
     if (!session) return;
@@ -63,7 +55,7 @@ export function useSystemMediaSession(playback: PlaybackControls, track: SystemM
           : null;
       session.metadata = metadata;
       if (metadata) {
-        void resolveSystemArtwork({ title: title!, artist: artist ?? '', imageRef }, controller.signal, context)
+        void resolveSystemArtwork({ title: title!, artist: artist ?? '', imageRef }, controller.signal)
           .then(artwork => {
             if (!controller.signal.aborted && active.current && session.metadata === metadata) {
               session.metadata = new MediaMetadata({ title, artist, album, artwork });
@@ -80,7 +72,7 @@ export function useSystemMediaSession(playback: PlaybackControls, track: SystemM
       controller.abort();
       session.metadata = null;
     };
-  }, [enabled, title, artist, imageRef, album, context]);
+  }, [enabled, title, artist, imageRef]);
   useEffect(() => {
     const session = navigator.mediaSession;
     if (!session) return;
