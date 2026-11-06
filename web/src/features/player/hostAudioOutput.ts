@@ -1,3 +1,4 @@
+import { bindAudioOutputLifecycle } from './audioOutputLifecycle';
 // Gate the local speaker as well as the room stream. A paused media element
 // alone does not silence residual frames in every mobile Web Audio engine.
 type HostAudioOutput = {
@@ -7,10 +8,18 @@ type HostAudioOutput = {
   release: () => void;
 };
 
-const outputs = new WeakMap<HTMLMediaElement, HostAudioOutput>();
+const outputs = new WeakMap<HTMLMediaElement, HostAudioOutput & { resume: () => Promise<void> }>();
 
 export function registerHostAudioOutput(audio: HTMLMediaElement, output: HostAudioOutput) {
-  outputs.set(audio, output);
+  const lifecycle = bindAudioOutputLifecycle(audio, output.context, output.silence);
+  outputs.set(audio, {
+    ...output,
+    resume: lifecycle.resume,
+    release: () => {
+      lifecycle.release();
+      output.release();
+    }
+  });
 }
 
 export function syncHostAudioOutput(audio: HTMLMediaElement) {
@@ -25,7 +34,7 @@ export function pauseHostAudio(audio: HTMLMediaElement) {
 // Call before awaiting anything so a mobile host retains the Play gesture.
 export function resumeHostAudioOutput(audio: HTMLMediaElement): Promise<void> {
   const output = outputs.get(audio);
-  return output ? output.context.resume() : Promise.resolve();
+  return output ? output.resume() : Promise.resolve();
 }
 
 export function releaseHostAudioOutput(audio: HTMLMediaElement) {

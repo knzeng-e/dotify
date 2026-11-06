@@ -1,4 +1,3 @@
-import { systemRoomContext } from '../../features/player/systemRoomContext';
 import { useListeningCheckpoint } from '../../features/player/useListeningCheckpoint';
 import { useSystemMediaSession } from '../../features/player/useSystemMediaSession';
 import { playbackTrack } from '../../features/player/playbackPresentation';
@@ -110,8 +109,7 @@ export function PlaybackProvider({ children }: { children: ReactNode }) {
     playbackTrack(session.mode, catalog.trackInfo, selectedTrack),
     (playback.canUseTransport || catalog.trackSelectionPending || catalog.audioSourcePending) &&
       (session.mode === 'listener' || !catalog.playbackFailure) &&
-      (!playerDismissed || Boolean(session.roomId)),
-    systemRoomContext(session.mode, session.roomId, playback.status, session.socketStatus, session.hostName, session.listenerCount)
+      (!playerDismissed || Boolean(session.roomId))
   );
 
   function resumeListening() {

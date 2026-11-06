@@ -42,3 +42,15 @@ by the OS/Host, not a reproducible in-page mini-player. See the
 [implementation and evidence](implementation/evidence/room-system-context-2026-11-05.md).
 The candidate is not deployed. Original #388 acceptance is recorded, with these
 new physical checks and native navigation behavior still open.
+
+
+## Simplified system signature candidate, 2026-11-06
+
+The owner finds room text too small on native thumbnails and requests Dotify
+recognition in solo as well as Room. The [shared frame candidate](implementation/evidence/room-host-lifecycle-2026-11-06.md#one-recognizable-system-cover-in-solo-and-room)
+removes room counts/status/host text from system presentation, uses the original
+petals around a rounded cover with the compact Dotify mark, and preserves normal
+title/artist attribution. Solo and Room now use the same PNG path and stable
+Dotify label; room count changes do not repaint artwork. Original covers, public
+cache and source/disconnect cancellation stay intact. Matching native appearance
+and command layout remain OS/Host-dependent acceptance, not browser proof.

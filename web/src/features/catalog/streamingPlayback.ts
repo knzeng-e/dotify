@@ -243,7 +243,9 @@ export async function createStreamingPlayback(input: {
       throw error;
     });
     input.signal.throwIfAborted();
-    return { url: URL.createObjectURL(new Blob(compatibilityMp4(parts), { type: 'audio/mp4' })), gainDb: context.manifest.gainDb, progressive: false };
+    const url = URL.createObjectURL(new Blob(compatibilityMp4(parts), { type: 'audio/mp4' }));
+    emit({ phase: 'compatibility-ready' });
+    return { url, gainDb: context.manifest.gainDb, progressive: false };
   }
   const source = new capability.ctor();
   const url = URL.createObjectURL(source);

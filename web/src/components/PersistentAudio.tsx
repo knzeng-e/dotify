@@ -53,6 +53,7 @@ function LocalAudio(props: PersistentAudioProps) {
         p.onEmitPlayerState(true);
         void p.onPrepareLocalStream();
       }),
+      on('dotify:output-interrupted', p => p.playback.handleHostOutputInterrupted(audio)),
       on('canplay', p => p.playback.handleHostCanPlay(audio)),
       on('play', p => {
         p.playback.syncFromAudio(audio);

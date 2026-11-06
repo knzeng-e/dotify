@@ -32,7 +32,7 @@ import { ensureProductHostRoomPermissions, isProductHostWebRtcUnavailable, openP
 import { isChosenDisplayName, sanitizeDisplayName, storeDisplayName } from '../features/identity/walletIdentity';
 import { nextCaptureAttempt, shouldReuseCapture, type CaptureAttempt } from '../features/rooms/streamCapture';
 import { RoomCreationController } from '../features/rooms/roomCreation';
-import { registerHostAudioOutput, syncHostAudioOutput } from '../features/player/hostAudioOutput';
+import { registerHostAudioOutput, releaseHostAudioOutput, resumeHostAudioOutput, syncHostAudioOutput } from '../features/player/hostAudioOutput';
 import { CHAT_CLIENT_LIMIT, CHAT_TEXT_MAX_LENGTH, REQUEST_QUEUE_CLIENT_LIMIT, REQUEST_TEXT_MAX_LENGTH, ROOM_LINEUP_CLIENT_LIMIT } from '../shared/social';
 import { normalizeRoomCode, normalizeRooms, peerStatusLabel, getPeerStatus } from '../shared/utils/format';
 import { getTurnIceServers, hasTurnIceServer } from '../services/turn';
@@ -114,6 +114,8 @@ function retireWebAudioElementCapture(audio: HTMLMediaElement) {
   const capture = webAudioElementCaptures.get(audio);
   if (!capture) return false;
   webAudioElementCaptures.delete(audio);
+  // This path can retire a fallback graph before PersistentAudio unmounts it.
+  releaseHostAudioOutput(audio);
   audio.removeEventListener('volumechange', capture.onVolumeChange);
   for (const node of [capture.source, capture.playbackGain, capture.monitorGain, capture.destination]) {
     try {
@@ -932,7 +934,7 @@ export function useSession(deps: UseSessionDeps) {
     const existing = webAudioElementCaptures.get(audio);
     if (existing) {
       syncWebAudioMonitorGain(audio, existing);
-      void existing.context.resume().catch(() => undefined);
+      void resumeHostAudioOutput(audio).catch(() => undefined);
       return existing.stream;
     }
 
@@ -970,7 +972,7 @@ export function useSession(deps: UseSessionDeps) {
       },
       release: () => retireWebAudioElementCapture(audio)
     });
-    void context.resume().catch(() => undefined);
+    void resumeHostAudioOutput(audio).catch(() => undefined);
     if (isRoomJoinE2e) recordRoomJoinE2eWebAudioCapture();
     // Do NOT throw when there is no audio track yet: capture can legitimately
     // run before the element starts producing audio (e.g. at loadedmetadata,

@@ -37,6 +37,7 @@ function Harness() {
   const encryptedOnPolicy = Boolean(Reflect.get(window, '__encryptedOnPolicy'));
   const [policyApplied, setPolicyApplied] = useState(!Reflect.get(window, '__plainSeedCandidate'));
   const [preparations, setPreparations] = useState(0);
+  const [preparationFailed, setPreparationFailed] = useState(false);
   const playbackTracks = tracks.map(track =>
     plainPolicy && track.id.endsWith(':b')
       ? {
@@ -105,7 +106,7 @@ function Harness() {
           key={track.id}
           onClick={() => {
             playback.requestAutoplay();
-            void catalog.selectTrack(track);
+            void catalog.selectTrack(track).then(result => setPreparationFailed(result.preparationFailed === true));
           }}
         >
           Select {track.title.slice(-1)}
@@ -121,6 +122,7 @@ function Harness() {
         data-status={playback.status}
         data-pending={catalog.trackSelectionPending}
         data-failure={catalog.playbackFailure?.kind ?? ''}
+        data-preparation-failed={preparationFailed}
         data-preparation={catalog.audioStartupStatus ?? ''}
         data-time={playback.transport.currentTime}
         data-playing={playback.transport.playing}

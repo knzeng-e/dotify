@@ -99,3 +99,15 @@ capture/context activation. Record per-attempt timings and context/session state
 media/context clocks and outgoing energy across lock/unlock. Do not infer
 readiness from Room visibility or connected peers, treat foreground success as
 background acceptance, or weaken access/deadlines to hide failure. #395 stays open.
+
+## Startup and device-interruption candidate, 2026-11-06
+
+The owner confirms eventual full-length foreground Web/Desktop sound in 0.1.77,
+but long delays/errors/retries persist, and phone lock silences host and guests.
+The [next client slice](implementation/evidence/room-host-lifecycle-2026-11-06.md)
+refuses room creation after failed/superseded preparation, distinguishes complete
+compatibility preparation in timing evidence, requests native playback policy
+where supported, and pauses at position with explicit recovery if the shared
+output is interrupted. A bounded local context/media-clock snapshot supports
+native diagnosis. It does not promise uninterrupted locked hosting or identify
+every slow request; #395 stays open for matching rollout/device evidence.

@@ -1,5 +1,4 @@
-import { drawSystemRoomArtwork } from './systemRoomArtwork';
-import type { SystemRoomContext } from './systemRoomContext';
+import { drawSystemBrandedArtwork } from './systemBrandedArtwork';
 import { createCoverFallbackDataUri } from '../catalog/coverArtwork';
 import { getGatewayUrlsForAssetRef } from '../../services/pinata';
 import { artworkCacheKey, loadPublicArtwork } from '../../services/publicArtworkCache';
@@ -13,7 +12,7 @@ export function systemArtworkCandidates(imageRef: string | undefined): MediaImag
     .map(src => ({ src }));
 }
 
-function pngArtwork(src: string, signal: AbortSignal, room: SystemRoomContext | null): Promise<MediaImage> {
+function pngArtwork(src: string, signal: AbortSignal): Promise<MediaImage> {
   signal.throwIfAborted();
   return new Promise((resolve, reject) => {
     const image = new Image();
@@ -43,14 +42,11 @@ function pngArtwork(src: string, signal: AbortSignal, room: SystemRoomContext | 
         if (!context) throw new Error('Artwork canvas unavailable');
         const side = Math.min(image.naturalWidth, image.naturalHeight);
         context.drawImage(image, (image.naturalWidth - side) / 2, (image.naturalHeight - side) / 2, side, side, 0, 0, 640, 640);
-        let output = canvas;
-        if (room) {
-          output = document.createElement('canvas');
-          output.width = output.height = 640;
-          const frame = output.getContext('2d');
-          if (!frame) throw new Error('Room artwork canvas unavailable');
-          drawSystemRoomArtwork(frame, canvas, room);
-        }
+        const output = document.createElement('canvas');
+        output.width = output.height = 640;
+        const frame = output.getContext('2d');
+        if (!frame) throw new Error('System artwork canvas unavailable');
+        drawSystemBrandedArtwork(frame, canvas);
         const result = { src: output.toDataURL('image/png'), sizes: '640x640', type: 'image/png' };
         finish();
         resolve(result);
@@ -64,14 +60,13 @@ function pngArtwork(src: string, signal: AbortSignal, room: SystemRoomContext | 
 }
 
 /** Public artwork only. Reuse bounded IPFS/Host cache; never read audio or keys. */
-export async function resolveSystemArtwork(track: SystemMediaTrack, signal: AbortSignal, room: SystemRoomContext | null = null): Promise<MediaImage[]> {
+export async function resolveSystemArtwork(track: SystemMediaTrack, signal: AbortSignal): Promise<MediaImage[]> {
   signal.throwIfAborted();
   const candidates = systemArtworkCandidates(track.imageRef);
   if (candidates.length) {
     if (!artworkCacheKey(candidates[0].src)) {
-      if (!room) return candidates;
       try {
-        return [await pngArtwork(candidates[0].src, signal, room)];
+        return [await pngArtwork(candidates[0].src, signal)];
       } catch {
         signal.throwIfAborted();
         return candidates;
@@ -80,7 +75,7 @@ export async function resolveSystemArtwork(track: SystemMediaTrack, signal: Abor
     try {
       const source = await loadPublicArtwork(candidates.map(candidate => candidate.src));
       signal.throwIfAborted();
-      return [await pngArtwork(source, signal, room)];
+      return [await pngArtwork(source, signal)];
     } catch {
       signal.throwIfAborted();
       // Ordinary image URLs remain usable by platforms that fetch directly.
@@ -92,5 +87,5 @@ export async function resolveSystemArtwork(track: SystemMediaTrack, signal: Abor
   const fallback = /^data:image\/svg\+xml[;,]/i.test(track.imageRef ?? '')
     ? track.imageRef!
     : createCoverFallbackDataUri(track.title || 'Dotify', track.imageRef || track.title || 'Dotify');
-  return [await pngArtwork(fallback, signal, room)];
+  return [await pngArtwork(fallback, signal)];
 }

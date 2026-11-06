@@ -1,5 +1,18 @@
 # Deployment Configuration Runbook
 
+## Client audio lifecycle candidate, 2026-11-06
+
+The [startup/output and system artwork slice](../backlog/implementation/evidence/room-host-lifecycle-2026-11-06.md)
+changes no environment, CORS, service, storage policy or native Host entitlement.
+A matching Web/Product rollout is required before physical acceptance. Test
+full-length startup and actual lock/unlock separately, capture the existing
+startup snapshot including its new bounded local `output` series (or use
+**Copy audio diagnostics** in the existing First-sound panel), and confirm
+Pause/disconnect cannot be overridden by system events. Playback session type is
+an optional browser policy request, not guaranteed native background support.
+The current deployed 0.1.77 feedback and cumulative retention reserve remain in
+[the separate delivery record](https://github.com/knzeng-e/dotify/pull/394).
+
 ## Full-length Room correction delivered in 0.1.77, 2026-11-06
 
 [Web and Product 0.1.77](../backlog/implementation/evidence/product-0.1.77-rollout-2026-11-06.md) publish merged #399 from frozen source
