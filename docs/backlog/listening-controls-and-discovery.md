@@ -54,3 +54,14 @@ title/artist attribution. Solo and Room now use the same PNG path and stable
 Dotify label; room count changes do not repaint artwork. Original covers, public
 cache and source/disconnect cancellation stay intact. Matching native appearance
 and command layout remain OS/Host-dependent acceptance, not browser proof.
+
+
+## Cover-first signature refinement, 2026-11-06
+
+After inspecting the deployed artwork on the phone, the owner requests removal
+of the decorative outer petals and a more visible bottom-right Dotify logo.
+The [new candidate and preview](implementation/evidence/system-artwork-signature-2026-11-06.md)
+retain the complete original logo inside one larger opaque badge, enlarge the
+cover and use a thin neutral outline for light/dark contrast. Solo and Room use
+the same composition. This is a visual candidate, not another deployment; native
+layout and previous/next command acceptance remain separate #388 gates.
