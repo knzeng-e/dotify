@@ -7,6 +7,7 @@ import { getAudioGatewayUrls } from '../../services/pinata';
 import { pumpStreamingReadAhead } from './streamingPipeline';
 import { readCompatibilityAudio, type CompatibilityAudioProgress } from './compatibilityAudio';
 import { compatibilityMp4 } from './compatibilityMp4';
+import { acquireMediaRelaySlot } from './mediaRelaySlots';
 import { isBulletinMediaRoot, streamingObjectUrls } from './streamingTransport';
 import type { StreamingStartupMetric } from './audioStartupTelemetry';
 type ReaderMetric = Pick<
@@ -97,9 +98,11 @@ export async function fetchStreamingObject(
   for (let attempt = 0; attempt < (bulletin ? 1 : 2); attempt++)
     for (const [index, url] of urls.entries()) {
       signal.throwIfAborted();
+      const releaseRelay = api && url.startsWith(`${api}/api/media/`) ? await acquireMediaRelaySlot(signal) : undefined;
       const controller = new AbortController();
       const deadline = setTimeout(() => controller.abort(), !bulletin && import.meta.env.VITE_DOTIFY_MEDIA_EDGE_URL && index === 0 ? 3000 : 12_000);
       try {
+        signal.throwIfAborted();
         const response = await fetch(url, { signal: AbortSignal.any([signal, controller.signal]), credentials: 'omit' });
         if (response.status !== 200) {
           await response.body?.cancel();
@@ -115,6 +118,7 @@ export async function fetchStreamingObject(
       } finally {
         clearTimeout(deadline);
         controller.abort();
+        releaseRelay?.();
       }
     }
   throw new Error('The audio connection could not recover. Please try again.');

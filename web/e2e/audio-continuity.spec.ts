@@ -11,6 +11,7 @@ const fixture = JSON.parse(readFileSync(process.env.DOTIFY_STREAMING_FIXTURE_PAT
 type Fault =
   | 'none'
   | 'relay'
+  | 'relay-capacity'
   | 'retry'
   | 'truncated'
   | 'slow'
@@ -33,6 +34,10 @@ async function setup(
   const requests: string[] = [];
   let attempts = 0,
     keyRequests = 0;
+  let relayActive = 0,
+    relayPeak = 0,
+    relayBusy = 0,
+    relayFallbacks = 0;
   let access: boolean | 'unavailable' = true,
     accessReads = 0,
     plainRequests = 0;
@@ -87,7 +92,27 @@ async function setup(
       expect(object).not.toContain('archive');
       const value = object === 'manifest.json' ? fixture.manifest : fixture.files[object];
       if (!value) return route.fulfill({ status: 404 });
-      if (fault === 'relay' && !url.includes('/api/media/')) return route.fulfill({ status: 503 });
+      if ((fault === 'relay' || fault === 'relay-capacity') && !url.includes('/api/media/')) {
+        relayFallbacks++;
+        return route.fulfill({ status: 503 });
+      }
+      if (fault === 'relay-capacity') {
+        if (relayActive >= 2) {
+          relayBusy++;
+          return route.fulfill({ status: 503 });
+        }
+        relayActive++;
+        relayPeak = Math.max(relayPeak, relayActive);
+        try {
+          await new Promise(resolve => setTimeout(resolve, 100));
+          return await route.fulfill({
+            body: Buffer.from(value, 'base64'),
+            headers: { 'content-type': 'application/octet-stream', 'access-control-allow-origin': '*' }
+          });
+        } finally {
+          relayActive--;
+        }
+      }
       if (((fault === 'held-startup' && name === 'a') || (fault === 'held-next-startup' && name === 'b')) && object === '96/segment-000.bin') await gate;
       if (name === 'a' && object === '96/segment-001.bin') {
         attempts++;
@@ -114,6 +139,7 @@ async function setup(
     release,
     accessReads: () => accessReads,
     plainRequests: () => plainRequests,
+    relayStats: () => ({ peak: relayPeak, busy: relayBusy, fallbacks: relayFallbacks }),
     setFreeAccess: (value: boolean) => {
       freeAccess = value;
     },
@@ -759,9 +785,72 @@ test('native WebKit managed AAC starts while a later segment is still unavailabl
   expect(probe.keyRequests()).toBe(1);
 });
 
-test('failed complete preparation cannot be advertised as a prepared Room source', async ({ page }) => {
-  await setup(page, 'failed-startup', true);
+test('failed complete preparation is not a ready Room source and explicit solo retry recovers without reloading', async ({ page }) => {
+  const probe = await setup(page, 'failed-startup', true);
   await expect(page.getByTestId('state')).toHaveAttribute('data-failure', 'audio-unavailable');
   await expect(page.getByTestId('state')).toHaveAttribute('data-preparation-failed', 'true');
   await expect(page.locator('audio[src]')).toHaveCount(0);
+  const keysBefore = probe.keyRequests();
+  await page.route('**/api/media/**/stream/manifest.json', route =>
+    route.fulfill({
+      body: Buffer.from(fixture.manifest, 'base64'),
+      headers: { 'content-type': 'application/octet-stream', 'access-control-allow-origin': '*' }
+    })
+  );
+  await page.getByRole('button', { name: 'Select a', exact: true }).click();
+  await playing(page);
+  await expect(page.getByTestId('state')).toHaveAttribute('data-failure', '');
+  await expect(page.getByTestId('state')).toHaveAttribute('data-preparation-failed', 'false');
+  expect(probe.keyRequests()).toBe(keysBefore + 1);
 });
+
+test('complete authenticated preparation respects the relay capacity without triggering gateway recovery', async ({ page }) => {
+  const probe = await setup(page, 'relay-capacity', true);
+  await playing(page);
+  expect(probe.relayStats()).toEqual({ peak: 2, busy: 0, fallbacks: 0 });
+  expect(probe.keyRequests()).toBe(1);
+  await expect(page.getByTestId('state')).toHaveAttribute('data-preparation-failed', 'false');
+});
+
+for (const clipboardWorks of [true, false]) {
+  test(`audio failure support export ${clipboardWorks ? 'copies a sanitized report' : 'offers a readable fallback when the Host blocks copying'}`, async ({
+    page
+  }) => {
+    await page.addInitScript(allowed => {
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        value: {
+          writeText: async (text: string) => {
+            if (!allowed) throw new Error('Clipboard unavailable');
+            Reflect.set(window, '__copiedAudioReport', text);
+          }
+        }
+      });
+    }, clipboardWorks);
+    const probe = await setup(page, 'failed-startup', true);
+    await expect(page.getByTestId('state')).toHaveAttribute('data-failure', 'audio-unavailable');
+    const keysBefore = probe.keyRequests();
+    const requestsBefore = probe.requests.length;
+    await page.getByRole('button', { name: 'Copy support report', exact: true }).click();
+    let text: string;
+    if (clipboardWorks) {
+      await expect(page.getByText('Report copied', { exact: true })).toBeVisible();
+      text = await page.evaluate(() => Reflect.get(window, '__copiedAudioReport'));
+    } else {
+      const report = page.getByRole('textbox', { name: 'Audio support report' });
+      await expect(report).toBeVisible();
+      await expect(report).toHaveAttribute('readonly', '');
+      text = await report.inputValue();
+    }
+    const report = JSON.parse(text);
+    expect(report.schema).toBe('dotify.audio-diagnostics.v1');
+    expect(report.streaming.some((event: { phase: string }) => event.phase === 'key-authorized')).toBe(true);
+    expect(text).not.toContain(fixture.keyHex);
+    expect(text).not.toContain(fixture.scope.runtimeAddress);
+    expect(text).not.toContain('Qmaaaaa');
+    expect(text).not.toContain('http://api.audio.test');
+    expect(probe.keyRequests()).toBe(keysBefore);
+    expect(probe.requests.length).toBe(requestsBefore);
+    await expect(page.getByTestId('state')).toHaveAttribute('data-failure', 'audio-unavailable');
+  });
+}

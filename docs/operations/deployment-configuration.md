@@ -3854,3 +3854,10 @@ Check Done, panel switching, IME, small viewport and reduced-motion return.
 Membership/rate limits and ephemeral history lifetime still apply. Rollback needs
 no migration. This candidate authorizes no deployment or service interruption;
 coordinate any signaling restart with active Rooms.
+
+
+## Relay backpressure and failure diagnostics candidate — 2026-11-07
+
+The [Room-startup follow-up](../backlog/implementation/evidence/room-preparation-relay-2026-11-07.md) limits client requests to the existing public ciphertext API to two concurrent complete bodies, matching its deployed IPFS reader capacity. Other transports retain their existing limits. Queued requests obey their selection signal and do not start network timers until admitted; the existing overall startup deadline remains. No server capacity/configuration, CORS, permission, secret, storage policy or service rollout is required by this implementation.
+
+After reviewed matching Web/Product delivery, use existing Adang Fobe for cold Room preparation and explicit solo recovery after failure. The failure's Copy support report uses the existing bounded identifier-free local serializer; a readonly fallback appears if clipboard access fails. Do not enable the broader debug panel or infer actual native startup from browser tests. This is an explicit local copy, not automatic telemetry or a support upload. Rollback is client-only and needs no schema migration. No deployment is performed by merging the code.

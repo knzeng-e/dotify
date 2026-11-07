@@ -45,6 +45,7 @@ import { playbackTrack, playbackTrackDetails, roomReleaseDetails } from '../feat
 import { playbackStatusLabel } from '../features/player/playbackStatus';
 import { nativeRuntimeAmountLabel } from '../features/payments/paymentModel';
 import { protectedPlaybackFailureCopy } from '../features/catalog/protectedPlaybackFailure';
+import { AudioFailureDiagnostics } from '../components/AudioFailureDiagnostics';
 import { resolvePlaybackContributionTrack, resolveRoomContributionTrack } from '../features/donations/roomContributionTrack';
 import { useCatalogContext, useSessionContext, usePlaybackContext, useUiFeedback, useNavigation, useReleaseForm } from '../app/providers';
 import type { CatalogTrack } from '../shared/types';
@@ -422,7 +423,11 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
           error ||
           playbackFailure ||
           /reconnecting/i.test(sessionStatus)) && (
-          <div className='room-connection-note' role='status' data-testid={playbackFailure && !error ? 'playback-failure' : undefined}>
+          <div
+            className={'room-connection-note' + (playbackFailure && !error ? ' has-support-report' : '')}
+            role='status'
+            data-testid={playbackFailure && !error ? 'playback-failure' : undefined}
+          >
             <span>
               {error ||
                 (playbackFailure ? `${playbackFailure.title}. ${playbackFailure.message}` : '') ||
@@ -455,6 +460,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
                 </button>
               )
             )}
+            {playbackFailure && !error && <AudioFailureDiagnostics />}
           </div>
         )}
       {roomId && (
@@ -690,6 +696,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
             <RefreshCw size={16} />
             {playbackFailure.action}
           </button>
+          <AudioFailureDiagnostics />
         </div>
       )}
 
