@@ -1,0 +1,739 @@
+{
+  "schema": "dotify.product-rollout-evidence.v1",
+  "source": "0587442dbbbe75e10e44fffbb692ebdabdcc0edf",
+  "version": [
+    0,
+    1,
+    77
+  ],
+  "approval": {
+    "approvedByOwner": true,
+    "maxStores": 12,
+    "maxBytes": 3577762,
+    "reserveTransactions": 371,
+    "approvalRecordedAt": "2026-11-06T13:45:47.939265+00:00",
+    "ownerApprovalScope": "At most 12 new Bulletin application stores / 3577762 bytes and two DotNS signing requests for dotify-test01.dot; no musical upload, renewal, domain purchase, service interruption or key transfer. Publication requires both CIs green."
+  },
+  "ci": {
+    "conclusion": "success",
+    "headSha": "0587442dbbbe75e10e44fffbb692ebdabdcc0edf",
+    "status": "completed",
+    "url": "https://github.com/knzeng-e/dotify/actions/runs/42195158354"
+  },
+  "mergedDevCi": {
+    "conclusion": "success",
+    "headSha": "7b1705077d4e26ecad978b0b1caab9169dc5d6ad",
+    "status": "completed",
+    "url": "https://github.com/knzeng-e/dotify/actions/runs/42193657375"
+  },
+  "publicWebBoot": {
+    "observedAt": "2026-11-06T14:19:17.348Z",
+    "url": "https://muzinga.netlify.app/",
+    "httpStatus": 200,
+    "title": "Dotify \u00b7 Let the music connect the dots",
+    "listenerShellVisible": true,
+    "mobileNavigationVisible": true,
+    "uncaughtErrors": [],
+    "walletConnected": false,
+    "playbackRequested": false,
+    "keyRequested": false,
+    "musicalWrite": false
+  },
+  "artifact": {
+    "source": "0587442dbbbe75e10e44fffbb692ebdabdcc0edf",
+    "carSha256": "05416946f19f692a9c60b98b373677e66c0474046d64a75623f0bc2a77fa8586",
+    "storageCid": "bafybeihh2tyq6jo2c2pjae6x3wwhcehwk35yhignqt65ozwp3unkemxxnq",
+    "carBlocksVerified": 99,
+    "filesByteCompared": 71,
+    "outerProductBlocksVerified": 20,
+    "rootRecord": "{\"$v\":1,\"displayName\":\"Dotify\",\"description\":\"Shared musical presence with artist-owned access and value flows.\",\"icon\":{\"cid\":\"bafk2bzacebh4rknk6x7zl4pul7t3ff7y2pglpk5x4q2k3nxnql5ebizvgluxk\",\"format\":\"png\"}}",
+    "appRecord": "{\"$v\":1,\"kind\":\"app\",\"appVersion\":[0,1,77]}",
+    "contenthash": "0xe30101701220e7d4f10f25da169e9013d7ddac7110f656fb83a0cd84fdd766cfdd1aa232f76c",
+    "networkWrites": 0,
+    "signerUsed": false
+  },
+  "publication": {
+    "schema": "dotify.bulletin.continuity-publication.v1",
+    "approvedByOwner": true,
+    "source": "0587442dbbbe75e10e44fffbb692ebdabdcc0edf",
+    "domain": "dotify-test01.dot",
+    "version": [
+      0,
+      1,
+      77
+    ],
+    "carSha256": "05416946f19f692a9c60b98b373677e66c0474046d64a75623f0bc2a77fa8586",
+    "before": {
+      "block": "15402696",
+      "records": {
+        "dotify-test01.dot": {
+          "owner": "0xe3e3a0916d27c5174313f16E1507a286985a8Ac8",
+          "resolver": "0x7e75491ecfb04900EB05ee63CABA2B33900aABB5",
+          "contenthash": "0xe30101701220dd9da16b8baabf95aef26f7c5c1fb6d62ebb19c7505603369f068307c90f564e",
+          "record": "{\"$v\":1,\"displayName\":\"Dotify\",\"description\":\"Shared musical presence with artist-owned access and value flows.\",\"icon\":{\"cid\":\"bafk2bzacebh4rknk6x7zl4pul7t3ff7y2pglpk5x4q2k3nxnql5ebizvgluxk\",\"format\":\"png\"}}"
+        },
+        "app.dotify-test01.dot": {
+          "owner": "0xe3e3a0916d27c5174313f16E1507a286985a8Ac8",
+          "resolver": "0x7e75491ecfb04900EB05ee63CABA2B33900aABB5",
+          "contenthash": "0xe30101701220dd9da16b8baabf95aef26f7c5c1fb6d62ebb19c7505603369f068307c90f564e",
+          "record": "{\"$v\":1,\"kind\":\"app\",\"appVersion\":[0,1,76]}"
+        },
+        "dotify-bulletin-lab.dot": {
+          "owner": "0xe3e3a0916d27c5174313f16E1507a286985a8Ac8",
+          "resolver": "0x7e75491ecfb04900EB05ee63CABA2B33900aABB5",
+          "contenthash": "0xe30101701220431f7ac8486f5e9b7f5778e58d65daa485eff8bdaf26ff8d81f086ac8a567e2a",
+          "record": "{\"$v\":1,\"displayName\":\"Dotify First note lab\",\"description\":\"Generated 64-second audio continuity diagnostic. No artist music, wallet or payment.\",\"icon\":{\"cid\":\"bafk2bzacebh4rknk6x7zl4pul7t3ff7y2pglpk5x4q2k3nxnql5ebizvgluxk\",\"format\":\"png\"}}"
+        },
+        "app.dotify-bulletin-lab.dot": {
+          "owner": "0xe3e3a0916d27c5174313f16E1507a286985a8Ac8",
+          "resolver": "0x7e75491ecfb04900EB05ee63CABA2B33900aABB5",
+          "contenthash": "0xe30101701220431f7ac8486f5e9b7f5778e58d65daa485eff8bdaf26ff8d81f086ac8a567e2a",
+          "record": "{\"$v\":1,\"kind\":\"app\",\"appVersion\":[0,3,1]}"
+        }
+      }
+    },
+    "quotaBefore": {
+      "head": 1530518,
+      "hash": "0xdb715f5c8ea65390b240ca0d622b6e9b374586fdf0248299a89da0f90046f7da",
+      "authorization": {
+        "expiresAt": 1621405,
+        "remainingTransactions": 473,
+        "remainingBytes": "158243493",
+        "remainingRenewBytes": "210941854"
+      }
+    },
+    "storage": [
+      {
+        "phase": "product",
+        "cid": "bafkreifuucn54olkvwgnlyv4pwjnu3slzffne63yrrx34j6wgqb7y3wmqu",
+        "bytes": 25500,
+        "nonce": 1198,
+        "status": "finalized",
+        "receipt": {
+          "block": 1530525,
+          "index": 0
+        },
+        "verified": {
+          "block": 1530525,
+          "index": 0,
+          "expiresAt": 1732125
+        }
+      },
+      {
+        "phase": "product",
+        "cid": "bafkreidzae6qqvldow4djle47yrrsaxl2fuy2rskkx66kuwasuqhjg6wru",
+        "bytes": 296,
+        "nonce": 1199,
+        "status": "finalized",
+        "receipt": {
+          "block": 1530530,
+          "index": 0
+        },
+        "verified": {
+          "block": 1530530,
+          "index": 0,
+          "expiresAt": 1732130
+        }
+      },
+      {
+        "phase": "product",
+        "cid": "bafkreiapn3iz4uqviebh7dlwzn6xrkrm67tmp2xmsjdy4in5uy7cmja744",
+        "bytes": 262183,
+        "nonce": 1200,
+        "status": "finalized",
+        "receipt": {
+          "block": 1530535,
+          "index": 0
+        },
+        "verified": {
+          "block": 1530535,
+          "index": 0,
+          "expiresAt": 1732135
+        }
+      },
+      {
+        "phase": "product",
+        "cid": "bafkreihxr5ld6baqccxset5hmydmjzbapojvlc3dgqxrq2cwi4xy5ijkn4",
+        "bytes": 262183,
+        "nonce": 1201,
+        "status": "finalized",
+        "receipt": {
+          "block": 1530541,
+          "index": 0
+        },
+        "verified": {
+          "block": 1530541,
+          "index": 0,
+          "expiresAt": 1732141
+        }
+      },
+      {
+        "phase": "product",
+        "cid": "bafkreiciklpnkdzsc37vixmx275k2ppufex6ipfe2z3bne23uih5ec6vhy",
+        "bytes": 262183,
+        "nonce": 1202,
+        "status": "finalized",
+        "receipt": {
+          "block": 1530547,
+          "index": 0
+        },
+        "verified": {
+          "block": 1530547,
+          "index": 0,
+          "expiresAt": 1732147
+        }
+      },
+      {
+        "phase": "product",
+        "cid": "bafkreifzvyla5dis626wdkgiibkgpjhn3u7wqpetmdcng2rqg76nt6yeua",
+        "bytes": 262183,
+        "nonce": 1203,
+        "status": "finalized",
+        "receipt": {
+          "block": 1530552,
+          "index": 0
+        },
+        "verified": {
+          "block": 1530552,
+          "index": 0,
+          "expiresAt": 1732152
+        }
+      },
+      {
+        "phase": "product",
+        "cid": "bafkreibb56fbail4syuv2z7de6oq2sijuqrrdsvfeswi3zs3s7qfiathtu",
+        "bytes": 107384,
+        "nonce": 1204,
+        "status": "finalized",
+        "receipt": {
+          "block": 1530559,
+          "index": 0
+        },
+        "verified": {
+          "block": 1530559,
+          "index": 0,
+          "expiresAt": 1732159
+        }
+      },
+      {
+        "phase": "product",
+        "cid": "bafkreifsc4356vqxteq6bzqyb2izkza234h5ifgjzwkaod2l3kp6dcrgha",
+        "bytes": 962187,
+        "status": "reused",
+        "receipt": {
+          "block": 1330585,
+          "index": 0,
+          "expiresAt": 1532185
+        }
+      },
+      {
+        "phase": "product",
+        "cid": "bafkreiaqw3736dby7fbj7bprgqnylolk5xv3iw32mvcvplojauecn754m4",
+        "bytes": 881923,
+        "status": "reused",
+        "receipt": {
+          "block": 1350820,
+          "index": 0,
+          "expiresAt": 1552420
+        }
+      },
+      {
+        "phase": "product",
+        "cid": "bafkreifxktisancsexm3xlxwqkbgktc7zzdl6esom5q7a5lcly2ud2pv2y",
+        "bytes": 880931,
+        "status": "reused",
+        "receipt": {
+          "block": 1350828,
+          "index": 0,
+          "expiresAt": 1552428
+        }
+      },
+      {
+        "phase": "product",
+        "cid": "bafkreifbzcb3z5ww5rcpawwl65majfatnnopmtxewo7e7yetyjrynpub5e",
+        "bytes": 868519,
+        "status": "reused",
+        "receipt": {
+          "block": 1350834,
+          "index": 0,
+          "expiresAt": 1552434
+        }
+      },
+      {
+        "phase": "product",
+        "cid": "bafkreifmxpegwzacog6hx2etifypiipw5p6sbg67ujcjcez5evzx3gelwm",
+        "bytes": 716226,
+        "status": "reused",
+        "receipt": {
+          "block": 1330587,
+          "index": 0,
+          "expiresAt": 1532187
+        }
+      },
+      {
+        "phase": "product",
+        "cid": "bafkreiglaydriq6evdoq5yrcw2nptznsrmkymvlq6e62bhcud6mtgxmfw4",
+        "bytes": 716226,
+        "status": "reused",
+        "receipt": {
+          "block": 1332551,
+          "index": 0,
+          "expiresAt": 1534151
+        }
+      },
+      {
+        "phase": "product",
+        "cid": "bafkreidoxhouezbtrclwmqj7v2io54odfyjarprdq5ywbhvd6n3cdgdmce",
+        "bytes": 830734,
+        "status": "reused",
+        "receipt": {
+          "block": 1459823,
+          "index": 0,
+          "expiresAt": 1661423
+        }
+      },
+      {
+        "phase": "product",
+        "cid": "bafkreig25o54rfmxbruedmkweambckx3gm5uzy2isryvd4c5wlwb5kxcby",
+        "bytes": 963444,
+        "nonce": 1205,
+        "status": "finalized",
+        "receipt": {
+          "block": 1530568,
+          "index": 0
+        },
+        "verified": {
+          "block": 1530568,
+          "index": 0,
+          "expiresAt": 1732168
+        }
+      },
+      {
+        "phase": "product",
+        "cid": "bafkreihysdo7qrdcvul7qx3ald6onhkxpekh3qc6hgfo2m5ldc6x4yqzwa",
+        "bytes": 1024607,
+        "nonce": 1206,
+        "status": "finalized",
+        "receipt": {
+          "block": 1530574,
+          "index": 0
+        },
+        "verified": {
+          "block": 1530574,
+          "index": 0,
+          "expiresAt": 1732174
+        }
+      },
+      {
+        "phase": "product",
+        "cid": "bafkreih6eo3zpyvbw3duiaa726mztb5govsul4rc72c67t3ok3wapoeufe",
+        "bytes": 400294,
+        "nonce": 1207,
+        "status": "finalized",
+        "receipt": {
+          "block": 1530580,
+          "index": 0
+        },
+        "verified": {
+          "block": 1530580,
+          "index": 0,
+          "expiresAt": 1732180
+        }
+      },
+      {
+        "phase": "product",
+        "cid": "bafkreihjblsa57vyem6slcftb4sfyml5lwr57mllwc5q5y3gezkw3jpceq",
+        "bytes": 6600,
+        "nonce": 1208,
+        "status": "finalized",
+        "receipt": {
+          "block": 1530586,
+          "index": 0
+        },
+        "verified": {
+          "block": 1530586,
+          "index": 0,
+          "expiresAt": 1732186
+        }
+      },
+      {
+        "phase": "product",
+        "cid": "bafybeihh2tyq6jo2c2pjae6x3wwhcehwk35yhignqt65ozwp3unkemxxnq",
+        "bytes": 905,
+        "nonce": 1209,
+        "status": "finalized",
+        "receipt": {
+          "block": 1530592,
+          "index": 0
+        },
+        "verified": {
+          "block": 1530592,
+          "index": 0,
+          "expiresAt": 1732192
+        }
+      },
+      {
+        "phase": "product",
+        "cid": "bafk2bzacebh4rknk6x7zl4pul7t3ff7y2pglpk5x4q2k3nxnql5ebizvgluxk",
+        "bytes": 35949,
+        "status": "reused",
+        "receipt": {
+          "block": 1489917,
+          "index": 0,
+          "expiresAt": 1691517
+        }
+      }
+    ],
+    "dotnsSignatures": 2,
+    "complete": true,
+    "after": {
+      "block": "15402950",
+      "records": {
+        "dotify-test01.dot": {
+          "owner": "0xe3e3a0916d27c5174313f16E1507a286985a8Ac8",
+          "resolver": "0x7e75491ecfb04900EB05ee63CABA2B33900aABB5",
+          "contenthash": "0xe30101701220e7d4f10f25da169e9013d7ddac7110f656fb83a0cd84fdd766cfdd1aa232f76c",
+          "record": "{\"$v\":1,\"displayName\":\"Dotify\",\"description\":\"Shared musical presence with artist-owned access and value flows.\",\"icon\":{\"cid\":\"bafk2bzacebh4rknk6x7zl4pul7t3ff7y2pglpk5x4q2k3nxnql5ebizvgluxk\",\"format\":\"png\"}}"
+        },
+        "app.dotify-test01.dot": {
+          "owner": "0xe3e3a0916d27c5174313f16E1507a286985a8Ac8",
+          "resolver": "0x7e75491ecfb04900EB05ee63CABA2B33900aABB5",
+          "contenthash": "0xe30101701220e7d4f10f25da169e9013d7ddac7110f656fb83a0cd84fdd766cfdd1aa232f76c",
+          "record": "{\"$v\":1,\"kind\":\"app\",\"appVersion\":[0,1,77]}"
+        },
+        "dotify-bulletin-lab.dot": {
+          "owner": "0xe3e3a0916d27c5174313f16E1507a286985a8Ac8",
+          "resolver": "0x7e75491ecfb04900EB05ee63CABA2B33900aABB5",
+          "contenthash": "0xe30101701220431f7ac8486f5e9b7f5778e58d65daa485eff8bdaf26ff8d81f086ac8a567e2a",
+          "record": "{\"$v\":1,\"displayName\":\"Dotify First note lab\",\"description\":\"Generated 64-second audio continuity diagnostic. No artist music, wallet or payment.\",\"icon\":{\"cid\":\"bafk2bzacebh4rknk6x7zl4pul7t3ff7y2pglpk5x4q2k3nxnql5ebizvgluxk\",\"format\":\"png\"}}"
+        },
+        "app.dotify-bulletin-lab.dot": {
+          "owner": "0xe3e3a0916d27c5174313f16E1507a286985a8Ac8",
+          "resolver": "0x7e75491ecfb04900EB05ee63CABA2B33900aABB5",
+          "contenthash": "0xe30101701220431f7ac8486f5e9b7f5778e58d65daa485eff8bdaf26ff8d81f086ac8a567e2a",
+          "record": "{\"$v\":1,\"kind\":\"app\",\"appVersion\":[0,3,1]}"
+        }
+      }
+    },
+    "quotaAfter": {
+      "head": 1530603,
+      "hash": "0xcd0e13d3035a426726f742fd17f7320399c70d6771a3386c4422a05c515931dc",
+      "authorization": {
+        "expiresAt": 1621405,
+        "remainingTransactions": 461,
+        "remainingBytes": "154665731",
+        "remainingRenewBytes": "210941854"
+      }
+    },
+    "completedAt": "2026-11-06T14:24:56.468Z"
+  },
+  "independentProductReadback": {
+    "schema": "dotify.bulletin.continuity-readback.v1",
+    "observedAt": "2026-11-06T14:25:22.383Z",
+    "domain": "dotify-test01.dot",
+    "source": "0587442dbbbe75e10e44fffbb692ebdabdcc0edf",
+    "storage": [
+      {
+        "cid": "bafkreifuucn54olkvwgnlyv4pwjnu3slzffne63yrrx34j6wgqb7y3wmqu",
+        "bytes": 25500,
+        "cidVerified": true
+      },
+      {
+        "cid": "bafkreidzae6qqvldow4djle47yrrsaxl2fuy2rskkx66kuwasuqhjg6wru",
+        "bytes": 296,
+        "cidVerified": true
+      },
+      {
+        "cid": "bafkreiapn3iz4uqviebh7dlwzn6xrkrm67tmp2xmsjdy4in5uy7cmja744",
+        "bytes": 262183,
+        "cidVerified": true
+      },
+      {
+        "cid": "bafkreihxr5ld6baqccxset5hmydmjzbapojvlc3dgqxrq2cwi4xy5ijkn4",
+        "bytes": 262183,
+        "cidVerified": true
+      },
+      {
+        "cid": "bafkreiciklpnkdzsc37vixmx275k2ppufex6ipfe2z3bne23uih5ec6vhy",
+        "bytes": 262183,
+        "cidVerified": true
+      },
+      {
+        "cid": "bafkreifzvyla5dis626wdkgiibkgpjhn3u7wqpetmdcng2rqg76nt6yeua",
+        "bytes": 262183,
+        "cidVerified": true
+      },
+      {
+        "cid": "bafkreibb56fbail4syuv2z7de6oq2sijuqrrdsvfeswi3zs3s7qfiathtu",
+        "bytes": 107384,
+        "cidVerified": true
+      },
+      {
+        "cid": "bafkreifsc4356vqxteq6bzqyb2izkza234h5ifgjzwkaod2l3kp6dcrgha",
+        "bytes": 962187,
+        "cidVerified": true
+      },
+      {
+        "cid": "bafkreiaqw3736dby7fbj7bprgqnylolk5xv3iw32mvcvplojauecn754m4",
+        "bytes": 881923,
+        "cidVerified": true
+      },
+      {
+        "cid": "bafkreifxktisancsexm3xlxwqkbgktc7zzdl6esom5q7a5lcly2ud2pv2y",
+        "bytes": 880931,
+        "cidVerified": true
+      },
+      {
+        "cid": "bafkreifbzcb3z5ww5rcpawwl65majfatnnopmtxewo7e7yetyjrynpub5e",
+        "bytes": 868519,
+        "cidVerified": true
+      },
+      {
+        "cid": "bafkreifmxpegwzacog6hx2etifypiipw5p6sbg67ujcjcez5evzx3gelwm",
+        "bytes": 716226,
+        "cidVerified": true
+      },
+      {
+        "cid": "bafkreiglaydriq6evdoq5yrcw2nptznsrmkymvlq6e62bhcud6mtgxmfw4",
+        "bytes": 716226,
+        "cidVerified": true
+      },
+      {
+        "cid": "bafkreidoxhouezbtrclwmqj7v2io54odfyjarprdq5ywbhvd6n3cdgdmce",
+        "bytes": 830734,
+        "cidVerified": true
+      },
+      {
+        "cid": "bafkreig25o54rfmxbruedmkweambckx3gm5uzy2isryvd4c5wlwb5kxcby",
+        "bytes": 963444,
+        "cidVerified": true
+      },
+      {
+        "cid": "bafkreihysdo7qrdcvul7qx3ald6onhkxpekh3qc6hgfo2m5ldc6x4yqzwa",
+        "bytes": 1024607,
+        "cidVerified": true
+      },
+      {
+        "cid": "bafkreih6eo3zpyvbw3duiaa726mztb5govsul4rc72c67t3ok3wapoeufe",
+        "bytes": 400294,
+        "cidVerified": true
+      },
+      {
+        "cid": "bafkreihjblsa57vyem6slcftb4sfyml5lwr57mllwc5q5y3gezkw3jpceq",
+        "bytes": 6600,
+        "cidVerified": true
+      },
+      {
+        "cid": "bafybeihh2tyq6jo2c2pjae6x3wwhcehwk35yhignqt65ozwp3unkemxxnq",
+        "bytes": 905,
+        "cidVerified": true
+      },
+      {
+        "cid": "bafk2bzacebh4rknk6x7zl4pul7t3ff7y2pglpk5x4q2k3nxnql5ebizvgluxk",
+        "bytes": 35949,
+        "cidVerified": true
+      }
+    ],
+    "networkWrites": 0,
+    "signerUsed": false,
+    "reconstructedCar": {
+      "bytes": 9433603,
+      "sha256": "05416946f19f692a9c60b98b373677e66c0474046d64a75623f0bc2a77fa8586"
+    },
+    "assetHubBlock": "15402968",
+    "records": {
+      "dotify-test01.dot": {
+        "owner": "0xe3e3a0916d27c5174313f16E1507a286985a8Ac8",
+        "resolver": "0x7e75491ecfb04900EB05ee63CABA2B33900aABB5",
+        "contenthash": "0xe30101701220e7d4f10f25da169e9013d7ddac7110f656fb83a0cd84fdd766cfdd1aa232f76c",
+        "record": "{\"$v\":1,\"displayName\":\"Dotify\",\"description\":\"Shared musical presence with artist-owned access and value flows.\",\"icon\":{\"cid\":\"bafk2bzacebh4rknk6x7zl4pul7t3ff7y2pglpk5x4q2k3nxnql5ebizvgluxk\",\"format\":\"png\"}}"
+      },
+      "app.dotify-test01.dot": {
+        "owner": "0xe3e3a0916d27c5174313f16E1507a286985a8Ac8",
+        "resolver": "0x7e75491ecfb04900EB05ee63CABA2B33900aABB5",
+        "contenthash": "0xe30101701220e7d4f10f25da169e9013d7ddac7110f656fb83a0cd84fdd766cfdd1aa232f76c",
+        "record": "{\"$v\":1,\"kind\":\"app\",\"appVersion\":[0,1,77]}"
+      },
+      "dotify-bulletin-lab.dot": {
+        "owner": "0xe3e3a0916d27c5174313f16E1507a286985a8Ac8",
+        "resolver": "0x7e75491ecfb04900EB05ee63CABA2B33900aABB5",
+        "contenthash": "0xe30101701220431f7ac8486f5e9b7f5778e58d65daa485eff8bdaf26ff8d81f086ac8a567e2a",
+        "record": "{\"$v\":1,\"displayName\":\"Dotify First note lab\",\"description\":\"Generated 64-second audio continuity diagnostic. No artist music, wallet or payment.\",\"icon\":{\"cid\":\"bafk2bzacebh4rknk6x7zl4pul7t3ff7y2pglpk5x4q2k3nxnql5ebizvgluxk\",\"format\":\"png\"}}"
+      },
+      "app.dotify-bulletin-lab.dot": {
+        "owner": "0xe3e3a0916d27c5174313f16E1507a286985a8Ac8",
+        "resolver": "0x7e75491ecfb04900EB05ee63CABA2B33900aABB5",
+        "contenthash": "0xe30101701220431f7ac8486f5e9b7f5778e58d65daa485eff8bdaf26ff8d81f086ac8a567e2a",
+        "record": "{\"$v\":1,\"kind\":\"app\",\"appVersion\":[0,3,1]}"
+      }
+    },
+    "labUnchanged": true,
+    "gateway": {
+      "status": 200,
+      "bytes": 9433603,
+      "sha256": "05416946f19f692a9c60b98b373677e66c0474046d64a75623f0bc2a77fa8586"
+    },
+    "publicationCompletedAt": "2026-11-06T14:24:56.468Z"
+  },
+  "web": {
+    "observedAt": "2026-11-06T14:16:44.238Z",
+    "url": "https://muzinga.netlify.app/",
+    "source": "0587442dbbbe75e10e44fffbb692ebdabdcc0edf",
+    "entry": "./assets/index-3YS4rmvd.js",
+    "bytes": 1141153,
+    "sha256": "2eecbb0941f303fd9f950cb715c4cb5ad3c80031201ba0b18b6d40b99806a1b1",
+    "publicConfigDigest": "0d504400edfc50138a9d5f6df01a95bf42d6c6ca1160b52362afe6bc6b3193e9",
+    "httpStatus": 200,
+    "networkStorageWrites": 0,
+    "exactReconstructionBytes": true
+  },
+  "localSignerCleanup": {
+    "removed": true,
+    "checkedAt": "2026-11-06T14:24:56.780Z",
+    "valueDisplayed": false
+  },
+  "apiAndRegisteredRelease": {
+    "observedAt": "2026-11-06T14:25:17.360Z",
+    "ready": true,
+    "apiVersion": {
+      "version": "0.1.0",
+      "commitSha": "e2dd614862a8d9e3c5373689f58195b069130c07"
+    },
+    "catalogUnchanged": true,
+    "catalogCount": 2,
+    "pilot": {
+      "id": "0x05C643A1eD0e75C8A3486410f13BC4597c2674D7:0x66aae2bdd5859205f46c62291d93d6d5618e56201a507c2b9f5277823edafd35",
+      "hash": "0x66aae2bdd5859205f46c62291d93d6d5618e56201a507c2b9f5277823edafd35",
+      "runtimeAddress": "0x05C643A1eD0e75C8A3486410f13BC4597c2674D7",
+      "artistAddress": "0x2f6BF01a6708C927b288a53B9fE3f9edc689FF56",
+      "tokenId": "1",
+      "title": "Dotify-Bulletin-pilot-8s",
+      "artist": "Thot Nzeng",
+      "description": "Testing Bulletin Publishing",
+      "imageRef": "dotify:cover:0x66aae2bdd5859205f46c62291d93d6d5618e56201a507c2b9f5277823edafd35",
+      "coverVariants": [
+        "dotify:cover:0x66aae2bdd5859205f46c62291d93d6d5618e56201a507c2b9f5277823edafd35"
+      ],
+      "audioRef": "dotify:enc:v3:key-v2:ipfs://bafykbzacebebgmpnya5b5z3itktp653a4ru2fnzdaqpxjcq7kk2xpvcs23xlg",
+      "metadataRef": "ipfs://bafykbzacedwrk35v6yvt4fjhzwwf3apl7nddzsmtzdyxrihfxg6cstfhgnyfw/release.json",
+      "bulletinRef": "",
+      "artistContractRef": "dotify:self-certified:0x66aae2bdd5859205f46c62291d93d6d5618e56201a507c2b9f5277823edafd35",
+      "accessMode": "classic",
+      "priceWei": "1420000000000000000",
+      "priceDot": "1.42",
+      "personhoodLevel": "DIM1",
+      "active": true,
+      "encrypted": true,
+      "royaltyBps": 10000,
+      "royaltySplits": [
+        {
+          "label": "Primary recipient",
+          "recipient": "0x2f6BF01a6708C927b288a53B9fE3f9edc689FF56",
+          "bps": 10000
+        }
+      ],
+      "registeredAtBlock": 15321680,
+      "sourceBlock": 15321680
+    },
+    "media": [
+      {
+        "suffix": "/stream/manifest.json",
+        "status": 200,
+        "bytes": 1990,
+        "sha256": "fd4654c97519f3f94adaf9836789e8b9149f7fa43d7d6472987fe4671990edba"
+      },
+      {
+        "suffix": "/stream/96/init.bin",
+        "status": 200,
+        "bytes": 781,
+        "sha256": "9628435fa55d824e546bbc1ee77e732aaa6524a9f5386d8f56323f40c0872481"
+      },
+      {
+        "suffix": "/stream/96/segment-000.bin",
+        "status": 200,
+        "bytes": 48419,
+        "sha256": "ede6080e6e0cb8e2574cd2d66cabd525dc7055393806b0a4f9d5c1aac5c4b7c5"
+      }
+    ],
+    "keyRequested": false,
+    "networkWrites": 0
+  },
+  "custodyIdleBeforeSigning": {
+    "at": "2026-11-06T14:07:16.354Z",
+    "activeJob": null,
+    "jobs": [
+      {
+        "job": "stream-504dc7f9-c881-4446-9b29-b572220f73e5",
+        "ready": true,
+        "pending": 0
+      },
+      {
+        "job": "stream-a92a0829-a899-0e7b-beaf-8813600d9b70",
+        "ready": true,
+        "pending": 0
+      }
+    ]
+  },
+  "webNetlifyIdentityReconstruction": {
+    "sourceEdited": false,
+    "samePublicConfig": true,
+    "exactReconstructionBytes": true,
+    "netlifyGitClean": false,
+    "reason": "Netlify build identity includes non-source host files; a temporary untracked marker reproduced that metadata without source edits."
+  },
+  "retention": {
+    "priorTransactions": 351,
+    "priorBytes": 112567204,
+    "additionalTransactions": 20,
+    "additionalBytes": 9470457,
+    "totalTransactions": 371,
+    "totalBytes": 122037661,
+    "earliestReusedExpiryBlock": 1532185,
+    "accountExpiryBlock": 1621405,
+    "renewalsSubmitted": 0,
+    "schedulerActivated": false
+  },
+  "scope": {
+    "applicationOnly": true,
+    "serverDeployed": false,
+    "serviceRestarted": false,
+    "musicalStores": 0,
+    "registryWrites": 0,
+    "policyChanged": false,
+    "keyTransferred": false,
+    "domainPurchased": false
+  },
+  "ciRerun": {
+    "exactSourceAttempt": 2,
+    "firstAttemptFailure": "Normalized Room receiver measured zero energy in one main-flow case; 318 main cases passed. No retained trace establishes the cause.",
+    "unchangedLocalReproductionsPassed": 3,
+    "sourceOrAssertionsChangedForRerun": false,
+    "mergedDevCiPassed": true
+  },
+  "remainingAcceptance": [
+    "Make full-length phone-host startup reliable: intermittent slow/unavailable errors and repeated retries remain despite eventual foreground Web/Desktop success.",
+    "Host pause/resume/Next, guest mute/disconnect/recovery and same-track position.",
+    "Locked/background host currently silences host and guests; diagnose media/context clocks, session state and sender energy, preserving access and pause ownership. Cold-start and matching Room panels #396 remain separate.",
+    "W33 signed denial/account switching, complete dependency conservation/alerts and coherent off-volume restore.",
+    "Separate custody fatal-exit/supervision reliability follow-up."
+  ],
+  "physicalFullLengthAcceptance": {
+    "reportedAtDate": "2026-11-06",
+    "source": "Owner reply to matching 0.1.77 full-length Adang Fobe test request; About version and app version not independently restated.",
+    "preparationEventuallySucceeded": true,
+    "successfulAttemptsReported": 2,
+    "guestWebAudible": true,
+    "guestDesktopAudible": true,
+    "startupStable": false,
+    "startupObservation": "After Room opens, long delay, intermittent audio-slow/unavailable message, repeated manual retries, eventual sound on two tests. No timing or transport trace supplied.",
+    "backgroundAccepted": false,
+    "lockObservation": "Locking host phone silences both host and listeners; audible playback returns after unlocking. Owner reports playback appears to continue in background; no media/context-clock or sender-energy measurement proves advancement.",
+    "hostPlatform": "phone",
+    "guestPlatforms": [
+      "Web",
+      "Desktop"
+    ],
+    "networkNotRestated": true,
+    "conclusion": "Foreground full-length delivery confirmed, startup reliability and locked/background hosting remain open in #395."
+  }
+}

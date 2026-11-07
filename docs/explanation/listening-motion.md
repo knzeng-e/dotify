@@ -71,8 +71,9 @@ The final Chromium regression run passes **25 tests** across motion, six player
 sizes, room arrival and host/guest access/continuity. Review captures are local
 synthetic browser output; they do not claim physical native gesture acceptance.
 No prior reference video or notification content is included in those captures.
-Native Polkadot app gesture feel is unverified until matching delivery; current
-production remains 0.1.74 and this motion code is not deployed.
+The [verified 0.1.75 rollout](../backlog/implementation/evidence/product-0.1.75-rollout-2026-11-05.md)
+now publishes matching Web/Product clients. Native Polkadot app gesture feel
+still requires physical acceptance; the local evidence above is not that proof.
 
 
 Review follow-up, 2026-11-05: **1,087 unit tests** pass, including seven
