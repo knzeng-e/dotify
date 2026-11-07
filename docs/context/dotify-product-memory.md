@@ -1,5 +1,18 @@
 # Dotify product memory
 
+## Listening continuity delivered in 0.1.79, 2026-11-07
+
+[Web, Product and signaling 0.1.79](../backlog/implementation/evidence/product-0.1.79-rollout-2026-11-07.md) deliver merged #401/#402 from frozen
+`c656992c`. Both CIs and independent Web/CAR/retention/DotNS/signaling checks pass;
+the signer is removed. Closed playback starts fresh, Room exits confirm with a
+host solo-continuation choice, discovery panels retain listening controls, and
+matched signaling preserves chat paragraphs. Solo/Room system covers use the
+larger bottom-right Dotify badge without outer petals. Matching physical checks
+remain open in #395/#388. The approved operation uses 13 stores / 4,423,600 bytes,
+7 one-off renewals / 5,061,961 bytes and two DotNS signatures. Preserve 411 future
+renewals / 140,997,127 bytes. Signaling restarted only after a zero-Room check;
+API/custody and music are unchanged. No recurring conservation is activated.
+
 ## A listening session lasts while its player is open, 2026-11-07
 
 The November 7 candidate replaces cross-visit resume with a visible-session rule: pause/minimize keeps the current listening position; closing the player or reopening the app means a fresh selection from zero. A paused catalog cover carries a slim progress strip. Every Room exit asks first; the host can close the Room and keep solo listening, including its paused state. The four accompanying refinements anchor Room preparation to the cover, quiet the Room controls, foreground artist discovery, and preserve context through consistent/reduced motion.
