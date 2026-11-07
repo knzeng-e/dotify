@@ -4,6 +4,8 @@
 
 Base: tested dev `e7614b4d6993ab16b57eeb4c65f73c6c29919690`.
 Scope: #407 first slice; ordered planning for #395/#388/#406/#408.
+Implementation: `51115455b2187d375a227fc1f57123cf8ef59954` (local checks);
+subsequent reconciliation changes documentation only.
 Branch: `feat/listening-readiness-plan`. This is implementation evidence, not a
 new deployment or general-publication activation.
 
@@ -46,8 +48,12 @@ A durable multi-release policy with aggregate limits is the next #407 slice.
 - 10 application composition tests and API typecheck pass.
 - Seven focused frontend preparation tests pass, including old-job retry refusal,
   persisted refusal, no auto retry/discard, and existing normal recovery paths.
-- Web build and lint pass. Vite retains its existing large-chunk warning.
-- Backlog offline validation passes; #406/#407/#408 are assigned and in Project 5
+- Web build and lint pass (two existing App.tsx dependency warnings). Vite
+  retains its existing large-chunk warning.
+- Backlog offline validation passes. Live validation exposed closed #290/W35 and
+  #292/W37 still marked active locally; reconcile them as delivered records,
+  preserving current device and contract-bound gates in their open follow-ups.
+  #406/#407/#408 are assigned and in Project 5
   with matching fields. #395/#388 preserve their histories and new owner feedback.
 
 The initial isolated frontend dependency extraction exhausted temporary free space;

@@ -1,5 +1,13 @@
 # W35 - Make listening continuous: gapless, adaptive, and system-integrated
 
+## Delivered sequence — reconciled 2026-11-08
+
+Issue #290 is closed and Project 5 is Done. This file retains its dated
+implementation prompt as a record; do not launch it again. See
+[evidence](evidence/W35.md) and the
+[current execution order](listening-and-publication-readiness.md) for remaining
+production/device follow-ups.
+
 Copy this entire file into an agent working in the Dotify repository, or use the launcher in README.md.
 
 ## Agent assignment

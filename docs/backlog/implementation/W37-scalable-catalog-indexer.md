@@ -1,5 +1,13 @@
 # W37 - Keep the catalog indexer fast and recoverable as the catalog grows
 
+## Delivered sequence — reconciled 2026-11-08
+
+Issue #292 is closed and Project 5 is Done. This file retains its dated
+implementation prompt as a record; do not launch it again. See
+[evidence](evidence/W37.md) and the
+[current execution order](listening-and-publication-readiness.md) for remaining
+production/device follow-ups.
+
 Copy this entire file into an agent working in the Dotify repository, or use the launcher in README.md.
 
 ## Agent assignment
