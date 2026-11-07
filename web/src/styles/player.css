@@ -459,6 +459,15 @@ input[type='range']::-moz-range-thumb {
   max-height: 10rem;
 }
 
+.room-connection-note.has-support-report {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.room-connection-note > .audio-support-report {
+  grid-column: 1 / -1;
+}
+
 .solo-session-feedback .primary-action,
 .solo-session-feedback .secondary-action {
   width: 100%;
