@@ -1058,7 +1058,7 @@ describe('room social layer', () => {
     const [message] = await hostSees;
 
     assert.ok(message, 'host receives the chat message');
-    assert.equal(message.text, 'this track is alive', 'text is sanitized to a single line');
+    assert.equal(message.text, 'this track\nis alive', 'chat preserves a sanitized line break');
     assert.equal(message.senderName, 'Gabe');
 
     const late = connectClient();
@@ -1066,7 +1066,7 @@ describe('room social layer', () => {
     const joined = await emitAck(late, 'room:join', { roomId: created.roomId, displayName: 'Late' });
     assert.equal(joined.ok, true);
     assert.equal(joined.chatHistory.length, 1);
-    assert.equal(joined.chatHistory[0].text, 'this track is alive');
+    assert.equal(joined.chatHistory[0].text, 'this track\nis alive');
   });
 
   it('caps the per-room chat history at the configured limit', async () => {

@@ -118,7 +118,6 @@ export function usePlayback(deps: UsePlaybackDeps) {
   const [remotePausedByUser, setRemotePausedByUser] = useState(false);
   const [soloLineup, setSoloLineup] = useState<RoomLineupItem[]>([]);
   const lineup = roomId ? roomLineup : soloLineup;
-  const resumePosition = useRef<{ trackId: string; position: number } | null>(null);
 
   const roomClock = useRoomClock(playerState, mode === 'listener' && remoteReady);
   const transport =
@@ -279,7 +278,6 @@ export function usePlayback(deps: UsePlaybackDeps) {
       return;
     }
     const startedAt = nowMs();
-    if (resumePosition.current?.trackId !== selectedTrackIdRef.current) resumePosition.current = null;
     hostStartupRef.current = {
       attemptId: audioStartupAttemptIdRef.current ?? `source:${Date.now()}`,
       source: audioSource,
@@ -674,21 +672,6 @@ export function usePlayback(deps: UsePlaybackDeps) {
           return;
         }
       }
-      const resume = resumePosition.current;
-      if (resume?.trackId === selectedTrackIdRef.current) {
-        try {
-          audio.currentTime = Math.min(resume.position, Math.max(0, audio.duration - 0.1));
-          resumePosition.current = null;
-        } catch {
-          resumePosition.current = null;
-          userPausedRef.current = true;
-          autoplayIntentRef.current = false;
-          reportHostPlaybackError(startup, 'media-error');
-          onHostMediaSettled(startup.source, true, startup.attemptId);
-          setStatus('no-audio');
-          return;
-        }
-      }
       syncFromAudio(audio);
       if (!startup.metadataReported) {
         startup.metadataReported = true;
@@ -835,17 +818,6 @@ export function usePlayback(deps: UsePlaybackDeps) {
     // controls
     togglePlay,
     setPlaying,
-    restoreListening: (trackId: string, position: number, queue: string[]) => {
-      resumePosition.current = { trackId, position };
-      setSoloLineup(
-        queue
-          .flatMap(id => {
-            const track = catalogTracks.find(item => item.id === id && item.active !== false);
-            return track ? [lineupItemFromTrack(track)] : [];
-          })
-          .slice(0, ROOM_LINEUP_LIMIT)
-      );
-    },
     seekToProgress,
     toggleMute,
     skip,

@@ -8,8 +8,8 @@ import { catalogAccessAriaLabel, catalogAccessShortLabel, normalizeDisplayText }
 import type { CatalogTrack } from '../shared/types';
 
 // In-memory navigation state only. No listening/search history is persisted.
-export type CatalogJourney = { query: string; showAll: boolean; left: number; top: number; target: string | null };
-export const emptyCatalogJourney = (): CatalogJourney => ({ query: '', showAll: false, left: 0, top: 0, target: null });
+export type CatalogJourney = { query: string; showAll: boolean; left: number; top: number; target: string | null; targetViewportTop: number | null };
+export const emptyCatalogJourney = (): CatalogJourney => ({ query: '', showAll: false, left: 0, top: 0, target: null, targetViewportTop: null });
 
 type CatalogBrowserProps = {
   journey: MutableRefObject<CatalogJourney>;
@@ -56,6 +56,12 @@ export function CatalogBrowser({
   const rememberTarget = (target: string) => {
     journey.current.target = target;
     journey.current.top = window.scrollY;
+    // Keep the activation anchor fixed through deferred view-transition capture.
+    // Programmatic scroll events during departure must not replace it.
+    const element = Array.from(listRef.current?.querySelectorAll<HTMLElement>('[data-catalog-target]') ?? []).find(
+      element => element.dataset.catalogTarget === target
+    );
+    journey.current.targetViewportTop = element?.getBoundingClientRect().top ?? null;
   };
   const [edges, setEdges] = useState({ start: true, end: true });
   const listRef = useRef<HTMLDivElement>(null);
@@ -67,6 +73,7 @@ export function CatalogBrowser({
   useLayoutEffect(() => {
     const list = listRef.current;
     if (!list) return;
+    let restoreFrame = 0;
     const layout = `${showAll}:${trackIds}`;
     if (previousLayout.current === null || previousLayout.current === layout) {
       list.scrollLeft = journey.current.left;
@@ -74,7 +81,18 @@ export function CatalogBrowser({
         element => element.dataset.catalogTarget === journey.current.target
       );
       target?.focus({ preventScroll: true });
-      window.scrollTo({ top: journey.current.top, behavior: 'instant' });
+      // Live rooms can move above/below the catalog while an artist is open.
+      // Restore the selected card in the viewport, not an obsolete page offset.
+      const viewportTop = journey.current.targetViewportTop;
+      const savedTop = journey.current.top;
+      const restore = () => {
+        const top = target && viewportTop !== null ? window.scrollY + target.getBoundingClientRect().top - viewportTop : savedTop;
+        window.scrollTo({ top, behavior: 'instant' });
+      };
+      restore();
+      // View-transition layout can adjust scroll after the synchronous commit.
+      // Reconcile once at the first frame; unmount/new layout cancels this work.
+      restoreFrame = requestAnimationFrame(restore);
     } else {
       list.scrollLeft = 0;
     }
@@ -93,6 +111,7 @@ export function CatalogBrowser({
     list.addEventListener('scroll', measure, { passive: true });
     window.addEventListener('scroll', rememberScroll, { passive: true });
     return () => {
+      cancelAnimationFrame(restoreFrame);
       observer.disconnect();
       window.removeEventListener('scroll', rememberScroll);
       list.removeEventListener('scroll', measure);

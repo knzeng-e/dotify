@@ -1,5 +1,6 @@
-import { Coins, ShieldCheck, X } from 'lucide-react';
+import { ArrowUpRight, Coins, ShieldCheck, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { ListeningNowPlaying } from './ListeningNowPlaying';
 import { ListeningSheet } from './ListeningSheet';
 import { CoverImage } from './CoverImage';
 import { buildClassicAccessReceipt } from '../features/access/accessPromise';
@@ -36,6 +37,7 @@ export function ReleaseDetailsDialog({
   const manifest = metadata.ref === track.metadataRef ? metadata.manifest : null;
   const metadataState = metadata.ref === track.metadataRef ? metadata.state : track.metadataRef ? 'loading' : 'unavailable';
   const editorial = manifest?.editorial ?? null;
+  const story = track.description || manifest?.track.description;
   const duration = durationLabel(manifest?.track.durationSeconds ?? track.duration);
   const access =
     release?.active === false
@@ -86,15 +88,21 @@ export function ReleaseDetailsDialog({
       : [];
 
   return (
-    <ListeningSheet className='release-details-dialog' labelledBy='release-details-title' onClose={onClose} handleLabel='Collapse release details'>
-      {close => (
+    <ListeningSheet
+      listeningAnchor={<ListeningNowPlaying />}
+      className='release-details-dialog'
+      labelledBy='release-details-title'
+      onClose={onClose}
+      handleLabel='Collapse release details'
+    >
+      {(close, _closing, dismissThen) => (
         <>
           <div className='modal-header release-details-header'>
             <div>
               <span className='sr-only' id='release-details-title'>
                 About this release
               </span>
-              <span className='release-details-kicker'>Release</span>
+              <span className='release-details-kicker'>{roomContext ? 'Discovered together' : 'Behind the music'}</span>
               <h2>{track.title}</h2>
             </div>
             <button className='modal-close' type='button' onClick={close} aria-label='Close release details'>
@@ -107,8 +115,9 @@ export function ReleaseDetailsDialog({
             <div className='release-details-identity'>
               <p className='release-details-artist'>{track.artist}</p>
               {onOpenArtist && track.artist && (
-                <button type='button' className='text-action' onClick={onOpenArtist}>
-                  Explore this artist
+                <button type='button' className='release-artist-discovery' onClick={() => dismissThen(onOpenArtist)}>
+                  <span>Explore this artist</span>
+                  <ArrowUpRight size={18} aria-hidden='true' />
                 </button>
               )}
               <div className='release-details-chips'>
@@ -116,15 +125,6 @@ export function ReleaseDetailsDialog({
                 {editorial?.releaseDate && <span>{releaseDateLabel(editorial.releaseDate)}</span>}
                 {editorial?.explicitContent && <span>Explicit</span>}
               </div>
-              <p className='release-access-summary'>
-                {track.accessMode === 'classic' && release?.active !== false ? (
-                  <Coins size={18} aria-hidden='true' />
-                ) : (
-                  <ShieldCheck size={18} aria-hidden='true' />
-                )}
-                <span className='sr-only'>{track.accessMode === 'classic' ? 'Listening price: ' : 'Listening access: '}</span>
-                <span>{access}</span>
-              </p>
             </div>
           </div>
 
@@ -137,10 +137,10 @@ export function ReleaseDetailsDialog({
             </p>
           )}
 
-          {track.description && (
+          {story && (
             <section className='release-details-section release-story-section'>
               <h3>About this track</h3>
-              <p className='release-story'>{track.description}</p>
+              <p className='release-story'>{story}</p>
             </section>
           )}
 
@@ -200,6 +200,15 @@ export function ReleaseDetailsDialog({
           <details className='release-listening-section'>
             <summary>Listening &amp; support</summary>
             <div className='release-listening-content'>
+              <p className='release-access-summary'>
+                {track.accessMode === 'classic' && release?.active !== false ? (
+                  <Coins size={18} aria-hidden='true' />
+                ) : (
+                  <ShieldCheck size={18} aria-hidden='true' />
+                )}
+                <span className='sr-only'>{track.accessMode === 'classic' ? 'Listening price: ' : 'Listening access: '}</span>
+                <span>{access}</span>
+              </p>
               <dl className='transaction-facts'>
                 <div>
                   <dt>Solo listening</dt>

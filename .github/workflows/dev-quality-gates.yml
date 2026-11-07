@@ -474,12 +474,17 @@ jobs:
       - name: Verify authenticated streaming and rendition changes
         run: npx playwright test --config playwright.streaming.config.ts
 
+      - name: Verify Room-to-solo output and fresh source reopening
+        run: npx playwright test --config playwright.mobile-host.config.ts --grep 'closing a room preserves|re-preparing a playing' --workers=2
+
       - name: Preserve streaming failure diagnostics
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: streaming-browser-failures-${{ github.run_attempt }}
-          path: web/.data/streaming-results/
+          path: |
+            web/.data/streaming-results/
+            web/test-results/
           include-hidden-files: true
           if-no-files-found: ignore
           retention-days: 7

@@ -350,7 +350,7 @@ test('cover galaxies show exact live people and distinguish my room from an iden
         const close = page.getByRole('button', { name: 'Close room', exact: true });
         if (!(await close.isVisible())) continue;
         await close.click();
-        const confirm = page.getByRole('button', { name: 'Close for everyone', exact: true });
+        const confirm = page.getByRole('button', { name: 'Close room and stop', exact: true });
         await expect.poll(async () => !(await page.getByTestId('room-code').count()) || (await confirm.isVisible())).toBe(true);
         if (await confirm.isVisible()) await confirm.click();
         await expect(page.getByTestId('room-code')).toHaveCount(0);
@@ -404,6 +404,8 @@ test('room identity and reversible Hide update live without another scan', async
     await observer.keyboard.press('Escape');
     await expect(radar.getByRole('heading', { name: 'Escale à Libreville' })).toBeVisible();
     await host.getByRole('button', { name: 'Close room', exact: true }).click();
+    await expect(radar.getByRole('heading', { name: 'Escale à Libreville' })).toBeVisible();
+    await host.getByRole('button', { name: 'Close room and stop', exact: true }).click();
     await expect(radar.getByRole('heading', { name: 'Escale à Libreville' })).toHaveCount(0, { timeout: 3000 });
   } finally {
     await Promise.allSettled([hostContext.close(), observerContext.close()]);

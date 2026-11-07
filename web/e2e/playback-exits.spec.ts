@@ -64,7 +64,7 @@ for (const width of [320, 1440]) {
     await expect(audio).toHaveJSProperty('paused', false);
     await browse(page, width);
     await expect(close).toBeVisible();
-    // Replaying the retained source is a new intent, not a temporary override
+    // Replaying the dismissed track is a new intent, not a temporary override
     // of dismissal while playing. Pausing must keep the controls available.
     const dock = page.locator('.player-dock');
     await dock.getByRole('button', { name: 'Pause', exact: true }).click();
@@ -109,7 +109,7 @@ test('guest mini-player exit requires confirmation, stops audio and removes the 
     await guest.getByRole('button', { name: 'Close mini-player', exact: true }).click();
     const dialog = guest.getByRole('dialog', { name: 'Leave this room?' });
     await expect(dialog).toContainText('Everyone else can keep listening');
-    await dialog.getByRole('button', { name: 'Keep listening', exact: true }).click();
+    await dialog.getByRole('button', { name: 'Stay in room', exact: true }).click();
     expect(await guest.evaluate(() => Reflect.get(window, '__exitStream') === document.querySelectorAll<HTMLAudioElement>('audio')[1].srcObject)).toBe(true);
     await guest.getByRole('button', { name: 'Close mini-player', exact: true }).click();
     await guest.getByRole('button', { name: 'Leave room', exact: true }).click();
@@ -128,33 +128,36 @@ test('guest mini-player exit requires confirmation, stops audio and removes the 
   }
 });
 
-test('host mini-player confirmation closes the room and guests return home with an explanation', async ({ browser }) => {
-  const hostContext = await browser.newContext();
-  const guestContext = await browser.newContext();
-  try {
-    const host = await hostContext.newPage();
-    const guest = await guestContext.newPage();
-    const roomId = await hostRoom(host);
-    await joinRoom(guest, roomId);
-    await browse(host);
-    await host.getByRole('button', { name: 'Close mini-player', exact: true }).click();
-    const dialog = host.getByRole('dialog', { name: 'Close this room?' });
-    await expect(dialog).toContainText('Closing ends the room for everyone');
-    await dialog.getByRole('button', { name: 'Keep listening', exact: true }).click();
-    await expect(host.locator('.player-dock-room')).toContainText('Hosting');
-    await host.getByRole('button', { name: 'Close mini-player', exact: true }).click();
-    await host.getByRole('button', { name: 'Close for everyone', exact: true }).click();
-    await expect(home(host)).toBeVisible();
-    await expect(host.locator('.player-dock')).toHaveCount(0);
-    await expect(host.locator('audio').first()).toHaveJSProperty('paused', true);
-    await expect(home(guest)).toBeVisible();
-    await expect(guest.getByRole('region', { name: 'Status messages' })).toContainText('Room ended');
-    await expect(guest.locator('audio').nth(1)).toHaveJSProperty('srcObject', null);
-  } finally {
-    await guestContext.close();
-    await hostContext.close();
-  }
-});
+for (const continueSolo of [true, false])
+  test(`host closes the room, ${continueSolo ? 'continues solo' : 'stops'}, and guests return home`, async ({ browser }) => {
+    const hostContext = await browser.newContext();
+    const guestContext = await browser.newContext();
+    try {
+      const host = await hostContext.newPage();
+      const guest = await guestContext.newPage();
+      const roomId = await hostRoom(host);
+      await joinRoom(guest, roomId);
+      await host.evaluate(() => Reflect.set(window, '__hostBeforeExit', document.querySelector('audio')));
+      await browse(host);
+      await host.getByRole('button', { name: 'Close mini-player', exact: true }).click();
+      const dialog = host.getByRole('dialog', { name: 'Close this room?' });
+      await expect(dialog).toContainText('Closing ends the room for everyone');
+      await dialog.getByRole('button', { name: 'Stay in room', exact: true }).click();
+      await expect(host.locator('.player-dock-room')).toContainText('Hosting');
+      await host.getByRole('button', { name: 'Close mini-player', exact: true }).click();
+      await host.getByRole('button', { name: continueSolo ? 'Close room and keep listening' : 'Close room and stop', exact: true }).click();
+      await expect(home(host)).toBeVisible();
+      await expect(host.locator('.player-dock')).toHaveCount(continueSolo ? 1 : 0);
+      await expect(host.locator('audio').first()).toHaveJSProperty('paused', !continueSolo);
+      if (continueSolo) expect(await host.evaluate(() => Reflect.get(window, '__hostBeforeExit') === document.querySelector('audio'))).toBe(true);
+      await expect(home(guest)).toBeVisible();
+      await expect(guest.getByRole('region', { name: 'Status messages' })).toContainText('Room ended');
+      await expect(guest.locator('audio').nth(1)).toHaveJSProperty('srcObject', null);
+    } finally {
+      await guestContext.close();
+      await hostContext.close();
+    }
+  });
 
 test('closing a preparing track prevents a late source from restarting audio', async ({ page }) => {
   let releaseSource: (() => void) | undefined;
@@ -234,8 +237,8 @@ test('even a host alone confirms mini-player closure before the room ends', asyn
   await browse(page);
   await page.getByRole('button', { name: 'Close mini-player', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: 'Close this room?' });
-  await expect(dialog).toContainText('Closing ends your room and stops the audio');
-  await dialog.getByRole('button', { name: 'Keep listening', exact: true }).click();
+  await expect(dialog).toContainText('Your music will continue in solo');
+  await dialog.getByRole('button', { name: 'Stay in room', exact: true }).click();
   await page.getByRole('button', { name: /^Return to room/ }).click();
   await expect(page.getByTestId('room-code')).toHaveText(roomId);
 });

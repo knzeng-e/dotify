@@ -1,0 +1,220 @@
+/* The content changes; the listening anchor stays in the same place. */
+.listening-sheet.listening-sheet-anchored {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  height: min(46rem, calc(var(--form-viewport-height, 100dvh) - 2rem));
+}
+.listening-sheet-content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  padding: 0.2rem;
+}
+.listening-sheet-anchored .queue-sheet-handle {
+  flex-shrink: 0;
+}
+.listening-now-playing {
+  flex-shrink: 0;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  align-items: center;
+  gap: 0.55rem 0.75rem;
+  padding: 0.8rem 0.2rem 0.2rem;
+  margin-top: 0.5rem;
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+}
+.listening-now-playing img {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-xs);
+  object-fit: cover;
+}
+.listening-now-copy {
+  min-width: 0;
+  display: grid;
+  gap: 0.1rem;
+}
+.listening-now-copy > * {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.listening-now-copy small {
+  color: var(--action);
+  font-size: var(--text-xs);
+}
+.listening-now-copy strong {
+  font-size: var(--text-sm);
+}
+.listening-now-copy span {
+  color: var(--ink-soft);
+  font-size: var(--text-xs);
+}
+.listening-now-playing button {
+  display: grid;
+  place-items: center;
+  padding: 0;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--canvas);
+}
+.listening-now-playing progress {
+  grid-column: 1 / -1;
+  width: 100%;
+  height: 3px;
+  appearance: none;
+  border: 0;
+  border-radius: 2px;
+  overflow: hidden;
+  background: var(--line);
+  color: var(--action);
+}
+.listening-now-playing progress::-webkit-progress-bar {
+  background: var(--line);
+}
+.listening-now-playing progress::-webkit-progress-value {
+  background: var(--action);
+}
+.listening-now-playing progress::-moz-progress-bar {
+  background: var(--action);
+}
+.solo-story-preview {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+.solo-story-preview .solo-release-note {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+.solo-story-preview .text-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 44px;
+}
+.create-room-track-choice > button {
+  min-height: 44px;
+}
+.room-profile-invitation summary {
+  cursor: pointer;
+  color: var(--ink-soft);
+  padding-block: 0.75rem;
+}
+.room-profile-invitation > label {
+  display: block;
+  margin-block: 0.5rem;
+}
+.room-profile-invitation textarea {
+  width: 100%;
+}
+/* A bounded editor preserves both line breaks and the live conversation. */
+.player-room-mode .room-chat-form {
+  align-items: end;
+}
+.player-room-mode .room-chat-form textarea.field {
+  min-height: 44px;
+  max-height: 88px;
+  resize: none;
+  line-height: 24px;
+  padding: 10px 8px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.room-chat-text {
+  white-space: pre-wrap;
+}
+.room-composer-play {
+  display: none;
+}
+@media (max-width: 768px), (max-height: 799px) {
+  .app-shell[data-composing='true'] .room-chat-form textarea.field {
+    max-height: clamp(44px, calc(var(--room-viewport-height, 100dvh) - 310px), 88px);
+  }
+  .app-shell[data-composing='true'] .player-room-mode {
+    gap: 0.125rem;
+  }
+  .app-shell[data-room-focus='true'][data-composing='true'] .content {
+    padding-bottom: 0.25rem;
+  }
+  /* Large text may scroll the outer surface; messages never collapse to zero. */
+  .app-shell[data-composing='true'] .player-room-mode .player-lower-grid {
+    min-height: 8rem;
+    flex: 1 0 8rem;
+  }
+  .app-shell[data-composing='true'] .room-chat-stream {
+    min-height: 5rem;
+  }
+  .app-shell[data-composing='true'] .room-chat-status {
+    min-height: 0;
+  }
+  .app-shell[data-composing='true'] .room-chat-activity-toggle {
+    min-height: 24px;
+  }
+  .app-shell[data-composing='true'] .player-room-mode .player-stage {
+    grid-template-columns: 2.5rem minmax(0, 1fr) 44px;
+    grid-template-areas: 'artwork metadata quickplay' 'transport transport transport';
+    gap: 0 0.5rem;
+    padding: 0.25rem;
+  }
+  .app-shell[data-composing='true'] .room-composer-play {
+    display: grid;
+    place-items: center;
+    grid-area: quickplay;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--ink);
+    color: var(--canvas);
+  }
+  .app-shell[data-composing='true'] .player-room-mode .transport-cluster,
+  .app-shell[data-composing='true'] .player-room-mode .transport-actions,
+  .app-shell[data-composing='true'] .player-room-mode .contribution-action {
+    display: none;
+  }
+  .app-shell[data-composing='true'] .player-room-mode .player-transport {
+    display: block;
+  }
+  .app-shell[data-composing='true'] .transport-progress input {
+    height: 24px;
+  }
+  .app-shell[data-composing='true'] .player-room-mode .track-copy:has(.room-release-details-trigger) {
+    grid-template-columns: minmax(0, 1fr) 44px;
+  }
+  .app-shell[data-composing='true'] .player-room-mode .room-release-details-trigger > svg {
+    transform: none;
+  }
+  .app-shell[data-composing='true'] .player-room-mode .room-panel-switch {
+    padding: 0;
+  }
+  .app-shell[data-composing='true'] .player-room-mode .room-chat-panel {
+    padding-inline: 0;
+  }
+  /* Avoid retaining an entry transform when WebKit pans to an editor. */
+  .app-shell[data-composing='true'] .player-room-mode .player-lower-grid {
+    animation: none;
+  }
+}
+@media (max-width: 768px) {
+  .listening-sheet.listening-sheet-anchored {
+    height: calc(var(--form-viewport-height, 100dvh) - max(0.75rem, env(safe-area-inset-top)));
+  }
+}
+
+@media (max-width: 480px) and (max-height: 600px) {
+  .player-room-mode {
+    gap: 0.375rem;
+  }
+  .player-room-mode .player-lower-grid {
+    min-height: 10.5rem;
+  }
+}

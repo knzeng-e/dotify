@@ -79,6 +79,9 @@ test('queue sheet closes through drag, Escape and Back while retaining focus and
   await expect(sheet).toHaveCount(0);
   await expect(trigger).toBeFocused();
   await trigger.click();
+  await sheet.evaluate(async element => {
+    await Promise.all(element.getAnimations().map(animation => animation.finished.catch(() => undefined)));
+  });
   await page.getByRole('button', { name: 'Collapse queue' }).hover();
   const handle2 = (await page.getByRole('button', { name: 'Collapse queue' }).boundingBox())!;
   await page.mouse.move(handle2.x + handle2.width / 2, handle2.y + handle2.height / 2);
@@ -183,3 +186,124 @@ for (const newerIntent of ['tab', 'back'] as const) {
     await expectSource(page);
   });
 }
+
+for (const reducedMotion of ['reduce', 'no-preference'] as const) {
+  test(`release sheet hands off to artist and back without losing listening (${reducedMotion})`, async ({ page }, testInfo) => {
+    await page.emulateMedia({ reducedMotion });
+    await solo(page);
+    const artist = page.locator('.track-copy').getByRole('button', { name: 'Dotify Room Host', exact: true });
+    await artist.scrollIntoViewIfNeeded();
+    const top = await page.evaluate(() => scrollY);
+    await page.getByRole('button', { name: 'About this release', exact: true }).click();
+    const sheet = page.getByRole('dialog', { name: 'About this release', exact: true });
+    await expect(sheet).toContainText('Behind the music');
+    await expect(sheet.getByRole('button', { name: 'Explore this artist' })).toBeVisible();
+    await sheet.getByText('Listening & support', { exact: true }).click();
+    await expect(sheet).toContainText('Free with basic human verification');
+    await expect(sheet.locator('.release-story')).toHaveText('A deterministic public track used by the room-join e2e flow.');
+    await page.screenshot({ path: testInfo.outputPath('release-discovery.png'), animations: 'disabled' });
+    await sheet.getByRole('button', { name: 'Explore this artist' }).click();
+    await expect(page.getByRole('heading', { name: 'Dotify Room Host', exact: true })).toBeVisible();
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await expectSource(page);
+    await page.getByRole('button', { name: 'Back to listening', exact: true }).click();
+    await expect(page.getByRole('region', { name: 'Player', exact: true })).toBeVisible();
+    await expect(artist).toBeFocused();
+    await expect.poll(() => page.evaluate(saved => Math.abs(scrollY - saved), top)).toBeLessThan(5);
+    await expectSource(page);
+    await page.goForward();
+    await expect(page.getByRole('button', { name: 'Back to listening', exact: true })).toBeVisible();
+    await page.goBack();
+    await expect(page.getByRole('region', { name: 'Player', exact: true })).toBeVisible();
+    await expectSource(page);
+  });
+}
+
+test('Back and Escape cancel room exit without changing the source or membership', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/?e2eRoom=public&e2eSync=on&e2eAutoplay=on');
+  await page.getByRole('button', { name: 'Open a room', exact: true }).click();
+  await page.getByRole('button', { name: 'Select E2E Public Room Track', exact: true }).click();
+  await page.getByLabel('Your name or nickname').fill('Careful host');
+  await page.getByRole('button', { name: 'Open the room', exact: true }).click();
+  const code = await page.getByTestId('room-code').innerText();
+  await page
+    .locator('audio')
+    .first()
+    .evaluate(node => Reflect.set(node, '__motionIdentity__', true));
+  for (const cancel of ['back', 'escape']) {
+    await page.getByRole('button', { name: 'Close room', exact: true }).click();
+    const dialog = page.getByRole('dialog', { name: 'Close this room?' });
+    await expect(dialog).toBeFocused();
+    if (cancel === 'back') await page.goBack();
+    else await page.keyboard.press('Escape');
+    await expect(dialog).toHaveCount(0);
+    await expect(page.getByTestId('room-code')).toHaveText(code);
+    await expectSource(page);
+  }
+});
+
+test('room preparation keeps the current cover and can cancel a late room acknowledgment', async ({ page }, testInfo) => {
+  let releaseAck: (() => void) | undefined;
+  let ackPrefix = '';
+  await page.routeWebSocket(/\/socket\.io\//, socket => {
+    const server = socket.connectToServer();
+    socket.onMessage(message => {
+      const frame = String(message);
+      if (frame.includes('"room:create"')) {
+        const id = /^42(\d+)\[/.exec(frame)?.[1];
+        if (id) ackPrefix = `43${id}[`;
+      }
+      server.send(message);
+    });
+    server.onMessage(message => {
+      if (ackPrefix && String(message).startsWith(ackPrefix) && !releaseAck) {
+        releaseAck = () => socket.send(message);
+        return;
+      }
+      socket.send(message);
+    });
+  });
+  await solo(page);
+  await expect.poll(() => page.evaluate(() => document.querySelector('audio')?.currentTime ?? 0)).toBeGreaterThan(0);
+  await page.locator('.cover').evaluate(element => Reflect.set(window, '__coverAnchor', element));
+  await page.getByRole('button', { name: 'Open a room', exact: true }).click();
+  await page.getByLabel('Your name or nickname').fill('Preparing host');
+  await page.getByRole('button', { name: 'Open the room', exact: true }).click();
+  const note = page.locator('.room-preparation-note');
+  await expect(note).toContainText('Opening your room');
+  await expect.poll(() => Boolean(releaseAck)).toBe(true);
+  expect(await page.locator('.cover').evaluate(element => element === Reflect.get(window, '__coverAnchor'))).toBe(true);
+  await expect(page.getByTestId('room-code')).toHaveCount(0);
+  await expectSource(page);
+  await page.screenshot({ path: testInfo.outputPath('room-preparation.png'), animations: 'disabled' });
+  await note.getByRole('button', { name: 'Cancel', exact: true }).click();
+  releaseAck!();
+  await expect(note).toHaveCount(0);
+  await expect(page.getByTestId('room-code')).toHaveCount(0);
+  await expect(page.getByRole('region', { name: 'Player', exact: true })).toBeVisible();
+  await expectSource(page);
+});
+
+test('discovery and queue keep a fixed listening anchor while their content scrolls', async ({ page }, info) => {
+  await solo(page);
+  await page.getByRole('button', { name: 'Queue', exact: true }).click();
+  const queue = page.getByRole('dialog', { name: 'Queue', exact: true });
+  const anchor = queue.getByRole('complementary', { name: 'Current listening' });
+  await queue.evaluate(async element => Promise.all(element.getAnimations().map(animation => animation.finished.catch(() => undefined))));
+  const position = (await anchor.boundingBox())!;
+  await queue.locator('.listening-sheet-content').evaluate(element => {
+    element.scrollTop = element.scrollHeight;
+  });
+  expect((await anchor.boundingBox())!.y).toBeCloseTo(position.y, 0);
+  await anchor.getByRole('button', { name: 'Pause current track' }).click();
+  await expect(page.locator('audio').first()).toHaveJSProperty('paused', true);
+  await anchor.getByRole('button', { name: 'Play current track' }).click();
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'About this release', exact: true }).click();
+  const details = page.getByRole('dialog', { name: 'About this release', exact: true });
+  await details.evaluate(async element => Promise.all(element.getAnimations().map(animation => animation.finished.catch(() => undefined))));
+  expect((await details.getByRole('complementary', { name: 'Current listening' }).boundingBox())!.y).toBeCloseTo(position.y, 0);
+  await expectSource(page);
+  await page.screenshot({ path: info.outputPath('discovery-listening-anchor.png') });
+});

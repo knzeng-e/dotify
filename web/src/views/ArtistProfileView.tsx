@@ -16,6 +16,7 @@ type ArtistProfileViewProps = {
   catalogAccessByTrackId: Record<string, boolean>;
   nativePaymentSymbol: string;
   onBack: () => void;
+  backLabel?: string;
   onOpenTrack: (track: CatalogTrack) => void;
   onPlayTrack: (track: CatalogTrack) => void;
   onTrackIntent: (track: CatalogTrack) => void;
@@ -49,6 +50,7 @@ export function ArtistProfileView({
   catalogAccessByTrackId,
   nativePaymentSymbol,
   onBack,
+  backLabel = 'Back to discovery',
   onOpenTrack,
   onPlayTrack,
   onTrackIntent,
@@ -72,7 +74,7 @@ export function ArtistProfileView({
     <section className='artist-profile-view' style={profileVars(artistName)}>
       <button className='back-action artist-profile-back' type='button' onClick={onBack}>
         <ArrowLeft size={18} aria-hidden='true' />
-        Back to discovery
+        {backLabel}
       </button>
 
       <header className='artist-profile-hero'>

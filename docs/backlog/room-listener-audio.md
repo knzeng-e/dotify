@@ -125,3 +125,9 @@ where supported, and pauses at position with explicit recovery if the shared
 output is interrupted. A bounded local context/media-clock snapshot supports
 native diagnosis. It does not promise uninterrupted locked hosting or identify
 every slow request; #395 stays open for matching rollout/device evidence.
+
+
+## Close/reopen continuity candidate, 2026-11-07
+
+The owner confirms 0.1.78 preparation succeeds without retry and host/guests remain audible during a short phone lock. A separate report concerns silent advancing playback after closing the player, chiefly on phone. The candidate retires dismissed output and removes cross-visit checkpoints; confirmed host Room exit can retain the same local source and pause state. Physical close/reopen acceptance remains open; the prior lock observation does not prove this new path.
+See [design and validation](implementation/evidence/listening-session-continuity-2026-11-07.md). No deployment is part of this change.

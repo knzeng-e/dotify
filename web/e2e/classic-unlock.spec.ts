@@ -53,7 +53,7 @@ test('Classic track stays locked before payment and unlocks full playback after 
 
   await page.getByTestId('track-card-open').click();
 
-  await expect(page.getByTestId('locked-player-state')).toContainText('Locked');
+  await expect(page.getByTestId('locked-player-state')).toContainText('Access needed to play');
   await expect(page.getByTestId('access-warning')).toHaveCount(0);
   await expect(page.locator('.solo-room-invite')).toHaveCount(0);
   await expect(page.locator('.player-lower-grid')).toBeHidden();
@@ -144,7 +144,7 @@ test('Classic payment record remains visible when runtime read-back denies playa
   await expect(trackCard).toContainText('Deterministic Classic Unlock');
 
   await page.getByTestId('track-card-open').click();
-  await expect(page.getByTestId('locked-player-state')).toContainText('Locked');
+  await expect(page.getByTestId('locked-player-state')).toContainText('Access needed to play');
 
   await openClassicSupport(page);
   await page.getByTestId('classic-unlock-button').click();
@@ -153,7 +153,7 @@ test('Classic payment record remains visible when runtime read-back denies playa
   await expect(page.getByTestId('unlock-transaction-status')).toContainText('Check access again');
   await expect(page.getByTestId('unlock-transaction-status')).toContainText('Protected audio stays closed');
   await expect(page.getByTestId('unlock-transaction-status')).toContainText('Settlement');
-  await expect(page.getByTestId('locked-player-state')).toContainText('Locked');
+  await expect(page.getByTestId('locked-player-state')).toContainText('Access needed to play');
   await expect(page.getByTestId('full-playback-state')).toHaveCount(0);
 
   const afterPayment = await readClassicUnlockState(page);
@@ -199,7 +199,7 @@ test.describe('mobile Classic support receipt states', () => {
     const receipt = page.getByTestId('unlock-transaction-status');
     await expect(receipt).toContainText('Listening access not verified');
     await expect(receipt).toContainText('Protected audio stays closed');
-    await expect(page.getByTestId('locked-player-state')).toContainText('Locked');
+    await expect(page.getByTestId('locked-player-state')).toContainText('Access needed to play');
   });
 
   test('mobile Product funding failure stays plain and confirms that nothing was sent', async ({ page }) => {
@@ -216,7 +216,7 @@ test.describe('mobile Classic support receipt states', () => {
     await receipt.getByText('Technical details', { exact: true }).click();
     await expect(receipt.getByLabel('Technical transaction details')).toContainText('TransferFailed');
     await expect(receipt.getByRole('button', { name: 'Check access again' })).toHaveCount(0);
-    await expect(page.getByTestId('locked-player-state')).toContainText('Locked');
+    await expect(page.getByTestId('locked-player-state')).toContainText('Access needed to play');
     expect((await readClassicUnlockState(page))?.paymentAttempts).toBe(1);
     expect((await readClassicUnlockState(page))?.paid).toBe(false);
   });
@@ -332,7 +332,7 @@ test('an expired unsigned confirmation offers a direct retry without paying auto
 test('Bulletin reference without a direct URL reaches protected playback only after access passes', async ({ page }) => {
   await page.goto('/?e2eClassic=bulletin-source');
   await page.getByTestId('track-card-open').click();
-  await expect(page.getByTestId('locked-player-state')).toContainText('Locked');
+  await expect(page.getByTestId('locked-player-state')).toContainText('Access needed to play');
   expect((await readClassicUnlockState(page))?.fullKeyRequests ?? 0).toBe(0);
   await openClassicSupport(page);
   await page.getByTestId('classic-unlock-button').click();
@@ -391,7 +391,7 @@ test('switching accounts retires the old source without automatically paying or 
   const failure = page.getByTestId('playback-failure');
   await expect(failure).toHaveAttribute('data-kind', 'account-changed');
   await failure.getByRole('button', { name: 'Try again', exact: true }).click();
-  await expect(page.getByTestId('locked-player-state')).toContainText('Locked');
+  await expect(page.getByTestId('locked-player-state')).toContainText('Access needed to play');
   await expect(page.locator('audio[src]')).toHaveCount(0);
   expect((await readClassicUnlockState(page))?.paymentAttempts).toBe(1);
   expect((await readClassicUnlockState(page))?.fullKeyRequests).toBe(requests);

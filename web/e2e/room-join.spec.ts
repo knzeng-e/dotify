@@ -97,6 +97,7 @@ test('room release discovery follows the live track without leaving or requestin
     await expect(guest.getByTestId('room-code')).toHaveText(roomId);
     expect((await readRoomJoinState(guest))?.keyRequests).toBe(0);
     await guest.getByRole('button', { name: 'Leave', exact: true }).click();
+    await guest.getByRole('button', { name: 'Leave room', exact: true }).click();
     await expect.poll(async () => (await readMediaSessionProbe(guest)).album ?? '').toBe('');
     await expect.poll(async () => (await readMediaSessionProbe(host)).album).toBe('Dotify');
   } finally {
@@ -157,8 +158,17 @@ test('host lineup is shared, advances on track end, and Previous follows real hi
     await expect(host.locator('.host-lineup')).toContainText('Second room track');
 
     const listener = await joinAsListener(listenerContext, roomId, { storedDisplayName: 'Echo' });
+    await expect(listener.getByTestId('room-code')).toHaveText(roomId);
+    await expect.poll(() => listener.evaluate(() => window.history.state?.dotifyView)).toBe('player');
     await listener.getByRole('button', { name: 'Queue', exact: true }).click();
     await expect(listener.locator('.host-lineup summary')).toContainText('Second room track');
+    // A remembered-name join must seed player history before a sheet pushes its
+    // entry. Closing that sheet must never send a still-connected guest to Rooms.
+    await listener.getByRole('button', { name: 'Close room queue', exact: true }).click();
+    await expect(listener.getByRole('dialog', { name: 'Room queue', exact: true })).toBeHidden();
+    await expect(listener.getByTestId('room-code')).toHaveText(roomId);
+    await expect.poll(() => listener.evaluate(() => window.history.state?.dotifyView)).toBe('player');
+    await listener.getByRole('button', { name: 'Queue', exact: true }).click();
     await Promise.all([
       host.screenshot({ path: testInfo.outputPath('host-lineup-desktop.png'), fullPage: true }),
       listener.screenshot({ path: testInfo.outputPath('listener-lineup-mobile.png'), fullPage: true })
@@ -606,7 +616,7 @@ test('host explicitly closes: the room is removed and the listener sees a clear 
     // The exit lives in the room header; with a guest present the host confirms.
     await host.getByRole('button', { name: 'Close room', exact: true }).click();
     await expect(host.getByRole('dialog', { name: 'Close this room?' })).toContainText('1 person is listening with you');
-    await host.getByRole('button', { name: 'Close for everyone', exact: true }).click();
+    await host.getByRole('button', { name: 'Close room and keep listening', exact: true }).click();
 
     await expect(listener.getByRole('heading', { name: 'Listen together.', exact: true })).toBeVisible({ timeout: 20_000 });
     await expect(listener.getByRole('region', { name: 'Status messages' })).toContainText('Room ended');
@@ -628,6 +638,7 @@ test('host explicitly closes: the room is removed and the listener sees a clear 
       await host.getByRole('button', { name: 'Close room queue', exact: true }).click();
     await host.getByRole('tab', { name: /People/ }).click();
     await host.getByRole('button', { name: 'Close room' }).click();
+    await host.getByRole('button', { name: 'Close room and stop', exact: true }).click();
 
     // Once solo playback moves to another source generation, the retained
     // capture owner is finally retired and its Web Audio graph is closed.

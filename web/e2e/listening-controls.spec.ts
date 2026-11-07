@@ -108,5 +108,6 @@ test('room system artwork keeps track attribution and a stable Dotify signature 
   expect(session.artist).toBe('Dotify Room Host');
   await testInfo.attach('room-system-artwork', { body: Buffer.from(session.artwork[0].src.split(',')[1], 'base64'), contentType: 'image/png' });
   await page.getByRole('button', { name: 'Close room', exact: true }).click();
+  await page.getByRole('button', { name: 'Close room and keep listening', exact: true }).click();
   await expect.poll(async () => (await readMediaSessionProbe(page)).album ?? '').toBe('Dotify');
 });

@@ -62,32 +62,45 @@ test('system controls are idempotent, follow the selected track and clear after 
 });
 
 for (const width of [320, 1440])
-  test(`returning offers local listening without autoplay at ${width}px`, async ({ page }, testInfo) => {
+  test(`listening resumes only while the player is open at ${width}px`, async ({ page }, testInfo) => {
     await page.setViewportSize({ width, height: 844 });
     await play(page);
     await source(page).evaluate(audio => {
       audio.currentTime = 17;
       audio.dispatchEvent(new Event('timeupdate'));
+      Reflect.set(window, '__activeListeningAudio', audio);
     });
     await page.getByRole('button', { name: 'Pause', exact: true }).click();
-    await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent('pagehide')));
-    const saved = await page.evaluate(() => localStorage.getItem('dotify:listening-checkpoint:v1'));
-    expect(saved).toContain('e2e-room-public');
-    expect(saved).not.toMatch(/contentKey|blob:|data:audio|roomId/);
-    await page.reload();
-    const offer = page.getByRole('region', { name: 'Saved listening' });
-    await expect(offer).toContainText('E2E Public Room Track');
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-    await page.screenshot({ path: testInfo.outputPath(`resume-${width}.png`) });
-    await expect(source(page)).toHaveJSProperty('paused', true);
-    await offer.getByRole('button', { name: 'Resume', exact: true }).click();
-    await expect(source(page)).toHaveJSProperty('paused', false);
-    await expect.poll(() => source(page).evaluate(audio => audio.currentTime)).toBeGreaterThanOrEqual(17);
     await browseMusic(page, width);
+    const progress = page.getByTestId('track-resume-progress');
+    await expect(progress).toBeVisible();
+    await expect(page.locator('.player-stage')).toHaveCount(0);
+    await expect(page.locator('html')).not.toHaveAttribute('data-player-motion');
+    await progress.scrollIntoViewIfNeeded();
+    await page.screenshot({ path: testInfo.outputPath(`paused-cover-${width}.png`) });
+    await page.getByRole('button', { name: /^Play E2E Public Room Track by/ }).click();
+    await expect(source(page)).toHaveJSProperty('paused', false);
+    expect(await source(page).evaluate(audio => audio === Reflect.get(window, '__activeListeningAudio'))).toBe(true);
+    expect(await source(page).evaluate(audio => audio.currentTime)).toBeGreaterThanOrEqual(17);
+    await browseMusic(page, width);
+    await expect(progress).toHaveCount(0);
     await page.getByRole('button', { name: 'Close mini-player', exact: true }).click();
+    await expect(page.locator('audio[src]')).toHaveCount(0);
+    await expect(progress).toHaveCount(0);
+    await page.getByRole('button', { name: /^Play E2E Public Room Track by/ }).click();
+    await expect(source(page)).toHaveJSProperty('paused', false);
+    expect(await source(page).evaluate(audio => audio === Reflect.get(window, '__activeListeningAudio'))).toBe(false);
+    expect(await source(page).evaluate(audio => audio.currentTime)).toBeLessThan(5);
+    await page.evaluate(() => {
+      localStorage.setItem('dotify:listening-checkpoint:v1', JSON.stringify({ version: 1, trackId: 'e2e-room-public', position: 17 }));
+    });
     await page.reload();
-    await expect(offer).toHaveCount(0);
+    await expect(page.getByRole('region', { name: 'Saved listening' })).toHaveCount(0);
+    await expect.poll(() => page.evaluate(() => localStorage.getItem('dotify:listening-checkpoint:v1'))).toBeNull();
     await expect(source(page)).toHaveJSProperty('paused', true);
+    await page.getByRole('button', { name: /^Play E2E Public Room Track by/ }).click();
+    await expect(source(page)).toHaveJSProperty('paused', false);
+    expect(await source(page).evaluate(audio => audio.currentTime)).toBeLessThan(5);
   });
 
 test('a system Pause during source preparation prevents deferred autoplay', async ({ page }) => {

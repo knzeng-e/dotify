@@ -552,6 +552,16 @@ export function useCatalog(deps: UseCatalogDeps) {
     setTrackSelectionPending(false);
   }
 
+  function clearPlayback() {
+    standbyAudio.clear();
+    abortActiveTrackSelection();
+    if (localAudioRef.current) retireHostAudio(localAudioRef.current);
+    setResolvedAudioSource(null);
+    setAudioRecovery(null);
+    setAudioStartupStatus(null);
+    setPlaybackFailure(null);
+  }
+
   function cancelPlaybackPreparation() {
     if (!activeTrackSelectionRef.current?.pending || (localAudioRef.current?.readyState ?? 0) >= 3) return;
     abortActiveTrackSelection();
@@ -1753,6 +1763,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     refreshCatalogFromRegistry,
     fetchRuntimeCatalog,
     clearObjectUrls,
-    cancelPlaybackPreparation
+    cancelPlaybackPreparation,
+    clearPlayback
   };
 }

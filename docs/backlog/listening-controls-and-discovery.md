@@ -65,3 +65,17 @@ retain the complete original logo inside one larger opaque badge, enlarge the
 cover and use a thin neutral outline for light/dark contrast. Solo and Room use
 the same composition. This is a visual candidate, not another deployment; native
 layout and previous/next command acceptance remain separate #388 gates.
+
+
+## Listening-session refinement candidate, 2026-11-07
+
+The owner requests all four proposed refinements: an anchored solo-to-Room transition, quieter Room hierarchy, artist-first release discovery and consistent motion/return. The same candidate confirms Room exits, lets the host continue solo, and limits resume/progress to an open paused player. Participant-arrival animation is deferred. Matching physical acceptance remains open.
+See [design and validation](implementation/evidence/listening-session-continuity-2026-11-07.md). No deployment is part of this change.
+
+
+The same candidate incorporates the two November 7 recordings: a stable listening
+footer across Queue, Room queue and release discovery; compact story preview;
+simpler current-track Room setup; and readable conversation with a bounded
+multiline editor while the keyboard is open. Paragraph preservation includes a
+bounded signaling normalization change; matching rollout and real keyboard
+acceptance remain open. See the evidence above for boundaries.

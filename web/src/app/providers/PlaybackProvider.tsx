@@ -1,8 +1,5 @@
-import { useListeningCheckpoint } from '../../features/player/useListeningCheckpoint';
 import { useSystemMediaSession } from '../../features/player/useSystemMediaSession';
 import { playbackTrack } from '../../features/player/playbackPresentation';
-import { useWalletContext } from './WalletProvider';
-import type { ListeningCheckpoint } from '../../features/player/listeningCheckpoint';
 // Playback provider - wraps the usePlayback hook (media elements + transport
 // state that survives tab changes) and owns the three cross-domain handlers it
 // and PersistentAudio need: open a track (catalog select/open + route to the
@@ -15,7 +12,7 @@ import type { ListeningCheckpoint } from '../../features/player/listeningCheckpo
 // optimization: worth doing only if profiling shows the ~4x/sec transport updates
 // are re-rendering the tree wastefully.
 
-import { createContext, useContext, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { usePlayback } from '../../hooks/usePlayback';
 import { PersistentAudio } from '../../components/PersistentAudio';
 import { RoomCloseDialog } from '../../components/RoomCloseDialog';
@@ -32,11 +29,8 @@ type PlaybackValue = {
   prepareLocalStream: () => void;
   playerDismissed: boolean;
   closePlayer: () => void;
-  reopenPlayer: () => void;
-  requestRoomExit: () => void;
-  resumeOffer: (ListeningCheckpoint & { title: string; artist: string }) | null;
-  resumeListening: () => void;
-  dismissResume: () => void;
+  requestRoomExit: (options?: { onConfirm: () => void }) => void;
+  pausedTrackProgress: { trackId: string; percent: number } | null;
 };
 
 const PlaybackContext = createContext<PlaybackValue | null>(null);
@@ -45,13 +39,21 @@ export function PlaybackProvider({ children }: { children: ReactNode }) {
   const { activeView, isArtistPortal, publicArtistName, navigateToView, clearRoomLink } = useNavigation();
   const { pushNotice } = useUiFeedback();
   const [playerDismissed, setPlayerDismissed] = useState(false);
-  const [pendingExit, setPendingExit] = useState<{ roomId: string; dismissPlayer: boolean } | null>(null);
+  const [pendingExit, setPendingExit] = useState<{ roomId: string; onConfirm?: () => void } | null>(null);
   const previousRoom = useRef('');
   const previousRoomWasGuest = useRef(false);
   const previousView = useRef(activeView);
   const catalog = useCatalogContext();
   const session = useSessionContext();
-  const wallet = useWalletContext();
+  // Retire the previous cross-visit offer. A listening session now lives only
+  // as long as its player; denied storage access cannot affect playback.
+  useEffect(() => {
+    try {
+      localStorage.removeItem('dotify:listening-checkpoint:v1');
+    } catch {
+      /* Optional local storage. */
+    }
+  }, []);
 
   function handlePrepareLocalStream() {
     void session.prepareLocalStream(catalog.audioSource, catalog.trackInfo);
@@ -60,7 +62,6 @@ export function PlaybackProvider({ children }: { children: ReactNode }) {
   function handleOpenTrack(track: CatalogTrack) {
     const showAccessGateOnDenied = session.mode === 'host' && Boolean(session.roomId);
     setPlayerDismissed(false);
-    checkpoint.clear();
     void catalog.openTrack(track, session.socketEmit, session.setLocalStreamReady, session.closeHostPeers, showAccessGateOnDenied, {
       forRoomCapture: Boolean(session.roomId)
     });
@@ -95,15 +96,6 @@ export function PlaybackProvider({ children }: { children: ReactNode }) {
   });
 
   const selectedTrack = catalog.catalogTracks.find(track => track.id === catalog.selectedTrackId);
-  const checkpoint = useListeningCheckpoint(
-    playback,
-    catalog.audioSource ? selectedTrack : undefined,
-    !session.roomId && !playerDismissed,
-    `${wallet.connectedWallet?.evmAddress?.toLowerCase() ?? 'anonymous'}:${wallet.connectedWallet?.chainId ?? wallet.expectedChainId ?? ''}`
-  );
-  const resumeTrack = checkpoint.offer
-    ? catalog.catalogTracks.find(track => track.id === checkpoint.offer!.trackId && track.hash === checkpoint.offer!.hash && track.active !== false)
-    : null;
   useSystemMediaSession(
     playback,
     playbackTrack(session.mode, catalog.trackInfo, selectedTrack),
@@ -111,15 +103,6 @@ export function PlaybackProvider({ children }: { children: ReactNode }) {
       (session.mode === 'listener' || !catalog.playbackFailure) &&
       (!playerDismissed || Boolean(session.roomId))
   );
-
-  function resumeListening() {
-    if (!resumeTrack || !checkpoint.offer || session.roomId) return;
-    playback.restoreListening(resumeTrack.id, checkpoint.offer.position, checkpoint.offer.queue);
-    checkpoint.clear();
-    setPlayerDismissed(false);
-    playback.requestAutoplay();
-    handleOpenTrack(resumeTrack);
-  }
 
   function stopPlayback() {
     catalog.cancelNextPlayback();
@@ -133,27 +116,29 @@ export function PlaybackProvider({ children }: { children: ReactNode }) {
   }
 
   function exitRoom(dismissPlayer = false) {
+    const continueSolo = session.mode === 'host' && !dismissPlayer;
     // Mark an explicit exit before clearing room state so the passive closure
     // observer does not announce it again or override a leave-and-open action.
     previousRoom.current = '';
     setPendingExit(null);
-    stopPlayback();
-    if (dismissPlayer) {
-      setPlayerDismissed(true);
-      checkpoint.clear();
+    if (!continueSolo) {
+      stopPlayback();
+      catalog.clearPlayback();
     }
+    setPlayerDismissed(!continueSolo);
     if (session.mode === 'listener') restoreSoloMetadata();
     session.leaveSession();
     navigateToView('listen', { replace: true, clearRoomLink: true });
   }
 
   const activeListenerCount = session.listeners.filter(listener => listener.status !== 'disconnected').length;
-  function requestExit(dismissPlayer = false) {
-    if (session.roomId && (dismissPlayer || (session.mode === 'host' && activeListenerCount > 0))) {
-      setPendingExit({ roomId: session.roomId, dismissPlayer });
+  function requestExit(dismissPlayer = false, onConfirm?: () => void) {
+    if (session.roomId) {
+      setPendingExit({ roomId: session.roomId, onConfirm });
       return;
     }
     exitRoom(dismissPlayer);
+    onConfirm?.();
   }
 
   function closePlayer() {
@@ -162,7 +147,7 @@ export function PlaybackProvider({ children }: { children: ReactNode }) {
       return;
     }
     stopPlayback();
-    checkpoint.clear();
+    catalog.clearPlayback();
     setPlayerDismissed(true);
   }
 
@@ -175,6 +160,8 @@ export function PlaybackProvider({ children }: { children: ReactNode }) {
     // A host closing a room or an expired session is a real exit too. Browsing
     // stays where it is; only an orphaned full-room player returns home.
     stopPlayback();
+    catalog.clearPlayback();
+    setPlayerDismissed(true);
     setPendingExit(null);
     if (wasGuest) restoreSoloMetadata();
     pushNotice({ tone: 'info', title: 'Room ended', message: session.error || 'The room is closed. You can find another listening moment.' });
@@ -202,15 +189,42 @@ export function PlaybackProvider({ children }: { children: ReactNode }) {
       playback,
       playerDismissed,
       closePlayer,
-      resumeOffer:
-        !catalog.audioSource && !session.roomId && resumeTrack && checkpoint.offer
-          ? { ...checkpoint.offer, title: resumeTrack.title, artist: resumeTrack.artist }
+      pausedTrackProgress:
+        !playerDismissed &&
+        !session.roomId &&
+        catalog.audioSource &&
+        !catalog.accessGate &&
+        !catalog.playbackFailure &&
+        !catalog.trackSelectionPending &&
+        !catalog.audioSourcePending &&
+        playback.status === 'ready' &&
+        !playback.transport.playing &&
+        playback.transport.currentTime > 0 &&
+        playback.transport.currentTime < playback.transport.duration
+          ? { trackId: catalog.selectedTrackId, percent: (100 * playback.transport.currentTime) / playback.transport.duration }
           : null,
-      resumeListening,
-      dismissResume: checkpoint.clear,
-      reopenPlayer: () => setPlayerDismissed(false),
-      requestRoomExit: () => requestExit(),
+      requestRoomExit: options => requestExit(false, options?.onConfirm),
       openTrack: track => {
+        const audio = catalog.localAudioRef.current;
+        // Resume only a live, visible session. A dismissed/ended/failed source
+        // is a new selection, with ordinary access checks and a fresh element.
+        if (
+          !playerDismissed &&
+          session.mode === 'host' &&
+          track.id === catalog.selectedTrackId &&
+          catalog.audioSource &&
+          audio?.getAttribute('src') === catalog.audioSource &&
+          !audio.ended &&
+          !audio.error &&
+          !catalog.accessGate &&
+          !catalog.playbackFailure &&
+          !catalog.trackSelectionPending &&
+          !catalog.audioSourcePending
+        ) {
+          navigateToView('player');
+          playback.setPlaying(true);
+          return;
+        }
         playback.requestAutoplay();
         handleOpenTrack(track);
       },
@@ -220,7 +234,7 @@ export function PlaybackProvider({ children }: { children: ReactNode }) {
     // recreated each render (as they were in App); they read live catalog/session
     // state, so memoizing on `playback` alone keeps the value fresh without churn.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [playback, playerDismissed, resumeTrack, checkpoint.offer]
+    [playback, playerDismissed]
   );
 
   return (
@@ -241,7 +255,11 @@ export function PlaybackProvider({ children }: { children: ReactNode }) {
           isHost={session.mode === 'host'}
           listenerCount={activeListenerCount}
           onCancel={() => setPendingExit(null)}
-          onConfirm={() => exitRoom(pendingExit.dismissPlayer)}
+          onConfirm={() => {
+            exitRoom(session.mode === 'listener');
+            pendingExit.onConfirm?.();
+          }}
+          onStop={session.mode === 'host' ? () => exitRoom(true) : undefined}
         />
       )}
     </PlaybackContext.Provider>
