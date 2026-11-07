@@ -1,5 +1,5 @@
 import { PreparedReleaseConflictError } from '../services/bulletinMetadataRepair.js';
-import { StreamingJobs, initializeStreamingJobs } from '../services/streamingJobs.js';
+import { StreamingJobs, StreamingJobError, initializeStreamingJobs } from '../services/streamingJobs.js';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -181,6 +181,31 @@ describe('POST /api/uploads/authorize', () => {
 });
 
 describe('authorized upload routes', () => {
+  it('returns the same actionable admission error for a new upload and a saved-job retry', async () => {
+    const denied = async () => {
+      throw new StreamingJobError('STREAMING_PUBLICATION_NOT_ADMITTED');
+    };
+    const server = await buildApp({ jobs: { enqueue: denied, retry: denied } as unknown as StreamingJobs });
+    const grant = (await authorize(server, 'audio', audioBytes.length)).json().uploadAuthorization;
+    const upload = await server.inject({
+      method: 'POST',
+      url: '/api/uploads/audio',
+      headers: multipartHeaders(grant),
+      payload: multipartAudio(audioBytes, audioHash)
+    });
+    const retry = await server.inject({
+      method: 'POST',
+      url: '/api/uploads/audio/jobs/12345678-1234-4234-8234-123456789abc/retry',
+      headers: { authorization: `Bearer ${SESSION_TOKEN}` }
+    });
+    for (const response of [upload, retry]) {
+      assert.equal(response.statusCode, 503);
+      assert.equal(response.json().code, 'STREAMING_PUBLICATION_NOT_ADMITTED');
+      assert.match(response.json().error, /contact the Dotify operator before trying again/);
+      assert(!response.body.includes('Try publishing again'));
+      assert(!response.body.includes('contentKey'));
+    }
+  });
   it('accepts detected audio bytes even when the declared MIME is untrusted', async () => {
     const server = await buildApp();
     const grant = (await authorize(server, 'audio', audioBytes.length)).json().uploadAuthorization;

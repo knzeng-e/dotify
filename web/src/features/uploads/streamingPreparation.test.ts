@@ -1,6 +1,33 @@
 import { describe, it, expect, vi } from 'vitest';
 import { waitForAudioPreparation, AudioPreparationError } from './streamingPreparation';
 const id = '12345678-1234-4234-8234-123456789abc';
+it('does not retry or discard a persisted publication admission refusal', async () => {
+  const request = vi.fn(),
+    discard = vi.fn();
+  await expect(
+    waitForAudioPreparation({
+      job: { id, state: 'failed', attempts: 1, reason: 'PUBLICATION_NOT_ADMITTED' },
+      storageKey: 'synthetic',
+      request,
+      discard,
+      retryFailed: true
+    })
+  ).rejects.toMatchObject({ canRetry: false, discard: undefined, message: expect.stringContaining('not enabled') });
+  expect(request).not.toHaveBeenCalled();
+  expect(discard).not.toHaveBeenCalled();
+});
+
+it('explains an older saved job whose retry now needs publication admission', async () => {
+  const request = vi.fn().mockRejectedValue(Object.assign(new Error('Publication needs operator admission.'), { code: 'STREAMING_PUBLICATION_NOT_ADMITTED' }));
+  await expect(
+    waitForAudioPreparation({ job: { id, state: 'failed' }, storageKey: 'synthetic', request, discard: vi.fn(), retryFailed: true })
+  ).rejects.toMatchObject({
+    canRetry: false,
+    discard: undefined,
+    message: 'Publication needs operator admission.'
+  });
+  expect(request).toHaveBeenCalledTimes(1);
+});
 const ready = {
   id,
   state: 'ready',

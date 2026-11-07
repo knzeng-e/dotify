@@ -8,6 +8,7 @@ import { initializeStreamingJobs, StreamingJobs, type StreamingJobDeps } from '.
 import { decryptStreamingObject, parseStreamingManifest, verifyStreamingManifest } from './streamingFormat.js';
 import { packStreamingBundle, unpackStreamingBundle } from './streamingBundle.js';
 import { PinataError } from './pinata.js';
+import { PublicationAdmissionError } from './publicationAdmission.js';
 import { createStreamingWorkerClient } from './streamingWorkerClient.js';
 const owner = `0x${'12'.repeat(20)}`,
   runtime = `0x${'34'.repeat(20)}`,
@@ -54,6 +55,61 @@ async function fixture(work: (directory: string, deps: StreamingJobDeps) => Prom
 }
 const input = { owner, scope, master: audio };
 describe('durable streaming publications', () => {
+  it('rejects unadmitted new work before key reservation, encoding or publication', async () =>
+    fixture(async (directory, deps) => {
+      const before = await readFile(path.join(directory, 'jobs.json'));
+      const nonces = await readdir(path.join(directory, 'nonces'));
+      const jobs = new StreamingJobs({
+        ...deps,
+        assertCanPrepare: async () => {
+          throw new PublicationAdmissionError();
+        },
+        deriveKey: () => {
+          throw new Error('must not derive a key');
+        },
+        transcode: async () => {
+          throw new Error('must not encode');
+        },
+        pin: async () => {
+          throw new Error('must not publish');
+        }
+      });
+      await jobs.start(false);
+      await assert.rejects(jobs.enqueue(input), { code: 'STREAMING_PUBLICATION_NOT_ADMITTED' });
+      assert.deepEqual(await readFile(path.join(directory, 'jobs.json')), before);
+      assert.deepEqual(await readdir(path.join(directory, 'nonces')), nonces);
+      assert.deepEqual(await readdir(path.join(directory, 'jobs')), []);
+      await jobs.stop();
+    }));
+
+  it('retains admission failures across restart and refuses retry without changing saved ciphertext', async () =>
+    fixture(async (directory, deps) => {
+      const first = new StreamingJobs({
+        ...deps,
+        pin: async () => {
+          throw new PublicationAdmissionError();
+        }
+      });
+      await first.start(false);
+      const job = await first.enqueue(input);
+      await first.runNext();
+      assert.equal(first.get(job.id, owner, scope.chainId)?.reason, 'PUBLICATION_NOT_ADMITTED');
+      await first.stop();
+      const before = await readFile(path.join(directory, 'jobs.json'));
+      const restored = new StreamingJobs({
+        ...deps,
+        assertCanPrepare: async () => {
+          throw new PublicationAdmissionError();
+        }
+      });
+      await restored.start(false);
+      assert.equal(restored.get(job.id, owner, scope.chainId)?.reason, 'PUBLICATION_NOT_ADMITTED');
+      await assert.rejects(restored.retry(job.id, owner, scope.chainId), { code: 'STREAMING_PUBLICATION_NOT_ADMITTED' });
+      await assert.rejects(restored.enqueue(input), { code: 'STREAMING_PUBLICATION_NOT_ADMITTED' });
+      assert.deepEqual(await readFile(path.join(directory, 'jobs.json')), before);
+      assert((await readdir(path.join(directory, 'jobs', job.id))).length > 0);
+      await restored.stop();
+    }));
   it('deduplicates admission, persists ciphertext only and publishes authenticated objects', async () =>
     fixture(async (directory, deps) => {
       let pins = 0;

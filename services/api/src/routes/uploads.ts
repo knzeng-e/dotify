@@ -2,6 +2,7 @@ import { PreparedReleaseConflictError } from '../services/bulletinMetadataRepair
 import { dotifyManifestSchema } from '../services/releaseManifest.js';
 import { PublicAssetStorageError, type PublicAssetKind, type PublicAssetOwner } from '../services/bulletinPublicAssets.js';
 import { StreamingJobError, type StreamingJobs } from '../services/streamingJobs.js';
+import { PublicationAdmissionError } from '../services/publicationAdmission.js';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { blake2b } from '@noble/hashes/blake2';
 import { z } from 'zod';
@@ -227,9 +228,11 @@ export function createUploadRoutes(
         if (error instanceof StreamingJobError)
           return reply.status(error.status).send({
             error:
-              error.code === 'STREAMING_RETRY_LIMIT'
-                ? 'This preparation has reached its retry limit. Your draft is safe. Please contact the Dotify operator to recover it.'
-                : 'Audio preparation could not be restarted. Your upload is still saved.',
+              error.code === 'STREAMING_PUBLICATION_NOT_ADMITTED'
+                ? new PublicationAdmissionError().message
+                : error.code === 'STREAMING_RETRY_LIMIT'
+                  ? 'This preparation has reached its retry limit. Your draft is safe. Please contact the Dotify operator to recover it.'
+                  : 'Audio preparation could not be restarted. Your upload is still saved.',
             code: error.code
           });
         throw error;
@@ -348,7 +351,13 @@ export function createUploadRoutes(
           return reply.header('Cache-Control', 'no-store').status(202).send(job);
         } catch (error) {
           if (error instanceof StreamingJobError)
-            return reply.status(error.status).send({ error: 'Audio preparation is busy or unavailable. Please try again.', code: error.code });
+            return reply.status(error.status).send({
+              error:
+                error.code === 'STREAMING_PUBLICATION_NOT_ADMITTED'
+                  ? new PublicationAdmissionError().message
+                  : 'Audio preparation is busy or unavailable. Please try again.',
+              code: error.code
+            });
           throw error;
         } finally {
           contentKey.fill(0);

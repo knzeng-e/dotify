@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { PublicationAdmissionError } from './publicationAdmission.js';
 import { it, type TestContext } from 'node:test';
 import { mkdtemp, mkdir, chmod, readFile, writeFile, rm, access } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -297,7 +298,8 @@ it('a scoped pilot rejects other identities and new jobs before a write session;
     { keyVersion: 'dotify-content-key-v3' }
   ]) {
     const changed = files.map(f => (f.path === 'manifest.json' ? { ...f, bytes: Buffer.from(JSON.stringify({ ...encoded.manifest, ...patch })) } : f));
-    await assert.rejects(store.pin(changed, original, new AbortController().signal), /outside the Bulletin pilot scope/);
+    await assert.rejects(store.assertCanPrepare!({ ...scope, ...patch }, original), PublicationAdmissionError);
+    await assert.rejects(store.pin(changed, original, new AbortController().signal), PublicationAdmissionError);
   }
   assert(!c.events.includes('write-session'));
   const stored = new Map<string, { bytes: Uint8Array; receipt: BulletinSubmissionReceipt }>();
@@ -340,7 +342,10 @@ it('a scoped pilot rejects other identities and new jobs before a write session;
   await store.close();
   store = await createStreamingPublicationStore(c.options, c.deps);
   c.events.length = 0;
-  await assert.rejects(store.pin(files, other, new AbortController().signal), /one publication/);
+  await assert.rejects(store.assertCanPrepare!(scope), PublicationAdmissionError);
+  await assert.rejects(store.assertCanPrepare!(scope, other), PublicationAdmissionError);
+  await store.assertCanPrepare!(scope, original);
+  await assert.rejects(store.pin(files, other, new AbortController().signal), PublicationAdmissionError);
   assert(!c.events.includes('write-session'));
   assert.equal(await store.pin(files, original, new AbortController().signal), root);
   assert.equal(stored.size, writes);

@@ -1,5 +1,14 @@
 # Mobile-host room audio delivery
 
+## Next implementation gate, 2026-11-08
+
+The owner reports delivered 0.1.80 starts Adang Fobe without retry in approximately
+55 seconds and guests hear sound. One approximate observation does not identify
+the slow phase. After the new publication blocker #407, follow the
+[measurement and execution plan](implementation/listening-and-publication-readiness.md):
+local success/failure phase reports, comparable repeated starts, then a measured
+correction. Keep #395 open; do not expand deadlines or claim all background paths.
+
 Issue #395 · P1 · Production spine · Next · Work.
 
 ## Matching relay correction delivered, 2026-11-07

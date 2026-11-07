@@ -25,6 +25,36 @@
   },
   "items": [
     {
+      "id": "bulletin-publication-admission",
+      "doc": "docs/backlog/bulletin-publication-admission.md",
+      "issue": 407,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Now",
+      "note": "New Web/Desktop artist releases are blocked by scoped pilot admission. Early truthful refusal first; durable multi-release budgets, retained obligations, reviewed activation and real artist acceptance remain required."
+    },
+    {
+      "id": "product-cash-tip-feasibility",
+      "doc": "docs/backlog/product-cash-tip-feasibility.md",
+      "issue": 406,
+      "kind": "research",
+      "priority": "P2",
+      "track": "Product SDK",
+      "phase": "Next",
+      "note": "Owner reopens bounded research after publication/listening reliability. Verify shipped Host/SDK capabilities, contribution policy and durable receipt recovery before proposing a disabled pilot; no funded action or access grant."
+    },
+    {
+      "id": "product-cash-access-settlement",
+      "doc": "docs/backlog/product-cash-access-settlement.md",
+      "issue": 408,
+      "kind": "research",
+      "priority": "P2",
+      "track": "Product SDK",
+      "phase": "Later",
+      "note": "Separate CASH payment-to-entitlement/royalty feasibility after #406 and #85; callback alone never grants access. Preserve dated W16 and native PAS behavior."
+    },
+    {
       "id": "room-listener-audio",
       "doc": "docs/backlog/room-listener-audio.md",
       "issue": 395,
@@ -637,11 +667,11 @@
       "id": "W35",
       "doc": "docs/backlog/implementation/W35-continuous-player.md",
       "issue": 290,
-      "kind": "work",
+      "kind": "record",
       "priority": "P1",
       "track": "Production spine",
-      "phase": "Next",
-      "note": "W35 merged in #338 on tested dev f6f6884: authorized alternating-player preparation/adoption, measured ABR, optional system controls, scoped local resume and aggregate continuity evidence. docs/backlog/implementation/evidence/W35.md retains physical/background acceptance and publication boundaries."
+      "phase": "Record",
+      "note": "Delivered by #338 and Product 0.1.63; issue #290 is closed and Project 5 Done. Preserve W35 dated evidence; current startup, artwork and physical lifecycle follow-ups remain #395/#388/#85/#158."
     },
     {
       "id": "W36",
@@ -657,11 +687,11 @@
       "id": "W37",
       "doc": "docs/backlog/implementation/W37-scalable-catalog-indexer.md",
       "issue": 292,
-      "kind": "work",
+      "kind": "record",
       "priority": "P2",
       "track": "Production spine",
-      "phase": "Next",
-      "note": "Bounded concurrency, chunked getLogs, memoized revision, write-on-change snapshots, lookup indexes."
+      "phase": "Record",
+      "note": "Delivered by #340 and the combined Product 0.1.63 rollout; issue #292 is closed and Project 5 Done. Preserve W37 evidence; contract bounds and broader pilot acceptance remain #293/#158."
     },
     {
       "id": "W38",

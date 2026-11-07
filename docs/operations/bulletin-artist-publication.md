@@ -161,3 +161,16 @@ maintenance-only inspected continuation for the existing exhausted pilot. It
 keeps preparation attempts at three and reuses the original inventory, bytes
 and caps. Ordinary artist retry remains unchanged; there is no force-unlock,
 re-encoding fallback or counter reset. Implementation is not live execution.
+
+## New release admission follow-up — 2026-11-08
+
+The deployed synthetic profile is not a general artist-upload service. A new
+Web/Desktop release can therefore finish local preparation and still be refused
+before Bulletin storage. Repeated Publish cannot enlarge that allowance.
+[The #407 candidate](../backlog/bulletin-publication-admission.md) preflights the
+existing admission before encoding/reserving new nonces, repeats checks before
+storage and reports a typed operator-action refusal. It does not activate new
+releases. See [deployment validation and snapshot compatibility](deployment-configuration.md#publication-admission-preflight-candidate--2026-11-08).
+Do not reset the current queue/profile or discard failed ciphertext to work around
+this limit. Next is a reviewed durable multi-release policy, not another one-file
+exception. Activation and actual artist uploads require their concrete budgets.

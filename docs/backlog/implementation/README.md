@@ -1,5 +1,13 @@
 # Dotify implementation playbook
 
+## Selected execution order, 2026-11-08
+
+[Publication, listening reliability and CASH](listening-and-publication-readiness.md)
+is the owner-requested sequence. Start #407 early admission/error handling, then
+its durable multi-release design; #395 and #388 follow. #406 reopens bounded CASH
+research, while #408 keeps access settlement separate. Do not replay the old W16
+prompt or deploy/transfer funds from this plan alone.
+
 ## Room preparation delivered in 0.1.80, 2026-11-07
 
 [Web and Product 0.1.80](evidence/product-0.1.80-rollout-2026-11-07.md) deliver #404 from frozen `30702580`, based on

@@ -267,6 +267,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
           return result.allowed && result.runtime.toLowerCase() === runtime;
         },
         transcode,
+        assertCanPrepare: publication.assertCanPrepare,
         pin: publication.pin,
         canDiscard: publication.canDiscard,
         onFailure: failure => app.log.warn({ code: 'STREAMING_PREPARATION_FAILED', ...failure }, 'Audio preparation needs attention')
