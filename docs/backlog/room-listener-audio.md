@@ -2,6 +2,10 @@
 
 Issue #395 · P1 · Production spine · Next · Work.
 
+## Matching relay correction delivered, 2026-11-07
+
+[Web/Product 0.1.80](implementation/evidence/product-0.1.80-rollout-2026-11-07.md) now deliver #404 with green exact-source/merged-dev CI and independent complete dependency/Web/DotNS readback. The owner confirms one matching 0.1.80 Adang Fobe Room preparation without retry in approximately 55 seconds and audible Web/Desktop guests. This accepts the reported successful path; startup latency remains too long and broader lifecycle stays open. The owner separately confirms 0.1.79 account connection and short-release sound on iPhone 0.10.0 (20), Runtime 0.26.0; the scoped used-domain comparison supports retaining the current SDK. Keep #395 open and copy the local support report if startup fails. No service or musical asset is changed.
+
 ## Relay-capacity follow-up candidate, 2026-11-07
 
 The owner confirms 0.1.79 pause/resume, fresh close/reopen and Room → solo, but

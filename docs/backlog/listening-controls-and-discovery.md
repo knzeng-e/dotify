@@ -84,3 +84,20 @@ acceptance remain open. See the evidence above for boundaries.
 ## Matching delivery, 2026-11-07
 
 [Web/Product and signaling 0.1.79](implementation/evidence/product-0.1.79-rollout-2026-11-07.md) now deliver the reviewed candidate from `c656992c`, with both source CIs and independent readback green. Room exit/source-lifecycle and multiline chat behavior, plus the simplified system badge, still require matching physical phone acceptance. The deployment record preserves exact bounded writes, one-off retention, service restart and rollback boundaries; this issue remains open.
+
+## Intermittent system artwork on both modes, 2026-11-07
+
+During 0.1.80 follow-up on iPhone app 0.10.0 (20) / Runtime 0.26.0, the owner
+reports that locked-screen artwork is sometimes missing before it appears later.
+The owner explicitly confirms solo and Room. Supplied captures show a placeholder
+and later a cover with the bottom-right Dotify badge; no precise delay or one
+continuous playback timeline is established. See the [matching delivery
+feedback](implementation/evidence/product-0.1.80-rollout-2026-11-07.md#intermittent-lock-screen-artwork--2026-11-07).
+
+Both modes use the shared Media Session image path, which initially supplies
+public URLs and resolves the branded PNG asynchronously. Diagnose original-image
+availability, PNG readiness/reuse, metadata ownership and native display before
+attributing the failure to a particular layer. A correction must keep artwork
+current, preserve cancellation on disconnect/selection changes, remain bounded
+to public cover data and never block audio on image loading. Keep #388 open;
+this observation is not a deployed fix.
