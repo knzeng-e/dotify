@@ -102,3 +102,17 @@ chat with the real phone keyboard open and check scrolled-up history remains.
 Verify the simplified badge on solo/Room lock-screen covers. No new purchase or
 publication is needed. #395/#388 stay open. W33 retains protected denial/account
 switching, full historical conservation and coherent off-volume restore gates.
+
+## Owner feedback — 2026-11-07
+
+For the requested phone/0.1.79 **Adang Fobe** protocol, the owner confirms
+**pause/resume OK, close/reopen OK and Room → solo OK**, including the requested
+exit-cancellation and host keep-listening path. App/OS/network are not restated.
+
+Room preparation still required two or three attempts with “The audio is slow to
+arrive”, before listening succeeded. A subsequent screenshot shows that same
+failure in the solo player at 0:00 / 0:00 **after an attempted Room**, as clarified
+by the owner. It does not establish a fresh direct-solo startup failure or the
+exact failing transport phase. These are partial positive lifecycle results with
+a remaining Room-startup defect, not blanket startup/background acceptance.
+Keep #395 open; no new upload, deployment or write records this feedback.

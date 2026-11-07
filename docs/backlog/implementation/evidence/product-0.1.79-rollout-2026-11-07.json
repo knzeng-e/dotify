@@ -1166,5 +1166,15 @@
     "transactions": 411,
     "bytes": 140997127
   },
-  "physicalAcceptance": "pending for matching 0.1.79; previous owner acceptance remains version-specific"
+  "physicalAcceptance": "pending for matching 0.1.79; previous owner acceptance remains version-specific",
+  "ownerFeedback20261107": {
+    "client": "phone in requested 0.1.79 protocol; exact app/OS/network not restated",
+    "track": "Adang Fobe",
+    "pauseResumeOpenPlayer": "owner confirms audible success",
+    "closeReopenAtStart": "owner confirms audible success",
+    "cancelExitAndHostContinueSolo": "owner confirms success",
+    "roomPreparation": "owner needed 2 or 3 attempts; audio-slow message, then successful listening",
+    "screenshot": "audio-slow failure in solo player after attempted Room; 0:00 / 0:00; not evidence of direct solo startup failure",
+    "remaining": "Reliable cold/full-track Room startup and wider native lifecycle, keyboard, artwork and guest acceptance remain open"
+  }
 }

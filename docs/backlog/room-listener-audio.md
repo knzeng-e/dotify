@@ -136,3 +136,13 @@ See [design and validation](implementation/evidence/listening-session-continuity
 ## Matching delivery, 2026-11-07
 
 [Web/Product and signaling 0.1.79](implementation/evidence/product-0.1.79-rollout-2026-11-07.md) now deliver the reviewed candidate from `c656992c`, with both source CIs and independent readback green. Room exit/source-lifecycle and multiline chat behavior, plus the simplified system badge, still require matching physical phone acceptance. The deployment record preserves exact bounded writes, one-off retention, service restart and rollback boundaries; this issue remains open.
+
+
+## 0.1.79 phone lifecycle acceptance and startup follow-up, 2026-11-07
+
+The owner confirms audible pause/resume, close/reopen at the beginning, and
+confirmed host Room → solo continuity in the requested Adang Fobe protocol.
+However, Room startup required two or three attempts with audio-slow errors.
+A follow-up screenshot shows 0:00 / 0:00 and the same failure in solo after an
+attempted Room; direct solo startup failure is not established. Preserve these
+partial successes and keep startup reliability open. See the [delivery feedback](implementation/evidence/product-0.1.79-rollout-2026-11-07.md#owner-feedback--2026-11-07).
