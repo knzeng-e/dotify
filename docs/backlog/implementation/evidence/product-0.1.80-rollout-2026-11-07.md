@@ -143,3 +143,20 @@ source, if applicable, needs evidence and source-lifetime invariants first;
 raising the timeout would not make starting the Room faster. Full-song continuity,
 new-build lock/unlock/recovery and #388/W33 access/conservation gates remain
 separate. No new upload, purchase or service change was made for this feedback.
+
+## Intermittent lock-screen artwork — 2026-11-07
+
+The owner reports the cover sometimes missing on the locked phone before it
+appears later, and explicitly confirms **both solo and Room** are affected.
+One screenshot shows the track/artist/transport with a blank artwork placeholder;
+another shows the original cover and bottom-right Dotify badge. The screenshots
+show different playback positions and are not a measured loading timeline.
+
+Keep #388 open for reliable image availability. Both modes share the same
+Media Session artwork pipeline: metadata starts with public image candidates
+and is later replaced by an asynchronously resolved branded PNG. That source
+observation identifies a path to inspect, not a demonstrated fetch/decoding/OS
+root cause. Future correction should measure and stabilize preparation/reuse of
+the system image, retain track attribution and source/disconnect cancellation,
+and never delay audio waiting for the cover. No artwork correction is included
+in this deployment or documentation update.

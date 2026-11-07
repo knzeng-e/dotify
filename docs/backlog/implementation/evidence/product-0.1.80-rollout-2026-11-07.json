@@ -1253,6 +1253,19 @@
     "network": "not restated",
     "cacheState": "not measured",
     "phaseTimingReportProvided": false,
-    "interpretation": "One matching native startup completed without retry and guests were audible; approximately 55 seconds remains slow. This does not establish cold-cache timing, a phase-level root cause, full-song continuity or current-build background/recovery acceptance."
+    "interpretation": "One matching native startup completed without retry and guests were audible; approximately 55 seconds remains slow. This does not establish cold-cache timing, a phase-level root cause, full-song continuity or current-build background/recovery acceptance.",
+    "systemArtwork": {
+      "affectedModes": [
+        "solo",
+        "room"
+      ],
+      "intermittentMissingCoverOnLockScreen": true,
+      "coverEventuallyAppears": true,
+      "dotifyBadgeVisibleWhenCoverAppears": true,
+      "ownerConfirmedBothModes": true,
+      "measuredDelaySeconds": null,
+      "rootCause": "not established",
+      "screenshots": "Owner supplies one placeholder and one cover with Dotify badge for Adang Fobe; these do not establish a single uninterrupted timeline or isolate fetching, PNG conversion or native rendering."
+    }
   }
 }
