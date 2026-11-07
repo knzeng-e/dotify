@@ -404,6 +404,8 @@ test('room identity and reversible Hide update live without another scan', async
     await observer.keyboard.press('Escape');
     await expect(radar.getByRole('heading', { name: 'Escale à Libreville' })).toBeVisible();
     await host.getByRole('button', { name: 'Close room', exact: true }).click();
+    await expect(radar.getByRole('heading', { name: 'Escale à Libreville' })).toBeVisible();
+    await host.getByRole('button', { name: 'Close room and stop', exact: true }).click();
     await expect(radar.getByRole('heading', { name: 'Escale à Libreville' })).toHaveCount(0, { timeout: 3000 });
   } finally {
     await Promise.allSettled([hostContext.close(), observerContext.close()]);

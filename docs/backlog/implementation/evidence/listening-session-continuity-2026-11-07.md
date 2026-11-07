@@ -255,3 +255,12 @@ Final targeted validation repeats both viewport/motion combinations and the
 remembered-name lineup scenario four times: 20/20 pass. The 19 routing,
 sheet-history and motion unit cases, TypeScript, targeted lint and formatting
 also pass. The new remote run must complete before treating #402 CI as green.
+
+Run `42355916981` passed all 329 core scenarios, then reached an outdated Nearby
+expectation: clicking Close room was assumed to close immediately. The discovery
+test now verifies the room remains visible before confirmation, explicitly
+confirms Close room and stop, then checks its removal from the observer's radar.
+The remaining CI suites were run locally: Nearby Web/Product/off (13), Chromium
+audio continuity (39, plus the existing WebKit-only case excluded on Chromium),
+WebKit listening controls (6), Product identity (5), and session logout (5) pass.
+Targeted lint and formatting also pass. Full remote CI remains the final gate.
