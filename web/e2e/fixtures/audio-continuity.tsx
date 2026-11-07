@@ -4,6 +4,8 @@ import { useCatalog } from '../../src/hooks/useCatalog';
 import { usePlayback } from '../../src/hooks/usePlayback';
 import { PersistentAudio } from '../../src/components/PersistentAudio';
 import { PlayerTransport } from '../../src/components/PlayerTransport';
+import { AudioFailureDiagnostics } from '../../src/components/AudioFailureDiagnostics';
+import { AudioStartupTelemetryProvider } from '../../src/app/providers/AudioStartupTelemetryProvider';
 import type { CatalogTrack } from '../../src/shared/types';
 
 const noop = () => {};
@@ -114,6 +116,7 @@ function Harness() {
       ))}
       <button onClick={() => void playback.togglePlay()}>Toggle playback</button>
       <PlayerTransport playback={playback} duration={playback.transport.duration} listener={false} />
+      {catalog.playbackFailure && <AudioFailureDiagnostics />}
       {plainPolicy && <button onClick={() => setPolicyApplied(true)}>Apply artist policy to b</button>}
       <output
         data-testid='state'
@@ -142,4 +145,8 @@ function Harness() {
     </>
   );
 }
-createRoot(document.getElementById('root')!).render(<Harness />);
+createRoot(document.getElementById('root')!).render(
+  <AudioStartupTelemetryProvider>
+    <Harness />
+  </AudioStartupTelemetryProvider>
+);

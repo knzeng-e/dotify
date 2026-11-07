@@ -2,6 +2,11 @@
 
 Issue #395 · P1 · Production spine · Next · Work.
 
+## Relay-capacity follow-up candidate, 2026-11-07
+
+The owner confirms 0.1.79 pause/resume, fresh close/reopen and Room → solo, but
+Room startup still needs retries. The [client correction](implementation/evidence/room-preparation-relay-2026-11-07.md) addresses a reproduced four-read/two-download relay mismatch and makes bounded local audio diagnostics available at the failure. This is not a native phone diagnosis or deployment; keep startup acceptance open.
+
 ## Owner startup and short-lock acceptance, 2026-11-06
 
 In the requested 0.1.78 Adang Fobe test, the owner confirms preparation without

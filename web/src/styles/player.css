@@ -443,6 +443,22 @@ input[type='range']::-moz-range-thumb {
   line-height: 1.5;
 }
 
+.audio-support-report {
+  display: grid;
+  gap: 0.5rem;
+  justify-items: start;
+  min-width: 0;
+}
+
+.audio-support-report .field,
+.audio-support-report textarea {
+  width: 100%;
+}
+
+.audio-support-report textarea {
+  max-height: 10rem;
+}
+
 .solo-session-feedback .primary-action,
 .solo-session-feedback .secondary-action {
   width: 100%;

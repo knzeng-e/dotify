@@ -45,6 +45,7 @@ import { playbackTrack, playbackTrackDetails, roomReleaseDetails } from '../feat
 import { playbackStatusLabel } from '../features/player/playbackStatus';
 import { nativeRuntimeAmountLabel } from '../features/payments/paymentModel';
 import { protectedPlaybackFailureCopy } from '../features/catalog/protectedPlaybackFailure';
+import { AudioFailureDiagnostics } from '../components/AudioFailureDiagnostics';
 import { resolvePlaybackContributionTrack, resolveRoomContributionTrack } from '../features/donations/roomContributionTrack';
 import { useCatalogContext, useSessionContext, usePlaybackContext, useUiFeedback, useNavigation, useReleaseForm } from '../app/providers';
 import type { CatalogTrack } from '../shared/types';
@@ -457,6 +458,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
             )}
           </div>
         )}
+      {roomId && playbackFailure && !error && <AudioFailureDiagnostics />}
       {roomId && (
         <RoomViewSwitcher
           active={roomPanel}
@@ -690,6 +692,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
             <RefreshCw size={16} />
             {playbackFailure.action}
           </button>
+          <AudioFailureDiagnostics />
         </div>
       )}
 
