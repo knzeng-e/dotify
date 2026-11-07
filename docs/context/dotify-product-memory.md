@@ -5,6 +5,8 @@
 The November 7 candidate replaces cross-visit resume with a visible-session rule: pause/minimize keeps the current listening position; closing the player or reopening the app means a fresh selection from zero. A paused catalog cover carries a slim progress strip. Every Room exit asks first; the host can close the Room and keep solo listening, including its paused state. The four accompanying refinements anchor Room preparation to the cover, quiet the Room controls, foreground artist discovery, and preserve context through consistent/reduced motion.
 See the [candidate and evidence](../backlog/implementation/evidence/listening-session-continuity-2026-11-07.md). This is not deployed; physical phone close/reopen and native presentation remain acceptance gates.
 
+The same candidate connects the Radio France stable-player reference to observed Dotify friction: fixed listening anchors in Queue/details, a shorter solo story invitation, visible Room naming, and a compact transport that leaves conversation readable while typing. Enter adds a paragraph; Send retains focus. Room naming stays optional to preserve link-first entry.
+
 ## Room lifecycle delivered in 0.1.78, 2026-11-06
 
 [Web and Product 0.1.78](../backlog/implementation/evidence/product-0.1.78-rollout-2026-11-06.md) publish merged #400 from frozen source

@@ -1,5 +1,6 @@
 import { ArrowUpRight, Coins, ShieldCheck, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { ListeningNowPlaying } from './ListeningNowPlaying';
 import { ListeningSheet } from './ListeningSheet';
 import { CoverImage } from './CoverImage';
 import { buildClassicAccessReceipt } from '../features/access/accessPromise';
@@ -87,7 +88,13 @@ export function ReleaseDetailsDialog({
       : [];
 
   return (
-    <ListeningSheet className='release-details-dialog' labelledBy='release-details-title' onClose={onClose} handleLabel='Collapse release details'>
+    <ListeningSheet
+      listeningAnchor={<ListeningNowPlaying />}
+      className='release-details-dialog'
+      labelledBy='release-details-title'
+      onClose={onClose}
+      handleLabel='Collapse release details'
+    >
       {(close, _closing, dismissThen) => (
         <>
           <div className='modal-header release-details-header'>

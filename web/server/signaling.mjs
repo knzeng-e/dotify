@@ -27,6 +27,7 @@ import { roomProfile } from './room-profile.mjs';
 import { sameRoomTrack } from './room-track.mjs';
 import {
   REQUEST_TEXT_MAX_LENGTH,
+  CHAT_TEXT_MAX_LENGTH,
   clientKey,
   clientIdentity,
   createRoomId,
@@ -990,7 +991,7 @@ export function startSignalingServer(overrides = {}, dependencies = {}) {
         return;
       }
 
-      const text = sanitizeChatText(payload.text);
+      const text = sanitizeChatText(payload.text, CHAT_TEXT_MAX_LENGTH, true);
       if (!text) {
         reply({ ok: false, message: 'Write a message first.' });
         return;

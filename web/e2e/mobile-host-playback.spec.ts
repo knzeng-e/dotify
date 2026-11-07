@@ -251,6 +251,10 @@ for (const paused of [false, true]) {
     const audio = page.locator('audio.native-player-source').first();
     const rms = () => page.evaluate(() => Reflect.get(window, '__hostOutputs').at(-1)?.rms() ?? -1);
     await expect.poll(rms).toBeGreaterThan(0.01);
+    // Initial local output can play before the asynchronous URL-to-Blob capture
+    // handoff finishes. Compare the source owned by the ready Room, not that
+    // deliberately replaced preparation node (particularly on CI WebKit).
+    await expect(page.locator('.cover')).toHaveAttribute('data-live', 'true');
     await audio.evaluate((element: HTMLAudioElement) => {
       element.currentTime = 3;
       Reflect.set(window, '__continuingAudio', element);

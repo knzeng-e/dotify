@@ -1,7 +1,7 @@
 # Listening continuity and discovery — 7 November 2026 candidate
 
 Refs #395 (audio lifecycle) and #388 (listening controls and discovery).
-Implementation starts from tested `dev` `ec4c583f`. This is a client candidate,
+Implementation starts from tested `dev` `ec4c583f`. The branch subsequently merges `dev` `898a1cee`. This is a listening candidate,
 not a deployment. Product 0.1.78 remains the latest owner-tested rollout.
 
 ## Product behavior
@@ -73,7 +73,7 @@ Wallet/access invalidation remains authoritative. This does not grant a guest
 transport control, make private audio public, bypass a key request, change source
 retention policy or persist decrypted bytes. The old listening checkpoint is
 removed; rolling the client back cannot reconstruct that deleted bookmark.
-There is no server, environment, storage-policy, quota or deployment change.
+The follow-up below changes only plain-text chat normalization on the signaling server. There is no environment, storage-policy, quota or deployment change.
 
 ## Review path
 
@@ -85,7 +85,7 @@ There is no server, environment, storage-policy, quota or deployment change.
    challenge history ownership, artist return, reduced motion and uninterrupted
    playback. `TrackArtworkButton` must expose progress only for the live paused track.
 
-## Validation and remaining gate
+## Initial validation and remaining gate
 
 Local Node 22 validation:
 
@@ -121,3 +121,82 @@ short protected release and **Adang Fobe** on Web, Desktop and phone: pause/resu
 with dock open, close/reopen at zero, host exit with both choices, guest cancellation,
 artist return, and phone lock/unlock. Hear the audio at host and guests; an advancing
 clock alone is insufficient. No new purchase or publication is needed.
+
+
+## Two video references, one listening journey
+
+The owner supplied a Radio France player recording (01:11) and a Dotify recording
+(01:29) on November 7. Radio France is a reference for stable transport and
+editorial exploration, not a request to reproduce its brand. The Dotify recording
+makes the same problem concrete: Room preparation repeats the track choice; long
+descriptions dominate; the keyboard hides conversation; Send changes focus; Enter
+cannot create a paragraph.
+
+- **Stable listening anchor:** solo Queue, Room Up next/suggestions and release
+  details share a common-height sheet, independently scrolling content, and the
+  current cover/title/artist, Play/Pause and progress at the same bottom position.
+  The inspected release stays bound to its original metadata if the song changes;
+  the footer follows actual listening. Guests retain local pause/resume only.
+  Catalog inspection without an active source does not invent a player.
+- **Editorial hierarchy:** the solo story is a three-line invitation to “Behind
+  this track”; the complete artist-provided text remains in the detail sheet.
+  Artist discovery, Room presence hierarchy and cover-to-mini-player motion remain
+  part of the earlier work, with a reduced-motion alternative.
+- **Room creation:** opening from the player shows the current track first and
+  folds alternatives behind “Choose another track”. Opening from discovery keeps
+  the selector visible. Room name is directly visible; the optional invitation
+  expands when wanted. Naming remains optional, preserving link-first entry
+  without a new validation barrier or server policy.
+- **Conversation while typing:** the keyboard layout keeps a compact cover/title,
+  44px Play/Pause, timeline, tabs and Done. Secondary transport returns after
+  keyboard dismissal. Conversation keeps a readable area, including a 310px
+  visual viewport. The textarea grows within a bounded height, then scrolls.
+  Send retains editor focus; Enter creates a line break, Ctrl/Cmd+Enter sends,
+  and IME composition cannot submit accidentally. Unread/history ownership stays
+  in RoomChat; no fake activity is added.
+
+`ListeningSheet` receives a presentation slot rather than importing playback
+providers. `ListeningNowPlaying` reads existing catalog/session/transport and
+creates no source or key request. Progress uses accessible native `<progress>`.
+`Dialog` retains focus/history; scrolling content cannot dismiss the sheet, and
+only its explicit handle owns drag-to-close.
+
+Signaling preserves chat newlines as plain text, normalizes CRLF, removes controls,
+caps consecutive newlines at two and retains the 280-character limit, rate limit,
+membership check and ephemeral history. Track requests remain single-line. React
+renders text with `white-space: pre-wrap`, never HTML. An older server flattens
+line breaks; matching signaling rollout is required for end-to-end paragraphs.
+No server is deployed here. Rollback requires no migration.
+
+## Follow-up validation
+
+The first CI exposed stale expectations around exit confirmation/progressive
+disclosure and measurements during entry animation. Checks now follow the actual
+UI and wait for finite entry motion before measuring. The WebKit Room-to-solo
+check waits for capture readiness before recording source identity: initial local
+sound can precede the URL-to-Blob preparation handoff. Same-source, pause-state
+and audible-energy assertions remain.
+
+Follow-up Node 22 validation:
+
+- 64 browser cases pass across motion/discovery, mobile layout, Room workspace
+  and form keyboards. Six keyboard cases pass again after the final bottom-margin
+  adjustment, including a two-client paragraph exchange at 310px visual height.
+- All six Chromium/WebKit cases used by the audio-enabled CI gate pass: managed
+  source handoff and playing/paused Room-to-solo continuity with fresh audible
+  reopening. The wider local 14-case probe also exposes an existing WebKit PCM
+  fixture energy failure, reproduced unchanged at `28e01f4f`; it is not claimed
+  as a passing cross-browser fixture. A second WebKit room-opening case timed out
+  in that wider run, then passed twice in isolation; unchanged baseline also passes.
+  The supported MP3 energy checks remain green.
+- 1,101 unit tests and 68 signaling cases pass. Web and frozen Product builds,
+  formatting, lint and backlog checks pass; two existing App.tsx hook warnings
+  and existing bundle/Browserslist/third-party annotation warnings remain.
+- Final queue/discovery anchor and smallest keyboard captures inspected. CI now
+  retains Room audio diagnostics as well as streaming diagnostics on failure.
+
+The new commit's remote CI remains a separate gate until it completes.
+Physical acceptance still needs matching reviewed Web/Product/signaling rollout:
+control audio in each sheet, receive/send paragraphs with the real iPhone keyboard,
+retain older history when scrolled up, return from artist discovery, and hear
+host/guest audio through each exit choice.

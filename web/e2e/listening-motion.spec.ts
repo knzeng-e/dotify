@@ -79,6 +79,9 @@ test('queue sheet closes through drag, Escape and Back while retaining focus and
   await expect(sheet).toHaveCount(0);
   await expect(trigger).toBeFocused();
   await trigger.click();
+  await sheet.evaluate(async element => {
+    await Promise.all(element.getAnimations().map(animation => animation.finished.catch(() => undefined)));
+  });
   await page.getByRole('button', { name: 'Collapse queue' }).hover();
   const handle2 = (await page.getByRole('button', { name: 'Collapse queue' }).boundingBox())!;
   await page.mouse.move(handle2.x + handle2.width / 2, handle2.y + handle2.height / 2);
@@ -280,4 +283,27 @@ test('room preparation keeps the current cover and can cancel a late room acknow
   await expect(page.getByTestId('room-code')).toHaveCount(0);
   await expect(page.getByRole('region', { name: 'Player', exact: true })).toBeVisible();
   await expectSource(page);
+});
+
+test('discovery and queue keep a fixed listening anchor while their content scrolls', async ({ page }, info) => {
+  await solo(page);
+  await page.getByRole('button', { name: 'Queue', exact: true }).click();
+  const queue = page.getByRole('dialog', { name: 'Queue', exact: true });
+  const anchor = queue.getByRole('complementary', { name: 'Current listening' });
+  await queue.evaluate(async element => Promise.all(element.getAnimations().map(animation => animation.finished.catch(() => undefined))));
+  const position = (await anchor.boundingBox())!;
+  await queue.locator('.listening-sheet-content').evaluate(element => {
+    element.scrollTop = element.scrollHeight;
+  });
+  expect((await anchor.boundingBox())!.y).toBeCloseTo(position.y, 0);
+  await anchor.getByRole('button', { name: 'Pause current track' }).click();
+  await expect(page.locator('audio').first()).toHaveJSProperty('paused', true);
+  await anchor.getByRole('button', { name: 'Play current track' }).click();
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'About this release', exact: true }).click();
+  const details = page.getByRole('dialog', { name: 'About this release', exact: true });
+  await details.evaluate(async element => Promise.all(element.getAnimations().map(animation => animation.finished.catch(() => undefined))));
+  expect((await details.getByRole('complementary', { name: 'Current listening' }).boundingBox())!.y).toBeCloseTo(position.y, 0);
+  await expectSource(page);
+  await page.screenshot({ path: info.outputPath('discovery-listening-anchor.png') });
 });

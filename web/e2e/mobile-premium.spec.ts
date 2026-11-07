@@ -277,7 +277,6 @@ test('release details disclose access without opening audio or requesting a paym
   const dialog = page.getByRole('dialog', { name: 'About this release', exact: true });
   await expect(dialog).toBeVisible();
   await expect(dialog.locator('.release-access-summary')).toContainText('PAS');
-  await expect(dialog.locator('.release-access-summary .lucide-coins')).toBeVisible();
   await expect(dialog).not.toContainText('to unlock, plus network fees');
   await expect(dialog).toContainText('does not transfer copyright');
   await expect(dialog.locator('.release-listening-section')).not.toHaveAttribute('open', '');
@@ -287,6 +286,7 @@ test('release details disclose access without opening audio or requesting a paym
   await expect(dialog.getByText('Listening & support', { exact: true })).toBeFocused();
   await page.keyboard.press('Enter');
   await expect(dialog.locator('.release-listening-section')).toHaveAttribute('open', '');
+  await expect(dialog.locator('.release-access-summary .lucide-coins')).toBeVisible();
   await page.keyboard.press('Enter');
   await dialog.getByRole('button', { name: 'Close release details' }).focus();
   await page.screenshot({ path: testInfo.outputPath('release-details.png'), animations: 'disabled' });
@@ -312,7 +312,8 @@ test('release details remain bound to the track that opened them', async ({ page
 
   await expect(page.locator('.track-copy h2')).toHaveText('Second room track');
   await expect(dialog.getByRole('heading', { name: 'E2E Public Room Track', exact: true })).toBeVisible();
-  await expect(dialog).not.toContainText('Second room track');
+  await expect(dialog.locator('.listening-sheet-content')).not.toContainText('Second room track');
+  await expect(dialog.getByRole('complementary', { name: 'Current listening' })).toContainText('Second room track');
 });
 
 test('browser Back dismisses contextual sheets without leaving or stopping the player', async ({ page }) => {
@@ -370,11 +371,9 @@ test('room sharing stays closed when a room is replaced', async ({ page }) => {
   await page.getByRole('button', { name: 'Share room', exact: true }).click();
   await expect(page.getByRole('dialog', { name: 'Listen together' })).toBeVisible();
 
-  await page.evaluate(() =>
-    Array.from(document.querySelectorAll<HTMLButtonElement>('button'))
-      .find(button => button.textContent?.trim() === 'Close room')
-      ?.click()
-  );
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Close room', exact: true }).click();
+  await page.getByRole('button', { name: 'Close room and keep listening', exact: true }).click();
   await expect(page.getByRole('dialog', { name: 'Listen together' })).toHaveCount(0);
   await page.getByRole('button', { name: 'Open a room', exact: true }).click();
   await page.getByRole('button', { name: 'Open the room', exact: true }).click();

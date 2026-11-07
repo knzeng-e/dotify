@@ -7,6 +7,14 @@ async function hostRoom(page: Page) {
   await page.getByLabel('Your name or nickname').fill('Room host');
   await page.getByRole('button', { name: 'Open the room', exact: true }).click();
   await expect(page.getByTestId('room-code')).toHaveText(/[A-Z0-9]{4,}/);
+  await page.locator('.player-room-mode').evaluate(async element => {
+    await Promise.all(
+      element
+        .getAnimations({ subtree: true })
+        .filter(animation => animation.effect?.getTiming().iterations !== Infinity)
+        .map(animation => animation.finished.catch(() => undefined))
+    );
+  });
   return (await page.getByTestId('room-code').innerText()).trim();
 }
 
@@ -352,7 +360,8 @@ for (const scenario of ['zoomed-chat', 'zoomed-chat-tab']) {
     await expect(input).toHaveValue('My words remain visible');
     await expect(page.locator('.player-stage')).toBeVisible();
     await expect(page.locator('.player-stage').getByRole('slider')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Repeat this track', exact: true })).toBeVisible();
+    await expect(page.locator('.room-composer-play')).toBeVisible();
+    expect((await page.getByRole('log').boundingBox())!.height).toBeGreaterThanOrEqual(80);
     await page.screenshot({ path: testInfo.outputPath(`${scenario}.png`) });
     if (scenario === 'zoomed-chat-tab') await page.getByRole('button', { name: /Queue/ }).click();
     else await page.getByRole('button', { name: 'Finish typing' }).click();
@@ -506,7 +515,6 @@ test('keyboard transition retains an opaque canvas, player geometry and drafts a
   const shell = page.locator('.app-shell');
   const stage = page.locator('.player-stage');
   const before = await stage.boundingBox();
-  const transportBefore = (await page.locator('.player-transport').boundingBox())!;
   await page.evaluate(() => Reflect.set(window, '__transitionAudio', document.querySelector('audio')));
   for (const tab of ['Chat']) {
     await page.getByRole(tab === 'Queue' ? 'button' : 'tab', { name: new RegExp(`^${tab}`) }).click();
@@ -523,14 +531,14 @@ test('keyboard transition retains an opaque canvas, player geometry and drafts a
         expect((await shell.boundingBox())!.height).toBe(previous!.height);
       } else {
         await expect(shell).toHaveAttribute('data-composing', 'true');
-        // Only the secondary reaction strip collapses for the keyboard. The
-        // artwork and primary transport retain their dimensions and position.
+        // The keyboard gets a compact transport, retaining pause and progress
+        // while leaving actual space for the live conversation.
         await expect(page.locator('.room-reaction-dock')).toBeHidden();
         const keyboardStage = (await stage.boundingBox())!;
         expect(keyboardStage.height).toBeLessThan(before!.height);
-        const transportAfter = (await page.locator('.player-transport').boundingBox())!;
-        expect(transportAfter.y - keyboardStage.y).toBeCloseTo(transportBefore.y - before!.y, 0);
-        expect(transportAfter.height).toBeCloseTo(transportBefore.height, 0);
+        await expect(page.locator('.room-composer-play')).toBeVisible();
+        await expect(page.locator('.transport-progress')).toBeVisible();
+        expect((await page.getByRole('log').boundingBox())!.height).toBeGreaterThanOrEqual(80);
         const inputBounds = (await input.boundingBox())!;
         expect(inputBounds.y + inputBounds.height).toBeLessThanOrEqual(height);
       }
@@ -715,4 +723,48 @@ test('reaction feedback remains readable without motion and picker fits a 320px 
     expect(rect.height).toBeGreaterThanOrEqual(44);
   }
   await page.screenshot({ path: testInfo.outputPath('mobile-reaction-picker.png') });
+});
+
+test('short phone composer keeps incoming messages readable and sends paragraphs without dropping focus', async ({ browser }, info) => {
+  const hostContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const guestContext = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  try {
+    const host = await hostContext.newPage();
+    const code = await hostRoom(host);
+    const guest = await guestContext.newPage();
+    await guest.goto(`/#/rooms/${code}`);
+    await guest.getByLabel('Your name or nickname').fill('Nia');
+    await guest.getByRole('button', { name: 'Join and listen' }).click();
+    const draft = host.getByRole('textbox', { name: 'Message the room' });
+    await draft.fill('A first thought');
+    await draft.press('Enter');
+    await draft.pressSequentially('A second thought');
+    await expect(draft).toHaveValue('A first thought\nA second thought');
+    await expect(host.getByRole('log')).not.toContainText('A first thought');
+    await host.evaluate(() => {
+      Reflect.set(window, '__chatAudio', document.querySelector('audio'));
+      Object.defineProperty(window.visualViewport, 'height', { configurable: true, value: 310 });
+      window.visualViewport!.dispatchEvent(new Event('resize'));
+    });
+    await expect(host.locator('.app-shell')).toHaveAttribute('data-composing', 'true');
+    await guest.getByRole('textbox', { name: 'Message the room' }).fill('I can hear it too');
+    await guest.getByRole('button', { name: 'Send message' }).click();
+    await expect(host.getByRole('log')).toContainText('I can hear it too');
+    expect((await host.getByRole('log').boundingBox())!.height).toBeGreaterThanOrEqual(80);
+    const composer = (await draft.boundingBox())!;
+    expect(composer.y + composer.height).toBeLessThanOrEqual(310);
+    await expect(draft).toBeFocused();
+    await host.getByRole('button', { name: 'Send message' }).click();
+    await expect(draft).toHaveValue('');
+    const form = (await host.locator('.room-chat-form').boundingBox())!;
+    expect(form.y + form.height).toBeLessThanOrEqual(308);
+    await expect(draft).toBeFocused();
+    await expect(host.locator('.app-shell')).toHaveAttribute('data-composing', 'true');
+    await expect(guest.locator('.room-chat-text').filter({ hasText: 'A first thought' })).toHaveText('A first thought\nA second thought');
+    expect(await host.evaluate(() => Reflect.get(window, '__chatAudio') === document.querySelector('audio'))).toBe(true);
+    await host.screenshot({ path: info.outputPath('conversation-with-keyboard.png') });
+  } finally {
+    await hostContext.close();
+    await guestContext.close();
+  }
 });

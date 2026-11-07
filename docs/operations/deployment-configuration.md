@@ -3810,7 +3810,8 @@ or a short advancing clock does not prove complete playback.
 ## Listening-session continuity candidate, 2026-11-07
 
 The [client candidate](../backlog/implementation/evidence/listening-session-continuity-2026-11-07.md)
-needs no environment, service, CORS, storage or signing-policy change. It removes
+needs no environment, CORS, storage or signing-policy change. Its chat follow-up
+below requires a matching signaling artifact. It removes
 the old local `dotify:listening-checkpoint:v1` bookmark on mount. A rollback does
 not recover that discarded bookmark; audio assets and publishing receipts remain
 unchanged. No release is deployed by this implementation.
@@ -3822,3 +3823,21 @@ keep-listening retains play/pause while guests stop; host stop and guest leave
 retire audio. Verify artist discovery/Back and sheet dismissal preserve the room,
 source, focus and list position. Hear the audio, including after phone lock/unlock;
 clock progression or browser energy tests alone do not certify native output.
+
+
+### November 7 listening follow-up: chat paragraphs
+
+The [listening candidate](../backlog/implementation/evidence/listening-session-continuity-2026-11-07.md)
+also updates signaling chat normalization. Ship the reviewed signaling artifact
+alongside corresponding Web/Product clients when scheduling this rollout.
+No environment, CORS, secret, volume, scale or schema changes. An older server
+accepts textarea content but flattens line breaks; do not claim paragraph
+acceptance with a mixed rollout. Track requests remain single-line.
+
+Validate two real clients: keep the phone keyboard open, receive a message, send a
+two-line reply, confirm focus remains and the second client receives both lines.
+Scroll up before another message and check that history is not pulled away.
+Check Done, panel switching, IME, small viewport and reduced-motion return.
+Membership/rate limits and ephemeral history lifetime still apply. Rollback needs
+no migration. This candidate authorizes no deployment or service interruption;
+coordinate any signaling restart with active Rooms.

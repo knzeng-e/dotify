@@ -1,8 +1,9 @@
-import { ArrowRight, Pause, Play, X } from 'lucide-react';
+import { ArrowRight, Play, X } from 'lucide-react';
 import { useCatalogContext, usePlaybackContext } from '../app/providers';
 import { catalogAccessAriaLabel } from '../shared/utils/format';
 import { trackHasAccess } from '../features/access/accessPolicy';
 import { CoverImage } from './CoverImage';
+import { ListeningNowPlaying } from './ListeningNowPlaying';
 import { ListeningSheet } from './ListeningSheet';
 
 // This is the controller's next selection, not a separate queue or autoplay
@@ -15,7 +16,13 @@ export function PlayerQueueDialog({ onClose }: { onClose: () => void }) {
   const tracks = catalog.catalogTracks.filter(track => track.id !== current?.id && track.id !== next?.id);
   const choices = next ? [next, ...tracks] : tracks;
   return (
-    <ListeningSheet labelledBy='player-queue-title' className='player-queue-dialog' onClose={onClose} handleLabel='Collapse queue'>
+    <ListeningSheet
+      listeningAnchor={<ListeningNowPlaying />}
+      labelledBy='player-queue-title'
+      className='player-queue-dialog'
+      onClose={onClose}
+      handleLabel='Collapse queue'
+    >
       {(close, closing) => (
         <>
           <div className='modal-header'>
@@ -24,25 +31,6 @@ export function PlayerQueueDialog({ onClose }: { onClose: () => void }) {
               <X size={18} />
             </button>
           </div>
-          {current && (
-            <div className='queue-now-playing'>
-              <CoverImage src={current.imageRef} alt='' fallbackLabel={current.title} sizes='48px' />
-              <div>
-                <small>{playback.repeatEnabled ? 'Repeating' : 'Now playing'}</small>
-                <p className='queue-current'>{current.title}</p>
-                <span>{current.artist}</span>
-              </div>
-              <button
-                type='button'
-                className='icon-action'
-                disabled={!playback.canUseTransport}
-                onClick={() => void playback.togglePlay()}
-                aria-label={playback.transport.playing ? 'Pause current track' : 'Play current track'}
-              >
-                {playback.transport.playing ? <Pause size={20} /> : <Play size={20} />}
-              </button>
-            </div>
-          )}
           <ul className='player-queue-list'>
             {choices.map((track, index) => (
               <li key={track.id}>

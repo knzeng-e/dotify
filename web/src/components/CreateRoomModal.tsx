@@ -12,6 +12,7 @@ import { ListeningSheet } from './ListeningSheet';
 import { roomHostDisplayName } from '../features/rooms/roomState';
 import type { CatalogTrack } from '../shared/types';
 import { useUiFeedback, useWalletContext } from '../app/providers';
+import { useNavigation } from '../app/providers/NavigationProvider';
 import { NearbyVisibility, type RoomVisibilityChoice } from './NearbyVisibility';
 import { roomExperienceFlags } from '../features/rooms/roomExperienceFlags';
 
@@ -70,6 +71,8 @@ export function CreateRoomModal({ tracks, initialTrack, displayName, onSetDispla
   const { connectedWallet } = useWalletContext();
   const { openWalletModal } = useUiFeedback();
   const [picked, setPicked] = useState<CatalogTrack | undefined>(initialTrack ?? tracks[0]);
+  const { activeView } = useNavigation();
+  const [chooseTrack, setChooseTrack] = useState(!initialTrack || activeView !== 'player');
   const [visibility, setVisibility] = useState<RoomVisibilityChoice>({ visibleNearby: false, radiusKm: 5 });
   const [profile, setProfile] = useState<RoomProfile>({ name: '', introduction: '' });
   const hasChosenName = roomHostDisplayName(displayName) !== null;
@@ -110,34 +113,39 @@ export function CreateRoomModal({ tracks, initialTrack, displayName, onSetDispla
           )}
 
           {tracks.length > 1 && (
-            <>
-              <div className='create-room-label-group'>
-                <p className='create-room-label'>Choose a track</p>
-                <span className='create-room-label-hint'>Your room opens with this track.</span>
+            <div className='create-room-track-choice'>
+              <button type='button' className='text-action' aria-expanded={chooseTrack} onClick={() => setChooseTrack(value => !value)}>
+                {chooseTrack ? 'Keep this track' : 'Choose another track'}
+              </button>
+              <div hidden={!chooseTrack}>
+                <div className='create-room-label-group'>
+                  <p className='create-room-label'>Choose a track</p>
+                  <span className='create-room-label-hint'>Your room opens with this track.</span>
+                </div>
+                <div className='create-room-picker'>
+                  {tracks.map(track => (
+                    <button
+                      key={track.id}
+                      className={'create-room-pick' + (picked?.id === track.id ? ' is-on' : '')}
+                      type='button'
+                      onPointerEnter={() => onTrackIntent(track)}
+                      onFocus={() => onTrackIntent(track)}
+                      onClick={() => {
+                        onTrackIntent(track);
+                        setPicked(track);
+                      }}
+                      aria-label={`Select ${track.title}`}
+                      aria-pressed={picked?.id === track.id}
+                    >
+                      <CoverImage src={track.imageRef} alt='' fallbackLabel={track.title} />
+                      <span className='create-room-pick-title' aria-hidden='true'>
+                        {track.title}
+                      </span>
+                    </button>
+                  ))}
+                </div>
               </div>
-              <div className='create-room-picker'>
-                {tracks.map(track => (
-                  <button
-                    key={track.id}
-                    className={'create-room-pick' + (picked?.id === track.id ? ' is-on' : '')}
-                    type='button'
-                    onPointerEnter={() => onTrackIntent(track)}
-                    onFocus={() => onTrackIntent(track)}
-                    onClick={() => {
-                      onTrackIntent(track);
-                      setPicked(track);
-                    }}
-                    aria-label={`Select ${track.title}`}
-                    aria-pressed={picked?.id === track.id}
-                  >
-                    <CoverImage src={track.imageRef} alt='' fallbackLabel={track.title} />
-                    <span className='create-room-pick-title' aria-hidden='true'>
-                      {track.title}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </>
+            </div>
           )}
 
           <label className='create-room-label' htmlFor='create-room-name'>
@@ -153,12 +161,7 @@ export function CreateRoomModal({ tracks, initialTrack, displayName, onSetDispla
             autoComplete='nickname'
           />
 
-          <details className='room-profile-optional'>
-            <summary>
-              Name your room <span>(optional)</span>
-            </summary>
-            <RoomProfileFields value={profile} onChange={setProfile} />
-          </details>
+          <RoomProfileFields value={profile} onChange={setProfile} compactInvitation />
           {roomExperienceFlags.nearby && <NearbyVisibility value={visibility} onChange={setVisibility} />}
 
           <div className='create-room-actions'>

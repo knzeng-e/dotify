@@ -21,6 +21,8 @@ import {
   KeyRound,
   Library,
   LogOut,
+  Pause,
+  Play,
   Radio,
   RefreshCw,
   Share2,
@@ -625,6 +627,17 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
             />
           )}
         </div>
+        {roomId && (
+          <button
+            type='button'
+            className='room-composer-play'
+            disabled={!playback.canUseTransport}
+            onClick={() => void playback.togglePlay()}
+            aria-label={isRoomGuest ? (transport.playing ? 'Pause for me' : 'Resume room audio') : transport.playing ? 'Pause' : 'Play'}
+          >
+            {transport.playing ? <Pause size={22} /> : <Play size={22} />}
+          </button>
+        )}
         <PlayerTransport
           playback={playback}
           duration={transportDuration}
@@ -645,7 +658,16 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
         )}
       </div>
 
-      {!roomId && releaseDescription && <p className='solo-release-note'>{releaseDescription}</p>}
+      {!roomId && releaseDescription && (
+        <div className='solo-story-preview'>
+          <p className='solo-release-note'>{releaseDescription}</p>
+          {selectedTrack && (
+            <button type='button' className='text-action' onClick={() => setDetailsTrack(selectedTrack)}>
+              Behind this track <Info size={16} />
+            </button>
+          )}
+        </div>
+      )}
 
       {!roomId && canHostSelectedTrack && sessionAction === 'idle' && (
         <div className='solo-room-invite'>

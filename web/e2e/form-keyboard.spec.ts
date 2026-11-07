@@ -57,7 +57,7 @@ test.describe('form keyboard', () => {
     const { dialog, opener } = await openCreateRoom(page);
     const backgroundScroll = await page.evaluate(() => window.scrollY);
     await dialog.getByLabel('Your name or nickname').fill('Nia');
-    await dialog.locator('.room-profile-optional > summary').click();
+    await dialog.locator('.room-profile-invitation > summary').click();
     const name = dialog.getByLabel('Room name', { exact: false });
     const invitation = dialog.getByLabel('A short invitation', { exact: false });
     await name.fill('Escale à Libreville');
@@ -259,7 +259,7 @@ test('form keyboard: desktop dialog focus does not move the listening page', asy
   const { dialog, opener } = await openCreateRoom(page);
   const backgroundScroll = await page.evaluate(() => window.scrollY);
   await dialog.getByLabel('Your name or nickname').fill('Desktop host');
-  await dialog.locator('.room-profile-optional > summary').click();
+  await dialog.locator('.room-profile-invitation > summary').click();
   const roomName = dialog.getByLabel('Room name', { exact: false });
   await roomName.fill('A quiet evening');
   await expect(roomName).toBeFocused();

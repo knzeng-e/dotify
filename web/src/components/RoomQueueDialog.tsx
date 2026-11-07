@@ -1,4 +1,5 @@
 import { X } from 'lucide-react';
+import { ListeningNowPlaying } from './ListeningNowPlaying';
 import { ListeningSheet } from './ListeningSheet';
 import { HostLineup } from './HostLineup';
 import { RoomRequests } from './RoomRequests';
@@ -6,7 +7,14 @@ import { RoomRequests } from './RoomRequests';
 // Kept mounted for the room lifetime: dismissing never discards a suggestion draft.
 export function RoomQueueDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   return (
-    <ListeningSheet open={open} onClose={onClose} labelledBy='room-queue-title' className='room-queue-sheet' handleLabel='Collapse room queue'>
+    <ListeningSheet
+      listeningAnchor={<ListeningNowPlaying />}
+      open={open}
+      onClose={onClose}
+      labelledBy='room-queue-title'
+      className='room-queue-sheet'
+      handleLabel='Collapse room queue'
+    >
       {close => (
         <>
           <div className='modal-header'>

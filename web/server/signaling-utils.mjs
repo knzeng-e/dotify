@@ -103,17 +103,21 @@ export function sanitizeReactionEmoji(value) {
   return ROOM_REACTION_EMOJI.includes(text) ? text : null;
 }
 
-export function sanitizeChatText(value, maxLength = CHAT_TEXT_MAX_LENGTH) {
-  // Chat is single-line by design: collapse whitespace runs (including
-  // newlines) and strip non-printable control characters.
-  const text = String(value ?? '')
+export function sanitizeChatText(value, maxLength = CHAT_TEXT_MAX_LENGTH, multiline = false) {
+  // Requests stay single-line. Chat preserves bounded paragraphs as plain text.
+  let text = String(value ?? '').replace(/\r\n?/g, '\n');
+  if (multiline) {
+    text = text
+      // eslint-disable-next-line no-control-regex
+      .replace(/[\u0000-\u0009\u000b-\u001f\u007f]/g, ' ')
+      .replace(/[^\S\n]+/g, ' ')
+      .replace(/ *\n */g, '\n')
+      .replace(/\n{3,}/g, '\n\n');
+  } else {
     // eslint-disable-next-line no-control-regex
-    .replace(/[\u0000-\u001f\u007f]/g, ' ')
-    .trim()
-    .replace(/\s+/g, ' ')
-    .slice(0, maxLength)
-    .trim();
-  return text || null;
+    text = text.replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ');
+  }
+  return text.trim().slice(0, maxLength).trim() || null;
 }
 
 // Fixed-window rate limiter. Social events fail closed and silent: past the

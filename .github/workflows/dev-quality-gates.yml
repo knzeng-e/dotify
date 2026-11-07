@@ -482,7 +482,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: streaming-browser-failures-${{ github.run_attempt }}
-          path: web/.data/streaming-results/
+          path: |
+            web/.data/streaming-results/
+            web/test-results/
           include-hidden-files: true
           if-no-files-found: ignore
           retention-days: 7
