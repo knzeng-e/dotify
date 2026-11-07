@@ -16,7 +16,7 @@ spine, conservation and access gates remain prerequisites for a public pilot.
 ## Evidence and measurable decisions
 
 Product 0.1.80 is delivered; #405 records its readback and owner feedback and is
-ready for review. The owner reports an Adang Fobe mobile-host startup without
+merged. The owner reports an Adang Fobe mobile-host startup without
 retry in approximately 55 seconds and sound at Web/Desktop guests. This is one
 approximate observation, not a phase trace or cold-cache benchmark. The new
 release failure on Web/Desktop is a separate, higher-priority publication gap.

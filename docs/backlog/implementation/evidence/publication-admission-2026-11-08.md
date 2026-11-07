@@ -5,7 +5,8 @@
 Base: tested dev `e7614b4d6993ab16b57eeb4c65f73c6c29919690`.
 Scope: #407 first slice; ordered planning for #395/#388/#406/#408.
 Implementation: `51115455b2187d375a227fc1f57123cf8ef59954` (local checks);
-subsequent reconciliation changes documentation only.
+subsequent reconciliation changes documentation only. Newly merged #405
+(`a5722244`) is incorporated with both rollout evidence and the new plan retained.
 Branch: `feat/listening-readiness-plan`. This is implementation evidence, not a
 new deployment or general-publication activation.
 
