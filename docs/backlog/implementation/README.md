@@ -1,5 +1,18 @@
 # Dotify implementation playbook
 
+## Listening continuity delivered in 0.1.79, 2026-11-07
+
+[Web, Product and signaling 0.1.79](evidence/product-0.1.79-rollout-2026-11-07.md) deliver merged #401/#402 from frozen
+`c656992c`. Both CIs and independent Web/CAR/retention/DotNS/signaling checks pass;
+the signer is removed. Closed playback starts fresh, Room exits confirm with a
+host solo-continuation choice, discovery panels retain listening controls, and
+matched signaling preserves chat paragraphs. Solo/Room system covers use the
+larger bottom-right Dotify badge without outer petals. Matching physical checks
+remain open in #395/#388. The approved operation uses 13 stores / 4,423,600 bytes,
+7 one-off renewals / 5,061,961 bytes and two DotNS signatures. Preserve 411 future
+renewals / 140,997,127 bytes. Signaling restarted only after a zero-Room check;
+API/custody and music are unchanged. No recurring conservation is activated.
+
 ## Room lifecycle delivered in 0.1.78, 2026-11-06
 
 [Web and Product 0.1.78](evidence/product-0.1.78-rollout-2026-11-06.md) publish merged #400 from frozen source

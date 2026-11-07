@@ -79,3 +79,8 @@ simpler current-track Room setup; and readable conversation with a bounded
 multiline editor while the keyboard is open. Paragraph preservation includes a
 bounded signaling normalization change; matching rollout and real keyboard
 acceptance remain open. See the evidence above for boundaries.
+
+
+## Matching delivery, 2026-11-07
+
+[Web/Product and signaling 0.1.79](implementation/evidence/product-0.1.79-rollout-2026-11-07.md) now deliver the reviewed candidate from `c656992c`, with both source CIs and independent readback green. Room exit/source-lifecycle and multiline chat behavior, plus the simplified system badge, still require matching physical phone acceptance. The deployment record preserves exact bounded writes, one-off retention, service restart and rollback boundaries; this issue remains open.

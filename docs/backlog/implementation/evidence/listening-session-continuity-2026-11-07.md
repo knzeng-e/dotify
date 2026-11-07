@@ -264,3 +264,8 @@ The remaining CI suites were run locally: Nearby Web/Product/off (13), Chromium
 audio continuity (39, plus the existing WebKit-only case excluded on Chromium),
 WebKit listening controls (6), Product identity (5), and session logout (5) pass.
 Targeted lint and formatting also pass. Full remote CI remains the final gate.
+
+
+## Matching delivery, 2026-11-07
+
+[Web/Product and signaling 0.1.79](product-0.1.79-rollout-2026-11-07.md) now deliver the reviewed candidate from `c656992c`, with both source CIs and independent readback green. Room exit/source-lifecycle and multiline chat behavior, plus the simplified system badge, still require matching physical phone acceptance. The deployment record preserves exact bounded writes, one-off retention, service restart and rollback boundaries; this issue remains open.

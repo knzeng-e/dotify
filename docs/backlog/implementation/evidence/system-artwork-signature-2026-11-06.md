@@ -38,3 +38,8 @@ Matching deployment and physical lock-screen appearance remain to be checked.
 The OS/Host controls scaling and caching, and the existing CORS/decode fallback
 can show the original unbranded image. #388’s native navigation acceptance is
 not completed by this visual-only change.
+
+
+## Matching delivery, 2026-11-07
+
+[Web/Product and signaling 0.1.79](product-0.1.79-rollout-2026-11-07.md) now deliver the reviewed candidate from `c656992c`, with both source CIs and independent readback green. Room exit/source-lifecycle and multiline chat behavior, plus the simplified system badge, still require matching physical phone acceptance. The deployment record preserves exact bounded writes, one-off retention, service restart and rollback boundaries; this issue remains open.
