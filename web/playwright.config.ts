@@ -65,7 +65,8 @@ export default defineConfig({
   ],
   use: {
     baseURL: 'http://127.0.0.1:5274',
-    trace: 'on-first-retry'
+    // This gate has no automatic retries: retain the first failure's timeline.
+    trace: process.env.CI ? 'retain-on-failure' : 'on-first-retry'
   },
   projects: [
     {

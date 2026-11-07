@@ -158,8 +158,17 @@ test('host lineup is shared, advances on track end, and Previous follows real hi
     await expect(host.locator('.host-lineup')).toContainText('Second room track');
 
     const listener = await joinAsListener(listenerContext, roomId, { storedDisplayName: 'Echo' });
+    await expect(listener.getByTestId('room-code')).toHaveText(roomId);
+    await expect.poll(() => listener.evaluate(() => window.history.state?.dotifyView)).toBe('player');
     await listener.getByRole('button', { name: 'Queue', exact: true }).click();
     await expect(listener.locator('.host-lineup summary')).toContainText('Second room track');
+    // A remembered-name join must seed player history before a sheet pushes its
+    // entry. Closing that sheet must never send a still-connected guest to Rooms.
+    await listener.getByRole('button', { name: 'Close room queue', exact: true }).click();
+    await expect(listener.getByRole('dialog', { name: 'Room queue', exact: true })).toBeHidden();
+    await expect(listener.getByTestId('room-code')).toHaveText(roomId);
+    await expect.poll(() => listener.evaluate(() => window.history.state?.dotifyView)).toBe('player');
+    await listener.getByRole('button', { name: 'Queue', exact: true }).click();
     await Promise.all([
       host.screenshot({ path: testInfo.outputPath('host-lineup-desktop.png'), fullPage: true }),
       listener.screenshot({ path: testInfo.outputPath('listener-lineup-mobile.png'), fullPage: true })

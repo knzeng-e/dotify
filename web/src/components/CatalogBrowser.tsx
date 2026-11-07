@@ -73,6 +73,7 @@ export function CatalogBrowser({
   useLayoutEffect(() => {
     const list = listRef.current;
     if (!list) return;
+    let restoreFrame = 0;
     const layout = `${showAll}:${trackIds}`;
     if (previousLayout.current === null || previousLayout.current === layout) {
       list.scrollLeft = journey.current.left;
@@ -82,11 +83,16 @@ export function CatalogBrowser({
       target?.focus({ preventScroll: true });
       // Live rooms can move above/below the catalog while an artist is open.
       // Restore the selected card in the viewport, not an obsolete page offset.
-      const top =
-        target && journey.current.targetViewportTop !== null
-          ? window.scrollY + target.getBoundingClientRect().top - journey.current.targetViewportTop
-          : journey.current.top;
-      window.scrollTo({ top, behavior: 'instant' });
+      const viewportTop = journey.current.targetViewportTop;
+      const savedTop = journey.current.top;
+      const restore = () => {
+        const top = target && viewportTop !== null ? window.scrollY + target.getBoundingClientRect().top - viewportTop : savedTop;
+        window.scrollTo({ top, behavior: 'instant' });
+      };
+      restore();
+      // View-transition layout can adjust scroll after the synchronous commit.
+      // Reconcile once at the first frame; unmount/new layout cancels this work.
+      restoreFrame = requestAnimationFrame(restore);
     } else {
       list.scrollLeft = 0;
     }
@@ -105,6 +111,7 @@ export function CatalogBrowser({
     list.addEventListener('scroll', measure, { passive: true });
     window.addEventListener('scroll', rememberScroll, { passive: true });
     return () => {
+      cancelAnimationFrame(restoreFrame);
       observer.disconnect();
       window.removeEventListener('scroll', rememberScroll);
       list.removeEventListener('scroll', measure);

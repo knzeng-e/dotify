@@ -230,3 +230,28 @@ The controlled catalog regression passes twice in all four combinations (8/8).
 TypeScript, targeted ESLint, formatting and offline backlog validation pass.
 The related navigation/Room/exit suites and new remote CI run remain verification
 gates; final run evidence belongs to the PR checks, not the earlier failed run.
+
+
+The subsequent run `42332023467` passed 327/329 core cases and all other jobs,
+but exposed two remaining navigation races after the 56 related local cases had
+passed. A captured scroll timeline reproduced a 33px automatic anchoring shift
+*after* the correct scroll position was applied. Explicit player view transitions
+now temporarily opt out of browser scroll anchoring. Catalog restoration also
+reconciles once at the first rendered frame, then stops; cleanup cancels that
+frame when navigation changes. Ordinary page scrolling remains unchanged outside
+those transitions.
+
+A remembered-name listener also reached the player while `history.state` still
+said `rooms`: parent passive initialization had overwritten the child's auto-join
+navigation. A direct assertion reproduced this twice. Navigation now seeds history
+in a layout effect before child passive auto-join, once per provider lifetime,
+including StrictMode replay. The lineup test checks the route, closes/reopens the
+queue and verifies Room context before exercising track end and Previous.
+
+CI now retains traces on the first failure. `on-first-retry` yielded no trace in
+the retry-free core gate and hid these timelines; no test is skipped or retried.
+
+Final targeted validation repeats both viewport/motion combinations and the
+remembered-name lineup scenario four times: 20/20 pass. The 19 routing,
+sheet-history and motion unit cases, TypeScript, targeted lint and formatting
+also pass. The new remote run must complete before treating #402 CI as green.

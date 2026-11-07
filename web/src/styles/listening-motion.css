@@ -7,6 +7,10 @@ html[data-player-motion] .player-dock-art {
 html[data-player-motion]::view-transition {
   pointer-events: none;
 }
+/* Explicit route restoration owns scroll during the captured transition. */
+html[data-player-motion] {
+  overflow-anchor: none;
+}
 html[data-player-motion]::view-transition-group(dotify-playing-cover) {
   animation-duration: 320ms;
   animation-timing-function: cubic-bezier(0.22, 0.8, 0.3, 1);
