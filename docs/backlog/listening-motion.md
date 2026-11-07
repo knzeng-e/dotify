@@ -24,3 +24,11 @@ ordinary tabs/profile/portal navigation and browser Back/Forward, fallback/reduc
 Back/Escape/focus and short safe-area layouts. Preserve solo and room audio while
 minimizing/reopening. Record exact-Host physical feel after matching rollout;
 no deployment or storage/service/policy change belongs to this implementation.
+
+## Delivery checkpoint, 2026-11-05
+
+[Web and Product 0.1.75](implementation/evidence/product-0.1.75-rollout-2026-11-05.md) publish
+the merged implementation with exact-source CI and independent artifact/record
+readback. #392 remains open for matching physical Polkadot app gesture feel and
+continuous audio acceptance. This client delivery activates no conservation writer
+or scheduler.

@@ -1,5 +1,62 @@
 # Dotify product memory
 
+## Room lifecycle delivered in 0.1.78, 2026-11-06
+
+[Web and Product 0.1.78](../backlog/implementation/evidence/product-0.1.78-rollout-2026-11-06.md) publish merged #400 from frozen source
+`6898863d`. Both CIs and independent Web/CAR/finalized-retention/DotNS readback pass;
+the signer is removed. Failed preparation cannot create a silent Room; observed
+output interruption pauses at position with visible explicit recovery. Solo and
+Room share rounded Dotify petal artwork without tiny room text. The owner confirms
+startup without retry and host/guest sound during the requested short phone lock.
+Broader lifecycle/recovery and artwork checks remain open in #395/#388.
+This bounded application-only operation uses 14 stores / 5,259,623 bytes and
+6 immediate renewals / 4,214,282 bytes, one operation per dependency.
+Preserve 391 future renewals / 131,511,566 bytes. No automatic renewal, musical
+write, API/custody change or service restart. Older checkpoints remain dated facts.
+
+## Full-length Room correction delivered in 0.1.77, 2026-11-06
+
+[Web and Product 0.1.77](../backlog/implementation/evidence/product-0.1.77-rollout-2026-11-06.md) publish merged #399 from frozen source
+`0587442d`. CI and independent Web/block/CAR/DotNS checks pass; the local signer
+is removed. Complete mobile Room preparation uses at most four authenticated
+reads and a complete local AAC index, preserving payloads, access checks,
+existing deadlines and the 40 MiB cap; solo remains progressive.
+The owner confirms eventual full-length phone-host sound at Web/Desktop guests,
+but startup still has delays/errors/retries and locking the phone silences both
+host and guests until unlock. Reliable startup, background and lifecycle checks
+remain open in #395; the eight-second 0.1.76 result stays separate.
+Reserve 371 future renewals / 122,037,661 bytes; no renewal/scheduler is activated.
+API/custody, musical assets and policies are unchanged; no service restart occurs.
+Older dated checkpoints retain their state at that time.
+
+## Mobile room capture delivered in 0.1.76, 2026-11-05
+
+[Web and Product 0.1.76](../backlog/implementation/evidence/product-0.1.76-rollout-2026-11-05.md) publish merged #397/#398 from frozen source
+`e195e3ab`. CI and independent Web/CAR/Bulletin/DotNS checks pass;
+the local signer is removed. Managed-only room hosts use authenticated complete
+96 kb/s AAC with the existing buffer cap, while solo stays progressive. Room
+queue/suggestions/details share listening-sheet motion and access-gate ownership.
+The owner confirms foreground mobile-host sound at Web/Desktop guests on the
+eight-second release; full-length Room preparation still fails (#395).
+Physical lifecycle/background checks (#395) and matching panel acceptance (#396)
+remain open. Reserve 351 renewals /
+112,567,204 bytes; no renewal or conservation activation occurs.
+API/custody source/media/policies are unchanged. An already-stopped custody
+instance was restored during preparation after database-lock loss; the code-0
+exit/supervisor defect remains a separate reliability follow-up.
+
+## Continuous listening published in 0.1.75, 2026-11-05
+
+[Web and Product 0.1.75](../backlog/implementation/evidence/product-0.1.75-rollout-2026-11-05.md) deliver merged #391/#393 from frozen source
+`e095f427`. Exact-source CI and independent Web/block/CAR/DotNS readback
+pass; the local signer is removed. Player/Queue motion, title-adjacent room
+discovery and room-branded system context are delivered. API/custody, media and
+policies are unchanged; no restart or renewal occurs. Reserve
+331 renewals / 103,099,297 bytes. Matching
+physical #392/#388 acceptance remains open. W33 retains protected denial and
+conservation/recovery gates; the merged read-only conservation CLI is not
+activated/deployed by this client rollout.
+
 ## Listening controls published in 0.1.74, 2026-11-05
 
 [Web and Product 0.1.74](../backlog/implementation/evidence/product-0.1.74-rollout-2026-11-05.md) deliver merged #389 from frozen source `e8d3be90`.
