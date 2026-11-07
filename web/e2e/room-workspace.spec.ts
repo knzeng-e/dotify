@@ -11,7 +11,11 @@ async function hostRoom(page: Page) {
     await Promise.all(
       element
         .getAnimations({ subtree: true })
-        .filter(animation => animation.effect?.getTiming().iterations !== Infinity)
+        // Settle layout transitions, not the 4.8-second decorative status pulse.
+        .filter(
+          animation =>
+            animation.effect?.getTiming().iterations !== Infinity && !(animation instanceof CSSAnimation && animation.animationName === 'room-online-pulse')
+        )
         .map(animation => animation.finished.catch(() => undefined))
     );
   });
@@ -212,6 +216,9 @@ for (const [width, height] of [
 }
 
 test('a catalog suggestion can be curated into Up next without starting or paying for it', async ({ browser }) => {
+  // Two independent clients boot and establish a real room before curation.
+  // Keep each assertion's normal deadline; allow setup on a loaded CI runner.
+  test.setTimeout(60_000);
   const hostContext = await browser.newContext();
   const guestContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
   try {

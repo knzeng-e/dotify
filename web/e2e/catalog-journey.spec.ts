@@ -29,31 +29,44 @@ for (const { width, reducedMotion } of [390, 1440].flatMap(width => (['reduce', 
     expect(Math.abs((await catalog.evaluate(element => element.scrollLeft)) - left)).toBeLessThan(3);
 
     await page.getByRole('button', { name: 'Show all tracks', exact: true }).click();
+    // Model a live shelf changing height while visiting an artist, independent
+    // of which rooms other parallel browser tests happen to create.
+    await page.addStyleTag({ content: '.catalogue-section { margin-top: var(--test-catalog-offset, 0px); }' });
+    await page.evaluate(() => document.documentElement.style.setProperty('--test-catalog-offset', '240px'));
     const artist = page.getByTestId('track-card').nth(6).getByRole('button', { name: 'Dotify Room Host', exact: true });
     await artist.scrollIntoViewIfNeeded();
     await artist.focus();
     // Capture at activation: Playwright may scroll the button into a safe
     // click position after focus, just as a browser can reveal a focused item.
     await artist.evaluate(element => {
-      element.addEventListener('click', () => Reflect.set(window, '__catalogDepartureTop', scrollY), { once: true, capture: true });
+      element.addEventListener(
+        'click',
+        () => Reflect.set(window, '__catalogDeparture', { top: scrollY, anchorTop: element.getBoundingClientRect().top + scrollY }),
+        { once: true, capture: true }
+      );
     });
     await artist.click();
-    const top = await page.evaluate(() => Reflect.get(window, '__catalogDepartureTop') as number);
+    const departure = await page.evaluate(() => Reflect.get(window, '__catalogDeparture') as { top: number; anchorTop: number });
+    await expect(page.getByRole('button', { name: 'Back to discovery', exact: true })).toBeVisible();
+    await page.evaluate(() => document.documentElement.style.removeProperty('--test-catalog-offset'));
     await page.getByRole('button', { name: 'Back to discovery', exact: true }).click();
     await expect(search).toHaveValue('selection');
     await expect(catalog).toHaveAttribute('data-layout', 'grid');
     await expect(artist).toBeFocused();
-    // Parallel room tests can add or remove a live-room row while this page is
-    // away. Preserve the focused catalog context within one compact row while
-    // clamping restoration to the current document height.
+    // The live-room shelf can move above/below the catalog while this page is
+    // away. Compare the focused item's viewport position, not an absolute page
+    // offset which changes with that shelf. Allow only rounding, and clamp at
+    // document edges where the original viewport position cannot be preserved.
     await expect
       .poll(() =>
-        page.evaluate(savedTop => {
+        artist.evaluate((element, saved) => {
+          const anchorTop = element.getBoundingClientRect().top + scrollY;
           const maxTop = Math.max(0, document.documentElement.scrollHeight - innerHeight);
-          return Math.abs(scrollY - Math.min(savedTop, maxTop));
-        }, top)
+          const expectedTop = Math.max(0, Math.min(saved.top + anchorTop - saved.anchorTop, maxTop));
+          return Math.abs(scrollY - expectedTop);
+        }, departure)
       )
-      .toBeLessThanOrEqual(120);
+      .toBeLessThanOrEqual(3);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   });
 }

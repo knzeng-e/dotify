@@ -200,3 +200,33 @@ Physical acceptance still needs matching reviewed Web/Product/signaling rollout:
 control audio in each sheet, receive/send paragraphs with the real iPhone keyboard,
 retain older history when scrolled up, return from artist discovery, and hear
 host/guest audio through each exit choice.
+
+
+## CI correction: catalog position and Room setup
+
+Run `42322972437` passed 327/329 core cases and the three-engine audio gate.
+The two failures were catalog scroll restoration and the two-client suggestion
+scenario's overall 30-second deadline.
+
+`CatalogBrowser` now remembers the activated card's viewport position along with
+its identity. A live Room shelf can change the document above that card while an
+artist profile is open; returning to an absolute `scrollY` is not sufficient.
+Restoration uses the card's current position and clamps naturally at document
+edges. `NavigationProvider` owns manual history scroll restoration while mounted,
+restoring the prior browser setting on cleanup: otherwise native Back can overwrite
+the restored position after `popstate`. The controlled test reproduced a 240px
+error with native restoration still enabled, including reduced motion. This remains in-memory presentation state; it does not persist listening
+history or affect audio/access.
+
+The catalog regression introduces a controlled 240px shelf-height change and
+checks the focused card's restored viewport position within 3px, replacing the
+previous loose 120px absolute-scroll allowance. Both viewport sizes and motion
+preferences remain covered. Room setup waits for layout motion but excludes the
+4.8-second decorative online pulse. Only the two-client suggestion scenario gets
+60 seconds for total setup and interaction; assertion deadlines stay unchanged,
+and it still verifies that curation neither starts nor pays for the track.
+
+The controlled catalog regression passes twice in all four combinations (8/8).
+TypeScript, targeted ESLint, formatting and offline backlog validation pass.
+The related navigation/Room/exit suites and new remote CI run remain verification
+gates; final run evidence belongs to the PR checks, not the earlier failed run.

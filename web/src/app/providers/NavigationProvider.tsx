@@ -162,6 +162,11 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
   // Seed the current history entry and keep view/portal state in sync with the
   // browser back/forward buttons.
   useEffect(() => {
+    // The catalog/player restore their own context after route rendering. Native
+    // Back restoration can otherwise overwrite that position after popstate,
+    // especially when a live Room shelf has changed the previous page's height.
+    const previousScrollRestoration = window.history.scrollRestoration;
+    window.history.scrollRestoration = 'manual';
     const initialState = historyStateObject(window.history.state);
     delete initialState.dotifyArtist;
     delete initialState.dotifyArtistOrigin;
@@ -200,6 +205,7 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
     window.addEventListener('popstate', onPopState);
     return () => {
       window.removeEventListener('popstate', onPopState);
+      window.history.scrollRestoration = previousScrollRestoration;
       invalidatePlayerNavigation();
     };
   }, [setActiveView, setIsArtistPortal, setPublicArtistName, restoreArtistOrigin]);
