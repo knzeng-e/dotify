@@ -4,30 +4,25 @@ import { dotifyClefPath, dotifyOrbit } from '../../shared/branding/dotifyMarkGeo
 export function drawSystemBrandedArtwork(context: CanvasRenderingContext2D, cover: CanvasImageSource) {
   context.fillStyle = '#081c30';
   context.fillRect(0, 0, 640, 640);
-  // Echo the six petals of the actual mark around an intact, inset cover.
-  context.fillStyle = '#e6007a';
-  for (const [cx, cy, rx, ry, angle] of dotifyOrbit) {
-    const x = cx === 24 ? 320 : cx < 24 ? 46 : 594;
-    const y = cy === 5 ? 37 : cy === 43 ? 603 : cy < 24 ? 170 : 470;
-    context.beginPath();
-    context.ellipse(x, y, rx * 6, ry * 6, (angle * Math.PI) / 180, 0, 2 * Math.PI);
-    context.fill();
-  }
   context.save();
   context.beginPath();
-  context.roundRect(94, 94, 452, 452, 44);
+  context.roundRect(24, 24, 592, 592, 40);
   context.clip();
-  context.drawImage(cover, 94, 94, 452, 452);
+  context.drawImage(cover, 24, 24, 592, 592);
   context.restore();
-  // A compact complete mark, rather than typography or changing room counts.
+  // A larger complete mark on an opaque badge stays legible over light or busy covers.
+  // Keep the original logo geometry; only the decorative outer petals are removed.
   context.save();
-  context.translate(532, 532);
+  context.translate(534, 534);
   context.fillStyle = '#081c30';
   context.beginPath();
-  context.arc(0, 0, 45, 0, 2 * Math.PI);
+  context.arc(0, 0, 78, 0, 2 * Math.PI);
   context.fill();
-  context.translate(-34, -34);
-  context.scale(68 / 48, 68 / 48);
+  context.strokeStyle = 'rgba(241, 247, 251, 0.28)';
+  context.lineWidth = 2;
+  context.stroke();
+  context.translate(-60, -60);
+  context.scale(120 / 48, 120 / 48);
   context.fillStyle = '#e6007a';
   for (const [cx, cy, rx, ry, angle] of dotifyOrbit) {
     context.beginPath();

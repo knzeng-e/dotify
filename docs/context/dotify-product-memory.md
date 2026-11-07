@@ -392,3 +392,17 @@ chooses details/cover, then signs ordinary publication. This is a bounded test,
 not successful registration or general multi-release readiness. Prioritize a
 successful end-to-end flow; ordinary draft editing and usage-based admission must
 remove the need for operator intervention on routine artist choices.
+
+
+## Co-creation and restrained system branding, 2026-11-06
+
+The owner explicitly welcomes proactive, reasoned design suggestions alongside
+requested changes, including related opportunities elsewhere in the product.
+Offer improvements when they strengthen clarity, shared listening or artist
+identity; distinguish proposals from implemented scope and avoid unsolicited
+feature expansion during production-readiness work.
+
+For system artwork, the owner prefers a recognizable bottom-right Dotify logo
+without decorative petals around the cover. The next visual candidate enlarges
+the cover and logo together, preserving the original artist asset and using the
+same treatment in solo and Room.
