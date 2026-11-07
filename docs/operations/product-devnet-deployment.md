@@ -1,5 +1,19 @@
 # Deploy Dotify To Product DevNet
 
+## Room preparation delivered in 0.1.80, 2026-11-07
+
+[Web and Product 0.1.80](../backlog/implementation/evidence/product-0.1.80-rollout-2026-11-07.md) deliver #404 from frozen `30702580`, based on
+merged/tested dev `e7614b4d`. Both CIs and independent Web/CAR/finalized-retention/
+DotNS checks pass; the signer is removed. Client relay reads respect the existing
+two-download API capacity and failures expose an explicit local support report.
+This addresses a reproduced mismatch; matching phone Room startup remains #395.
+The owner confirms 0.1.79 connection/short playback on iPhone 0.10.0 (20), Runtime
+0.26.0; scoped wire comparison supports the unchanged SDK's used domains, not a
+blanket protocol/payment upgrade. Approved writes: 13 stores / 4,425,117 bytes,
+7 one-off renewals / 5,061,961 bytes, two DotNS signatures. Preserve 431 future
+renewals / 150,484,205 bytes. API/custody/signaling and musical assets are unchanged;
+no restart or recurring conservation is activated.
+
 ## Listening continuity delivered in 0.1.79, 2026-11-07
 
 [Web, Product and signaling 0.1.79](../backlog/implementation/evidence/product-0.1.79-rollout-2026-11-07.md) deliver merged #401/#402 from frozen
