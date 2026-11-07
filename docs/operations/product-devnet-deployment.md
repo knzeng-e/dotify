@@ -6,7 +6,7 @@
 merged/tested dev `e7614b4d`. Both CIs and independent Web/CAR/finalized-retention/
 DotNS checks pass; the signer is removed. Client relay reads respect the existing
 two-download API capacity and failures expose an explicit local support report.
-This addresses a reproduced mismatch; matching phone Room startup remains #395.
+The owner confirms one phone Room start without retry in about 55 seconds and audible Web/Desktop guests. Startup remains too slow; #395 stays open for latency and broader lifecycle.
 The owner confirms 0.1.79 connection/short playback on iPhone 0.10.0 (20), Runtime
 0.26.0; scoped wire comparison supports the unchanged SDK's used domains, not a
 blanket protocol/payment upgrade. Approved writes: 13 stores / 4,425,117 bytes,

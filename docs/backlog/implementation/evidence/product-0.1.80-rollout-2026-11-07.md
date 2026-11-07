@@ -3,8 +3,8 @@
 **Web and Product 0.1.80 are published and independently verified** from frozen
 source `30702580299b19f8a54d1a20b8e4bd44629142d9` on `release/product-0.1.80`, based on merged/tested dev
 `e7614b4d6993ab16b57eeb4c65f73c6c29919690`. This delivers #404 and preserves the
-#403 delivery history. Refs #395, #388 and W33/#288; matching physical Room
-startup remains open. [Structured public evidence](product-0.1.80-rollout-2026-11-07.json) contains exact
+#403 delivery history. Refs #395, #388 and W33/#288; the owner confirms one native Room start without retry and audible guests,
+but approximately 55-second preparation and broader lifecycle remain open. [Structured public evidence](product-0.1.80-rollout-2026-11-07.json) contains exact
 receipts, finalized readback and the scoped Host comparison.
 
 [Exact-source CI](https://github.com/knzeng-e/dotify/actions/runs/42413354600) and
@@ -118,9 +118,28 @@ source CIs pass all jobs, including core browser flows and three-engine audio.
 Existing implementation tests reproduce the four-read/two-download mismatch and
 verify body/cancellation ownership; native device timings are not simulated proof.
 
-After reopening About → 0.1.80, use existing **Adang Fobe** on the updated phone.
-Try one fresh Room preparation without retries, then check audible host and
-Web/Desktop guests. If loading fails, copy the support report before retrying;
-do not clear app data. Then verify pause/recovery and short lock/unlock. No new
-purchase/upload is needed. Keep #395 open until matching native startup evidence;
-#388/W33 still retain broader controls, access-denial and conservation/recovery gates.
+## Owner phone result — 2026-11-07
+
+In the requested 0.1.80 test with existing **Adang Fobe**, the owner confirms
+Room preparation completes **without retry in approximately 55 seconds**, and
+answers yes to audible sound at the requested Web/Desktop guests. The current
+reported phone is Polkadot app 0.10.0 (20), Runtime 0.26.0. This accepts the
+reported successful start and guest delivery on this attempt, not comfortable
+startup latency or every lifecycle path.
+
+The delay remains too long for the intended shared-listening experience and
+leaves little margin against the existing 60-second post-authorization startup
+budget. The owner’s approximate wall-clock observation is not a phase trace:
+it must not be subtracted from that budget as if both clocks had the same start.
+No per-phase report, cache measurement or network restatement was supplied.
+Do not label this a cold-cache result, attribute it to decryption/network/Host
+without evidence, or claim the recent relay correction proves all failures fixed.
+
+Keep #395 open for reducing startup latency and broader native lifecycle.
+The next diagnosis should separate authorization, authenticated object retrieval,
+local AAC assembly/media readiness and capture activation, while preserving
+access checks and the existing deadline. Reusing an already prepared authorized
+source, if applicable, needs evidence and source-lifetime invariants first;
+raising the timeout would not make starting the Room faster. Full-song continuity,
+new-build lock/unlock/recovery and #388/W33 access/conservation gates remain
+separate. No new upload, purchase or service change was made for this feedback.

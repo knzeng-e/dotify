@@ -1235,5 +1235,24 @@
     "networkWrites": 0,
     "signerUsed": false
   },
-  "physicalAcceptance": "matching 0.1.80 Room startup remains pending; owner confirms 0.1.79 connection and existing short-release sound on iPhone 0.10.0 (20) / Runtime 0.26.0"
+  "physicalAcceptance": "Owner confirms matching 0.1.80 Adang Fobe Room preparation without retry in approximately 55 seconds and audible guests in requested Web/Desktop comparison. Startup latency and broader lifecycle remain open in #395.",
+  "ownerFeedback20261107": {
+    "version": "0.1.80",
+    "device": "iPhone",
+    "polkadotAppVersion": "0.10.0 (20)",
+    "truapiRuntime": "0.26.0",
+    "track": "Adang Fobe",
+    "roomPreparationWithoutRetry": true,
+    "operatorReportedPreparationSecondsApproximately": 55,
+    "guestAudioHeard": true,
+    "requestedGuestClients": [
+      "Web",
+      "Desktop"
+    ],
+    "ownerReply": "\"d\u00e9marre-t-elle sans relance, et apr\u00e8s combien de secondes environ ?\" -> oui, en 55 secondes; // \"entendent-ils le son ?\" -> oui",
+    "network": "not restated",
+    "cacheState": "not measured",
+    "phaseTimingReportProvided": false,
+    "interpretation": "One matching native startup completed without retry and guests were audible; approximately 55 seconds remains slow. This does not establish cold-cache timing, a phase-level root cause, full-song continuity or current-build background/recovery acceptance."
+  }
 }
