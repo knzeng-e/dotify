@@ -10,6 +10,7 @@ export class AudioPreparationError extends Error {
 }
 export type AudioPreparationPhase = 'queued' | 'encoding' | 'encrypting' | 'publishing' | 'ready' | 'failed';
 type Job = {
+  reason?: string;
   attempts?: number;
   failure?: { stage?: string; storageStatus?: number };
   id: string;
@@ -72,29 +73,33 @@ export async function waitForAudioPreparation(input: {
       return job.result;
     }
     if (job.state === 'failed') {
-      const canRetry = job.attempts === undefined || job.attempts < 3;
+      const needsAdmission = job.reason === 'PUBLICATION_NOT_ADMITTED';
+      const canRetry = !needsAdmission && (job.attempts === undefined || job.attempts < 3);
       if (input.retryFailed && canRetry) {
         input.retryFailed = false;
         try {
           job = (await input.request(id, true)) as Job;
         } catch (error) {
+          const code = (error as { code?: string })?.code ?? '';
           throw new AudioPreparationError(
             error instanceof Error ? error.message : 'Preparation could not resume.',
-            input.discard ? () => input.discard!(id!) : undefined,
-            (error as { code?: string })?.code !== 'STREAMING_RETRY_LIMIT'
+            code !== 'STREAMING_PUBLICATION_NOT_ADMITTED' && input.discard ? () => input.discard!(id!) : undefined,
+            !['STREAMING_RETRY_LIMIT', 'STREAMING_PUBLICATION_NOT_ADMITTED'].includes(code)
           );
         }
         continue;
       }
       throw new AudioPreparationError(
-        !canRetry
-          ? 'This preparation has reached its retry limit. Your draft is safe. Please contact the Dotify operator to recover it.'
-          : job.failure?.stage === 'storage' && job.failure.storageStatus === 403
-            ? 'The storage service is refusing new uploads. Your prepared music is saved. Please try again after the service is restored.'
-            : job.failure?.stage === 'storage'
-              ? 'The storage service could not save your prepared audio. Your upload is saved. Try publishing again to resume.'
-              : 'Audio preparation could not finish. Your upload is saved. Try publishing again to resume.',
-        input.discard ? () => input.discard!(id!) : undefined,
+        needsAdmission
+          ? 'New release publishing is not enabled for this audio yet. Your draft is safe. Please contact the Dotify operator before trying again.'
+          : !canRetry
+            ? 'This preparation has reached its retry limit. Your draft is safe. Please contact the Dotify operator to recover it.'
+            : job.failure?.stage === 'storage' && job.failure.storageStatus === 403
+              ? 'The storage service is refusing new uploads. Your prepared music is saved. Please try again after the service is restored.'
+              : job.failure?.stage === 'storage'
+                ? 'The storage service could not save your prepared audio. Your upload is saved. Try publishing again to resume.'
+                : 'Audio preparation could not finish. Your upload is saved. Try publishing again to resume.',
+        !needsAdmission && input.discard ? () => input.discard!(id!) : undefined,
         canRetry
       );
     }

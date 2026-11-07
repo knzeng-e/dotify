@@ -1,5 +1,15 @@
 # Dotify Production Backlog
 
+## Execution priority, 2026-11-08
+
+Follow [publication and listening readiness](implementation/listening-and-publication-readiness.md):
+#407 new-release admission first, then #395 startup and #388 artwork, followed by
+#406 CASH-tip feasibility and #408 access settlement research. The deployed
+synthetic pilot does not admit general artist releases. This is an implementation
+plan; new musical writes, maintenance, payments and activation remain separately
+bounded. Project 5 tracks progress; older dated checkpoints below retain their
+historical scope.
+
 ## Listening continuity delivered in 0.1.79, 2026-11-07
 
 [Web, Product and signaling 0.1.79](implementation/evidence/product-0.1.79-rollout-2026-11-07.md) deliver merged #401/#402 from frozen

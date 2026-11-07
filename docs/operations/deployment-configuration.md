@@ -3861,3 +3861,26 @@ coordinate any signaling restart with active Rooms.
 The [Room-startup follow-up](../backlog/implementation/evidence/room-preparation-relay-2026-11-07.md) limits client requests to the existing public ciphertext API to two concurrent complete bodies, matching its deployed IPFS reader capacity. Other transports retain their existing limits. Queued requests obey their selection signal and do not start network timers until admitted; the existing overall startup deadline remains. No server capacity/configuration, CORS, permission, secret, storage policy or service rollout is required by this implementation.
 
 After reviewed matching Web/Product delivery, use existing Adang Fobe for cold Room preparation and explicit solo recovery after failure. The failure's Copy support report uses the existing bounded identifier-free local serializer; a readonly fallback appears if clipboard access fails. Do not enable the broader debug panel or infer actual native startup from browser tests. This is an explicit local copy, not automatic telemetry or a support upload. Rollback is client-only and needs no schema migration. No deployment is performed by merging the code.
+
+## Publication admission preflight candidate — 2026-11-08
+
+[Issue #407](../backlog/bulletin-publication-admission.md) adds a read-only check
+of the existing private publisher binding, exact pilot scope and durable owned
+job before a new job reserves nonces/encodes, and before a failed-job retry changes
+state. Storage repeats the authoritative check; preflight is not a reservation.
+This adds no environment variable, quota, service, network write or activation.
+
+Validate new out-of-scope uploads and restored-job retries return
+`STREAMING_PUBLICATION_NOT_ADMITTED` with operator-action guidance, no new job,
+encoding or storage session. Confirm existing admitted recovery still reuses its
+ciphertext and completed releases stay readable. A refusal discovered only at
+storage persists `reason=PUBLICATION_NOT_ADMITTED` in the existing jobs snapshot;
+the matching client must not automatically retry/discard it. Older server schemas
+do not accept this additional reason: preserve snapshots and use a compatible
+reader for rollback, never delete/rewrite history to force an older image to boot.
+Existing old failures gain precise admission guidance when explicitly retried;
+they are not automatically rewritten or resumed by deployment.
+
+General artist publication remains disabled under the deployed synthetic profile.
+A multi-release policy needs separate review, measured budgets, retained
+obligations and owner-approved activation; changing the error is not that rollout.

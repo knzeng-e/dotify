@@ -1,5 +1,16 @@
 # Listening controls and room discovery — next iteration
 
+## Remaining artwork reliability, 2026-11-08
+
+The owner confirms intermittent late lock-screen cover display in **both solo
+and Room** on the current delivered client. The two screenshots are not a measured
+single loading timeline. Shared image preparation/reuse and metadata ownership
+need diagnosis; no root cause or fix is claimed yet. Follow the
+[execution plan](implementation/listening-and-publication-readiness.md) after the
+publication and Room-startup slices, with #87 public-artwork delivery. Preserve
+the current cover and bottom-right Dotify badge, audio independence, stale-result
+cancellation and physical native acceptance. #388 remains open.
+
 - GitHub issue: [#388](https://github.com/knzeng-e/dotify/issues/388).
 - Priority: P1. Track: Production spine. Phase: Next. Type: Work.
 - Workflow status: 0.1.74 delivered; mobile account/discovery/artwork accepted on Polkadot app v0.10.0 (18). Room information placement and system-room context follow-up in review; native rendition still needs matching deployment/device verification.

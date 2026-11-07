@@ -1,5 +1,17 @@
 # Dotify product memory
 
+## Owner execution plan, 2026-11-08
+
+[New-release publication admission #407](../backlog/bulletin-publication-admission.md)
+now precedes Room startup #395 and shared system-artwork reliability #388. The
+current Bulletin profile remains a scoped synthetic pilot; new artist releases
+cannot be assumed enabled. The owner reports about 55 seconds for a successful
+0.1.80 Room start, and intermittent late cover display in solo and Room. These
+need separate measured diagnosis. CASH tip research #406 and access settlement
+#408 follow, coordinated with #85/#229; native PAS and pinned SDK stay unchanged.
+See [the ordered plan](../backlog/implementation/listening-and-publication-readiness.md).
+Planning/code review does not activate general storage, deploy or authorize payments.
+
 ## Listening continuity delivered in 0.1.79, 2026-11-07
 
 [Web, Product and signaling 0.1.79](../backlog/implementation/evidence/product-0.1.79-rollout-2026-11-07.md) deliver merged #401/#402 from frozen

@@ -20,9 +20,13 @@ import { jobSchema, load, ownerSchema, privateDirectory } from './bulletinMediaS
 import { assertPublicationBinding, readBulletinPublisherProfile, type BulletinPublisherProfile } from './bulletinPublisherProfile.js';
 import { pinFilesToPinata, type PinataFile } from './pinata.js';
 import { parseStreamingManifest } from './streamingFormat.js';
+import type { StreamingScope } from './streamingFormat.js';
+import { PublicationAdmissionError } from './publicationAdmission.js';
 import type { BulletinSigner } from './bulletinPapiTransport.js';
 type Reserve = { transactions: number; bytes: number };
 export type PublicationStore = {
+  /** Read-only preflight; the authoritative check still runs immediately before storage. */
+  assertCanPrepare?: (scope: StreamingScope, name?: string) => Promise<void>;
   pin(files: PinataFile[], name: string, signal: AbortSignal): Promise<string>;
   pinAsset?: (files: PinataFile[], kind: PublicAssetKind, owner: PublicAssetOwner, signal: AbortSignal) => Promise<string>;
   canDiscard(name: string): Promise<boolean>;
@@ -133,6 +137,15 @@ export async function createStreamingPublicationStore(
   // permits two requests, so a cover may wait behind the single audio job.
   let waiting = 0;
   let tail: Promise<unknown> = Promise.resolve();
+  const assertAudioAdmission = (scope: StreamingScope, jobs: Awaited<ReturnType<typeof inventories>>['jobs'], name?: string) => {
+    if (!profile.pilotScope) return;
+    const audioJobs = jobs.filter(job => !isPublicAssetGeneration(job.generation));
+    if (
+      (audioJobs.length > 0 && !(audioJobs.length === 1 && audioJobs[0].job === name)) ||
+      (['chainId', 'runtimeAddress', 'contentHash', 'keyVersion'] as const).some(field => scope[field] !== profile.pilotScope![field])
+    )
+      throw new PublicationAdmissionError();
+  };
   const publish = (files: PinataFile[], name: string, signal: AbortSignal, asset?: { kind: PublicAssetKind; owner: PublicAssetOwner }): Promise<string> => {
     assert.ok(!closed && waiting < 3, 'Publisher is closed or busy');
     waiting++;
@@ -178,12 +191,10 @@ export async function createStreamingPublicationStore(
       }
       assert.ok(!owner.activeJob || owner.activeJob === name, 'Previous publication requires reconciliation');
       if (!asset && profile.pilotScope) {
-        const audioJobs = jobs.filter(job => !isPublicAssetGeneration(job.generation));
-        assert.ok(!audioJobs.length || (audioJobs.length === 1 && audioJobs[0].job === name), 'Bulletin pilot already owns its one publication');
         const bytes = files.find(file => file.path === 'manifest.json')?.bytes;
         assert.ok(bytes, 'Bulletin pilot manifest required');
         const { chainId, runtimeAddress, contentHash, keyVersion } = parseStreamingManifest(bytes);
-        assert.deepEqual({ chainId, runtimeAddress, contentHash, keyVersion }, profile.pilotScope, 'Release is outside the Bulletin pilot scope');
+        assertAudioAdmission({ chainId, runtimeAddress, contentHash, keyVersion }, jobs, name);
       }
       const selectedProfile = asset ? { ...profile, budget: effectiveAssetPolicy![asset.kind] } : profile;
       const reserved = await retainedPublicationReserve(profile, name);
@@ -211,6 +222,11 @@ export async function createStreamingPublicationStore(
     });
   };
   return {
+    async assertCanPrepare(scope, name) {
+      assert.ok(!closed, 'Publisher is closed');
+      await assertPublicationBinding(options.queue, profile);
+      assertAudioAdmission(scope, (await inventories(profile)).jobs, name);
+    },
     pin: (files, name, signal) => publish(files, name, signal),
     ...(assetPolicy
       ? {

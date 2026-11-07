@@ -15,6 +15,7 @@ import { initializeStreamingNonceLedger, StreamingNonceLedger, STREAM_NONCE_SCHE
 import { encodeStreamingRelease } from './streamingEncoder.js';
 import type { EncodedStreamingAudio } from './streamingTranscoder.js';
 import { PinataError, type PinataFile } from './pinata.js';
+import { PublicationAdmissionError } from './publicationAdmission.js';
 const MAX_JOBS = 64,
   MAX_QUEUED = 4,
   MAX_SOURCE_BYTES = 200 * 1024 * 1024,
@@ -48,7 +49,7 @@ const jobSchema = z
       .max(50 * 1024 * 1024),
     sourceGeneration: z.string().regex(/^[0-9a-f]{16}$/),
     ref: z.string().max(256).optional(),
-    reason: z.enum(['PREPARATION_FAILED', 'RETRY_LIMIT']).optional()
+    reason: z.enum(['PREPARATION_FAILED', 'RETRY_LIMIT', 'PUBLICATION_NOT_ADMITTED']).optional()
   })
   .strict();
 export const streamingJobsSchema = z.object({ schema: z.literal('dotify.streaming.jobs.v1'), jobs: z.array(jobSchema).max(MAX_JOBS) }).strict();
@@ -103,6 +104,7 @@ export async function initializeStreamingJobs(directory: string) {
   await syncDir(path.dirname(directory));
 }
 export type StreamingJobDeps = {
+  assertCanPrepare?: (scope: StreamingScope, name?: string) => Promise<void>;
   directory: string;
   deriveKey: (scope: StreamingScope) => Buffer | null;
   authority: (owner: string, runtime: string, chainId: number) => Promise<boolean>;
@@ -256,6 +258,7 @@ export class StreamingJobs {
         if (existing.state === 'failed') return this.retryExisting(existing);
         return this.view(existing);
       }
+      await this.checkAdmission(input.scope);
       const active = this.jobs.filter(j => j.state !== 'ready');
       if (this.jobs.length >= MAX_JOBS || active.length >= MAX_QUEUED || active.reduce((n, j) => n + j.sourceBytes, 0) + input.master.length > MAX_SOURCE_BYTES)
         throw new StreamingJobError('STREAMING_QUEUE_BUSY', 429);
@@ -295,7 +298,16 @@ export class StreamingJobs {
       }
     });
   }
+  private async checkAdmission(scope: StreamingScope, name?: string) {
+    try {
+      await this.deps.assertCanPrepare?.(scope, name);
+    } catch (error) {
+      if (error instanceof PublicationAdmissionError) throw new StreamingJobError(error.code);
+      throw error;
+    }
+  }
   private async retryExisting(job: StreamingJob): Promise<StreamingJobView> {
+    await this.checkAdmission(job.scope, `stream-${job.id}`);
     if (job.attempts >= 3) throw new StreamingJobError('STREAMING_RETRY_LIMIT', 409);
     if (this.jobs.filter(j => !['ready', 'failed'].includes(j.state)).length >= MAX_QUEUED) throw new StreamingJobError('STREAMING_QUEUE_BUSY', 429);
     job.state = 'queued';
@@ -484,7 +496,7 @@ export class StreamingJobs {
       await this.exclusive(async () => {
         this.failures.set(job.id, failure);
         job.state = signal.aborted ? 'queued' : 'failed';
-        job.reason = job.attempts >= 3 ? 'RETRY_LIMIT' : 'PREPARATION_FAILED';
+        job.reason = error instanceof PublicationAdmissionError ? 'PUBLICATION_NOT_ADMITTED' : job.attempts >= 3 ? 'RETRY_LIMIT' : 'PREPARATION_FAILED';
         job.updatedAt = this.now();
         await this.save();
       });

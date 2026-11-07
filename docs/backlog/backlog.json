@@ -25,6 +25,36 @@
   },
   "items": [
     {
+      "id": "bulletin-publication-admission",
+      "doc": "docs/backlog/bulletin-publication-admission.md",
+      "issue": 407,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Now",
+      "note": "New Web/Desktop artist releases are blocked by scoped pilot admission. Early truthful refusal first; durable multi-release budgets, retained obligations, reviewed activation and real artist acceptance remain required."
+    },
+    {
+      "id": "product-cash-tip-feasibility",
+      "doc": "docs/backlog/product-cash-tip-feasibility.md",
+      "issue": 406,
+      "kind": "research",
+      "priority": "P2",
+      "track": "Product SDK",
+      "phase": "Next",
+      "note": "Owner reopens bounded research after publication/listening reliability. Verify shipped Host/SDK capabilities, contribution policy and durable receipt recovery before proposing a disabled pilot; no funded action or access grant."
+    },
+    {
+      "id": "product-cash-access-settlement",
+      "doc": "docs/backlog/product-cash-access-settlement.md",
+      "issue": 408,
+      "kind": "research",
+      "priority": "P2",
+      "track": "Product SDK",
+      "phase": "Later",
+      "note": "Separate CASH payment-to-entitlement/royalty feasibility after #406 and #85; callback alone never grants access. Preserve dated W16 and native PAS behavior."
+    },
+    {
       "id": "room-listener-audio",
       "doc": "docs/backlog/room-listener-audio.md",
       "issue": 395,
