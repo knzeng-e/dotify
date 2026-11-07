@@ -140,7 +140,7 @@ for (const surface of ['Web', 'Product fixture'] as const) {
       try {
         if (await host.getByRole('button', { name: 'Close room', exact: true }).isVisible()) {
           await host.getByRole('button', { name: 'Close room', exact: true }).click();
-          const confirm = host.getByRole('button', { name: 'Close for everyone', exact: true });
+          const confirm = host.getByRole('button', { name: 'Close room and stop', exact: true });
           await expect.poll(async () => !(await host.getByTestId('room-code').count()) || (await confirm.isVisible())).toBe(true);
           if (await confirm.isVisible()) await confirm.click();
           await expect(host.getByTestId('room-code')).toHaveCount(0);

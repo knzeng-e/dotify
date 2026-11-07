@@ -350,7 +350,7 @@ test('cover galaxies show exact live people and distinguish my room from an iden
         const close = page.getByRole('button', { name: 'Close room', exact: true });
         if (!(await close.isVisible())) continue;
         await close.click();
-        const confirm = page.getByRole('button', { name: 'Close for everyone', exact: true });
+        const confirm = page.getByRole('button', { name: 'Close room and stop', exact: true });
         await expect.poll(async () => !(await page.getByTestId('room-code').count()) || (await confirm.isVisible())).toBe(true);
         if (await confirm.isVisible()) await confirm.click();
         await expect(page.getByTestId('room-code')).toHaveCount(0);

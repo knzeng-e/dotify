@@ -3749,3 +3749,19 @@ unsupported container layouts. Progressive readers and stored assets do not
 change. Browser CI must verify natural completion against the authenticated
 fixture duration on Linux WebKit as well as Chromium/Firefox; initial metadata
 or a short advancing clock does not prove complete playback.
+
+## Listening-session continuity candidate, 2026-11-07
+
+The [client candidate](../backlog/implementation/evidence/listening-session-continuity-2026-11-07.md)
+needs no environment, service, CORS, storage or signing-policy change. It removes
+the old local `dotify:listening-checkpoint:v1` bookmark on mount. A rollback does
+not recover that discarded bookmark; audio assets and publishing receipts remain
+unchanged. No release is deployed by this implementation.
+
+After matching Web/Product delivery, use existing releases to verify on phone,
+Desktop and Web: pause with the mini-player open resumes at position; closing
+then reopening starts audibly at zero; Room exits require confirmation; host
+keep-listening retains play/pause while guests stop; host stop and guest leave
+retire audio. Verify artist discovery/Back and sheet dismissal preserve the room,
+source, focus and list position. Hear the audio, including after phone lock/unlock;
+clock progression or browser energy tests alone do not certify native output.

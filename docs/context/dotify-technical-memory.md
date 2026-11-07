@@ -1,5 +1,11 @@
 # Dotify technical memory
 
+## Explicit player lifetime and Room-to-solo continuity, 2026-11-07
+
+The November 7 candidate removes the local listening checkpoint and retires the actual source/output on player dismissal through useCatalog.clearPlayback. Normal catalog authorization selects a new generation on reopening. An explicitly confirmed host Room exit retains the existing local output/play-pause state while retiring peers; guest/remote closure stops and dismisses. Artist-profile history takes ownership of a departing sheet entry before deferred motion to avoid a cleanup pop race. Catalog focus/scroll restoration remains with the catalog journey controller.
+See the [candidate and evidence](../backlog/implementation/evidence/listening-session-continuity-2026-11-07.md). This is not deployed; physical phone close/reopen and native presentation remain acceptance gates.
+
+
 ## Listening controls published in 0.1.74, 2026-11-05
 
 [Web and Product 0.1.74](../backlog/implementation/evidence/product-0.1.74-rollout-2026-11-05.md) deliver merged #389 from frozen source `e8d3be90`.

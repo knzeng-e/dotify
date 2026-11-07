@@ -1,5 +1,11 @@
 # Dotify product memory
 
+## A listening session lasts while its player is open, 2026-11-07
+
+The November 7 candidate replaces cross-visit resume with a visible-session rule: pause/minimize keeps the current listening position; closing the player or reopening the app means a fresh selection from zero. A paused catalog cover carries a slim progress strip. Every Room exit asks first; the host can close the Room and keep solo listening, including its paused state. The four accompanying refinements anchor Room preparation to the cover, quiet the Room controls, foreground artist discovery, and preserve context through consistent/reduced motion.
+See the [candidate and evidence](../backlog/implementation/evidence/listening-session-continuity-2026-11-07.md). This is not deployed; physical phone close/reopen and native presentation remain acceptance gates.
+
+
 ## Listening controls published in 0.1.74, 2026-11-05
 
 [Web and Product 0.1.74](../backlog/implementation/evidence/product-0.1.74-rollout-2026-11-05.md) deliver merged #389 from frozen source `e8d3be90`.

@@ -1,3 +1,4 @@
+import { useListeningCoverTransition } from '../features/player/useListeningCoverTransition';
 import { animatePlayerNavigation } from '../features/player/playerMotion';
 import { PlayerTransport } from '../components/PlayerTransport';
 import { RoomViewSwitcher } from '../components/RoomViewSwitcher';
@@ -59,7 +60,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
   const session = useSessionContext();
   const { requestRoomExit, playback, openTrack } = usePlaybackContext();
   const { openWalletModal } = useUiFeedback();
-  const { navigateToView, setPublicArtistName } = useNavigation();
+  const { navigateToView, openArtistProfile } = useNavigation();
   const { title, artistName, accessMode, priceDot } = useReleaseForm();
 
   const trackInfo = catalog.trackInfo;
@@ -105,11 +106,13 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
             ? 'This playback does not match the verified release. Tips stay unavailable.'
             : 'This track has no verified contribution route.';
   const currentTrack = playbackTrack(mode, trackInfo, selectedTrack);
+  const coverRef = useRef<HTMLDivElement>(null);
+  useListeningCoverTransition(coverRef, roomId, currentTrack?.hash ?? '');
   const streamTitle = currentTrack?.title || (mode === 'listener' ? 'Waiting for the host’s track' : title);
   const streamArtist = currentTrack?.artist || (mode === 'listener' ? '' : artistName);
   const selectedTrackHasAccess = selectedTrack ? trackHasAccess(selectedTrack, catalog.catalogAccessByTrackId) : false;
 
-  const onLeaveSession = requestRoomExit;
+  const onLeaveSession = () => requestRoomExit();
   const onSetDisplayName = session.setDisplayName;
   const onUpdateDisplayName = session.updateDisplayName;
   const onRetryRoomAudio = session.requestRoomAudio;
@@ -126,8 +129,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
     else animatePlayerNavigation('close', () => navigateToView('listen'));
   };
   const onOpenArtist = (name: string) => {
-    setPublicArtistName(name);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    openArtistProfile(name);
   };
 
   const trackDetails = playbackTrackDetails(mode, trackInfo, selectedTrack, { accessMode, priceDot });
@@ -190,7 +192,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
     : selectedTrackInactive
       ? 'Release unavailable'
       : needsTrackAccess
-        ? 'Locked'
+        ? 'Access needed to play'
         : effectiveAccessMode === 'classic'
           ? 'Full track opened'
           : 'Ready to listen';
@@ -288,6 +290,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
   return (
     <section
       className={'content-grid player-view-grid' + (roomId ? ' player-room-mode' : '')}
+      data-room-preparing={(!roomId && sessionAction === 'creating') || undefined}
       data-room-panel={roomPanel}
       aria-label={roomId ? 'Shared listening room' : 'Player'}
     >
@@ -299,6 +302,25 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
           <span>Now playing</span>
           <PlayerAccountButton />
         </header>
+      )}
+      {!roomId && sessionAction === 'creating' && (
+        <div className='room-preparation-note' role='status' aria-live='polite'>
+          <Radio size={20} aria-hidden='true' />
+          <div>
+            <strong>Making space to listen together</strong>
+            <span>{catalog.audioStartupStatus || (catalog.trackSelectionPending ? 'Preparing this track for your room…' : 'Opening your room…')}</span>
+          </div>
+          <button
+            className='text-action'
+            type='button'
+            onClick={() => {
+              session.cancelRoomCreation();
+              catalog.cancelPlaybackPreparation();
+            }}
+          >
+            Cancel
+          </button>
+        </div>
       )}
       {roomId && (
         <div className='room-header'>
@@ -479,7 +501,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
                 </button>
               )}
             </div>
-            <div className='cover' data-live={localStreamReady || remoteReady} data-playing={transport.playing}>
+            <div className='cover' ref={coverRef} data-live={localStreamReady || remoteReady} data-playing={transport.playing}>
               <CoverImage
                 src={currentTrack?.imageRef ?? (mode === 'host' ? coverSource : undefined)}
                 alt=''
@@ -625,7 +647,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
 
       {!roomId && releaseDescription && <p className='solo-release-note'>{releaseDescription}</p>}
 
-      {!roomId && canHostSelectedTrack && (
+      {!roomId && canHostSelectedTrack && sessionAction === 'idle' && (
         <div className='solo-room-invite'>
           <div>
             <strong>Make this track a shared room.</strong>
@@ -857,7 +879,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
           <PanelTitle
             icon={Library}
             title='Current track'
-            meta={isRoomGuest ? (remoteReady ? 'Room stream' : 'Waiting for host') : needsTrackAccess ? 'Locked' : 'Ready to play'}
+            meta={isRoomGuest ? (remoteReady ? 'Room stream' : 'Waiting for host') : needsTrackAccess ? 'Access needed to play' : 'Ready to play'}
           />
           <div className='stack-list'>
             <EndpointRow label='Artist' value={streamArtist} />
@@ -885,7 +907,12 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
 
       {!accessGateOpen && qrProjectorDialog}
       {!accessGateOpen && detailsTrack && !roomId && (
-        <ReleaseDetailsDialog track={detailsTrack} nativePaymentSymbol={nativePaymentAsset.symbol} onClose={() => setDetailsTrack(null)} />
+        <ReleaseDetailsDialog
+          track={detailsTrack}
+          nativePaymentSymbol={nativePaymentAsset.symbol}
+          onClose={() => setDetailsTrack(null)}
+          onOpenArtist={() => onOpenArtist(detailsTrack.artist)}
+        />
       )}
       {!accessGateOpen && roomDetailsOpen && roomDetailsTrack && roomId && (
         <ReleaseDetailsDialog

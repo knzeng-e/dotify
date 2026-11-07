@@ -1,10 +1,11 @@
 import { flushSync } from 'react-dom';
 
 type Transition = { finished: Promise<void>; updateCallbackDone: Promise<void>; ready?: Promise<void>; skipTransition(): void };
+export type ListeningMotion = 'open' | 'close' | 'inspect' | 'return';
 type MotionPort = {
   available(): boolean;
   immediate(): boolean;
-  direction(value: 'open' | 'close' | null): void;
+  direction(value: ListeningMotion | null): void;
   start(update: () => void): Transition;
 };
 
@@ -26,7 +27,7 @@ export function createPlayerMotion(port: MotionPort) {
       /* A partial Host must not prevent the newer intent. */
     }
   };
-  const navigate = (direction: 'open' | 'close', update: () => void) => {
+  const navigate = (direction: ListeningMotion, update: () => void) => {
     if (pending) {
       // The platform still calls an update after skipTransition. Complete it
       // once before the newer intent, then make its delayed callback harmless.
@@ -91,7 +92,7 @@ const navigate = createPlayerMotion({
   start: update => document.startViewTransition(update)
 });
 
-export function animatePlayerNavigation(direction: 'open' | 'close', update: () => void) {
+export function animatePlayerNavigation(direction: ListeningMotion, update: () => void) {
   navigate(direction, () => flushSync(update));
 }
 

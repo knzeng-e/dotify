@@ -26,16 +26,21 @@ export function useListeningSheet(onClose: () => void, open = true) {
     closingRef.current = false;
     setClosing(false);
   }, [open]);
-  const close = () => {
+  const dismissThen = (after?: () => void) => {
     if (closingRef.current) return;
     closingRef.current = true;
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       closeRef.current();
+      after?.();
       return;
     }
     setClosing(true);
-    timer.current = setTimeout(() => closeRef.current(), 200);
+    timer.current = setTimeout(() => {
+      closeRef.current();
+      after?.();
+    }, 200);
   };
+  const close = () => dismissThen();
   const reset = () => {
     if (gesture.current) {
       gesture.current.card.style.removeProperty('--sheet-pull');
@@ -46,6 +51,7 @@ export function useListeningSheet(onClose: () => void, open = true) {
   return {
     closing,
     close,
+    dismissThen,
     handle: {
       onPointerDown(event: PointerEvent<HTMLButtonElement>) {
         if (closingRef.current || event.button !== 0) return;

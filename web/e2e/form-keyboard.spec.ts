@@ -123,6 +123,7 @@ test.describe('form keyboard', () => {
     await expect(sheet.getByLabel('A short invitation', { exact: false })).toHaveValue('One more song together.');
     await sheet.getByRole('button', { name: 'Close visibility settings' }).click();
     await page.getByRole('button', { name: 'Close room', exact: true }).click();
+    await page.getByRole('button', { name: 'Close room and stop', exact: true }).click();
   });
 
   test('joining nickname stays above the keyboard without reintroducing a room-code field', async ({ page }) => {

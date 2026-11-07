@@ -221,3 +221,158 @@ html[data-player-motion='close']::view-transition-new(root) {
 .room-panel-switch #room-tab-people {
   order: 3;
 }
+
+/* Up/down for listening surfaces, forward/back for discovery. Audio is not
+   part of the snapshots. Room presence appears around the existing cover. */
+html[data-player-motion='inspect']::view-transition-old(root) {
+  animation: listening-recede 280ms ease both;
+}
+html[data-player-motion='inspect']::view-transition-new(root) {
+  animation: listening-inspect 280ms cubic-bezier(0.22, 0.8, 0.3, 1) both;
+}
+html[data-player-motion='return']::view-transition-old(root) {
+  animation: listening-return 240ms ease both;
+  z-index: 2;
+}
+html[data-player-motion='return']::view-transition-new(root) {
+  animation: listening-reveal 240ms ease both;
+}
+@keyframes listening-inspect {
+  from {
+    opacity: 0;
+    transform: translateX(2.5rem);
+  }
+}
+@keyframes listening-return {
+  to {
+    opacity: 0;
+    transform: translateX(2.5rem);
+  }
+}
+.player-room-mode .room-header,
+.player-room-mode .room-panel-switch,
+.player-room-mode .player-lower-grid {
+  animation: room-presence-arrives 360ms cubic-bezier(0.22, 0.8, 0.3, 1) both;
+}
+.player-room-mode .player-lower-grid {
+  animation-delay: 60ms;
+}
+@keyframes room-presence-arrives {
+  from {
+    opacity: 0;
+    transform: translateY(0.6rem);
+  }
+}
+.room-preparation-note {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+.room-preparation-note > svg {
+  flex-shrink: 0;
+  color: var(--action);
+}
+.room-preparation-note > div {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 0.3rem;
+}
+.room-preparation-note strong {
+  font-size: var(--text-sm);
+}
+.room-preparation-note span {
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+  overflow-wrap: anywhere;
+}
+.room-preparation-note > button {
+  min-height: var(--touch-target);
+  flex-shrink: 0;
+}
+
+/* The track, transport and people lead; secondary actions stay reachable. */
+.player-room-mode .room-social-context .room-live-chip {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font-size: var(--text-xs);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: var(--ink-soft);
+}
+.player-room-mode .room-header-meta {
+  color: var(--ink);
+  font-weight: 600;
+}
+.player-room-mode .room-share-trigger[data-invite][data-alone] {
+  background: var(--action-soft);
+  border-color: transparent;
+  color: var(--action);
+}
+.player-room-mode .room-exit-trigger,
+.player-room-mode .player-account-trigger {
+  background: transparent;
+  border-color: transparent;
+  color: var(--ink-soft);
+}
+.player-room-mode .track-attribution .contribution-action {
+  background: transparent;
+  border-color: transparent;
+  color: var(--ink-soft);
+  box-shadow: none;
+}
+.player-room-mode .track-attribution .contribution-action:hover:not(:disabled) {
+  color: var(--action);
+  background: var(--action-soft);
+}
+.player-room-mode .room-react-btn {
+  font-size: var(--text-base);
+}
+.player-room-mode .room-reaction-dock {
+  border-top: 1px solid var(--line);
+  margin-top: 0.3rem;
+}
+.player-room-mode .access-badges[data-needs-access='true'] {
+  font-size: var(--text-xs);
+}
+.release-artist-discovery {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  min-height: var(--touch-target);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--action-soft);
+  color: var(--action);
+  padding: 0.5rem 0.8rem;
+  text-align: left;
+  font-weight: 600;
+}
+.release-artist-discovery:hover {
+  border-color: var(--action);
+}
+.release-details-dialog .release-details-artist {
+  font-size: var(--text-lg);
+  color: var(--ink);
+}
+.release-details-dialog .release-story-section {
+  border-left: 2px solid var(--action);
+  padding-left: 1rem;
+}
+@media (prefers-reduced-motion: reduce) {
+  html[data-player-motion]::view-transition-old(*),
+  html[data-player-motion]::view-transition-new(*),
+  .player-room-mode .room-header,
+  .player-room-mode .room-panel-switch,
+  .player-room-mode .player-lower-grid {
+    animation: none;
+  }
+}

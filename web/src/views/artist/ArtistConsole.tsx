@@ -415,7 +415,7 @@ export function ArtistConsole() {
           <section className='doc-panel' role='status'>
             <h2>Your room is still live</h2>
             <p>Leave your room before preparing a new release. Your draft will stay here.</p>
-            <button className='secondary-action' type='button' onClick={requestRoomExit}>
+            <button className='secondary-action' type='button' onClick={() => requestRoomExit()}>
               Leave room
             </button>
           </section>

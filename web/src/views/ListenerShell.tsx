@@ -59,8 +59,9 @@ const apiConfigured = Boolean((import.meta.env.VITE_DOTIFY_API_URL as string | u
 export function ListenerShell() {
   const catalog = useCatalogContext();
   const session = useSessionContext();
-  const { playback, openTrack, prepareLocalStream, requestRoomExit, reopenPlayer } = usePlaybackContext();
-  const { activeView, publicArtistName, setPublicArtistName, navigateToView, openArtistStudio } = useNavigation();
+  const { playback, openTrack, prepareLocalStream, requestRoomExit } = usePlaybackContext();
+  const { activeView, publicArtistName, setPublicArtistName, openArtistProfile, closeArtistProfile, artistReturnLabel, navigateToView, openArtistStudio } =
+    useNavigation();
   const {
     walletState,
     activeEvmAddress,
@@ -149,19 +150,10 @@ export function ListenerShell() {
 
   const handlePlayTrack = useCallback(
     (track: CatalogTrack) => {
-      // Resume an already loaded source without reselecting (which pauses it).
-      // New sources continue through the catalog's authoritative access check.
-      if (session.mode !== 'listener' && track.id === catalog.selectedTrackId && catalog.audioSource && !catalog.accessGate) {
-        // This deliberate replay reopens the retained player even after Pause.
-        reopenPlayer();
-        setPublicArtistName(null);
-        navigateToView('player');
-        if (!playback.transport.playing) void playback.togglePlay();
-        return;
-      }
+      setPublicArtistName(null);
       openTrack(track);
     },
-    [session.mode, catalog, playback, setPublicArtistName, navigateToView, openTrack, reopenPlayer]
+    [setPublicArtistName, openTrack]
   );
 
   function handleInspectTrack(track: CatalogTrack) {
@@ -184,10 +176,7 @@ export function ListenerShell() {
   }, [roomId, session.mode, handlePlayTrack]);
 
   function handleOpenArtistProfile(name: string) {
-    setPublicArtistName(name);
-    // A cross-view animation can outlive the artist view and override the
-    // catalog's restored position when the listener immediately returns.
-    window.scrollTo({ top: 0, behavior: 'instant' });
+    openArtistProfile(name);
   }
 
   // Opens the room after the user has confirmed their display name in the modal.
@@ -297,9 +286,12 @@ export function ListenerShell() {
             nativePaymentSymbol={nativePaymentSymbol}
             onClose={() => setInspectedRoomTrack(null)}
             onLeaveAndOpen={() => {
-              pendingSoloTrackRef.current = inspectedRoomTrack;
               setInspectedRoomTrack(null);
-              requestRoomExit();
+              requestRoomExit({
+                onConfirm: () => {
+                  pendingSoloTrackRef.current = inspectedRoomTrack;
+                }
+              });
             }}
           />
         )}
@@ -315,7 +307,8 @@ export function ListenerShell() {
                 openRooms={session.openRooms}
                 catalogAccessByTrackId={catalog.catalogAccessByTrackId}
                 nativePaymentSymbol={nativePaymentSymbol}
-                onBack={() => setPublicArtistName(null)}
+                onBack={closeArtistProfile}
+                backLabel={artistReturnLabel}
                 onOpenTrack={handleInspectTrack}
                 onPlayTrack={handlePlayTrack}
                 onTrackIntent={catalog.prefetchTrackAudio}

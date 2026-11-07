@@ -10,21 +10,24 @@ export function ListeningSheet({
   className = '',
   onClose,
   open = true,
-  handleLabel = 'Collapse panel'
+  handleLabel = 'Collapse panel',
+  initialFocus = 'first'
 }: {
-  children: (close: () => void, closing: boolean) => ReactNode;
+  children: (close: () => void, closing: boolean, dismissThen: (after: () => void) => void) => ReactNode;
   labelledBy: string;
   describedBy?: string;
   className?: string;
   onClose: () => void;
   open?: boolean;
   handleLabel?: string;
+  initialFocus?: 'dialog' | 'first';
 }) {
   const sheet = useListeningSheet(onClose, open);
   return (
     <Dialog
       open={open}
       historyDismiss
+      initialFocus={initialFocus}
       labelledBy={labelledBy}
       describedBy={describedBy}
       className={`listening-sheet ${className}`}
@@ -33,7 +36,7 @@ export function ListeningSheet({
       onClose={sheet.close}
     >
       <button className='queue-sheet-handle' type='button' aria-label={handleLabel} title='Pull down or tap to close' {...sheet.handle} />
-      {children(sheet.close, sheet.closing)}
+      {children(sheet.close, sheet.closing, sheet.dismissThen)}
     </Dialog>
   );
 }
