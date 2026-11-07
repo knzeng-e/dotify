@@ -131,3 +131,8 @@ every slow request; #395 stays open for matching rollout/device evidence.
 
 The owner confirms 0.1.78 preparation succeeds without retry and host/guests remain audible during a short phone lock. A separate report concerns silent advancing playback after closing the player, chiefly on phone. The candidate retires dismissed output and removes cross-visit checkpoints; confirmed host Room exit can retain the same local source and pause state. Physical close/reopen acceptance remains open; the prior lock observation does not prove this new path.
 See [design and validation](implementation/evidence/listening-session-continuity-2026-11-07.md). No deployment is part of this change.
+
+
+## Matching delivery, 2026-11-07
+
+[Web/Product and signaling 0.1.79](implementation/evidence/product-0.1.79-rollout-2026-11-07.md) now deliver the reviewed candidate from `c656992c`, with both source CIs and independent readback green. Room exit/source-lifecycle and multiline chat behavior, plus the simplified system badge, still require matching physical phone acceptance. The deployment record preserves exact bounded writes, one-off retention, service restart and rollback boundaries; this issue remains open.

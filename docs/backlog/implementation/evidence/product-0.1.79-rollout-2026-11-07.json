@@ -1,0 +1,1170 @@
+{
+  "schema": "dotify.product-rollout-evidence.v1",
+  "source": "c656992c31c91e5bd3953267537df86ee513075e",
+  "version": [
+    0,
+    1,
+    79
+  ],
+  "approval": {
+    "approvedByOwner": true,
+    "maxStores": 20,
+    "maxBytes": 9485561,
+    "maxRenewals": 7,
+    "maxRenewBytes": 5061961,
+    "maxBulletinOperations": 20,
+    "maxOperationBytes": 9485561,
+    "reserveTransactions": 411,
+    "approvalRecordedAt": "2026-11-07T12:00:55.330136+00:00",
+    "ownerApprovalScope": "At most 20 Bulletin operations / 9485561 bytes, one per exact application CID; currently 13 stores and at most 7 immediate renewals / 5061961 renewal bytes, expired renewal targets may be stored instead within the same total; at most 2 DotNS signatures. Web/Product 0.1.79 and upload/build/deployment of the prepared signaling code to the existing Fly service, only after both CI runs pass and zero active rooms. No musical writes, recurring renewal, new service or key transfer."
+  },
+  "ci": {
+    "conclusion": "success",
+    "headSha": "c656992c31c91e5bd3953267537df86ee513075e",
+    "status": "completed"
+  },
+  "mergedDevCi": {
+    "conclusion": "success",
+    "headSha": "270606742a1f98a486ef97030253d633afcf578c",
+    "status": "completed"
+  },
+  "artifact": {
+    "source": "c656992c31c91e5bd3953267537df86ee513075e",
+    "carSha256": "aa5cb6fa76e5df165dc6143e4878f904392e13ec05209901bcd05225668995cc",
+    "storageCid": "bafybeibfcyq5cl6a4hpfmsrmxvj6bqia45qmhe7dk46fsxoajkhky4dvgq",
+    "carBlocksVerified": 101,
+    "filesByteCompared": 71,
+    "outerProductBlocksVerified": 20,
+    "rootRecord": "{\"$v\":1,\"displayName\":\"Dotify\",\"description\":\"Shared musical presence with artist-owned access and value flows.\",\"icon\":{\"cid\":\"bafk2bzacebh4rknk6x7zl4pul7t3ff7y2pglpk5x4q2k3nxnql5ebizvgluxk\",\"format\":\"png\"}}",
+    "appRecord": "{\"$v\":1,\"kind\":\"app\",\"appVersion\":[0,1,79]}",
+    "contenthash": "0xe30101701220251621d12fc0e1de564a2cbd53e0c100e760c393e3573c595dc04a8eac707534",
+    "networkWrites": 0,
+    "signerUsed": false
+  },
+  "publication": {
+    "schema": "dotify.bulletin.continuity-publication.v1",
+    "approvedByOwner": true,
+    "source": "c656992c31c91e5bd3953267537df86ee513075e",
+    "domain": "dotify-test01.dot",
+    "version": [
+      0,
+      1,
+      79
+    ],
+    "carSha256": "aa5cb6fa76e5df165dc6143e4878f904392e13ec05209901bcd05225668995cc",
+    "before": {
+      "block": "15441488",
+      "records": {
+        "dotify-test01.dot": {
+          "owner": "0xe3e3a0916d27c5174313f16E1507a286985a8Ac8",
+          "resolver": "0x7e75491ecfb04900EB05ee63CABA2B33900aABB5",
+          "contenthash": "0xe301017012203a6d64a42ed85854d23e29be4508b68bb09f3eb98d479c30b721b300fb8ca357",
+          "record": "{\"$v\":1,\"displayName\":\"Dotify\",\"description\":\"Shared musical presence with artist-owned access and value flows.\",\"icon\":{\"cid\":\"bafk2bzacebh4rknk6x7zl4pul7t3ff7y2pglpk5x4q2k3nxnql5ebizvgluxk\",\"format\":\"png\"}}"
+        },
+        "app.dotify-test01.dot": {
+          "owner": "0xe3e3a0916d27c5174313f16E1507a286985a8Ac8",
+          "resolver": "0x7e75491ecfb04900EB05ee63CABA2B33900aABB5",
+          "contenthash": "0xe301017012203a6d64a42ed85854d23e29be4508b68bb09f3eb98d479c30b721b300fb8ca357",
+          "record": "{\"$v\":1,\"kind\":\"app\",\"appVersion\":[0,1,78]}"
+        },
+        "dotify-bulletin-lab.dot": {
+          "owner": "0xe3e3a0916d27c5174313f16E1507a286985a8Ac8",
+          "resolver": "0x7e75491ecfb04900EB05ee63CABA2B33900aABB5",
+          "contenthash": "0xe30101701220431f7ac8486f5e9b7f5778e58d65daa485eff8bdaf26ff8d81f086ac8a567e2a",
+          "record": "{\"$v\":1,\"displayName\":\"Dotify First note lab\",\"description\":\"Generated 64-second audio continuity diagnostic. No artist music, wallet or payment.\",\"icon\":{\"cid\":\"bafk2bzacebh4rknk6x7zl4pul7t3ff7y2pglpk5x4q2k3nxnql5ebizvgluxk\",\"format\":\"png\"}}"
+        },
+        "app.dotify-bulletin-lab.dot": {
+          "owner": "0xe3e3a0916d27c5174313f16E1507a286985a8Ac8",
+          "resolver": "0x7e75491ecfb04900EB05ee63CABA2B33900aABB5",
+          "contenthash": "0xe30101701220431f7ac8486f5e9b7f5778e58d65daa485eff8bdaf26ff8d81f086ac8a567e2a",
+          "record": "{\"$v\":1,\"kind\":\"app\",\"appVersion\":[0,3,1]}"
+        }
+      }
+    },
+    "quotaBefore": {
+      "head": 1543620,
+      "hash": "0x3951289a80caf29d9d3ec1c408a98a25a6067c1e95a0c35775b9032e65a59485",
+      "authorization": {
+        "expiresAt": 1621405,
+        "remainingTransactions": 441,
+        "remainingBytes": "149406108",
+        "remainingRenewBytes": "206727572"
+      }
+    },
+    "storage": [
+      {
+        "phase": "product",
+        "cid": "bafkreiguqx7nhp264ddugvvyp7vbjmphzjljkqcon4hdwujetdgchbcbs4",
+        "bytes": 25634,
+        "nonce": 1230,
+        "status": "finalized",
+        "receipt": {
+          "block": 1543625,
+          "index": 0
+        },
+        "verified": {
+          "block": 1543625,
+          "index": 0,
+          "expiresAt": 1745225
+        }
+      },
+      {
+        "phase": "product",
+        "cid": "bafkreihuygzxrpd2vsslj5onl2hlusi44atzc5xsjq2caxcheshdqu6mxu",
+        "bytes": 296,
+        "nonce": 1231,
+        "status": "finalized",
+        "receipt": {
+          "block": 1543630,
+          "index": 0
+        },
+        "verified": {
+          "block": 1543630,
+          "index": 0,
+          "expiresAt": 1745230
+        }
+      },
+      {
+        "phase": "product",
+        "cid": "bafkreianmxteytujilkajp34ok3ur66yalqtqagrxipklqtwqwqlwh33uy",
+        "bytes": 262183,
+        "nonce": 1232,
+        "status": "finalized",
+        "receipt": {
+          "block": 1543636,
+          "index": 0
+        },
+        "verified": {
+          "block": 1543636,
+          "index": 0,
+          "expiresAt": 1745236
+        }
+      },
+      {
+        "phase": "product",
+        "cid": "bafkreidwbbe6xokrwniy4pf3wzdkvcrnpcwnu73wooxklyjtqfvldnwm54",
+        "bytes": 262183,
+        "nonce": 1233,
+        "status": "finalized",
+        "receipt": {
+          "block": 1543642,
+          "index": 0
+        },
+        "verified": {
+          "block": 1543642,
+          "index": 0,
+          "expiresAt": 1745242
+        }
+      },
+      {
+        "phase": "product",
+        "cid": "bafkreibv3iehaorlvgxhjohzzalaqpcxekqiuudjipg5zbwrulv2mff6ay",
+        "bytes": 262183,
+        "nonce": 1234,
+        "status": "finalized",
+        "receipt": {
+          "block": 1543647,
+          "index": 0
+        },
+        "verified": {
+          "block": 1543647,
+          "index": 0,
+          "expiresAt": 1745247
+        }
+      },
+      {
+        "phase": "product",
+        "cid": "bafkreiglejqm3wiueuvvjrzuoyow36yvvgxqdxvsa37hhvo2hrqsrw4tya",
+        "bytes": 262183,
+        "nonce": 1235,
+        "status": "finalized",
+        "receipt": {
+          "block": 1543653,
+          "index": 0
+        },
+        "verified": {
+          "block": 1543653,
+          "index": 0,
+          "expiresAt": 1745253
+        }
+      },
+      {
+        "phase": "product",
+        "cid": "bafkreidcjnbdlqf4qozbux7b3udsqwg33jvzbcstypeufjr7mg6g23bexe",
+        "bytes": 114634,
+        "nonce": 1236,
+        "status": "finalized",
+        "receipt": {
+          "block": 1543659,
+          "index": 0
+        },
+        "verified": {
+          "block": 1543659,
+          "index": 0,
+          "expiresAt": 1745259
+        }
+      },
+      {
+        "phase": "product",
+        "cid": "bafkreigcdtvgbj62v6bwfpdj5nt7k3fv7qzyvvblbbnwcktp3u6hyntoue",
+        "bytes": 837462,
+        "nonce": 1243,
+        "status": "finalized",
+        "receipt": {
+          "block": 1543703,
+          "index": 0
+        },
+        "verified": {
+          "block": 1543703,
+          "index": 0,
+          "expiresAt": 1745303
+        }
+      },
+      {
+        "phase": "product",
+        "cid": "bafkreia5k3t2phqsx5lp2nnz75sshwx2sxselugjplbw3pchdufrpl5uzy",
+        "bytes": 964203,
+        "nonce": 1244,
+        "status": "finalized",
+        "receipt": {
+          "block": 1543710,
+          "index": 0
+        },
+        "verified": {
+          "block": 1543710,
+          "index": 0,
+          "expiresAt": 1745310
+        }
+      },
+      {
+        "phase": "product",
+        "cid": "bafkreidnjr55ojwzynshadpkurz7yxodtejopre2hza5znj2qkrjkro6hy",
+        "bytes": 1024337,
+        "nonce": 1245,
+        "status": "finalized",
+        "receipt": {
+          "block": 1543716,
+          "index": 0
+        },
+        "verified": {
+          "block": 1543716,
+          "index": 0,
+          "expiresAt": 1745316
+        }
+      },
+      {
+        "phase": "product",
+        "cid": "bafkreigr26qumbr3jq3f2v5xkmgnz57gbh77nl256ahl35i3goxtcewwxq",
+        "bytes": 400797,
+        "nonce": 1246,
+        "status": "finalized",
+        "receipt": {
+          "block": 1543722,
+          "index": 0
+        },
+        "verified": {
+          "block": 1543722,
+          "index": 0,
+          "expiresAt": 1745322
+        }
+      },
+      {
+        "phase": "product",
+        "cid": "bafkreifx4dhlezl72jdb4wyztifaq3tke3rdoxjxxrb4et7r57sbhaihmm",
+        "bytes": 6600,
+        "nonce": 1247,
+        "status": "finalized",
+        "receipt": {
+          "block": 1543728,
+          "index": 0
+        },
+        "verified": {
+          "block": 1543728,
+          "index": 0,
+          "expiresAt": 1745328
+        }
+      },
+      {
+        "phase": "product",
+        "cid": "bafybeibfcyq5cl6a4hpfmsrmxvj6bqia45qmhe7dk46fsxoajkhky4dvgq",
+        "bytes": 905,
+        "nonce": 1248,
+        "status": "finalized",
+        "receipt": {
+          "block": 1543734,
+          "index": 0
+        },
+        "verified": {
+          "block": 1543734,
+          "index": 0,
+          "expiresAt": 1745334
+        }
+      }
+    ],
+    "renewals": [
+      {
+        "phase": "product-renewal",
+        "cid": "bafkreifsc4356vqxteq6bzqyb2izkza234h5ifgjzwkaod2l3kp6dcrgha",
+        "bytes": 962187,
+        "nonce": 1237,
+        "status": "finalized",
+        "before": {
+          "block": 1533756,
+          "index": 0,
+          "expiresAt": 1735356
+        },
+        "receipt": {
+          "block": 1543665,
+          "finalized": true
+        },
+        "verified": {
+          "block": 1543665,
+          "index": 0,
+          "expiresAt": 1745265
+        }
+      },
+      {
+        "phase": "product-renewal",
+        "cid": "bafkreiaqw3736dby7fbj7bprgqnylolk5xv3iw32mvcvplojauecn754m4",
+        "bytes": 881923,
+        "nonce": 1238,
+        "status": "finalized",
+        "before": {
+          "block": 1533762,
+          "index": 0,
+          "expiresAt": 1735362
+        },
+        "receipt": {
+          "block": 1543671,
+          "finalized": true
+        },
+        "verified": {
+          "block": 1543671,
+          "index": 0,
+          "expiresAt": 1745271
+        }
+      },
+      {
+        "phase": "product-renewal",
+        "cid": "bafkreifxktisancsexm3xlxwqkbgktc7zzdl6esom5q7a5lcly2ud2pv2y",
+        "bytes": 880931,
+        "nonce": 1239,
+        "status": "finalized",
+        "before": {
+          "block": 1533768,
+          "index": 0,
+          "expiresAt": 1735368
+        },
+        "receipt": {
+          "block": 1543677,
+          "finalized": true
+        },
+        "verified": {
+          "block": 1543677,
+          "index": 0,
+          "expiresAt": 1745277
+        }
+      },
+      {
+        "phase": "product-renewal",
+        "cid": "bafkreifbzcb3z5ww5rcpawwl65majfatnnopmtxewo7e7yetyjrynpub5e",
+        "bytes": 868519,
+        "nonce": 1240,
+        "status": "finalized",
+        "before": {
+          "block": 1533774,
+          "index": 0,
+          "expiresAt": 1735374
+        },
+        "receipt": {
+          "block": 1543684,
+          "finalized": true
+        },
+        "verified": {
+          "block": 1543684,
+          "index": 0,
+          "expiresAt": 1745284
+        }
+      },
+      {
+        "phase": "product-renewal",
+        "cid": "bafkreifmxpegwzacog6hx2etifypiipw5p6sbg67ujcjcez5evzx3gelwm",
+        "bytes": 716226,
+        "nonce": 1241,
+        "status": "finalized",
+        "before": {
+          "block": 1533780,
+          "index": 0,
+          "expiresAt": 1735380
+        },
+        "receipt": {
+          "block": 1543690,
+          "finalized": true
+        },
+        "verified": {
+          "block": 1543690,
+          "index": 0,
+          "expiresAt": 1745290
+        }
+      },
+      {
+        "phase": "product-renewal",
+        "cid": "bafkreiglaydriq6evdoq5yrcw2nptznsrmkymvlq6e62bhcud6mtgxmfw4",
+        "bytes": 716226,
+        "nonce": 1242,
+        "status": "finalized",
+        "before": {
+          "block": 1533785,
+          "index": 0,
+          "expiresAt": 1735385
+        },
+        "receipt": {
+          "block": 1543697,
+          "finalized": true
+        },
+        "verified": {
+          "block": 1543697,
+          "index": 0,
+          "expiresAt": 1745297
+        }
+      },
+      {
+        "phase": "product-renewal",
+        "cid": "bafk2bzacebh4rknk6x7zl4pul7t3ff7y2pglpk5x4q2k3nxnql5ebizvgluxk",
+        "bytes": 35949,
+        "nonce": 1249,
+        "status": "finalized",
+        "before": {
+          "block": 1533825,
+          "index": 0,
+          "expiresAt": 1735425
+        },
+        "receipt": {
+          "block": 1543739,
+          "finalized": true
+        },
+        "verified": {
+          "block": 1543739,
+          "index": 0,
+          "expiresAt": 1745339
+        }
+      }
+    ],
+    "dotnsSignatures": 2,
+    "complete": true,
+    "candidateRetention": [
+      {
+        "cid": "bafkreiguqx7nhp264ddugvvyp7vbjmphzjljkqcon4hdwujetdgchbcbs4",
+        "block": 1543625,
+        "index": 0,
+        "expiresAt": 1745225
+      },
+      {
+        "cid": "bafkreihuygzxrpd2vsslj5onl2hlusi44atzc5xsjq2caxcheshdqu6mxu",
+        "block": 1543630,
+        "index": 0,
+        "expiresAt": 1745230
+      },
+      {
+        "cid": "bafkreianmxteytujilkajp34ok3ur66yalqtqagrxipklqtwqwqlwh33uy",
+        "block": 1543636,
+        "index": 0,
+        "expiresAt": 1745236
+      },
+      {
+        "cid": "bafkreidwbbe6xokrwniy4pf3wzdkvcrnpcwnu73wooxklyjtqfvldnwm54",
+        "block": 1543642,
+        "index": 0,
+        "expiresAt": 1745242
+      },
+      {
+        "cid": "bafkreibv3iehaorlvgxhjohzzalaqpcxekqiuudjipg5zbwrulv2mff6ay",
+        "block": 1543647,
+        "index": 0,
+        "expiresAt": 1745247
+      },
+      {
+        "cid": "bafkreiglejqm3wiueuvvjrzuoyow36yvvgxqdxvsa37hhvo2hrqsrw4tya",
+        "block": 1543653,
+        "index": 0,
+        "expiresAt": 1745253
+      },
+      {
+        "cid": "bafkreidcjnbdlqf4qozbux7b3udsqwg33jvzbcstypeufjr7mg6g23bexe",
+        "block": 1543659,
+        "index": 0,
+        "expiresAt": 1745259
+      },
+      {
+        "cid": "bafkreifsc4356vqxteq6bzqyb2izkza234h5ifgjzwkaod2l3kp6dcrgha",
+        "block": 1543665,
+        "index": 0,
+        "expiresAt": 1745265
+      },
+      {
+        "cid": "bafkreiaqw3736dby7fbj7bprgqnylolk5xv3iw32mvcvplojauecn754m4",
+        "block": 1543671,
+        "index": 0,
+        "expiresAt": 1745271
+      },
+      {
+        "cid": "bafkreifxktisancsexm3xlxwqkbgktc7zzdl6esom5q7a5lcly2ud2pv2y",
+        "block": 1543677,
+        "index": 0,
+        "expiresAt": 1745277
+      },
+      {
+        "cid": "bafkreifbzcb3z5ww5rcpawwl65majfatnnopmtxewo7e7yetyjrynpub5e",
+        "block": 1543684,
+        "index": 0,
+        "expiresAt": 1745284
+      },
+      {
+        "cid": "bafkreifmxpegwzacog6hx2etifypiipw5p6sbg67ujcjcez5evzx3gelwm",
+        "block": 1543690,
+        "index": 0,
+        "expiresAt": 1745290
+      },
+      {
+        "cid": "bafkreiglaydriq6evdoq5yrcw2nptznsrmkymvlq6e62bhcud6mtgxmfw4",
+        "block": 1543697,
+        "index": 0,
+        "expiresAt": 1745297
+      },
+      {
+        "cid": "bafkreigcdtvgbj62v6bwfpdj5nt7k3fv7qzyvvblbbnwcktp3u6hyntoue",
+        "block": 1543703,
+        "index": 0,
+        "expiresAt": 1745303
+      },
+      {
+        "cid": "bafkreia5k3t2phqsx5lp2nnz75sshwx2sxselugjplbw3pchdufrpl5uzy",
+        "block": 1543710,
+        "index": 0,
+        "expiresAt": 1745310
+      },
+      {
+        "cid": "bafkreidnjr55ojwzynshadpkurz7yxodtejopre2hza5znj2qkrjkro6hy",
+        "block": 1543716,
+        "index": 0,
+        "expiresAt": 1745316
+      },
+      {
+        "cid": "bafkreigr26qumbr3jq3f2v5xkmgnz57gbh77nl256ahl35i3goxtcewwxq",
+        "block": 1543722,
+        "index": 0,
+        "expiresAt": 1745322
+      },
+      {
+        "cid": "bafkreifx4dhlezl72jdb4wyztifaq3tke3rdoxjxxrb4et7r57sbhaihmm",
+        "block": 1543728,
+        "index": 0,
+        "expiresAt": 1745328
+      },
+      {
+        "cid": "bafybeibfcyq5cl6a4hpfmsrmxvj6bqia45qmhe7dk46fsxoajkhky4dvgq",
+        "block": 1543734,
+        "index": 0,
+        "expiresAt": 1745334
+      },
+      {
+        "cid": "bafk2bzacebh4rknk6x7zl4pul7t3ff7y2pglpk5x4q2k3nxnql5ebizvgluxk",
+        "block": 1543739,
+        "index": 0,
+        "expiresAt": 1745339
+      }
+    ],
+    "after": {
+      "block": "15441890",
+      "records": {
+        "dotify-test01.dot": {
+          "owner": "0xe3e3a0916d27c5174313f16E1507a286985a8Ac8",
+          "resolver": "0x7e75491ecfb04900EB05ee63CABA2B33900aABB5",
+          "contenthash": "0xe30101701220251621d12fc0e1de564a2cbd53e0c100e760c393e3573c595dc04a8eac707534",
+          "record": "{\"$v\":1,\"displayName\":\"Dotify\",\"description\":\"Shared musical presence with artist-owned access and value flows.\",\"icon\":{\"cid\":\"bafk2bzacebh4rknk6x7zl4pul7t3ff7y2pglpk5x4q2k3nxnql5ebizvgluxk\",\"format\":\"png\"}}"
+        },
+        "app.dotify-test01.dot": {
+          "owner": "0xe3e3a0916d27c5174313f16E1507a286985a8Ac8",
+          "resolver": "0x7e75491ecfb04900EB05ee63CABA2B33900aABB5",
+          "contenthash": "0xe30101701220251621d12fc0e1de564a2cbd53e0c100e760c393e3573c595dc04a8eac707534",
+          "record": "{\"$v\":1,\"kind\":\"app\",\"appVersion\":[0,1,79]}"
+        },
+        "dotify-bulletin-lab.dot": {
+          "owner": "0xe3e3a0916d27c5174313f16E1507a286985a8Ac8",
+          "resolver": "0x7e75491ecfb04900EB05ee63CABA2B33900aABB5",
+          "contenthash": "0xe30101701220431f7ac8486f5e9b7f5778e58d65daa485eff8bdaf26ff8d81f086ac8a567e2a",
+          "record": "{\"$v\":1,\"displayName\":\"Dotify First note lab\",\"description\":\"Generated 64-second audio continuity diagnostic. No artist music, wallet or payment.\",\"icon\":{\"cid\":\"bafk2bzacebh4rknk6x7zl4pul7t3ff7y2pglpk5x4q2k3nxnql5ebizvgluxk\",\"format\":\"png\"}}"
+        },
+        "app.dotify-bulletin-lab.dot": {
+          "owner": "0xe3e3a0916d27c5174313f16E1507a286985a8Ac8",
+          "resolver": "0x7e75491ecfb04900EB05ee63CABA2B33900aABB5",
+          "contenthash": "0xe30101701220431f7ac8486f5e9b7f5778e58d65daa485eff8bdaf26ff8d81f086ac8a567e2a",
+          "record": "{\"$v\":1,\"kind\":\"app\",\"appVersion\":[0,3,1]}"
+        }
+      }
+    },
+    "quotaAfter": {
+      "head": 1543753,
+      "hash": "0xe641b92a889b8ca07ec1d7a065b316516cde1d72abfeb09ed116bdeca601c46a",
+      "authorization": {
+        "expiresAt": 1621405,
+        "remainingTransactions": 421,
+        "remainingBytes": "144982508",
+        "remainingRenewBytes": "201665611"
+      }
+    },
+    "completedAt": "2026-11-07T12:37:29.341Z"
+  },
+  "readback": {
+    "schema": "dotify.bulletin.continuity-readback.v1",
+    "observedAt": "2026-11-07T12:38:27.299Z",
+    "domain": "dotify-test01.dot",
+    "source": "c656992c31c91e5bd3953267537df86ee513075e",
+    "storage": [
+      {
+        "cid": "bafkreiguqx7nhp264ddugvvyp7vbjmphzjljkqcon4hdwujetdgchbcbs4",
+        "bytes": 25634,
+        "cidVerified": true
+      },
+      {
+        "cid": "bafkreihuygzxrpd2vsslj5onl2hlusi44atzc5xsjq2caxcheshdqu6mxu",
+        "bytes": 296,
+        "cidVerified": true
+      },
+      {
+        "cid": "bafkreianmxteytujilkajp34ok3ur66yalqtqagrxipklqtwqwqlwh33uy",
+        "bytes": 262183,
+        "cidVerified": true
+      },
+      {
+        "cid": "bafkreidwbbe6xokrwniy4pf3wzdkvcrnpcwnu73wooxklyjtqfvldnwm54",
+        "bytes": 262183,
+        "cidVerified": true
+      },
+      {
+        "cid": "bafkreibv3iehaorlvgxhjohzzalaqpcxekqiuudjipg5zbwrulv2mff6ay",
+        "bytes": 262183,
+        "cidVerified": true
+      },
+      {
+        "cid": "bafkreiglejqm3wiueuvvjrzuoyow36yvvgxqdxvsa37hhvo2hrqsrw4tya",
+        "bytes": 262183,
+        "cidVerified": true
+      },
+      {
+        "cid": "bafkreidcjnbdlqf4qozbux7b3udsqwg33jvzbcstypeufjr7mg6g23bexe",
+        "bytes": 114634,
+        "cidVerified": true
+      },
+      {
+        "cid": "bafkreifsc4356vqxteq6bzqyb2izkza234h5ifgjzwkaod2l3kp6dcrgha",
+        "bytes": 962187,
+        "cidVerified": true
+      },
+      {
+        "cid": "bafkreiaqw3736dby7fbj7bprgqnylolk5xv3iw32mvcvplojauecn754m4",
+        "bytes": 881923,
+        "cidVerified": true
+      },
+      {
+        "cid": "bafkreifxktisancsexm3xlxwqkbgktc7zzdl6esom5q7a5lcly2ud2pv2y",
+        "bytes": 880931,
+        "cidVerified": true
+      },
+      {
+        "cid": "bafkreifbzcb3z5ww5rcpawwl65majfatnnopmtxewo7e7yetyjrynpub5e",
+        "bytes": 868519,
+        "cidVerified": true
+      },
+      {
+        "cid": "bafkreifmxpegwzacog6hx2etifypiipw5p6sbg67ujcjcez5evzx3gelwm",
+        "bytes": 716226,
+        "cidVerified": true
+      },
+      {
+        "cid": "bafkreiglaydriq6evdoq5yrcw2nptznsrmkymvlq6e62bhcud6mtgxmfw4",
+        "bytes": 716226,
+        "cidVerified": true
+      },
+      {
+        "cid": "bafkreigcdtvgbj62v6bwfpdj5nt7k3fv7qzyvvblbbnwcktp3u6hyntoue",
+        "bytes": 837462,
+        "cidVerified": true
+      },
+      {
+        "cid": "bafkreia5k3t2phqsx5lp2nnz75sshwx2sxselugjplbw3pchdufrpl5uzy",
+        "bytes": 964203,
+        "cidVerified": true
+      },
+      {
+        "cid": "bafkreidnjr55ojwzynshadpkurz7yxodtejopre2hza5znj2qkrjkro6hy",
+        "bytes": 1024337,
+        "cidVerified": true
+      },
+      {
+        "cid": "bafkreigr26qumbr3jq3f2v5xkmgnz57gbh77nl256ahl35i3goxtcewwxq",
+        "bytes": 400797,
+        "cidVerified": true
+      },
+      {
+        "cid": "bafkreifx4dhlezl72jdb4wyztifaq3tke3rdoxjxxrb4et7r57sbhaihmm",
+        "bytes": 6600,
+        "cidVerified": true
+      },
+      {
+        "cid": "bafybeibfcyq5cl6a4hpfmsrmxvj6bqia45qmhe7dk46fsxoajkhky4dvgq",
+        "bytes": 905,
+        "cidVerified": true
+      },
+      {
+        "cid": "bafk2bzacebh4rknk6x7zl4pul7t3ff7y2pglpk5x4q2k3nxnql5ebizvgluxk",
+        "bytes": 35949,
+        "cidVerified": true
+      }
+    ],
+    "networkWrites": 0,
+    "signerUsed": false,
+    "retention": {
+      "head": 1543762,
+      "hash": "0xb56739c1c0bf286a8c53ba856bbc2d0ad5a69d411e59a4520d1750102cf7c50d",
+      "blocks": [
+        {
+          "cid": "bafkreiguqx7nhp264ddugvvyp7vbjmphzjljkqcon4hdwujetdgchbcbs4",
+          "block": 1543625,
+          "index": 0,
+          "expiresAt": 1745225
+        },
+        {
+          "cid": "bafkreihuygzxrpd2vsslj5onl2hlusi44atzc5xsjq2caxcheshdqu6mxu",
+          "block": 1543630,
+          "index": 0,
+          "expiresAt": 1745230
+        },
+        {
+          "cid": "bafkreianmxteytujilkajp34ok3ur66yalqtqagrxipklqtwqwqlwh33uy",
+          "block": 1543636,
+          "index": 0,
+          "expiresAt": 1745236
+        },
+        {
+          "cid": "bafkreidwbbe6xokrwniy4pf3wzdkvcrnpcwnu73wooxklyjtqfvldnwm54",
+          "block": 1543642,
+          "index": 0,
+          "expiresAt": 1745242
+        },
+        {
+          "cid": "bafkreibv3iehaorlvgxhjohzzalaqpcxekqiuudjipg5zbwrulv2mff6ay",
+          "block": 1543647,
+          "index": 0,
+          "expiresAt": 1745247
+        },
+        {
+          "cid": "bafkreiglejqm3wiueuvvjrzuoyow36yvvgxqdxvsa37hhvo2hrqsrw4tya",
+          "block": 1543653,
+          "index": 0,
+          "expiresAt": 1745253
+        },
+        {
+          "cid": "bafkreidcjnbdlqf4qozbux7b3udsqwg33jvzbcstypeufjr7mg6g23bexe",
+          "block": 1543659,
+          "index": 0,
+          "expiresAt": 1745259
+        },
+        {
+          "cid": "bafkreifsc4356vqxteq6bzqyb2izkza234h5ifgjzwkaod2l3kp6dcrgha",
+          "block": 1543665,
+          "index": 0,
+          "expiresAt": 1745265
+        },
+        {
+          "cid": "bafkreiaqw3736dby7fbj7bprgqnylolk5xv3iw32mvcvplojauecn754m4",
+          "block": 1543671,
+          "index": 0,
+          "expiresAt": 1745271
+        },
+        {
+          "cid": "bafkreifxktisancsexm3xlxwqkbgktc7zzdl6esom5q7a5lcly2ud2pv2y",
+          "block": 1543677,
+          "index": 0,
+          "expiresAt": 1745277
+        },
+        {
+          "cid": "bafkreifbzcb3z5ww5rcpawwl65majfatnnopmtxewo7e7yetyjrynpub5e",
+          "block": 1543684,
+          "index": 0,
+          "expiresAt": 1745284
+        },
+        {
+          "cid": "bafkreifmxpegwzacog6hx2etifypiipw5p6sbg67ujcjcez5evzx3gelwm",
+          "block": 1543690,
+          "index": 0,
+          "expiresAt": 1745290
+        },
+        {
+          "cid": "bafkreiglaydriq6evdoq5yrcw2nptznsrmkymvlq6e62bhcud6mtgxmfw4",
+          "block": 1543697,
+          "index": 0,
+          "expiresAt": 1745297
+        },
+        {
+          "cid": "bafkreigcdtvgbj62v6bwfpdj5nt7k3fv7qzyvvblbbnwcktp3u6hyntoue",
+          "block": 1543703,
+          "index": 0,
+          "expiresAt": 1745303
+        },
+        {
+          "cid": "bafkreia5k3t2phqsx5lp2nnz75sshwx2sxselugjplbw3pchdufrpl5uzy",
+          "block": 1543710,
+          "index": 0,
+          "expiresAt": 1745310
+        },
+        {
+          "cid": "bafkreidnjr55ojwzynshadpkurz7yxodtejopre2hza5znj2qkrjkro6hy",
+          "block": 1543716,
+          "index": 0,
+          "expiresAt": 1745316
+        },
+        {
+          "cid": "bafkreigr26qumbr3jq3f2v5xkmgnz57gbh77nl256ahl35i3goxtcewwxq",
+          "block": 1543722,
+          "index": 0,
+          "expiresAt": 1745322
+        },
+        {
+          "cid": "bafkreifx4dhlezl72jdb4wyztifaq3tke3rdoxjxxrb4et7r57sbhaihmm",
+          "block": 1543728,
+          "index": 0,
+          "expiresAt": 1745328
+        },
+        {
+          "cid": "bafybeibfcyq5cl6a4hpfmsrmxvj6bqia45qmhe7dk46fsxoajkhky4dvgq",
+          "block": 1543734,
+          "index": 0,
+          "expiresAt": 1745334
+        },
+        {
+          "cid": "bafk2bzacebh4rknk6x7zl4pul7t3ff7y2pglpk5x4q2k3nxnql5ebizvgluxk",
+          "block": 1543739,
+          "index": 0,
+          "expiresAt": 1745339
+        }
+      ]
+    },
+    "operationCount": 20,
+    "renewals": [
+      {
+        "phase": "product-renewal",
+        "cid": "bafkreifsc4356vqxteq6bzqyb2izkza234h5ifgjzwkaod2l3kp6dcrgha",
+        "bytes": 962187,
+        "nonce": 1237,
+        "status": "finalized",
+        "before": {
+          "block": 1533756,
+          "index": 0,
+          "expiresAt": 1735356
+        },
+        "receipt": {
+          "block": 1543665,
+          "finalized": true
+        },
+        "verified": {
+          "block": 1543665,
+          "index": 0,
+          "expiresAt": 1745265
+        }
+      },
+      {
+        "phase": "product-renewal",
+        "cid": "bafkreiaqw3736dby7fbj7bprgqnylolk5xv3iw32mvcvplojauecn754m4",
+        "bytes": 881923,
+        "nonce": 1238,
+        "status": "finalized",
+        "before": {
+          "block": 1533762,
+          "index": 0,
+          "expiresAt": 1735362
+        },
+        "receipt": {
+          "block": 1543671,
+          "finalized": true
+        },
+        "verified": {
+          "block": 1543671,
+          "index": 0,
+          "expiresAt": 1745271
+        }
+      },
+      {
+        "phase": "product-renewal",
+        "cid": "bafkreifxktisancsexm3xlxwqkbgktc7zzdl6esom5q7a5lcly2ud2pv2y",
+        "bytes": 880931,
+        "nonce": 1239,
+        "status": "finalized",
+        "before": {
+          "block": 1533768,
+          "index": 0,
+          "expiresAt": 1735368
+        },
+        "receipt": {
+          "block": 1543677,
+          "finalized": true
+        },
+        "verified": {
+          "block": 1543677,
+          "index": 0,
+          "expiresAt": 1745277
+        }
+      },
+      {
+        "phase": "product-renewal",
+        "cid": "bafkreifbzcb3z5ww5rcpawwl65majfatnnopmtxewo7e7yetyjrynpub5e",
+        "bytes": 868519,
+        "nonce": 1240,
+        "status": "finalized",
+        "before": {
+          "block": 1533774,
+          "index": 0,
+          "expiresAt": 1735374
+        },
+        "receipt": {
+          "block": 1543684,
+          "finalized": true
+        },
+        "verified": {
+          "block": 1543684,
+          "index": 0,
+          "expiresAt": 1745284
+        }
+      },
+      {
+        "phase": "product-renewal",
+        "cid": "bafkreifmxpegwzacog6hx2etifypiipw5p6sbg67ujcjcez5evzx3gelwm",
+        "bytes": 716226,
+        "nonce": 1241,
+        "status": "finalized",
+        "before": {
+          "block": 1533780,
+          "index": 0,
+          "expiresAt": 1735380
+        },
+        "receipt": {
+          "block": 1543690,
+          "finalized": true
+        },
+        "verified": {
+          "block": 1543690,
+          "index": 0,
+          "expiresAt": 1745290
+        }
+      },
+      {
+        "phase": "product-renewal",
+        "cid": "bafkreiglaydriq6evdoq5yrcw2nptznsrmkymvlq6e62bhcud6mtgxmfw4",
+        "bytes": 716226,
+        "nonce": 1242,
+        "status": "finalized",
+        "before": {
+          "block": 1533785,
+          "index": 0,
+          "expiresAt": 1735385
+        },
+        "receipt": {
+          "block": 1543697,
+          "finalized": true
+        },
+        "verified": {
+          "block": 1543697,
+          "index": 0,
+          "expiresAt": 1745297
+        }
+      },
+      {
+        "phase": "product-renewal",
+        "cid": "bafk2bzacebh4rknk6x7zl4pul7t3ff7y2pglpk5x4q2k3nxnql5ebizvgluxk",
+        "bytes": 35949,
+        "nonce": 1249,
+        "status": "finalized",
+        "before": {
+          "block": 1533825,
+          "index": 0,
+          "expiresAt": 1735425
+        },
+        "receipt": {
+          "block": 1543739,
+          "finalized": true
+        },
+        "verified": {
+          "block": 1543739,
+          "index": 0,
+          "expiresAt": 1745339
+        }
+      }
+    ],
+    "reconstructedCar": {
+      "bytes": 9448707,
+      "sha256": "aa5cb6fa76e5df165dc6143e4878f904392e13ec05209901bcd05225668995cc"
+    },
+    "assetHubBlock": "15441923",
+    "records": {
+      "dotify-test01.dot": {
+        "owner": "0xe3e3a0916d27c5174313f16E1507a286985a8Ac8",
+        "resolver": "0x7e75491ecfb04900EB05ee63CABA2B33900aABB5",
+        "contenthash": "0xe30101701220251621d12fc0e1de564a2cbd53e0c100e760c393e3573c595dc04a8eac707534",
+        "record": "{\"$v\":1,\"displayName\":\"Dotify\",\"description\":\"Shared musical presence with artist-owned access and value flows.\",\"icon\":{\"cid\":\"bafk2bzacebh4rknk6x7zl4pul7t3ff7y2pglpk5x4q2k3nxnql5ebizvgluxk\",\"format\":\"png\"}}"
+      },
+      "app.dotify-test01.dot": {
+        "owner": "0xe3e3a0916d27c5174313f16E1507a286985a8Ac8",
+        "resolver": "0x7e75491ecfb04900EB05ee63CABA2B33900aABB5",
+        "contenthash": "0xe30101701220251621d12fc0e1de564a2cbd53e0c100e760c393e3573c595dc04a8eac707534",
+        "record": "{\"$v\":1,\"kind\":\"app\",\"appVersion\":[0,1,79]}"
+      },
+      "dotify-bulletin-lab.dot": {
+        "owner": "0xe3e3a0916d27c5174313f16E1507a286985a8Ac8",
+        "resolver": "0x7e75491ecfb04900EB05ee63CABA2B33900aABB5",
+        "contenthash": "0xe30101701220431f7ac8486f5e9b7f5778e58d65daa485eff8bdaf26ff8d81f086ac8a567e2a",
+        "record": "{\"$v\":1,\"displayName\":\"Dotify First note lab\",\"description\":\"Generated 64-second audio continuity diagnostic. No artist music, wallet or payment.\",\"icon\":{\"cid\":\"bafk2bzacebh4rknk6x7zl4pul7t3ff7y2pglpk5x4q2k3nxnql5ebizvgluxk\",\"format\":\"png\"}}"
+      },
+      "app.dotify-bulletin-lab.dot": {
+        "owner": "0xe3e3a0916d27c5174313f16E1507a286985a8Ac8",
+        "resolver": "0x7e75491ecfb04900EB05ee63CABA2B33900aABB5",
+        "contenthash": "0xe30101701220431f7ac8486f5e9b7f5778e58d65daa485eff8bdaf26ff8d81f086ac8a567e2a",
+        "record": "{\"$v\":1,\"kind\":\"app\",\"appVersion\":[0,3,1]}"
+      }
+    },
+    "labUnchanged": true,
+    "gateway": {
+      "status": 200,
+      "bytes": 9448707,
+      "sha256": "aa5cb6fa76e5df165dc6143e4878f904392e13ec05209901bcd05225668995cc"
+    },
+    "publicationCompletedAt": "2026-11-07T12:37:29.341Z"
+  },
+  "web": {
+    "observedAt": "2026-11-07T12:23:34.649Z",
+    "url": "https://muzinga.netlify.app/",
+    "source": "c656992c31c91e5bd3953267537df86ee513075e",
+    "entry": "./assets/index-n_mwATMm.js",
+    "bytes": 1148403,
+    "sha256": "5872f04fbadafc7263a7a65b6238a5f8e8c1cc592d921d6bf1b1dec0ec080e52",
+    "publicConfigDigest": "0d504400edfc50138a9d5f6df01a95bf42d6c6ca1160b52362afe6bc6b3193e9",
+    "httpStatus": 200,
+    "networkStorageWrites": 0,
+    "exactReconstructionBytes": true
+  },
+  "publicWebBoot": {
+    "observedAt": "2026-11-07T12:23:37.629Z",
+    "url": "https://muzinga.netlify.app/",
+    "httpStatus": 200,
+    "title": "Dotify \u00b7 Let the music connect the dots",
+    "listenerShellVisible": true,
+    "mobileNavigationVisible": true,
+    "uncaughtErrors": [],
+    "walletConnected": false,
+    "playbackRequested": false,
+    "keyRequested": false,
+    "musicalWrite": false
+  },
+  "signerCleanup": {
+    "removed": true,
+    "checkedAt": "2026-11-07T12:37:29.793Z",
+    "valueDisplayed": false
+  },
+  "api": {
+    "observedAt": "2026-11-07T12:25:12.707Z",
+    "ready": true,
+    "apiVersion": {
+      "version": "0.1.0",
+      "commitSha": "e2dd614862a8d9e3c5373689f58195b069130c07"
+    },
+    "catalogUnchanged": true,
+    "catalogCount": 2,
+    "pilot": {
+      "id": "0x05C643A1eD0e75C8A3486410f13BC4597c2674D7:0x66aae2bdd5859205f46c62291d93d6d5618e56201a507c2b9f5277823edafd35",
+      "hash": "0x66aae2bdd5859205f46c62291d93d6d5618e56201a507c2b9f5277823edafd35",
+      "runtimeAddress": "0x05C643A1eD0e75C8A3486410f13BC4597c2674D7",
+      "artistAddress": "0x2f6BF01a6708C927b288a53B9fE3f9edc689FF56",
+      "tokenId": "1",
+      "title": "Dotify-Bulletin-pilot-8s",
+      "artist": "Thot Nzeng",
+      "description": "Testing Bulletin Publishing",
+      "imageRef": "dotify:cover:0x66aae2bdd5859205f46c62291d93d6d5618e56201a507c2b9f5277823edafd35",
+      "coverVariants": [
+        "dotify:cover:0x66aae2bdd5859205f46c62291d93d6d5618e56201a507c2b9f5277823edafd35"
+      ],
+      "audioRef": "dotify:enc:v3:key-v2:ipfs://bafykbzacebebgmpnya5b5z3itktp653a4ru2fnzdaqpxjcq7kk2xpvcs23xlg",
+      "metadataRef": "ipfs://bafykbzacedwrk35v6yvt4fjhzwwf3apl7nddzsmtzdyxrihfxg6cstfhgnyfw/release.json",
+      "bulletinRef": "",
+      "artistContractRef": "dotify:self-certified:0x66aae2bdd5859205f46c62291d93d6d5618e56201a507c2b9f5277823edafd35",
+      "accessMode": "classic",
+      "priceWei": "1420000000000000000",
+      "priceDot": "1.42",
+      "personhoodLevel": "DIM1",
+      "active": true,
+      "encrypted": true,
+      "royaltyBps": 10000,
+      "royaltySplits": [
+        {
+          "label": "Primary recipient",
+          "recipient": "0x2f6BF01a6708C927b288a53B9fE3f9edc689FF56",
+          "bps": 10000
+        }
+      ],
+      "registeredAtBlock": 15321680,
+      "sourceBlock": 15321680
+    },
+    "media": [
+      {
+        "suffix": "/stream/manifest.json",
+        "status": 200,
+        "bytes": 1990,
+        "sha256": "fd4654c97519f3f94adaf9836789e8b9149f7fa43d7d6472987fe4671990edba"
+      },
+      {
+        "suffix": "/stream/96/init.bin",
+        "status": 200,
+        "bytes": 781,
+        "sha256": "9628435fa55d824e546bbc1ee77e732aaa6524a9f5386d8f56323f40c0872481"
+      },
+      {
+        "suffix": "/stream/96/segment-000.bin",
+        "status": 200,
+        "bytes": 48419,
+        "sha256": "ede6080e6e0cb8e2574cd2d66cabd525dc7055393806b0a4f9d5c1aac5c4b7c5"
+      }
+    ],
+    "keyRequested": false,
+    "networkWrites": 0
+  },
+  "signaling": {
+    "source": "c656992c31c91e5bd3953267537df86ee513075e",
+    "image": "registry.fly.io/dotify-signal@sha256:5c94b9d1212639470224763a412bdc44af62bbec70b4e51ea0ccc725754313e5",
+    "imageTag": "registry.fly.io/dotify-signal:product-0.1.79-c656992c",
+    "liveMachine": "d8d5205f929e28",
+    "configurationMatches": true,
+    "deployed": true,
+    "verifiedAt": "2026-11-07T12:19:51.323814+00:00",
+    "sourceHashesVerified": true,
+    "multilineRelayAndHistoryVerified": true,
+    "rollbackImage": {
+      "registry": "registry.fly.io",
+      "repository": "dotify-signal",
+      "tag": "product-0.1.66-1cc164c",
+      "digest": "sha256:c3cf987ba8c4d03dccc11235fe3aaa3bafa0b7523832687543d1960bb668b80c"
+    }
+  },
+  "signalingSmoke": {
+    "at": "2026-11-07T12:19:07.024Z",
+    "source": "c656992c31c91e5bd3953267537df86ee513075e",
+    "privateSyntheticRoom": true,
+    "twoLineRelay": true,
+    "lateJoinHistory": true,
+    "explicitRoomCleanup": true,
+    "musicalWrites": 0,
+    "keyRequests": 0
+  },
+  "futureReserve": {
+    "transactions": 411,
+    "bytes": 140997127
+  },
+  "physicalAcceptance": "pending for matching 0.1.79; previous owner acceptance remains version-specific"
+}
