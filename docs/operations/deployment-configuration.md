@@ -3926,3 +3926,34 @@ approval. Validate two releases, concurrent cap pressure, restart/uncertain-stor
 recovery, wrong audio/cover references and canonical dependency-retention failure
 before promotion. A successful local rehearsal is not physical Host acceptance or
 proof that existing live authorization/renewal quotas suffice.
+
+
+## Offline generation staging candidate — 2026-11-08
+
+[ADR 0047](../adr/0047-offline-bulletin-generation-staging.md) and the
+[generation runbook](bulletin-generation-migration.md) add the explicit offline
+`bulletin:generation` inspect/stage/verify command. No environment selector,
+service, key, mount, CORS or quota is changed by this implementation. The live
+service remains the scoped synthetic pilot. A generated profile adds optional
+`nonceHistorySha256`; its queue must retain the matching `nonce-history.json`
+and every inherited reservation. Missing/changed history fails binding validation
+before the private signer is loaded and before publication. Old profiles without
+the field keep their hash and behavior.
+
+Preparation requires fully frozen/excluded writers, an absent private destination
+and declared historical publisher/earlier queues. It preserves history separately,
+unions permanent nonce reservations, carries the greatest old account cursor and
+requires a conservative sum of all declared prior/attempted graph obligations.
+It never starts/prunes/retries old drafts or restores stale state over live files.
+The local completed-package verifier is not vault/content authentication or
+proof of off-volume disaster recovery; validate those separately before real
+artist activation. Existing content-key configuration and signer path must stay
+unchanged. Do not place keys in the selected snapshot trees.
+
+After reviewed matching clients, frozen-source/backup evidence and fresh finalized
+quota/nonce/retention checks, separately authorize the concrete maintenance and
+musical budget. Select the generated profile and queue together, with Bulletin
+public assets and no legacy asset-policy file. Never initialize an empty ledger
+to bypass missing inherited history. After new reservations/writes, the old seal
+is stale: any rollback must preserve all later permanent nonces and reconcile
+account progress. No activation or rollback is executed by this candidate.

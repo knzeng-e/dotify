@@ -32,7 +32,7 @@
       "priority": "P1",
       "track": "Production spine",
       "phase": "Now",
-      "note": "Early refusal is merged in #409. An opt-in multi-release candidate reserves complete audio/cover/metadata allowances, binds references and preserves recovery; migration/nonce carry-forward, measured activation, conservation and actual Web/Desktop artist acceptance remain required."
+      "note": "#409/#410 are merged. The offline generation-staging candidate carries declared histories, permanent nonces and conservative prior reserves with a pre-signer guard; real frozen-state/off-volume/key recovery, measured activation and actual Web/Desktop artist acceptance remain required."
     },
     {
       "id": "product-cash-tip-feasibility",

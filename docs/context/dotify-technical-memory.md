@@ -1,5 +1,15 @@
 # Dotify technical memory
 
+## Offline generation preparation candidate, 2026-11-08
+
+#410 is merged with green CI. [ADR 0047](../adr/0047-offline-bulletin-generation-staging.md)
+and the [offline runbook](../operations/bulletin-generation-migration.md) add exact-plan
+inspection, byte-preserved historical queues/receipts and a fresh candidate with
+inherited encryption reservations, a pre-signer history guard, and conservative
+prior obligations. No service or live profile is changed. Real frozen-state and
+off-volume/key recovery, measured budget, reviewed activation and actual artist
+Web/Desktop acceptance still gate #407.
+
 ## Multi-release publication candidate, 2026-11-08
 
 #409 is merged. [The next #407 candidate](../adr/0046-bounded-multi-release-admission.md)

@@ -15,10 +15,11 @@ spine, conservation and access gates remain prerequisites for a public pilot.
 
 ## Current implementation checkpoint, 2026-11-08
 
-#409 is merged with green CI. The next #407 candidate implements
+#409/#410 are merged with green CI. Bounded admission implements
 [bounded multi-release admission](../../adr/0046-bounded-multi-release-admission.md),
 including matched cover identity, durable aggregate allowances and recovery. The
-live scoped pilot remains unchanged. Generation migration, measured operational
+live scoped pilot remains unchanged. A reviewed offline generation-staging tool is
+the next candidate; real frozen-state/off-volume recovery, measured operational
 approval and actual Web/Desktop artist acceptance are still required before
 moving on to the Room/artwork implementation slices.
 
