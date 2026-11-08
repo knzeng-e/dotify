@@ -217,12 +217,11 @@ The existing fresh initializer creates `release-admission.json`; preserve it wit
 the profile/bindings, publisher owner/jobs, queue, permanent encryption nonce
 ledger, exact metadata sidecars and key-vault configuration. A missing ledger or
 orphaned inventory stops startup before signer loading. A new generation using an
-existing key vault needs reviewed carry-forward of **all** permanent nonce
-reservations and obligations, and a tested coherent off-volume restore. The
-[offline generation staging follow-up](bulletin-generation-migration.md) prepares
-an exact-plan candidate and binds inherited nonce history before signer loading.
-It performs no activation or automatic reset. Do not activate the new policy
-before real frozen-source/key/off-volume recovery and a measured budget are reviewed.
+existing content-key domain needs reviewed carry-forward of **all** permanent nonce
+reservations and obligations, and a tested coherent off-volume restore. For development, the owner selected
+[fresh setup with a new content master/version](bulletin-fresh-development.md)
+instead of importing abandoned drafts. An empty ledger is valid only for that
+new domain; old account obligations remain. No same-key history reset is offered.
 
 Deploy matched client code before activating the profile. Cover upload sends
 `contentHash` while the server supplies key version and authenticated artist/

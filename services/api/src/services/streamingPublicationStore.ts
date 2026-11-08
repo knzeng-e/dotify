@@ -1,5 +1,7 @@
 // The application's storage choice. There is no retry across providers.
 import assert from 'node:assert/strict';
+import { assertFreshContentKey } from './freshContentKey.js';
+import type { ContentKeyVaultConfigInput } from './keyVault.js';
 import {
   preservePublicMetadata,
   readPublicAssetPolicy,
@@ -74,6 +76,8 @@ export async function createStreamingPublicationStore(
     profileFile?: string;
     assetPolicyFile?: string;
     releaseAssets?: boolean;
+    /** Trusted server configuration override for deterministic tests/composition. */
+    contentKeyVault?: ContentKeyVaultConfigInput;
     assetAuthority?: (owner: PublicAssetOwner) => Promise<boolean>;
     metadataRepairAuthority?: (owner: PublicAssetOwner, contentHash: string) => Promise<boolean>;
     /** Trusted operator composition: authenticate a saved recovery plan while
@@ -94,6 +98,7 @@ export async function createStreamingPublicationStore(
   }
   assert.ok(options.profileFile, 'Explicit Bulletin publication profile required');
   const profile = await readBulletinPublisherProfile(options.profileFile);
+  assertFreshContentKey(profile.freshContentKey, options.contentKeyVault);
   assert.ok(
     !profile.releasePolicy || (options.releaseAssets === true && !options.assetPolicyFile),
     'Multi-release admission requires explicit Bulletin public assets without a pilot asset policy'
@@ -176,6 +181,7 @@ export async function createStreamingPublicationStore(
       assert.ok(!closed, 'Publisher is closed');
       signal.throwIfAborted();
       await assertPublicationBinding(options.queue, profile);
+      assertFreshContentKey(profile.freshContentKey, options.contentKeyVault);
       const { owner, jobs } = await inventories(profile);
       if (releases) {
         assert.ok(!owner.activeJob || owner.activeJob === name || asset, 'Previous publication requires reconciliation');
@@ -284,6 +290,7 @@ export async function createStreamingPublicationStore(
     async assertCanPrepare(scope, name, owner) {
       assert.ok(!closed, 'Publisher is closed');
       await assertPublicationBinding(options.queue, profile);
+      assertFreshContentKey(profile.freshContentKey, options.contentKeyVault);
       if (releases) {
         const state = await idleInventories();
         if (state?.owner.activeJob && state.owner.activeJob !== name && !activeSession) throw new PublicationAdmissionError();
@@ -296,6 +303,7 @@ export async function createStreamingPublicationStore(
           async admitPreparation(scope: StreamingScope, owner: string) {
             assert.ok(!closed, 'Publisher is closed');
             await assertPublicationBinding(options.queue, profile);
+            assertFreshContentKey(profile.freshContentKey, options.contentKeyVault);
             if ((await idleInventories())?.owner.activeJob && !activeSession) throw new PublicationAdmissionError();
             return releases.admit(scope, owner);
           }

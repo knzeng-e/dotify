@@ -77,11 +77,18 @@ Public covers and metadata use the existing readers. No Pinata fallback, new
 service, account authority, payment rail or frontend secret is introduced.
 Public filenames, allowed sizes and strict metadata validation remain bounded.
 
+## Development follow-up, 2026-11-08
+
+The owner selected [fresh content-key development setup](0047-fresh-bulletin-development.md)
+instead of migrating abandoned test drafts. A new random master/version permits
+a fresh encryption ledger; existing account duties and old read keys remain.
+Carry-forward rules below apply when reusing an existing encryption key domain.
+
 ## Operational and rollback boundaries
 
 Fresh provisioning creates the admission ledger exclusively. Startup never
 recreates it. Existing pilot queues/inventories and their histories are not
-rewritten into the new mode. A new generation sharing an existing key vault must
+rewritten into the new mode. A new generation reusing an existing content-key domain must
 carry forward permanent encryption nonce reservations and all prior attempted/
 retained obligations through a reviewed coherent migration/backup procedure;
 this PR supplies no automatic migration command or activation allowance.

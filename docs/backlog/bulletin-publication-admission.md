@@ -1,26 +1,27 @@
 # Bulletin publication beyond the synthetic pilot
 
-## Offline generation preparation candidate, 2026-11-08
+## Fresh development start selected, 2026-11-08
 
-#410 is merged with green CI. [ADR 0047](../adr/0047-offline-bulletin-generation-staging.md)
-and the [offline runbook](../operations/bulletin-generation-migration.md) add exact-plan
-inspection, byte-preserved historical queues/receipts and a fresh candidate with
-inherited encryption reservations, a pre-signer history guard, and conservative
-prior obligations. No service or live profile is changed. Real frozen-state and
-off-volume/key recovery, measured budget, reviewed activation and actual artist
-Web/Desktop acceptance still gate #407.
+The owner chose a new publication/key domain instead of migrating old test drafts.
+#409/#410 are merged. [ADR 0047](../adr/0047-fresh-bulletin-development.md) and the
+[fresh setup runbook](../operations/bulletin-fresh-development.md) prepare a new
+private queue/publisher with a random content master under a later version, bound
+to startup configuration before signer loading. No old history is imported or
+reset; the same Bulletin account keeps its nonce/quota/retention obligations.
+Actual matched rollout, measured budget and real artist acceptance remain open.
 
 ## Multi-release implementation candidate, 2026-11-08
 
-#409 is merged with green CI. The next candidate implements the opt-in durable
+#409/#410 are merged with green CI. The implementation supplies the opt-in durable
 whole-release policy in [ADR 0046](../adr/0046-bounded-multi-release-admission.md):
 audio/cover/metadata share a scoped allowance and global cap; claims survive
 restart and cleanup, and lost store responses reuse receipts/ciphertext. Cover
 identity is carried by matched clients, and metadata must reference its own ready
 objects with fresh canonical retention. The [local evidence](implementation/evidence/bulletin-release-admission-2026-11-08.md) records the tests. The old pilot remains the deployed mode.
 
-Review, generation migration/nonce-history carry-forward, measured activation
-budget, coherent restore and actual artist Web/Desktop acceptance remain open.
+Review, fresh-key setup, measured activation budget and actual artist Web/Desktop
+acceptance remain open. Migration of abandoned drafts is superseded by the owner
+decision above; conservation/coherent recovery remain public-pilot requirements.
 This does not activate multiple releases or authorize new musical writes.
 
 Issue #407 · P1 · Production spine · Now · Work. Workflow: Project 5.

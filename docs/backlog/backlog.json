@@ -32,7 +32,7 @@
       "priority": "P1",
       "track": "Production spine",
       "phase": "Now",
-      "note": "#409/#410 are merged. The offline generation-staging candidate carries declared histories, permanent nonces and conservative prior reserves with a pre-signer guard; real frozen-state/off-volume/key recovery, measured activation and actual Web/Desktop artist acceptance remain required."
+      "note": "#409/#410 are merged. The owner selected fresh development publication with a new content-key domain instead of migrating old drafts. Fresh setup, measured activation and actual Web/Desktop artist acceptance remain; the same storage account retains its nonce/quota/retention duties."
     },
     {
       "id": "product-cash-tip-feasibility",

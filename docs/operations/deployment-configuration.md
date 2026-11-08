@@ -3928,32 +3928,31 @@ before promotion. A successful local rehearsal is not physical Host acceptance o
 proof that existing live authorization/renewal quotas suffice.
 
 
-## Offline generation staging candidate — 2026-11-08
+## Fresh development publication candidate — 2026-11-08
 
-[ADR 0047](../adr/0047-offline-bulletin-generation-staging.md) and the
-[generation runbook](bulletin-generation-migration.md) add the explicit offline
-`bulletin:generation` inspect/stage/verify command. No environment selector,
-service, key, mount, CORS or quota is changed by this implementation. The live
-service remains the scoped synthetic pilot. A generated profile adds optional
-`nonceHistorySha256`; its queue must retain the matching `nonce-history.json`
-and every inherited reservation. Missing/changed history fails binding validation
-before the private signer is loaded and before publication. Old profiles without
-the field keep their hash and behavior.
+The owner chose a fresh publication/key domain, replacing #411's unmerged old-state
+migration. [ADR 0047](../adr/0047-fresh-bulletin-development.md) and the
+[setup runbook](bulletin-fresh-development.md) add explicit private initialization:
+new random content master/version, new queue/inventories, bounded multi-release
+profile and a startup binding to the actual configured key before transport or
+signer loading. Profiles without the optional binding retain their prior hashes.
+No historical queue/import path remains in this candidate.
 
-Preparation requires fully frozen/excluded writers, an absent private destination
-and declared historical publisher/earlier queues. It preserves history separately,
-unions permanent nonce reservations, carries the greatest old account cursor and
-requires a conservative sum of all declared prior/attempted graph obligations.
-It never starts/prunes/retries old drafts or restores stale state over live files.
-The local completed-package verifier is not vault/content authentication or
-proof of off-volume disaster recovery; validate those separately before real
-artist activation. Existing content-key configuration and signer path must stay
-unchanged. Do not place keys in the selected snapshot trees.
+Preparation changes no live selector or service and never reads/transfers the
+existing storage signer. Actual rollout uses existing private secret settings:
+merge the new map entry into `CONTENT_KEY_MASTER_SECRETS`, retain old version
+secrets for read references, coordinate `CONTENT_KEY_ACTIVE_VERSION` across the
+needed custody/key-serving roles, and select the new profile/queue together with
+Bulletin audio/public assets and the legacy asset policy unset. Matched #410+
+clients are needed. No CORS, worker protocol, new service or SDK change is added.
 
-After reviewed matching clients, frozen-source/backup evidence and fresh finalized
-quota/nonce/retention checks, separately authorize the concrete maintenance and
-musical budget. Select the generated profile and queue together, with Bulletin
-public assets and no legacy asset-policy file. Never initialize an empty ledger
-to bypass missing inherited history. After new reservations/writes, the old seal
-is stale: any rollback must preserve all later permanent nonces and reconcile
-account progress. No activation or rollback is executed by this candidate.
+The same Bulletin account retains all nonce, authorization, quota and retention
+obligations; verify fresh finalized state and exclude old/account-sharing writers
+before the separately reviewed cutover. Generated `ready.json` explicitly does
+not prove account state or activate writing. Prepare the concrete maintenance
+and write budget, then verify real artist wallet/catalogue/audio acceptance.
+The existing runtime can publish new hashes; a new empty artist space remains
+an explicit wallet action, not an automatic chain reset. After first use, preserve
+this queue and key during rollback; never initialize it again with an empty ledger.
+Production conservation and coherent secret/security recovery remain public-pilot
+gates, while migration of abandoned development drafts is no longer required.

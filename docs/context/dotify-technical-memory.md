@@ -1,23 +1,23 @@
 # Dotify technical memory
 
-## Offline generation preparation candidate, 2026-11-08
+## Fresh development start selected, 2026-11-08
 
-#410 is merged with green CI. [ADR 0047](../adr/0047-offline-bulletin-generation-staging.md)
-and the [offline runbook](../operations/bulletin-generation-migration.md) add exact-plan
-inspection, byte-preserved historical queues/receipts and a fresh candidate with
-inherited encryption reservations, a pre-signer history guard, and conservative
-prior obligations. No service or live profile is changed. Real frozen-state and
-off-volume/key recovery, measured budget, reviewed activation and actual artist
-Web/Desktop acceptance still gate #407.
+The owner chose a new publication/key domain instead of migrating old test drafts.
+#409/#410 are merged. [ADR 0047](../adr/0047-fresh-bulletin-development.md) and the
+[fresh setup runbook](../operations/bulletin-fresh-development.md) prepare a new
+private queue/publisher with a random content master under a later version, bound
+to startup configuration before signer loading. No old history is imported or
+reset; the same Bulletin account keeps its nonce/quota/retention obligations.
+Actual matched rollout, measured budget and real artist acceptance remain open.
 
 ## Multi-release publication candidate, 2026-11-08
 
-#409 is merged. [The next #407 candidate](../adr/0046-bounded-multi-release-admission.md)
+#409/#410 are merged. [The #407 implementation](../adr/0046-bounded-multi-release-admission.md)
 allows successive artist releases inside a fresh explicit aggregate policy,
 reserving audio/cover/metadata together and preserving claims across recovery.
 Matched clients bind covers to the track; metadata cannot substitute another
 release's assets or rely on expired retention. Local synthetic proof is separate
-from reviewed generation migration, quota/renewal obligations and real artist
+from fresh-key rollout, quota/renewal obligations and real artist
 Web/Desktop acceptance. No live profile, signer, service or musical asset is
 changed. Current deployment remains the scoped pilot.
 

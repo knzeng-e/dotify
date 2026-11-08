@@ -10,6 +10,10 @@ plan; new musical writes, maintenance, payments and activation remain separately
 bounded. Project 5 tracks progress; older dated checkpoints below retain their
 historical scope.
 
+The owner selected a [fresh development publication/key domain](../operations/bulletin-fresh-development.md)
+for #407, replacing migration of abandoned test drafts. Existing Bulletin account
+obligations remain; the new setup is not activated by merging code.
+
 ## Room preparation delivered in 0.1.80, 2026-11-07
 
 [Web and Product 0.1.80](implementation/evidence/product-0.1.80-rollout-2026-11-07.md) deliver #404 from frozen `30702580`, based on
