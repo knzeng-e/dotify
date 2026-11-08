@@ -89,3 +89,27 @@ it('requires explicit compatible complete-release policy bounds', async t => {
     }).success
   );
 });
+
+it('keeps concurrent preflights and inventory snapshots coherent with whole-release claim replacement', async t => {
+  const c = await assetFixture(t, true);
+  const admission = createReleaseAdmission({
+    directory: c.profile.directory,
+    profileSha256: publicationBinding(c.profile).profileSha256,
+    policy: c.profile.releasePolicy!,
+    audio: c.profile.budget
+  });
+  await Promise.all([admission.claim(scope('11'), 'audio'), admission.claim(scope('22'), 'audio')]);
+  await Promise.all([
+    admission.claim(scope('11'), 'cover', 'cover-one'),
+    ...Array.from({ length: 20 }, () => admission.check(scope('11'), c.owner.address)),
+    admission.claim(scope('22'), 'metadata', 'metadata-two'),
+    ...Array.from({ length: 20 }, () => admission.validateInventories([])),
+    admission.claim(scope('11'), 'metadata', 'metadata-one'),
+    admission.claim(scope('22'), 'cover', 'cover-two'),
+    ...Array.from({ length: 20 }, () => admission.validate())
+  ]);
+  const state = await admission.validate();
+  assert.equal(state.releases.length, 2);
+  for (const entry of state.releases) assert.ok(entry.audio && entry.cover && entry.metadata);
+  await assert.rejects(admission.claim(scope('33'), 'audio'), PublicationAdmissionError);
+});

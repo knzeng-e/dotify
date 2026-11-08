@@ -15,8 +15,10 @@ Each encrypted audio graph contains 175 blocks / 18,718,962 bytes; the two cover
 graphs contain eight blocks / 20,653 bytes each and reuse existing receipts.
 The first audio reached ready after approximately 55 minutes. The second was
 still publishing and advancing from 104 to 140 attempted stores during the
-inspection, with the normal two pending nonces. It was not a failed job.
-There is no completed registry/catalogue/listening acceptance in this evidence.
+inspection, with the normal two pending nonces. It was not a failed job. By
+21:09 UTC, both audio jobs and both covers were ready, the writer was idle and
+no account intent remained pending. The owner was invited to resume an existing
+draft; there is no completed registry/catalogue/listening acceptance here.
 
 A separate null-signer probe measured status 838 ms (including initial session
 setup), lookup 213 ms, nonce 150 ms and a raw block read 63 ms. These isolated
@@ -38,6 +40,14 @@ slots, 712 attempted stores / 151,126,016 bytes and all earlier account duties.
   after 350 ms. The otherwise-unreachable timeout signal can disappear. This
   explains why merely reading a configured deadline is not evidence it fired;
   the exact GC history of the live process was not captured.
+
+Linux CI then reproduced an admission-ledger race: `load()` can open a snapshot
+just before an atomic claim replacement unlinks that inode; its strict `nlink=1`
+check correctly refuses it. All public admission snapshots now share the existing
+short claim tail, so no reader overlaps replacement. The file checks are retained,
+and this short local ledger queue does not wait for network publication. A
+concurrent claims/preflights/inventory regression supplements the existing
+whole-release integration that exposed this failure.
 
 ## Candidate behavior and ownership
 
@@ -76,11 +86,11 @@ Tests cover a graph requiring more than five simulated minutes, unchanged
 short-store expiry/pending-nonce preservation, owner-scoped counts without early
 readiness, progress beyond fifteen minutes, idle/overall hand-back, invalid
 counts, backend asset ordering and independent demo uploads, explicit pending
-feedback, actual GC and timer disposal. Full API tests pass (362), as do all 1,118 frontend unit tests, API typecheck/build,
+feedback, actual GC and timer disposal. The pre-race-repair API suite passed (362), as do all 1,118 frontend unit tests, API typecheck/build,
 ordinary Web and frozen Product builds, formatting and offline backlog hygiene.
 Lint retains the two existing App effect-dependency warnings; server-rendered
 hook tests retain their existing useLayoutEffect warnings, and Vite reports the
-existing large chunks. These are not physical-device publication acceptance.
+existing large chunks. The admission fix adds one API regression; the final suite and CI are recorded in the PR. These are not physical-device publication acceptance.
 
 ## Delivery and remaining work
 
