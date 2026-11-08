@@ -85,7 +85,7 @@ export function TransactionModal() {
               ? canCheckPreparation
                 ? 'Your draft is saved. Return to check preparation before approving the release.'
                 : catalogPending
-                  ? 'You can close this window and keep browsing. Visibility checks do not publish again.'
+                  ? 'You can keep browsing; no further approval is needed. Visibility checks do not publish again.'
                   : 'You can close this window and keep the app open. Preparation and publication checks will continue.'
               : 'Closing this window does not cancel the payment. You can return to check access without paying again.'}
           </p>

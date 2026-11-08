@@ -19,8 +19,8 @@ export function catalogVisibilityFeedback(base: TransactionFeedback, delayed: bo
     publicationVisibility: delayed ? 'delayed' : 'checking',
     title: 'Release approved',
     message: delayed
-      ? 'Your release is registered. It is taking longer to appear in Dotify. You can keep browsing and check visibility here; no further approval is needed.'
-      : 'Your approval is confirmed. Dotify is adding your release to the catalog; no further approval is needed.',
+      ? 'Your release is registered. It is taking longer to appear in the catalog.'
+      : 'Your release is registered. Dotify is checking its visibility in the catalog.',
     recoveryAction: { label: 'Check visibility', run: check, disabled: checking },
     steps: buildReleasePublicationRoadmap('catalog', base.txHash)
   };
