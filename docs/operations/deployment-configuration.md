@@ -3926,3 +3926,33 @@ approval. Validate two releases, concurrent cap pressure, restart/uncertain-stor
 recovery, wrong audio/cover references and canonical dependency-retention failure
 before promotion. A successful local rehearsal is not physical Host acceptance or
 proof that existing live authorization/renewal quotas suffice.
+
+
+## Fresh development publication candidate — 2026-11-08
+
+The owner chose a fresh publication/key domain, replacing #411's unmerged old-state
+migration. [ADR 0047](../adr/0047-fresh-bulletin-development.md) and the
+[setup runbook](bulletin-fresh-development.md) add explicit private initialization:
+new random content master/version, new queue/inventories, bounded multi-release
+profile and a startup binding to the actual configured key before transport or
+signer loading. Profiles without the optional binding retain their prior hashes.
+No historical queue/import path remains in this candidate.
+
+Preparation changes no live selector or service and never reads/transfers the
+existing storage signer. Actual rollout uses existing private secret settings:
+merge the new map entry into `CONTENT_KEY_MASTER_SECRETS`, retain old version
+secrets for read references, coordinate `CONTENT_KEY_ACTIVE_VERSION` across the
+needed custody/key-serving roles, and select the new profile/queue together with
+Bulletin audio/public assets and the legacy asset policy unset. Matched #410+
+clients are needed. No CORS, worker protocol, new service or SDK change is added.
+
+The same Bulletin account retains all nonce, authorization, quota and retention
+obligations; verify fresh finalized state and exclude old/account-sharing writers
+before the separately reviewed cutover. Generated `ready.json` explicitly does
+not prove account state or activate writing. Prepare the concrete maintenance
+and write budget, then verify real artist wallet/catalogue/audio acceptance.
+The existing runtime can publish new hashes; a new empty artist space remains
+an explicit wallet action, not an automatic chain reset. After first use, preserve
+this queue and key during rollback; never initialize it again with an empty ledger.
+Production conservation and coherent secret/security recovery remain public-pilot
+gates, while migration of abandoned development drafts is no longer required.

@@ -8,6 +8,7 @@ import { BULLETIN_MEDIA_GENESIS, validBulletinMediaRpc } from './bulletinHttpRea
 import { budgetSchema, initializeBulletinMediaStore, integer, load, privateDirectory, save } from './bulletinMediaState.js';
 import { pipelineSchema } from './bulletinPipeline.js';
 import { initializeStreamingJobs } from './streamingJobs.js';
+import { freshContentKeySchema } from './freshContentKey.js';
 import { initializeReleaseAdmission, releasePolicySchema } from './bulletinReleaseAdmission.js';
 const absolute = z.string().refine(isAbsolute);
 // A one-release operator pilot, not an alternative source of access authority.
@@ -37,10 +38,13 @@ export const publisherProfileSchema = z
     // When present, the immutable profile admits this scope and one durable job
     // for its entire lifetime, including after restart/discard/completion.
     pilotScope: pilotScope.optional(),
-    releasePolicy: releasePolicySchema.optional()
+    releasePolicy: releasePolicySchema.optional(),
+    freshContentKey: freshContentKeySchema.optional()
   })
   .strict()
   .superRefine((value, ctx) => {
+    if (value.freshContentKey && (!value.releasePolicy || value.releasePolicy.artists.some(a => a.keyVersion !== value.freshContentKey!.version)))
+      ctx.addIssue({ code: 'custom', message: 'Fresh key binding requires matching multi-release artists' });
     if (value.pilotScope && value.releasePolicy) ctx.addIssue({ code: 'custom', message: 'Select pilot or multi-release admission, never both' });
     if (
       value.releasePolicy &&
