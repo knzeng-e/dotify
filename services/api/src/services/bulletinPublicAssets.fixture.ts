@@ -11,7 +11,7 @@ import { BULLETIN_MEDIA_GENESIS } from './bulletinHttpReader.js';
 import type { BulletinBlock } from './bulletinGraph.js';
 import type { BulletinMediaTransport, BulletinReceipt, BulletinSubmissionReceipt } from './bulletinMedia.js';
 import type { PublisherDependencies } from './streamingPublicationStore.js';
-export async function assetFixture(t: TestContext) {
+export async function assetFixture(t: TestContext, multi = false, audioBudget?: BulletinPublisherProfile['budget']) {
   const root = await mkdtemp(join(tmpdir(), 'dotify-public-assets-'));
   t.after(() => rm(root, { recursive: true, force: true }));
   const scope = { chainId: 420420417, runtimeAddress: `0x${'22'.repeat(20)}`, contentHash: `0x${'33'.repeat(32)}`, keyVersion: 'dotify-content-key-v2' };
@@ -24,10 +24,21 @@ export async function assetFixture(t: TestContext) {
     account: '5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca',
     directory: join(root, 'inventories'),
     seedFile: join(root, 'key/storage.seed'),
-    budget,
+    budget: audioBudget ?? budget,
     pipeline: { concurrency: 2, maxInFlightBytes: 512 * 1024 },
     priorRenewalReserve: { transactions: 10, bytes: 1000 },
-    pilotScope: scope
+    ...(multi
+      ? {
+          releasePolicy: {
+            schema: 'dotify.bulletin.release-policy.v1' as const,
+            artists: [{ owner: owner.address, chainId: scope.chainId, runtimeAddress: scope.runtimeAddress, keyVersion: scope.keyVersion }],
+            maxReleases: 2,
+            cover: budget,
+            metadata: budget,
+            total: { maxBytes: budget.maxBytes * 6, maxTransactions: budget.maxTransactions * 6 }
+          }
+        }
+      : { pilotScope: scope })
   };
   const queue = join(root, 'queue'),
     profileFile = join(root, 'profile.json'),
@@ -36,7 +47,7 @@ export async function assetFixture(t: TestContext) {
   await writeFile(profileFile, JSON.stringify(profile), { mode: 0o600 });
   await writeFile(policyFile, JSON.stringify(policy), { mode: 0o600 });
   await initializeBulletinPublisher(queue, profile);
-  await initializePublicAssetPolicy(profile, policy);
+  if (!multi) await initializePublicAssetPolicy(profile, policy);
   const png = await sharp({ create: { width: 32, height: 32, channels: 3, background: '#123456' } })
     .png()
     .toBuffer();
@@ -140,7 +151,13 @@ export async function assetFixture(t: TestContext) {
     stored,
     reserves,
     deps,
-    options: { provider: 'bulletin' as const, queue, profileFile, assetPolicyFile: policyFile, assetAuthority: async () => allowed },
+    options: {
+      provider: 'bulletin' as const,
+      queue,
+      profileFile,
+      ...(multi ? { releaseAssets: true } : { assetPolicyFile: policyFile }),
+      assetAuthority: async () => allowed
+    },
     get writes() {
       return writes;
     },

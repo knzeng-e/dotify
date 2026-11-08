@@ -85,7 +85,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     if (!config.STREAMING_WORKER_URL || !config.STREAMING_WORKER_TOKEN || !config.BULLETIN_PUBLICATION_PROFILE)
       throw new Error('Bulletin publication requires an explicit profile and isolated worker');
   } else if (config.BULLETIN_PUBLICATION_PROFILE) throw new Error('Select Bulletin audio storage explicitly before configuring its profile');
-  if (config.PUBLIC_ASSET_STORAGE === 'bulletin' && (config.STREAMING_AUDIO_STORAGE !== 'bulletin' || !config.BULLETIN_PUBLIC_ASSET_POLICY))
+  if (config.PUBLIC_ASSET_STORAGE === 'bulletin' && config.STREAMING_AUDIO_STORAGE !== 'bulletin')
     throw new Error('Bulletin public assets require the same private audio publisher and an explicit asset policy');
   if (config.PUBLIC_ASSET_STORAGE !== 'bulletin' && config.BULLETIN_PUBLIC_ASSET_POLICY) throw new Error('Select Bulletin public assets explicitly');
   await assertSharedState();
@@ -233,6 +233,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         queue: config.STREAMING_STATE_PATH,
         profileFile: config.BULLETIN_PUBLICATION_PROFILE,
         assetPolicyFile: config.BULLETIN_PUBLIC_ASSET_POLICY,
+        releaseAssets: config.PUBLIC_ASSET_STORAGE === 'bulletin',
         metadataRepairAuthority: (owner, contentHash) =>
           checkUnregisteredRelease({
             owner: owner.address.toLowerCase(),
@@ -268,6 +269,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         },
         transcode,
         assertCanPrepare: publication.assertCanPrepare,
+        admitPreparation: publication.admitPreparation,
         pin: publication.pin,
         canDiscard: publication.canDiscard,
         onFailure: failure => app.log.warn({ code: 'STREAMING_PREPARATION_FAILED', ...failure }, 'Audio preparation needs attention')

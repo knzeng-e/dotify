@@ -16,7 +16,7 @@ export class PublicAssetStorageError extends Error {
   }
 }
 export type PublicAssetKind = 'cover' | 'metadata';
-export type PublicAssetOwner = { address: string; runtimeAddress: string; chainId: number };
+export type PublicAssetOwner = { address: string; runtimeAddress: string; chainId: number; contentHash?: string; keyVersion?: string };
 export const publicAssetPolicySchema = z
   .object({
     schema: z.literal('dotify.bulletin.public-assets.v1'),
@@ -134,10 +134,11 @@ export async function readPublicAsset(read: (cid: string, signal: AbortSignal) =
 
 /** Keep the first metadata bytes for response-loss recovery. The client currently
  * rebuilds createdAt on retry; that alone must not claim a second allowance. */
-export async function preservePublicMetadata(directory: string, files: PinataFile[]): Promise<PinataFile[]> {
+export async function preservePublicMetadata(directory: string, files: PinataFile[], releaseKey?: string): Promise<PinataFile[]> {
   assert.ok(files.length === 1 && files[0].path === 'release.json' && files[0].bytes.length <= 50 * 1024, 'Invalid metadata input');
   const input = dotifyManifestSchema.parse(JSON.parse(Buffer.from(files[0].bytes).toString('utf8')));
-  const file = join(directory, 'public-metadata-input.json');
+  assert.ok(releaseKey === undefined || /^[a-f0-9]{64}$/.test(releaseKey), 'Invalid metadata release identity');
+  const file = join(directory, releaseKey ? `public-metadata-${releaseKey}.json` : 'public-metadata-input.json');
   let original;
   try {
     original = dotifyManifestSchema.parse(await load(file));

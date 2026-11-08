@@ -174,3 +174,66 @@ releases. See [deployment validation and snapshot compatibility](deployment-conf
 Do not reset the current queue/profile or discard failed ciphertext to work around
 this limit. Next is a reviewed durable multi-release policy, not another one-file
 exception. Activation and actual artist uploads require their concrete budgets.
+
+## Multi-release candidate — 2026-11-08
+
+[ADR 0046](../adr/0046-bounded-multi-release-admission.md) adds optional bounded
+multi-release admission. This is not the active service configuration. The
+operator selects Bulletin for audio and public assets, provides the fresh
+publisher profile and **unsets** `BULLETIN_PUBLIC_ASSET_POLICY`: the reviewed
+`releasePolicy` below replaces the one-release asset file for this generation.
+Do not remove `pilotScope` or alter the binding of an existing pilot in place.
+
+Illustrative profile fragment, **not an approved budget** (audio continues using
+that profile's `budget`, illustrated as 16 MiB / 128 stores):
+
+```json
+{
+  "releasePolicy": {
+    "schema": "dotify.bulletin.release-policy.v1",
+    "artists": [{
+      "owner": "REPLACE_WITH_LOWERCASE_EVM_ARTIST",
+      "chainId": 420420417,
+      "runtimeAddress": "REPLACE_WITH_LOWERCASE_RUNTIME",
+      "keyVersion": "dotify-content-key-v2"
+    }],
+    "maxReleases": 2,
+    "cover": { "maxBytes": 8388608, "maxTransactions": 32, "minimumLifetimeBlocks": 100 },
+    "metadata": { "maxBytes": 65536, "maxTransactions": 4, "minimumLifetimeBlocks": 100 },
+    "total": { "maxBytes": 50462720, "maxTransactions": 328 }
+  }
+}
+```
+
+These illustrative totals reserve two complete releases at the declared part
+caps; they are not a live quote or evidence that an artist's source fits. Measure
+representative encrypted graphs including archive and directory overhead, retries,
+all earlier retained/attempted graphs, authorization expiry and live remaining
+store/renewal quota. Reservations remain charged even for unused parts. Current
+application/media obligations must be taken from the latest approved inventory;
+old runbook examples are not a valid floor. No recurring renewal is activated.
+
+The existing fresh initializer creates `release-admission.json`; preserve it with
+the profile/bindings, publisher owner/jobs, queue, permanent encryption nonce
+ledger, exact metadata sidecars and key-vault configuration. A missing ledger or
+orphaned inventory stops startup before signer loading. A new generation using an
+existing key vault needs reviewed carry-forward of **all** permanent nonce
+reservations and obligations, and a tested coherent off-volume restore. There
+is no automatic migration/reset command in this candidate. Do not activate it
+before that migration is concrete and reviewed.
+
+Deploy matched client code before activating the profile. Cover upload sends
+`contentHash` while the server supplies key version and authenticated artist/
+runtime; cover-first selection remains a local preview until an audio identity
+exists. Metadata may only name its own ready audio/cover; expired dependency
+retention requires operator attention and triggers no automatic stores/renewals.
+The first manifest and cover are immutable for an admitted release; editable
+revisions are not introduced by this policy.
+
+Rehearse two distinct complete releases, concurrent admission at the cap,
+post-inclusion response loss/restart, wrong identities/references, edited first
+metadata, missing history and expired dependencies. Verify no duplicate store,
+nonce rewind, automatic refund, Pinata fallback or premature registration. Then
+prepare a concrete maintenance/network budget and validate actual artist wallet
+approval, catalogue readback and sound on Web/Desktop. #407 stays open until this
+matching activation and acceptance.

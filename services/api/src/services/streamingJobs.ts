@@ -104,7 +104,8 @@ export async function initializeStreamingJobs(directory: string) {
   await syncDir(path.dirname(directory));
 }
 export type StreamingJobDeps = {
-  assertCanPrepare?: (scope: StreamingScope, name?: string) => Promise<void>;
+  assertCanPrepare?: (scope: StreamingScope, name?: string, owner?: string) => Promise<void>;
+  admitPreparation?: (scope: StreamingScope, owner: string) => Promise<string>;
   directory: string;
   deriveKey: (scope: StreamingScope) => Buffer | null;
   authority: (owner: string, runtime: string, chainId: number) => Promise<boolean>;
@@ -258,14 +259,21 @@ export class StreamingJobs {
         if (existing.state === 'failed') return this.retryExisting(existing);
         return this.view(existing);
       }
-      await this.checkAdmission(input.scope);
+      await this.checkAdmission(input.scope, undefined, owner);
       const active = this.jobs.filter(j => j.state !== 'ready');
       if (this.jobs.length >= MAX_JOBS || active.length >= MAX_QUEUED || active.reduce((n, j) => n + j.sourceBytes, 0) + input.master.length > MAX_SOURCE_BYTES)
         throw new StreamingJobError('STREAMING_QUEUE_BUSY', 429);
       if (!input.master.length || input.master.length > 50 * 1024 * 1024) throw new StreamingJobError('STREAMING_AUDIO_TOO_LARGE', 413);
+      const id = this.deps.admitPreparation
+        ? await this.deps.admitPreparation(input.scope, owner).catch(error => {
+            if (error instanceof PublicationAdmissionError) throw new StreamingJobError(error.code);
+            throw error;
+          })
+        : randomUUID();
+      z.string().uuid().parse(id);
+      if (this.jobs.some(job => job.id === id)) throw new StreamingJobError('STREAMING_RECOVERY_REQUIRED', 409);
       const key = this.deps.deriveKey(input.scope);
       if (!key) throw new StreamingJobError('CONTENT_KEY_NOT_CONFIGURED');
-      const id = randomUUID();
       try {
         const reservation = await this.ledger.reserve(key);
         const encryptor = new StreamingEncryptor(key, reservation, input.scope);
@@ -298,16 +306,16 @@ export class StreamingJobs {
       }
     });
   }
-  private async checkAdmission(scope: StreamingScope, name?: string) {
+  private async checkAdmission(scope: StreamingScope, name?: string, owner?: string) {
     try {
-      await this.deps.assertCanPrepare?.(scope, name);
+      await this.deps.assertCanPrepare?.(scope, name, owner);
     } catch (error) {
       if (error instanceof PublicationAdmissionError) throw new StreamingJobError(error.code);
       throw error;
     }
   }
   private async retryExisting(job: StreamingJob): Promise<StreamingJobView> {
-    await this.checkAdmission(job.scope, `stream-${job.id}`);
+    await this.checkAdmission(job.scope, `stream-${job.id}`, job.owner);
     if (job.attempts >= 3) throw new StreamingJobError('STREAMING_RETRY_LIMIT', 409);
     if (this.jobs.filter(j => !['ready', 'failed'].includes(j.state)).length >= MAX_QUEUED) throw new StreamingJobError('STREAMING_QUEUE_BUSY', 429);
     job.state = 'queued';

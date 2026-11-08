@@ -114,11 +114,15 @@ function multipartHeaders(authorization?: string) {
   };
 }
 
-function multipartFile(fieldName: string, filename: string, contentType: string, content: Buffer) {
+function multipartFile(fieldName: string, filename: string, contentType: string, content: Buffer, contentHash?: string) {
   return Buffer.concat([
     Buffer.from(`--${BOUNDARY}\r\nContent-Disposition: form-data; name="${fieldName}"; filename="${filename}"\r\nContent-Type: ${contentType}\r\n\r\n`),
     content,
-    Buffer.from(`\r\n--${BOUNDARY}--\r\n`)
+    Buffer.from(
+      contentHash === undefined
+        ? `\r\n--${BOUNDARY}--\r\n`
+        : `\r\n--${BOUNDARY}\r\nContent-Disposition: form-data; name="contentHash"\r\n\r\n${contentHash}\r\n--${BOUNDARY}--\r\n`
+    )
   ]);
 }
 
@@ -707,10 +711,12 @@ it('routes authorized public assets to Bulletin without touching Pinata and retu
     method: 'POST',
     url: '/api/uploads/cover',
     headers: multipartHeaders(grant),
-    payload: multipartFile('cover', 'cover.png', 'image/png', pngBytes)
+    payload: multipartFile('cover', 'cover.png', 'image/png', pngBytes, audioHash)
   });
   assert.equal(image.statusCode, 200);
   assert.equal(image.json().ref, 'ipfs://bulletin-root/cover/640.webp');
+  assert.equal((calls[0].owner as { contentHash: string }).contentHash, audioHash);
+  assert.equal((calls[0].owner as { keyVersion: string }).keyVersion, RELEASE_BOUND_CONTENT_KEY_VERSION);
   grant = (await authorize(server, 'metadata', Buffer.byteLength(JSON.stringify(validManifest)))).json().uploadAuthorization;
   const metadata = await server.inject({ method: 'POST', url: '/api/uploads/metadata', headers: { authorization: `Bearer ${grant}` }, payload: validManifest });
   assert.equal(metadata.statusCode, 200);

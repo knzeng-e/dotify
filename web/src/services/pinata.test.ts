@@ -251,7 +251,11 @@ describe('backend upload authorization', () => {
       .mockResolvedValueOnce(new Response(JSON.stringify({ ref: 'ipfs://cover-cid' }), { status: 200 }));
     const file = new File([new Uint8Array([1, 2, 3])], 'cover.png', { type: 'image/png' });
 
-    await expect(uploadCoverToBackend(file, { chainId: 420420417, signer })).resolves.toBe('cover-cid');
+    const contentHash = `0x${'34'.repeat(32)}`;
+    await expect(uploadCoverToBackend(file, { chainId: 420420417, signer, contentHash })).resolves.toBe('cover-cid');
+    const form = fetchMock.mock.calls[1][1]?.body as FormData;
+    expect(form.get('contentHash')).toBe(contentHash);
+    expect((form.get('cover') as File).name).toBe('cover.png');
 
     expect(sessionMocks.ensureDotifySessionForSigner).toHaveBeenCalledWith(signer, 420420417);
     expect(fetchMock).toHaveBeenNthCalledWith(

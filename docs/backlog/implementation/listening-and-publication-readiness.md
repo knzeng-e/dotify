@@ -13,6 +13,15 @@ spine, conservation and access gates remain prerequisites for a public pilot.
 | 4 — Next research | [CASH tips #406](../product-cash-tip-feasibility.md), with #85/#229 | Shipped-Host/API matrix, honest contribution semantics, durable payment/receipt recovery tests and a go/no-go. Prepare a bounded pilot only if supported. |
 | 5 — Later research | [CASH access #408](../product-cash-access-settlement.md) | Verified payment → exact access + royalties, replay/crash/refund design and deterministic harness before any funded validation. |
 
+## Current implementation checkpoint, 2026-11-08
+
+#409 is merged with green CI. The next #407 candidate implements
+[bounded multi-release admission](../../adr/0046-bounded-multi-release-admission.md),
+including matched cover identity, durable aggregate allowances and recovery. The
+live scoped pilot remains unchanged. Generation migration, measured operational
+approval and actual Web/Desktop artist acceptance are still required before
+moving on to the Room/artwork implementation slices.
+
 ## Evidence and measurable decisions
 
 Product 0.1.80 is delivered; #405 records its readback and owner feedback and is

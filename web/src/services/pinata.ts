@@ -202,6 +202,7 @@ export type BackendUploadErrorBody = {
 };
 
 export type BackendUploadIdentity = {
+  contentHash?: string;
   chainId: number;
   onAudioPreparation?: (phase: AudioPreparationPhase) => void;
   walletClient?: WalletClient;
@@ -412,6 +413,7 @@ export async function uploadCoverToBackend(file: File, identity?: BackendUploadI
 
   const form = new FormData();
   form.append('cover', file, file.name);
+  if (identity?.contentHash) form.append('contentHash', identity.contentHash);
 
   const res = await fetchBackendUpload(`${API_URL}/api/uploads/cover`, {
     method: 'POST',

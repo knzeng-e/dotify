@@ -377,10 +377,12 @@ export function createUploadRoutes(
 
       try {
         let fileBuffer: Buffer | undefined;
+        let contentHash: string | undefined;
         try {
           for await (const part of request.parts({ limits: { fileSize: Math.min(COVER_MAX_BYTES, lease.payload.maxBytes), files: 1 } })) {
             if (part.type === 'file' && part.fieldname === 'cover') fileBuffer = await part.toBuffer();
             else if (part.type === 'file') part.file.resume();
+            else if (part.type === 'field' && part.fieldname === 'contentHash') contentHash = String(part.value).trim().toLowerCase();
           }
         } catch (error) {
           if (multipartLimitError(error)) {
@@ -390,6 +392,7 @@ export function createUploadRoutes(
         }
 
         if (!fileBuffer || fileBuffer.length === 0) return badRequest(reply, 'No cover image received. Include the file as field "cover".');
+        if (contentHash !== undefined && !contentHashSchema.safeParse(contentHash).success) return badRequest(reply, 'Invalid cover release identity.');
         if (fileBuffer.length > lease.payload.maxBytes) {
           return reply.status(413).send({ error: 'Cover image exceeds its authorized byte budget.', code: 'UPLOAD_BUDGET_EXCEEDED' });
         }
@@ -407,7 +410,7 @@ export function createUploadRoutes(
         let cid: string;
         try {
           cid = publicAssets
-            ? await publicAssets(cover.files, 'cover', lease.payload, abort.signal)
+            ? await publicAssets(cover.files, 'cover', { ...lease.payload, contentHash, keyVersion: deps.getActiveContentKeyVersion() }, abort.signal)
             : await deps.pinFiles(
                 cover.files,
                 `${lease.payload.address.slice(2, 10)}-${lease.payload.jti}-cover`,

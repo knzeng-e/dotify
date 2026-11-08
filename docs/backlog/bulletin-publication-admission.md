@@ -1,5 +1,18 @@
 # Bulletin publication beyond the synthetic pilot
 
+## Multi-release implementation candidate, 2026-11-08
+
+#409 is merged with green CI. The next candidate implements the opt-in durable
+whole-release policy in [ADR 0046](../adr/0046-bounded-multi-release-admission.md):
+audio/cover/metadata share a scoped allowance and global cap; claims survive
+restart and cleanup, and lost store responses reuse receipts/ciphertext. Cover
+identity is carried by matched clients, and metadata must reference its own ready
+objects with fresh canonical retention. The old pilot remains the deployed mode.
+
+Review, generation migration/nonce-history carry-forward, measured activation
+budget, coherent restore and actual artist Web/Desktop acceptance remain open.
+This does not activate multiple releases or authorize new musical writes.
+
 Issue #407 · P1 · Production spine · Now · Work. Workflow: Project 5.
 
 ## User impact and evidence, 2026-11-08
