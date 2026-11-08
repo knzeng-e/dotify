@@ -52,6 +52,17 @@ The original synthetic pilot is intentionally restricted to one job and exact
 release identity. Removing the checkbox did not activate general publication.
 Do not weaken that boundary or create another ad hoc artist-name/file exception.
 
+## Owner publication succeeds; artist feedback follow-up, 2026-11-09
+
+The owner confirms an existing Black Panther release registered, later appeared
+in Music and played audibly. Screenshots still show an alert and **Publishing…**
+after approval. The [feedback candidate](implementation/evidence/artist-publication-feedback-2026-11-09.md)
+keeps confirmed approval separate from catalogue visibility, with bounded
+read-only checks and an explicit editor action. This is one reported journey,
+not separately identified Web/Desktop or both-artist acceptance. #413's storage
+candidate and throughput remain separate; #407 stays open. No new upload,
+service maintenance, signing or budget is performed by this follow-up.
+
 ## Ordered implementation and acceptance
 
 1. **Early, truthful refusal (current candidate).** Reuse the publisher's admission

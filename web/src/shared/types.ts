@@ -289,8 +289,10 @@ export type TransactionFeedback = {
   operationId?: string;
   /** Defaults to payment for existing payment flows. */
   operationKind?: 'payment' | 'publication';
+  /** Registry approval is confirmed; catalogue visibility remains read-only work. */
+  publicationVisibility?: 'checking' | 'delayed';
   /** checkPreparation is limited to a saved publication before any submitted proof. */
-  recoveryAction?: { label: string; run: () => void; checkPreparation?: boolean };
+  recoveryAction?: { label: string; run: () => void; checkPreparation?: boolean; disabled?: boolean };
   tone: TransactionFeedbackTone;
   title: string;
   message: string;

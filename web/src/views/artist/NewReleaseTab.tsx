@@ -1,4 +1,4 @@
-import { BadgeCheck, Disc3, FileAudio, Library, Plus, Trash2, Upload } from 'lucide-react';
+import { BadgeCheck, Disc3, FileAudio, Library, Plus, RefreshCw, Trash2, Upload } from 'lucide-react';
 import { CoverImage } from '../../components/CoverImage';
 import { PanelTitle } from '../../shared/ui/PanelTitle';
 import { accessModeLabelFromState, shorten } from '../../shared/utils/format';
@@ -39,6 +39,7 @@ type NewReleaseTabProps = {
   additionalRoyaltySplits: ReleaseRoyaltySplitDraft[];
   rightsStatus: string;
   isRegistering: boolean;
+  publicationVisibility?: { checking: boolean; check: () => void } | null;
   canReviewRelease: boolean;
   artistName: string;
   onUpdateArtistName: (name: string) => void;
@@ -82,6 +83,7 @@ export function NewReleaseTab({
   additionalRoyaltySplits,
   rightsStatus,
   isRegistering,
+  publicationVisibility,
   canReviewRelease,
   artistName,
   onUpdateArtistName,
@@ -669,12 +671,18 @@ export function NewReleaseTab({
                 ))}
               </dl>
             </details>
-            <p className='rights-status'>Nothing is published until you approve it and Dotify confirms the release is visible in the catalog.</p>
+            <p className='rights-status'>
+              {publicationVisibility
+                ? 'Your approval is confirmed. Dotify is checking that your release appears in the catalog.'
+                : 'Nothing is published until you approve it and Dotify confirms the release is visible in the catalog.'}
+            </p>
             {royaltySplitError && <p className='error-box'>{royaltySplitError}</p>}
           </div>
         )}
 
-        <p className='rights-status'>{rightsStatus}</p>
+        <p className='rights-status' role='status' aria-live='polite'>
+          {rightsStatus}
+        </p>
 
         <div className='wizard-actions'>
           <button className='secondary-action compact-action' type='button' onClick={onGoToPreviousStep} disabled={releaseStepIndex === 0}>
@@ -685,11 +693,31 @@ export function NewReleaseTab({
               className='primary-action compact-action'
               type='button'
               data-testid='publish-release-button'
-              onClick={onRegisterRights}
-              disabled={isRegistering || artistStudioLocked || !releaseCanPublish}
+              onClick={publicationVisibility ? publicationVisibility.check : onRegisterRights}
+              disabled={publicationVisibility ? publicationVisibility.checking : isRegistering || artistStudioLocked || !releaseCanPublish}
             >
-              {isRegistering ? <Disc3 size={16} className='spin' /> : <BadgeCheck size={16} />}
-              {isRegistering ? 'Publishing…' : publicationQuarantined ? 'Publishing paused' : artistStudioLocked ? 'Create profile first' : 'Publish release'}
+              {publicationVisibility ? (
+                publicationVisibility.checking ? (
+                  <Disc3 size={16} className='spin' />
+                ) : (
+                  <RefreshCw size={16} />
+                )
+              ) : isRegistering ? (
+                <Disc3 size={16} className='spin' />
+              ) : (
+                <BadgeCheck size={16} />
+              )}
+              {publicationVisibility
+                ? publicationVisibility.checking
+                  ? 'Checking visibility…'
+                  : 'Check visibility'
+                : isRegistering
+                  ? 'Publishing…'
+                  : publicationQuarantined
+                    ? 'Publishing paused'
+                    : artistStudioLocked
+                      ? 'Create profile first'
+                      : 'Publish release'}
             </button>
           ) : (
             <button className='primary-action compact-action' type='button' onClick={onGoToNextStep}>

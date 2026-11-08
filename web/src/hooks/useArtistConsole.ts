@@ -1073,9 +1073,9 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
           coverCID: resolvedCoverCID,
           metadataCID
         });
-        if (e2eScenario === 'catalog-delay') {
+        if (e2eScenario === 'catalog-delay' || e2eScenario === 'catalog-long-delay') {
           recordArtistPublishTrackRegistration();
-          window.setTimeout(() => publishArtistPublishE2eTrack(track, false), 1200);
+          window.setTimeout(() => publishArtistPublishE2eTrack(track, false), e2eScenario === 'catalog-long-delay' ? 75_000 : 1200);
         } else if (e2eScenario === 'catalog-hash-collision') {
           publishArtistPublishE2eTrack(
             createArtistPublishE2eTrack({
@@ -1579,6 +1579,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
     expandedRoyaltyPaymentId,
     setExpandedRoyaltyPaymentId,
     isRegistering: isRegistering || publication.pending,
+    publicationVisibility: publication.pending ? { checking: publication.checking, check: publication.checkVisibility } : null,
     releaseActionId,
     artistRegistrationAvailable,
     artistRegistrationConfigured,

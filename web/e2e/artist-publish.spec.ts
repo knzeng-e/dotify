@@ -509,7 +509,7 @@ test('artist publish remains recoverable while catalog read-back is delayed', as
   await page.getByTestId('publish-release-button').click();
 
   const dialog = page.getByRole('dialog');
-  await expect(dialog).toContainText('Making your release visible');
+  await expect(dialog).toContainText('Release approved');
   await expect(dialog).toContainText('no further approval is needed');
   await expect(page.getByTestId('publish-release-button')).toBeAttached();
   await expect(page.locator('[data-task="releases"]')).toHaveCount(0);
@@ -542,7 +542,7 @@ test('delayed publication does not pull an artist back from another task', async
   await completeReleaseDraft(page);
   await page.getByTestId('publish-release-button').click();
   const dialog = page.getByRole('dialog');
-  await expect(dialog).toContainText('Making your release visible');
+  await expect(dialog).toContainText('Release approved');
   await dialog.getByRole('button', { name: 'Close', exact: true }).click();
   await page.getByRole('tab', { name: 'Earnings', exact: true }).click();
   await page.clock.runFor(6000);
@@ -559,7 +559,7 @@ test('approved publication keeps read-only recovery after the artist disconnects
   await completeReleaseDraft(page);
   await page.getByTestId('publish-release-button').click();
   const dialog = page.getByRole('dialog');
-  await expect(dialog).toContainText('Making your release visible');
+  await expect(dialog).toContainText('Release approved');
   await dialog.getByRole('button', { name: 'Close', exact: true }).click();
   await page.getByRole('button', { name: 'Disconnect wallet', exact: true }).click();
   // Run the delayed catalog insertion and the next read-only poll explicitly;
@@ -576,7 +576,7 @@ test('artist publish does not accept a same-hash track from another runtime as v
   await page.getByTestId('publish-release-button').click();
 
   const dialog = page.getByRole('dialog');
-  await expect(dialog).toContainText('Making your release visible');
+  await expect(dialog).toContainText('Release approved');
   await expect(dialog).not.toContainText('Release published');
   await expect(page.getByTestId('publish-release-button')).toBeAttached();
   await expect(page.locator('[data-task="releases"]')).toHaveCount(0);
@@ -646,3 +646,37 @@ for (const width of [320, 390, 430, 1440]) {
     await page.screenshot({ path: info.outputPath(`${width}-studio-200.png`), animations: 'disabled', fullPage: true });
   });
 }
+
+test('confirmed approval stays calm after a long catalog delay and checks never publish twice', async ({ page }, testInfo) => {
+  await page.clock.install();
+  await createArtistProfile(page, 'catalog-long-delay');
+  await completeReleaseDraft(page);
+  await page.getByTestId('publish-release-button').click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toContainText('Release approved');
+  await expect(dialog).toContainText('Approval confirmed');
+  await page.clock.runFor(60_000);
+  await expect(dialog).toContainText('taking longer to appear');
+  await expect(dialog).not.toContainText('Catalog update delayed');
+  await expect(page.getByTestId('publish-release-button')).toHaveText('Check visibility');
+  const screenshot = testInfo.outputPath('approved-release-waiting-for-catalog.png');
+  await page.screenshot({ path: screenshot, animations: 'disabled' });
+  await testInfo.attach('approved-release-waiting-for-catalog', { path: screenshot, contentType: 'image/png' });
+  await page.setViewportSize({ width: 390, height: 844 });
+  const mobileScreenshot = testInfo.outputPath('approved-release-mobile.png');
+  await page.screenshot({ path: mobileScreenshot, animations: 'disabled' });
+  await testInfo.attach('approved-release-mobile', { path: mobileScreenshot, contentType: 'image/png' });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const before = await readArtistPublishState(page);
+  await dialog.getByRole('button', { name: 'Check visibility', exact: true }).click();
+  await expect(dialog).toContainText('taking longer to appear');
+  expect((await readArtistPublishState(page))?.registerTrackTransactions).toBe(1);
+  await dialog.getByRole('button', { name: 'Close', exact: true }).click();
+  await page.clock.runFor(31_000);
+  await expect(page.locator('[data-task="releases"]')).toContainText('E2E Published Signal');
+  await page.getByRole('button', { name: 'View publication status: Release published', exact: true }).click();
+  await expect(page.getByRole('dialog')).toContainText('Release published');
+  const after = await readArtistPublishState(page);
+  expect(after?.uploadRequests).toEqual(before?.uploadRequests);
+  expect(after?.registerTrackTransactions).toBe(1);
+});

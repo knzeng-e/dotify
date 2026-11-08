@@ -29,7 +29,8 @@ export function TransactionModal() {
     if (feedback.operationId && feedback.tone === 'pending') setDismissedOperation(feedback.operationId);
     else if (feedback.tone !== 'pending') setTransactionFeedback(null);
   };
-  const Icon = feedback.tone === 'pending' ? Disc3 : feedback.tone === 'success' ? CircleCheckBig : CircleAlert;
+  const catalogPending = feedback.operationKind === 'publication' && feedback.tone === 'pending' && Boolean(feedback.publicationVisibility);
+  const Icon = catalogPending || feedback.tone === 'success' ? CircleCheckBig : feedback.tone === 'pending' ? Disc3 : CircleAlert;
 
   async function copyFactValue(label: string, value: string) {
     try {
@@ -63,8 +64,8 @@ export function TransactionModal() {
       onClose={onClose}
     >
       <div className='modal-header'>
-        <div className='modal-icon' data-tone={feedback.tone}>
-          <Icon size={20} className={feedback.tone === 'pending' ? 'spin' : undefined} />
+        <div className='modal-icon' data-tone={catalogPending ? 'success' : feedback.tone}>
+          <Icon size={20} className={feedback.tone === 'pending' && !catalogPending ? 'spin' : undefined} />
         </div>
         {dismissible && (
           <button className='modal-close' type='button' onClick={onClose} aria-label='Close transaction feedback'>
@@ -73,7 +74,9 @@ export function TransactionModal() {
         )}
       </div>
       <div className='modal-copy'>
-        <p className='modal-eyebrow'>{feedback.tone === 'pending' ? 'In progress' : feedback.tone === 'success' ? 'Confirmed' : 'Attention'}</p>
+        <p className='modal-eyebrow'>
+          {catalogPending ? 'Approval confirmed' : feedback.tone === 'pending' ? 'In progress' : feedback.tone === 'success' ? 'Confirmed' : 'Attention'}
+        </p>
         <h2 id='transaction-modal-title'>{feedback.title}</h2>
         <p>{feedback.message}</p>
         {feedback.tone === 'pending' && feedback.operationId && (
@@ -81,7 +84,9 @@ export function TransactionModal() {
             {isPublication
               ? canCheckPreparation
                 ? 'Your draft is saved. Return to check preparation before approving the release.'
-                : 'You can close this window and keep the app open. Preparation and publication checks will continue.'
+                : catalogPending
+                  ? 'You can close this window and keep browsing. Visibility checks do not publish again.'
+                  : 'You can close this window and keep the app open. Preparation and publication checks will continue.'
               : 'Closing this window does not cancel the payment. You can return to check access without paying again.'}
           </p>
         )}
@@ -218,8 +223,8 @@ export function TransactionModal() {
       )}
       {dismissible && (
         <div className='modal-actions'>
-          {feedback.recoveryAction && (feedback.tone !== 'pending' || canCheckPreparation) && (
-            <button className='modal-action' type='button' onClick={feedback.recoveryAction.run}>
+          {feedback.recoveryAction && (feedback.tone !== 'pending' || canCheckPreparation || catalogPending) && (
+            <button className='modal-action' type='button' onClick={feedback.recoveryAction.run} disabled={feedback.recoveryAction.disabled}>
               {feedback.recoveryAction.label}
             </button>
           )}

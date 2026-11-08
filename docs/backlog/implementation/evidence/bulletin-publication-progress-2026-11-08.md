@@ -105,3 +105,11 @@ writes, key installation, policy edit, automatic renewal or service maintenance.
 audible playback and acceptable measured publication latency. Reducing RPC/proof
 round trips or tuning the pipeline requires its own measured review; do not drop
 finality, authority, retention or nonce verification to obtain a faster result.
+
+## Owner follow-up received 2026-11-09
+
+The owner subsequently confirms a Black Panther release registered, became
+visible in Music and played audibly. The screenshots show confusing delayed
+catalogue feedback after approval. The [artist-feedback follow-up](artist-publication-feedback-2026-11-09.md)
+is integrated into the same #413 candidate. This is one reported successful
+journey, not separate acceptance for both clients/artists; throughput remains open.

@@ -99,13 +99,16 @@ export function mountCatalogConfirmation() {
     const [reads, setReads] = useState(0);
     const [navigations, setNavigations] = useState(0);
     const [recoveryClicks, setRecoveryClicks] = useState(0);
+    const [tracks, setTracks] = useState<CatalogTrack[]>([]);
+    const holdReads = useRef(true);
     const resolveRead = useRef<(tracks: CatalogTrack[]) => void>(() => {
       throw new Error('Catalog read has not started');
     });
     const confirmation = usePublicationConfirmation({
-      tracks: [],
+      tracks,
       refresh: () => {
         setReads(value => value + 1);
+        if (!holdReads.current) return Promise.resolve([]);
         return new Promise<CatalogTrack[]>(resolve => {
           resolveRead.current = resolve;
         });
@@ -115,16 +118,17 @@ export function mountCatalogConfirmation() {
       activeFeedback: transactionFeedback,
       onPublished: () => setNavigations(value => value + 1)
     });
-    function confirm(otherTask: 'payment' | 'recovery') {
+    function confirm(otherTask?: 'payment' | 'recovery') {
       // Deliberately queue the other dialog in the same event as confirm(),
       // so checking a previous render's activeFeedback would not be enough.
-      setTransactionFeedback({
-        operationId: `${otherTask}:another-task`,
-        tone: otherTask === 'payment' ? 'pending' : 'error',
-        title: otherTask === 'payment' ? 'Approve another payment' : 'Another task needs attention',
-        message: 'This task owns its controls.',
-        ...(otherTask === 'recovery' ? { recoveryAction: { label: 'Recover another task', run: () => setRecoveryClicks(value => value + 1) } } : {})
-      });
+      if (otherTask)
+        setTransactionFeedback({
+          operationId: `${otherTask}:another-task`,
+          tone: otherTask === 'payment' ? 'pending' : 'error',
+          title: otherTask === 'payment' ? 'Approve another payment' : 'Another task needs attention',
+          message: 'This task owns its controls.',
+          ...(otherTask === 'recovery' ? { recoveryAction: { label: 'Recover another task', run: () => setRecoveryClicks(value => value + 1) } } : {})
+        });
       confirmation.confirm({
         runtime: account,
         hash,
@@ -134,12 +138,27 @@ export function mountCatalogConfirmation() {
     }
     return (
       <>
+        <button onClick={() => confirm()}>Confirm fixture approval</button>
+        <button onClick={confirmation.checkVisibility}>Check fixture visibility</button>
+        <button
+          onClick={() => {
+            holdReads.current = false;
+            resolveRead.current([]);
+          }}
+        >
+          Use empty catalog responses
+        </button>
+        <button onClick={() => setTracks([{ id: `${account}:${hash}`, hash, active: true, source: 'artist' } as CatalogTrack])}>
+          Reveal shared catalog track
+        </button>
         <button onClick={() => confirm('payment')}>Confirm behind payment</button>
         <button onClick={() => confirm('recovery')}>Confirm behind recovery</button>
         <button onClick={() => resolveRead.current([{ id: `${account}:${hash}`, hash, active: true, source: 'artist' } as CatalogTrack])}>
           Resolve catalog read
         </button>
-        <output data-testid='fixture-confirmation'>{JSON.stringify({ pending: confirmation.pending, status, reads, navigations, recoveryClicks })}</output>
+        <output data-testid='fixture-confirmation'>
+          {JSON.stringify({ pending: confirmation.pending, checking: confirmation.checking, status, reads, navigations, recoveryClicks })}
+        </output>
         <TransactionModal />
       </>
     );

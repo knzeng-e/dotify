@@ -1,5 +1,16 @@
 # Deployment Configuration Runbook
 
+## Artist visibility feedback candidate, 2026-11-09
+
+The [#407 client follow-up](../backlog/implementation/evidence/artist-publication-feedback-2026-11-09.md)
+requires matching Web/Product delivery, with no API, environment, CORS, mount,
+secret, allowance or signing change. Validate confirmed approval while catalogue
+visibility is delayed, read-only **Check visibility**, eventual automatic My
+releases handoff, disconnect/account switching and unrelated dialog ownership.
+Use an existing registered release; merging this code authorizes no new storage,
+registry transaction, payment or maintenance. Full-page pending-operation
+persistence and publication/indexing latency are not changed by this candidate.
+
 ## Full-release progress/deadline candidate, 2026-11-08
 
 The [#407 repair](../backlog/implementation/evidence/bulletin-publication-progress-2026-11-08.md)

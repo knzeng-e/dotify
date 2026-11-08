@@ -12,8 +12,21 @@ export const publicationIsVisible = (tracks: CatalogTrack[], pending: Pick<Pendi
       runtimeAddressFromTrackId(track)?.toLowerCase() === pending.runtime.toLowerCase()
   );
 
-// Reconciliation is read-only. The approved write is never called by a timer
-// or the recovery CTA; a hash collision in another artist runtime cannot pass.
+export function catalogVisibilityFeedback(base: TransactionFeedback, delayed: boolean, checking: boolean, check: () => void): TransactionFeedback {
+  return {
+    ...base,
+    tone: 'pending',
+    publicationVisibility: delayed ? 'delayed' : 'checking',
+    title: 'Release approved',
+    message: delayed
+      ? 'Your release is registered. It is taking longer to appear in Dotify. You can keep browsing and check visibility here; no further approval is needed.'
+      : 'Your approval is confirmed. Dotify is adding your release to the catalog; no further approval is needed.',
+    recoveryAction: { label: 'Check visibility', run: check, disabled: checking },
+    steps: buildReleasePublicationRoadmap('catalog', base.txHash)
+  };
+}
+
+// Timers and recovery only read the catalog. Registry approval is never repeated.
 export function usePublicationConfirmation({
   tracks,
   refresh,
@@ -30,42 +43,66 @@ export function usePublicationConfirmation({
   onPublished?: (account: `0x${string}`) => void;
 }) {
   const [pending, setPending] = useState<PendingPublication | null>(null);
+  const [checking, setChecking] = useState(false);
   const latest = useRef({ refresh, setFeedback, setStatus, activeFeedback, onPublished });
   useLayoutEffect(() => {
     latest.current = { refresh, setFeedback, setStatus, activeFeedback, onPublished };
   });
   const generation = useRef(0);
+  const activeRead = useRef<object | null>(null);
+  const delayedOperation = useRef<string | null>(null);
   const completedOperation = useRef<string | null>(null);
+  const checkVisibility = useCallback(() => {
+    if (activeRead.current) return;
+    setPending(value => (value ? { ...value } : value));
+  }, []);
+  const showVisibility = useCallback(
+    (item: PendingPublication, delayed: boolean, reading: boolean) => {
+      latest.current.setFeedback(previous =>
+        previous && previous.operationId !== item.feedback.operationId ? previous : catalogVisibilityFeedback(item.feedback, delayed, reading, checkVisibility)
+      );
+    },
+    [checkVisibility]
+  );
   const complete = useCallback((item: PendingPublication) => {
-    // Catalog updates and the fresh read can observe the same release together.
-    // Deliver completion once so a later observation cannot reopen the list.
     if (completedOperation.current === item.feedback.operationId) return;
     completedOperation.current = item.feedback.operationId ?? null;
+    generation.current += 1;
+    activeRead.current = null;
+    setChecking(false);
     setPending(null);
     latest.current.setStatus('Release published');
     if (latest.current.activeFeedback && latest.current.activeFeedback.operationId !== item.feedback.operationId) return;
-    latest.current.setFeedback({
-      ...item.feedback,
-      tone: 'success',
-      title: 'Release published',
-      message: 'Your release is now visible in Dotify.',
-      recoveryAction: undefined,
-      steps: buildReleasePublicationRoadmap('complete', item.feedback.txHash)
-    });
+    latest.current.setFeedback(previous =>
+      previous && previous.operationId !== item.feedback.operationId
+        ? previous
+        : {
+            ...item.feedback,
+            tone: 'success',
+            title: 'Release published',
+            message: 'Your release is now visible in Dotify.',
+            publicationVisibility: undefined,
+            recoveryAction: undefined,
+            steps: buildReleasePublicationRoadmap('complete', item.feedback.txHash)
+          }
+    );
     latest.current.onPublished?.(item.account);
   }, []);
-  // The approved runtime/hash belongs to the operation, not the current
-  // wallet. Public, read-only reconciliation survives account changes; keep
-  // publication blocked until this operation completes or is checked again.
+  // Music and the artist editor share these tracks. A later catalogue refresh
+  // completes the operation even after the bounded background checks have ended.
   useEffect(() => {
     if (pending && publicationIsVisible(tracks, pending)) complete(pending);
   }, [tracks, pending, complete]);
   useEffect(() => {
-    if (!pending) return;
+    if (!pending || completedOperation.current === pending.feedback.operationId) return;
     const current = ++generation.current;
     let timer: ReturnType<typeof setTimeout>;
     let attempts = 0;
     async function check() {
+      const token = {};
+      activeRead.current = token;
+      setChecking(true);
+      showVisibility(pending!, delayedOperation.current === pending!.feedback.operationId, true);
       try {
         const refreshed = await latest.current.refresh(pending!.hash, { fresh: true });
         if (generation.current !== current) return;
@@ -74,56 +111,44 @@ export function usePublicationConfirmation({
           return;
         }
       } catch {
-        /* A temporary read failure does not revoke the approved write. */
+        // A failed read cannot revoke a confirmed registry approval.
+      } finally {
+        if (generation.current === current && activeRead.current === token) {
+          activeRead.current = null;
+          setChecking(false);
+        }
       }
       if (generation.current !== current) return;
-      if (++attempts < 12) timer = setTimeout(check, 5000);
-      else {
-        latest.current.setStatus('Published on the network; catalog update delayed');
-        if (latest.current.activeFeedback && latest.current.activeFeedback.operationId !== pending!.feedback.operationId) return;
-        latest.current.setFeedback({
-          ...pending!.feedback,
-          tone: 'error',
-          title: 'Catalog update delayed',
-          message: 'Your approval is confirmed. Check visibility again without publishing or paying again.',
-          recoveryAction: {
-            label: 'Check visibility',
-            run: () => {
-              setPending(value => (value ? { ...value } : value));
-            }
-          }
-        });
-      }
+      attempts += 1;
+      const delayed = attempts >= 12 || delayedOperation.current === pending!.feedback.operationId;
+      if (delayed) delayedOperation.current = pending!.feedback.operationId ?? null;
+      latest.current.setStatus(delayed ? 'Release approved; still updating the catalog' : 'Release approved; updating the catalog');
+      showVisibility(pending!, delayed, false);
+      // Keep checking more slowly after the first minute, with a finite request
+      // budget. The observer and explicit read-only action remain available.
+      if (attempts < 28) timer = setTimeout(check, delayed ? 30_000 : 5000);
     }
     void check();
     return () => {
       generation.current += 1;
+      activeRead.current = null;
       clearTimeout(timer);
     };
-  }, [pending, complete]);
+  }, [pending, complete, showVisibility]);
   return {
     pending: Boolean(pending),
+    checking,
+    checkVisibility,
     confirm: (item: PendingPublication) => {
       item = {
         ...item,
         feedback: { ...item.feedback, operationKind: 'publication', operationId: item.feedback.operationId ?? `publication:${item.runtime}:${item.hash}` }
       };
       completedOperation.current = null;
+      delayedOperation.current = null;
       setPending(item);
-      setStatus('Making your release visible');
-      // Reconciliation must start even if the artist is using another task.
-      // Check ownership against the queued state, including updates made in
-      // this same render, before displaying catalog progress.
-      setFeedback(previous =>
-        previous && previous.operationId !== item.feedback.operationId
-          ? previous
-          : {
-              ...item.feedback,
-              tone: 'pending',
-              title: 'Making your release visible',
-              message: 'Your approval is confirmed. Dotify is refreshing the catalog; no further approval is needed.'
-            }
-      );
+      setStatus('Release approved; updating the catalog');
+      showVisibility(item, false, true);
     }
   };
 }

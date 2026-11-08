@@ -454,6 +454,7 @@ export function ArtistConsole() {
             additionalRoyaltySplits={additionalRoyaltySplits}
             rightsStatus={rightsStatus}
             isRegistering={isRegistering}
+            publicationVisibility={artistConsole.publicationVisibility}
             canReviewRelease={canReviewRelease}
             artistName={artistName}
             onUpdateArtistName={onUpdateArtistName}
