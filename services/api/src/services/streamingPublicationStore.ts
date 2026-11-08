@@ -105,12 +105,24 @@ export async function createStreamingPublicationStore(
   const selected: PublisherDependencies = deps ?? { loadSigner: sessionModule!.loadBulletinSigner, openSession: sessionModule!.openBulletinPublicationSession };
   await privateDirectory(profile.directory);
   await assertPublicationBinding(options.queue, profile);
-  const releases = profile.releasePolicy ? createReleasePublication(profile, async () => (await inventories(profile)).jobs) : undefined;
-  const unlock = await acquireBulletinPublisherLock(profile);
   let signer: BulletinSigner | undefined;
   let admittedRepair: Awaited<ReturnType<typeof readMetadataRepair>> = null;
   let closed = false;
   let activeSession: ReturnType<PublisherDependencies['openSession']> | undefined;
+  const idleInventories = async () => {
+    // A live local writer saves owner/job files in separate durable steps.
+    // Admission can use its atomic allowance ledger while those files change;
+    // final publication validates the complete history under the writer tail.
+    if (activeSession) return undefined;
+    try {
+      return await inventories(profile);
+    } catch (error) {
+      if (activeSession && (error as NodeJS.ErrnoException).code === 'ENOENT') return undefined;
+      throw error;
+    }
+  };
+  const releases = profile.releasePolicy ? createReleasePublication(profile, async () => (await idleInventories())?.jobs ?? []) : undefined;
+  const unlock = await acquireBulletinPublisherLock(profile);
   const release = async () => {
     signer?.dispose();
     await unlock();
@@ -273,8 +285,8 @@ export async function createStreamingPublicationStore(
       assert.ok(!closed, 'Publisher is closed');
       await assertPublicationBinding(options.queue, profile);
       if (releases) {
-        const state = await inventories(profile);
-        if (state.owner.activeJob && state.owner.activeJob !== name) throw new PublicationAdmissionError();
+        const state = await idleInventories();
+        if (state?.owner.activeJob && state.owner.activeJob !== name && !activeSession) throw new PublicationAdmissionError();
         return releases.check(scope, name, owner);
       }
       assertAudioAdmission(scope, (await inventories(profile)).jobs, name);
@@ -284,7 +296,7 @@ export async function createStreamingPublicationStore(
           async admitPreparation(scope: StreamingScope, owner: string) {
             assert.ok(!closed, 'Publisher is closed');
             await assertPublicationBinding(options.queue, profile);
-            if ((await inventories(profile)).owner.activeJob) throw new PublicationAdmissionError();
+            if ((await idleInventories())?.owner.activeJob && !activeSession) throw new PublicationAdmissionError();
             return releases.admit(scope, owner);
           }
         }

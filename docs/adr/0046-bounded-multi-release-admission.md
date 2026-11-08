@@ -63,9 +63,12 @@ or rolling an allowance requires a reviewed new generation, not editing counters
    retention checks before metadata storage; this does not redownload audio or
    silently renew it. A past `ready` flag alone is insufficient.
 4. Missing admission history, changed bindings, orphan inventories, wrong part
-   caps or a pending account barrier fail closed. A lost store response is
-   reconciled by the existing sender/nonce/CID engine; another release cannot
-   bypass it. No ambiguous submission is treated as unused budget.
+   caps or a pending account barrier fail closed. Pre-encoding admission may use the atomic allowance ledger while this process
+   has a known live writer; its owner/job journal files are saved in separate
+   durable steps. Every final publication validates the complete history under
+   the writer tail. Once the client closes, an unresolved barrier blocks new
+   admission. A lost store response is reconciled by the existing sender/nonce/CID
+   engine; another release cannot bypass it. No ambiguous submission is treated as unused budget.
 5. Storage readiness does not register the release or grant listening access.
    The artist still signs runtime registration, catalogue readback confirms it,
    and the signed key service enforces the canonical access policy.

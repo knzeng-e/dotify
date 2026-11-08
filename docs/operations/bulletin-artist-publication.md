@@ -237,3 +237,10 @@ nonce rewind, automatic refund, Pinata fallback or premature registration. Then
 prepare a concrete maintenance/network budget and validate actual artist wallet
 approval, catalogue readback and sound on Web/Desktop. #407 stays open until this
 matching activation and acceptance.
+
+The existing storage account also has DotNS authority. Unattended admission and
+independent operator transactions must not race that same account cursor. Use
+reviewed writer quiescence for other account writes; an idle observation alone
+does not reserve the account. A separate storage account remains the isolation
+option, but this candidate neither changes the owner-selected account nor
+transfers/provisions another key.

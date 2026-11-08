@@ -43,6 +43,53 @@ function metadataFor(c: Awaited<ReturnType<typeof assetFixture>>, contentHash: s
   return { ...c.metadata, track: { ...c.metadata.track, contentHash }, assets: { ...c.metadata.assets, audioCID, coverCID } };
 }
 const filesFor = (value: unknown) => [{ path: 'release.json', bytes: Buffer.from(JSON.stringify(value)) }];
+it('admits another release while this process is actively writing, then serializes both through the same cursor', async t => {
+  const c = await assetFixture(t, true),
+    original = c.transport.store;
+  let release = () => {},
+    entered = () => {},
+    first = true;
+  const gate = new Promise<void>(resolve => {
+    release = resolve;
+  });
+  const started = new Promise<void>(resolve => {
+    entered = resolve;
+  });
+  c.transport.store = async (...args) => {
+    if (first) {
+      first = false;
+      entered();
+      await gate;
+    }
+    return original(...args);
+  };
+  const store = await createStreamingPublicationStore(c.options, c.deps),
+    queue = queueFor(c, store);
+  await queue.start(false);
+  try {
+    const one = Buffer.alloc(64, 8),
+      two = Buffer.alloc(64, 9);
+    const job = await queue.enqueue({ owner: c.owner.address, scope: scopeFor(one, c), master: one });
+    const publishing = queue.runNext();
+    await started;
+    let next;
+    try {
+      next = await queue.enqueue({ owner: c.owner.address, scope: scopeFor(two, c), master: two });
+    } finally {
+      release();
+    }
+    await publishing;
+    assert(next);
+    assert.equal(queue.get(job.id, c.owner.address, c.policy.scope.chainId)?.state, 'ready');
+    await queue.runNext();
+    assert.equal(queue.get(next.id, c.owner.address, c.policy.scope.chainId)?.state, 'ready');
+    assert(c.peak <= 2);
+  } finally {
+    release();
+    await queue.stop();
+    await store.close();
+  }
+});
 it('refuses an audio graph beyond its whole-part cap before any write session can store it', async t => {
   const c = await assetFixture(t, true, { maxBytes: 512 * 1024, maxTransactions: 1, minimumLifetimeBlocks: 100 });
   const store = await createStreamingPublicationStore(c.options, c.deps),
