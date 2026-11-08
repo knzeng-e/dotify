@@ -8,6 +8,7 @@ import { BULLETIN_MEDIA_GENESIS, validBulletinMediaRpc } from './bulletinHttpRea
 import { budgetSchema, initializeBulletinMediaStore, integer, load, privateDirectory, save } from './bulletinMediaState.js';
 import { pipelineSchema } from './bulletinPipeline.js';
 import { initializeStreamingJobs } from './streamingJobs.js';
+import { initializeReleaseAdmission, releasePolicySchema } from './bulletinReleaseAdmission.js';
 const absolute = z.string().refine(isAbsolute);
 // A one-release operator pilot, not an alternative source of access authority.
 const pilotScope = z
@@ -35,10 +36,19 @@ export const publisherProfileSchema = z
     priorRenewalReserve: z.object({ transactions: integer, bytes: integer }).strict(),
     // When present, the immutable profile admits this scope and one durable job
     // for its entire lifetime, including after restart/discard/completion.
-    pilotScope: pilotScope.optional()
+    pilotScope: pilotScope.optional(),
+    releasePolicy: releasePolicySchema.optional()
   })
   .strict()
   .superRefine((value, ctx) => {
+    if (value.pilotScope && value.releasePolicy) ctx.addIssue({ code: 'custom', message: 'Select pilot or multi-release admission, never both' });
+    if (
+      value.releasePolicy &&
+      (value.budget.maxBytes + value.releasePolicy.cover.maxBytes + value.releasePolicy.metadata.maxBytes > value.releasePolicy.total.maxBytes ||
+        value.budget.maxTransactions + value.releasePolicy.cover.maxTransactions + value.releasePolicy.metadata.maxTransactions >
+          value.releasePolicy.total.maxTransactions)
+    )
+      ctx.addIssue({ code: 'custom', message: 'Aggregate allowance must cover one complete release' });
     if (resolve(value.seedFile).startsWith(`${resolve(value.directory)}/`) || resolve(value.seedFile) === resolve(value.directory))
       ctx.addIssue({ code: 'custom', message: 'Keep the signing key separate from publication inventories' });
   });
@@ -81,4 +91,5 @@ export async function initializeBulletinPublisher(queue: string, input: Bulletin
   await initializeStreamingJobs(queue);
   await save(profile.directory, 'publisher.json', publicationBinding(profile));
   await save(queue, 'publication-store.json', publicationBinding(profile));
+  if (profile.releasePolicy) await initializeReleaseAdmission(profile.directory, publicationBinding(profile).profileSha256);
 }

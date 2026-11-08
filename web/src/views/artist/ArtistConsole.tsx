@@ -206,6 +206,10 @@ export function ArtistConsole() {
       setDurationSeconds(await measureAudioDuration(nextUrl));
 
       catalog.setAudioSource(nextUrl);
+      if (isBackendConfigured() && catalog.fileHash !== result.hash) {
+        catalog.coverUploadRef.current = null;
+        catalog.setCoverCID('');
+      }
       catalog.setFileHash(result.hash);
       setTitle(nextTitle);
       catalog.setSelectedTrackId('draft-upload');
@@ -259,10 +263,19 @@ export function ArtistConsole() {
       catalog.objectUrlsRef.current.add(nextUrl);
       catalog.setCoverSource(nextUrl);
       setCoverFile(file);
+      if (isBackendConfigured() && !catalog.fileHash) {
+        artistConsole.setRightsStatus('Cover ready for your release');
+        return;
+      }
       artistConsole.setRightsStatus(uploadStatusMessage('cover', 'uploading'));
       const uploadIdentity = await getUploadIdentity();
 
-      const uploadPromise = uploadFileToPinata(file, file.name, { app: 'dotify', type: 'cover' }, uploadIdentity)
+      const uploadPromise = uploadFileToPinata(
+        file,
+        file.name,
+        { app: 'dotify', type: 'cover' },
+        { ...uploadIdentity!, contentHash: catalog.fileHash ?? undefined }
+      )
         .then(cid => {
           if (catalog.coverUploadRef.current !== uploadPromise) return cid;
           catalog.setCoverCID(cid);

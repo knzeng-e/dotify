@@ -1,5 +1,16 @@
 # Dotify product memory
 
+## Multi-release publication candidate, 2026-11-08
+
+#409 is merged. [The next #407 candidate](../adr/0046-bounded-multi-release-admission.md)
+allows successive artist releases inside a fresh explicit aggregate policy,
+reserving audio/cover/metadata together and preserving claims across recovery.
+Matched clients bind covers to the track; metadata cannot substitute another
+release's assets or rely on expired retention. Local synthetic proof is separate
+from reviewed generation migration, quota/renewal obligations and real artist
+Web/Desktop acceptance. No live profile, signer, service or musical asset is
+changed. Current deployment remains the scoped pilot.
+
 ## Owner execution plan, 2026-11-08
 
 [New-release publication admission #407](../backlog/bulletin-publication-admission.md)

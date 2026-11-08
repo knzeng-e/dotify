@@ -994,7 +994,9 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
           mismatchMessage: preparedAudioRuntimeMismatchMessage
         }),
         resolvePreparedUpload(coverUploadRef, () =>
-          coverFile ? uploadFileToPinata(coverFile, coverFile.name, { app: 'dotify', type: 'cover' }, uploadIdentity) : Promise.resolve('')
+          coverFile
+            ? uploadFileToPinata(coverFile, coverFile.name, { app: 'dotify', type: 'cover' }, { ...uploadIdentity!, contentHash: fileHash })
+            : Promise.resolve('')
         )
       ]);
 

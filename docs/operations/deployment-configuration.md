@@ -3898,3 +3898,31 @@ they are not automatically rewritten or resumed by deployment.
 General artist publication remains disabled under the deployed synthetic profile.
 A multi-release policy needs separate review, measured budgets, retained
 obligations and owner-approved activation; changing the error is not that rollout.
+
+## Bounded multi-release admission candidate — 2026-11-08
+
+[ADR 0046](../adr/0046-bounded-multi-release-admission.md) and the
+[publication runbook](bulletin-artist-publication.md#multi-release-candidate--2026-11-08)
+describe the optional inline `releasePolicy` in a **fresh** immutable publisher
+profile. No new environment variable or service is added. Both
+`STREAMING_AUDIO_STORAGE` and `PUBLIC_ASSET_STORAGE` must select `bulletin`;
+`BULLETIN_PUBLICATION_PROFILE` selects that generation and
+`BULLETIN_PUBLIC_ASSET_POLICY` must be unset. Existing pilot configurations keep
+their asset file and unchanged bindings. Missing policy selection fails before
+a signer is loaded, rather than silently enabling public assets.
+
+The fresh initializer adds a private, fsynced `release-admission.json`. Include it
+and scoped `public-metadata-<release-identity>.json` sidecars in coherent encrypted
+state backups. A compatible server reader, permanent encryption nonce history,
+retained/attempted obligations and exclusive storage-account ownership are required
+for generation migration/rollback. Never recreate lost admission state, remove a
+pending account barrier or copy a queue to the new provider binding to bypass a
+failure. This code does not migrate or activate live custody.
+
+Matched clients must send cover release identity; legacy requests cannot consume
+a multi-release allowance without it. Repeated publications should use the same
+ordinary artist journey, with no Bulletin checkbox and explicit wallet registry
+approval. Validate two releases, concurrent cap pressure, restart/uncertain-store
+recovery, wrong audio/cover references and canonical dependency-retention failure
+before promotion. A successful local rehearsal is not physical Host acceptance or
+proof that existing live authorization/renewal quotas suffice.
