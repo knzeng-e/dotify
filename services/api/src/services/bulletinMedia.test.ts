@@ -962,3 +962,25 @@ test('the last nonce observation cannot advance readiness past child retention e
   await assert.rejects(c.store.pin(c.files, c.job, signal()), /retention/);
   assert.equal((await c.store.inventory(c.job)).ready, false);
 });
+
+test('complete release waves outlive the pilot deadline and report durable receipts, not pending attempts', async t => {
+  const c = await fixture(t, 20);
+  mockDeadlineClock(t);
+  const updates: Array<{ storedBlocks: number; totalBlocks: number }> = [];
+  const actualStore = c.transport.store.bind(c.transport);
+  c.transport.store = async (block, intent) => {
+    t.mock.timers.tick(10_000);
+    return actualStore(block, intent);
+  };
+  const root = await createBulletinMediaStore({ ...c.options, publicationTimeoutMs: 2 * 60 * 60_000, onProgress: progress => updates.push(progress) }).pin(
+    c.files,
+    c.job,
+    signal()
+  );
+  assert.equal(root, c.graph.root);
+  assert.ok(c.transport.writes.length > 30, 'Synthetic waves must exceed five minutes');
+  assert.equal(updates[0].storedBlocks, 0);
+  assert.ok(updates.some(value => value.storedBlocks > 0 && value.storedBlocks < value.totalBlocks));
+  assert.deepEqual(updates.at(-1), { storedBlocks: c.graph.blocks.length, totalBlocks: c.graph.blocks.length });
+  assert.equal((await c.store.inventory(c.job)).ready, true);
+});

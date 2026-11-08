@@ -1,5 +1,24 @@
 # Deployment Configuration Runbook
 
+## Full-release progress/deadline candidate, 2026-11-08
+
+The [#407 repair](../backlog/implementation/evidence/bulletin-publication-progress-2026-11-08.md)
+requires matched Web/Product and API/custody source. It adds no environment,
+CORS, mount, secret or allowance setting. Whole-release mode selects a two-hour
+overall publication cap; legacy pilot/Pinata
+retain five minutes. Per-read/store/finality deadlines remain unchanged, now
+strongly owned through Node GC. HTTP uploads still have a five-minute client
+wait; backend assets are ordered, and timeout/idle polling hands back a saved,
+explicitly resumable draft rather than claiming storage failure or success.
+
+Before a later rollout, verify no active writer/pending account barrier, preserve
+all admission/nonce/receipt histories and inspect both existing draft jobs. Do
+not interrupt or retry their current broadcasts. Validate owner-only confirmed
+counts, final verification, same-draft continuation through cover/metadata and
+wallet registration on Web/Desktop, then catalogue and audible readback. Counts
+and a ready audio graph alone do not prove a published release. This candidate
+does not authorize another upload slot, renewal, key change or maintenance.
+
 ## Room preparation delivered in 0.1.80, 2026-11-07
 
 [Web and Product 0.1.80](../backlog/implementation/evidence/product-0.1.80-rollout-2026-11-07.md) deliver #404 from frozen `30702580`, based on

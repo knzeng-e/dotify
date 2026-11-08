@@ -1,3 +1,5 @@
+import { withDeadline } from './deadline.js';
+import type { BulletinPublicationProgress } from './bulletinLimits.js';
 import { randomUUID } from 'node:crypto';
 import { mkdir, open, readFile, readdir, rename, rm, stat, lstat } from 'node:fs/promises';
 import path from 'node:path';
@@ -55,6 +57,7 @@ const jobSchema = z
 export const streamingJobsSchema = z.object({ schema: z.literal('dotify.streaming.jobs.v1'), jobs: z.array(jobSchema).max(MAX_JOBS) }).strict();
 export type StreamingJob = z.infer<typeof jobSchema>;
 export type StreamingJobView = Pick<StreamingJob, 'id' | 'state' | 'attempts' | 'updatedAt' | 'reason'> & {
+  progress?: BulletinPublicationProgress;
   failure?: StreamingFailure;
   result?: { ref: string; runtimeAddress: string; contentHash: string; keyVersion: string };
 };
@@ -110,7 +113,8 @@ export type StreamingJobDeps = {
   deriveKey: (scope: StreamingScope) => Buffer | null;
   authority: (owner: string, runtime: string, chainId: number) => Promise<boolean>;
   transcode: (master: Buffer, signal?: AbortSignal) => Promise<EncodedStreamingAudio>;
-  pin: (files: PinataFile[], name: string, signal: AbortSignal) => Promise<string>;
+  publicationTimeoutMs?: number;
+  pin: (files: PinataFile[], name: string, signal: AbortSignal, onProgress?: (progress: BulletinPublicationProgress) => void) => Promise<string>;
   /** Reject deletion while a storage transaction or retained ciphertext needs reconciliation. */
   canDiscard?: (name: string) => Promise<boolean>;
   /** Allowlisted diagnostics only. Never pass raw errors, source data or keys. */
@@ -122,6 +126,7 @@ export class StreamingJobs {
   // Diagnostics are not custody state: keep the on-disk v1 schema unchanged
   // so rollback never requires rewriting encrypted jobs or nonce reservations.
   private failures = new Map<string, StreamingFailure>();
+  private progress = new Map<string, BulletinPublicationProgress>();
   private serial: Promise<unknown> = Promise.resolve();
   private running: Promise<void> | null = null;
   private timer: ReturnType<typeof setInterval> | null = null;
@@ -228,6 +233,7 @@ export class StreamingJobs {
       state: job.state,
       attempts: job.attempts,
       updatedAt: job.updatedAt,
+      ...(job.state === 'publishing' && this.progress.has(job.id) ? { progress: { ...this.progress.get(job.id)! } } : {}),
       ...(job.reason ? { reason: job.reason } : {}),
       ...(job.state === 'failed' && this.failures.has(job.id) ? { failure: this.failures.get(job.id) } : {}),
       ...(job.state === 'ready' && job.ref
@@ -480,10 +486,15 @@ export class StreamingJobs {
         files.push({ path: object.path, bytes });
       }
       files.push({ path: 'manifest.json', bytes: Buffer.from(JSON.stringify(manifest)) });
-      const publishSignal = AbortSignal.any([signal, AbortSignal.timeout(5 * 60_000)]);
       stage = 'storage';
-      const cid = await this.deps.pin(files, `stream-${job.id}`, publishSignal);
-      publishSignal.throwIfAborted();
+      this.progress.delete(job.id);
+      const cid = await withDeadline(signal, this.deps.publicationTimeoutMs ?? 5 * 60_000, async publishSignal => {
+        const result = await this.deps.pin(files, `stream-${job.id}`, publishSignal, progress => {
+          this.progress.set(job.id, { ...progress });
+        });
+        publishSignal.throwIfAborted();
+        return result;
+      });
       if (!/^(Qm[1-9A-HJ-NP-Za-km-z]{44}|b[a-z2-7]{20,110})$/.test(cid)) throw new Error('Invalid storage directory');
       stage = 'persistence';
       const version = job.scope.keyVersion.replace('dotify-content-', '');

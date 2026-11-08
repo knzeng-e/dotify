@@ -1,6 +1,7 @@
 // RPC-backed Bulletin reads and exact receipt verification. No endpoint or signer
 // is chosen here. The optional writer is supplied by the separately owned client.
 import assert from 'node:assert/strict';
+import { createDeadline } from './deadline.js';
 import { Bytes, Option, u32 } from '@polkadot-api/substrate-bindings';
 import { CID } from 'multiformats/cid';
 import { z } from 'zod';
@@ -106,7 +107,8 @@ export function createBulletinRpcTransport(options: {
   };
   const within = async <T>(owner: AbortSignal, read: (signal: AbortSignal) => Promise<T>, timeoutMs = BULLETIN_RPC_READ_MS): Promise<T> => {
     owner.throwIfAborted();
-    const signal = AbortSignal.any([owner, AbortSignal.timeout(timeoutMs)]);
+    const deadline = createDeadline(owner, timeoutMs);
+    const signal = deadline.signal;
     let abort: () => void = () => undefined;
     try {
       return await Promise.race([
@@ -122,6 +124,7 @@ export function createBulletinRpcTransport(options: {
       ]);
     } finally {
       signal.removeEventListener('abort', abort);
+      deadline.dispose();
     }
   };
   return {

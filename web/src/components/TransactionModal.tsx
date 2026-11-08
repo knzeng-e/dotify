@@ -41,6 +41,7 @@ export function TransactionModal() {
   }
 
   const isPublication = feedback.operationKind === 'publication';
+  const canCheckPreparation = isPublication && feedback.recoveryAction?.checkPreparation && !feedback.txHash;
   if (feedback.operationId && dismissedOperation === feedback.operationId && (!isPublication || feedback.tone !== 'error')) {
     return (
       <button className='payment-status-resume' type='button' onClick={() => setDismissedOperation(null)}>
@@ -78,7 +79,9 @@ export function TransactionModal() {
         {feedback.tone === 'pending' && feedback.operationId && (
           <p>
             {isPublication
-              ? 'You can close this window and keep the app open. Preparation and publication checks will continue.'
+              ? canCheckPreparation
+                ? 'Your draft is saved. Return to check preparation before approving the release.'
+                : 'You can close this window and keep the app open. Preparation and publication checks will continue.'
               : 'Closing this window does not cancel the payment. You can return to check access without paying again.'}
           </p>
         )}
@@ -215,7 +218,7 @@ export function TransactionModal() {
       )}
       {dismissible && (
         <div className='modal-actions'>
-          {feedback.recoveryAction && feedback.tone !== 'pending' && (
+          {feedback.recoveryAction && (feedback.tone !== 'pending' || canCheckPreparation) && (
             <button className='modal-action' type='button' onClick={feedback.recoveryAction.run}>
               {feedback.recoveryAction.label}
             </button>

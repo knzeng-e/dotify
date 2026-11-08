@@ -1,6 +1,7 @@
 // Opt-in custody storage seam. Transport/signing are supplied explicitly; the
 // default app continues using Pinata. No SDK, credentials or network defaults.
 import assert from 'node:assert/strict';
+import { createDeadline, withDeadline } from './deadline.js';
 import { open, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { buildBulletinMediaGraph, verifyBulletinBlock, type BulletinBlock } from './bulletinGraph.js';
@@ -77,6 +78,8 @@ export function createBulletinMediaStore(options: {
   pipeline?: Partial<BulletinPipelineLimits>;
   /** Internal composition only; public inputs never choose a graph builder. */
   buildGraph?: typeof buildBulletinMediaGraph;
+  publicationTimeoutMs?: number;
+  onProgress?: (progress: { storedBlocks: number; totalBlocks: number }) => void;
 }) {
   const selected = identitySchema.parse(options.identity);
   const budget = budgetSchema.parse(options.budget);
@@ -89,7 +92,8 @@ export function createBulletinMediaStore(options: {
   const call = async <T>(signal: AbortSignal, action: (bounded: AbortSignal) => Promise<T>, timeoutMs = BULLETIN_CUSTODY_READ_MS): Promise<T> => {
     signal.throwIfAborted();
     owns();
-    const bounded = AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)]);
+    const deadline = createDeadline(signal, timeoutMs);
+    const bounded = deadline.signal;
     let abort: () => void = () => undefined;
     try {
       return await Promise.race([
@@ -105,6 +109,7 @@ export function createBulletinMediaStore(options: {
       ]);
     } finally {
       bounded.removeEventListener('abort', abort);
+      deadline.dispose();
     }
   };
   const owner = async () => {
@@ -117,7 +122,7 @@ export function createBulletinMediaStore(options: {
     owns();
     return state;
   };
-  return {
+  const media = {
     /** Last recorded inventory, not a promise of present chain retention. */
     async inventory(job: string): Promise<BulletinMediaInventory> {
       jobId.parse(job);
@@ -129,8 +134,7 @@ export function createBulletinMediaStore(options: {
       assert.equal(state.genesis, selected.genesis);
       return state;
     },
-    async pin(files: PinataFile[], name: string, ownerSignal: AbortSignal): Promise<string> {
-      const signal = AbortSignal.any([ownerSignal, AbortSignal.timeout(5 * 60_000)]);
+    async pin(files: PinataFile[], name: string, signal: AbortSignal): Promise<string> {
       jobId.parse(name);
       signal.throwIfAborted();
       const initialOwner = await owner();
@@ -175,7 +179,15 @@ export function createBulletinMediaStore(options: {
         }
         for (const key of Object.keys(binding) as (keyof typeof binding)[])
           assert.deepEqual(state[key], binding[key], 'Bulletin job identity, budget or pipeline changed');
-        const persist = () => save(directory, `${name}.json`, state);
+        const persist = async () => {
+          await save(directory, `${name}.json`, state);
+          // Report only durably reconciled receipts, never attempted/pending sends.
+          // All blocks confirmed still precedes final verification and readiness.
+          options.onProgress?.({
+            storedBlocks: graph.blocks.filter(block => state.receipts[block.cid]).length,
+            totalBlocks: graph.blocks.length
+          });
+        };
         const byCid = new Map(graph.blocks.map(b => [b.cid, b]));
         const intents = Object.entries(state.pending);
         assert.ok(
@@ -390,5 +402,10 @@ export function createBulletinMediaStore(options: {
         await sync(directory);
       }
     }
+  };
+  return {
+    ...media,
+    pin: (files: PinataFile[], name: string, signal: AbortSignal) =>
+      withDeadline(signal, options.publicationTimeoutMs ?? 5 * 60_000, bounded => media.pin(files, name, bounded))
   };
 }
