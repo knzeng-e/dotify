@@ -7,7 +7,7 @@ whole-release policy in [ADR 0046](../adr/0046-bounded-multi-release-admission.m
 audio/cover/metadata share a scoped allowance and global cap; claims survive
 restart and cleanup, and lost store responses reuse receipts/ciphertext. Cover
 identity is carried by matched clients, and metadata must reference its own ready
-objects with fresh canonical retention. The old pilot remains the deployed mode.
+objects with fresh canonical retention. The [local evidence](implementation/evidence/bulletin-release-admission-2026-11-08.md) records the tests. The old pilot remains the deployed mode.
 
 Review, generation migration/nonce-history carry-forward, measured activation
 budget, coherent restore and actual artist Web/Desktop acceptance remain open.
