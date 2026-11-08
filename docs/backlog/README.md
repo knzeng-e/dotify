@@ -4,15 +4,17 @@
 
 Follow [publication and listening readiness](implementation/listening-and-publication-readiness.md):
 #407 new-release admission first, then #395 startup and #388 artwork, followed by
-#406 CASH-tip feasibility and #408 access settlement research. The deployed
-synthetic pilot does not admit general artist releases. This is an implementation
-plan; new musical writes, maintenance, payments and activation remain separately
-bounded. Project 5 tracks progress; older dated checkpoints below retain their
-historical scope.
+#406 CASH-tip feasibility and #408 access settlement research. The
+[0.1.81 deployment](implementation/evidence/product-0.1.81-rollout-2026-11-08.md)
+activates two complete new releases globally across the reviewed artist scopes.
+Actual fresh artist publication/listening acceptance remains open; further musical
+writes, maintenance and payments stay separately bounded. Project 5 tracks
+progress; older dated checkpoints below retain their historical scope.
 
 The owner selected a [fresh development publication/key domain](../operations/bulletin-fresh-development.md)
 for #407, replacing migration of abandoned test drafts. Existing Bulletin account
-obligations remain; the new setup is not activated by merging code.
+obligations remain. The owner separately approved and activated the matched
+0.1.81 setup; real artist acceptance remains before #407 closes.
 
 ## Room preparation delivered in 0.1.80, 2026-11-07
 

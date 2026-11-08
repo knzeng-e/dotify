@@ -15,14 +15,13 @@ spine, conservation and access gates remain prerequisites for a public pilot.
 
 ## Current implementation checkpoint, 2026-11-08
 
-#409/#410 are merged with green CI. The #407 implementation supplies
-[bounded multi-release admission](../../adr/0046-bounded-multi-release-admission.md),
-including matched cover identity, durable aggregate allowances and recovery. The
-live scoped pilot remains unchanged. The owner selected fresh publication/key
-custody for development, replacing migration of abandoned test drafts. Fresh
-setup, measured operational approval and actual Web/Desktop artist acceptance
-are still required before
-moving on to the Room/artwork implementation slices.
+[Web/Product/API 0.1.81](evidence/product-0.1.81-rollout-2026-11-08.md) delivers
+merged #409–#411 and activates the reviewed fresh v3 domain with two complete
+release slots globally. Custody encrypts; both access-checking API replicas share
+the same retained/new version map. Old drafts are not migrated and old read keys
+and account obligations remain. App writes/records and runtime readiness pass.
+Actual ordinary artist publication, wallet registration, catalogue and audible
+Web/Desktop/mobile checks still keep #407 open before the Room/artwork slices.
 
 ## Evidence and measurable decisions
 

@@ -1,7 +1,11 @@
 # 0047 — Start fresh for development publication
 
-Date: 2026-11-08. Status: implementation candidate; no live activation.
+Date: 2026-11-08. Status: active bounded development deployment in 0.1.81; actual artist/public-pilot acceptance remains open.
 Refs #407 and merged #410 / ADR 0046.
+
+## Delivery checkpoint
+
+[0.1.81 delivery](../backlog/implementation/evidence/product-0.1.81-rollout-2026-11-08.md) records owner-approved activation, retained keys/state, exact budgets and real acceptance still required.
 
 ## Decision
 
