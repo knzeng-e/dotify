@@ -3,7 +3,8 @@
 ## Identity and outcome
 
 Issue #407; branch `feat/bulletin-generation-migration` from merged/tested dev
-`21f3f788` (#410). [ADR 0047](../../../adr/0047-offline-bulletin-generation-staging.md)
+`21f3f788` (#410). Implementation tested: `535792b0433bfd09720e91dafcdce8427d20e19f`;
+subsequent evidence-only changes do not change code. [ADR 0047](../../../adr/0047-offline-bulletin-generation-staging.md)
 and [operator runbook](../../../operations/bulletin-generation-migration.md) define
 the implementation and actual activation gates.
 
@@ -22,8 +23,8 @@ state is generated in temporary directories. No live source, private seed,
 content vault, artist file, Bulletin endpoint or deployed service is used.
 
 - API suite: **360 tests / 42 suites pass**, including seven new migration tests.
-  A subsequent package-digest change is checked by the targeted migration tests
-  and API build/typecheck; final CI remains authoritative for the combined source.
+  This final-source run includes the externally retained package-digest check;
+  PR CI remains authoritative for the full repository matrix.
 - Targeted migration tests prove exact declared-history copies, nonce union and
   rejection of a reused old generation, source immutability, conservative
   multi-generation floors and the greatest account cursor.
