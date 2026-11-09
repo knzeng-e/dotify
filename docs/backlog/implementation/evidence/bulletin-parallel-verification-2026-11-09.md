@@ -104,3 +104,25 @@ is independently reproducible with the committed captured-receipt fixture.
   actual read-only execution pass.
 - No production DB fault, maintenance, signing or quota/admission change occurs.
   Rollout is a later separately reviewed custody image update.
+
+## CI follow-up: Room measurement readiness
+
+The first candidate CI passed API, builds and the other gates, but one of 331
+core browser journeys failed before its first audible-energy assertion
+(run `42668686444`, job `129339785720`). Its trace shows a running measurement
+AudioContext and a live/enabled receiver track that remains `muted`, meaning
+that the receiver has not received media. The **In sync** label is emitted when
+`ontrack` attaches the stream; it is not a transport-connection barrier.
+
+`web/e2e/room-sync.spec.ts` now waits for the current receiver's live track to
+become unmuted before attaching the meter or driving the host's first Play.
+A paused sender can transmit silence, so this condition does not require
+starting playback. All audible-energy, repeated host-pause silence, listener
+local-pause and stream-identity assertions remain unchanged, as do deadlines
+and retries. Failure diagnostics also record current-stream identity and Room
+quality events. This is a test setup correction, not a production audio change.
+
+Local validation: the two Room-sync journeys each pass five repetitions with
+two workers (**10/10**, pinned lockfile dependencies), preserving real Web Audio
+and WebRTC energy/silence checks. Targeted ESLint, Prettier, whitespace and
+offline backlog checks pass. The replacement full CI run remains a separate gate.
