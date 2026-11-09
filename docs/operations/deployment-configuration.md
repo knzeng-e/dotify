@@ -57,6 +57,42 @@ wallet registration on Web/Desktop, then catalogue and audible readback. Counts
 and a ready audio graph alone do not prove a published release. This candidate
 does not authorize another upload slot, renewal, key change or maintenance.
 
+## Fresh development publication active in 0.1.81, 2026-11-08
+
+[The verified rollout](../backlog/implementation/evidence/product-0.1.81-rollout-2026-11-08.md)
+publishes Web/Product and updates existing API/custody from frozen `1394503f`.
+Two new releases globally share the reviewed audio/cover/metadata allowance;
+actual artist acceptance remains open under #407. Source CI, final image UID 1000,
+all application dependencies/records and all three runtime readiness checks pass.
+
+Custody selects `/data/contributions/bulletin-development-20261108/profile.json`
+and its `queue`, Bulletin audio/public assets and active `dotify-content-key-v3`;
+the old standalone asset policy is unset. Both key-serving edge API replicas also
+select v3 and the identical new private version mapping. Retain compatibility v2
+secrets unchanged. Uploads/contributions are proxied to custody; key delivery
+runs on edge after access checks, so do not install a new content version only
+on custody. No content key belongs in the frontend or isolated encoder.
+
+Both Fly apps use immutable image
+`registry.fly.io/dotify-api@sha256:c515d84b820eb23671b246163b2e1021ca9efeb71770c4bba93bc58576dc7f47`.
+Same machines, volumes, sessions, database, origins, resources, worker and signing
+seed are retained; signaling/encoder are unchanged. During maintenance flyctl
+kept an omitted/empty HTTP-check map, so initialization stopped before key creation.
+The complete reviewed config was applied through the Machines API under a lease;
+serving checks were restored on restart. Verify effective configuration, not only
+a successful CLI exit. Private key mappings entered Fly secrets over stdin and
+were applied by machine update, never printed or placed in argv/local files.
+
+Application delivery used 12 stores / 3,587,875 bytes, eight one-off renewals /
+5,899,777 bytes and two DotNS signatures. New publisher nonce floor is 1290.
+Preserve prior 431 / 150,484,205 renewal obligations plus all app dependencies:
+451 / 159,971,857. The full musical maximum projects 1,163 / 311,097,873 future
+obligations, within the owner-approved aggregate allowance. No recurring renewal
+is scheduled. Before/after new-domain volume snapshots are complete; no off-volume
+restore is claimed. Any rollback preserves new master, nonce/admission journals,
+account cursor and receipts. The catalogue/old queue is not reset.
+
+
 ## Room preparation delivered in 0.1.80, 2026-11-07
 
 [Web and Product 0.1.80](../backlog/implementation/evidence/product-0.1.80-rollout-2026-11-07.md) deliver #404 from frozen `30702580`, based on

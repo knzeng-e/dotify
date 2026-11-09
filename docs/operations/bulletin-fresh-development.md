@@ -6,6 +6,15 @@ stop recovering old test drafts and start publication in a new key domain.
 This command prepares private files; it does not stop custody, install a key,
 select the new profile, create a runtime or submit transactions.
 
+## Current bounded development activation
+
+[Web/Product/API 0.1.81](../backlog/implementation/evidence/product-0.1.81-rollout-2026-11-08.md)
+activates two complete new releases globally under the separately approved
+allowance. Custody and the key-serving edge API replicas use identical active v3
+mapping with v2 retained. Neither a repeat of this initializer nor deleting its
+journals can replenish that allowance. Actual ordinary artist acceptance remains
+open under #407; the generic preparation/approval boundaries below still apply.
+
 ## Review the new input
 
 Build the API and run as the owner of the private persistent state (UID 1000 in
