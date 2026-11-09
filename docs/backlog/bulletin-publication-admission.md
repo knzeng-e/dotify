@@ -4,8 +4,10 @@ The [0.1.82 delivery](implementation/evidence/product-0.1.82-rollout-2026-11-09.
 publishes merged #413 to Web/Product/API and custody with independent source,
 finality, byte-readback, service and journal-preservation checks. Confirmed
 progress, reliable deadlines and the approval/catalogue distinction are live;
-no musical admission or allowance is added. Actual 0.1.82 client acceptance and
-acceptable publication/indexing speed remain open; #407 is not complete.
+no musical admission or allowance is added. The owner confirms existing-release
+artist visibility and audible playback on both Web and Desktop. Long-preparation
+acceptance and acceptable publication/indexing speed remain open; #407 is not
+complete.
 
 ## Full-release wait incident and repair candidate, 2026-11-08
 

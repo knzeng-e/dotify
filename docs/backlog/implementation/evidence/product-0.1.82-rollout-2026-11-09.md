@@ -3,8 +3,9 @@
 **Web, Product, API and custody 0.1.82 are published and independently verified.**
 This delivers merged #413: effective Node deadlines, confirmed publication
 progress and feedback that distinguishes wallet approval from catalogue
-visibility. Refs #407. Publication/indexing speed and wider owner acceptance
-remain open; this delivery does not establish acceptable publication latency.
+visibility. Refs #407. The owner confirms existing-release visibility and audible
+playback on Web and Desktop. Publication/indexing speed and long-preparation
+acceptance remain open; this delivery does not establish acceptable latency.
 [Structured public evidence](product-0.1.82-rollout-2026-11-09.json) preserves
 source, finalized receipts, readback, capacity and service checks without keys.
 
@@ -39,11 +40,13 @@ catalogue entry. Account changes, dialog ownership and single-flight boundaries
 remain enforced; full-page pending-operation persistence is not introduced.
 
 The owner reported a new release visible and audible after a catalogue delay on
-**0.1.81**. This is dated prior-version acceptance. On 0.1.82 the public catalogue
-is fresh and contains the existing Black panther anthem, eight-second pilot and
-Adang Fobe entries; that read alone does not establish audible output. Actual
-Web/Desktop artist-area and listening checks have been requested, without a new
-upload or purchase.
+**0.1.81**. That remains dated prior-version acceptance. On November 9, following
+the 0.1.82 delivery, the owner separately confirms **artist-area visibility OK and
+audible playback OK on both Web and Desktop** for the existing Black panther
+anthem release, without a new upload or purchase. These actual-client reports
+complement the fresh public catalogue read; that automated read alone remains
+non-auditory evidence. This check does not exercise a new long preparation,
+another wallet registration or delayed-visibility recovery.
 
 ## Finalized application and Web evidence
 
@@ -105,7 +108,7 @@ rollback; an uncertain signed operation must be reconciled before writer restart
 The exact DotNS ceiling is consumed, so a later domain rollback needs a separate
 reviewed signature budget. No schema/data migration or fresh-domain reset occurs.
 
-## Capacity and remaining acceptance
+## Capacity and remaining gates
 
 After publication: **2,719 transactions**,
 515,370,541 store bytes and 604,234,496 renewal bytes remain.
@@ -118,6 +121,7 @@ unchanged; future operator checks must carry the extra app reserve in this recor
 No automatic renewal, musical write or new admission is activated by delivery.
 
 #407 stays open for acceptable publication/indexing latency, further authorized
-long-publication acceptance and wider actual-client evidence. A longer timeout
+long-publication acceptance and broader actual-client evidence beyond the
+confirmed existing-release Web/Desktop check. A longer timeout
 or successful catalogue read is not a throughput improvement, sound test,
 public-pilot conservation guarantee or new payment capability.

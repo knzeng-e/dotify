@@ -602,8 +602,31 @@
   "newAdmissions": 0,
   "automaticRenewalActivated": false,
   "remainingGates": [
-    "Owner acceptance of existing-release listening and artist visibility on actual Web/Desktop",
     "Owner validation of a long preparation using an existing authorized draft or a separately approved future publication",
     "Acceptable publication/indexing latency and wider client acceptance; #407 stays open"
-  ]
+  ],
+  "ownerAcceptance": {
+    "reportedOn": "2026-11-09",
+    "requestedVersion": [
+      0,
+      1,
+      82
+    ],
+    "releaseTitle": "Black panther anthem",
+    "scope": "Existing release, no new publication or purchase",
+    "clients": {
+      "Web": {
+        "artistVisibility": "OK",
+        "audiblePlayback": "OK"
+      },
+      "Desktop": {
+        "artistVisibility": "OK",
+        "audiblePlayback": "OK"
+      }
+    },
+    "evidence": "Owner confirmation in this conversation",
+    "freshPublicationTested": false,
+    "longPreparationProgressTested": false,
+    "delayedVisibilityRecoveryTested": false
+  }
 }
