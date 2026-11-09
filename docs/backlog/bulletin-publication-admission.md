@@ -7,12 +7,13 @@ Issue #407 · P1 · Production spine · Now · Work. Workflow: Project 5.
 Admission beyond the original pilot, durable progress and approval/catalogue
 feedback are delivered in 0.1.82; existing-release artist visibility and audible
 Web/Desktop playback are confirmed. #415/#416 diagnostics are deployed on custody.
-#418 is merged (`1e177640`) and source CI passes, but its read optimization is
-not deployed. The earlier 54.7/58.8-minute preparations are still the relevant
+[#418 is delivered to custody from `ec8e82ae`](implementation/evidence/bulletin-parallel-rollout-2026-11-09.md),
+with green CI and verified state preservation. The earlier 54.7/58.8-minute preparations are still the relevant
 whole-release observations; the smaller verification benchmark does not replace them.
 
-Remaining: prepare the server rollout, inspect current obligations and authorize
-any required bounded measurement, collect actual preparation/proof/store/finality/
+Remaining: inspect current obligations and prepare a separately reviewed bounded
+admission/budget for a fresh full-release measurement (two slots out of two are claimed),
+collect actual preparation/proof/store/finality/
 visibility timings, correct the observed bottleneck and verify acceptable full
 publication latency. Keep #407 open until that acceptance. No new write budget,
 state reset or maintenance follows from backlog alignment. Follow the

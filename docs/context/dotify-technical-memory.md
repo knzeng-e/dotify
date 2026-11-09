@@ -1,5 +1,16 @@
 # Dotify technical memory
 
+## Parallel verification delivered, 2026-11-09
+
+[The custody-only delivery](../backlog/implementation/evidence/bulletin-parallel-rollout-2026-11-09.md) installs #418 from frozen `ec8e82ae` after green
+exact-source CI, a completed snapshot and stopped-writer inspection. Two
+post-start health/readiness checks and all nine selected journal hashes pass;
+v3/v2, five inventories, two jobs and cursor are preserved. Public API replicas
+and Web/Product remain 0.1.82. Zero operator Bulletin/DotNS operations, new musical
+allowance or key transfer. Full-publication latency remains unmeasured; the two
+existing release slots are already claimed, so a new writing measurement needs
+separately reviewed admission/budget without resetting state. #407 stays open.
+
 ## Execution alignment after #418, 2026-11-09
 
 The [selected plan](../backlog/implementation/listening-and-publication-readiness.md)
