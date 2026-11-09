@@ -25,7 +25,10 @@ implementation branch from current tested dev; use one PR per backlog scope.
   The [offline timing reader candidate](evidence/bulletin-timing-report-2026-11-09.md)
   prepares analysis without deployment. Read-only identity checks find the
   unfinished part uses audio already published under the other artist; avoid
-  another registration merely for a timing sample.
+  another registration merely for a timing sample. The owner has now supplied
+  a new source/cover; [an exact capacity extension candidate](evidence/bulletin-admission-extension-2026-11-10.md)
+  prepares its allowance without a new encryption domain. Local sizing is not
+  a live throughput benchmark; activation and measured publication remain open.
 
 | Order | Scope / owner ticket | Remaining deliverable and exit gate |
 | --- | --- | --- |

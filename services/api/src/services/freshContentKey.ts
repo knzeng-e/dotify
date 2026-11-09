@@ -1,19 +1,11 @@
 // A fresh queue may omit old nonce history only in a new content-key domain.
 // This binds that domain to the reviewed publisher without exposing its secret.
 import assert from 'node:assert/strict';
-import { createHash, timingSafeEqual } from 'node:crypto';
+import { timingSafeEqual } from 'node:crypto';
 import { z } from 'zod';
 import { getActiveContentKeyMasterSecret, getContentKeyVaultStatus, type ContentKeyVaultConfigInput } from './keyVault.js';
-export const freshContentKeySchema = z
-  .object({
-    version: z
-      .string()
-      .regex(/^dotify-content-key-v(?:[2-9]|[1-9][0-9]+)$/)
-      .max(80),
-    masterSha256: z.string().regex(/^[0-9a-f]{64}$/)
-  })
-  .strict();
-export const contentMasterDigest = (hex: string) => createHash('sha256').update(Buffer.from(hex, 'hex')).digest('hex');
+import { freshContentKeySchema, contentMasterDigest } from './freshContentKeyBinding.js';
+export { freshContentKeySchema, contentMasterDigest } from './freshContentKeyBinding.js';
 export function assertFreshContentKey(binding: z.infer<typeof freshContentKeySchema> | undefined, vault?: ContentKeyVaultConfigInput) {
   if (!binding) return;
   const status = getContentKeyVaultStatus(vault);

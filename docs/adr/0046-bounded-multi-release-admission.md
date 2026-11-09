@@ -48,6 +48,9 @@ abandoned drafts, queue cleanup or expired remote blocks. This conservatively
 uses more allowance than charging only actual stores, but avoids crash-dependent
 refunds and prevents a sequence of failed jobs from resetting the budget. Growing
 or rolling an allowance requires a reviewed new generation, not editing counters.
+[ADR 0048](0048-exact-release-admission-extension.md) proposes an exact-source
+admission generation in the same key domain, archiving the prior checkpoint and
+retaining every existing claim instead of copying/resetting nonce state.
 
 ## Data flow and authority
 
