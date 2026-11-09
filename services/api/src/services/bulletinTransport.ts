@@ -27,6 +27,15 @@ const RAW_MAX = 512 * 1024,
 const blockNumber = (value: string) => integer.parse(Number(BigInt(value)));
 const opaqueMetadata = Option(Bytes());
 
+/** Only independent reads at an already selected block may overlap. Observe
+ * both outcomes before propagating an error; the caller owns their deadline. */
+async function readPair<A, B>(first: () => Promise<A>, second: () => Promise<B>): Promise<[A, B]> {
+  const [a, b] = await Promise.allSettled([Promise.resolve().then(first), Promise.resolve().then(second)] as const);
+  if (a.status === 'rejected') throw a.reason;
+  if (b.status === 'rejected') throw b.reason;
+  return [a.value, b.value];
+}
+
 export function createBulletinRpcTransport(options: {
   identity: BulletinStoreIdentity;
   request: BulletinRpc;
@@ -63,8 +72,11 @@ export function createBulletinRpcTransport(options: {
   const snapshot = async (signal: AbortSignal) => {
     assert.equal(hash.parse(await rpc('chain_getBlockHash', [0], signal)).toLowerCase(), identity.genesis, 'Wrong Bulletin genesis');
     const at = hash.parse(await rpc('chain_getFinalizedHead', [], signal));
-    const header = headerSchema.parse(await rpc('chain_getHeader', [at], signal));
-    return { at, head: blockNumber(header.number), codecs: await atCodecs(at, signal) };
+    const [header, selectedCodecs] = await readPair(
+      async () => headerSchema.parse(await rpc('chain_getHeader', [at], signal)),
+      () => atCodecs(at, signal)
+    );
+    return { at, head: blockNumber(header.number), codecs: selectedCodecs };
   };
   const storage = async (context: Awaited<ReturnType<typeof snapshot>>, pallet: string, name: string, args: unknown[], signal: AbortSignal) => {
     const entry = context.codecs.builder.buildStorage(pallet, name);
@@ -93,8 +105,10 @@ export function createBulletinRpcTransport(options: {
     if (position === null) return null;
     const [block, index] = z.tuple([integer, integer]).parse(position);
     assert.ok(block <= context.head, 'Storage position is not finalized');
-    const entries = await storage(context, 'TransactionStorage', 'Transactions', [block], signal);
-    const retention = integer.parse(await storage(context, 'TransactionStorage', 'RetentionPeriod', [], signal));
+    const [entries, retention] = await readPair(
+      () => storage(context, 'TransactionStorage', 'Transactions', [block], signal),
+      async () => integer.parse(await storage(context, 'TransactionStorage', 'RetentionPeriod', [], signal))
+    );
     const expiresAt = integer.parse(block + retention);
     if (expiresAt <= context.head) return null;
     assert.ok(Array.isArray(entries) && entries.length <= 4096 && entries[index], 'Missing Bulletin storage metadata');
@@ -184,21 +198,32 @@ export function createBulletinRpcTransport(options: {
         const at = hash.parse(await rpc('chain_getBlockHash', [receipt.block], s));
         const header = headerSchema.parse(await rpc('chain_getHeader', [at], s));
         assert.equal(blockNumber(header.number), receipt.block, 'Candidate block number mismatch');
-        const body = z
-          .object({ block: z.object({ header: headerSchema, extrinsics: z.array(z.string()).max(4096) }) })
-          .parse(await rpc('chain_getBlock', [at], s));
-        assert.equal(body.block.header.parentHash, header.parentHash, 'Candidate parent mismatch');
-        assert.equal(blockNumber(body.block.header.number), receipt.block, 'Candidate body number mismatch');
-        assert.deepEqual(body.block.header, header, 'Candidate block header differs from canonical header');
-        assert.ok(body.block.extrinsics.reduce((sum, value) => sum + value.length, 0) <= 2 * BLOCK_MAX + 2 * 4096, 'Bulletin block exceeds receipt byte bound');
-        // Extrinsics/events were executed by the parent runtime. Decoding with
-        // post-upgrade metadata can otherwise silently assign the wrong call.
-        const execution = await atCodecs(header.parentHash, s);
-        const entry = execution.builder.buildStorage('System', 'Events');
-        const events = bulletinBytes(await rpc('state_getStorage', [entry.keys.enc(), at], s), 2 * 1024 * 1024);
+        const [extrinsics, { execution, events }] = await readPair(
+          async () => {
+            const body = z
+              .object({ block: z.object({ header: headerSchema, extrinsics: z.array(z.string()).max(4096) }) })
+              .parse(await rpc('chain_getBlock', [at], s));
+            assert.equal(body.block.header.parentHash, header.parentHash, 'Candidate parent mismatch');
+            assert.equal(blockNumber(body.block.header.number), receipt.block, 'Candidate body number mismatch');
+            assert.deepEqual(body.block.header, header, 'Candidate block header differs from canonical header');
+            assert.ok(
+              body.block.extrinsics.reduce((sum, value) => sum + value.length, 0) <= 2 * BLOCK_MAX + 2 * 4096,
+              'Bulletin block exceeds receipt byte bound'
+            );
+            return body.block.extrinsics.map(value => bulletinBytes(value, BLOCK_MAX));
+          },
+          async () => {
+            // Extrinsics/events were executed by the parent runtime. This
+            // branch stays anchored to the same candidate header and hash.
+            const execution = await atCodecs(header.parentHash, s);
+            const entry = execution.builder.buildStorage('System', 'Events');
+            const events = bulletinBytes(await rpc('state_getStorage', [entry.keys.enc(), at], s), 2 * 1024 * 1024);
+            return { execution, events };
+          }
+        );
         return verifyBulletinSubmission({
           codecs: execution,
-          extrinsics: body.block.extrinsics.map(value => bulletinBytes(value, BLOCK_MAX)),
+          extrinsics,
           events,
           query,
           account: identity.account,
