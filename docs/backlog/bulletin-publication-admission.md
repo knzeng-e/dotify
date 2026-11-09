@@ -1,5 +1,14 @@
 # Bulletin publication beyond the synthetic pilot
 
+## Custody availability follow-up, 2026-11-09
+
+#415 is merged with green PR checks. Preparing its server delivery exposed a
+separate availability failure: custody lost its database lock, closed admission
+and exited zero, so Fly did not restart it. [The focused correction](implementation/evidence/custody-lease-exit-2026-11-09.md)
+marks that fatal teardown as failure while preserving exclusive ownership and
+normal operator shutdown. No live restart/deployment/upload was performed;
+server activation, live timings and acceptable latency remain open in #407.
+
 ## Publisher latency diagnosis candidate, 2026-11-09
 
 [The next #407 slice](implementation/evidence/bulletin-publication-timings-2026-11-09.md) measures publisher queue/setup,

@@ -70,6 +70,9 @@ export function rateLimitKey(request: Pick<FastifyRequest, 'headers' | 'ip'>, tr
 
 export type BuildAppOptions = {
   trustProxy?: 'off' | 'fly';
+  // The process entrypoint marks a lost writer lease as failure for its supervisor.
+  // Embedded app instances retain control of their own process lifecycle.
+  onCustodyLeaseLost?: () => void;
   // Test sink observes the exact bounded fields sent to the production logger.
   identityDiagnostic?: (fields: { event: string; source: string; clientMatchesPeer: boolean }) => void;
   // Tests disable logging; production always logs.
@@ -214,6 +217,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     if (sharedState) {
       const release = await sharedState.holdExclusive('custody-owner', () => {
         app.log.error({ code: 'CUSTODY_LEASE_LOST' }, 'Custody store connection lost; closing admission and encoder');
+        options.onCustodyLeaseLost?.();
         void streaming?.stop();
         void app.close();
       });
