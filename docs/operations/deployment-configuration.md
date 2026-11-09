@@ -1,5 +1,21 @@
 # Deployment Configuration Runbook
 
+## Publication reliability delivered in 0.1.82, 2026-11-09
+
+[Web/Product/API and custody 0.1.82](../backlog/implementation/evidence/product-0.1.82-rollout-2026-11-09.md) deliver merged #413
+from frozen `26430e56`, based on tested dev `bccb20d5`. Both CIs and independent
+Web/dependency/DotNS/service checks pass; the signer is removed. Effective Node
+deadlines, confirmed progress and read-only approval/visibility feedback are live.
+All nine private tracking files, keys, admissions and cursor survive unchanged.
+Custody was idle/stopped during app account writes and is healthy again. Actual
+writes: 12 stores / 3,590,405 bytes, eight one-off renewals / 5,899,777 bytes and
+two DotNS signatures. Preserve **1,183 / 320,588,055** future retention reserve,
+including full earlier musical allowances. No new musical allowance, key, mount,
+origin or recurring renewal. The owner confirms existing-release artist-area
+visibility and audible playback on Web and Desktop. Publication/indexing speed
+and further long-preparation acceptance keep #407 open; a fresh catalogue read
+alone remains non-auditory evidence.
+
 ## Artist visibility feedback candidate, 2026-11-09
 
 The [#407 client follow-up](../backlog/implementation/evidence/artist-publication-feedback-2026-11-09.md)
