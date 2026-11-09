@@ -10,21 +10,24 @@ and publication/indexing latency remain open in #407 before the following
 Room/artwork slices. Earlier dated pending gates describe their original phase.
 
 
-## Execution priority, 2026-11-08
+## Current execution, 2026-11-09
 
-Follow [publication and listening readiness](implementation/listening-and-publication-readiness.md):
-#407 new-release admission first, then #395 startup and #388 artwork, followed by
-#406 CASH-tip feasibility and #408 access settlement research. The
-[0.1.81 deployment](implementation/evidence/product-0.1.81-rollout-2026-11-08.md)
-activates two complete new releases globally across the reviewed artist scopes.
-Actual fresh artist publication/listening acceptance remains open; further musical
-writes, maintenance and payments stay separately bounded. Project 5 tracks
-progress; older dated checkpoints below retain their historical scope.
+Follow the [selected publication/listening/CASH sequence](implementation/listening-and-publication-readiness.md):
+**#407 publication latency → #395 Room startup → #388 artwork → #406 CASH-tip
+research → #408 CASH-access research.** #418 is merged but not deployed; prepare
+its server rollout and a bounded measured publication before claiming faster
+end-to-end publishing. #415/#416 diagnostics are already delivered to custody.
 
-The owner selected a [fresh development publication/key domain](../operations/bulletin-fresh-development.md)
-for #407, replacing migration of abandoned test drafts. Existing Bulletin account
-obligations remain. The owner separately approved and activated the matched
-0.1.81 setup; real artist acceptance remains before #407 closes.
+The manifest and Project 5 give #407 the only Now phase. Five older partially
+delivered scopes (#317/#269/#229/#274/#158) remain open in Next for supporting
+acceptance. In Progress records unfinished work; it does not establish execution
+priority. #288 conservation, access and off-volume recovery remain pilot gates.
+The [alignment audit](implementation/evidence/backlog-alignment-2026-11-09.md)
+records the drift and the limits of automated checks.
+
+Earlier dated entries and the October execution order below are historical.
+They do not reactivate migration of abandoned drafts, Nearby expansion or old
+payment prompts. Existing budgets and retention obligations remain authoritative.
 
 ## Room preparation delivered in 0.1.80, 2026-11-07
 
@@ -672,7 +675,9 @@ All implementation must be production-minded:
 - user-facing errors must be understandable without blockchain expertise;
 - room guests must not be forced through wallet bureaucracy merely to listen to a host stream.
 
-## Recommended execution order
+## Historical execution order — October 2026
+
+This section retains the earlier rationale. The [November execution plan](implementation/listening-and-publication-readiness.md) supersedes its scheduling, including the old CASH deferral and Nearby-first priority.
 
 For new implementation sessions, use the September 2026
 [agent implementation playbook](implementation/README.md), tracked by #130.

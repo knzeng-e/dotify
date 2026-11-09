@@ -1,27 +1,48 @@
 # Publication, listening reliability and CASH — execution order
 
-## Current delivered checkpoint, 2026-11-09
+## Current execution after #418, 2026-11-09
 
-[Web/Product/API 0.1.82](evidence/product-0.1.82-rollout-2026-11-09.md) supersedes the activation-time
-0.1.81 checkpoint below. The owner confirms existing-release artist visibility
-and audible playback on Web and Desktop. Bounded new-domain publication is
-active; no new admission is granted by this record. Long-preparation acceptance
-and publication/indexing latency remain open in #407 before the following
-Room/artwork slices. Earlier dated pending gates describe their original phase.
+This is the selected execution order. Project 5 owns workflow status; the
+manifest owns issue/doc/priority/phase mappings. **Now** means the next work to
+execute; **Next** includes unfinished acceptance of already delivered code.
+In Progress does not mean every partially delivered ticket runs concurrently.
+Older dated prompts and deployment records describe their original checkpoint.
+Owner direction is November 8, reconciled after #418 on November 9. Start each
+implementation branch from current tested dev; use one PR per backlog scope.
 
+- **Delivered:** Web/Product/API 0.1.82; the owner confirms existing-release
+  artist visibility and audible Web/Desktop playback. Custody additionally runs
+  #415/#416 diagnostics and failure-exit handling, recorded by #417.
+- **Merged, not deployed:** #418 parallel verification reads, merge `1e177640`.
+  Reviewed source CI passes; the post-merge dev CI is a separate rollout gate.
+  The measured 22–27% gain concerns small verification checks only. Whole-release
+  preparation/finality speed is still unverified.
+- **Immediate action:** prepare the server rollout of #418, then a bounded
+  publication measurement with the deployed stage diagnostics. Inspect existing
+  receipts, allowances and retention duties before proposing any new write test.
+  No maintenance or new musical allowance is granted by this plan.
 
-Owner direction: 2026-11-08. Project 5 owns workflow status; linked ticket files
-own scope. One implementation branch/PR per ticket, from current tested dev.
-This plan changes priority, not deployed authorization. The existing production
-spine, conservation and access gates remain prerequisites for a public pilot.
-
-| Order | Scope / owner ticket | Deliverable and exit gate |
+| Order | Scope / owner ticket | Remaining deliverable and exit gate |
 | --- | --- | --- |
-| 1 — Now | [New release admission #407](../bulletin-publication-admission.md) | Early truthful refusal, then durable bounded multi-release policy and implementation; reviewed activation followed by actual artist publication on Web/Desktop. No per-track emergency exception. |
-| 2 — Next | [Room startup #395](../room-listener-audio.md) | Correlated successful/failed preparation timings, bottleneck correction, repeated full-track phone-host starts without retries and audible Web/Desktop guests. |
-| 3 — Next | [System artwork #388](../listening-controls-and-discovery.md), with #87 | Shared solo/Room image preparation and safe reuse; correct cover at repeated locks/track changes, with no audio delay or stale post-disconnect metadata. |
+| 1 — Now | [Publication latency and acceptance #407](../bulletin-publication-admission.md) | Admission, progress and catalogue feedback are delivered. Prepare #418 rollout; measure preparation/proof/store/finality/visibility separately, then correct the observed bottleneck and verify an acceptable artist publication journey. |
+| 2 — Next | [Room startup #395](../room-listener-audio.md) | Delivery to guests works on the reported path. Diagnose the roughly 55-second mobile-host start; repeated comparable full-track starts must finish without retry and with audible Web/Desktop guests. |
+| 3 — Next | [System artwork #388](../listening-controls-and-discovery.md), with #87 | Account access and discovery are delivered. Diagnose intermittent late lock-screen artwork in solo and Room; verify repeated locks/track changes without delaying audio or restoring stale metadata. |
 | 4 — Next research | [CASH tips #406](../product-cash-tip-feasibility.md), with #85/#229 | Shipped-Host/API matrix, honest contribution semantics, durable payment/receipt recovery tests and a go/no-go. Prepare a bounded pilot only if supported. |
 | 5 — Later research | [CASH access #408](../product-cash-access-settlement.md) | Verified payment → exact access + royalties, replay/crash/refund design and deterministic harness before any funded validation. |
+
+## Supporting acceptance gates
+
+[#288 conservation/access/recovery](W33-media-edge-cache.md) remains a public-pilot
+prerequisite alongside the sequence above. Existing retention obligations are
+immediate duties, even while new feature work waits. Capacity remains research.
+
+The cutover #317, release follow-up #269, native contributions #229, Nearby #274
+and pilot #158 move from Now to Next: their delivered code is retained and their
+remaining live acceptance is not closed. Use them as supporting gates for the
+current sequence, not parallel implementation instructions. #85 compatibility,
+#87 cover delivery and the other W13 prerequisites remain explicit; CASH does
+not block existing PAS listening or contributions. Project statuses stay
+In Progress where partial delivery/acceptance is already underway.
 
 ## Current implementation checkpoint, 2026-11-08
 

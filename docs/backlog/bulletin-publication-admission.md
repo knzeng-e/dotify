@@ -1,5 +1,24 @@
 # Bulletin publication beyond the synthetic pilot
 
+## Current remaining scope after #418, 2026-11-09
+
+Issue #407 · P1 · Production spine · Now · Work. Workflow: Project 5.
+
+Admission beyond the original pilot, durable progress and approval/catalogue
+feedback are delivered in 0.1.82; existing-release artist visibility and audible
+Web/Desktop playback are confirmed. #415/#416 diagnostics are deployed on custody.
+#418 is merged (`1e177640`) and source CI passes, but its read optimization is
+not deployed. The earlier 54.7/58.8-minute preparations are still the relevant
+whole-release observations; the smaller verification benchmark does not replace them.
+
+Remaining: prepare the server rollout, inspect current obligations and authorize
+any required bounded measurement, collect actual preparation/proof/store/finality/
+visibility timings, correct the observed bottleneck and verify acceptable full
+publication latency. Keep #407 open until that acceptance. No new write budget,
+state reset or maintenance follows from backlog alignment. Follow the
+[selected sequence](implementation/listening-and-publication-readiness.md).
+Earlier candidate/activation entries below are dated history.
+
 ## Parallel verification candidate, 2026-11-09
 
 [The next #407 slice](implementation/evidence/bulletin-parallel-verification-2026-11-09.md) overlaps independent reads at already selected

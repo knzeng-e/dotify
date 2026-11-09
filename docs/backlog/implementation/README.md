@@ -1,8 +1,8 @@
 # Dotify implementation playbook
 
-## Parallel verification candidate, 2026-11-09
+## Parallel verification merged; rollout next, 2026-11-09
 
-[The next #407 slice](evidence/bulletin-parallel-verification-2026-11-09.md) overlaps independent reads at already selected
+[#418, merged as `1e177640`](evidence/bulletin-parallel-verification-2026-11-09.md) overlaps independent reads at already selected
 finalized hashes, preserving canonical proof, fresh retention and all RPC calls.
 Nineteen transport cases and 378 API cases pass. Two small read-only comparisons
 show shorter marker-check medians with unchanged request counts; publication/
@@ -49,13 +49,15 @@ visibility and audible playback on Web and Desktop. Publication/indexing speed
 and further long-preparation acceptance keep #407 open; a fresh catalogue read
 alone remains non-auditory evidence.
 
-## Selected execution order, 2026-11-08
+## Selected execution order, reconciled 2026-11-09
 
 [Publication, listening reliability and CASH](listening-and-publication-readiness.md)
-is the owner-requested sequence. Start #407 early admission/error handling, then
-its durable multi-release design; #395 and #388 follow. #406 reopens bounded CASH
-research, while #408 keeps access settlement separate. Do not replay the old W16
-prompt or deploy/transfer funds from this plan alone.
+is the owner-requested sequence: #407 measured publication latency, then #395
+Room startup, #388 artwork, #406 CASH-tip research and #408 CASH-access research.
+Admission/progress/catalogue feedback are delivered; #418 rollout and whole-release
+speed remain open. Supporting cutover, contributions, Nearby and pilot acceptance
+stay open in Next. Older prompts are historical, not parallel work assignments.
+See the [alignment audit](evidence/backlog-alignment-2026-11-09.md).
 
 ## Room preparation delivered in 0.1.80, 2026-11-07
 
