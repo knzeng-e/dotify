@@ -1,5 +1,12 @@
 # Bulletin publication beyond the synthetic pilot
 
+The [0.1.82 delivery](implementation/evidence/product-0.1.82-rollout-2026-11-09.md)
+publishes merged #413 to Web/Product/API and custody with independent source,
+finality, byte-readback, service and journal-preservation checks. Confirmed
+progress, reliable deadlines and the approval/catalogue distinction are live;
+no musical admission or allowance is added. Actual 0.1.82 client acceptance and
+acceptable publication/indexing speed remain open; #407 is not complete.
+
 ## Full-release wait incident and repair candidate, 2026-11-08
 
 The authorized 0.1.81 rollout is recorded in [#412](https://github.com/knzeng-e/dotify/pull/412).
