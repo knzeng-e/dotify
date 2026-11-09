@@ -13,7 +13,7 @@ cancellation and physical native acceptance. #388 remains open.
 
 - GitHub issue: [#388](https://github.com/knzeng-e/dotify/issues/388).
 - Priority: P1. Track: Production spine. Phase: Next. Type: Work.
-- Workflow status: 0.1.74 delivered; mobile account/discovery/artwork accepted on Polkadot app v0.10.0 (18). Room information placement and system-room context follow-up in review; native rendition still needs matching deployment/device verification.
+- Remaining scope: account/discovery and the refined Dotify badge are delivered. Diagnose intermittent delayed solo/Room system artwork reported on app 0.10.0 (20) / Runtime 0.26.0; native navigation and repeated lock/track-change acceptance remain. Project 5 owns workflow status; scheduling is Next after #395.
 
 Owner feedback during Product 0.1.73 acceptance, 2026-11-05. The owner confirms audible stop on disconnect and explicit recovery on Web, Polkadot app Desktop and mobile. Three usability gaps should be addressed in the next iteration alongside Bulletin stabilization.
 

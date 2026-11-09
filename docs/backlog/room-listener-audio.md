@@ -1,4 +1,13 @@
-# Mobile-host room audio delivery
+# Mobile-host Room startup and listening continuity
+
+## Current remaining scope, 2026-11-09
+
+Guest sound is restored on the owner-tested path. #395 remains Next for
+measured startup improvement and broader continuity, after #407. The approximately
+55-second Adang Fobe start is one observation, not a latency budget or a repeated
+benchmark. Use the [selected plan](implementation/listening-and-publication-readiness.md)
+for phase reports and comparable repeated phone-host/Web/Desktop acceptance.
+Do not restart the already delivered capture implementation from the old incident.
 
 ## Next implementation gate, 2026-11-08
 

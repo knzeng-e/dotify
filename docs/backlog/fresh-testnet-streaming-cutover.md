@@ -1,5 +1,11 @@
 # Clean testnet catalog and streaming cutover
 
+## Execution alignment, 2026-11-09
+
+Issue #317 stays open in **Next** as supporting acceptance. The [selected execution order](implementation/listening-and-publication-readiness.md) gives #407 publication latency, #395 Room startup and #388 artwork priority. The coordinated cutover is delivered; candidate-bound audio/access/value-flow evidence remains. No new empty-catalog reset or migration is requested.
+
+Project 5 owns workflow status. Partial delivery remains In Progress; this phase change neither closes acceptance nor starts a parallel implementation.
+
 Owner request: 2026-10-21. Issue #317, refs #287 and #285.
 
 ## Outcome

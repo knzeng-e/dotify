@@ -1,5 +1,11 @@
 # W13 — Ship and evaluate the first coherent pilot
 
+## Execution alignment, 2026-11-09
+
+Issue #158 stays open in **Next** as supporting acceptance. The [selected execution order](listening-and-publication-readiness.md) gives #407 publication latency, #395 Room startup and #388 artwork priority. W13 remains the public-pilot gate. Current delivery is Web/Product/API 0.1.82 plus custody diagnostics; #418 is merged but not deployed. Access/value-flow, conservation and off-volume recovery evidence remain; old candidate numbers below are historical.
+
+Project 5 owns workflow status. Partial delivery remains In Progress; this phase change neither closes acceptance nor starts a parallel implementation.
+
 Copy this entire file into an agent working in the Dotify repository, or use the launcher in README.md.
 
 ## Agent assignment

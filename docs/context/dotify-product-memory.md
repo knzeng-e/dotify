@@ -1,5 +1,16 @@
 # Dotify product memory
 
+## Execution alignment after #418, 2026-11-09
+
+The [selected plan](../backlog/implementation/listening-and-publication-readiness.md)
+is #407 publication latency → #395 Room startup → #388 system artwork → #406
+CASH tips research → #408 CASH access research. #418 is merged but not deployed;
+prepare its server rollout and a bounded full-publication measurement. #415/#416
+are already on custody; Web/Product/API remain 0.1.82. The measured read-check
+gain is not whole-release latency. Five older Now scopes move to Next supporting
+acceptance; nothing is closed, reset, deployed or funded by this reconciliation.
+Earlier dated candidate records retain their original meaning.
+
 ## Custody diagnostics delivered, 2026-11-09
 
 [The server-only delivery](../backlog/implementation/evidence/custody-diagnostics-rollout-2026-11-09.md) installs merged #415/#416 on private custody

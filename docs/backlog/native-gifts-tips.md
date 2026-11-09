@@ -1,5 +1,11 @@
 # Native gifts, work tips and direct allocations
 
+## Execution alignment, 2026-11-09
+
+Issue #229 stays open in **Next** as supporting acceptance. The [selected execution order](implementation/listening-and-publication-readiness.md) gives #407 publication latency, #395 Room startup and #388 artwork priority. Native PAS contribution implementation and its remaining activation/receipt/policy acceptance are retained. CASH tips are separate research in #406, followed by access settlement #408; no payment or artist-policy action follows from scheduling.
+
+Project 5 owns workflow status. Partial delivery remains In Progress; this phase change neither closes acceptance nor starts a parallel implementation.
+
 ## Current reconciliation, 2026-10-23
 
 The #230 implementation and receipt/continuity corrections are merged.

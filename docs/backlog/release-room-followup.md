@@ -1,5 +1,11 @@
 # Publication and room follow-up — 2026-10-11
 
+## Execution alignment, 2026-11-09
+
+Issue #269 stays open in **Next** as supporting acceptance. The [selected execution order](implementation/listening-and-publication-readiness.md) gives #407 publication latency, #395 Room startup and #388 artwork priority. The follow-up implementation is delivered; actual-runtime metadata correction and tip/receipt acceptance remain. Do not revive retired-runtime upgrades.
+
+Project 5 owns workflow status. Partial delivery remains In Progress; this phase change neither closes acceptance nor starts a parallel implementation.
+
 ## Current reconciliation, 2026-10-23
 
 #270 and the 0.1.48 rollout delivered this implementation. The owner-authorized
@@ -15,7 +21,7 @@ Owner-reported acceptance gaps on published Product 0.1.47.
 
 GitHub issue: #269.
 
-Priority: P1. Track: Production spine. Phase: Now. Type: Work.
+Priority: P1. Track: Production spine. Phase: Next. Type: Work.
 
 ## Scope
 

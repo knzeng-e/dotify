@@ -32,7 +32,7 @@
       "priority": "P1",
       "track": "Production spine",
       "phase": "Now",
-      "note": "#409/#410 are merged. The owner selected fresh development publication with a new content-key domain instead of migrating old drafts. Fresh setup, measured activation and actual Web/Desktop artist acceptance remain; the same storage account retains its nonce/quota/retention duties."
+      "note": "Admission, preparation progress and catalogue feedback are delivered in 0.1.82; #415/#416 diagnostics are live on custody. #418 is merged but not deployed. Next: reviewed server rollout and bounded phase measurements before claiming acceptable full-release latency; preserve receipts, allowances and retention duties."
     },
     {
       "id": "product-cash-tip-feasibility",
@@ -62,7 +62,7 @@
       "priority": "P1",
       "track": "Production spine",
       "phase": "Next",
-      "note": "Mobile host hears local music but Web/Desktop guests receive silence, even foregrounded; reverse hosting works. Require measured capture and received energy, preserving access boundaries; physical acceptance remains."
+      "note": "Reported mobile-host delivery to Web/Desktop guests works. Remaining scope is measured startup latency (about 55 seconds on one owner run), repeated no-retry full-track starts and broader lifecycle acceptance after #407; keep access boundaries."
     },
     {
       "id": "listening-controls-and-discovery",
@@ -72,7 +72,7 @@
       "priority": "P1",
       "track": "Production spine",
       "phase": "Next",
-      "note": "Owner-requested next-iteration follow-up after 0.1.73 disconnect/recovery acceptance on Web/Desktop/mobile: direct mobile Player account access, room current-track discovery and physical lock-screen artwork/previous-next behavior. Client candidate implemented and locally tested; review, matching delivery and physical native acceptance remain open. Preserve access, room authority and Bulletin conservation boundaries."
+      "note": "Mobile Player account access, Room discovery and the cover with bottom-right Dotify badge are delivered. Remaining scope is intermittent late system artwork in both solo and Room, bounded image reuse/ownership and physical native navigation acceptance after #395."
     },
     {
       "id": "room-galaxy-restoration",
@@ -101,8 +101,8 @@
       "kind": "work",
       "priority": "P1",
       "track": "Production spine",
-      "phase": "Now",
-      "note": "Fresh contracts/CDM v2 and coordinated API/signaling/encoder/Web/Product cutover deployed on 2026-10-22. #323 fixes native bootstrap; #326 and published Product 0.1.60 (#327) update Host compatibility. Owner reports successful artist setup/publication; candidate-bound audio/access/value-flow evidence remains open. Preserve later custody and nonce history."
+      "phase": "Next",
+      "note": "Supporting acceptance after the selected #407 → #395 → #388 sequence; delivered code is retained and the issue stays open. Fresh contracts/CDM v2 and coordinated API/signaling/encoder/Web/Product cutover deployed on 2026-10-22. #323 fixes native bootstrap; #326 and published Product 0.1.60 (#327) update Host compatibility. Owner reports successful artist setup/publication; candidate-bound audio/access/value-flow evidence remains open. Preserve later custody and nonce history."
     },
     {
       "id": "mobile-form-continuity",
@@ -370,8 +370,8 @@
       "kind": "work",
       "priority": "P1",
       "track": "Production spine",
-      "phase": "Now",
-      "note": "#270 and 0.1.48 delivered the follow-up code/rollout. The reset retired the three old runtimes, so their missing-selector upgrade is no longer an active task. Verify metadata capability/correction on the actual new runtime and #324 coordinated room-tip/receipt activation; native/artwork/room acceptance remains explicit."
+      "phase": "Next",
+      "note": "Supporting acceptance after the selected #407 → #395 → #388 sequence; delivered code is retained and the issue stays open. #270 and 0.1.48 delivered the follow-up code/rollout. The reset retired the three old runtimes, so their missing-selector upgrade is no longer an active task. Verify metadata capability/correction on the actual new runtime and #324 coordinated room-tip/receipt activation; native/artwork/room acceptance remains explicit."
     },
     {
       "id": "dav2-startup",
@@ -500,8 +500,8 @@
       "kind": "work",
       "priority": "P0",
       "track": "Production spine",
-      "phase": "Now",
-      "note": "Activated implementation sequence for the reversible pilot release package, Product/Web evidence gate, and consented first-community evaluation record."
+      "phase": "Next",
+      "note": "Supporting acceptance after the selected #407 → #395 → #388 sequence; delivered code is retained and the issue stays open. Activated implementation sequence for the reversible pilot release package, Product/Web evidence gate, and consented first-community evaluation record."
     },
     {
       "id": "W14",
@@ -740,8 +740,8 @@
       "kind": "work",
       "priority": "P1",
       "track": "Room reliability",
-      "phase": "Now",
-      "note": "Nearby/Worldwide galaxy and controls are delivered through #278/#279/#283/#298/#300/#304. Remaining scope is exact-Host native location/permission, lifecycle and two-client discovery-to-audio acceptance. Automatic scans, 5–42 km controls and removal of city exploration supersede the original prompt."
+      "phase": "Next",
+      "note": "Supporting acceptance after the selected #407 → #395 → #388 sequence; delivered code is retained and the issue stays open. Nearby/Worldwide galaxy and controls are delivered through #278/#279/#283/#298/#300/#304. Remaining scope is exact-Host native location/permission, lifecycle and two-client discovery-to-audio acceptance. Automatic scans, 5–42 km controls and removal of city exploration supersede the original prompt."
     },
     {
       "id": "artist-runtime-features",
@@ -780,8 +780,8 @@
       "kind": "work",
       "priority": "P1",
       "track": "Cultural propagation",
-      "phase": "Now",
-      "note": "Native gifts/tips and recovery are implemented. #324 adds reviewed room policy/authority handling; server/facet activation and real native receipt/chat/policy acceptance remain. No operator-funded test or artist policy write is implied."
+      "phase": "Next",
+      "note": "Supporting acceptance after the selected #407 → #395 → #388 sequence; delivered code is retained and the issue stays open. Native gifts/tips and recovery are implemented. #324 adds reviewed room policy/authority handling; server/facet activation and real native receipt/chat/policy acceptance remain. No operator-funded test or artist policy write is implied."
     },
     {
       "id": "listening-overlay-motion",
