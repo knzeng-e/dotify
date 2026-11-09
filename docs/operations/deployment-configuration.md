@@ -1,5 +1,14 @@
 # Deployment Configuration Runbook
 
+## Offline publisher timing tool, 2026-11-09
+
+The [operator timing reader](bulletin-artist-publication.md#collect-publisher-timings-offline)
+reads private archived logs and writes a new allowlisted report. It is excluded
+from the runtime image and requires no environment, dashboard, CORS, mount, key
+or service change. Collecting logs remains a separate read-only operation; no
+publication allowance follows from the report. Existing ready-job reuse and
+remaining-part budgets are checked separately from fresh full-release admission.
+
 ## Parallel verification delivered to custody, 2026-11-09
 
 [The custody-only delivery](../backlog/implementation/evidence/bulletin-parallel-rollout-2026-11-09.md) installs #418 from frozen `ec8e82ae` after green

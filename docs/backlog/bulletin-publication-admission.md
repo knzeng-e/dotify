@@ -1,5 +1,16 @@
 # Bulletin publication beyond the synthetic pilot
 
+## Timing analysis candidate, 2026-11-09
+
+[The next #407 slice](implementation/evidence/bulletin-timing-report-2026-11-09.md) adds an offline allowlisted timing reader and
+a restart-reuse regression. One existing release has ready audio/cover and no
+metadata claim; its remaining authority is distinct from a new full-release slot.
+Read-only canonical checks find that source registered under the other artist,
+not this owner/runtime; a second registration would create another release of
+the same audio. No duplicate is proposed merely to collect timings. No writing
+sample, deployment or admission change occurs; full-publication latency remains
+unverified.
+
 ## Current remaining scope after #418, 2026-11-09
 
 Issue #407 · P1 · Production spine · Now · Work. Workflow: Project 5.

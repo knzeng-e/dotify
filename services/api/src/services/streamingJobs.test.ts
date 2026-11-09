@@ -145,6 +145,52 @@ describe('durable streaming publications', () => {
       assert.deepEqual(await readdir(path.join(directory, 'jobs')), []);
       await jobs.stop();
     }));
+  it('reuses an already-ready owner/scope after restart without new admission, encryption or publication', async () =>
+    fixture(async (directory, deps) => {
+      const first = new StreamingJobs(deps);
+      await first.start(false);
+      const admitted = await first.enqueue(input);
+      await first.runNext();
+      const ready = first.get(admitted.id, owner, scope.chainId);
+      assert.equal(ready?.state, 'ready');
+      await first.stop();
+      const snapshot = async () => ({
+        queue: await readFile(path.join(directory, 'jobs.json')),
+        nonces: await readFile(path.join(directory, 'nonces', 'ledger.json')),
+        sources: await readdir(path.join(directory, 'jobs'))
+      });
+      const before = await snapshot();
+      const forbidden = () => {
+        throw new Error('No new preparation allowed in this ready-job replay');
+      };
+      const restored = new StreamingJobs({
+        ...deps,
+        assertCanPrepare: async () => forbidden(),
+        admitPreparation: async () => forbidden(),
+        deriveKey: forbidden,
+        authority: async () => forbidden(),
+        transcode: async () => forbidden(),
+        pin: async () => forbidden()
+      });
+      try {
+        await restored.start(false);
+        assert.deepEqual(await restored.enqueue(input), ready);
+        await restored.runNext();
+        assert.deepEqual(await snapshot(), before);
+        for (const changed of [
+          { ...input, owner: `0x${'99'.repeat(20)}` },
+          { ...input, scope: { ...scope, runtimeAddress: `0x${'98'.repeat(20)}` } },
+          { ...input, scope: { ...scope, contentHash: `0x${'97'.repeat(32)}` } },
+          { ...input, scope: { ...scope, keyVersion: 'dotify-content-key-v3' } }
+        ]) {
+          await assert.rejects(restored.enqueue(changed), /No new preparation allowed/);
+          assert.deepEqual(await snapshot(), before);
+        }
+      } finally {
+        await restored.stop();
+      }
+    }));
+
   it('recovers a committed admission missing from its index and completes expiry tombstones', async () =>
     fixture(async (directory, deps) => {
       const first = new StreamingJobs(deps);
