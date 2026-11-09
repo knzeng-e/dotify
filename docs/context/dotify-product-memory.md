@@ -1,5 +1,16 @@
 # Dotify product memory
 
+## Publication checkpoint and next diagnosis, 2026-11-09
+
+[0.1.82 is delivered](../backlog/implementation/evidence/product-0.1.82-rollout-2026-11-09.md);
+the owner confirms existing-release artist visibility and audible Web/Desktop
+playback. The [next #407 candidate](../backlog/implementation/evidence/bulletin-publication-timings-2026-11-09.md)
+adds bounded private publisher stage timings before changing concurrency or
+formats. It is not deployed and does not claim faster publication; catalogue
+latency, long-preparation acceptance and broader production gates remain open.
+No new admission, musical write, schema/key reset or deadline extension occurs.
+
+
 ## Fresh development start selected, 2026-11-08
 
 The owner chose a new publication/key domain instead of migrating old test drafts.

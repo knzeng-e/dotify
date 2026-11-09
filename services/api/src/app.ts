@@ -234,6 +234,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         profileFile: config.BULLETIN_PUBLICATION_PROFILE,
         assetPolicyFile: config.BULLETIN_PUBLIC_ASSET_POLICY,
         releaseAssets: config.PUBLIC_ASSET_STORAGE === 'bulletin',
+        onTiming: report => app.log.info({ code: 'BULLETIN_PUBLICATION_TIMING', ...report }, 'Bulletin publisher attempt timings'),
         metadataRepairAuthority: (owner, contentHash) =>
           checkUnregisteredRelease({
             owner: owner.address.toLowerCase(),

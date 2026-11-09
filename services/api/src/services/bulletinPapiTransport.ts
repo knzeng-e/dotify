@@ -6,6 +6,7 @@ import { createBulletinRpcTransport } from './bulletinTransport.js';
 import { verifyBulletinBlock, BULLETIN_GRAPH_MAX } from './bulletinGraph.js';
 import { BULLETIN_FINALITY_MS } from './bulletinLimits.js';
 import { watchFinalized } from './bulletinFinality.js';
+import { timedBulletinTransport, type PublicationTimings } from './bulletinTiming.js';
 
 import type { PolkadotClient } from 'polkadot-api';
 import type { BulletinTransactionCreator } from './bulletinFinality.js';
@@ -17,13 +18,15 @@ export function createPapiMediaTransport({
   identity,
   signer = null,
   budget,
-  reserved = { transactions: 0, bytes: 0 }
+  reserved = { transactions: 0, bytes: 0 },
+  timings
 }: {
   client: Pick<PolkadotClient, '_request' | 'destroy' | 'getUnsafeApi'>;
   identity: BulletinStoreIdentity;
   signer?: Pick<BulletinSigner, 'account' | 'createTransaction'> | null;
   budget: { maxBytes: number; maxTransactions: number };
   reserved?: { transactions: number; bytes: number };
+  timings?: PublicationTimings;
 }) {
   identity = { ...identity };
   signer = signer === null ? null : { ...signer };
@@ -110,7 +113,16 @@ export function createPapiMediaTransport({
             data: block.bytes,
             cid: { codec: BigInt(cid.code), hashing: { type: 'Blake2b256', value: undefined } }
           });
-          const position = await watchFinalized(tx, signer.createTransaction, intent.nonce, { timeoutMs: BULLETIN_FINALITY_MS, signal });
+          const milestone = timings?.transaction();
+          const wait = () =>
+            watchFinalized(tx, signer.createTransaction, intent.nonce, {
+              timeoutMs: BULLETIN_FINALITY_MS,
+              signal,
+              ...(milestone
+                ? { onMilestone: (stage: 'created' | 'broadcasted' | 'inBestBlock') => milestone(stage === 'inBestBlock' ? 'firstInclusion' : stage) }
+                : {})
+            });
+          const position = await (timings ? timings.measure('submitAndFinalize', wait) : wait());
           issued.get(intent.nonce)!.block = position.block;
           const receipt = await transport.lookup(block.cid, signal);
           assert.ok(receipt && receipt.block === position.block && receipt.index === position.index, 'Finalized store differs from CID readback');
@@ -120,7 +132,8 @@ export function createPapiMediaTransport({
         }
       }
     : undefined;
-  const raw = createBulletinRpcTransport({ identity, request, ...(submit ? { submit } : {}) });
+  const base = createBulletinRpcTransport({ identity, request, ...(submit ? { submit } : {}) });
+  const raw = timings ? timedBulletinTransport(base, timings) : base;
   const floor = { ...reserved };
   assert.ok(
     Number.isSafeInteger(floor.transactions) && floor.transactions >= 0 && Number.isSafeInteger(floor.bytes) && floor.bytes >= 0,
