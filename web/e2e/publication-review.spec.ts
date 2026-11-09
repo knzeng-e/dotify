@@ -46,3 +46,27 @@ for (const otherTask of ['payment', 'recovery'] as const) {
     }
   });
 }
+
+test('visibility checks are single-flight and shared catalog updates finish a stopped observation', async ({ page }) => {
+  await page.clock.install();
+  await mount(page, 'mountCatalogConfirmation');
+  await page.getByRole('button', { name: 'Confirm fixture approval', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Release approved' });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole('button', { name: 'Check visibility', exact: true })).toBeDisabled();
+  await expect(page.getByTestId('fixture-confirmation')).toContainText('"reads":1');
+  await page.getByRole('button', { name: 'Check fixture visibility' }).evaluate(button => (button as HTMLButtonElement).click());
+  await expect(page.getByTestId('fixture-confirmation')).toContainText('"reads":1');
+  await page.getByRole('button', { name: 'Use empty catalog responses' }).evaluate(button => (button as HTMLButtonElement).click());
+  await page.clock.runFor(10 * 60_000);
+  await expect(page.getByTestId('fixture-confirmation')).toContainText('"reads":28');
+  await expect(dialog).toContainText('Approval confirmed');
+  await expect(dialog).toContainText('taking longer to appear');
+  await expect(dialog.getByRole('button', { name: 'Check visibility', exact: true })).toBeEnabled();
+  await page.clock.runFor(60_000);
+  await expect(page.getByTestId('fixture-confirmation')).toContainText('"reads":28');
+  await page.getByRole('button', { name: 'Reveal shared catalog track' }).evaluate(button => (button as HTMLButtonElement).click());
+  await expect(page.getByTestId('fixture-confirmation')).toContainText('"pending":false');
+  await expect(page.getByTestId('fixture-confirmation')).toContainText('"navigations":1');
+  await expect(page.getByRole('dialog')).toContainText('Release published');
+});

@@ -1,5 +1,16 @@
 # Bulletin publication beyond the synthetic pilot
 
+## Full-release wait incident and repair candidate, 2026-11-08
+
+The authorized 0.1.81 rollout is recorded in [#412](https://github.com/knzeng-e/dotify/pull/412).
+The owner then reports long waits/errors on Web and Desktop. Read-only inspection
+finds the first 175-block audio ready after about 55 minutes and the second still
+advancing, rather than failed. The [repair candidate](implementation/evidence/bulletin-publication-progress-2026-11-08.md)
+orders backend assets, reports confirmed counts, preserves explicit same-draft
+resume, and owns deadlines through Node garbage collection. Actual registration,
+catalogue/sound and acceptable latency remain open; #407 is not complete. No
+live writer is restarted, retried or reset by this investigation/candidate.
+
 ## Fresh development start selected, 2026-11-08
 
 The owner chose a new publication/key domain instead of migrating old test drafts.
@@ -40,6 +51,17 @@ that the active Bulletin publisher is sending this job to Pinata.
 The original synthetic pilot is intentionally restricted to one job and exact
 release identity. Removing the checkbox did not activate general publication.
 Do not weaken that boundary or create another ad hoc artist-name/file exception.
+
+## Owner publication succeeds; artist feedback follow-up, 2026-11-09
+
+The owner confirms an existing Black Panther release registered, later appeared
+in Music and played audibly. Screenshots still show an alert and **Publishing…**
+after approval. The [feedback candidate](implementation/evidence/artist-publication-feedback-2026-11-09.md)
+keeps confirmed approval separate from catalogue visibility, with bounded
+read-only checks and an explicit editor action. This is one reported journey,
+not separately identified Web/Desktop or both-artist acceptance. #413's storage
+candidate and throughput remain separate; #407 stays open. No new upload,
+service maintenance, signing or budget is performed by this follow-up.
 
 ## Ordered implementation and acceptance
 

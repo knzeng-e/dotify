@@ -1,5 +1,6 @@
 // The application's storage choice. There is no retry across providers.
 import assert from 'node:assert/strict';
+import { BULLETIN_PUBLICATION_MS, type BulletinPublicationProgress } from './bulletinLimits.js';
 import { assertFreshContentKey } from './freshContentKey.js';
 import type { ContentKeyVaultConfigInput } from './keyVault.js';
 import {
@@ -32,7 +33,8 @@ export type PublicationStore = {
   /** Read-only preflight; the authoritative check still runs immediately before storage. */
   assertCanPrepare?: (scope: StreamingScope, name?: string, owner?: string) => Promise<void>;
   admitPreparation?: (scope: StreamingScope, owner: string) => Promise<string>;
-  pin(files: PinataFile[], name: string, signal: AbortSignal): Promise<string>;
+  publicationTimeoutMs?: number;
+  pin(files: PinataFile[], name: string, signal: AbortSignal, onProgress?: (progress: BulletinPublicationProgress) => void): Promise<string>;
   pinAsset?: (files: PinataFile[], kind: PublicAssetKind, owner: PublicAssetOwner, signal: AbortSignal) => Promise<string>;
   canDiscard(name: string): Promise<boolean>;
   close(): Promise<void>;
@@ -174,7 +176,13 @@ export async function createStreamingPublicationStore(
     )
       throw new PublicationAdmissionError();
   };
-  const publish = (files: PinataFile[], name: string, signal: AbortSignal, asset?: { kind: PublicAssetKind; owner: PublicAssetOwner }): Promise<string> => {
+  const publish = (
+    files: PinataFile[],
+    name: string,
+    signal: AbortSignal,
+    asset?: { kind: PublicAssetKind; owner: PublicAssetOwner },
+    onProgress?: (progress: BulletinPublicationProgress) => void
+  ): Promise<string> => {
     assert.ok(!closed && waiting < 3, 'Publisher is closed or busy');
     waiting++;
     const task = tail.then(async () => {
@@ -212,6 +220,8 @@ export async function createStreamingPublicationStore(
             transport: session.transport,
             budget,
             pipeline: profile.pipeline,
+            publicationTimeoutMs: BULLETIN_PUBLICATION_MS,
+            onProgress,
             ...(graph ? { buildGraph: async () => graph! } : {})
           }).pin(files, name, signal);
         } finally {
@@ -309,7 +319,8 @@ export async function createStreamingPublicationStore(
           }
         }
       : {}),
-    pin: (files, name, signal) => publish(files, name, signal),
+    ...(releases ? { publicationTimeoutMs: BULLETIN_PUBLICATION_MS } : {}),
+    pin: (files, name, signal, onProgress) => publish(files, name, signal, undefined, onProgress),
     ...(assetPolicy || releases
       ? {
           pinAsset: async (files: PinataFile[], kind: PublicAssetKind, owner: PublicAssetOwner, signal: AbortSignal) => {

@@ -8,8 +8,17 @@ export class AudioPreparationError extends Error {
     this.name = 'AudioPreparationError';
   }
 }
+// A pending job or unconfirmed upload is resumable work, not a failed release.
+export class AudioPreparationPending extends Error {
+  constructor(message = 'Your music is still being prepared. You can return and check preparation without starting a new release.') {
+    super(message);
+    this.name = 'AudioPreparationPending';
+  }
+}
+export type AudioPreparationProgress = { storedBlocks: number; totalBlocks: number };
 export type AudioPreparationPhase = 'queued' | 'encoding' | 'encrypting' | 'publishing' | 'ready' | 'failed';
 type Job = {
+  progress?: AudioPreparationProgress;
   reason?: string;
   attempts?: number;
   failure?: { stage?: string; storageStatus?: number };
@@ -26,6 +35,12 @@ export const AUDIO_PREPARATION_LABELS: Record<AudioPreparationPhase, string> = {
   ready: 'Your music is ready',
   failed: 'Audio preparation needs another try'
 };
+export function audioPreparationLabel(phase: AudioPreparationPhase, progress?: AudioPreparationProgress) {
+  if (phase !== 'publishing' || !progress) return AUDIO_PREPARATION_LABELS[phase];
+  return progress.storedBlocks === progress.totalBlocks
+    ? 'Checking your saved music'
+    : `Saving your music: ${Math.floor((100 * progress.storedBlocks) / progress.totalBlocks)}% confirmed`;
+}
 export function readPreparationId(key: string): string | null {
   try {
     const id = localStorage.getItem(key);
@@ -38,7 +53,7 @@ export async function waitForAudioPreparation(input: {
   job: unknown;
   storageKey: string;
   request: (id: string, retry?: boolean) => Promise<unknown>;
-  onProgress?: (phase: AudioPreparationPhase) => void;
+  onProgress?: (phase: AudioPreparationPhase, progress?: AudioPreparationProgress) => void;
   sleep?: (ms: number) => Promise<void>;
   now?: () => number;
   retryFailed?: boolean;
@@ -49,7 +64,8 @@ export async function waitForAudioPreparation(input: {
   const sleep = input.sleep ?? (ms => new Promise(resolve => setTimeout(resolve, ms)));
   let job = input.job as Job;
   let id: string | null = null;
-  let previous: AudioPreparationPhase | undefined;
+  let previous: string | undefined;
+  let lastChange = started;
   for (;;) {
     if (!job || typeof job.id !== 'string' || !/^[0-9a-f-]{36}$/.test(job.id) || !phases.includes(job.state) || (id && job.id !== id))
       throw new Error('Invalid audio preparation response.');
@@ -59,9 +75,22 @@ export async function waitForAudioPreparation(input: {
     } catch {
       /* Server job remains durable when local storage is unavailable. */
     }
-    if (job.state !== previous) {
-      input.onProgress?.(job.state);
-      previous = job.state;
+    const progress = job.progress;
+    if (
+      progress &&
+      (!Number.isSafeInteger(progress.storedBlocks) ||
+        !Number.isSafeInteger(progress.totalBlocks) ||
+        progress.storedBlocks < 0 ||
+        progress.totalBlocks < 1 ||
+        progress.totalBlocks > 2048 ||
+        progress.storedBlocks > progress.totalBlocks)
+    )
+      throw new Error('Invalid audio preparation progress.');
+    const checkpoint = `${job.state}:${progress?.storedBlocks ?? ''}:${progress?.totalBlocks ?? ''}`;
+    if (checkpoint !== previous) {
+      input.onProgress?.(job.state, progress);
+      previous = checkpoint;
+      lastChange = now();
     }
     if (job.state === 'ready') {
       if (!job.result || !job.result.ref.startsWith('dotify:enc:v3:key-v')) throw new Error('The prepared audio reference is missing.');
@@ -103,7 +132,10 @@ export async function waitForAudioPreparation(input: {
         canRetry
       );
     }
-    if (now() - started > 15 * 60_000) throw new Error('Your music is still being prepared. You can return and resume without uploading it again.');
+    // A healthy stream of confirmed receipts can outlive the former 15-minute
+    // foreground limit. An idle or very long wait hands back the saved job;
+    // it never retries, discards it, or labels it a storage failure.
+    if (now() - lastChange > 15 * 60_000 || now() - started > 2 * 60 * 60_000) throw new AudioPreparationPending();
     await sleep(2500);
     let failure: unknown;
     for (let attempt = 0; attempt < 3; attempt++) {
@@ -116,6 +148,12 @@ export async function waitForAudioPreparation(input: {
         if (attempt < 2) await sleep(1000 * (attempt + 1));
       }
     }
-    if (failure) throw failure;
+    if (failure) {
+      if (failure instanceof Error && ['TimeoutError', 'AbortError', 'TypeError'].includes(failure.name))
+        throw new AudioPreparationPending(
+          'Preparation could not be checked over this connection. Your saved job can be checked again without starting a new release.'
+        );
+      throw failure;
+    }
   }
 }

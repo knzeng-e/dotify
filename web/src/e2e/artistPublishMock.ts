@@ -12,6 +12,7 @@ export type ArtistPublishE2eScenario =
   | 'upload-failure'
   | 'transaction-failure'
   | 'transaction-timeout'
+  | 'catalog-long-delay'
   | 'catalog-delay'
   | 'catalog-hash-collision';
 
@@ -104,6 +105,7 @@ export function getArtistPublishE2eScenario(): ArtistPublishE2eScenario {
     requested === 'upload-failure' ||
     requested === 'transaction-failure' ||
     requested === 'transaction-timeout' ||
+    requested === 'catalog-long-delay' ||
     requested === 'catalog-delay' ||
     requested === 'catalog-hash-collision' ||
     requested === 'happy'

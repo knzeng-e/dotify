@@ -1,5 +1,35 @@
 # Deployment Configuration Runbook
 
+## Artist visibility feedback candidate, 2026-11-09
+
+The [#407 client follow-up](../backlog/implementation/evidence/artist-publication-feedback-2026-11-09.md)
+requires matching Web/Product delivery, with no API, environment, CORS, mount,
+secret, allowance or signing change. Validate confirmed approval while catalogue
+visibility is delayed, read-only **Check visibility**, eventual automatic My
+releases handoff, disconnect/account switching and unrelated dialog ownership.
+Use an existing registered release; merging this code authorizes no new storage,
+registry transaction, payment or maintenance. Full-page pending-operation
+persistence and publication/indexing latency are not changed by this candidate.
+
+## Full-release progress/deadline candidate, 2026-11-08
+
+The [#407 repair](../backlog/implementation/evidence/bulletin-publication-progress-2026-11-08.md)
+requires matched Web/Product and API/custody source. It adds no environment,
+CORS, mount, secret or allowance setting. Whole-release mode selects a two-hour
+overall publication cap; legacy pilot/Pinata
+retain five minutes. Per-read/store/finality deadlines remain unchanged, now
+strongly owned through Node GC. HTTP uploads still have a five-minute client
+wait; backend assets are ordered, and timeout/idle polling hands back a saved,
+explicitly resumable draft rather than claiming storage failure or success.
+
+Before a later rollout, verify no active writer/pending account barrier, preserve
+all admission/nonce/receipt histories and inspect both existing draft jobs. Do
+not interrupt or retry their current broadcasts. Validate owner-only confirmed
+counts, final verification, same-draft continuation through cover/metadata and
+wallet registration on Web/Desktop, then catalogue and audible readback. Counts
+and a ready audio graph alone do not prove a published release. This candidate
+does not authorize another upload slot, renewal, key change or maintenance.
+
 ## Room preparation delivered in 0.1.80, 2026-11-07
 
 [Web and Product 0.1.80](../backlog/implementation/evidence/product-0.1.80-rollout-2026-11-07.md) deliver #404 from frozen `30702580`, based on

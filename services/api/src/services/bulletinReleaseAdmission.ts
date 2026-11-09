@@ -120,18 +120,26 @@ export function createReleaseAdmission(input: { directory: string; profileSha256
     }
     return state;
   };
+  // A replaced file can have nlink=0 between open() and stat(). Keep strict
+  // file validation; serialize every public snapshot with atomic claim writes.
+  // claim() already holds this tail and therefore calls read() directly.
+  const snapshot = () => {
+    const task = tail.then(read);
+    tail = task.catch(() => undefined);
+    return task;
+  };
   const check = async (scope: StreamingScope, owner?: string) => {
     artistFor(scope, owner);
-    const state = await read();
+    const state = await snapshot();
     const entry = state.releases.find(e => releaseIdentity(e.scope) === releaseIdentity(scope));
     if (!entry && state.releases.length >= allowedCount) throw new PublicationAdmissionError();
   };
   return {
     check,
-    validate: read,
+    validate: snapshot,
     artistFor,
     async validateInventories(jobs: BulletinMediaInventory[]) {
-      const state = await read();
+      const state = await snapshot();
       assert.ok(jobs.length <= allowedCount * 3, 'Too many release inventories');
       for (const job of jobs) {
         const entry = state.releases.find(e => releaseIdentity(e.scope) === releaseIdentity(job.scope));
