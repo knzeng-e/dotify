@@ -228,8 +228,14 @@ test('a catalog suggestion can be curated into Up next without starting or payin
     await guest.goto(`/#/rooms/${roomId}`);
     await guest.getByLabel('Your name or nickname').fill('Mina');
     await guest.getByRole('button', { name: 'Join and listen' }).click();
-    await guest.getByRole('button', { name: /Queue/ }).click();
-    const search = guest.getByRole('textbox', { name: 'Request a track' });
+    // Join submits asynchronously: the previous player's Queue can still be
+    // actionable before the Room acknowledgement replaces that view.
+    const guestRoom = guest.getByRole('region', { name: 'Shared listening room', exact: true });
+    await expect(guestRoom.getByTestId('room-code')).toHaveText(roomId);
+    await guestRoom.getByRole('button', { name: 'Queue', exact: true }).click();
+    const queue = guest.getByRole('dialog', { name: 'Room queue', exact: true });
+    await expect(queue).toBeVisible();
+    const search = queue.getByRole('textbox', { name: 'Request a track' });
     await search.fill('A track outside the catalog');
     await expect(guest.getByText('No matching track in the available catalog. Try another title or artist.')).toBeVisible();
     await expect(guest.getByRole('button', { name: 'Send request' })).toBeDisabled();

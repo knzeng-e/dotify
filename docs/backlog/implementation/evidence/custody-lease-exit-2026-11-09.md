@@ -65,3 +65,24 @@ Rollback preserves all journals/keys and the existing exclusive-writer checks.
 The prior image also restores the code-zero availability defect; it is not a
 repair for it. No Web/Product rebuild, DotNS signature, secret transfer, schema
 conversion, database failover or live payment is part of this change.
+
+## CI fixture follow-up
+
+[Run 42641550836](https://github.com/knzeng-e/dotify/actions/runs/42641550836)
+passed the server, storage, recovery, Web/Product build and three-engine audio
+gates. Chromium core flows passed 330 scenarios and timed out in the catalogue
+suggestion scenario. The trace shows a successful Queue click immediately after
+join submission, followed by a hidden queue sheet and an unfinished fill of
+**Request a track**. Context disposal during timeout then obscured that wait.
+
+The scenario now waits for the shared-listening region to contain the exact
+joined Room code, scopes Queue to that region, and verifies the Room queue
+dialog before filling its search. This avoids acting on the preceding player
+while join acknowledgement replaces the view. The suggestion, lineup, current
+track and no-access-warning assertions are preserved; no timeouts, retries or
+production code are changed by this CI follow-up.
+
+Validation of the CI follow-up: affected scenario repeated five times with two
+workers **5/5 pass**; complete Room workspace file with matching candidate
+dependencies **28/28 pass**. Formatting, whitespace and offline backlog checks
+pass. The new remote CI rerun remains the final merge gate.
