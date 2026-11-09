@@ -1,5 +1,16 @@
 # Dotify technical memory
 
+## Timing analysis candidate, 2026-11-09
+
+[The next #407 slice](../backlog/implementation/evidence/bulletin-timing-report-2026-11-09.md) adds an offline allowlisted timing reader and
+a restart-reuse regression. One existing release has ready audio/cover and no
+metadata claim; its remaining authority is distinct from a new full-release slot.
+Read-only canonical checks find that source registered under the other artist,
+not this owner/runtime; a second registration would create another release of
+the same audio. No duplicate is proposed merely to collect timings. No writing
+sample, deployment or admission change occurs; full-publication latency remains
+unverified.
+
 ## Parallel verification delivered, 2026-11-09
 
 [The custody-only delivery](../backlog/implementation/evidence/bulletin-parallel-rollout-2026-11-09.md) installs #418 from frozen `ec8e82ae` after green

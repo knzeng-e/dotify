@@ -1,9 +1,17 @@
 # Prepare Bulletin artist publication
 
-This runbook describes the opt-in capability in the existing private custody service.
-The [2026-11-01 scoped activation](../backlog/implementation/evidence/product-0.1.68-rollout-2026-11-01.md)
-is a deployed one-job synthetic pilot, not a general artist-publication allowance. Read [ADR 0043](../adr/0043-bulletin-artist-publication.md)
-before provisioning. Do not reuse or reset the private-canary journals.
+The current bounded path is [Web/Product/API 0.1.82 plus custody verification](../backlog/implementation/evidence/bulletin-parallel-rollout-2026-11-09.md),
+with the [two-release v3 admission](../adr/0046-bounded-multi-release-admission.md)
+activated in 0.1.81. Both identities are claimed; that does not consume the
+unspent authority for every part. One identity has ready audio/cover but no
+metadata claim at the November 9 read-only inspection. Current startup/registry
+checks still decide whether completing it is appropriate. The same source is
+already published under the other artist: do not register it again just for logs.
+
+The [November 1 one-job pilot](../backlog/implementation/evidence/product-0.1.68-rollout-2026-11-01.md)
+and [ADR 0043](../adr/0043-bulletin-artist-publication.md) below are historical
+configuration context, not current quotas or permission to reprovision. Do not
+reset any queue, admission, nonce ledger or key to obtain another slot.
 
 “Private custody” means the existing `dotify-custody` server is reachable only
 over Fly’s internal network through authenticated Dotify API edges. It remains
@@ -11,6 +19,71 @@ centrally operated infrastructure: Bulletin stores the encrypted bytes, while
 custody and the isolated encoder prepare them and the signed-key service still
 decides whether an account may receive a listening key. Network privacy does
 not make this service decentralized.
+
+## Collect publisher timings offline
+
+The operator-only `services/api/scripts/summarize-bulletin-timings.mjs` reads
+already collected private logs. It imports no app, provider, account or signer
+and is excluded from the runtime image. No server or client deployment is needed.
+The CLI itself makes no network requests; collecting Fly logs is a separate
+read-only operator action under the applicable access controls.
+
+Run from `services/api`, using explicit private paths and a **new** output:
+
+```sh
+umask 077
+fly logs -a dotify-custody --machine REVIEWED_MACHINE --no-tail --json > /private/path/new-log.json
+node scripts/summarize-bulletin-timings.mjs \
+  --input /private/path/new-log.json --output /private/path/new-summary.json
+```
+
+`--job UUID` optionally selects a known job from the private operator report.
+Neither original UUIDs nor machine/account/CID/raw-error fields are exported.
+Samples receive local ordinal job labels. Keep the original logs private;
+review even the allowlisted summary before sharing. A summary grants no access,
+publication authority or receipt proof.
+
+The reader accepts ordinary JSONL and Fly's concatenated pretty JSON objects,
+including the JSON application event inside `message`. It bounds input to
+16 MiB, each object to 64 KiB, input records to 10,000 and timing samples to
+1,000. Input must be a private owned regular file, with one hard link and no
+symlink; concurrent changes and invalid UTF-8 are refused. Output is exclusively
+created as 0600, never overwrites another file and includes the input SHA-256.
+An interrupted output is not authoritative; use a different output path.
+Malformed recognized reports and files with no matching report refuse without
+creating output. Normal unrelated JSON log entries are omitted.
+
+For every sample retain outcome, publisher `elapsedMs`, fixed phase counters,
+observed milestones, in-flight counts and observation time when present. Do
+not add concurrent/nested phase totals, derive percentages of wall time from
+them, treat missing milestones as zero or count repeated log observations as
+unique attempts. The tool deliberately retains duplicates and supplies no ETA,
+transaction verdict, automatic bottleneck ranking or speedup claim. Its clock
+covers one publisher attempt, not upload/encoding/wallet/catalogue end-to-end.
+
+## Existing prepared release and lost browser draft
+
+A missing browser draft is separate from missing server audio. With the same
+owner, chain, runtime, source content hash and active key version, the ordinary
+audio POST returns the existing ready job even after restart. It does not reserve
+new encryption nonces, re-encode or publish audio. This reuse still requires the
+normal signed upload grant and artist checks; another identity cannot borrow it.
+
+If the original audio and cover files remain available, a fresh New release
+form can use them. Recreating a form still transfers the selected files to the
+API; it is not a zero-upload promise. The exact original cover is required to
+match its already claimed graph; changed/re-exported files are not substitutes.
+Inspect actual runtime registration before proposing Publish, especially when
+the same source was used under another artist/runtime. Catalogue absence alone
+is never proof of non-registration. Do not publish a duplicate just to get logs.
+
+An existing unclaimed metadata part can yield a small transaction-timing sample
+inside its original allowance (currently at most 4 attempts / 64 KiB). It does
+not measure fresh full-audio preparation. Capture before/after counters and
+reports; leave approval of registration in the artist wallet. Do not ask for
+new allowance merely because both release identities are claimed. Conversely,
+a fresh full-audio identity cannot use that metadata allowance: it requires a
+separately reviewed generation/budget under ADR 0046, preserving all old duties.
 
 ## Prepare a reviewable profile
 

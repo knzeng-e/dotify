@@ -32,7 +32,7 @@
       "priority": "P1",
       "track": "Production spine",
       "phase": "Now",
-      "note": "Admission, progress and catalogue feedback are delivered in 0.1.82; #415/#416 diagnostics and #418 parallel verification are live on custody (source ec8e82ae). Full-publication latency remains unmeasured. Both existing release slots are claimed: prepare a separately reviewed bounded admission/budget and actual phase measurement without resetting receipts, keys or retention duties."
+      "note": "Admission, progress and catalogue feedback are delivered in 0.1.82; #415/#416 diagnostics and #418 parallel verification are live on custody (source ec8e82ae). Offline timing analysis is the next candidate; full-publication latency remains unmeasured. Both identities are claimed; an unfinished metadata part retains its original budget, but its audio is already published under the other artist. Avoid duplicate registration just for logs. Prepare a useful fresh-release measurement with separately reviewed admission/budget, preserving receipts, keys and retention duties."
     },
     {
       "id": "product-cash-tip-feasibility",

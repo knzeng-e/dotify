@@ -22,10 +22,14 @@ implementation branch from current tested dev; use one PR per backlog scope.
   fresh full-release test requires separately reviewed durable admission/budget,
   without resetting receipts, keys, claims or retention obligations. Existing
   admitted release parts retain their original authority and remaining budgets.
+  The [offline timing reader candidate](evidence/bulletin-timing-report-2026-11-09.md)
+  prepares analysis without deployment. Read-only identity checks find the
+  unfinished part uses audio already published under the other artist; avoid
+  another registration merely for a timing sample.
 
 | Order | Scope / owner ticket | Remaining deliverable and exit gate |
 | --- | --- | --- |
-| 1 — Now | [Publication latency and acceptance #407](../bulletin-publication-admission.md) | Admission, progress and catalogue feedback are delivered. #418 is deployed to custody. Prepare a separately admitted writing measurement; measure preparation/proof/store/finality/visibility separately, then correct the observed bottleneck and verify an acceptable artist publication journey. |
+| 1 — Now | [Publication latency and acceptance #407](../bulletin-publication-admission.md) | Admission, progress and catalogue feedback are delivered. #418 is deployed to custody. Review a useful, bounded fresh-release measurement with separate admission; measure preparation/proof/store/finality/visibility separately, then correct the observed bottleneck and verify an acceptable artist publication journey. |
 | 2 — Next | [Room startup #395](../room-listener-audio.md) | Delivery to guests works on the reported path. Diagnose the roughly 55-second mobile-host start; repeated comparable full-track starts must finish without retry and with audible Web/Desktop guests. |
 | 3 — Next | [System artwork #388](../listening-controls-and-discovery.md), with #87 | Account access and discovery are delivered. Diagnose intermittent late lock-screen artwork in solo and Room; verify repeated locks/track changes without delaying audio or restoring stale metadata. |
 | 4 — Next research | [CASH tips #406](../product-cash-tip-feasibility.md), with #85/#229 | Shipped-Host/API matrix, honest contribution semantics, durable payment/receipt recovery tests and a go/no-go. Prepare a bounded pilot only if supported. |

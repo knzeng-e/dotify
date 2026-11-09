@@ -1,5 +1,16 @@
 # Dotify implementation playbook
 
+## Timing analysis candidate, 2026-11-09
+
+[The next #407 slice](evidence/bulletin-timing-report-2026-11-09.md) adds an offline allowlisted timing reader and
+a restart-reuse regression. One existing release has ready audio/cover and no
+metadata claim; its remaining authority is distinct from a new full-release slot.
+Read-only canonical checks find that source registered under the other artist,
+not this owner/runtime; a second registration would create another release of
+the same audio. No duplicate is proposed merely to collect timings. No writing
+sample, deployment or admission change occurs; full-publication latency remains
+unverified.
+
 ## Parallel verification delivered to custody, 2026-11-09
 
 [The custody-only delivery](evidence/bulletin-parallel-rollout-2026-11-09.md) installs #418 from frozen `ec8e82ae` after green
@@ -55,8 +66,8 @@ alone remains non-auditory evidence.
 [Publication, listening reliability and CASH](listening-and-publication-readiness.md)
 is the owner-requested sequence: #407 measured publication latency, then #395
 Room startup, #388 artwork, #406 CASH-tip research and #408 CASH-access research.
-Admission/progress/catalogue feedback are delivered; #418 rollout and whole-release
-speed remain open. Supporting cutover, contributions, Nearby and pilot acceptance
+Admission/progress/catalogue feedback and #418 custody rollout are delivered;
+whole-release speed remains open. Supporting cutover, contributions, Nearby and pilot acceptance
 stay open in Next. Older prompts are historical, not parallel work assignments.
 See the [alignment audit](evidence/backlog-alignment-2026-11-09.md).
 
