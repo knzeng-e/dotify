@@ -1,5 +1,51 @@
 # Deployment Configuration Runbook
 
+## Publication reliability delivered in 0.1.82, 2026-11-09
+
+[Web/Product/API and custody 0.1.82](../backlog/implementation/evidence/product-0.1.82-rollout-2026-11-09.md) deliver merged #413
+from frozen `26430e56`, based on tested dev `bccb20d5`. Both CIs and independent
+Web/dependency/DotNS/service checks pass; the signer is removed. Effective Node
+deadlines, confirmed progress and read-only approval/visibility feedback are live.
+All nine private tracking files, keys, admissions and cursor survive unchanged.
+Custody was idle/stopped during app account writes and is healthy again. Actual
+writes: 12 stores / 3,590,405 bytes, eight one-off renewals / 5,899,777 bytes and
+two DotNS signatures. Preserve **1,183 / 320,588,055** future retention reserve,
+including full earlier musical allowances. No new musical allowance, key, mount,
+origin or recurring renewal. The owner confirms existing-release artist-area
+visibility and audible playback on Web and Desktop. Publication/indexing speed
+and further long-preparation acceptance keep #407 open; a fresh catalogue read
+alone remains non-auditory evidence.
+
+## Artist visibility feedback candidate, 2026-11-09
+
+The [#407 client follow-up](../backlog/implementation/evidence/artist-publication-feedback-2026-11-09.md)
+requires matching Web/Product delivery, with no API, environment, CORS, mount,
+secret, allowance or signing change. Validate confirmed approval while catalogue
+visibility is delayed, read-only **Check visibility**, eventual automatic My
+releases handoff, disconnect/account switching and unrelated dialog ownership.
+Use an existing registered release; merging this code authorizes no new storage,
+registry transaction, payment or maintenance. Full-page pending-operation
+persistence and publication/indexing latency are not changed by this candidate.
+
+## Full-release progress/deadline candidate, 2026-11-08
+
+The [#407 repair](../backlog/implementation/evidence/bulletin-publication-progress-2026-11-08.md)
+requires matched Web/Product and API/custody source. It adds no environment,
+CORS, mount, secret or allowance setting. Whole-release mode selects a two-hour
+overall publication cap; legacy pilot/Pinata
+retain five minutes. Per-read/store/finality deadlines remain unchanged, now
+strongly owned through Node GC. HTTP uploads still have a five-minute client
+wait; backend assets are ordered, and timeout/idle polling hands back a saved,
+explicitly resumable draft rather than claiming storage failure or success.
+
+Before a later rollout, verify no active writer/pending account barrier, preserve
+all admission/nonce/receipt histories and inspect both existing draft jobs. Do
+not interrupt or retry their current broadcasts. Validate owner-only confirmed
+counts, final verification, same-draft continuation through cover/metadata and
+wallet registration on Web/Desktop, then catalogue and audible readback. Counts
+and a ready audio graph alone do not prove a published release. This candidate
+does not authorize another upload slot, renewal, key change or maintenance.
+
 ## Fresh development publication active in 0.1.81, 2026-11-08
 
 [The verified rollout](../backlog/implementation/evidence/product-0.1.81-rollout-2026-11-08.md)

@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { useArtistConsole, type UseArtistConsoleDeps } from './useArtistConsole';
-import { AudioPreparationError } from '../features/uploads/streamingPreparation';
+import { AudioPreparationError, AudioPreparationPending } from '../features/uploads/streamingPreparation';
 import { createEmptyReleaseMetadata } from '../features/catalog/releaseMetadata';
 
 import type { TransactionFeedback } from '../shared/types';
@@ -234,4 +234,25 @@ describe('publication preparation ownership', () => {
     });
     expect(discard).toHaveBeenCalledTimes(1);
   });
+});
+
+it('presents a saved background preparation as pending with an explicit same-draft check', async () => {
+  const deps = publicationDeps();
+  const captured: { current: ReturnType<typeof useArtistConsole> | null } = { current: null };
+  function Harness() {
+    captured.current = useArtistConsole(deps);
+    return null;
+  }
+  renderToStaticMarkup(<Harness />);
+  uploads.audio.mockRejectedValueOnce(new AudioPreparationPending());
+  uploads.cover.mockResolvedValue('cover-cid');
+  await captured.current!.registerRights();
+  const calls = vi.mocked(deps.setTransactionFeedback).mock.calls;
+  const setter = calls[calls.length - 1]?.[0];
+  const feedback = (typeof setter === 'function' ? setter(null) : setter) as TransactionFeedback;
+  expect(feedback).toMatchObject({ tone: 'pending', title: 'Preparation is saved', recoveryAction: { label: 'Check preparation' } });
+  expect(feedback.message).toContain('still being prepared');
+  expect(feedback.message).not.toContain('No release was published');
+  expect(uploads.metadata).not.toHaveBeenCalled();
+  expect(runtime.registerTrack).not.toHaveBeenCalled();
 });

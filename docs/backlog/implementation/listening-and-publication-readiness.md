@@ -1,5 +1,15 @@
 # Publication, listening reliability and CASH — execution order
 
+## Current delivered checkpoint, 2026-11-09
+
+[Web/Product/API 0.1.82](evidence/product-0.1.82-rollout-2026-11-09.md) supersedes the activation-time
+0.1.81 checkpoint below. The owner confirms existing-release artist visibility
+and audible playback on Web and Desktop. Bounded new-domain publication is
+active; no new admission is granted by this record. Long-preparation acceptance
+and publication/indexing latency remain open in #407 before the following
+Room/artwork slices. Earlier dated pending gates describe their original phase.
+
+
 Owner direction: 2026-11-08. Project 5 owns workflow status; linked ticket files
 own scope. One implementation branch/PR per ticket, from current tested dev.
 This plan changes priority, not deployed authorization. The existing production

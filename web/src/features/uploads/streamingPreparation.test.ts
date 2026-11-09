@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { waitForAudioPreparation, AudioPreparationError } from './streamingPreparation';
+import { waitForAudioPreparation, AudioPreparationError, AudioPreparationPending, audioPreparationLabel } from './streamingPreparation';
 const id = '12345678-1234-4234-8234-123456789abc';
 it('does not retry or discard a persisted publication admission refusal', async () => {
   const request = vi.fn(),
@@ -121,5 +121,83 @@ it('distinguishes storage refusal and exhausted attempts without losing the save
     })
   ).rejects.toMatchObject({ canRetry: false, message: expect.stringContaining('retry limit') });
   expect(request).not.toHaveBeenCalled();
+  expect(discard).not.toHaveBeenCalled();
+});
+
+it('keeps following confirmed progress past fifteen minutes and verifies completion separately', async () => {
+  let clock = 1;
+  let stored = 0;
+  const updates: string[] = [];
+  const result = await waitForAudioPreparation({
+    job: { id, state: 'publishing', progress: { storedBlocks: 0, totalBlocks: 3 } },
+    storageKey: 'slow-preparation',
+    now: () => clock,
+    sleep: async () => {
+      clock += 8 * 60_000;
+    },
+    request: async () => (++stored > 3 ? ready : { id, state: 'publishing', progress: { storedBlocks: stored, totalBlocks: 3 } }),
+    onProgress: (phase, progress) => updates.push(audioPreparationLabel(phase, progress))
+  });
+  expect(result).toEqual(ready.result);
+  expect(updates).toContain('Saving your music: 66% confirmed');
+  expect(updates).toContain('Checking your saved music');
+  expect(clock).toBeGreaterThan(15 * 60_000);
+});
+
+it('hands a stalled saved job back as pending, without retry or discard', async () => {
+  let clock = 1;
+  const request = vi.fn(async () => ({ id, state: 'publishing' }));
+  const discard = vi.fn();
+  await expect(
+    waitForAudioPreparation({
+      job: { id, state: 'publishing' },
+      storageKey: 'pending-preparation',
+      request,
+      discard,
+      now: () => clock,
+      sleep: async () => {
+        clock += 16 * 60_000;
+      }
+    })
+  ).rejects.toBeInstanceOf(AudioPreparationPending);
+  expect(request).toHaveBeenCalledExactlyOnceWith(id);
+  expect(discard).not.toHaveBeenCalled();
+});
+
+it('bounds the overall wait even when receipts keep progressing', async () => {
+  let clock = 1,
+    stored = 0;
+  await expect(
+    waitForAudioPreparation({
+      job: { id, state: 'publishing' },
+      storageKey: 'bounded-preparation',
+      request: async () => ({ id, state: 'publishing', progress: { storedBlocks: ++stored, totalBlocks: 100 } }),
+      now: () => clock,
+      sleep: async () => {
+        clock += 10 * 60_000;
+      }
+    })
+  ).rejects.toBeInstanceOf(AudioPreparationPending);
+  expect(stored).toBeLessThan(15);
+});
+
+it.each([
+  { storedBlocks: 2, totalBlocks: 1 },
+  { storedBlocks: -1, totalBlocks: 2 },
+  { storedBlocks: 1, totalBlocks: 10000 }
+])('rejects invented progress: %j', async progress => {
+  await expect(waitForAudioPreparation({ job: { id, state: 'publishing', progress }, storageKey: 'invalid', request: vi.fn() })).rejects.toThrow(
+    'Invalid audio preparation progress'
+  );
+});
+
+it('preserves an accepted job when status reads lose their connection', async () => {
+  const request = vi.fn().mockRejectedValue(new TypeError('Failed to fetch'));
+  const discard = vi.fn();
+  await expect(
+    waitForAudioPreparation({ job: { id, state: 'publishing' }, storageKey: 'offline', request, discard, sleep: async () => {} })
+  ).rejects.toBeInstanceOf(AudioPreparationPending);
+  expect(request).toHaveBeenCalledTimes(3);
+  expect(request.mock.calls.every(([requested, retry]) => requested === id && !retry)).toBe(true);
   expect(discard).not.toHaveBeenCalled();
 });

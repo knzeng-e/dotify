@@ -1,5 +1,12 @@
 # Fresh development publication active — 2026-11-08
 
+This is the historical 0.1.81 activation record, not the current application
+revision. [The subsequent 0.1.82 delivery](product-0.1.82-rollout-2026-11-09.md)
+preserves this state and records the owner's existing-release visibility and
+audible Web/Desktop acceptance. Pending checks below retain their original
+activation-time scope; publication/indexing speed and broader gates remain open.
+
+
 **Web, Product, API and custody 0.1.81 are delivered** from frozen source
 `1394503f1a8c700a103df01a2510a75b66970623`, based on merged/tested dev
 `6fc81748e860a15e79c30d5c69fd53eae1cd1112`. This activates merged #409–#411

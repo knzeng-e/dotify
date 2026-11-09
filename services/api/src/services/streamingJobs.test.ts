@@ -217,13 +217,13 @@ describe('durable streaming publications', () => {
     }));
   it('fails a stalled storage request at its deadline and retries the same ciphertext', async t =>
     fixture(async (directory, deps) => {
-      const deadline = new AbortController();
-      t.mock.method(AbortSignal, 'timeout', () => deadline.signal);
+      t.mock.timers.enable({ apis: ['setTimeout'] });
       let encodes = 0,
         pins = 0;
       let manifest: Buffer | undefined;
       const jobs = new StreamingJobs({
         ...deps,
+        publicationTimeoutMs: 5000,
         transcode: async () => {
           encodes++;
           return encoded;
@@ -232,7 +232,7 @@ describe('durable streaming publications', () => {
           const bytes = Buffer.from(files.find(file => file.path === 'manifest.json')!.bytes);
           if (++pins === 1) {
             manifest = bytes;
-            queueMicrotask(() => deadline.abort(new Error('synthetic storage deadline')));
+            queueMicrotask(() => t.mock.timers.tick(5000));
             return new Promise<string>((_resolve, reject) => signal.addEventListener('abort', () => reject(signal.reason), { once: true }));
           }
           assert.deepEqual(bytes, manifest);
@@ -243,7 +243,7 @@ describe('durable streaming publications', () => {
       const job = await jobs.enqueue(input);
       await jobs.runNext();
       assert.equal(jobs.get(job.id, owner, scope.chainId)?.state, 'failed');
-      t.mock.restoreAll();
+      t.mock.timers.reset();
       await jobs.retry(job.id, owner, scope.chainId);
       await jobs.runNext();
       assert.equal(jobs.get(job.id, owner, scope.chainId)?.state, 'ready');
@@ -323,3 +323,37 @@ describe('isolated encoder boundary', () => {
     assert(!JSON.stringify(options?.headers).includes(key.toString('hex')));
   });
 });
+
+it('exposes confirmed storage progress only to the owned publishing job, without treating all receipts as ready', async () =>
+  fixture(async (_directory, deps) => {
+    let release!: () => void;
+    let started!: () => void;
+    const gate = new Promise<void>(resolve => {
+      release = resolve;
+    });
+    const seen = new Promise<void>(resolve => {
+      started = resolve;
+    });
+    const jobs = new StreamingJobs({
+      ...deps,
+      pin: async (_files, _name, _signal, report) => {
+        report!({ storedBlocks: 3, totalBlocks: 3 });
+        started();
+        await gate;
+        return cid;
+      }
+    });
+    await jobs.start(false);
+    const saved = await jobs.enqueue(input);
+    const work = jobs.runNext();
+    await seen;
+    assert.equal(jobs.get(saved.id, owner, scope.chainId)?.state, 'publishing');
+    assert.deepEqual(jobs.get(saved.id, owner, scope.chainId)?.progress, { storedBlocks: 3, totalBlocks: 3 });
+    assert.equal(jobs.get(saved.id, `0x${'99'.repeat(20)}`, scope.chainId), null);
+    assert.equal(jobs.get(saved.id, owner, scope.chainId)?.result, undefined);
+    release();
+    await work;
+    assert.equal(jobs.get(saved.id, owner, scope.chainId)?.state, 'ready');
+    assert.equal(jobs.get(saved.id, owner, scope.chainId)?.progress, undefined);
+    await jobs.stop();
+  }));

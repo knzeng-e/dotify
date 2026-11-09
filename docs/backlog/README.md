@@ -1,5 +1,15 @@
 # Dotify Production Backlog
 
+## Current delivered checkpoint, 2026-11-09
+
+[Web/Product/API 0.1.82](implementation/evidence/product-0.1.82-rollout-2026-11-09.md) supersedes the activation-time
+0.1.81 checkpoint below. The owner confirms existing-release artist visibility
+and audible playback on Web and Desktop. Bounded new-domain publication is
+active; no new admission is granted by this record. Long-preparation acceptance
+and publication/indexing latency remain open in #407 before the following
+Room/artwork slices. Earlier dated pending gates describe their original phase.
+
+
 ## Execution priority, 2026-11-08
 
 Follow [publication and listening readiness](implementation/listening-and-publication-readiness.md):

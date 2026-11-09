@@ -1,6 +1,12 @@
 import { parsePreparedRelease, PreparedReleaseRecoveryError } from '../features/artist-studio/preparedReleaseRecovery';
 import { bulletinAssetUrl, fetchBulletinPublicAsset } from './bulletinPublicAssets';
-import { readPreparationId, waitForAudioPreparation, type AudioPreparationPhase } from '../features/uploads/streamingPreparation';
+import {
+  AudioPreparationPending,
+  readPreparationId,
+  waitForAudioPreparation,
+  type AudioPreparationPhase,
+  type AudioPreparationProgress
+} from '../features/uploads/streamingPreparation';
 // ---------------------------------------------------------------------------
 // Pinata / IPFS service — demo/local mode and production backend mode.
 //
@@ -204,7 +210,7 @@ export type BackendUploadErrorBody = {
 export type BackendUploadIdentity = {
   contentHash?: string;
   chainId: number;
-  onAudioPreparation?: (phase: AudioPreparationPhase) => void;
+  onAudioPreparation?: (phase: AudioPreparationPhase, progress?: AudioPreparationProgress) => void;
   walletClient?: WalletClient;
   signer?: KeyRequestSigner;
 };
@@ -216,7 +222,10 @@ async function fetchBackendUpload(url: string, init: RequestInit): Promise<Respo
   try {
     return await fetch(url, { ...init, signal });
   } catch (error) {
-    if (signal.aborted) throw new Error('The upload connection timed out. Your draft is safe. Publish again to check or resume preparation.');
+    if (signal.aborted)
+      throw new AudioPreparationPending(
+        'The connection ended before storage confirmed this step. Your draft is safe. Check preparation to resume the same release.'
+      );
     throw error;
   }
 }
