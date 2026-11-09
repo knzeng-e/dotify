@@ -20,6 +20,19 @@ resume, and owns deadlines through Node garbage collection. Actual registration,
 catalogue/sound and acceptable latency remain open; #407 is not complete. No
 live writer is restarted, retried or reset by this investigation/candidate.
 
+## Bounded fresh development publication active, 2026-11-08
+
+[Web/Product/API 0.1.81](implementation/evidence/product-0.1.81-rollout-2026-11-08.md)
+activates merged #409–#411 from frozen `1394503f`, with green source CI and
+independent application/record/retention readback. The owner approved two complete
+new releases globally across the two reviewed artist/runtime pairs. New random
+v3 master/empty journals replace recovery of abandoned drafts; retained v2 and
+all old paths/account obligations remain. Custody and both key-serving API
+replicas have the same active v3 mapping and pass readiness. No musical upload
+was performed by the operator; ordinary fresh publication, explicit wallet
+registration, catalogue and audible Web/Desktop/mobile acceptance remain open.
+Keep #407 In Progress until that evidence, rather than closing it on activation.
+
 ## Fresh development start selected, 2026-11-08
 
 The owner chose a new publication/key domain instead of migrating old test drafts.

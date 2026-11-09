@@ -1,7 +1,11 @@
 # 0046 — Bounded Bulletin admission across releases
 
-Date: 2026-11-08. Status: proposed implementation; no deployed activation.
+Date: 2026-11-08. Status: active bounded development deployment in 0.1.81; actual artist/public-pilot acceptance remains open.
 Refs #407, extending ADR 0043/0044 while preserving their existing pilot paths.
+
+## Delivery checkpoint
+
+[0.1.81 delivery](../backlog/implementation/evidence/product-0.1.81-rollout-2026-11-08.md) records owner-approved activation and actual artist acceptance still required.
 
 ## Problem and decision
 
