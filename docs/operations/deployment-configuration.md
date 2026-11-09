@@ -1,5 +1,16 @@
 # Deployment Configuration Runbook
 
+## Custody failure exit candidate, 2026-11-09
+
+[The lease-loss follow-up](../backlog/implementation/evidence/custody-lease-exit-2026-11-09.md)
+corrects a stopped custody process reporting exit zero after losing its database
+lock. The entrypoint marks that protective shutdown as failure so the existing
+Fly `on-failure` policy can restart it, subject to its ten-retry limit. Normal
+SIGTERM remains successful; a replacement must reacquire exclusive ownership.
+No live restart, image push, policy change or journal reset was performed.
+Inspect stopped-writer state and authorize the server rollout before activation;
+Web/Product remain 0.1.82.
+
 ## Publisher latency diagnosis candidate, 2026-11-09
 
 [The next #407 slice](../backlog/implementation/evidence/bulletin-publication-timings-2026-11-09.md) measures publisher queue/setup,

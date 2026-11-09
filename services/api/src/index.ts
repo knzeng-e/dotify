@@ -18,7 +18,13 @@ console.info(JSON.stringify({ event: 'api:storage-ready', uid: process.getuid?.(
 const { sharedState } = await import('./services/sharedState/index.js');
 const { buildApp } = await import('./app.js');
 
-const app = await buildApp();
+const app = await buildApp({
+  onCustodyLeaseLost: () => {
+    // Admission still closes immediately. Tell on-failure supervision this was
+    // not an operator-requested shutdown; a replacement must acquire its own lock.
+    process.exitCode = 1;
+  }
+});
 await listenApi(app, config.API_PORT);
 
 // Fly stops machines with SIGTERM: finish in-flight requests, then exit.
@@ -32,7 +38,8 @@ for (const signal of ['SIGTERM', 'SIGINT'] as const) {
       .close()
       .then(() => sharedState?.close())
       .then(
-        () => process.exit(0),
+        // A signal arriving during fatal teardown must not erase its failure code.
+        () => process.exit(process.exitCode ?? 0),
         () => process.exit(1)
       );
   });

@@ -556,66 +556,76 @@ describe('W36 real PostgreSQL / independent API processes', () => {
     assert.equal((await post(edgeB.origin, '/api/auth/nonce', { address })).status, 200);
     await Promise.all([edgeB.stop(), replacement.stop(), custody.stop()]);
   });
-  it('shuts down the actual API entrypoint gracefully while owning the custody lock', async () => {
-    const probe = Fastify();
-    const origin = await probe.listen({ host: '127.0.0.1', port: 0 });
-    await probe.close();
-    const directory = await mkdtemp(join(tmpdir(), 'dotify-w36-entry-'));
-    const child = fork(new URL('../../index.ts', import.meta.url), [], {
-      execArgv: ['--import', 'tsx'],
-      stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
-      env: {
-        ...process.env,
-        NODE_ENV: 'test',
-        STATE_STORE: 'postgres',
-        STATE_NAMESPACE: namespace,
-        DATABASE_URL: url!,
-        API_ROLE: 'custody',
-        API_PORT: new URL(origin).port,
-        CUSTODY_SERVICE_TOKEN: custodyToken,
-        SESSION_SECRET: secret,
-        SESSION_EPOCH: identity.sessionEpoch,
-        DOTIFY_DIRECTORY_ADDRESS: identity.directory,
-        DOTIFY_CHAIN_ID: String(identity.chainId),
-        PASEO_ASSET_HUB_RPC: undefined,
-        STREAMING_WORKER_URL: undefined,
-        STREAMING_WORKER_TOKEN: undefined,
-        NATIVE_CONTRIBUTION_SNAPSHOT_PATH: join(directory, 'receipts.json')
+  for (const reason of ['signal', 'lease-loss'] as const)
+    it(`exits the actual custody entrypoint with ${reason === 'signal' ? 'success after SIGTERM' : 'failure after losing its lock'}`, async () => {
+      const probe = Fastify();
+      const origin = await probe.listen({ host: '127.0.0.1', port: 0 });
+      await probe.close();
+      const directory = await mkdtemp(join(tmpdir(), 'dotify-w36-entry-'));
+      const child = fork(new URL('../../index.ts', import.meta.url), [], {
+        execArgv: ['--import', 'tsx'],
+        stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
+        env: {
+          ...process.env,
+          NODE_ENV: 'test',
+          STATE_STORE: 'postgres',
+          STATE_NAMESPACE: namespace,
+          DATABASE_URL: url!,
+          API_ROLE: 'custody',
+          API_PORT: new URL(origin).port,
+          CUSTODY_SERVICE_TOKEN: custodyToken,
+          SESSION_SECRET: secret,
+          SESSION_EPOCH: identity.sessionEpoch,
+          DOTIFY_DIRECTORY_ADDRESS: identity.directory,
+          DOTIFY_CHAIN_ID: String(identity.chainId),
+          PASEO_ASSET_HUB_RPC: undefined,
+          STREAMING_WORKER_URL: undefined,
+          STREAMING_WORKER_TOKEN: undefined,
+          NATIVE_CONTRIBUTION_SNAPSHOT_PATH: join(directory, 'receipts.json')
+        }
+      });
+      children.push(child);
+      child.stdout?.resume();
+      child.stderr?.resume();
+      try {
+        let ready = false;
+        for (let attempt = 0; attempt < 100; attempt++) {
+          try {
+            ready = (await fetch(`${origin}/health`, { signal: AbortSignal.timeout(200) })).ok;
+          } catch {
+            /* startup */
+          }
+          if (ready) break;
+          await new Promise(resolve => setTimeout(resolve, 50));
+        }
+        assert.ok(ready, 'The real entrypoint must start before shutdown');
+        const exit = once(child, 'exit');
+        if (reason === 'signal') child.kill('SIGTERM');
+        else {
+          const lost = await a.pool.query(
+            "SELECT pg_terminate_backend(pid) FROM pg_locks WHERE locktype='advisory' AND objid=($1::bigint & 4294967295)::oid AND classid=(($1::bigint >> 32) & 4294967295)::oid",
+            [a.lockId('custody-owner')]
+          );
+          assert.equal(lost.rowCount, 1, 'Terminate only the isolated fixture custody connection');
+        }
+        const result = await Promise.race([
+          exit,
+          new Promise<never>((_, reject) => {
+            const timer = setTimeout(() => reject(new Error('Custody shutdown deadlocked on its pool connection')), 3000);
+            timer.unref();
+          })
+        ]);
+        assert.equal(result[0], reason === 'signal' ? 0 : 1);
+        assert.equal(result[1], null, 'Exit voluntarily rather than by an unhandled process signal');
+        await assert.rejects(fetch(`${origin}/health`, { signal: AbortSignal.timeout(200) }));
+      } finally {
+        if (child.exitCode === null && child.signalCode === null) {
+          child.kill('SIGKILL');
+          await once(child, 'exit');
+        }
+        await rm(directory, { recursive: true, force: true });
       }
     });
-    children.push(child);
-    child.stdout?.resume();
-    child.stderr?.resume();
-    try {
-      let ready = false;
-      for (let attempt = 0; attempt < 100; attempt++) {
-        try {
-          ready = (await fetch(`${origin}/health`, { signal: AbortSignal.timeout(200) })).ok;
-        } catch {
-          /* startup */
-        }
-        if (ready) break;
-        await new Promise(resolve => setTimeout(resolve, 50));
-      }
-      assert.ok(ready, 'The real entrypoint must start before shutdown');
-      const exit = once(child, 'exit');
-      child.kill('SIGTERM');
-      const result = await Promise.race([
-        exit,
-        new Promise<never>((_, reject) => {
-          const timer = setTimeout(() => reject(new Error('Custody shutdown deadlocked on its pool connection')), 3000);
-          timer.unref();
-        })
-      ]);
-      assert.equal(result[0], 0);
-    } finally {
-      if (child.exitCode === null && child.signalCode === null) {
-        child.kill('SIGKILL');
-        await once(child, 'exit');
-      }
-      await rm(directory, { recursive: true, force: true });
-    }
-  });
 
   it('streams multipart through two edges to one custody process and returns an actionable failure if it is gone', async () => {
     assert.throws(() => validateCustodyOrigin('https://public.example', true));
