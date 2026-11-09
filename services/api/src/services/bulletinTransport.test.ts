@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { compactNumber } from '@polkadot-api/substrate-bindings';
-import { createBulletinRpcTransport } from './bulletinTransport.js';
+import { createBulletinRpcTransport, type BulletinRpc } from './bulletinTransport.js';
 import { bulletinBytes, verifyBulletinSubmission } from './bulletinReceipt.js';
 import { fixture, codecs, proof, rpcFixture } from './bulletinTransport.fixture.js';
 const signal = () => new AbortController().signal;
@@ -148,4 +148,213 @@ test('a stale proxy body with the same height/parent but different roots is not 
     f.state.body.block.header[field] = `0x${'77'.repeat(32)}`;
     await assert.rejects(f.transport.lookupSubmission(fixture.query, signal()), /header differs/);
   }
+});
+
+/** A serial implementation cannot open this barrier: both independent requests
+ * must start before either response is released. No wall-clock speed assertion. */
+function overlapRequired(request: BulletinRpc, select: (method: string, params: unknown[]) => string | undefined) {
+  const reached = new Set<string>();
+  let release!: () => void;
+  const gate = new Promise<void>(resolve => (release = resolve));
+  return {
+    reached,
+    request: (async (method, params, s) => {
+      const branch = select(method, params);
+      if (branch) {
+        reached.add(branch);
+        if (reached.size === 2) release();
+        let abort = () => {};
+        try {
+          await Promise.race([
+            gate,
+            new Promise<never>((_, reject) => {
+              abort = () => reject(s.reason);
+              s.addEventListener('abort', abort, { once: true });
+              if (s.aborted) abort();
+            })
+          ]);
+        } finally {
+          s.removeEventListener('abort', abort);
+        }
+      }
+      return request(method, params, s);
+    }) satisfies BulletinRpc
+  };
+}
+
+test('snapshot header and runtime reads overlap only after genesis and finalized hash selection', { timeout: 2000 }, async t => {
+  const f = rpcFixture();
+  const gate = overlapRequired(f.request, method => (method === 'chain_getHeader' ? 'header' : method === 'state_getStorageHash' ? 'runtime' : undefined));
+  const transport = createBulletinRpcTransport({ identity: fixture.identity, request: gate.request });
+  assert.deepEqual(await transport.nextNonce(t.signal), { head: f.state.head, nonce: 928 });
+  assert.equal(gate.reached.size, 2);
+  assert.deepEqual(
+    f.calls.slice(0, 2).map(c => c.method),
+    ['chain_getBlockHash', 'chain_getFinalizedHead']
+  );
+  const pinned = f.calls.filter(c => c.method === 'chain_getHeader' || c.method === 'state_getStorageHash');
+  assert.equal(pinned[0].params[0], pinned[1].params[1]);
+});
+
+test('CID metadata and retention reads overlap at the same finalized snapshot', { timeout: 2000 }, async t => {
+  const f = rpcFixture();
+  const transactions = codecs.builder.buildStorage('TransactionStorage', 'Transactions').keys.enc(fixture.receipt.block);
+  const retention = codecs.builder.buildStorage('TransactionStorage', 'RetentionPeriod').keys.enc();
+  const gate = overlapRequired(f.request, (method, params) =>
+    method !== 'state_getStorage' ? undefined : params[0] === transactions ? 'metadata' : params[0] === retention ? 'retention' : undefined
+  );
+  const transport = createBulletinRpcTransport({ identity: fixture.identity, request: gate.request });
+  const { account: _account, nonce: _nonce, ...receipt } = fixture.receipt;
+  assert.deepEqual(await transport.lookup(fixture.query.cid, t.signal), receipt);
+  assert.equal(gate.reached.size, 2);
+  const reads = f.calls.filter(c => c.method === 'state_getStorage' && [transactions, retention].includes(String(c.params[0])));
+  assert.equal(reads.length, 2);
+  assert.equal(reads[0].params[1], reads[1].params[1]);
+});
+
+test('canonical body and parent-runtime event reads overlap without changing the exact submission proof', { timeout: 2000 }, async t => {
+  const f = rpcFixture();
+  const gate = overlapRequired(f.request, (method, params) =>
+    method === 'chain_getBlock' ? 'body' : method === 'state_getStorageHash' && params[1] === fixture.header.parentHash ? 'execution' : undefined
+  );
+  const transport = createBulletinRpcTransport({ identity: fixture.identity, request: gate.request });
+  assert.deepEqual(await transport.lookupSubmission(fixture.query, t.signal), fixture.receipt);
+  assert.equal(gate.reached.size, 2);
+  assert.equal(f.calls.filter(c => c.method === 'chain_getBlock').length, 1);
+});
+
+test('a failed read observes its already-started sibling before propagating the original error', { timeout: 2000 }, async t => {
+  const f = rpcFixture(),
+    failure = new Error('synthetic header failure');
+  let release!: () => void,
+    arrived!: () => void,
+    settled = false,
+    siblingFinished = false;
+  const pause = new Promise<void>(resolve => (release = resolve));
+  const siblingStarted = new Promise<void>(resolve => (arrived = resolve));
+  const transport = createBulletinRpcTransport({
+    identity: fixture.identity,
+    request: async (method, params, s) => {
+      if (method === 'chain_getHeader') throw failure;
+      if (method === 'state_getStorageHash') {
+        arrived();
+        await pause;
+        siblingFinished = true;
+      }
+      return f.request(method, params, s);
+    }
+  });
+  const operation = transport.nextNonce(t.signal);
+  void operation.then(
+    () => (settled = true),
+    () => (settled = true)
+  );
+  const rejected = assert.rejects(operation, error => error === failure);
+  try {
+    await siblingStarted;
+    assert.equal(settled, false);
+  } finally {
+    release();
+  }
+  await rejected;
+  assert.equal(siblingFinished, true);
+  assert.ok(!f.calls.some(c => c.method === 'state_call' && c.params[0] === 'AccountNonceApi_account_nonce'));
+});
+
+test('cancelling paired reads aborts both branches and retains the caller error', { timeout: 2000 }, async () => {
+  const f = rpcFixture(),
+    owner = new AbortController(),
+    failure = new Error('synthetic cancellation');
+  let active = 0,
+    started = 0;
+  const transport = createBulletinRpcTransport({
+    identity: fixture.identity,
+    request: async (method, params, s) => {
+      if (!['chain_getHeader', 'state_getStorageHash'].includes(method)) return f.request(method, params, s);
+      active++;
+      started++;
+      let abort = () => {};
+      try {
+        if (started === 2) owner.abort(failure);
+        return await new Promise<never>((_, reject) => {
+          abort = () => reject(s.reason);
+          s.addEventListener('abort', abort, { once: true });
+          if (s.aborted) abort();
+        });
+      } finally {
+        active--;
+        s.removeEventListener('abort', abort);
+      }
+    }
+  });
+  await assert.rejects(transport.nextNonce(owner.signal), error => error === failure);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(started, 2);
+  assert.equal(active, 0);
+});
+
+test('parallel confirmations remain bounded for four independent receipt reads', { timeout: 3000 }, async t => {
+  const f = rpcFixture();
+  let active = 0,
+    peak = 0;
+  const transport = createBulletinRpcTransport({
+    identity: fixture.identity,
+    request: async (method, params, s) => {
+      peak = Math.max(peak, ++active);
+      try {
+        await new Promise(resolve => setImmediate(resolve));
+        return await f.request(method, params, s);
+      } finally {
+        active--;
+      }
+    }
+  });
+  const receipts = await Promise.all(Array.from({ length: 4 }, () => transport.lookupSubmission(fixture.query, t.signal)));
+  receipts.forEach(receipt => assert.deepEqual(receipt, fixture.receipt));
+  assert.ok(peak >= 2 && peak <= 8, 'At most two in-flight RPC reads per caller, below the dedicated-client limit of sixteen');
+  assert.equal(active, 0);
+});
+
+test('parallel reads still refresh genesis and CID retention rather than caching eligibility', async () => {
+  const f = rpcFixture();
+  assert.ok(await f.transport.lookup(fixture.query.cid, signal()));
+  f.state.values.clear();
+  assert.equal(await f.transport.lookup(fixture.query.cid, signal()), null);
+  assert.equal(f.calls.filter(c => c.method === 'chain_getFinalizedHead').length, 2);
+  assert.equal(f.calls.filter(c => c.method === 'chain_getBlockHash' && c.params[0] === 0).length, 2);
+  f.state.genesis = `0x${'ff'.repeat(32)}`;
+  await assert.rejects(f.transport.nextNonce(signal()), /genesis/);
+});
+
+test('confirmation parallelism retains every cold and warm canonical RPC proof read', async () => {
+  const f = rpcFixture();
+  const count = (calls: typeof f.calls) =>
+    Object.fromEntries([...new Set(calls.map(c => c.method))].sort().map(method => [method, calls.filter(c => c.method === method).length]));
+  assert.deepEqual(await f.transport.lookupSubmission(fixture.query, signal()), fixture.receipt);
+  assert.deepEqual(count(f.calls), {
+    chain_getBlock: 1,
+    chain_getBlockHash: 2,
+    chain_getFinalizedHead: 1,
+    chain_getHeader: 2,
+    state_call: 2,
+    state_getStorage: 4,
+    state_getStorageHash: 2
+  });
+  const offset = f.calls.length;
+  assert.deepEqual(await f.transport.lookupSubmission(fixture.query, signal()), fixture.receipt);
+  assert.deepEqual(count(f.calls.slice(offset)), {
+    chain_getBlock: 1,
+    chain_getBlockHash: 2,
+    chain_getFinalizedHead: 1,
+    chain_getHeader: 2,
+    state_getStorage: 4,
+    state_getStorageHash: 2
+  });
+});
+
+test('a fresh finalized head can expire a previously successful CID lookup', async () => {
+  const f = rpcFixture();
+  assert.ok(await f.transport.lookup(fixture.query.cid, signal()));
+  f.state.head = fixture.receipt.expiresAt;
+  assert.equal(await f.transport.lookup(fixture.query.cid, signal()), null);
 });

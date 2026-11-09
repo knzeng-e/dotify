@@ -1,0 +1,325 @@
+{
+  "schema": "dotify.bulletin.parallel-read-evidence.v1",
+  "scope": "read-only status, retained-CID lookup and verified 276-byte marker; not upload/store/finality or full-publication latency",
+  "baselineCommit": "5f797e0b1ff71d23735352deea281d1589505b69",
+  "baselineTransportGitBlob": "988f692e89d5a33a946047661c03416e05f99554",
+  "sourceSha256": {
+    "baselineSha256": "d8383ef9226825cdcd9a88e4e440cdcfc491635f9cd64e78ecba974456501e13",
+    "candidateSha256": "969ddbddc131a4f8c59f329d3feef74a20fd98de73c98cf65158f58be47d6a6a"
+  },
+  "inputsSha256": "c3a42003b92b6015b0fc8461b55b05dbab909f37509b2dcf4dd118c6ae3eccee",
+  "clientNetwork": "not measured; WS shared across variants; remote caches not reset; cold transport-metadata pair excluded from medians",
+  "runtime": "Node 22.13.1; pinned PAPI 3.3.0; no dependency update",
+  "historicalPreparations": [
+    {
+      "graphBlocks": 175,
+      "graphBytes": 18718962,
+      "attemptedStores": 175,
+      "pipeline": {
+        "concurrency": 2,
+        "maxInFlightBytes": 524288
+      },
+      "receiptBlockSpan": 526,
+      "receiptBlockGapHistogram": {
+        "0": 78,
+        "1": 8,
+        "5": 11,
+        "6": 76,
+        "7": 1
+      },
+      "createdToReadyMs": 3283455,
+      "sourceBytes": 4683301,
+      "preparationAttempts": 1
+    },
+    {
+      "graphBlocks": 175,
+      "graphBytes": 18718962,
+      "attemptedStores": 175,
+      "pipeline": {
+        "concurrency": 2,
+        "maxInFlightBytes": 524288
+      },
+      "receiptBlockSpan": 550,
+      "receiptBlockGapHistogram": {
+        "0": 80,
+        "1": 6,
+        "5": 8,
+        "6": 57,
+        "7": 22,
+        "8": 1
+      },
+      "createdToReadyMs": 3529239,
+      "sourceBytes": 4683301,
+      "preparationAttempts": 1
+    }
+  ],
+  "liveStoreTimingReportsAvailable": 0,
+  "measurements": [
+    {
+      "run": "preliminary",
+      "observedAt": "2026-11-09T17:30:50.684Z",
+      "samples": [
+        {
+          "pair": 1,
+          "variant": "baseline",
+          "cache": "transport-metadata-cold",
+          "elapsedMs": 1768,
+          "finalizedHead": 1575076,
+          "verifiedBytes": 276,
+          "rpcCount": 15,
+          "peakPendingRpcs": 1
+        },
+        {
+          "pair": 1,
+          "variant": "candidate",
+          "cache": "transport-metadata-cold",
+          "elapsedMs": 1035,
+          "finalizedHead": 1575077,
+          "verifiedBytes": 276,
+          "rpcCount": 15,
+          "peakPendingRpcs": 2
+        },
+        {
+          "pair": 2,
+          "variant": "candidate",
+          "cache": "transport-metadata-warm",
+          "elapsedMs": 620,
+          "finalizedHead": 1575077,
+          "verifiedBytes": 276,
+          "rpcCount": 14,
+          "peakPendingRpcs": 2
+        },
+        {
+          "pair": 2,
+          "variant": "baseline",
+          "cache": "transport-metadata-warm",
+          "elapsedMs": 900,
+          "finalizedHead": 1575077,
+          "verifiedBytes": 276,
+          "rpcCount": 14,
+          "peakPendingRpcs": 1
+        },
+        {
+          "pair": 3,
+          "variant": "baseline",
+          "cache": "transport-metadata-warm",
+          "elapsedMs": 850,
+          "finalizedHead": 1575077,
+          "verifiedBytes": 276,
+          "rpcCount": 14,
+          "peakPendingRpcs": 1
+        },
+        {
+          "pair": 3,
+          "variant": "candidate",
+          "cache": "transport-metadata-warm",
+          "elapsedMs": 636,
+          "finalizedHead": 1575078,
+          "verifiedBytes": 276,
+          "rpcCount": 14,
+          "peakPendingRpcs": 2
+        },
+        {
+          "pair": 4,
+          "variant": "candidate",
+          "cache": "transport-metadata-warm",
+          "elapsedMs": 609,
+          "finalizedHead": 1575078,
+          "verifiedBytes": 276,
+          "rpcCount": 14,
+          "peakPendingRpcs": 2
+        },
+        {
+          "pair": 4,
+          "variant": "baseline",
+          "cache": "transport-metadata-warm",
+          "elapsedMs": 852,
+          "finalizedHead": 1575078,
+          "verifiedBytes": 276,
+          "rpcCount": 14,
+          "peakPendingRpcs": 1
+        },
+        {
+          "pair": 5,
+          "variant": "baseline",
+          "cache": "transport-metadata-warm",
+          "elapsedMs": 777,
+          "finalizedHead": 1575078,
+          "verifiedBytes": 276,
+          "rpcCount": 14,
+          "peakPendingRpcs": 1
+        },
+        {
+          "pair": 5,
+          "variant": "candidate",
+          "cache": "transport-metadata-warm",
+          "elapsedMs": 619,
+          "finalizedHead": 1575078,
+          "verifiedBytes": 276,
+          "rpcCount": 14,
+          "peakPendingRpcs": 2
+        },
+        {
+          "pair": 6,
+          "variant": "candidate",
+          "cache": "transport-metadata-warm",
+          "elapsedMs": 697,
+          "finalizedHead": 1575078,
+          "verifiedBytes": 276,
+          "rpcCount": 14,
+          "peakPendingRpcs": 2
+        },
+        {
+          "pair": 6,
+          "variant": "baseline",
+          "cache": "transport-metadata-warm",
+          "elapsedMs": 772,
+          "finalizedHead": 1575078,
+          "verifiedBytes": 276,
+          "rpcCount": 14,
+          "peakPendingRpcs": 1
+        }
+      ],
+      "warmMedianMs": {
+        "baseline": 850,
+        "candidate": 620
+      }
+    },
+    {
+      "run": "reproducible-cli",
+      "observedAt": "2026-11-09T17:41:01.960Z",
+      "samples": [
+        {
+          "pair": 1,
+          "variant": "baseline",
+          "cache": "transport-metadata-cold",
+          "elapsedMs": 3265,
+          "finalizedHead": 1575176,
+          "verifiedBytes": 276,
+          "rpcCount": 15,
+          "peakPendingRpcs": 1
+        },
+        {
+          "pair": 1,
+          "variant": "candidate",
+          "cache": "transport-metadata-cold",
+          "elapsedMs": 1700,
+          "finalizedHead": 1575177,
+          "verifiedBytes": 276,
+          "rpcCount": 15,
+          "peakPendingRpcs": 2
+        },
+        {
+          "pair": 2,
+          "variant": "candidate",
+          "cache": "transport-metadata-warm",
+          "elapsedMs": 1280,
+          "finalizedHead": 1575178,
+          "verifiedBytes": 276,
+          "rpcCount": 14,
+          "peakPendingRpcs": 2
+        },
+        {
+          "pair": 2,
+          "variant": "baseline",
+          "cache": "transport-metadata-warm",
+          "elapsedMs": 1879,
+          "finalizedHead": 1575178,
+          "verifiedBytes": 276,
+          "rpcCount": 14,
+          "peakPendingRpcs": 1
+        },
+        {
+          "pair": 3,
+          "variant": "baseline",
+          "cache": "transport-metadata-warm",
+          "elapsedMs": 1815,
+          "finalizedHead": 1575178,
+          "verifiedBytes": 276,
+          "rpcCount": 14,
+          "peakPendingRpcs": 1
+        },
+        {
+          "pair": 3,
+          "variant": "candidate",
+          "cache": "transport-metadata-warm",
+          "elapsedMs": 1439,
+          "finalizedHead": 1575178,
+          "verifiedBytes": 276,
+          "rpcCount": 14,
+          "peakPendingRpcs": 2
+        },
+        {
+          "pair": 4,
+          "variant": "candidate",
+          "cache": "transport-metadata-warm",
+          "elapsedMs": 1452,
+          "finalizedHead": 1575178,
+          "verifiedBytes": 276,
+          "rpcCount": 14,
+          "peakPendingRpcs": 2
+        },
+        {
+          "pair": 4,
+          "variant": "baseline",
+          "cache": "transport-metadata-warm",
+          "elapsedMs": 2092,
+          "finalizedHead": 1575178,
+          "verifiedBytes": 276,
+          "rpcCount": 14,
+          "peakPendingRpcs": 1
+        },
+        {
+          "pair": 5,
+          "variant": "baseline",
+          "cache": "transport-metadata-warm",
+          "elapsedMs": 1857,
+          "finalizedHead": 1575179,
+          "verifiedBytes": 276,
+          "rpcCount": 14,
+          "peakPendingRpcs": 1
+        },
+        {
+          "pair": 5,
+          "variant": "candidate",
+          "cache": "transport-metadata-warm",
+          "elapsedMs": 1549,
+          "finalizedHead": 1575179,
+          "verifiedBytes": 276,
+          "rpcCount": 14,
+          "peakPendingRpcs": 2
+        },
+        {
+          "pair": 6,
+          "variant": "candidate",
+          "cache": "transport-metadata-warm",
+          "elapsedMs": 1441,
+          "finalizedHead": 1575180,
+          "verifiedBytes": 276,
+          "rpcCount": 14,
+          "peakPendingRpcs": 2
+        },
+        {
+          "pair": 6,
+          "variant": "baseline",
+          "cache": "transport-metadata-warm",
+          "elapsedMs": 1645,
+          "finalizedHead": 1575180,
+          "verifiedBytes": 276,
+          "rpcCount": 14,
+          "peakPendingRpcs": 1
+        }
+      ],
+      "warmMedianMs": {
+        "baseline": 1857,
+        "candidate": 1441
+      }
+    }
+  ],
+  "canonicalProofTestCases": 19,
+  "apiTestCases": 378,
+  "networkWrites": 0,
+  "signerUsed": false,
+  "deployed": false,
+  "publicationSpeedAccepted": false
+}

@@ -1,5 +1,15 @@
 # Dotify implementation playbook
 
+## Parallel verification candidate, 2026-11-09
+
+[The next #407 slice](evidence/bulletin-parallel-verification-2026-11-09.md) overlaps independent reads at already selected
+finalized hashes, preserving canonical proof, fresh retention and all RPC calls.
+Nineteen transport cases and 378 API cases pass. Two small read-only comparisons
+show shorter marker-check medians with unchanged request counts; publication/
+finality latency remains unverified. No profile, write concurrency, key, budget
+or deployed service changes; custody remains f9fdd693 and Web/Product 0.1.82.
+
+
 ## Custody diagnostics delivered, 2026-11-09
 
 [The server-only delivery](evidence/custody-diagnostics-rollout-2026-11-09.md) installs merged #415/#416 on private custody

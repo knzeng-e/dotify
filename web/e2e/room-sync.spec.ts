@@ -22,6 +22,20 @@ async function join(page: Page, id: string) {
   await page.getByLabel('Your name or nickname').fill('Sync guest');
   await page.getByRole('button', { name: 'Join and listen' }).click();
   await expect(page.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20_000 });
+  // "In sync" is set by ontrack, before ICE/DTLS has necessarily connected.
+  // Bind the meter and drive host playback only once the current receiver has
+  // actually received media (including silence while the host is paused).
+  await expect
+    .poll(() =>
+      page
+        .locator('audio.native-player-source')
+        .nth(1)
+        .evaluate((audio: HTMLAudioElement) => {
+          const tracks = (audio.srcObject as MediaStream | null)?.getAudioTracks();
+          return Boolean(tracks?.length && tracks.every(track => track.readyState === 'live' && !track.muted));
+        })
+    )
+    .toBe(true);
 }
 async function seek(page: Page, percent: number) {
   await page.locator('.player-stage input[type=range]').evaluate((element, value) => {
@@ -168,6 +182,8 @@ test('real Web Audio stays silent through repeated host pauses and local pause s
               tracks: (audio?.srcObject as MediaStream)
                 ?.getAudioTracks()
                 .map(track => ({ enabled: track.enabled, muted: track.muted, readyState: track.readyState })),
+              meterStreamIsCurrent: Reflect.get(window, '__roomSyncStream') === audio?.srcObject,
+              roomQuality: window.__DOTIFY_ROOM_QUALITY__?.snapshot(),
               rms: Reflect.get(window, '__roomSyncMeter')?.()
             };
           })
