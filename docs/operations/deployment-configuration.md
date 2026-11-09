@@ -9,6 +9,8 @@ no key/raw error/CID payload, not new custody state or an ETA. Overlapping phase
 totals are not wall time. A three-sample read-only root probe is not a store or
 throughput benchmark. API/custody rollout and live timing acceptance remain
 open; no new publication, maintenance, policy or deadline is activated.
+The linked evidence also records the CI-only WebKit worker/Room-cleanup correction;
+local repeated checks do not replace the remote CI gate.
 
 
 ## Publication reliability delivered in 0.1.82, 2026-11-09

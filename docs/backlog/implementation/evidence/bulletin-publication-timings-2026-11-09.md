@@ -112,3 +112,24 @@ the same state; metrics need no persistence conversion.
   Both viewports repeated three times: 6/6 browser checks pass.
 - Live per-store stage timings, acceptable latency and catalogue-delay diagnosis
   remain unverified. #407 stays open; read-only root probes do not close it.
+
+## CI follow-up: WebKit fixture lifecycle
+
+[Run 42619484047](https://github.com/knzeng-e/dotify/actions/runs/42619484047)
+passed all 331 core Chromium scenarios and the preceding Nearby/continuity steps.
+The WebKit autoplay scenario reached its 30-second deadline while closing the
+Room. Its trace records about 16 seconds creating the page; the explicit resume,
+advancing media time and unchanged-source assertions had already passed. This
+is startup contention evidence, not a failed playback assertion.
+
+The six-scenario real-media WebKit suite now uses one worker to avoid competing
+page startups. The autoplay fixture also confirms **Close room and stop** and
+checks removal of the mounted Room code, rather than only opening the exit
+dialog. The same cleanup runs after a failed scenario. No test timeout, retry
+count, application playback logic or production setting changes.
+
+Validation of this follow-up:
+
+- Full WebKit listening configuration, repeated twice: **12/12 pass**.
+- Affected autoplay scenario under Chromium: **1/1 pass**.
+- Formatting and whitespace checks pass. The remote rerun remains the final CI gate.

@@ -1,8 +1,21 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
+
+async function closeHostedRoom(page: Page) {
+  const confirm = page.getByRole('button', { name: 'Close room and stop', exact: true });
+  if (!(await confirm.isVisible())) {
+    const close = page.getByRole('button', { name: 'Close room', exact: true });
+    if (!(await close.isVisible())) return;
+    await close.click();
+    await expect(confirm).toBeVisible();
+  }
+  await confirm.click();
+  // Role queries can hide the background while a dialog is open. This marker
+  // stays mounted until the Room actually ends, so cleanup proves a real exit.
+  await expect(page.getByTestId('room-code')).toHaveCount(0);
+}
 
 test.afterEach(async ({ page }) => {
-  const close = page.getByRole('button', { name: 'Close room', exact: true });
-  if (await close.isVisible()) await close.click();
+  await closeHostedRoom(page);
 });
 
 test('a device-blocked host start offers explicit resume without preparing the track again', async ({ page }) => {
@@ -33,5 +46,5 @@ test('a device-blocked host start offers explicit resume without preparing the t
     )
     .toBeGreaterThan(0.2);
   expect(await page.locator('audio').first().getAttribute('src')).toBe(source);
-  await page.getByRole('button', { name: 'Close room', exact: true }).click();
+  await closeHostedRoom(page);
 });
