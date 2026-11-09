@@ -1,5 +1,16 @@
 # Bulletin publication beyond the synthetic pilot
 
+## Custody diagnostics delivered, 2026-11-09
+
+[The server-only delivery](implementation/evidence/custody-diagnostics-rollout-2026-11-09.md) installs merged #415/#416 on private custody
+after both CIs, a completed volume snapshot and stopped-writer inspection.
+Health/readiness and all nine selected journal hashes pass; v3/v2, five ready
+inventories and two prepared jobs are retained. Web/Product and public APIs
+remain 0.1.82. No Bulletin/DotNS operation, new musical allowance or key transfer
+occurs. Private timing logs are active, but live per-store latency and faster
+publication remain unverified; #407 stays open.
+
+
 ## Custody availability follow-up, 2026-11-09
 
 #415 is merged with green PR checks. Preparing its server delivery exposed a
