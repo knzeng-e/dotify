@@ -9,7 +9,16 @@ export function watchFinalized(
   tx: StoreTransaction,
   signer: BulletinTransactionCreator,
   nonce: number,
-  { timeoutMs = 120_000, signal }: { timeoutMs?: number; signal?: AbortSignal } = {}
+  {
+    timeoutMs = 120_000,
+    signal,
+    onMilestone
+  }: {
+    timeoutMs?: number;
+    signal?: AbortSignal;
+    /** PAPI 3 lifecycle hints only; never substitute for finalized proof. */
+    onMilestone?: (stage: 'created' | 'broadcasted' | 'inBestBlock') => void | Promise<void>;
+  } = {}
 ): Promise<{ block: number; index: number }> {
   assert.equal(typeof signer, 'function', 'PAPI 3 requires an explicit transaction creator, not a PAPI 2 signer object');
   assert.ok(Number.isSafeInteger(nonce) && nonce >= 0 && nonce <= 0xffffffff, 'Invalid explicit nonce');
@@ -40,7 +49,13 @@ export function watchFinalized(
     try {
       subscription = tx.createSubmitAndWatch(signer, { nonce }).subscribe({
         next(event) {
-          if (settled || event.type !== 'finalized') return;
+          if (settled) return;
+          if (onMilestone && (event.type === 'created' || event.type === 'broadcasted' || event.type === 'inBestBlock')) {
+            try {
+              void Promise.resolve(onMilestone(event.type)).catch(() => undefined);
+            } catch {} // Observation must not change submission outcome.
+          }
+          if (event.type !== 'finalized') return;
           try {
             assert.ok(event.ok === true, 'Finalized transaction dispatch did not succeed');
             assert.ok(Number.isSafeInteger(event.block?.number) && event.block.number >= 0, 'Missing finalized block');

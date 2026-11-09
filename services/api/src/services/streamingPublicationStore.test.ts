@@ -340,7 +340,17 @@ it('a scoped pilot rejects other identities and new jobs before a write session;
   const writes = stored.size;
   assert(writes > 0);
   await store.close();
-  store = await createStreamingPublicationStore(c.options, c.deps);
+  const timingReports: { outcome: string; jobId?: string }[] = [];
+  store = await createStreamingPublicationStore(
+    {
+      ...c.options,
+      onTiming: report => {
+        timingReports.push(report);
+        return Promise.reject(Error('Async diagnostic sink unavailable'));
+      }
+    },
+    c.deps
+  );
   c.events.length = 0;
   await assert.rejects(store.assertCanPrepare!(scope), PublicationAdmissionError);
   await assert.rejects(store.assertCanPrepare!(scope, other), PublicationAdmissionError);
@@ -349,7 +359,41 @@ it('a scoped pilot rejects other identities and new jobs before a write session;
   assert(!c.events.includes('write-session'));
   assert.equal(await store.pin(files, original, new AbortController().signal), root);
   assert.equal(stored.size, writes);
+  assert.deepEqual(
+    timingReports.map(report => report.outcome),
+    ['failed', 'succeeded']
+  );
+  assert.equal(timingReports[1].jobId, original.slice(7));
   await store.close();
   await writeFile(c.file, JSON.stringify({ ...c.profile, pilotScope: undefined }));
   await assert.rejects(createStreamingPublicationStore(c.options, c.deps), /profile changed/);
+});
+
+it('one sanitized failed-attempt summary cannot replace the original error or change custody state', async t => {
+  const c = await setup(t);
+  const reports: unknown[] = [];
+  const store = await createStreamingPublicationStore(
+    {
+      ...c.options,
+      onTiming: report => {
+        reports.push(report);
+        throw Error('Diagnostic sink unavailable');
+      }
+    },
+    c.deps
+  );
+  const before = await readFile(join(c.profile.directory, 'owner.json'), 'utf8');
+  const abort = new AbortController();
+  const reason = new Error('PRIVATE_ABORT_VALUE');
+  abort.abort(reason);
+  await assert.rejects(store.pin([], 'not-a-job-PRIVATE_NAME', abort.signal), error => error === reason);
+  assert.equal(reports.length, 1);
+  const report = reports[0] as { outcome: string; kind: string; phases: { queue: unknown; prepare: { failures: number } }; jobId?: string };
+  assert.equal(report.outcome, 'failed');
+  assert.equal(report.kind, 'audio');
+  assert.equal(report.phases.prepare.failures, 1);
+  assert.equal(report.jobId, undefined);
+  assert(!JSON.stringify(report).includes('PRIVATE'));
+  assert.equal(await readFile(join(c.profile.directory, 'owner.json'), 'utf8'), before);
+  await store.close();
 });

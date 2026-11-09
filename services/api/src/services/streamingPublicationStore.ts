@@ -28,6 +28,7 @@ import { PublicationAdmissionError } from './publicationAdmission.js';
 import { createReleasePublication, verifyReleaseDependencies } from './bulletinReleasePublication.js';
 import { buildBulletinMediaGraph } from './bulletinGraph.js';
 import type { BulletinSigner } from './bulletinPapiTransport.js';
+import { createPublicationTimings, type PublicationTimings, type PublicationTimingReport } from './bulletinTiming.js';
 type Reserve = { transactions: number; bytes: number };
 export type PublicationStore = {
   /** Read-only preflight; the authoritative check still runs immediately before storage. */
@@ -41,7 +42,15 @@ export type PublicationStore = {
 };
 export type PublisherDependencies = {
   loadSigner(profile: BulletinPublisherProfile): Promise<BulletinSigner>;
-  openSession(profile: BulletinPublisherProfile, signer: BulletinSigner | null, reserve: Reserve): { transport: BulletinMediaTransport; close(): void };
+  openSession(
+    profile: BulletinPublisherProfile,
+    signer: BulletinSigner | null,
+    reserve: Reserve,
+    timings?: PublicationTimings
+  ): {
+    transport: BulletinMediaTransport;
+    close(): void;
+  };
 };
 async function inventories(profile: BulletinPublisherProfile) {
   const owner = ownerSchema.parse(await load(join(profile.directory, 'owner.json')));
@@ -85,6 +94,8 @@ export async function createStreamingPublicationStore(
     /** Trusted operator composition: authenticate a saved recovery plan while
      * holding the publisher lease, before the private signer is loaded. */
     validateBeforeSigner?: () => Promise<void>;
+    /** One private, allowlisted summary per attempt; never changes durable state. */
+    onTiming?: (report: PublicationTimingReport & { kind: 'audio' | PublicAssetKind; jobId?: string }) => void | Promise<void>;
   },
   deps?: PublisherDependencies
 ): Promise<PublicationStore> {
@@ -185,7 +196,13 @@ export async function createStreamingPublicationStore(
   ): Promise<string> => {
     assert.ok(!closed && waiting < 3, 'Publisher is closed or busy');
     waiting++;
+    const timings = options.onTiming ? createPublicationTimings() : undefined;
+    const finishQueue = timings?.start('queue');
+    let finishPrepare: ReturnType<PublicationTimings['start']> | undefined;
+    let outcome: PublicationTimingReport['outcome'] = 'failed';
     const task = tail.then(async () => {
+      finishQueue?.();
+      finishPrepare = timings?.start('prepare');
       assert.ok(!closed, 'Publisher is closed');
       signal.throwIfAborted();
       await assertPublicationBinding(options.queue, profile);
@@ -210,7 +227,9 @@ export async function createStreamingPublicationStore(
         }
         assert.ok(!owner.activeJob || owner.activeJob === name, 'Previous publication requires reconciliation');
         const reserve = await retainedPublicationReserve(profile, name);
-        const session = selected.openSession({ ...profile, budget }, signer!, reserve);
+        finishPrepare?.();
+        finishPrepare = undefined;
+        const session = selected.openSession({ ...profile, budget }, signer!, reserve, timings);
         activeSession = session;
         try {
           await verifyReleaseDependencies(session.transport, dependencies, signal);
@@ -273,7 +292,9 @@ export async function createStreamingPublicationStore(
       }
       const selectedProfile = asset ? { ...profile, budget: effectiveAssetPolicy![asset.kind] } : profile;
       const reserved = await retainedPublicationReserve(profile, name);
-      const session = selected.openSession(selectedProfile, signer!, reserved);
+      finishPrepare?.();
+      finishPrepare = undefined;
+      const session = selected.openSession(selectedProfile, signer!, reserved, timings);
       activeSession = session;
       try {
         return await createBulletinMediaStore({
@@ -292,9 +313,27 @@ export async function createStreamingPublicationStore(
       }
     });
     tail = task.catch(() => undefined);
-    return task.finally(() => {
-      waiting--;
-    });
+    return task
+      .then(result => {
+        outcome = 'succeeded';
+        return result;
+      })
+      .finally(() => {
+        waiting--;
+        finishPrepare?.(false);
+        if (timings) {
+          // A diagnostic sink cannot convert a settled transaction into a failure.
+          try {
+            void Promise.resolve(
+              options.onTiming!({
+                ...timings.snapshot(outcome),
+                kind: asset?.kind ?? 'audio',
+                ...(/^stream-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(name) ? { jobId: name.slice(7) } : {})
+              })
+            ).catch(() => undefined);
+          } catch {}
+        }
+      });
   };
   return {
     async assertCanPrepare(scope, name, owner) {

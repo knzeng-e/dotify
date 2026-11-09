@@ -12,6 +12,7 @@ import { WebSocket, type ClientOptions } from 'ws';
 import { privateDirectory } from './bulletinMediaState.js';
 import { createPapiMediaTransport, type BulletinSigner } from './bulletinPapiTransport.js';
 import type { BulletinPublisherProfile } from './bulletinPublisherProfile.js';
+import type { PublicationTimings } from './bulletinTiming.js';
 
 class BoundedWebSocket extends WebSocket {
   constructor(url: string) {
@@ -65,11 +66,19 @@ export async function loadBulletinSigner(profile: BulletinPublisherProfile): Pro
 export function openBulletinPublicationSession(
   profile: BulletinPublisherProfile,
   signer: BulletinSigner | null,
-  reserved: { transactions: number; bytes: number }
+  reserved: { transactions: number; bytes: number },
+  timings?: PublicationTimings
 ) {
   const client = createClient(getWsProvider(profile.endpoint, { websocketClass: BoundedWebSocket as unknown as typeof globalThis.WebSocket }));
   try {
-    return createPapiMediaTransport({ client, identity: { genesis: profile.genesis, account: profile.account }, signer, budget: profile.budget, reserved });
+    return createPapiMediaTransport({
+      client,
+      identity: { genesis: profile.genesis, account: profile.account },
+      signer,
+      budget: profile.budget,
+      reserved,
+      timings
+    });
   } catch (error) {
     client.destroy();
     throw error;

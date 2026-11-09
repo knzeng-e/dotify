@@ -1,5 +1,16 @@
 # Deployment Configuration Runbook
 
+## Publisher latency diagnosis candidate, 2026-11-09
+
+[The next #407 slice](../backlog/implementation/evidence/bulletin-publication-timings-2026-11-09.md) measures publisher queue/setup,
+existing RPC/proof reads and the original create/submit/finalize interval, with
+first observed PAPI lifecycle milestones. Reports are bounded private logs with
+no key/raw error/CID payload, not new custody state or an ETA. Overlapping phase
+totals are not wall time. A three-sample read-only root probe is not a store or
+throughput benchmark. API/custody rollout and live timing acceptance remain
+open; no new publication, maintenance, policy or deadline is activated.
+
+
 ## Publication reliability delivered in 0.1.82, 2026-11-09
 
 [Web/Product/API and custody 0.1.82](../backlog/implementation/evidence/product-0.1.82-rollout-2026-11-09.md) deliver merged #413
