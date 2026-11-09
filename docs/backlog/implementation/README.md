@@ -1,14 +1,15 @@
 # Dotify implementation playbook
 
-## Parallel verification merged; rollout next, 2026-11-09
+## Parallel verification delivered to custody, 2026-11-09
 
-[#418, merged as `1e177640`](evidence/bulletin-parallel-verification-2026-11-09.md) overlaps independent reads at already selected
-finalized hashes, preserving canonical proof, fresh retention and all RPC calls.
-Nineteen transport cases and 378 API cases pass. Two small read-only comparisons
-show shorter marker-check medians with unchanged request counts; publication/
-finality latency remains unverified. No profile, write concurrency, key, budget
-or deployed service changes; custody remains f9fdd693 and Web/Product 0.1.82.
-
+[The custody-only delivery](evidence/bulletin-parallel-rollout-2026-11-09.md) installs #418 from frozen `ec8e82ae` after green
+exact-source CI, a completed snapshot and stopped-writer inspection. Two
+post-start health/readiness checks and all nine selected journal hashes pass;
+v3/v2, five inventories, two jobs and cursor are preserved. Public API replicas
+and Web/Product remain 0.1.82. Zero operator Bulletin/DotNS operations, new musical
+allowance or key transfer. Full-publication latency remains unmeasured; the two
+existing release slots are already claimed, so a new writing measurement needs
+separately reviewed admission/budget without resetting state. #407 stays open.
 
 ## Custody diagnostics delivered, 2026-11-09
 

@@ -32,7 +32,7 @@
       "priority": "P1",
       "track": "Production spine",
       "phase": "Now",
-      "note": "Admission, preparation progress and catalogue feedback are delivered in 0.1.82; #415/#416 diagnostics are live on custody. #418 is merged but not deployed. Next: reviewed server rollout and bounded phase measurements before claiming acceptable full-release latency; preserve receipts, allowances and retention duties."
+      "note": "Admission, progress and catalogue feedback are delivered in 0.1.82; #415/#416 diagnostics and #418 parallel verification are live on custody (source ec8e82ae). Full-publication latency remains unmeasured. Both existing release slots are claimed: prepare a separately reviewed bounded admission/budget and actual phase measurement without resetting receipts, keys or retention duties."
     },
     {
       "id": "product-cash-tip-feasibility",

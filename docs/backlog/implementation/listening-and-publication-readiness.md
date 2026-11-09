@@ -13,18 +13,19 @@ implementation branch from current tested dev; use one PR per backlog scope.
 - **Delivered:** Web/Product/API 0.1.82; the owner confirms existing-release
   artist visibility and audible Web/Desktop playback. Custody additionally runs
   #415/#416 diagnostics and failure-exit handling, recorded by #417.
-- **Merged, not deployed:** #418 parallel verification reads, merge `1e177640`.
-  Reviewed source CI passes; the post-merge dev CI is a separate rollout gate.
-  The measured 22–27% gain concerns small verification checks only. Whole-release
-  preparation/finality speed is still unverified.
-- **Immediate action:** prepare the server rollout of #418, then a bounded
-  publication measurement with the deployed stage diagnostics. Inspect existing
-  receipts, allowances and retention duties before proposing any new write test.
-  No maintenance or new musical allowance is granted by this plan.
+- **Delivered to custody:** [#418 from `ec8e82ae`](evidence/bulletin-parallel-rollout-2026-11-09.md),
+  after exact-source CI, a completed snapshot, stopped-writer inspection and two
+  healthy preservation checks. Public API replicas and Web/Product stay on 0.1.82.
+  The 22–27% small verification benchmark is still not whole-publication latency.
+- **Immediate action:** prepare a bounded actual publication measurement with
+  the deployed stage diagnostics. Both existing release slots are claimed; a
+  fresh full-release test requires separately reviewed durable admission/budget,
+  without resetting receipts, keys, claims or retention obligations. Existing
+  admitted release parts retain their original authority and remaining budgets.
 
 | Order | Scope / owner ticket | Remaining deliverable and exit gate |
 | --- | --- | --- |
-| 1 — Now | [Publication latency and acceptance #407](../bulletin-publication-admission.md) | Admission, progress and catalogue feedback are delivered. Prepare #418 rollout; measure preparation/proof/store/finality/visibility separately, then correct the observed bottleneck and verify an acceptable artist publication journey. |
+| 1 — Now | [Publication latency and acceptance #407](../bulletin-publication-admission.md) | Admission, progress and catalogue feedback are delivered. #418 is deployed to custody. Prepare a separately admitted writing measurement; measure preparation/proof/store/finality/visibility separately, then correct the observed bottleneck and verify an acceptable artist publication journey. |
 | 2 — Next | [Room startup #395](../room-listener-audio.md) | Delivery to guests works on the reported path. Diagnose the roughly 55-second mobile-host start; repeated comparable full-track starts must finish without retry and with audible Web/Desktop guests. |
 | 3 — Next | [System artwork #388](../listening-controls-and-discovery.md), with #87 | Account access and discovery are delivered. Diagnose intermittent late lock-screen artwork in solo and Room; verify repeated locks/track changes without delaying audio or restoring stale metadata. |
 | 4 — Next research | [CASH tips #406](../product-cash-tip-feasibility.md), with #85/#229 | Shipped-Host/API matrix, honest contribution semantics, durable payment/receipt recovery tests and a go/no-go. Prepare a bounded pilot only if supported. |

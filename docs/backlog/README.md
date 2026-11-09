@@ -14,9 +14,10 @@ Room/artwork slices. Earlier dated pending gates describe their original phase.
 
 Follow the [selected publication/listening/CASH sequence](implementation/listening-and-publication-readiness.md):
 **#407 publication latency → #395 Room startup → #388 artwork → #406 CASH-tip
-research → #408 CASH-access research.** #418 is merged but not deployed; prepare
-its server rollout and a bounded measured publication before claiming faster
-end-to-end publishing. #415/#416 diagnostics are already delivered to custody.
+research → #408 CASH-access research.** [#418 is delivered to custody](implementation/evidence/bulletin-parallel-rollout-2026-11-09.md); prepare
+a separately admitted bounded publication measurement before claiming faster
+end-to-end publishing. Both existing release slots are claimed; no new allowance
+is added by this delivery. #415/#416 diagnostics remain present.
 
 The manifest and Project 5 give #407 the only Now phase. Five older partially
 delivered scopes (#317/#269/#229/#274/#158) remain open in Next for supporting
