@@ -1,5 +1,16 @@
 # Publication, listening reliability and CASH — execution order
 
+## Measurement allowance active, 2026-11-10
+
+[The approved #422 custody activation](evidence/bulletin-street-scriptures-activation-2026-11-10.md) is complete:
+one exact “Street scriptures” allowance is added without resetting the original
+two claims or permanent nonce history. The artist can start the selected fresh
+release through the ordinary app/wallet flow. Zero operator musical writes
+occurred. Measure actual preparation, storage/finality and catalogue/sound
+acceptance next; #407 remains Now/In Progress. Web/Product/public APIs stay on
+0.1.82; #395/#388/#406/#408 keep their order. Earlier dated checkpoints below
+retain their original meaning.
+
 ## Current execution after #418, 2026-11-09
 
 This is the selected execution order. Project 5 owns workflow status; the

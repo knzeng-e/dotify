@@ -1,5 +1,16 @@
 # Dotify technical memory
 
+## Exact release allowance delivered, 2026-11-10
+
+[The approved custody delivery](../backlog/implementation/evidence/bulletin-street-scriptures-activation-2026-11-10.md) activates #422 for one exact new
+“Street scriptures” source under the existing artist/v3 domain. Green merged-dev
+CI, a completed snapshot, compiled stopped-writer inspection/apply, unchanged
+protected history/nonces and two healthy readiness checks are verified. The two
+original claims remain; one exact additional allowance is active. Zero operator
+Bulletin/DotNS operations or key changes occur. Web/Product/public APIs remain
+0.1.82. Artist publication, measured latency and audible acceptance stay open in
+#407; the selected order remains #407 → #395 → #388 → #406 → #408.
+
 ## Exact release allowance candidate, 2026-11-10
 
 [The next #407 slice](../backlog/implementation/evidence/bulletin-admission-extension-2026-11-10.md) prepares an exact-source capacity extension,

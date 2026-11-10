@@ -1,0 +1,42 @@
+{
+  "schema": "dotify.exact-release-delivery-evidence.v1",
+  "date": "2026-11-10",
+  "issue": 407,
+  "source": "cd7ed56906f1b62b9078578790ab5f1363f0dbd6",
+  "mergeCommit": "252604df1d0bdb2dc4673a46425cd4f6999ebee0",
+  "sameReviewedTree": true,
+  "ci": {
+    "run": 42732256337,
+    "conclusion": "success"
+  },
+  "changedServices": [
+    "dotify-custody"
+  ],
+  "unchangedVersion": "Web/Product/public API 0.1.82",
+  "image": "registry.fly.io/dotify-api@sha256:1f3c119ce5033586e8789ca5412668434f0bc693a9fa56cc088f8a942bca59e0",
+  "snapshot": {
+    "id": "vs_KK5ZpJZ2P7YcZDjK5GG6",
+    "status": "created",
+    "createdAt": "2026-11-10T01:29:00Z",
+    "retentionDays": 14,
+    "independentRestoreVerified": false
+  },
+  "release": "Street scriptures",
+  "newExactAllowances": 1,
+  "maxOperations": 356,
+  "maxBytes": 75563008,
+  "oldClaimsRetained": true,
+  "protectedMetadataUnchanged": true,
+  "permanentNonceTreeUnchanged": true,
+  "readyInventories": 5,
+  "readyJobs": 2,
+  "pending": 0,
+  "healthChecks": 2,
+  "readinessChecks": 2,
+  "operatorBulletinOperations": 0,
+  "dotnsSignatures": 0,
+  "keyChanges": 0,
+  "artistPublicationVerified": false,
+  "audiblePlaybackVerified": false,
+  "fullPublicationLatencyVerified": false
+}
