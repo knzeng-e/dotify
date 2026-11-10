@@ -59,5 +59,17 @@
   "realPublicationLatencyMeasured": false,
   "hostedMemoryUnderNewWorkMeasured": false,
   "nextIssue": 407,
-  "pilotConservationAndOffProviderRecoveryStillOpen": true
+  "pilotConservationAndOffProviderRecoveryStillOpen": true,
+  "ownerPlaybackConfirmation": {
+    "release": "Alumangoman VI",
+    "result": "audible playback confirmed",
+    "clientReported": false,
+    "requestedClientOptions": [
+      "Web",
+      "Desktop"
+    ],
+    "separateAcceptanceOfBothClients": false,
+    "newPublicationRequested": false,
+    "publicationLatencyTest": false
+  }
 }

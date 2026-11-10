@@ -55,6 +55,14 @@ zero simulated stores when reopened ready. These are local checks, separate
 from live-chain throughput. Implementation tests comprise 415 API cases in
 42 suites, plus typecheck/build and the merged CI.
 
+## Owner playback confirmation
+
+After this maintenance, the owner confirms **“Écoute OK”** for the existing
+“Alumangoman VI” release. The requested control was Web or Desktop; the reply
+does not identify which client was used, so this is one reported playback check,
+not separate acceptance of both clients. No new publication was requested.
+This confirms audible playback after the custody update, not writer throughput.
+
 ## Remaining gates and recovery
 
 The completed-proof cache is transient: two entries / 12 MiB encoded payload,
