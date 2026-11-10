@@ -1,5 +1,15 @@
 # Dotify technical memory
 
+## Fresh release succeeds; latency remains open, 2026-11-10
+
+The owner confirms “Street scriptures” publication and listening, after roughly
+49 min 54 s of preparation. [The timing diagnosis](../backlog/implementation/evidence/bulletin-street-scriptures-timings-2026-11-10.md) correlates one ready
+attempt with 151 stores, two at a time, averaging about 32.5 s through finalization.
+The server job clock is 50 min 53.6 s, a separate observation. Publication works;
+acceptable latency does not. Keep #407 Now/In Progress: evaluate a bounded direct-
+write window and separate proof-read limits before another funded measurement.
+No new write, maintenance, profile edit or claimed-slot reset occurs here.
+
 ## Exact release allowance delivered, 2026-11-10
 
 [The approved custody delivery](../backlog/implementation/evidence/bulletin-street-scriptures-activation-2026-11-10.md) activates #422 for one exact new

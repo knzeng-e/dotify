@@ -59,9 +59,14 @@ remove a lock or replay an uncertain write. Provider snapshot completion is not
 an independent off-provider restore proof.
 
 The owner can now publish the selected original audio/cover through the ordinary
-app/wallet flow. Publication, catalogue visibility and audible acceptance remain
-unverified here. Collect preparation, encoding/graph, proof/read, store/finality
+app/wallet flow. The owner subsequently confirms publication and listening success; the
+[measured timing follow-up](bulletin-street-scriptures-timings-2026-11-10.md) records approximately 50-minute
+preparation. Acceptable latency remains unverified. Collect preparation, encoding/graph, proof/read, store/finality
 and catalogue timings separately; overlapping phases are not additive wall time.
 Local graph sizing is not live throughput. Keep #407 open until observed
 bottlenecks and acceptable complete publication are verified. The selected next
 scopes remain #395, #388, #406 and #408.
+
+The owner-reported success is a later acceptance observation; the activation
+checks and historical five-inventory/two-job counts above describe maintenance
+completion, before that publication. No later journal state is reset.

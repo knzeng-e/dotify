@@ -1,5 +1,15 @@
 # Publication, listening reliability and CASH — execution order
 
+## Actual publication measurement captured, 2026-11-10
+
+“Street scriptures” is published and audibly confirmed by the owner. Preparation
+still takes about 50 minutes. [The phase diagnosis](evidence/bulletin-street-scriptures-timings-2026-11-10.md) finds repeated
+finality waits across 151 direct stores with concurrency two. #407 remains the
+current scope: design/test a bounded direct-write window with independent read
+limits, immutable-history compatibility and offline schedule evidence before
+another live trial. Do not treat the successful release or longer deadline as
+acceptable latency. #395/#388/#406/#408 keep their order.
+
 ## Measurement allowance active, 2026-11-10
 
 [The approved #422 custody activation](evidence/bulletin-street-scriptures-activation-2026-11-10.md) is complete:

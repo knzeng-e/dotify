@@ -36,7 +36,12 @@
   "operatorBulletinOperations": 0,
   "dotnsSignatures": 0,
   "keyChanges": 0,
-  "artistPublicationVerified": false,
-  "audiblePlaybackVerified": false,
-  "fullPublicationLatencyVerified": false
+  "artistPublicationVerified": true,
+  "audiblePlaybackVerified": true,
+  "fullPublicationLatencyVerified": false,
+  "acceptanceSource": "owner report; host unspecified",
+  "ownerApproxPreparationSeconds": 2994,
+  "readyJobElapsedMs": 3053633,
+  "publisherAttemptMs": 3025895,
+  "acceptablePublicationLatencyVerified": false
 }
