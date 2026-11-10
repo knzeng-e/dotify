@@ -4,7 +4,18 @@ import { z } from 'zod';
 import * as dagPB from '@ipld/dag-pb';
 import type { BulletinBlock, BulletinGraph } from './bulletinGraph.js';
 
-export const pipelineSchema = z
+export const writeWindowSchema = z
+  .object({
+    concurrency: z.number().int().min(1).max(16),
+    maxInFlightBytes: z
+      .number()
+      .int()
+      .min(1)
+      .max(4 * 1024 * 1024)
+  })
+  .strict();
+
+export const legacyPipelineSchema = z
   .object({
     concurrency: z.number().int().min(1).max(4),
     maxInFlightBytes: z
@@ -14,7 +25,11 @@ export const pipelineSchema = z
       .max(1024 * 1024)
   })
   .strict();
+// Journal-only opt-in selected by an exact admission extension. The immutable
+// publisher profile continues to use the original two-field schema.
+export const pipelineSchema = legacyPipelineSchema.extend({ writeWindow: writeWindowSchema.optional() }).strict();
 export type BulletinPipelineLimits = z.infer<typeof pipelineSchema>;
+export const bulletinWriteLimits = (pipeline: BulletinPipelineLimits) => pipeline.writeWindow ?? pipeline;
 export const publicationError = (error: unknown): Error => (error instanceof Error ? error : new Error('Unknown Bulletin publication failure'));
 
 /** Stop admitting reads on failure, and observe every already-started task. */
@@ -72,4 +87,31 @@ export function bulletinWave(
   }
   assert.ok(wave.length, 'No dependency-ready block fits the Bulletin pipeline');
   return wave;
+}
+
+/** Equal-duration stages only. Counts dependency/byte-bounded waves; never an ETA. */
+export function planBulletinWaves(graph: BulletinGraph, input: BulletinPipelineLimits) {
+  const pipeline = pipelineSchema.parse(input),
+    limits = bulletinWriteLimits(pipeline);
+  assert.equal(new Set(graph.blocks.map(b => b.cid)).size, graph.blocks.length, 'Duplicate graph block');
+  assert.ok(
+    graph.blocks.some(b => b.cid === graph.root),
+    'Missing graph root'
+  );
+  const dependencies = bulletinDependencies(graph),
+    receipts: Record<string, true> = {},
+    waves = [];
+  while (Object.keys(receipts).length < graph.blocks.length) {
+    const wave = bulletinWave(graph, receipts, dependencies, limits);
+    waves.push({ blocks: wave.length, bytes: wave.reduce((n, b) => n + b.bytes.length, 0) });
+    for (const block of wave) receipts[block.cid] = true;
+  }
+  return {
+    blocks: graph.blocks.length,
+    waveCount: waves.length,
+    writeLimits: { concurrency: limits.concurrency, maxInFlightBytes: limits.maxInFlightBytes },
+    waves,
+    model: 'equal-duration finalized stages; no time or live throughput prediction',
+    networkWrites: 0
+  };
 }

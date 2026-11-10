@@ -9,11 +9,13 @@ import { BULLETIN_CUSTODY_READ_MS, BULLETIN_STORE_MS } from './bulletinLimits.js
 import {
   bulletinDependencies,
   bulletinWave,
+  bulletinWriteLimits,
   observeBulletinBlocks,
   pipelineSchema,
   publicationError,
   type BulletinPipelineLimits
 } from './bulletinPipeline.js';
+import { createBulletinReadLane } from './bulletinReadLane.js';
 import {
   jobId,
   integer,
@@ -84,6 +86,7 @@ export function createBulletinMediaStore(options: {
   const selected = identitySchema.parse(options.identity);
   const budget = budgetSchema.parse(options.budget);
   const pipeline = pipelineSchema.parse({ concurrency: 2, maxInFlightBytes: 512 * 1024, ...options.pipeline });
+  const writes = bulletinWriteLimits(pipeline);
   const { directory, transport } = options;
   const owns = () => assert.ok(transport.genesis === selected.genesis && transport.account === selected.account, 'Bulletin transport identity mismatch');
   owns();
@@ -149,7 +152,7 @@ export function createBulletinMediaStore(options: {
         assert.ok(!custody.activeJob || custody.activeJob === name, 'A previous Bulletin job needs reconciliation');
         const graph = await (options.buildGraph ?? buildBulletinMediaGraph)(files, signal);
         assert.ok(
-          graph.blocks.every(b => b.bytes.length <= pipeline.maxInFlightBytes),
+          graph.blocks.every(b => b.bytes.length <= writes.maxInFlightBytes),
           'A block exceeds the in-flight byte bound'
         );
         const binding = {
@@ -191,7 +194,7 @@ export function createBulletinMediaStore(options: {
         const byCid = new Map(graph.blocks.map(b => [b.cid, b]));
         const intents = Object.entries(state.pending);
         assert.ok(
-          intents.length <= pipeline.concurrency && intents.every(([cid, p]) => byCid.has(cid) && state.nextNonce !== null && p.nonce < state.nextNonce),
+          intents.length <= writes.concurrency && intents.every(([cid, p]) => byCid.has(cid) && state.nextNonce !== null && p.nonce < state.nextNonce),
           'Invalid pending nonce intent'
         );
         assert.equal(new Set(intents.map(([, p]) => p.nonce)).size, intents.length, 'Duplicate pending nonce');
@@ -290,9 +293,10 @@ export function createBulletinMediaStore(options: {
           custody.nextNonce = state.nextNonce = observedNonce.nonce;
         }
         const dependencies = bulletinDependencies(graph);
+        const proofReads = createBulletinReadLane(pipeline.concurrency);
         while (Object.keys(state.receipts).length < graph.blocks.length) {
           signal.throwIfAborted();
-          const wave = bulletinWave(graph, state.receipts, dependencies, pipeline);
+          const wave = bulletinWave(graph, state.receipts, dependencies, writes);
           const before = await observeStatus();
           quotaFor(
             before,
@@ -336,18 +340,24 @@ export function createBulletinMediaStore(options: {
                 (async () => {
                   try {
                     const submitted = await call(signal, s => transport.store(block, { nonce: writeNonce, afterBlock }, s), BULLETIN_STORE_MS);
-                    const current = await observeStatus();
-                    const receipt = receiptFor(block, await call(signal, s => transport.lookup(block.cid, s)), current.head, budget.minimumLifetimeBlocks);
-                    assert.deepEqual(
-                      verifiedSubmission(block, writeNonce, submitted, current.head),
-                      receipt,
-                      'Finalized readback differs from submitted receipt'
-                    );
-                    assert.ok(receipt.block > afterBlock, 'Submission predates its durable intent');
-                    const ownReceipt = await call(signal, s => transport.lookupSubmission({ nonce: writeNonce, afterBlock, cid: block.cid }, s));
-                    assert.deepEqual(verifiedSubmission(block, writeNonce, ownReceipt, current.head), receipt, 'Finalized submission and CID readback differ');
-                    verifyBulletinBlock(block.cid, await call(signal, s => transport.readBlock(block.cid, s)));
-                    return { block, receipt };
+                    return await proofReads.run(signal, async () => {
+                      const current = await observeStatus();
+                      const receipt = receiptFor(block, await call(signal, s => transport.lookup(block.cid, s)), current.head, budget.minimumLifetimeBlocks);
+                      assert.deepEqual(
+                        verifiedSubmission(block, writeNonce, submitted, current.head),
+                        receipt,
+                        'Finalized readback differs from submitted receipt'
+                      );
+                      assert.ok(receipt.block > afterBlock, 'Submission predates its durable intent');
+                      const ownReceipt = await call(signal, s => transport.lookupSubmission({ nonce: writeNonce, afterBlock, cid: block.cid }, s));
+                      assert.deepEqual(
+                        verifiedSubmission(block, writeNonce, ownReceipt, current.head),
+                        receipt,
+                        'Finalized submission and CID readback differ'
+                      );
+                      verifyBulletinBlock(block.cid, await call(signal, s => transport.readBlock(block.cid, s)));
+                      return { block, receipt };
+                    });
                   } catch (error) {
                     failure ??= publicationError(error);
                     return { block };

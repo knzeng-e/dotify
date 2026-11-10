@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { compactNumber } from '@polkadot-api/substrate-bindings';
-import { createBulletinRpcTransport, type BulletinRpc } from './bulletinTransport.js';
+import { createBulletinRpcTransport, BULLETIN_RECEIPT_BLOCK_MAX, type BulletinRpc } from './bulletinTransport.js';
 import { bulletinBytes, verifyBulletinSubmission } from './bulletinReceipt.js';
 import { fixture, codecs, proof, rpcFixture } from './bulletinTransport.fixture.js';
 const signal = () => new AbortController().signal;
@@ -106,13 +106,28 @@ test('RPC reads bound raw bytes, block size, cancellation and unrecognized encod
   controller.abort();
   await result;
   const large = rpcFixture();
-  large.state.body.block.extrinsics = ['0x' + '00'.repeat(8 * 1024 * 1024 + 1)];
+  large.state.body.block.extrinsics = ['0x' + '00'.repeat(BULLETIN_RECEIPT_BLOCK_MAX + 1)];
   await assert.rejects(large.transport.lookupSubmission(fixture.query, signal()), /bound/);
   const corrupt = createBulletinRpcTransport({
     identity: fixture.identity,
     request: (method, params, s) => (method === 'bitswap_v1_get' ? Promise.resolve('0x00') : f.request(method, params, s))
   });
   await assert.rejects(corrupt.readBlock(fixture.query.cid, signal()), /CID does not match/);
+});
+
+test('a full canonical body above the old 8-MiB cap retains exact own-store proof within the runtime 10-MiB bound', async () => {
+  const f = rpcFixture();
+  // Bare extrinsics are opaque unrelated content at this trusted-RPC boundary;
+  // their dispatch validity is not inferred by our own sender/nonce verifier.
+  const payload = Buffer.alloc(1800 * 1024);
+  payload[0] = 4;
+  const bare = '0x' + Buffer.concat([Buffer.from(compactNumber.enc(payload.length)), payload]).toString('hex');
+  f.state.body.block.extrinsics.push(...Array(5).fill(bare));
+  const size = f.state.body.block.extrinsics.reduce((n: number, s: string) => n + (s.length - 2) / 2, 0);
+  assert(size > 8 * 1024 * 1024 && size < BULLETIN_RECEIPT_BLOCK_MAX);
+  assert.deepEqual(await f.transport.lookupSubmission(fixture.query, signal()), fixture.receipt);
+  f.state.body.block.extrinsics.push(bare);
+  await assert.rejects(f.transport.lookupSubmission(fixture.query, signal()), /bound/);
 });
 
 test('wrapped stores and nonce-reused unrelated calls cannot masquerade as a direct store', () => {

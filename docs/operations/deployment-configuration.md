@@ -4136,3 +4136,31 @@ Rollback retains v2, its archive, claims and nonce history. Older builds reject
 v2: keep compatible code or disable publication, never restore v1/counters or
 clear locks. The provider snapshot is not an off-provider restore proof.
 Ordinary artist publication, live timing and audible acceptance remain #407 gates.
+
+## Bounded direct-write window candidate — 2026-11-10
+
+[ADR 0049](../adr/0049-bounded-direct-write-windows.md) adds no environment variable,
+public route, dashboard setting, service or key. The immutable publication profile
+keeps its existing pipeline; an optional `writeWindow` in a future exact admission
+extension selects up to 16 direct stores / 4 MiB for that source only. Existing
+jobs and grants retain their original settings. The effective complete pipeline
+is journalled and checked against the admission on startup and maintenance.
+
+The original profile concurrency still bounds complete per-store proof readers.
+A dedicated FIFO bounds the adapter's explicit proof JSON-RPC seam to four active
+requests and 64 waiters; SDK transaction subscriptions are separately bounded by
+the write window. Queued cancellation/close fails without starting a read. No
+chain timeout, byte-verification or finalized-retention requirement is relaxed.
+
+This candidate is not deployed. A compatible custody image and new exact release
+allowance require a reviewed quiescent snapshot/maintenance plan before activation;
+no global profile edit or old slot refund is offered. Old strict readers reject
+window-bearing v2 state. Rollback keeps compatible code/current history or stops
+new publication. Actual throughput, node-pool capacity and lower user preparation
+latency remain acceptance gates, distinct from the synthetic wave comparison.
+
+The same candidate corrects the full canonical receipt-body guard from 8 MiB to
+the publicly observed runtime total block-length maximum of 10 MiB. Aggregate
+extrinsic bytes and individual encoded extrinsics remain bounded; application
+blocks/CID reads retain 512 KiB. Sender/nonce/call/event and canonical-header
+verification are unchanged. Future larger runtime bounds still require review.

@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { budgetSchema, integer, jobId, load, privateDirectory, save, sync, type BulletinMediaInventory } from './bulletinMediaState.js';
 import { PublicationAdmissionError } from './publicationAdmission.js';
 import type { StreamingScope } from './streamingFormat.js';
+import { writeWindowSchema, type BulletinPipelineLimits } from './bulletinPipeline.js';
 
 const address = z.string().regex(/^0x[0-9a-f]{40}$/);
 const keyVersion = z
@@ -53,7 +54,8 @@ export const admissionExtensionSchema = z
   .object({
     owner: address,
     scope: releaseScopeSchema,
-    previousAdmissionSha256: z.string().regex(/^[0-9a-f]{64}$/)
+    previousAdmissionSha256: z.string().regex(/^[0-9a-f]{64}$/),
+    writeWindow: writeWindowSchema.optional()
   })
   .strict();
 export const releaseAdmissionLedgerSchema = z.discriminatedUnion('schema', [
@@ -64,6 +66,14 @@ export const releaseAdmissionLedgerSchema = z.discriminatedUnion('schema', [
 ]);
 export type ReleaseAdmissionLedger = z.infer<typeof releaseAdmissionLedgerSchema>;
 export const admissionExtensions = (state: ReleaseAdmissionLedger) => ('extensions' in state ? state.extensions : []);
+export function releasePipeline(pipeline: BulletinPipelineLimits, state: ReleaseAdmissionLedger, scope: StreamingScope): BulletinPipelineLimits {
+  const extension = admissionExtensions(state).find(e => releaseIdentity(e.scope) === releaseIdentity(scope));
+  return {
+    concurrency: pipeline.concurrency,
+    maxInFlightBytes: pipeline.maxInFlightBytes,
+    ...(extension?.writeWindow ? { writeWindow: extension.writeWindow } : {})
+  };
+}
 // A normalized JSON digest binds the reviewed checkpoint without trusting file whitespace.
 export const admissionDigest = (state: ReleaseAdmissionLedger) => createHash('sha256').update(JSON.stringify(state)).digest('hex');
 export const admissionArchive = (digest: string) => {

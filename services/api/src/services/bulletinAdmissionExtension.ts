@@ -11,12 +11,14 @@ import {
   releaseAdmissionLedgerSchema,
   releaseIdentity,
   releaseJob,
+  releasePipeline,
   releaseScopeSchema
 } from './bulletinReleaseAdmission.js';
 import { assertPublicationBinding, publicationBinding, readBulletinPublisherProfile } from './bulletinPublisherProfile.js';
 import { acquireBulletinPublisherLock } from './bulletinPublisherLock.js';
 import { jobSchema, load, ownerSchema, privateDirectory, save, sync, type BulletinMediaInventory } from './bulletinMediaState.js';
 import { streamingJobsSchema } from './streamingJobState.js';
+import { writeWindowSchema } from './bulletinPipeline.js';
 
 export const admissionExtensionRequestSchema = z
   .object({
@@ -26,7 +28,8 @@ export const admissionExtensionRequestSchema = z
     expectedProfileSha256: z.string().regex(/^[0-9a-f]{64}$/),
     expectedAdmissionSha256: z.string().regex(/^[0-9a-f]{64}$/),
     owner: z.string().regex(/^0x[0-9a-f]{40}$/),
-    scope: releaseScopeSchema
+    scope: releaseScopeSchema,
+    writeWindow: writeWindowSchema.optional()
   })
   .strict();
 
@@ -89,6 +92,8 @@ export async function extendBulletinAdmission(input: unknown, apply = false) {
       inventories.push(job);
     }
     await admission.validateInventories(inventories);
+    for (const inventory of inventories)
+      assert.deepEqual(inventory.pipeline, releasePipeline(profile.pipeline, before, inventory.scope), 'Admitted publication pipeline changed');
     const queue = streamingJobsSchema.parse(await load(join(request.queue, 'jobs.json')));
     assert.ok(
       queue.jobs.every(j => j.state === 'ready'),
@@ -116,7 +121,8 @@ export async function extendBulletinAdmission(input: unknown, apply = false) {
         {
           owner: request.owner,
           scope: request.scope,
-          previousAdmissionSha256: request.expectedAdmissionSha256
+          previousAdmissionSha256: request.expectedAdmissionSha256,
+          ...(request.writeWindow ? { writeWindow: request.writeWindow } : {})
         }
       ]
     });
@@ -161,6 +167,7 @@ export async function extendBulletinAdmission(input: unknown, apply = false) {
       extensions: extensions.length + 1,
       capacity: baseCapacity + extensions.length + 1,
       addedWholeReleaseBudget: budget,
+      writeWindow: request.writeWindow ?? null,
       networkWrites: 0,
       keysChanged: false,
       nonceStateChanged: false

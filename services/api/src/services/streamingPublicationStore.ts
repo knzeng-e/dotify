@@ -227,6 +227,7 @@ export async function createStreamingPublicationStore(
         }
         assert.ok(!owner.activeJob || owner.activeJob === name, 'Previous publication requires reconciliation');
         const reserve = await retainedPublicationReserve(profile, name);
+        const pipeline = await releases.pipeline(graph!.scope);
         finishPrepare?.();
         finishPrepare = undefined;
         const session = selected.openSession({ ...profile, budget }, signer!, reserve, timings);
@@ -238,7 +239,7 @@ export async function createStreamingPublicationStore(
             identity: { genesis: profile.genesis, account: profile.account },
             transport: session.transport,
             budget,
-            pipeline: profile.pipeline,
+            pipeline,
             publicationTimeoutMs: BULLETIN_PUBLICATION_MS,
             onProgress,
             ...(graph ? { buildGraph: async () => graph! } : {})

@@ -9,7 +9,9 @@ import { createResponsiveCover } from './coverVariants.js';
 import { createStreamingPublicationStore, retainedPublicationReserve } from './streamingPublicationStore.js';
 import { StreamingJobs } from './streamingJobs.js';
 import { PublicationAdmissionError } from './publicationAdmission.js';
-import { releaseJob } from './bulletinReleaseAdmission.js';
+import { releaseJob, createReleaseAdmission, admissionDigest } from './bulletinReleaseAdmission.js';
+import { publicationBinding } from './bulletinPublisherProfile.js';
+import { extendBulletinAdmission } from './bulletinAdmissionExtension.js';
 import { load } from './bulletinMediaState.js';
 import { verifyReleaseDependencies } from './bulletinReleasePublication.js';
 const signal = () => AbortSignal.timeout(10000);
@@ -43,6 +45,57 @@ function metadataFor(c: Awaited<ReturnType<typeof assetFixture>>, contentHash: s
   return { ...c.metadata, track: { ...c.metadata.track, contentHash }, assets: { ...c.metadata.assets, audioCID, coverCID } };
 }
 const filesFor = (value: unknown) => [{ path: 'release.json', bytes: Buffer.from(JSON.stringify(value)) }];
+it('uses an exact extension window for audio, cover and metadata, retains it on restart and refuses a retrospective edit', async t => {
+  const c = await assetFixture(t, true),
+    master = Buffer.alloc(64, 77),
+    scope = scopeFor(master, c);
+  const profileBytes = await readFile(c.profileFile);
+  const admission = createReleaseAdmission({
+    directory: c.profile.directory,
+    profileSha256: publicationBinding(c.profile).profileSha256,
+    policy: c.profile.releasePolicy!,
+    audio: c.profile.budget
+  });
+  const writeWindow = { concurrency: 16, maxInFlightBytes: 4 * 1024 * 1024 };
+  await extendBulletinAdmission(
+    {
+      schema: 'dotify.bulletin.release-extension.v1',
+      profileFile: c.profileFile,
+      queue: c.queue,
+      expectedProfileSha256: publicationBinding(c.profile).profileSha256,
+      expectedAdmissionSha256: admissionDigest(await admission.validate()),
+      owner: c.owner.address,
+      scope,
+      writeWindow
+    },
+    true
+  );
+  let store = await createStreamingPublicationStore(c.options, c.deps);
+  const queue = queueFor(c, store);
+  await queue.start(false);
+  const job = await queue.enqueue({ owner: c.owner.address, scope, master });
+  await queue.runNext();
+  const ready = queue.get(job.id, c.owner.address, scope.chainId)!;
+  assert.equal(ready.state, 'ready');
+  const cover = await store.pinAsset!(c.cover.files, 'cover', { ...c.owner, contentHash: scope.contentHash, keyVersion: scope.keyVersion }, signal());
+  await store.pinAsset!(filesFor(metadataFor(c, scope.contentHash, ready.result!.ref, `${cover}/cover/640.webp`)), 'metadata', c.owner, signal());
+  const owner = (await load(join(c.profile.directory, 'owner.json'))) as { jobs: string[] };
+  assert.equal(owner.jobs.length, 3);
+  for (const id of owner.jobs) {
+    const inventory = (await load(join(c.profile.directory, id + '.json'))) as { pipeline: unknown };
+    assert.deepEqual(inventory.pipeline, { ...c.profile.pipeline, writeWindow });
+  }
+  assert.deepEqual(await readFile(c.profileFile), profileBytes);
+  await queue.stop();
+  await store.close();
+  store = await createStreamingPublicationStore(c.options, c.deps);
+  await store.close();
+  const file = join(c.profile.directory, 'release-admission.json'),
+    ledger = JSON.parse(await readFile(file, 'utf8'));
+  ledger.extensions[0].writeWindow.concurrency = 8;
+  await writeFile(file, JSON.stringify(ledger));
+  await assert.rejects(createStreamingPublicationStore(c.options, c.deps), /pipeline changed/);
+});
 it('admits another release while this process is actively writing, then serializes both through the same cursor', async t => {
   const c = await assetFixture(t, true),
     original = c.transport.store;

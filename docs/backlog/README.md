@@ -1,5 +1,14 @@
 # Dotify Production Backlog
 
+## Direct-write window candidate, 2026-11-10
+
+[The #407 correction](implementation/evidence/bulletin-direct-write-window-2026-11-10.md) separates a future exact release's bounded write
+window (up to 16 / 4 MiB) from its unchanged proof-reader limit. Synthetic
+151-block schedules use 77 legacy finalized stages versus 13 at the maximum;
+these are not live timings. Profiles, existing grants/jobs, keys and budgets are
+not retuned. Compatible code, reviewed activation and actual latency acceptance
+remain ahead; custody stays `cd7ed569`, Web/Product/public APIs 0.1.82.
+
 ## Next measured release candidate, 2026-11-10
 
 #421 is merged. The owner supplied a different source/cover and selected an
