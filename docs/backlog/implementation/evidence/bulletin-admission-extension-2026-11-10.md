@@ -66,3 +66,32 @@ in the wallet. Capture publisher stages with #421 and separately record upload,
 encoding, wallet and catalogue intervals. Do not sum overlapping phase totals or
 claim an end-to-end speedup from the local sizing run. #407 stays open before
 #395 → #388 → #406 → #408.
+
+## CI follow-up: deterministic local WebRTC route
+
+At head `236af7b1`, run 42722466005 passed API/typecheck, Web, Product, contracts
+and storage checks; core Playwright passed 330/331. The failure was the initial
+440 Hz receiver check in the no-native-capture continuity case. Trace diagnostics
+show real offer/answer delivery and a playing host, but both peers stayed `new`;
+the receiver track remained muted and its running analyser measured zero. The
+host's trickled candidate used a `.local` mDNS name; the listener emitted none.
+This points to local ICE establishment, not changed Bulletin allowance behavior.
+
+The Chromium test project now disables `WebRtcHideLocalIpsWithMdns` only in its
+launch configuration. These synthetic peers share one runner, already use no
+public STUN/TURN and must use direct host routes. Chromium's
+[feature definition](https://chromium.googlesource.com/chromium/src/third_party/+/2d844f13ecf60a170083f75046cdc8192a5401ca/blink/common/features.cc)
+explains the address-obfuscation layer; removing that resolver dependency from
+this local harness leaves real ICE/DTLS/RTP and decoded-tone checks intact.
+Production browsers, Host permissions, TURN and application audio code are
+unchanged. This does not verify real-device mDNS connectivity.
+
+The continuity regression also requires real local candidates without `.local`
+on both peers; the old configuration fails this assertion locally, while its
+original two sound cases can pass locally. Peer failure reports now include ICE,
+gathering and signaling states and candidate counts, without new address fields.
+Existing tone deadlines, frequency tolerances and no-automatic-retry policy are
+unchanged. Local join/sync/continuity: **17 passed**; five repeats per continuity
+variant: **10 passed**. Web lint has no errors (two pre-existing App hook warnings);
+format, whitespace and backlog checks pass. Updated CI is running; its result
+remains separate from this local evidence.

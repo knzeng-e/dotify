@@ -77,7 +77,15 @@ export default defineConfig({
         // synthetic audio stream; allow autoplay and fake media so the host can
         // start streaming without a user-gesture or a real capture device.
         launchOptions: {
-          args: ['--autoplay-policy=no-user-gesture-required', '--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream']
+          args: [
+            '--autoplay-policy=no-user-gesture-required',
+            '--use-fake-ui-for-media-stream',
+            '--use-fake-device-for-media-stream',
+            // The peers share one runner and use host candidates only. Avoid
+            // multicast name resolution as an extra CI network dependency;
+            // real ICE/DTLS/RTP and decoded-audio assertions remain active.
+            '--disable-features=WebRtcHideLocalIpsWithMdns'
+          ]
         }
       }
     }
