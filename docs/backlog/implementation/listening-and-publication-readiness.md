@@ -1,5 +1,16 @@
 # Publication, listening reliability and CASH — execution order
 
+## Publication round-trip candidate, 2026-11-10
+
+[The next #407 slice](evidence/bulletin-round-trips-2026-11-10.md) orders remaining dependency work only when the local
+wave model improves, and reuses bounded completed block-proof data while
+refreshing eligibility and canonical mapping. Synthetic audio stages fall
+9→8 / 13→12; cover/metadata stay 3 / 2. Graph bytes/CIDs, journal order, nonce
+ownership and proof/retention gates remain. 415 API tests, typecheck and build
+pass. Review, matched custody rollout and actual latency acceptance remain;
+this candidate adds no live admission or musical write. Custody stays `59244da5`,
+Web/Product/public APIs 0.1.82; the selected sequence is unchanged.
+
 ## Exact write-window trial activated, 2026-11-10
 
 [The approved custody-only activation](evidence/bulletin-window-activation-2026-11-10.md) delivers #424 from
@@ -64,14 +75,15 @@ implementation branch from current tested dev; use one PR per backlog scope.
 - **Accepted behavior:** the owner confirms the new exact release publishes
   and plays, reporting about nine minutes before the wallet prompt. Readback
   confirms the actual selected window and ready assets, with no pending outcomes.
-- **Immediate action:** analyze the remaining audio/public-asset proof and
-  finality waits and prepare the next bounded correction. This lighter MP3 is
-  not a controlled repeat of the earlier WAV. Keep #407 open; existing grants
-  are never reset/retuned and another funded test is not implied.
+- **Immediate action:** review the locally verified dependency-order/proof-reuse
+  candidate. Its synthetic stage counts improve while the public-asset format
+  tail stays unchanged. Prepare matched delivery and measured latency acceptance
+  separately; existing grants are never reset/retuned and a new funded test is
+  not implied. Keep the lighter MP3 versus prior WAV distinction explicit.
 
 | Order | Scope / owner ticket | Remaining deliverable and exit gate |
 | --- | --- | --- |
-| 1 — Now | [Publication latency and acceptance #407](../bulletin-publication-admission.md) | Admission, progress and catalogue feedback are delivered. The approximately 50-minute Street scriptures run identifies repeated finality waits. #424 is now activated on custody for one approved new exact source (16 / 4 MiB); publication and listening are now owner-confirmed (about nine minutes reported). Analyze remaining phase/finality waits and verify acceptable latency, keeping the different source sizes explicit. |
+| 1 — Now | [Publication latency and acceptance #407](../bulletin-publication-admission.md) | Admission, progress and catalogue feedback are delivered. The approximately 50-minute Street scriptures run identifies repeated finality waits. #424 is now activated on custody for one approved new exact source (16 / 4 MiB); publication and listening are now owner-confirmed (about nine minutes reported). Review the dependency-order/proof-reuse candidate, prepare separately approved matched delivery, and verify actual acceptable latency. Keep the different source sizes and unchanged public-asset tail explicit. |
 | 2 — Next | [Room startup #395](../room-listener-audio.md) | Delivery to guests works on the reported path. Diagnose the roughly 55-second mobile-host start; repeated comparable full-track starts must finish without retry and with audible Web/Desktop guests. |
 | 3 — Next | [System artwork #388](../listening-controls-and-discovery.md), with #87 | Account access and discovery are delivered. Diagnose intermittent late lock-screen artwork in solo and Room; verify repeated locks/track changes without delaying audio or restoring stale metadata. |
 | 4 — Next research | [CASH tips #406](../product-cash-tip-feasibility.md), with #85/#229 | Shipped-Host/API matrix, honest contribution semantics, durable payment/receipt recovery tests and a go/no-go. Prepare a bounded pilot only if supported. |

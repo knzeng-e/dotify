@@ -89,6 +89,57 @@ export function bulletinWave(
   return wave;
 }
 
+function simulateWaves(graph: BulletinGraph, initial: Readonly<Record<string, unknown>>, dependencies: Map<string, string[]>, limits: BulletinPipelineLimits) {
+  const receipts = { ...initial },
+    waves = [];
+  while (Object.keys(receipts).length < graph.blocks.length) {
+    const wave = bulletinWave(graph, receipts, dependencies, limits);
+    waves.push({ blocks: wave.length, bytes: wave.reduce((n, b) => n + b.bytes.length, 0) });
+    for (const block of wave) receipts[block.cid] = true;
+  }
+  return waves;
+}
+
+/** Scheduling changes neither graph bytes/order in the journal nor nonce intents.
+ * Prefer deeper dependencies, then ready parents. Keep file order on a tie or
+ * whenever its remaining equal-duration wave count is better. This opt-in uses
+ * the existing write window; legacy profiles retain their scheduling. */
+export function scheduleBulletinGraph(
+  graph: BulletinGraph,
+  receipts: Readonly<Record<string, unknown>>,
+  dependencies: Map<string, string[]>,
+  pipeline: BulletinPipelineLimits
+) {
+  const limits = bulletinWriteLimits(pipeline),
+    legacy = simulateWaves(graph, receipts, dependencies, limits);
+  if (!pipeline.writeWindow || !legacy.length) return { graph, waves: legacy, legacyWaveCount: legacy.length, ordering: 'file' as const };
+  const parents = new Map<string, string[]>();
+  for (const [parent, children] of dependencies) for (const child of children) parents.set(child, [...(parents.get(child) ?? []), parent]);
+  const heights = new Map<string, number>(),
+    visiting = new Set<string>();
+  const height = (cid: string, depth = 0): number => {
+    assert.ok(depth <= 8 && !visiting.has(cid), 'Invalid Bulletin dependency depth or cycle');
+    const known = heights.get(cid);
+    if (known !== undefined) return known;
+    visiting.add(cid);
+    const value = Math.max(0, ...(parents.get(cid) ?? []).map(parent => height(parent, depth + 1) + 1));
+    visiting.delete(cid);
+    heights.set(cid, value);
+    return value;
+  };
+  for (const block of graph.blocks) height(block.cid);
+  const candidate = {
+    ...graph,
+    blocks: [...graph.blocks].sort(
+      (a, b) => heights.get(b.cid)! - heights.get(a.cid)! || Number(!!dependencies.get(b.cid)!.length) - Number(!!dependencies.get(a.cid)!.length)
+    )
+  };
+  const waves = simulateWaves(candidate, receipts, dependencies, limits);
+  return waves.length < legacy.length
+    ? { graph: candidate, waves, legacyWaveCount: legacy.length, ordering: 'dependency' as const }
+    : { graph, waves: legacy, legacyWaveCount: legacy.length, ordering: 'file' as const };
+}
+
 /** Equal-duration stages only. Counts dependency/byte-bounded waves; never an ETA. */
 export function planBulletinWaves(graph: BulletinGraph, input: BulletinPipelineLimits) {
   const pipeline = pipelineSchema.parse(input),
@@ -99,18 +150,14 @@ export function planBulletinWaves(graph: BulletinGraph, input: BulletinPipelineL
     'Missing graph root'
   );
   const dependencies = bulletinDependencies(graph),
-    receipts: Record<string, true> = {},
-    waves = [];
-  while (Object.keys(receipts).length < graph.blocks.length) {
-    const wave = bulletinWave(graph, receipts, dependencies, limits);
-    waves.push({ blocks: wave.length, bytes: wave.reduce((n, b) => n + b.bytes.length, 0) });
-    for (const block of wave) receipts[block.cid] = true;
-  }
+    { waves, legacyWaveCount, ordering } = scheduleBulletinGraph(graph, {}, dependencies, pipeline);
   return {
     blocks: graph.blocks.length,
     waveCount: waves.length,
     writeLimits: { concurrency: limits.concurrency, maxInFlightBytes: limits.maxInFlightBytes },
     waves,
+    legacyWaveCount,
+    ordering,
     model: 'equal-duration finalized stages; no time or live throughput prediction',
     networkWrites: 0
   };

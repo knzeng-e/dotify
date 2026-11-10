@@ -2,9 +2,117 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { compactNumber } from '@polkadot-api/substrate-bindings';
 import { createBulletinRpcTransport, BULLETIN_RECEIPT_BLOCK_MAX, type BulletinRpc } from './bulletinTransport.js';
-import { bulletinBytes, verifyBulletinSubmission } from './bulletinReceipt.js';
+import { bulletinBytes, bulletinHex, verifyBulletinSubmission } from './bulletinReceipt.js';
 import { fixture, codecs, proof, rpcFixture } from './bulletinTransport.fixture.js';
+import { createBulletinProofCache, BULLETIN_PROOF_CACHE_BYTES, type BulletinProofBlock } from './bulletinProofCache.js';
 const signal = () => new AbortController().signal;
+
+test('completed block proof reuse still refreshes canonical mapping, retention and each nonce query', async () => {
+  const f = rpcFixture();
+  const eventsKey = codecs.builder.buildStorage('System', 'Events').keys.enc();
+  for (let i = 0; i < 16; i++) assert.deepEqual(await f.transport.lookupSubmission(fixture.query, signal()), fixture.receipt);
+  assert.equal(f.calls.filter(c => c.method === 'chain_getBlock').length, 1);
+  assert.equal(f.calls.filter(c => c.method === 'state_getStorage' && c.params[0] === eventsKey).length, 1);
+  assert.equal(f.calls.filter(c => c.method === 'chain_getBlockHash' && c.params[0] === fixture.receipt.block).length, 16);
+  assert.equal(f.calls.filter(c => c.method === 'chain_getFinalizedHead').length, 16);
+  assert.equal(await f.transport.lookupSubmission({ ...fixture.query, nonce: fixture.query.nonce + 1 }, signal()), null);
+  const metadata = codecs.builder.buildStorage('TransactionStorage', 'Transactions');
+  const key = metadata.keys.enc(fixture.receipt.block),
+    original = f.state.values.get(key)!;
+  const changed = metadata.value.dec(bulletinBytes(original, 65536));
+  changed[0].size++;
+  f.state.values.set(key, bulletinHex(metadata.value.enc(changed)));
+  await assert.rejects(f.transport.lookupSubmission(fixture.query, signal()), /size differs/);
+  f.state.values.set(key, original);
+  f.state.head = fixture.receipt.expiresAt;
+  assert.equal(await f.transport.lookupSubmission(fixture.query, signal()), null, 'A cached proof cannot resurrect expired storage');
+  assert.equal(f.calls.filter(c => c.method === 'chain_getBlock').length, 1);
+  f.state.genesis = `0x${'ff'.repeat(32)}`;
+  await assert.rejects(f.transport.lookupSubmission(fixture.query, signal()), /genesis/);
+});
+
+test('changed canonical hash and a new transport never inherit a completed block bundle', async () => {
+  const f = rpcFixture();
+  let canonical = fixture.blockHash;
+  const transport = createBulletinRpcTransport({
+    identity: fixture.identity,
+    request: (method, params, s) =>
+      method === 'chain_getBlockHash' && params[0] === fixture.receipt.block ? Promise.resolve(canonical) : f.request(method, params, s)
+  });
+  assert.deepEqual(await transport.lookupSubmission(fixture.query, signal()), fixture.receipt);
+  canonical = `0x${'bc'.repeat(32)}`;
+  f.state.body.block.header.extrinsicsRoot = `0x${'77'.repeat(32)}`;
+  await assert.rejects(transport.lookupSubmission(fixture.query, signal()), /header differs/);
+  assert.equal(f.calls.filter(c => c.method === 'chain_getBlock').length, 2);
+  f.state.body.block.header.extrinsicsRoot = fixture.header.extrinsicsRoot;
+  assert.deepEqual(await transport.lookupSubmission(fixture.query, signal()), fixture.receipt);
+  assert.equal(f.calls.filter(c => c.method === 'chain_getBlock').length, 3, 'Failed loads do not enter the cache');
+  const separate = createBulletinRpcTransport({ identity: fixture.identity, request: f.request });
+  assert.deepEqual(await separate.lookupSubmission(fixture.query, signal()), fixture.receipt);
+  assert.equal(f.calls.filter(c => c.method === 'chain_getBlock').length, 4);
+});
+
+test('one cancelled cold body load cannot cancel or poison another caller', { timeout: 5000 }, async () => {
+  const f = rpcFixture();
+  const releases: (() => void)[] = [];
+  let loads = 0,
+    both!: () => void;
+  const started = new Promise<void>(r => {
+    both = r;
+  });
+  const transport = createBulletinRpcTransport({
+    identity: fixture.identity,
+    request: async (method, params, s) => {
+      if (method !== 'chain_getBlock') return f.request(method, params, s);
+      loads++;
+      await new Promise<void>((resolve, reject) => {
+        const abort = () => {
+          s.removeEventListener('abort', abort);
+          reject(s.reason);
+        };
+        releases.push(() => {
+          s.removeEventListener('abort', abort);
+          resolve();
+        });
+        s.addEventListener('abort', abort, { once: true });
+        if (s.aborted) abort();
+        if (loads === 2) both();
+      });
+      return f.request(method, params, s);
+    }
+  });
+  const a = new AbortController(),
+    b = new AbortController();
+  const cancelled = assert.rejects(transport.lookupSubmission(fixture.query, a.signal), /cancel-first/);
+  const surviving = transport.lookupSubmission(fixture.query, b.signal);
+  await started;
+  // Parent execution metadata has independently settled; the body loads remain cold.
+  await new Promise<void>(r => setImmediate(r));
+  a.abort(new Error('cancel-first'));
+  await cancelled;
+  releases[1]();
+  assert.deepEqual(await surviving, fixture.receipt);
+  assert.deepEqual(await transport.lookupSubmission(fixture.query, signal()), fixture.receipt);
+  assert.equal(loads, 2, 'Only the surviving verified load is reusable');
+});
+
+test('completed proof payloads have both an entry cap and a total byte cap', () => {
+  const input = proof();
+  const value: BulletinProofBlock = { block: fixture.receipt.block, execution: codecs, extrinsics: input.extrinsics, events: input.events };
+  const cache = createBulletinProofCache();
+  cache.retain('a', value);
+  cache.retain('b', value);
+  assert.equal(cache.get('a'), value);
+  cache.retain('c', value);
+  assert.equal(cache.get('b'), undefined);
+  const large = { ...value, extrinsics: [new Uint8Array(BULLETIN_PROOF_CACHE_BYTES / 2 + 1)] };
+  cache.retain('large-a', large);
+  cache.retain('large-b', large);
+  assert.equal(cache.get('large-a'), undefined, 'Two half-capacity-plus payloads cannot coexist');
+  assert.equal(cache.get('large-b'), large);
+  cache.retain('too-large', { ...value, extrinsics: [new Uint8Array(BULLETIN_PROOF_CACHE_BYTES + 1)] });
+  assert.equal(cache.get('too-large'), undefined);
+});
 
 test('captured public marker binds sender/nonce/direct payload and the storage event, not the extrinsic index', () => {
   const input = proof();
@@ -127,7 +235,11 @@ test('a full canonical body above the old 8-MiB cap retains exact own-store proo
   assert(size > 8 * 1024 * 1024 && size < BULLETIN_RECEIPT_BLOCK_MAX);
   assert.deepEqual(await f.transport.lookupSubmission(fixture.query, signal()), fixture.receipt);
   f.state.body.block.extrinsics.push(bare);
-  await assert.rejects(f.transport.lookupSubmission(fixture.query, signal()), /bound/);
+  // A block hash is immutable. Use a cold session for the oversized RPC body;
+  // mutating the fixture must not mutate bytes already owned by a warm cache.
+  const cold = createBulletinRpcTransport({ identity: fixture.identity, request: f.request });
+  await assert.rejects(cold.lookupSubmission(fixture.query, signal()), /bound/);
+  assert.deepEqual(await f.transport.lookupSubmission(fixture.query, signal()), fixture.receipt);
 });
 
 test('wrapped stores and nonce-reused unrelated calls cannot masquerade as a direct store', () => {
@@ -341,7 +453,7 @@ test('parallel reads still refresh genesis and CID retention rather than caching
   await assert.rejects(f.transport.nextNonce(signal()), /genesis/);
 });
 
-test('confirmation parallelism retains every cold and warm canonical RPC proof read', async () => {
+test('proof reuse removes immutable block reads while retaining fresh eligibility and canonical mapping calls', async () => {
   const f = rpcFixture();
   const count = (calls: typeof f.calls) =>
     Object.fromEntries([...new Set(calls.map(c => c.method))].sort().map(method => [method, calls.filter(c => c.method === method).length]));
@@ -358,12 +470,11 @@ test('confirmation parallelism retains every cold and warm canonical RPC proof r
   const offset = f.calls.length;
   assert.deepEqual(await f.transport.lookupSubmission(fixture.query, signal()), fixture.receipt);
   assert.deepEqual(count(f.calls.slice(offset)), {
-    chain_getBlock: 1,
     chain_getBlockHash: 2,
     chain_getFinalizedHead: 1,
-    chain_getHeader: 2,
-    state_getStorage: 4,
-    state_getStorageHash: 2
+    chain_getHeader: 1,
+    state_getStorage: 3,
+    state_getStorageHash: 1
   });
 });
 

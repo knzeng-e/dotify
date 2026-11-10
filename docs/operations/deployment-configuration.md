@@ -4178,3 +4178,36 @@ the publicly observed runtime total block-length maximum of 10 MiB. Aggregate
 extrinsic bytes and individual encoded extrinsics remain bounded; application
 blocks/CID reads retain 512 KiB. Sender/nonce/call/event and canonical-header
 verification are unchanged. Future larger runtime bounds still require review.
+
+## Dependency-order / completed proof-reuse candidate — 2026-11-10
+
+[ADR 0050](../adr/0050-bulletin-proof-reuse-and-wave-ordering.md) and the
+[local evidence](../backlog/implementation/evidence/bulletin-round-trips-2026-11-10.md)
+introduce no environment variable, dashboard change, route, mount, key, service,
+profile field or durable schema. Custody remains deployed at `59244da5` until a
+separately approved matched image/maintenance. Web/Product/public APIs remain
+0.1.82. Existing exact admission and retention reserves are not reset or expanded.
+
+Only existing write-window jobs may select a dependency-priority order, after
+pending intents reconcile. The original graph and inventory order stay intact;
+the equal-stage model must be strictly smaller or file order wins. Existing
+count/byte/read limits, canonical proof, fsynced nonce intents, root/archive
+barriers and readiness checks stand. Legacy profiles keep file-order scheduling.
+
+Each RPC transport may retain two successfully verified immutable body/event
+bundles with at most 12 MiB total encoded payload. Allow for additional heap,
+decoded runtime metadata and already bounded active RPC responses; this is not
+a total process-memory ceiling. Concurrent cold misses keep independent loads,
+cancellation and deadlines. Cache state is ephemeral and discarded on restart.
+Genesis/finalized snapshots, current CID retention, canonical block mapping and
+per-query own-store verification always repeat; no authorization, receipt or
+private key is cached. No credential-bearing request/response fields are retained.
+
+A later rollout must preserve all current journals, scopes, nonces and claims,
+verify ordinary ready-release reuse adds no store, check canonical-hash changes,
+expiry and cancellation with warm cache, and observe the actual memory/latency
+profile. Keep compatible #424-era code for rollback with existing window-bearing
+state; never downgrade readers by restoring old ledgers. Any funded new-source
+trial requires its own admission/budget and account-writer exclusion. Local
+9→8/13→12 audio models and repeated-proof RPC counts are not a promised ETA;
+cover/metadata remain 3/2 stages in the unchanged synthetic path format.

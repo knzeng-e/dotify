@@ -11,6 +11,7 @@ import {
   bulletinWave,
   bulletinWriteLimits,
   observeBulletinBlocks,
+  scheduleBulletinGraph,
   pipelineSchema,
   publicationError,
   type BulletinPipelineLimits
@@ -293,10 +294,11 @@ export function createBulletinMediaStore(options: {
           custody.nextNonce = state.nextNonce = observedNonce.nonce;
         }
         const dependencies = bulletinDependencies(graph);
+        const scheduled = scheduleBulletinGraph(graph, state.receipts, dependencies, pipeline).graph;
         const proofReads = createBulletinReadLane(pipeline.concurrency);
         while (Object.keys(state.receipts).length < graph.blocks.length) {
           signal.throwIfAborted();
-          const wave = bulletinWave(graph, state.receipts, dependencies, writes);
+          const wave = bulletinWave(scheduled, state.receipts, dependencies, writes);
           const before = await observeStatus();
           quotaFor(
             before,

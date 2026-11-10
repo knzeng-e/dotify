@@ -1,5 +1,16 @@
 # Dotify technical memory
 
+## Publication round-trip candidate, 2026-11-10
+
+[The next #407 slice](../backlog/implementation/evidence/bulletin-round-trips-2026-11-10.md) orders remaining dependency work only when the local
+wave model improves, and reuses bounded completed block-proof data while
+refreshing eligibility and canonical mapping. Synthetic audio stages fall
+9→8 / 13→12; cover/metadata stay 3 / 2. Graph bytes/CIDs, journal order, nonce
+ownership and proof/retention gates remain. 415 API tests, typecheck and build
+pass. Review, matched custody rollout and actual latency acceptance remain;
+this candidate adds no live admission or musical write. Custody stays `59244da5`,
+Web/Product/public APIs 0.1.82; the selected sequence is unchanged.
+
 ## Exact write-window trial activated, 2026-11-10
 
 [The approved custody-only activation](../backlog/implementation/evidence/bulletin-window-activation-2026-11-10.md) delivers #424 from
