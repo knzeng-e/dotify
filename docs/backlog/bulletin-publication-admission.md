@@ -1,5 +1,18 @@
 # Bulletin publication beyond the synthetic pilot
 
+## Publication round-trip optimization delivered, 2026-11-10
+
+[The approved custody-only delivery](implementation/evidence/bulletin-round-trips-rollout-2026-11-10.md) installs #426 from tested
+`8d070654`, with the same tree as merged dev `bdd6eab0`. Green merged CI, a
+completed provider snapshot, compiled compatibility inspection, unchanged
+protected histories and two health/readiness passes are verified. Zero Bulletin
+operations, renewals, DotNS signatures or new admissions occur. Web/Product and
+public APIs stay 0.1.82. Actual publication latency and hosted memory under new
+work remain unmeasured; existing ready releases must not be reset for a benchmark.
+#407 remains Now/In Progress, before #395, #388 and CASH research. The separate
+next-source selection and exact trial budget remain ahead; the maintenance
+approval is consumed. Earlier entries below are dated checkpoints.
+
 ## Publication round-trip candidate, 2026-11-10
 
 [The next #407 slice](implementation/evidence/bulletin-round-trips-2026-11-10.md) orders remaining dependency work only when the local
@@ -76,7 +89,7 @@ the same audio. No duplicate is proposed merely to collect timings. No writing
 sample, deployment or admission change occurs; full-publication latency remains
 unverified.
 
-## Current remaining scope after #424, 2026-11-10
+## Current remaining scope after #426, 2026-11-10
 
 Issue #407 · P1 · Production spine · Now · Work. Workflow: Project 5.
 
@@ -90,7 +103,10 @@ receipts, keys, permanent nonces and retention obligations are preserved.
 The owner now confirms publication and listening for the new identity, with
 about nine minutes reported before the wallet prompt. Source-scoped readback
 confirms the effective window and ready assets without pending outcomes.
-Remaining: reduce the still-long wait, distinguishing audio, public assets,
+#426 is now delivered to custody with protected histories unchanged and no
+maintenance chain writes. Actual gains still require a separately admitted new
+source; completed identities are not reset for timing. Remaining: reduce the
+still-long wait, distinguishing audio, public assets,
 proof/finality and catalogue intervals. The new MP3 is lighter than the prior
 WAV, so their elapsed times do not isolate the window correction. Keep #407
 open until acceptable complete latency and repeatable acceptance are verified.

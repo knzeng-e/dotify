@@ -1,0 +1,63 @@
+{
+  "schema": "dotify.bulletin.round-trips-rollout.v1",
+  "date": "2026-11-10",
+  "issue": 407,
+  "deliveredPr": 426,
+  "source": "8d0706548416fe5e17711a5d480def7499776c1a",
+  "merge": "bdd6eab0b3da3c6e4bce03c17e77244d1feb952d",
+  "tree": "abe02d24b7aaf1193db7a588860f5d348301ce32",
+  "mergedCi": {
+    "run": 42875034987,
+    "conclusion": "success"
+  },
+  "target": "dotify-custody",
+  "image": "registry.fly.io/dotify-api@sha256:51714fcf022d38a45eae71ddd7a5c11f6557c1048bc8b37fd98cf99722e3009e",
+  "webProductPublicApiVersion": "0.1.82",
+  "providerSnapshotCompleted": true,
+  "protectedMetadataUnchanged": true,
+  "permanentNonceTreeUnchanged": true,
+  "newAdmissionOrProfileChange": false,
+  "keyChange": false,
+  "healthChecks": [
+    {
+      "route": "/health",
+      "status": 200
+    },
+    {
+      "route": "/health/ready",
+      "status": 200
+    },
+    {
+      "route": "/health",
+      "status": 200
+    },
+    {
+      "route": "/health/ready",
+      "status": 200
+    }
+  ],
+  "operatorBulletinOperations": 0,
+  "operatorRenewals": 0,
+  "dotnsSignatures": 0,
+  "approvalConsumed": true,
+  "offlineImageSmoke": {
+    "networkWrites": 0,
+    "productionKeysRead": false,
+    "productionVolumeMounted": false,
+    "publicReceiptChecks": 16,
+    "bodyDownloads": 1,
+    "eventDownloads": 1,
+    "freshCanonicalMappings": 16,
+    "wrongNonceRefused": true,
+    "expiredStorageRefused": true,
+    "syntheticBlocks": 88,
+    "legacyWaves": 9,
+    "selectedWaves": 8,
+    "originalInventoryOrderPreserved": true,
+    "readyReuseAddedStores": 0
+  },
+  "realPublicationLatencyMeasured": false,
+  "hostedMemoryUnderNewWorkMeasured": false,
+  "nextIssue": 407,
+  "pilotConservationAndOffProviderRecoveryStillOpen": true
+}

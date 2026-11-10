@@ -1,5 +1,18 @@
 # Dotify implementation playbook
 
+## Publication round-trip optimization delivered, 2026-11-10
+
+[The approved custody-only delivery](evidence/bulletin-round-trips-rollout-2026-11-10.md) installs #426 from tested
+`8d070654`, with the same tree as merged dev `bdd6eab0`. Green merged CI, a
+completed provider snapshot, compiled compatibility inspection, unchanged
+protected histories and two health/readiness passes are verified. Zero Bulletin
+operations, renewals, DotNS signatures or new admissions occur. Web/Product and
+public APIs stay 0.1.82. Actual publication latency and hosted memory under new
+work remain unmeasured; existing ready releases must not be reset for a benchmark.
+#407 remains Now/In Progress, before #395, #388 and CASH research. The separate
+next-source selection and exact trial budget remain ahead; the maintenance
+approval is consumed. Earlier entries below are dated checkpoints.
+
 ## Publication round-trip candidate, 2026-11-10
 
 [The next #407 slice](evidence/bulletin-round-trips-2026-11-10.md) orders remaining dependency work only when the local
