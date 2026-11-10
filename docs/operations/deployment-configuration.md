@@ -4110,3 +4110,29 @@ an explicit wallet action, not an automatic chain reset. After first use, preser
 this queue and key during rollback; never initialize it again with an empty ledger.
 Production conservation and coherent secret/security recovery remain public-pilot
 gates, while migration of abandoned development drafts is no longer required.
+
+## Exact release allowance activation — 2026-11-10
+
+[The custody-only record](../backlog/implementation/evidence/bulletin-street-scriptures-activation-2026-11-10.md) delivers
+#422 from frozen `cd7ed569`, identical to merged `252604df`, after green CI and
+explicit registry/snapshot/maintenance/allowance approval. Only custody's image
+and build marker change. Profile/queue paths, mount, resources, origins, key
+mappings, worker URL and normal command remain. Web/Product and both public API
+replicas stay on 0.1.82; signaling/encoder are unchanged.
+
+Admission v2 retains the two original claims and adds one exact source allowance
+for “Street scriptures”: 356 attempts / 75,563,008 bytes, with original part caps.
+It is bound to the existing artist/runtime/content hash/v3 identity, not a general
+slot or recurring-renewal authority. No key, signer or wallet boundary changes.
+
+The completed snapshot precedes the compatible idle maintenance command and
+compiled inspect/apply. Protected metadata/nonces match before/after, then normal
+startup passes two health/readiness checks. During maintenance Fly retains its
+existing liveness probe; expected failure cannot start a writer with restart
+disabled. Normal checks and on-failure/ten-retry policy are restored. Zero
+operator Bulletin/DotNS operations occur.
+
+Rollback retains v2, its archive, claims and nonce history. Older builds reject
+v2: keep compatible code or disable publication, never restore v1/counters or
+clear locks. The provider snapshot is not an off-provider restore proof.
+Ordinary artist publication, live timing and audible acceptance remain #407 gates.

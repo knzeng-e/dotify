@@ -1,5 +1,26 @@
 # Dotify technical memory
 
+## Fresh release succeeds; latency remains open, 2026-11-10
+
+The owner confirms “Street scriptures” publication and listening, after roughly
+49 min 54 s of preparation. [The timing diagnosis](../backlog/implementation/evidence/bulletin-street-scriptures-timings-2026-11-10.md) correlates one ready
+attempt with 151 stores, two at a time, averaging about 32.5 s through finalization.
+The server job clock is 50 min 53.6 s, a separate observation. Publication works;
+acceptable latency does not. Keep #407 Now/In Progress: evaluate a bounded direct-
+write window and separate proof-read limits before another funded measurement.
+No new write, maintenance, profile edit or claimed-slot reset occurs here.
+
+## Exact release allowance delivered, 2026-11-10
+
+[The approved custody delivery](../backlog/implementation/evidence/bulletin-street-scriptures-activation-2026-11-10.md) activates #422 for one exact new
+“Street scriptures” source under the existing artist/v3 domain. Green merged-dev
+CI, a completed snapshot, compiled stopped-writer inspection/apply, unchanged
+protected history/nonces and two healthy readiness checks are verified. The two
+original claims remain; one exact additional allowance is active. Zero operator
+Bulletin/DotNS operations or key changes occur. Web/Product/public APIs remain
+0.1.82. Artist publication, measured latency and audible acceptance stay open in
+#407; the selected order remains #407 → #395 → #388 → #406 → #408.
+
 ## Exact release allowance candidate, 2026-11-10
 
 [The next #407 slice](../backlog/implementation/evidence/bulletin-admission-extension-2026-11-10.md) prepares an exact-source capacity extension,
