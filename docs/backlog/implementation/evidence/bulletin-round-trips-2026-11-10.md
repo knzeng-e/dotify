@@ -4,8 +4,9 @@ Refs #407. Branch starts from tested dev `ad51a1fd`; its tree matches the fully
 checked #425 source. [ADR 0050](../../../adr/0050-bulletin-proof-reuse-and-wave-ordering.md)
 defines the boundaries; [machine-readable model](bulletin-round-trips-2026-11-10.json)
 is generated entirely locally without artist input, signer or network writes.
-This code is not deployed; custody remains `59244da5` and Web/Product/public
-APIs remain 0.1.82.
+At this candidate checkpoint the code was not deployed. It is now
+[delivered to custody](bulletin-round-trips-rollout-2026-11-10.md); Web/Product/
+public APIs remain 0.1.82. Live publication gains are still unmeasured.
 
 ## Measured locally
 
@@ -70,7 +71,7 @@ output was identical across two runs. It reads no private operational state.
 The three-/two-stage public-asset tail remains: removing it needs a separate
 format/resolver compatibility analysis. Live throughput, memory behavior in the
 hosted process and lower artist wall time remain unverified. Phase sums overlap
-and no wallet-render timestamp is instrumented. Prepare a matched bounded
-custody rollout after review/CI and separate operational approval; another
-funded source test is not implied. Preserve existing reserves and all histories;
+and no wallet-render timestamp is instrumented. The separately approved matched
+custody delivery is now complete; a new funded source test and live latency
+acceptance remain separate. Preserve existing reserves and all histories;
 #407 stays Now/In Progress before #395, #388 and CASH research.

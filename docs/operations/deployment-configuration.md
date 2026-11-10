@@ -1,5 +1,18 @@
 # Deployment Configuration Runbook
 
+## Publication round-trip optimization delivered, 2026-11-10
+
+[The approved custody-only delivery](../backlog/implementation/evidence/bulletin-round-trips-rollout-2026-11-10.md) installs #426 from tested
+`8d070654`, with the same tree as merged dev `bdd6eab0`. Green merged CI, a
+completed provider snapshot, compiled compatibility inspection, unchanged
+protected histories and two health/readiness passes are verified. Zero Bulletin
+operations, renewals, DotNS signatures or new admissions occur. Web/Product and
+public APIs stay 0.1.82. Actual publication latency and hosted memory under new
+work remain unmeasured; existing ready releases must not be reset for a benchmark.
+#407 remains Now/In Progress, before #395, #388 and CASH research. The separate
+next-source selection and exact trial budget remain ahead; the maintenance
+approval is consumed. Earlier entries below are dated checkpoints.
+
 ## Exact write-window trial activated, 2026-11-10
 
 [The approved custody-only activation](../backlog/implementation/evidence/bulletin-window-activation-2026-11-10.md) delivers #424 from
@@ -4184,9 +4197,10 @@ verification are unchanged. Future larger runtime bounds still require review.
 [ADR 0050](../adr/0050-bulletin-proof-reuse-and-wave-ordering.md) and the
 [local evidence](../backlog/implementation/evidence/bulletin-round-trips-2026-11-10.md)
 introduce no environment variable, dashboard change, route, mount, key, service,
-profile field or durable schema. Custody remains deployed at `59244da5` until a
-separately approved matched image/maintenance. Web/Product/public APIs remain
-0.1.82. Existing exact admission and retention reserves are not reset or expanded.
+profile field or durable schema. The separately approved
+[matched custody delivery](../backlog/implementation/evidence/bulletin-round-trips-rollout-2026-11-10.md)
+is complete at `8d070654`; Web/Product/public APIs remain 0.1.82. Existing exact
+admission and retention reserves are not reset or expanded.
 
 Only existing write-window jobs may select a dependency-priority order, after
 pending intents reconcile. The original graph and inventory order stay intact;
@@ -4203,11 +4217,11 @@ Genesis/finalized snapshots, current CID retention, canonical block mapping and
 per-query own-store verification always repeat; no authorization, receipt or
 private key is cached. No credential-bearing request/response fields are retained.
 
-A later rollout must preserve all current journals, scopes, nonces and claims,
-verify ordinary ready-release reuse adds no store, check canonical-hash changes,
-expiry and cancellation with warm cache, and observe the actual memory/latency
-profile. Keep compatible #424-era code for rollback with existing window-bearing
-state; never downgrade readers by restoring old ledgers. Any funded new-source
+The delivered rollout preserves current journals, scopes, nonces and claims.
+Isolated compiled image checks cover ready-release reuse, wrong nonce and expiry
+with warm cache; implementation tests cover canonical mapping and cancellation.
+Actual memory and latency under new hosted work remain to measure. Keep
+compatible #424-era code for rollback with existing window-bearing state; never downgrade readers by restoring old ledgers. Any funded new-source
 trial requires its own admission/budget and account-writer exclusion. Local
 9→8/13→12 audio models and repeated-proof RPC counts are not a promised ETA;
 cover/metadata remain 3/2 stages in the unchanged synthetic path format.
