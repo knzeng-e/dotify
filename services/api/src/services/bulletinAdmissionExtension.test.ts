@@ -107,6 +107,27 @@ it('never refunds or grants again on replay, changed fingerprints or an existing
   assert.deepEqual(await readFile(join(c.profile.directory, 'release-admission.json')), after);
 });
 
+it('binds an optional wider window only to the new exact release, never the immutable profile or old claims', async t => {
+  const c = await fixture(t),
+    before = await c.snapshot();
+  const writeWindow = { concurrency: 16, maxInFlightBytes: 4 * 1024 * 1024 };
+  const report = await extendBulletinAdmission({ ...c.request, writeWindow }, true);
+  assert.deepEqual(report.writeWindow, writeWindow);
+  assert.deepEqual(await c.snapshot(), before);
+  const publication = createReleasePublication(c.profile, async () => []);
+  assert.deepEqual(await publication.pipeline(scope('11')), c.profile.pipeline);
+  assert.deepEqual(await publication.pipeline(scope('44')), { ...c.profile.pipeline, writeWindow });
+  const restarted = createReleaseAdmission(c.options);
+  await restarted.claim(scope('44'), 'audio', '', c.owner.address);
+  await assert.rejects(
+    extendBulletinAdmission(
+      { ...c.request, expectedAdmissionSha256: admissionDigest(await restarted.validate()), writeWindow: { ...writeWindow, concurrency: 8 } },
+      true
+    ),
+    /existing admitted/
+  );
+});
+
 it('excludes a live publisher and refuses writer, active, uncertain, orphan or unfinished queue state', async t => {
   const c = await fixture(t),
     original = await c.snapshot();

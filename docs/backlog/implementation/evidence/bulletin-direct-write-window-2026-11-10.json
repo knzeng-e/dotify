@@ -1,0 +1,61 @@
+{
+  "schema": "dotify.bulletin.window-model.v1",
+  "synthetic": true,
+  "artistDataUsed": false,
+  "graph": {
+    "blocks": 151,
+    "bytes": 24268025
+  },
+  "schedules": [
+    {
+      "writeConcurrency": 2,
+      "readConcurrency": 2,
+      "maxInFlightBytes": 524288,
+      "waves": 77,
+      "peakWaveBlocks": 2,
+      "peakWaveBytes": 524288
+    },
+    {
+      "writeConcurrency": 4,
+      "readConcurrency": 2,
+      "maxInFlightBytes": 1048576,
+      "waves": 40,
+      "peakWaveBlocks": 4,
+      "peakWaveBytes": 1048576
+    },
+    {
+      "writeConcurrency": 8,
+      "readConcurrency": 2,
+      "maxInFlightBytes": 2097152,
+      "waves": 22,
+      "peakWaveBlocks": 8,
+      "peakWaveBytes": 2097152
+    },
+    {
+      "writeConcurrency": 16,
+      "readConcurrency": 2,
+      "maxInFlightBytes": 4194304,
+      "waves": 13,
+      "peakWaveBlocks": 16,
+      "peakWaveBytes": 4194304
+    }
+  ],
+  "model": "equal-duration finalized waves; not an ETA or evidence of inclusion capacity/throughput",
+  "networkWrites": 0,
+  "runtimeInventory": {
+    "observedAt": "2026-11-10T10:26:39.047Z",
+    "finalizedBlock": 1585172,
+    "normalBlockBytes": 9437184,
+    "maxStoreDataBytes": 2097152,
+    "maxStoredTransactionsPerBlock": 512,
+    "transactionPoolCapacityVerified": false
+  },
+  "validation": {
+    "apiTests": 408,
+    "apiSuites": 42,
+    "typecheck": true,
+    "build": true,
+    "liveWindowActivated": false,
+    "liveThroughputMeasured": false
+  }
+}

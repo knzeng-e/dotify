@@ -1,6 +1,6 @@
 # 0048 — Extend admission for an exact release without rotating its key domain
 
-Date: 2026-11-10. Status: proposed; not activated. Refs #407, extending ADR 0046.
+Date: 2026-11-10. Status: accepted; first bounded activation recorded in #423. Refs #407, extending ADR 0046.
 
 ## Decision and reason
 

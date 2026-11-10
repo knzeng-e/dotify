@@ -6,7 +6,7 @@ import { isAbsolute, join, resolve } from 'node:path';
 import { z } from 'zod';
 import { BULLETIN_MEDIA_GENESIS, validBulletinMediaRpc } from './bulletinHttpReader.js';
 import { budgetSchema, initializeBulletinMediaStore, integer, load, privateDirectory, save } from './bulletinMediaState.js';
-import { pipelineSchema } from './bulletinPipeline.js';
+import { legacyPipelineSchema } from './bulletinPipeline.js';
 import { freshContentKeySchema } from './freshContentKeyBinding.js';
 import { initializeReleaseAdmission, releasePolicySchema } from './bulletinReleaseAdmission.js';
 const absolute = z.string().refine(isAbsolute);
@@ -31,7 +31,7 @@ export const publisherProfileSchema = z
     directory: absolute,
     seedFile: absolute,
     budget: budgetSchema,
-    pipeline: pipelineSchema,
+    pipeline: legacyPipelineSchema,
     // Operator-declared obligations outside this publisher's own inventories.
     priorRenewalReserve: z.object({ transactions: integer, bytes: integer }).strict(),
     // When present, the immutable profile admits this scope and one durable job

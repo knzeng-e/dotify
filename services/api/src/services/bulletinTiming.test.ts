@@ -142,6 +142,46 @@ test('PAPI finality is measured inside the original one-shot store, never inferr
   assert.equal(closed, 1);
 });
 
+test('sixteen concurrent transport readers queue behind four RPC slots without dropping proof calls', async () => {
+  const f = rpcFixture();
+  let active = 0,
+    peak = 0,
+    started = 0,
+    release!: () => void,
+    entered!: () => void;
+  const gate = new Promise<void>(r => {
+      release = r;
+    }),
+    full = new Promise<void>(r => {
+      entered = r;
+    });
+  const client = {
+    _request: async (method: string, params: unknown[]) => {
+      peak = Math.max(peak, ++active);
+      if (++started === 4) entered();
+      try {
+        await gate;
+        return await f.request(method, params, new AbortController().signal);
+      } finally {
+        active--;
+      }
+    },
+    destroy() {},
+    getUnsafeApi() {
+      throw new Error('Read only');
+    }
+  } as unknown as Parameters<typeof createPapiMediaTransport>[0]['client'];
+  const session = createPapiMediaTransport({ client, identity: fixture.identity, budget: { maxTransactions: 16, maxBytes: 1024 * 1024 } });
+  const requests = Array.from({ length: 16 }, () => session.transport.lookupSubmission(fixture.query, new AbortController().signal));
+  await full;
+  assert.equal(peak, 4);
+  release();
+  const receipts = await Promise.all(requests);
+  assert(receipts.every(r => r?.cid === fixture.query.cid));
+  assert.equal(peak, 4);
+  session.close();
+});
+
 test('missing lifecycle events and unfinished calls stay unknown rather than fabricated', async () => {
   let clock = 0;
   const timing = createPublicationTimings(() => clock);

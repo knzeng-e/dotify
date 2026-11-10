@@ -7,6 +7,7 @@ import { verifyBulletinBlock, BULLETIN_GRAPH_MAX } from './bulletinGraph.js';
 import { BULLETIN_FINALITY_MS } from './bulletinLimits.js';
 import { watchFinalized } from './bulletinFinality.js';
 import { timedBulletinTransport, type PublicationTimings } from './bulletinTiming.js';
+import { createBulletinReadLane } from './bulletinReadLane.js';
 
 import type { PolkadotClient } from 'polkadot-api';
 import type { BulletinTransactionCreator } from './bulletinFinality.js';
@@ -47,40 +48,40 @@ export function createPapiMediaTransport({
   );
   const allowance = { ...budget },
     issued = new Map<number, { bytes: number; block: number | null }>();
+  const rpcReads = createBulletinReadLane(4);
   let closed = false,
-    requests = 0,
     attempts = 0,
     bytes = 0,
     reservation = Promise.resolve();
   const close = () => {
     if (!closed) {
       closed = true;
+      rpcReads.close();
       client.destroy();
     }
   };
   const request: BulletinRpc = async (method, params, signal) => {
     signal.throwIfAborted();
     assert.ok(!closed, 'Bulletin client is closed; create a new transport for reconciliation');
-    assert.ok(requests < 16, 'Bulletin RPC concurrency limit reached');
-    requests++;
     let abort: () => void = () => undefined;
     try {
-      return await Promise.race([
-        Promise.resolve().then(() => {
-          signal.throwIfAborted();
-          return client._request(method, params);
-        }),
-        new Promise<never>((_, reject) => {
-          abort = () => {
-            close();
-            reject(signal.reason);
-          };
-          signal.addEventListener('abort', abort, { once: true });
-          if (signal.aborted) abort();
-        })
-      ]);
+      return await rpcReads.run(signal, () =>
+        Promise.race([
+          Promise.resolve().then(() => {
+            signal.throwIfAborted();
+            return client._request(method, params);
+          }),
+          new Promise<never>((_, reject) => {
+            abort = () => {
+              close();
+              reject(signal.reason);
+            };
+            signal.addEventListener('abort', abort, { once: true });
+            if (signal.aborted) abort();
+          })
+        ])
+      );
     } finally {
-      requests--;
       signal.removeEventListener('abort', abort);
     }
   };

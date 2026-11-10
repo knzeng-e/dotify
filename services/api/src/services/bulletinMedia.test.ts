@@ -778,6 +778,121 @@ test('a fresh process resolves multiple pending nonces and continues without dup
   });
 });
 
+test('an explicit 16-write window persists every intent before sending and bounds all proof reads to two', { timeout: 30000 }, async t => {
+  const c = await fixture(t, 12),
+    gate = deferred();
+  const pipeline = { concurrency: 2, maxInFlightBytes: 512 * 1024, writeWindow: { concurrency: 16, maxInFlightBytes: 4 * 1024 * 1024 } };
+  const store = c.transport.store.bind(c.transport),
+    lookup = c.transport.lookup.bind(c.transport),
+    read = c.transport.readBlock.bind(c.transport);
+  let active = 0,
+    peak = 0,
+    entered = 0,
+    reads = 0,
+    peakReads = 0;
+  const boundedRead = async <T>(run: () => Promise<T>) => {
+    peakReads = Math.max(peakReads, ++reads);
+    try {
+      await new Promise<void>(r => setImmediate(r));
+      return await run();
+    } finally {
+      reads--;
+    }
+  };
+  c.transport.lookup = cid => boundedRead(() => lookup(cid));
+  c.transport.readBlock = cid => boundedRead(() => read(cid));
+  c.transport.store = async (block, intent) => {
+    peak = Math.max(peak, ++active);
+    const journal = JSON.parse(await readFile(join(c.directory, `${c.job}.json`), 'utf8'));
+    assert.equal(journal.pending[block.cid].nonce, intent.nonce);
+    const owner = JSON.parse(await readFile(join(c.directory, 'owner.json'), 'utf8'));
+    assert(owner.nextNonce > intent.nonce && journal.nextNonce > intent.nonce);
+    if (++entered === 16) gate.resolve();
+    try {
+      await gate.promise;
+      return await store(block, intent);
+    } finally {
+      active--;
+    }
+  };
+  t.after(() => gate.resolve());
+  const media = createBulletinMediaStore({ ...c.options, pipeline });
+  assert.equal(await media.pin(c.files, c.job, signal()), c.graph.root);
+  assert.equal(peak, 16);
+  assert(peakReads <= 2);
+  assert.equal(c.transport.writes.at(-1), c.graph.root);
+  assert.equal(new Set(c.transport.writes).size, c.graph.blocks.length);
+  const inventory = await media.inventory(c.job);
+  assert(inventory.ready);
+  assert.deepEqual(inventory.pipeline, pipeline);
+  assert.deepEqual(inventory.pending, {});
+  await assert.rejects(createBulletinMediaStore({ ...c.options }).pin(c.files, c.job, signal()), /pipeline changed/);
+});
+
+test('a wide-window lost acknowledgement reconciles without resending, while a missing nonce blocks new writes', { timeout: 30000 }, async t => {
+  for (const included of [true, false]) {
+    const c = await fixture(t, 12),
+      gate = deferred(),
+      original = c.transport.store.bind(c.transport);
+    const pipeline = { concurrency: 2, maxInFlightBytes: 512 * 1024, writeWindow: { concurrency: 16, maxInFlightBytes: 4 * 1024 * 1024 } };
+    let entered = 0;
+    c.transport.store = async (block, intent) => {
+      const first = ++entered === 1;
+      if (entered === 16) gate.resolve();
+      await gate.promise;
+      if (first) {
+        if (included) await original(block, intent);
+        throw new Error('Unknown first outcome');
+      }
+      return original(block, intent);
+    };
+    t.after(() => gate.resolve());
+    const media = createBulletinMediaStore({ ...c.options, pipeline });
+    await assert.rejects(media.pin(c.files, c.job, signal()), /Unknown first outcome/);
+    const failed = await media.inventory(c.job);
+    assert(!failed.ready);
+    assert.equal(Object.keys(failed.pending).length, 1);
+    assert(!c.transport.stored.has(c.graph.root));
+    c.transport.store = original;
+    const restart = createBulletinMediaStore({ ...c.options, pipeline }),
+      writes = c.transport.writes.length;
+    if (included) {
+      assert.equal(await restart.pin(c.files, c.job, signal()), c.graph.root);
+      assert.equal(c.transport.writes.length, c.graph.blocks.length);
+      assert.equal(new Set(c.transport.writes).size, c.graph.blocks.length);
+    } else {
+      await assert.rejects(restart.pin(c.files, c.job, signal()), /Submission unresolved/);
+      assert.equal(c.transport.writes.length, writes);
+      assert.deepEqual((await restart.inventory(c.job)).pending, failed.pending);
+    }
+  }
+});
+
+test('cancelling sixteen outstanding stores preserves every unknown intent and refuses a blind retry', { timeout: 30000 }, async t => {
+  const c = await fixture(t, 12),
+    controller = new AbortController(),
+    reason = new Error('Synthetic operator cancellation');
+  const pipeline = { concurrency: 2, maxInFlightBytes: 512 * 1024, writeWindow: { concurrency: 16, maxInFlightBytes: 4 * 1024 * 1024 } };
+  let submitted = 0;
+  const transport: BulletinMediaTransport = Object.assign(Object.create(c.transport), {
+    store: async (_block: BulletinBlock, _intent: unknown, bounded: AbortSignal) =>
+      new Promise((_resolve, reject) => {
+        bounded.addEventListener('abort', () => reject(bounded.reason), { once: true });
+        if (++submitted === 16) controller.abort(reason);
+        if (bounded.aborted) reject(bounded.reason);
+      })
+  });
+  const media = createBulletinMediaStore({ ...c.options, transport, pipeline });
+  await assert.rejects(media.pin(c.files, c.job, controller.signal), e => e === reason);
+  const inventory = await media.inventory(c.job);
+  assert.equal(submitted, 16);
+  assert.equal(Object.keys(inventory.pending).length, 16);
+  assert(!inventory.ready);
+  assert.equal(new Set(Object.values(inventory.pending).map(p => p.nonce)).size, 16);
+  await assert.rejects(media.pin(c.files, c.job, signal()), /Submission unresolved/);
+  assert.equal(submitted, 16);
+});
+
 test('a failed journal rename drains started writes and keeps the unsent nonce conservative', { timeout: 20000 }, async t => {
   const c = await fixture(t),
     entered = deferred(),

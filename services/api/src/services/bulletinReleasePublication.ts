@@ -1,7 +1,7 @@
 // Multi-release composition over the existing graph writer and nonce journal.
 import assert from 'node:assert/strict';
 import { buildPublicAssetGraph, preservePublicMetadata, type PublicAssetOwner, type PublicAssetKind, type PublicAssetPolicy } from './bulletinPublicAssets.js';
-import { createReleaseAdmission, releaseIdentity, releaseJob } from './bulletinReleaseAdmission.js';
+import { createReleaseAdmission, releaseIdentity, releaseJob, releasePipeline } from './bulletinReleaseAdmission.js';
 import { publicationBinding, type BulletinPublisherProfile } from './bulletinPublisherProfile.js';
 import { dotifyManifestSchema } from './releaseManifest.js';
 import { integer, receiptSchema, type BulletinMediaInventory } from './bulletinMediaState.js';
@@ -22,6 +22,8 @@ export function createReleasePublication(profile: BulletinPublisherProfile, inve
   const validate = async () => {
     const jobs = await inventories();
     await admission.validateInventories(jobs);
+    const state = await admission.validate();
+    for (const job of jobs) assert.deepEqual(job.pipeline, releasePipeline(profile.pipeline, state, job.scope), 'Admitted publication pipeline changed');
     return jobs;
   };
   const check = async (scope: StreamingScope, name?: string, owner?: string) => {
@@ -34,6 +36,11 @@ export function createReleasePublication(profile: BulletinPublisherProfile, inve
   return {
     validate,
     check,
+    async pipeline(scope: StreamingScope) {
+      admission.artistFor(scope);
+      const state = await admission.validate();
+      return releasePipeline(profile.pipeline, state, scope);
+    },
     async admit(scope: StreamingScope, owner: string) {
       await check(scope, undefined, owner);
       return (await admission.claim(scope, 'audio', '', owner)).slice('stream-'.length);

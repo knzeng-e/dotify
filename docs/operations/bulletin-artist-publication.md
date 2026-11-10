@@ -321,7 +321,7 @@ transfers/provisions another key.
 
 ## Prepare an exact release allowance extension
 
-[ADR 0048](../adr/0048-exact-release-admission-extension.md) is a candidate for
+[ADR 0048](../adr/0048-exact-release-admission-extension.md) describes
 adding one exact release without replacing the existing profile/key/queue. It
 requires compatible custody code and separate operational approval; do not apply
 it to a live writer or interpret this runbook as a spending allowance.
@@ -360,3 +360,38 @@ No recurring renewal, new account/key, Pinata fallback or wallet approval bypass
 is introduced. Missing archives or altered claims fail closed at startup.
 After activation, older builds reject v2; keep compatible code or disable new
 publication during rollback, preserving all state. Do not restore an old ledger.
+
+## Prepare a future exact direct-write window
+
+[ADR 0049](../adr/0049-bounded-direct-write-windows.md) is a candidate, not an
+active tuning or spending instruction. With compatible custody code, a new
+exact extension request may additionally contain:
+
+```json
+{ "writeWindow": { "concurrency": 16, "maxInFlightBytes": 4194304 } }
+```
+
+This shows the maximum, not a recommended live setting. Compare 4/8/16 against
+byte/dependency constraints and current runtime/pool limits before choosing a
+value. Without the field, original write limits remain. The strict publisher
+profile still excludes it: do not edit the bound profile or an existing grant.
+It is not an allowance increase and does not replace any claimed identity.
+The same selection binds audio, cover and metadata inventories for that source.
+Startup/retry refuses a mismatched pipeline; older readers reject the new field.
+
+From `services/api`, after building:
+
+```sh
+node scripts/measure-bulletin-window.mjs
+# Optional explicit public read-only capability inventory; no signer is used:
+node scripts/inspect-bulletin-window.mjs wss://bulletin-paseo.tservices.es:8443
+```
+
+The model uses synthetic geometry and reports no ETA. Runtime constants do not
+prove node-pool admission or inclusion speed. Activation still requires separate
+image/maintenance/snapshot/exact-budget approval and fresh quota, retention and
+account-writer exclusion. Up to sixteen unknown outcomes may need reconciliation;
+never remove their intents, fill a nonce gap, refund them or re-sign automatically.
+Existing general multi-release exhausted-attempt recovery is not added here.
+After window activation, rollback keeps compatible code/state or disables new
+publication. Do not restore a previous ledger/profile to reset history.
