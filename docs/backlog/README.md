@@ -1,5 +1,15 @@
 # Dotify Production Backlog
 
+## Next measured release candidate, 2026-11-10
+
+#421 is merged. The owner supplied a different source/cover and selected an
+existing artist. [An exact admission extension](implementation/evidence/bulletin-admission-extension-2026-11-10.md)
+prepares one bounded new identity while preserving the key domain, original
+claims and journals. Local sizing is 151 audio and 10 cover blocks, not a live
+publication benchmark. Review/merge, matched custody rollout, maintenance and
+new musical allowance approval remain before the actual #407 measurement.
+The selected #407 → #395 → #388 → #406 → #408 order remains unchanged.
+
 ## Current delivered checkpoint, 2026-11-09
 
 [Web/Product/API 0.1.82](implementation/evidence/product-0.1.82-rollout-2026-11-09.md) supersedes the activation-time

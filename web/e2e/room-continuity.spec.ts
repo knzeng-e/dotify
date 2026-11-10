@@ -113,7 +113,15 @@ for (const capture of ['standard', 'without-native-api']) {
                   sourceTail: x.src.slice(-16),
                   tracks: (x.srcObject as MediaStream)?.getTracks().map(t => [t.id, t.enabled, t.readyState, t.muted])
                 })),
-                peers: peers.map(p => ({ state: p.connectionState, tracks: p.getSenders().map(s => [s.track?.id, s.track?.enabled, s.track?.readyState]) })),
+                peers: peers.map(p => ({
+                  state: p.connectionState,
+                  ice: p.iceConnectionState,
+                  gathering: p.iceGatheringState,
+                  signaling: p.signalingState,
+                  localCandidateCount: p.localDescription?.sdp?.split(/\r?\n/).filter(line => line.startsWith('a=candidate:')).length ?? 0,
+                  remoteCandidateCount: p.remoteDescription?.sdp?.split(/\r?\n/).filter(line => line.startsWith('a=candidate:')).length ?? 0,
+                  tracks: p.getSenders().map(s => [s.track?.id, s.track?.enabled, s.track?.readyState])
+                })),
                 metrics: window.__DOTIFY_E2E_ROOM_JOIN__
               };
             });
@@ -128,6 +136,17 @@ for (const capture of ['standard', 'without-native-api']) {
       // A synchronized room clock is not proof that decoded RTP audio has
       // arrived. Use the same bounded frequency check as track transitions.
       await expectTone(440, 'startup');
+      // These peers run on the same test machine with no public STUN/TURN.
+      // Pin the direct host route: an mDNS name would reintroduce a runner's
+      // multicast resolver dependency even though signaling/media are local.
+      for (const page of [host, guest]) {
+        const routes = await page.evaluate(() => {
+          const peers = Reflect.get(window, '__continuityPeers') as RTCPeerConnection[];
+          return peers.flatMap(peer => peer.localDescription?.sdp?.split(/\r?\n/).filter(line => line.startsWith('a=candidate:')) ?? []);
+        });
+        expect(routes.length).toBeGreaterThan(0);
+        expect(routes.some(candidate => candidate.includes('.local'))).toBe(false);
+      }
       const offers = await host.evaluate(() => window.__DOTIFY_E2E_ROOM_JOIN__?.offers);
       expect(await host.evaluate(() => window.__DOTIFY_E2E_ROOM_JOIN__?.webAudioCaptures)).toBe(1);
       for (const [action, title, frequency] of [

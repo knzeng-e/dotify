@@ -1,5 +1,15 @@
 # Dotify technical memory
 
+## Exact release allowance candidate, 2026-11-10
+
+[The next #407 slice](../backlog/implementation/evidence/bulletin-admission-extension-2026-11-10.md) prepares an exact-source capacity extension,
+without rotating the content key or replacing the queue. Existing slots, part
+caps and permanent history remain; offline activation requires a bound checkpoint
+and exclusive publisher lease. The owner supplied a new source/cover and selected
+the existing artist. Local graph sizing is 151 audio + 10 cover blocks; actual
+publisher/full-publication latency is still unmeasured. No live capacity, service
+change or musical spending follows from this candidate.
+
 ## Timing analysis candidate, 2026-11-09
 
 [The next #407 slice](../backlog/implementation/evidence/bulletin-timing-report-2026-11-09.md) adds an offline allowlisted timing reader and

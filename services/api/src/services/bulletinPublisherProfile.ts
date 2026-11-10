@@ -7,8 +7,7 @@ import { z } from 'zod';
 import { BULLETIN_MEDIA_GENESIS, validBulletinMediaRpc } from './bulletinHttpReader.js';
 import { budgetSchema, initializeBulletinMediaStore, integer, load, privateDirectory, save } from './bulletinMediaState.js';
 import { pipelineSchema } from './bulletinPipeline.js';
-import { initializeStreamingJobs } from './streamingJobs.js';
-import { freshContentKeySchema } from './freshContentKey.js';
+import { freshContentKeySchema } from './freshContentKeyBinding.js';
 import { initializeReleaseAdmission, releasePolicySchema } from './bulletinReleaseAdmission.js';
 const absolute = z.string().refine(isAbsolute);
 // A one-release operator pilot, not an alternative source of access authority.
@@ -89,6 +88,7 @@ export async function initializeBulletinPublisher(queue: string, input: Bulletin
   const profile = publisherProfileSchema.parse(input);
   assert.ok(isAbsolute(queue), 'Absolute fresh queue path required');
   assert.notEqual(resolve(queue), resolve(profile.directory), 'Queue and inventories must be separate');
+  const { initializeStreamingJobs } = await import('./streamingJobs.js');
   // Both initializers use exclusive creation. A partial operation remains a
   // visible provisioning failure, never an invitation to recreate lost state.
   await initializeBulletinMediaStore(profile.directory, { genesis: profile.genesis, account: profile.account });

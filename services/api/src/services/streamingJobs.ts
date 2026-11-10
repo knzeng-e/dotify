@@ -5,6 +5,14 @@ import { mkdir, open, readFile, readdir, rename, rm, stat, lstat } from 'node:fs
 import path from 'node:path';
 import { z } from 'zod';
 import {
+  streamingOwnerAddressSchema as address,
+  MAX_STREAMING_JOBS as MAX_JOBS,
+  streamingJobSchema as jobSchema,
+  streamingJobsSchema,
+  type StreamingJob
+} from './streamingJobState.js';
+export { streamingJobsSchema, type StreamingJob } from './streamingJobState.js';
+import {
   StreamingEncryptor,
   decryptStreamingObject,
   parseStreamingManifest,
@@ -18,44 +26,13 @@ import { encodeStreamingRelease } from './streamingEncoder.js';
 import type { EncodedStreamingAudio } from './streamingTranscoder.js';
 import { PinataError, type PinataFile } from './pinata.js';
 import { PublicationAdmissionError } from './publicationAdmission.js';
-const MAX_JOBS = 64,
-  MAX_QUEUED = 4,
+const MAX_QUEUED = 4,
   MAX_SOURCE_BYTES = 200 * 1024 * 1024,
   RETENTION_MS = 7 * 24 * 60 * 60_000;
-const address = z.string().regex(/^0x[0-9a-f]{40}$/);
-const scopeSchema = z
-  .object({
-    chainId: z.number().int().positive(),
-    runtimeAddress: address,
-    contentHash: z.string().regex(/^0x[0-9a-f]{64}$/),
-    keyVersion: z.string().regex(/^dotify-content-key-v(?:[2-9]|[1-9][0-9]+)$/)
-  })
-  .strict();
 type StreamingFailure = {
   stage: 'authority' | 'key' | 'encoding' | 'encryption' | 'validation' | 'storage' | 'persistence';
   storageStatus?: number;
 };
-const jobSchema = z
-  .object({
-    id: z.string().uuid(),
-    owner: address,
-    scope: scopeSchema,
-    state: z.enum(['queued', 'encoding', 'encrypting', 'publishing', 'ready', 'failed', 'expired']),
-    attempts: z.number().int().min(0).max(3),
-    createdAt: z.number().int().positive(),
-    updatedAt: z.number().int().positive(),
-    sourceBytes: z
-      .number()
-      .int()
-      .positive()
-      .max(50 * 1024 * 1024),
-    sourceGeneration: z.string().regex(/^[0-9a-f]{16}$/),
-    ref: z.string().max(256).optional(),
-    reason: z.enum(['PREPARATION_FAILED', 'RETRY_LIMIT', 'PUBLICATION_NOT_ADMITTED']).optional()
-  })
-  .strict();
-export const streamingJobsSchema = z.object({ schema: z.literal('dotify.streaming.jobs.v1'), jobs: z.array(jobSchema).max(MAX_JOBS) }).strict();
-export type StreamingJob = z.infer<typeof jobSchema>;
 export type StreamingJobView = Pick<StreamingJob, 'id' | 'state' | 'attempts' | 'updatedAt' | 'reason'> & {
   progress?: BulletinPublicationProgress;
   failure?: StreamingFailure;

@@ -14,7 +14,7 @@ const keyVersion = z
   .regex(/^dotify-content-key-v(?:[2-9]|[1-9][0-9]+)$/)
   .max(80);
 const artistSchema = z.object({ owner: address, chainId: integer.min(1), runtimeAddress: address, keyVersion }).strict();
-const scopeSchema = artistSchema
+export const releaseScopeSchema = artistSchema
   .omit({ owner: true })
   .extend({ contentHash: z.string().regex(/^0x[0-9a-f]{64}$/) })
   .strict();
@@ -36,22 +36,43 @@ export type ReleasePolicy = z.infer<typeof releasePolicySchema>;
 export type ReleasePart = 'audio' | 'cover' | 'metadata';
 const entrySchema = z
   .object({
-    scope: scopeSchema,
+    scope: releaseScopeSchema,
     audio: jobId.optional(),
     cover: jobId.optional(),
     metadata: jobId.optional()
   })
   .strict();
-const ledgerSchema = z
+const legacyLedgerSchema = z
   .object({
     schema: z.literal('dotify.bulletin.release-admission.v1'),
     profileSha256: z.string().regex(/^[0-9a-f]{64}$/),
     releases: z.array(entrySchema).max(64)
   })
   .strict();
+export const admissionExtensionSchema = z
+  .object({
+    owner: address,
+    scope: releaseScopeSchema,
+    previousAdmissionSha256: z.string().regex(/^[0-9a-f]{64}$/)
+  })
+  .strict();
+export const releaseAdmissionLedgerSchema = z.discriminatedUnion('schema', [
+  legacyLedgerSchema,
+  legacyLedgerSchema
+    .extend({ schema: z.literal('dotify.bulletin.release-admission.v2'), extensions: z.array(admissionExtensionSchema).min(1).max(63) })
+    .strict()
+]);
+export type ReleaseAdmissionLedger = z.infer<typeof releaseAdmissionLedgerSchema>;
+export const admissionExtensions = (state: ReleaseAdmissionLedger) => ('extensions' in state ? state.extensions : []);
+// A normalized JSON digest binds the reviewed checkpoint without trusting file whitespace.
+export const admissionDigest = (state: ReleaseAdmissionLedger) => createHash('sha256').update(JSON.stringify(state)).digest('hex');
+export const admissionArchive = (digest: string) => {
+  assert.match(digest, /^[0-9a-f]{64}$/);
+  return `admission-before-${digest}.json`;
+};
 const FILE = 'release-admission.json';
 export const releaseIdentity = (input: StreamingScope): string => {
-  const s = scopeSchema.parse(input);
+  const s = releaseScopeSchema.parse(input);
   return createHash('sha256')
     .update(JSON.stringify([s.chainId, s.runtimeAddress, s.contentHash, s.keyVersion]))
     .digest('hex');
@@ -70,7 +91,7 @@ export function releaseJob(scope: StreamingScope, part: ReleasePart, root = ''):
 /** Only called by fresh-state provisioning. Startup must never recreate this file. */
 export async function initializeReleaseAdmission(directory: string, profileSha256: string) {
   await privateDirectory(directory);
-  const state = ledgerSchema.parse({ schema: 'dotify.bulletin.release-admission.v1', profileSha256, releases: [] });
+  const state = releaseAdmissionLedgerSchema.parse({ schema: 'dotify.bulletin.release-admission.v1', profileSha256, releases: [] });
   const file = await open(join(directory, FILE), 'wx', 0o600);
   try {
     await file.writeFile(JSON.stringify(state));
@@ -100,24 +121,49 @@ export function createReleaseAdmission(input: { directory: string; profileSha256
   );
   let tail: Promise<unknown> = Promise.resolve();
   const artistFor = (scope: StreamingScope, owner?: string) => {
-    scopeSchema.parse(scope);
+    releaseScopeSchema.parse(scope);
     const artist = policy.artists.find(a => a.chainId === scope.chainId && a.runtimeAddress === scope.runtimeAddress && a.keyVersion === scope.keyVersion);
     if (!artist || (owner !== undefined && artist.owner !== owner.toLowerCase())) throw new PublicationAdmissionError();
     return artist;
   };
+  let expectedExtensions: string | undefined;
   const read = async () => {
     await privateDirectory(input.directory);
-    const state = ledgerSchema.parse(await load(join(input.directory, FILE)));
+    const state = releaseAdmissionLedgerSchema.parse(await load(join(input.directory, FILE)));
     assert.equal(state.profileSha256, input.profileSha256, 'Release admission profile changed');
     const ids = state.releases.map(e => releaseIdentity(e.scope));
     assert.equal(new Set(ids).size, ids.length, 'Duplicate release admission');
-    assert.ok(state.releases.length <= allowedCount, 'Release admission exceeds aggregate cap');
+    const extensions = admissionExtensions(state);
+    const extensionIds = extensions.map(e => releaseIdentity(e.scope));
+    assert.equal(new Set(extensionIds).size, extensionIds.length, 'Duplicate release extension');
+    assert.ok(allowedCount + extensions.length <= 64, 'Release extensions exceed capacity bound');
+    const observedExtensions = JSON.stringify(extensions);
+    if (expectedExtensions !== undefined)
+      assert.equal(observedExtensions, expectedExtensions, 'Release extensions changed; restart after reviewed maintenance');
+    for (const [index, extension] of extensions.entries()) {
+      artistFor(extension.scope, extension.owner);
+      const previous = releaseAdmissionLedgerSchema.parse(await load(join(input.directory, admissionArchive(extension.previousAdmissionSha256))));
+      assert.equal(admissionDigest(previous), extension.previousAdmissionSha256, 'Release extension archive changed');
+      assert.equal(previous.profileSha256, input.profileSha256, 'Release extension profile changed');
+      assert.deepEqual(admissionExtensions(previous), extensions.slice(0, index), 'Release extension history changed');
+      assert.ok(!previous.releases.some(e => releaseIdentity(e.scope) === extensionIds[index]), 'Extension cannot refund an existing release');
+      for (const entry of previous.releases) {
+        const retained = state.releases.find(e => releaseIdentity(e.scope) === releaseIdentity(entry.scope));
+        assert.ok(retained, 'Release extension lost a prior reservation');
+        assert.deepEqual(retained.scope, entry.scope, 'Release extension changed a prior scope');
+        for (const part of ['audio', 'cover', 'metadata'] as const)
+          if (entry[part]) assert.equal(retained[part], entry[part], 'Release extension changed a prior claim');
+      }
+    }
+    assert.ok(state.releases.filter(e => !extensionIds.includes(releaseIdentity(e.scope))).length <= allowedCount, 'Release admission exceeds aggregate cap');
+    assert.ok(state.releases.length <= allowedCount + extensions.length, 'Release admission exceeds aggregate cap');
     const jobs = state.releases.flatMap(e => [e.audio, e.cover, e.metadata].filter((j): j is string => Boolean(j)));
     assert.equal(new Set(jobs).size, jobs.length, 'Duplicate release job claim');
     for (const entry of state.releases) {
       artistFor(entry.scope);
       if (entry.audio) assert.equal(entry.audio, releaseJob(entry.scope, 'audio'), 'Audio admission identity changed');
     }
+    expectedExtensions ??= observedExtensions;
     return state;
   };
   // A replaced file can have nlink=0 between open() and stat(). Keep strict
@@ -132,7 +178,9 @@ export function createReleaseAdmission(input: { directory: string; profileSha256
     artistFor(scope, owner);
     const state = await snapshot();
     const entry = state.releases.find(e => releaseIdentity(e.scope) === releaseIdentity(scope));
-    if (!entry && state.releases.length >= allowedCount) throw new PublicationAdmissionError();
+    const extended = new Set(admissionExtensions(state).map(e => releaseIdentity(e.scope)));
+    if (!entry && !extended.has(releaseIdentity(scope)) && state.releases.filter(e => !extended.has(releaseIdentity(e.scope))).length >= allowedCount)
+      throw new PublicationAdmissionError();
   };
   return {
     check,
@@ -140,7 +188,7 @@ export function createReleaseAdmission(input: { directory: string; profileSha256
     artistFor,
     async validateInventories(jobs: BulletinMediaInventory[]) {
       const state = await snapshot();
-      assert.ok(jobs.length <= allowedCount * 3, 'Too many release inventories');
+      assert.ok(jobs.length <= (allowedCount + admissionExtensions(state).length) * 3, 'Too many release inventories');
       for (const job of jobs) {
         const entry = state.releases.find(e => releaseIdentity(e.scope) === releaseIdentity(job.scope));
         const part: ReleasePart = job.generation === 'public-cover-v1' ? 'cover' : job.generation === 'public-metadata-v1' ? 'metadata' : 'audio';
@@ -162,8 +210,10 @@ export function createReleaseAdmission(input: { directory: string; profileSha256
         const state = await read();
         let entry = state.releases.find(e => releaseIdentity(e.scope) === releaseIdentity(scope));
         if (!entry) {
-          if (state.releases.length >= allowedCount) throw new PublicationAdmissionError();
-          entry = { scope: scopeSchema.parse(scope) };
+          const extended = new Set(admissionExtensions(state).map(e => releaseIdentity(e.scope)));
+          if (!extended.has(releaseIdentity(scope)) && state.releases.filter(e => !extended.has(releaseIdentity(e.scope))).length >= allowedCount)
+            throw new PublicationAdmissionError();
+          entry = { scope: releaseScopeSchema.parse(scope) };
           state.releases.push(entry);
         }
         const name = releaseJob(scope, part, root);

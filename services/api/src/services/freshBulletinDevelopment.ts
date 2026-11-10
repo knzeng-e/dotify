@@ -7,7 +7,7 @@ import { dirname, isAbsolute, join, resolve } from 'node:path';
 import { z } from 'zod';
 import { integer, ownerSchema, privateDirectory, load, save, sync } from './bulletinMediaState.js';
 import { initializeBulletinPublisher, publicationBinding, publisherProfileSchema } from './bulletinPublisherProfile.js';
-import { contentMasterDigest } from './freshContentKey.js';
+import { contentMasterDigest } from './freshContentKeyBinding.js';
 const keyVersion = z
   .string()
   .regex(/^dotify-content-key-v(?:[2-9]|[1-9][0-9]+)$/)

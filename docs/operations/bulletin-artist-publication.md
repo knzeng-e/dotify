@@ -318,3 +318,45 @@ reviewed writer quiescence for other account writes; an idle observation alone
 does not reserve the account. A separate storage account remains the isolation
 option, but this candidate neither changes the owner-selected account nor
 transfers/provisions another key.
+
+## Prepare an exact release allowance extension
+
+[ADR 0048](../adr/0048-exact-release-admission-extension.md) is a candidate for
+adding one exact release without replacing the existing profile/key/queue. It
+requires compatible custody code and separate operational approval; do not apply
+it to a live writer or interpret this runbook as a spending allowance.
+
+Prepare a private 0600 request using `dotify.bulletin.release-extension.v1`:
+absolute `profileFile` and `queue` paths, `expectedProfileSha256`,
+`expectedAdmissionSha256`, lowercase `owner`, and exact `scope` with `chainId`,
+`runtimeAddress`, `contentHash` and `keyVersion`. Both digests bind normalized
+parsed JSON, not raw file whitespace. The profile digest uses its existing
+`publicationBinding`; the admission digest uses `admissionDigest` on the current
+validated ledger. Never substitute an old checkpoint after state changes.
+
+In the built API image, with a reviewed request:
+
+```sh
+node dist/scripts/extendBulletinAdmission.js --inspect /private/request.json
+# Only in the separately approved, stopped-writer maintenance window:
+node dist/scripts/extendBulletinAdmission.js --apply /private/request.json --quiesced
+```
+
+Inspect has no persistent side effects. Apply takes the existing publisher lease,
+refuses writer locks/active or non-ready jobs/pending submissions/orphans and
+checks the permanent nonce marker without editing it. It archives the prior
+admission ledger before one atomic v2 replacement. Keep the archive, all old
+claims and nonce history permanently. A partial archive alone grants nothing;
+a committed request replay is refused, never another capacity increment. Do not
+remove locks or alter the request just to bypass refusal.
+
+The report states one additional **whole original per-release allowance**, not
+an observed-use estimate or live quota verification. The original base slots
+remain separate; the grant is usable only by its exact eligible scope. Capture
+before/after private hashes and the coherent snapshot under the normal rollout
+procedure. Refresh account-sharing writer exclusion, finalized nonce/quota,
+authorization expiry and all prior retention obligations before activation.
+No recurring renewal, new account/key, Pinata fallback or wallet approval bypass
+is introduced. Missing archives or altered claims fail closed at startup.
+After activation, older builds reject v2; keep compatible code or disable new
+publication during rollback, preserving all state. Do not restore an old ledger.

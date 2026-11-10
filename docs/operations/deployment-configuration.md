@@ -1,5 +1,16 @@
 # Deployment Configuration Runbook
 
+## Exact allowance extension candidate, 2026-11-10
+
+[ADR 0048](../adr/0048-exact-release-admission-extension.md) requires compatible
+custody code, a separately reviewed snapshot/maintenance and an explicit private
+request. The command updates only admission authority and its archive, retaining
+profile, key/vault, queue, nonce state and receipts. No new environment variable,
+CORS origin, dashboard setting, mount, service or recurring renewal is required.
+Old custody builds cannot read activated v2 admission; rollback keeps compatible
+code or disables publication while preserving v2 and every archive. The candidate
+does not deploy or authorize new musical writes.
+
 ## Offline publisher timing tool, 2026-11-09
 
 The [operator timing reader](bulletin-artist-publication.md#collect-publisher-timings-offline)
