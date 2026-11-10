@@ -3,7 +3,8 @@
 Refs #407; delivers the operational boundary of #424 and
 [ADR 0049](../../../adr/0049-bounded-direct-write-windows.md).
 [Machine-readable result](bulletin-window-activation-2026-11-10.json).
-This records the completed activation, before the artist's new writing test.
+The activation checks below precede the artist's writing test; the later
+acceptance section records the owner's result separately.
 It does not establish faster publication or close #407.
 
 ## Source, selection and authority
@@ -80,8 +81,34 @@ conditions may differ. Bounded private collection retains only validated,
 source-matched timing counters; overlapping phases are not additive wall time.
 Repeated captures must not be mistaken for separate attempts.
 
-The ordinary new-release preparation, actual effective-window journal, wallet
-approval, catalogue visibility and audible listening remain to verify. Record
-preparation, store/finality and visibility separately; no acceptable-duration
-claim is made yet. Keep #407 Now/In Progress, followed by #395, #388, #406 and
-#408. Conservation/access/off-volume recovery remain separate public-pilot gates.
+At activation, ordinary preparation, the actual effective-window journal,
+wallet approval, catalogue visibility and sound were still unverified. The later
+acceptance below supersedes those pending behavior gates; acceptable latency
+remains open. Keep phase clocks separate and keep #407 Now/In Progress, followed
+by #395, #388, #406 and #408. Conservation/access/off-volume recovery remain
+separate public-pilot gates.
+
+## Later artist acceptance and next latency work
+
+The owner confirms **publication OK / listening OK** for “Alumangoman VI”,
+reporting approximately nine minutes before the wallet prompt. Source-scoped
+readback confirms one ready audio preparation, all selected release parts ready,
+the effective 16 / 4-MiB window and no pending outcomes. The audio, cover and
+metadata timing records are captured privately without raw logs or job IDs;
+repeated observations are not counted as new attempts. A cover recheck reuses
+stored data instead of adding stores.
+
+This acceptance verifies successful publication and sound, not acceptable speed.
+The new MP3 has a smaller source archive than the earlier WAV, so this is not a
+same-file performance comparison and no isolated speedup factor is claimed.
+The approximate owner time and publisher phase clocks have different boundaries;
+public-asset reports can include waiting behind audio, and a wallet-prompt
+render timestamp is not instrumented. Detailed scoped counters remain in the
+approved private operational folder.
+
+Remaining #407 work targets repeated store/finality waits and the serialized
+public-asset tail, preserving canonical proofs, retention, nonce intents and
+root/dependency barriers. Diagnose alternatives before selecting a new code or
+funded trial. No reconfiguration of this claimed source, quota increase, store,
+renewal or further maintenance is authorized by this acceptance record. Room,
+artwork and CASH retain their selected later order.

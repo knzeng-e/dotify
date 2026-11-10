@@ -36,8 +36,14 @@
   "dotnsSignatures": 0,
   "keyChanges": 0,
   "publicNonceQuotaUnchanged": true,
-  "artistPublicationVerified": false,
-  "effectiveLiveWriteWindowVerified": false,
-  "audiblePlaybackVerified": false,
-  "acceptablePublicationLatencyVerified": false
+  "artistPublicationVerified": true,
+  "effectiveLiveWriteWindowVerified": true,
+  "audiblePlaybackVerified": true,
+  "acceptablePublicationLatencyVerified": false,
+  "allSelectedReleasePartsReady": true,
+  "pendingOutcomeObserved": false,
+  "ownerApproxPreparationSeconds": 540,
+  "acceptanceSource": "owner report, host unspecified; source-scoped readback",
+  "sameFileControlledComparison": false,
+  "walletPromptTimestampMeasured": false
 }

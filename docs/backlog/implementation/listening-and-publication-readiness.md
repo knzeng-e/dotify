@@ -8,9 +8,11 @@ snapshot, one stopped-writer apply, preserved prior state/nonces and two
 health/readiness checks are verified. One owner-selected new source has a
 16-store / 4-MiB write window; proof reads and previous grants remain unchanged.
 The maintenance performs zero Bulletin/DotNS operations. Web/Product/public
-APIs stay on 0.1.82. Artist publication, audible playback and acceptable latency
-for this window remain unverified. #407 stays Now/In Progress before #395,
-#388 and the CASH research slices; earlier candidate entries are dated history.
+APIs stay on 0.1.82. The owner now confirms the new release publishes and plays,
+reporting about nine minutes before the wallet prompt. Scoped readback confirms
+the selected window and ready assets; this different, lighter source is not a
+controlled speed comparison. Acceptable latency remains open in #407 before
+#395, #388 and CASH research; earlier entries are dated history.
 
 ## Direct-write window candidate, 2026-11-10
 
@@ -59,15 +61,17 @@ implementation branch from current tested dev; use one PR per backlog scope.
   approved new exact identity and a 16-store / 4-MiB window. A completed snapshot,
   stopped-writer inspection/apply, preserved histories and two healthy checks
   are verified; no operator Bulletin/DotNS operations occur during maintenance.
-- **Immediate action:** publish the selected new source through the ordinary
-  artist app/wallet flow, capture source-matched timings, verify catalogue and
-  sound, and assess the actual latency. Existing grants remain at their original
-  settings; do not reuse/reset an old job as a funded benchmark. No acceptable
-  duration or gain is inferred from the offline schedule.
+- **Accepted behavior:** the owner confirms the new exact release publishes
+  and plays, reporting about nine minutes before the wallet prompt. Readback
+  confirms the actual selected window and ready assets, with no pending outcomes.
+- **Immediate action:** analyze the remaining audio/public-asset proof and
+  finality waits and prepare the next bounded correction. This lighter MP3 is
+  not a controlled repeat of the earlier WAV. Keep #407 open; existing grants
+  are never reset/retuned and another funded test is not implied.
 
 | Order | Scope / owner ticket | Remaining deliverable and exit gate |
 | --- | --- | --- |
-| 1 — Now | [Publication latency and acceptance #407](../bulletin-publication-admission.md) | Admission, progress and catalogue feedback are delivered. The approximately 50-minute Street scriptures run identifies repeated finality waits. #424 is now activated on custody for one approved new exact source (16 / 4 MiB); measure actual preparation/proof/store/finality/visibility, complete artist wallet and audible acceptance, then assess acceptable latency. |
+| 1 — Now | [Publication latency and acceptance #407](../bulletin-publication-admission.md) | Admission, progress and catalogue feedback are delivered. The approximately 50-minute Street scriptures run identifies repeated finality waits. #424 is now activated on custody for one approved new exact source (16 / 4 MiB); publication and listening are now owner-confirmed (about nine minutes reported). Analyze remaining phase/finality waits and verify acceptable latency, keeping the different source sizes explicit. |
 | 2 — Next | [Room startup #395](../room-listener-audio.md) | Delivery to guests works on the reported path. Diagnose the roughly 55-second mobile-host start; repeated comparable full-track starts must finish without retry and with audible Web/Desktop guests. |
 | 3 — Next | [System artwork #388](../listening-controls-and-discovery.md), with #87 | Account access and discovery are delivered. Diagnose intermittent late lock-screen artwork in solo and Room; verify repeated locks/track changes without delaying audio or restoring stale metadata. |
 | 4 — Next research | [CASH tips #406](../product-cash-tip-feasibility.md), with #85/#229 | Shipped-Host/API matrix, honest contribution semantics, durable payment/receipt recovery tests and a go/no-go. Prepare a bounded pilot only if supported. |

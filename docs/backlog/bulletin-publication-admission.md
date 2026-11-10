@@ -8,9 +8,11 @@ snapshot, one stopped-writer apply, preserved prior state/nonces and two
 health/readiness checks are verified. One owner-selected new source has a
 16-store / 4-MiB write window; proof reads and previous grants remain unchanged.
 The maintenance performs zero Bulletin/DotNS operations. Web/Product/public
-APIs stay on 0.1.82. Artist publication, audible playback and acceptable latency
-for this window remain unverified. #407 stays Now/In Progress before #395,
-#388 and the CASH research slices; earlier candidate entries are dated history.
+APIs stay on 0.1.82. The owner now confirms the new release publishes and plays,
+reporting about nine minutes before the wallet prompt. Scoped readback confirms
+the selected window and ready assets; this different, lighter source is not a
+controlled speed comparison. Acceptable latency remains open in #407 before
+#395, #388 and CASH research; earlier entries are dated history.
 
 ## Direct-write window candidate, 2026-11-10
 
@@ -74,11 +76,13 @@ is now activated on custody for one approved new exact source, with a 16-store /
 4-MiB window and independent unchanged proof-reader bounds. Earlier grants,
 receipts, keys, permanent nonces and retention obligations are preserved.
 
-Remaining: execute ordinary artist publication with this new identity, verify
-its actual effective journal window, measure preparation/proof/store/finality
-and visibility separately, and confirm wallet approval, catalogue and audible
-playback at acceptable latency. Keep #407 open until that acceptance. A local
-schedule or healthy rollout alone does not establish faster publication.
+The owner now confirms publication and listening for the new identity, with
+about nine minutes reported before the wallet prompt. Source-scoped readback
+confirms the effective window and ready assets without pending outcomes.
+Remaining: reduce the still-long wait, distinguishing audio, public assets,
+proof/finality and catalogue intervals. The new MP3 is lighter than the prior
+WAV, so their elapsed times do not isolate the window correction. Keep #407
+open until acceptable complete latency and repeatable acceptance are verified.
 Follow the [selected sequence](implementation/listening-and-publication-readiness.md).
 Earlier candidate/activation entries below are dated history; merging this
 record grants no additional allowance or maintenance authority.
