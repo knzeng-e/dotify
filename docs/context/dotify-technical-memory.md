@@ -1,5 +1,19 @@
 # Dotify technical memory
 
+## Exact write-window trial activated, 2026-11-10
+
+[The approved custody-only activation](../backlog/implementation/evidence/bulletin-window-activation-2026-11-10.md) delivers #424 from
+`59244da5`, identical to tested merged dev `3afd2b58`. A completed provider
+snapshot, one stopped-writer apply, preserved prior state/nonces and two
+health/readiness checks are verified. One owner-selected new source has a
+16-store / 4-MiB write window; proof reads and previous grants remain unchanged.
+The maintenance performs zero Bulletin/DotNS operations. Web/Product/public
+APIs stay on 0.1.82. The owner now confirms the new release publishes and plays,
+reporting about nine minutes before the wallet prompt. Scoped readback confirms
+the selected window and ready assets; this different, lighter source is not a
+controlled speed comparison. Acceptable latency remains open in #407 before
+#395, #388 and CASH research; earlier entries are dated history.
+
 ## Direct-write window candidate, 2026-11-10
 
 [The #407 correction](../backlog/implementation/evidence/bulletin-direct-write-window-2026-11-10.md) separates a future exact release's bounded write
