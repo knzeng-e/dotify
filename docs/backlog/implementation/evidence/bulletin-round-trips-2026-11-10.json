@@ -1,0 +1,85 @@
+{
+  "schema": "dotify.bulletin.roundtrip-model.v1",
+  "synthetic": true,
+  "artistDataUsed": false,
+  "networkWrites": 0,
+  "signerUsed": false,
+  "schedules": [
+    {
+      "name": "small-archive-audio",
+      "blocks": 88,
+      "bytes": 8945698,
+      "fileOrderWaves": 9,
+      "selectedWaves": 8,
+      "ordering": "dependency"
+    },
+    {
+      "name": "large-archive-audio",
+      "blocks": 151,
+      "bytes": 24268025,
+      "fileOrderWaves": 13,
+      "selectedWaves": 12,
+      "ordering": "dependency"
+    },
+    {
+      "name": "cover",
+      "blocks": 8,
+      "bytes": 140399,
+      "fileOrderWaves": 3,
+      "selectedWaves": 3,
+      "ordering": "file"
+    },
+    {
+      "name": "metadata",
+      "blocks": 2,
+      "bytes": 1087,
+      "fileOrderWaves": 2,
+      "selectedWaves": 2,
+      "ordering": "file"
+    }
+  ],
+  "proofReplay": {
+    "validations": 16,
+    "sameCapturedReceipt": true,
+    "total": {
+      "chain_getBlock": 1,
+      "chain_getBlockHash": 32,
+      "chain_getFinalizedHead": 16,
+      "chain_getHeader": 17,
+      "state_call": 2,
+      "state_getStorage": 49,
+      "state_getStorageHash": 17
+    },
+    "firstCold": {
+      "chain_getBlock": 1,
+      "chain_getBlockHash": 2,
+      "chain_getFinalizedHead": 1,
+      "chain_getHeader": 2,
+      "state_call": 2,
+      "state_getStorage": 4,
+      "state_getStorageHash": 2
+    },
+    "next15Warm": {
+      "chain_getBlockHash": 30,
+      "chain_getFinalizedHead": 15,
+      "chain_getHeader": 15,
+      "state_getStorage": 45,
+      "state_getStorageHash": 15
+    },
+    "receiptsReverified": true
+  },
+  "limitations": [
+    "Equal-duration stages, not an ETA or live throughput evidence.",
+    "Proof replay uses repeated validation of one public captured receipt, not sixteen funded stores.",
+    "Concurrent cold proof misses remain independent; reuse does not promise one load for simultaneous callers.",
+    "The public-asset path geometry is unchanged and retains its serial dependency tail."
+  ],
+  "validation": {
+    "apiTests": 415,
+    "apiSuites": 42,
+    "typecheck": true,
+    "build": true,
+    "liveGainMeasured": false,
+    "deployed": false
+  }
+}

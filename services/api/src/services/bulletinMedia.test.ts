@@ -80,14 +80,14 @@ class Storage implements BulletinMediaTransport {
     return { ...submission };
   }
 }
-async function fixture(t: TestContext, segments = 2, segmentBytes = 48) {
+async function fixture(t: TestContext, segments = 2, segmentBytes = 48, masterBytes = 1024) {
   const root = await mkdtemp(join(tmpdir(), 'dotify-bulletin-adapter-'));
   t.after(() => rm(root, { recursive: true, force: true }));
   const ledger = join(root, 'nonces');
   await initializeStreamingNonceLedger(ledger);
   const key = randomBytes(32);
   t.after(() => key.fill(0));
-  const master = Buffer.alloc(1024, 5);
+  const master = Buffer.alloc(masterBytes, 5);
   const scope: StreamingScope = {
     chainId: 420420417,
     runtimeAddress: `0x${'22'.repeat(20)}`,
@@ -827,6 +827,48 @@ test('an explicit 16-write window persists every intent before sending and bound
   assert.deepEqual(inventory.pipeline, pipeline);
   assert.deepEqual(inventory.pending, {});
   await assert.rejects(createBulletinMediaStore({ ...c.options }).pin(c.files, c.job, signal()), /pipeline changed/);
+});
+
+test('the live writer uses fewer dependency waves while retaining original journal order and ready-job reuse', { timeout: 30000 }, async t => {
+  const c = await fixture(t, 23, 100, 2_302_865);
+  const pipeline = { concurrency: 2, maxInFlightBytes: 524288, writeWindow: { concurrency: 16, maxInFlightBytes: 4194304 } };
+  const nonce = c.transport.nextNonce.bind(c.transport),
+    store = c.transport.store.bind(c.transport),
+    waves = new Set<number>();
+  let boundary = 0;
+  c.transport.nextNonce = async () => {
+    boundary++;
+    return nonce();
+  };
+  c.transport.store = async (block, intent) => {
+    const journal = JSON.parse(await readFile(join(c.directory, `${c.job}.json`), 'utf8'));
+    assert.equal(journal.pending[block.cid].nonce, intent.nonce);
+    const children =
+      block.cid === c.graph.root
+        ? c.graph.blocks.filter(b => b.cid !== block.cid).map(b => b.cid)
+        : block.codec === dagPB.code
+          ? dagPB.decode(block.bytes).Links.map(l => l.Hash.toString())
+          : [];
+    assert(
+      children.every(cid => journal.receipts[cid]),
+      'Every dependency is proven before the parent is submitted'
+    );
+    waves.add(boundary);
+    return store(block, intent);
+  };
+  const media = createBulletinMediaStore({ ...c.options, pipeline });
+  assert.equal(await media.pin(c.files, c.job, signal()), c.graph.root);
+  assert.equal(c.graph.blocks.length, 88);
+  assert.equal(waves.size, 8);
+  const inventory = await media.inventory(c.job);
+  assert.deepEqual(
+    inventory.blocks,
+    c.graph.blocks.map(b => ({ cid: b.cid, bytes: b.bytes.length }))
+  );
+  assert.deepEqual(inventory.pending, {});
+  const count = c.transport.writes.length;
+  assert.equal(await createBulletinMediaStore({ ...c.options, pipeline }).pin(c.files, c.job, signal()), c.graph.root);
+  assert.equal(c.transport.writes.length, count, 'Reopening the ready job does not retune or replay writes');
 });
 
 test('a wide-window lost acknowledgement reconciles without resending, while a missing nonce blocks new writes', { timeout: 30000 }, async t => {
