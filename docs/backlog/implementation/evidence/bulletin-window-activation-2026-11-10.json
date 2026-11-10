@@ -1,0 +1,43 @@
+{
+  "schema": "dotify.exact-write-window-delivery.v1",
+  "date": "2026-11-10",
+  "issue": 407,
+  "source": "59244da52c20e26ae48fc31d0af4f9ec3d52f1e6",
+  "mergeCommit": "3afd2b58e428ec79b968a269a9825a42aa24b5c1",
+  "sameReviewedTree": true,
+  "ci": {
+    "run": 42810047904,
+    "conclusion": "success"
+  },
+  "changedServices": [
+    "dotify-custody"
+  ],
+  "unchangedVersion": "Web/Product/public API 0.1.82",
+  "image": "registry.fly.io/dotify-api@sha256:8f4fc29c65c93194837203e72e43b6d30b8087975c063d1626c287cbbc4fbcaa",
+  "providerSnapshotCompleted": true,
+  "independentRestoreVerified": false,
+  "newExactAllowances": 1,
+  "maxOperations": 356,
+  "maxBytes": 75563008,
+  "writeWindow": {
+    "concurrency": 16,
+    "maxInFlightBytes": 4194304
+  },
+  "proofReadConcurrencyUnchanged": true,
+  "oldClaimsRetained": true,
+  "protectedMetadataUnchanged": true,
+  "permanentNonceTreeUnchanged": true,
+  "priorArchivesRetained": true,
+  "applyCount": 1,
+  "operatorReadbackOrderCheckCorrected": true,
+  "healthChecks": 2,
+  "readinessChecks": 2,
+  "operatorBulletinOperations": 0,
+  "dotnsSignatures": 0,
+  "keyChanges": 0,
+  "publicNonceQuotaUnchanged": true,
+  "artistPublicationVerified": false,
+  "effectiveLiveWriteWindowVerified": false,
+  "audiblePlaybackVerified": false,
+  "acceptablePublicationLatencyVerified": false
+}

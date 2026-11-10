@@ -1,5 +1,17 @@
 # Publication, listening reliability and CASH — execution order
 
+## Exact write-window trial activated, 2026-11-10
+
+[The approved custody-only activation](evidence/bulletin-window-activation-2026-11-10.md) delivers #424 from
+`59244da5`, identical to tested merged dev `3afd2b58`. A completed provider
+snapshot, one stopped-writer apply, preserved prior state/nonces and two
+health/readiness checks are verified. One owner-selected new source has a
+16-store / 4-MiB write window; proof reads and previous grants remain unchanged.
+The maintenance performs zero Bulletin/DotNS operations. Web/Product/public
+APIs stay on 0.1.82. Artist publication, audible playback and acceptable latency
+for this window remain unverified. #407 stays Now/In Progress before #395,
+#388 and the CASH research slices; earlier candidate entries are dated history.
+
 ## Direct-write window candidate, 2026-11-10
 
 [The #407 correction](evidence/bulletin-direct-write-window-2026-11-10.md) separates a future exact release's bounded write
@@ -30,39 +42,32 @@ acceptance next; #407 remains Now/In Progress. Web/Product/public APIs stay on
 0.1.82; #395/#388/#406/#408 keep their order. Earlier dated checkpoints below
 retain their original meaning.
 
-## Current execution after #418, 2026-11-09
+## Current execution after #424, 2026-11-10
 
 This is the selected execution order. Project 5 owns workflow status; the
-manifest owns issue/doc/priority/phase mappings. **Now** means the next work to
+manifest owns issue/doc/priority/phase mappings. **Now** means the work to
 execute; **Next** includes unfinished acceptance of already delivered code.
-In Progress does not mean every partially delivered ticket runs concurrently.
-Older dated prompts and deployment records describe their original checkpoint.
-Owner direction is November 8, reconciled after #418 on November 9. Start each
+Earlier dated records describe their original checkpoint. Start each new
 implementation branch from current tested dev; use one PR per backlog scope.
 
-- **Delivered:** Web/Product/API 0.1.82; the owner confirms existing-release
-  artist visibility and audible Web/Desktop playback. Custody additionally runs
-  #415/#416 diagnostics and failure-exit handling, recorded by #417.
-- **Delivered to custody:** [#418 from `ec8e82ae`](evidence/bulletin-parallel-rollout-2026-11-09.md),
-  after exact-source CI, a completed snapshot, stopped-writer inspection and two
-  healthy preservation checks. Public API replicas and Web/Product stay on 0.1.82.
-  The 22–27% small verification benchmark is still not whole-publication latency.
-- **Immediate action:** prepare a bounded actual publication measurement with
-  the deployed stage diagnostics. Both existing release slots are claimed; a
-  fresh full-release test requires separately reviewed durable admission/budget,
-  without resetting receipts, keys, claims or retention obligations. Existing
-  admitted release parts retain their original authority and remaining budgets.
-  The [offline timing reader candidate](evidence/bulletin-timing-report-2026-11-09.md)
-  prepares analysis without deployment. Read-only identity checks find the
-  unfinished part uses audio already published under the other artist; avoid
-  another registration merely for a timing sample. The owner has now supplied
-  a new source/cover; [an exact capacity extension candidate](evidence/bulletin-admission-extension-2026-11-10.md)
-  prepares its allowance without a new encryption domain. Local sizing is not
-  a live throughput benchmark; activation and measured publication remain open.
+- **Delivered:** Web/Product/public APIs remain 0.1.82, with owner-confirmed
+  existing-release visibility and audible Web/Desktop playback.
+- **Measured:** “Street scriptures” publishes and plays but takes about
+  50 minutes. The stage diagnosis identifies repeated finality waits at two
+  direct writes per wave; successful publishing does not prove acceptable speed.
+- **Activated on custody:** #424 from tested `59244da5`, with one separately
+  approved new exact identity and a 16-store / 4-MiB window. A completed snapshot,
+  stopped-writer inspection/apply, preserved histories and two healthy checks
+  are verified; no operator Bulletin/DotNS operations occur during maintenance.
+- **Immediate action:** publish the selected new source through the ordinary
+  artist app/wallet flow, capture source-matched timings, verify catalogue and
+  sound, and assess the actual latency. Existing grants remain at their original
+  settings; do not reuse/reset an old job as a funded benchmark. No acceptable
+  duration or gain is inferred from the offline schedule.
 
 | Order | Scope / owner ticket | Remaining deliverable and exit gate |
 | --- | --- | --- |
-| 1 — Now | [Publication latency and acceptance #407](../bulletin-publication-admission.md) | Admission, progress and catalogue feedback are delivered. #418 is deployed to custody. Review a useful, bounded fresh-release measurement with separate admission; measure preparation/proof/store/finality/visibility separately, then correct the observed bottleneck and verify an acceptable artist publication journey. |
+| 1 — Now | [Publication latency and acceptance #407](../bulletin-publication-admission.md) | Admission, progress and catalogue feedback are delivered. The approximately 50-minute Street scriptures run identifies repeated finality waits. #424 is now activated on custody for one approved new exact source (16 / 4 MiB); measure actual preparation/proof/store/finality/visibility, complete artist wallet and audible acceptance, then assess acceptable latency. |
 | 2 — Next | [Room startup #395](../room-listener-audio.md) | Delivery to guests works on the reported path. Diagnose the roughly 55-second mobile-host start; repeated comparable full-track starts must finish without retry and with audible Web/Desktop guests. |
 | 3 — Next | [System artwork #388](../listening-controls-and-discovery.md), with #87 | Account access and discovery are delivered. Diagnose intermittent late lock-screen artwork in solo and Room; verify repeated locks/track changes without delaying audio or restoring stale metadata. |
 | 4 — Next research | [CASH tips #406](../product-cash-tip-feasibility.md), with #85/#229 | Shipped-Host/API matrix, honest contribution semantics, durable payment/receipt recovery tests and a go/no-go. Prepare a bounded pilot only if supported. |

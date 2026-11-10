@@ -1,6 +1,8 @@
 # 0049 — Bound direct writes independently from proof reads
 
-Date: 2026-11-10. Status: proposed, not deployed. Refs #407; extends ADR 0039/0048.
+Date: 2026-11-10. Status: accepted for one bounded exact-source trial, activated
+on custody; throughput/artist acceptance remains open. Refs #407; extends ADR 0039/0048.
+[Activation evidence](../backlog/implementation/evidence/bulletin-window-activation-2026-11-10.md).
 
 ## Decision and measured reason
 

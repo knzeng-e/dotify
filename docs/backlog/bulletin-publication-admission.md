@@ -1,5 +1,17 @@
 # Bulletin publication beyond the synthetic pilot
 
+## Exact write-window trial activated, 2026-11-10
+
+[The approved custody-only activation](implementation/evidence/bulletin-window-activation-2026-11-10.md) delivers #424 from
+`59244da5`, identical to tested merged dev `3afd2b58`. A completed provider
+snapshot, one stopped-writer apply, preserved prior state/nonces and two
+health/readiness checks are verified. One owner-selected new source has a
+16-store / 4-MiB write window; proof reads and previous grants remain unchanged.
+The maintenance performs zero Bulletin/DotNS operations. Web/Product/public
+APIs stay on 0.1.82. Artist publication, audible playback and acceptable latency
+for this window remain unverified. #407 stays Now/In Progress before #395,
+#388 and the CASH research slices; earlier candidate entries are dated history.
+
 ## Direct-write window candidate, 2026-11-10
 
 [The #407 correction](implementation/evidence/bulletin-direct-write-window-2026-11-10.md) separates a future exact release's bounded write
@@ -51,25 +63,25 @@ the same audio. No duplicate is proposed merely to collect timings. No writing
 sample, deployment or admission change occurs; full-publication latency remains
 unverified.
 
-## Current remaining scope after #418, 2026-11-09
+## Current remaining scope after #424, 2026-11-10
 
 Issue #407 · P1 · Production spine · Now · Work. Workflow: Project 5.
 
-Admission beyond the original pilot, durable progress and approval/catalogue
-feedback are delivered in 0.1.82; existing-release artist visibility and audible
-Web/Desktop playback are confirmed. #415/#416 diagnostics are deployed on custody.
-[#418 is delivered to custody from `ec8e82ae`](implementation/evidence/bulletin-parallel-rollout-2026-11-09.md),
-with green CI and verified state preservation. The earlier 54.7/58.8-minute preparations are still the relevant
-whole-release observations; the smaller verification benchmark does not replace them.
+Admission, progress and approval/catalogue feedback are delivered in 0.1.82.
+The owner confirms “Street scriptures” publishes and plays, after approximately
+50 minutes. #423 identifies repeated finalized waves as the bottleneck; #424
+is now activated on custody for one approved new exact source, with a 16-store /
+4-MiB window and independent unchanged proof-reader bounds. Earlier grants,
+receipts, keys, permanent nonces and retention obligations are preserved.
 
-Remaining: inspect current obligations and prepare a separately reviewed bounded
-admission/budget for a fresh full-release measurement (two slots out of two are claimed),
-collect actual preparation/proof/store/finality/
-visibility timings, correct the observed bottleneck and verify acceptable full
-publication latency. Keep #407 open until that acceptance. No new write budget,
-state reset or maintenance follows from backlog alignment. Follow the
-[selected sequence](implementation/listening-and-publication-readiness.md).
-Earlier candidate/activation entries below are dated history.
+Remaining: execute ordinary artist publication with this new identity, verify
+its actual effective journal window, measure preparation/proof/store/finality
+and visibility separately, and confirm wallet approval, catalogue and audible
+playback at acceptable latency. Keep #407 open until that acceptance. A local
+schedule or healthy rollout alone does not establish faster publication.
+Follow the [selected sequence](implementation/listening-and-publication-readiness.md).
+Earlier candidate/activation entries below are dated history; merging this
+record grants no additional allowance or maintenance authority.
 
 ## Parallel verification candidate, 2026-11-09
 

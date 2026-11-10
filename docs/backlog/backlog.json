@@ -32,7 +32,7 @@
       "priority": "P1",
       "track": "Production spine",
       "phase": "Now",
-      "note": "Admission, progress and catalogue feedback are delivered in 0.1.82; #415/#416 diagnostics and #418 parallel verification are live on custody (source ec8e82ae). Offline timing analysis (#421) is merged. An exact-source capacity extension candidate preserves the current key/queue for the owner-selected next release; local sizing is not live timing. Full-publication latency remains unmeasured. Both identities are claimed; an unfinished metadata part retains its original budget, but its audio is already published under the other artist. Avoid duplicate registration just for logs. Prepare a useful fresh-release measurement with separately reviewed admission/budget, preserving receipts, keys and retention duties."
+      "note": "Admission, progress and catalogue feedback are delivered in 0.1.82. Street scriptures publishes and plays but takes about 50 minutes; #423 identifies repeated finalized waves as the bottleneck. #424 is now activated on custody from 59244da5 with one separately approved exact new source and write window 16 / 4 MiB, preserving original grants, receipts, keys and retention obligations. Zero operator Bulletin/DotNS operations during maintenance. Measure the new window through ordinary artist publication, wallet approval, catalogue visibility and audible playback before claiming acceptable latency. #407 remains Now/In Progress; no slot reset or generic spending authority."
     },
     {
       "id": "product-cash-tip-feasibility",
