@@ -20,7 +20,9 @@ The explicit JSON-RPC proof seam queues at most four active requests and 64
 waiters. Queued cancellation performs no read, and close rejects queued work.
 PAPI's transaction watchers are separately bounded by the write window; four is
 not a claim about all SDK wire traffic. A completed store enters a separate proof
-lane at the unchanged profile read concurrency. No proof, CID byte read, retention
+lane at the unchanged profile read concurrency. The complete receipt-body cap moves from 8 MiB to the current runtime total
+maximum of 10 MiB, avoiding rejection of otherwise provable busy blocks.
+Individual application blocks/CID reads stay capped at 512 KiB. No proof, CID byte read, retention
 check or sender/nonce/call/event validation is removed. Existing deadlines stand.
 
 ## Exact activation and compatibility

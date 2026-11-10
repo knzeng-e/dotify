@@ -4158,3 +4158,9 @@ no global profile edit or old slot refund is offered. Old strict readers reject
 window-bearing v2 state. Rollback keeps compatible code/current history or stops
 new publication. Actual throughput, node-pool capacity and lower user preparation
 latency remain acceptance gates, distinct from the synthetic wave comparison.
+
+The same candidate corrects the full canonical receipt-body guard from 8 MiB to
+the publicly observed runtime total block-length maximum of 10 MiB. Aggregate
+extrinsic bytes and individual encoded extrinsics remain bounded; application
+blocks/CID reads retain 512 KiB. Sender/nonce/call/event and canonical-header
+verification are unchanged. Future larger runtime bounds still require review.

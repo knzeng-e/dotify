@@ -33,7 +33,11 @@ candidate maximum; activation must select a reviewed value, not silently use it.
 The explicit public read-only runtime inventory at finalized block 1,585,172
 finds normal block length 9,437,184 bytes, max store data 2,097,152 bytes and
 512 stored transactions per block. The app still caps each block at 512 KiB.
-The inventory establishes neither node-pool capacity nor available inclusion
+The complete canonical receipt-body cap is corrected from 8 MiB to the observed
+runtime total maximum of 10 MiB; individual CID reads stay capped at 512 KiB.
+A synthetic body above 8 MiB retains the same exact own-store proof, while
+aggregate/per-extrinsic bodies above 10 MiB are refused. The inventory
+establishes neither node-pool capacity nor available inclusion
 bandwidth; no store, signing operation or benchmark transaction is performed.
 
 ## Implementation/review path
@@ -57,7 +61,7 @@ use compatible code or disable publication. The execution is not yet deployed.
 
 ## Validation and remaining gates
 
-- Full API regression: **408 tests pass**, 42 suites. Typecheck and production
+- Full API regression: **409 tests pass**, 42 suites. Typecheck and production
   build pass. Local HTTP/socket cases run with the required local permissions;
   no test accesses production keys or submits a network store.
 - New cases verify sixteen overlapping stores with fsynced intents, proof reads

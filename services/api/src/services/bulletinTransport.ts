@@ -22,8 +22,11 @@ export type BulletinRpc = (method: string, params: unknown[], signal: AbortSigna
 const integer = z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER);
 const hash = z.string().regex(/^0x[0-9a-f]{64}$/i);
 const headerSchema = z.object({ number: z.string().regex(/^0x[0-9a-f]+$/i), parentHash: hash, stateRoot: hash, extrinsicsRoot: hash }).passthrough();
-const RAW_MAX = 512 * 1024,
-  BLOCK_MAX = 8 * 1024 * 1024;
+const RAW_MAX = 512 * 1024;
+// Bound the full canonical block, not only our own in-flight bytes. The current
+// Bulletin runtime permits 10 MiB including operational/mandatory extrinsics.
+// Individual application blocks remain capped at 512 KiB.
+export const BULLETIN_RECEIPT_BLOCK_MAX = 10 * 1024 * 1024;
 const blockNumber = (value: string) => integer.parse(Number(BigInt(value)));
 const opaqueMetadata = Option(Bytes());
 
@@ -207,10 +210,10 @@ export function createBulletinRpcTransport(options: {
             assert.equal(blockNumber(body.block.header.number), receipt.block, 'Candidate body number mismatch');
             assert.deepEqual(body.block.header, header, 'Candidate block header differs from canonical header');
             assert.ok(
-              body.block.extrinsics.reduce((sum, value) => sum + value.length, 0) <= 2 * BLOCK_MAX + 2 * 4096,
+              body.block.extrinsics.reduce((sum, value) => sum + value.length, 0) <= 2 * BULLETIN_RECEIPT_BLOCK_MAX + 2 * 4096,
               'Bulletin block exceeds receipt byte bound'
             );
-            return body.block.extrinsics.map(value => bulletinBytes(value, BLOCK_MAX));
+            return body.block.extrinsics.map(value => bulletinBytes(value, BULLETIN_RECEIPT_BLOCK_MAX));
           },
           async () => {
             // Extrinsics/events were executed by the parent runtime. This

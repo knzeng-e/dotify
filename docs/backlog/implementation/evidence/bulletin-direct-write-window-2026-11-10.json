@@ -48,10 +48,11 @@
     "normalBlockBytes": 9437184,
     "maxStoreDataBytes": 2097152,
     "maxStoredTransactionsPerBlock": 512,
-    "transactionPoolCapacityVerified": false
+    "transactionPoolCapacityVerified": false,
+    "receiptBodyMaxBytes": 10485760
   },
   "validation": {
-    "apiTests": 408,
+    "apiTests": 409,
     "apiSuites": 42,
     "typecheck": true,
     "build": true,
