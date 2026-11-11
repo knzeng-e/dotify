@@ -9,13 +9,14 @@ import { importer } from 'ipfs-unixfs-importer';
 import { fixedSize } from 'ipfs-unixfs-importer/chunker';
 import { parseStreamingManifest, type StreamingScope } from './streamingFormat.js';
 import type { PinataFile } from './pinata.js';
+import type { BulletinStorageLayout } from './bulletinStorageLayout.js';
 
 export const BULLETIN_BLOCK_MAX = 512 * 1024;
 export const BULLETIN_GRAPH_MAX = 134 * 1024 * 1024;
 export const BULLETIN_BLOCK_COUNT_MAX = 2048;
 const BLAKE2B256 = 0xb220;
 export type BulletinBlock = { cid: string; bytes: Uint8Array; codec: number };
-export type BulletinGraph = { root: string; blocks: BulletinBlock[]; bytes: number; scope: StreamingScope; generation: string };
+export type BulletinGraph = { root: string; blocks: BulletinBlock[]; bytes: number; scope: StreamingScope; generation: string; layout?: BulletinStorageLayout };
 const blakeCid = (codec: number, bytes: Uint8Array) => CID.createV1(codec, digest(BLAKE2B256, blake2b(bytes, { dkLen: 32 })));
 
 export function verifyBulletinBlock(id: string, bytes: Uint8Array): CID {
@@ -33,6 +34,18 @@ export function verifyBulletinBlock(id: string, bytes: Uint8Array): CID {
  * job authenticates ciphertext first; this module never obtains a content key. */
 export async function buildBulletinMediaGraph(files: PinataFile[], signal: AbortSignal): Promise<BulletinGraph> {
   signal.throwIfAborted();
+  const manifest = validateBulletinMediaFiles(files);
+  const graph = await buildBulletinDirectoryGraph(files, signal);
+  return {
+    ...graph,
+    scope: { chainId: manifest.chainId, runtimeAddress: manifest.runtimeAddress, contentHash: manifest.contentHash, keyVersion: manifest.keyVersion },
+    generation: manifest.generation
+  };
+}
+
+/** Validate the complete logical ciphertext set before selecting its physical
+ * layout. Authentication remains the custody caller's responsibility. */
+export function validateBulletinMediaFiles(files: PinataFile[]) {
   assert.ok(files.length >= 8 && files.length <= 773, 'Invalid streaming file count');
   const byPath = new Map<string, Uint8Array>();
   let fileBytes = 0;
@@ -49,12 +62,7 @@ export async function buildBulletinMediaGraph(files: PinataFile[], signal: Abort
   const objects = [manifest.master, ...manifest.renditions.flatMap(r => [r.init, ...r.segments])];
   assert.equal(files.length, objects.length + 1, 'Unexpected streaming files');
   for (const object of objects) assert.equal(byPath.get(object.path)?.length, object.encryptedLength, 'Streaming object missing or incomplete');
-  const graph = await buildBulletinDirectoryGraph(files, signal);
-  return {
-    ...graph,
-    scope: { chainId: manifest.chainId, runtimeAddress: manifest.runtimeAddress, contentHash: manifest.contentHash, keyVersion: manifest.keyVersion },
-    generation: manifest.generation
-  };
+  return manifest;
 }
 
 /** Internal bounded UnixFS encoding shared by authenticated audio and public assets. */

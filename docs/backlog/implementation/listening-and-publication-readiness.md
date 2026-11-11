@@ -1,5 +1,17 @@
 # Publication, listening reliability and CASH — execution order
 
+## Compact graph and durable layout binding, 2026-11-11
+
+[The next #407 implementation](../../adr/0052-bulletin-layout-inventory-binding.md) adds a fixed 256-KiB compact graph constructor
+and binds its layout to a distinct journal version before any storage intent.
+Current jobs and publications keep their existing format; composition and
+prepared recovery refuse compact inventories before producing an unsupported
+reference. Restart/lost-acknowledgement tests preserve the same graph, generation,
+nonce and attempts. Versioned references, reviewed per-identity admission,
+API/Host range readers and real-media acceptance remain next; no compact switch,
+service delivery or new trial is enabled. Custody stays on #426 and Web/Product/
+public APIs on 0.1.82. #407 remains Now/In Progress before Room/artwork/CASH.
+
 ## Offline compact-layout study, 2026-11-11
 
 [The reproducible #407 study](evidence/bulletin-compact-layout-2026-11-11.md) compares
@@ -125,9 +137,10 @@ implementation branch from current tested dev; use one PR per backlog scope.
   → six waves when packing later segments per quality at 256 KiB, keeping init
   and the first segment separate. Range/decrypt tests pass; live readers and
   root/reference semantics remain unchanged.
-- **Immediate action:** review the explicit layout/reference and immutable
-  per-identity selection, then implement bounded API/Host range delivery with
-  legacy dispatch, restart/reconciliation and real-media/first-sound checks.
+- **Immediate action:** review the fixed compact constructor and durable journal
+  binding; implement explicit reference dispatch, reviewed per-identity admission
+  and bounded API/Host range delivery. Legacy dispatch, restart/reconciliation
+  and real-media/first-sound acceptance precede activation.
   Cold seeks can overfetch; no modeled percentage is a network speedup or ETA.
   No deployment, old-identity rewrite or new funded trial is implied.
 

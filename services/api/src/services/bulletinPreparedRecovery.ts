@@ -8,7 +8,8 @@ import { isAbsolute, join } from 'node:path';
 import { blake2b } from '@noble/hashes/blake2';
 import { z } from 'zod';
 import { buildBulletinMediaGraph, BULLETIN_GRAPH_MAX } from './bulletinGraph.js';
-import { jobSchema, ownerSchema, privateDirectory, save, sync } from './bulletinMediaState.js';
+import { jobSchema, ownerSchema, privateDirectory, save, sync, bulletinInventoryLayout } from './bulletinMediaState.js';
+import { assertStandardBulletinLayout } from './bulletinStorageLayout.js';
 import { assertPublicationBinding, publicationBinding, readBulletinPublisherProfile, type BulletinPublisherProfile } from './bulletinPublisherProfile.js';
 import { decryptStreamingObject, parseStreamingManifest, verifyStreamingManifest, type StreamingScope } from './streamingFormat.js';
 import { STREAM_NONCE_SCHEME, streamingKeyFingerprint } from './streamingNonces.js';
@@ -162,8 +163,10 @@ async function prepare(options: Options, profile: BulletinPublisherProfile, deps
     assert.ok(owner.jobs.includes(name) && (!owner.activeJob || owner.activeJob === name), 'Existing publication ownership unavailable');
     // Never create or adopt a new publication inventory during recovery.
     const inventory = jobSchema.parse(JSON.parse((await read('publication', join(profile.directory, `${name}.json`))).toString('utf8')));
+    assertStandardBulletinLayout(bulletinInventoryLayout(inventory));
     for (const retained of owner.jobs.filter(id => id !== name)) {
       const other = jobSchema.parse(JSON.parse((await read(`retained-${retained}`, join(profile.directory, `${retained}.json`))).toString('utf8')));
+      assertStandardBulletinLayout(bulletinInventoryLayout(other));
       assert.equal(other.job, retained);
       assert.equal(other.account, profile.account);
       assert.equal(other.genesis, profile.genesis);

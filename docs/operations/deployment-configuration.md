@@ -1,5 +1,17 @@
 # Deployment Configuration Runbook
 
+## Compact graph and durable layout binding, 2026-11-11
+
+[The next #407 implementation](../adr/0052-bulletin-layout-inventory-binding.md) adds a fixed 256-KiB compact graph constructor
+and binds its layout to a distinct journal version before any storage intent.
+Current jobs and publications keep their existing format; composition and
+prepared recovery refuse compact inventories before producing an unsupported
+reference. Restart/lost-acknowledgement tests preserve the same graph, generation,
+nonce and attempts. Versioned references, reviewed per-identity admission,
+API/Host range readers and real-media acceptance remain next; no compact switch,
+service delivery or new trial is enabled. Custody stays on #426 and Web/Product/
+public APIs on 0.1.82. #407 remains Now/In Progress before Room/artwork/CASH.
+
 ## Offline compact-layout study, 2026-11-11
 
 [The reproducible #407 study](../backlog/implementation/evidence/bulletin-compact-layout-2026-11-11.md) compares
