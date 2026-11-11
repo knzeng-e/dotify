@@ -1,5 +1,18 @@
 # Publication, listening reliability and CASH — execution order
 
+## Post-optimization trial admitted, 2026-11-11
+
+[The separately approved exact trial](evidence/bulletin-eskapade-activation-2026-11-11.md) admits the owner-selected
+“Eskapade à engong” using the existing #426 image, with a maximum of 356 attempts /
+75,563,008 bytes and the 16 / 4-MiB window. A completed snapshot, compiled
+inspect/apply, preserved old histories and two health/readiness passes are
+verified. Maintenance performs zero Bulletin/DotNS operations; no registry/code,
+key or Web/Product/public API update occurs. The owner now triggers one new
+release; publication/listening and actual latency for this identity remain to
+measure. Existing releases are not reset, the maintenance approval is consumed,
+and #407 stays Now/In Progress before Room, artwork and CASH research.
+Earlier dated entries retain their checkpoint meaning.
+
 ## Publication round-trip optimization delivered, 2026-11-10
 
 [The approved custody-only delivery](evidence/bulletin-round-trips-rollout-2026-11-10.md) installs #426 from tested
@@ -68,7 +81,7 @@ acceptance next; #407 remains Now/In Progress. Web/Product/public APIs stay on
 0.1.82; #395/#388/#406/#408 keep their order. Earlier dated checkpoints below
 retain their original meaning.
 
-## Current execution after #426, 2026-11-10
+## Current execution after trial activation, 2026-11-11
 
 This is the selected execution order. Project 5 owns workflow status; the
 manifest owns issue/doc/priority/phase mappings. **Now** means the work to
@@ -91,14 +104,15 @@ implementation branch from current tested dev; use one PR per backlog scope.
 - **Delivered next optimization:** #426 is now on custody after green merged CI,
   a completed snapshot and preserved-history/availability checks. Existing grants
   and ready jobs are unchanged; no maintenance chain writes occur.
-- **Immediate action:** select the next distinct source and prepare a separately
-  approved exact trial to measure actual complete latency and hosted memory.
-  The public-asset format tail stays unchanged; local model savings are not an
-  ETA. Keep the lighter MP3 versus prior WAV distinction explicit.
+- **Immediate action:** measure the now-admitted exact “Eskapade à engong” trial
+  through the ordinary artist app/wallet flow. Its separate source/budget and
+  maintenance are approved and activation verified; musical publication/listening
+  and latency remain to accept. The public-asset format tail stays unchanged;
+  different source sizes and local model savings cannot establish a speedup.
 
 | Order | Scope / owner ticket | Remaining deliverable and exit gate |
 | --- | --- | --- |
-| 1 — Now | [Publication latency and acceptance #407](../bulletin-publication-admission.md) | Admission, progress and catalogue feedback are delivered. The approximately 50-minute Street scriptures run identifies repeated finality waits. #424 is now activated on custody for one approved new exact source (16 / 4 MiB); publication and listening are now owner-confirmed (about nine minutes reported). #426 dependency-order/proof-reuse is delivered with preserved histories and zero maintenance chain writes. Prepare a separately approved new-source trial and verify actual acceptable latency and hosted memory. Keep the different source sizes and unchanged public-asset tail explicit. |
+| 1 — Now | [Publication latency and acceptance #407](../bulletin-publication-admission.md) | Admission, progress and catalogue feedback are delivered. The approximately 50-minute Street scriptures run identifies repeated finality waits. #424 is now activated on custody for one approved new exact source (16 / 4 MiB); publication and listening are now owner-confirmed (about nine minutes reported). #426 dependency-order/proof-reuse is delivered with preserved histories and zero maintenance chain writes. The separately approved “Eskapade à engong” trial is now admitted on the same image. Verify its musical publication/listening and actual acceptable latency; hosted memory under new work also remains unmeasured. Keep the different source sizes and unchanged public-asset tail explicit. |
 | 2 — Next | [Room startup #395](../room-listener-audio.md) | Delivery to guests works on the reported path. Diagnose the roughly 55-second mobile-host start; repeated comparable full-track starts must finish without retry and with audible Web/Desktop guests. |
 | 3 — Next | [System artwork #388](../listening-controls-and-discovery.md), with #87 | Account access and discovery are delivered. Diagnose intermittent late lock-screen artwork in solo and Room; verify repeated locks/track changes without delaying audio or restoring stale metadata. |
 | 4 — Next research | [CASH tips #406](../product-cash-tip-feasibility.md), with #85/#229 | Shipped-Host/API matrix, honest contribution semantics, durable payment/receipt recovery tests and a go/no-go. Prepare a bounded pilot only if supported. |

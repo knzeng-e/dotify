@@ -1,5 +1,18 @@
 # Bulletin publication beyond the synthetic pilot
 
+## Post-optimization trial admitted, 2026-11-11
+
+[The separately approved exact trial](implementation/evidence/bulletin-eskapade-activation-2026-11-11.md) admits the owner-selected
+“Eskapade à engong” using the existing #426 image, with a maximum of 356 attempts /
+75,563,008 bytes and the 16 / 4-MiB window. A completed snapshot, compiled
+inspect/apply, preserved old histories and two health/readiness passes are
+verified. Maintenance performs zero Bulletin/DotNS operations; no registry/code,
+key or Web/Product/public API update occurs. The owner now triggers one new
+release; publication/listening and actual latency for this identity remain to
+measure. Existing releases are not reset, the maintenance approval is consumed,
+and #407 stays Now/In Progress before Room, artwork and CASH research.
+Earlier dated entries retain their checkpoint meaning.
+
 ## Publication round-trip optimization delivered, 2026-11-10
 
 [The approved custody-only delivery](implementation/evidence/bulletin-round-trips-rollout-2026-11-10.md) installs #426 from tested
@@ -89,7 +102,7 @@ the same audio. No duplicate is proposed merely to collect timings. No writing
 sample, deployment or admission change occurs; full-publication latency remains
 unverified.
 
-## Current remaining scope after #426, 2026-11-10
+## Current remaining scope after trial activation, 2026-11-11
 
 Issue #407 · P1 · Production spine · Now · Work. Workflow: Project 5.
 
@@ -104,8 +117,9 @@ The owner now confirms publication and listening for the new identity, with
 about nine minutes reported before the wallet prompt. Source-scoped readback
 confirms the effective window and ready assets without pending outcomes.
 #426 is now delivered to custody with protected histories unchanged and no
-maintenance chain writes. Actual gains still require a separately admitted new
-source; completed identities are not reset for timing. Remaining: reduce the
+maintenance chain writes. The separately approved “Eskapade à engong” source is now admitted on that
+same image; actual publication/listening and latency remain to measure.
+Completed identities are not reset for timing. Remaining: reduce the
 still-long wait, distinguishing audio, public assets,
 proof/finality and catalogue intervals. The new MP3 is lighter than the prior
 WAV, so their elapsed times do not isolate the window correction. Keep #407

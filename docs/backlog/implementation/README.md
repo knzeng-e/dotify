@@ -1,5 +1,18 @@
 # Dotify implementation playbook
 
+## Post-optimization trial admitted, 2026-11-11
+
+[The separately approved exact trial](evidence/bulletin-eskapade-activation-2026-11-11.md) admits the owner-selected
+“Eskapade à engong” using the existing #426 image, with a maximum of 356 attempts /
+75,563,008 bytes and the 16 / 4-MiB window. A completed snapshot, compiled
+inspect/apply, preserved old histories and two health/readiness passes are
+verified. Maintenance performs zero Bulletin/DotNS operations; no registry/code,
+key or Web/Product/public API update occurs. The owner now triggers one new
+release; publication/listening and actual latency for this identity remain to
+measure. Existing releases are not reset, the maintenance approval is consumed,
+and #407 stays Now/In Progress before Room, artwork and CASH research.
+Earlier dated entries retain their checkpoint meaning.
+
 ## Publication round-trip optimization delivered, 2026-11-10
 
 [The approved custody-only delivery](evidence/bulletin-round-trips-rollout-2026-11-10.md) installs #426 from tested
