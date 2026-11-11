@@ -25,6 +25,7 @@ import {
   ownerSchema,
   receiptSchema,
   jobSchema,
+  bulletinInventoryLayout,
   privateDirectory,
   load,
   save,
@@ -32,6 +33,7 @@ import {
   type BulletinMediaInventory
 } from './bulletinMediaState.js';
 import type { PinataFile } from './pinata.js';
+import { bulletinGraphLayout, STANDARD_BULLETIN_LAYOUT, COMPACT_BULLETIN_LAYOUT } from './bulletinStorageLayout.js';
 export { initializeBulletinMediaStore, type BulletinMediaInventory } from './bulletinMediaState.js';
 
 export type BulletinReceipt = { cid: string; bytes: number; block: number; index: number; expiresAt: number; finalized: true };
@@ -152,12 +154,12 @@ export function createBulletinMediaStore(options: {
         const custody = await owner();
         assert.ok(!custody.activeJob || custody.activeJob === name, 'A previous Bulletin job needs reconciliation');
         const graph = await (options.buildGraph ?? buildBulletinMediaGraph)(files, signal);
+        const layout = bulletinGraphLayout(graph);
         assert.ok(
           graph.blocks.every(b => b.bytes.length <= writes.maxInFlightBytes),
           'A block exceeds the in-flight byte bound'
         );
         const binding = {
-          schema: 'dotify.bulletin.media-job.v2' as const,
           ...selected,
           job: name,
           root: graph.root,
@@ -178,9 +180,21 @@ export function createBulletinMediaStore(options: {
           assert.ok(custody.jobs.length < 4096, 'Bulletin inventory capacity reached');
           custody.jobs.push(name);
           await save(directory, 'owner.json', custody);
-          state = { ...binding, attemptedBytes: 0, attemptedStores: 0, receipts: {}, pending: {}, nextNonce: custody.nextNonce, ready: false };
+          state = jobSchema.parse({
+            ...binding,
+            ...(layout === STANDARD_BULLETIN_LAYOUT
+              ? { schema: 'dotify.bulletin.media-job.v2' }
+              : { schema: 'dotify.bulletin.media-job.v3', layout: COMPACT_BULLETIN_LAYOUT }),
+            attemptedBytes: 0,
+            attemptedStores: 0,
+            receipts: {},
+            pending: {},
+            nextNonce: custody.nextNonce,
+            ready: false
+          });
           await save(directory, `${name}.json`, state);
         }
+        assert.equal(bulletinInventoryLayout(state), layout, 'Bulletin job storage layout changed');
         for (const key of Object.keys(binding) as (keyof typeof binding)[])
           assert.deepEqual(state[key], binding[key], 'Bulletin job identity, budget or pipeline changed');
         const persist = async () => {

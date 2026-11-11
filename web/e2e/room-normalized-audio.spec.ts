@@ -42,10 +42,23 @@ test('normalized Room output pauses on context suspension and recovers only thro
     await guest.getByLabel('Your name or nickname').fill('Energy guest');
     await guest.getByRole('button', { name: 'Join and listen' }).click();
     await expect(guest.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20_000 });
+    // ontrack announces the receiver before ICE/DTLS necessarily supplies
+    // frames. Match room-sync's readiness gate before attaching a Web Audio
+    // meter to the received stream; UI sync alone is not decoded audio.
+    await expect
+      .poll(() =>
+        guest.evaluate(() => {
+          const audio = document.querySelectorAll<HTMLAudioElement>('audio.native-player-source')[1];
+          const tracks = (audio?.srcObject as MediaStream | null)?.getAudioTracks() ?? [];
+          return tracks.length > 0 && tracks.every(track => track.readyState === 'live' && !track.muted);
+        })
+      )
+      .toBe(true);
     await guest.evaluate(async () => {
       const audio = document.querySelectorAll<HTMLAudioElement>('audio.native-player-source')[1];
       const context = new AudioContext();
       await context.resume();
+      if (context.state !== 'running') throw new Error('The receiver audio meter did not start.');
       Reflect.set(window, '__meterContext', context);
       const analyser = context.createAnalyser(),
         samples = new Float32Array(analyser.fftSize);
