@@ -1,5 +1,18 @@
 # Bulletin publication beyond the synthetic pilot
 
+## Offline compact-layout study, 2026-11-11
+
+[The reproducible #407 study](implementation/evidence/bulletin-compact-layout-2026-11-11.md) compares
+unchanged standard paths with experimental per-quality segment packs. Retaining
+init and the first segment separately models 108 → 60 blocks and nine → six
+waves with 256-KiB chunks. The prototype preserves ciphertext/HMAC/GCM and
+bounds range reads, but existing API/Host paths cannot read later packed segments.
+Cold seeks can fetch extra chunks. Next: review explicit layout/reference and
+per-identity persistence, then implement/test API/Host integration and real
+first sound. 429 API tests pass; this checkout-only experiment changes no
+production reader/writer, format, key, budget or service. No write/maintenance
+is authorized. #407 stays Now/In Progress; Room/artwork/CASH keep their order.
+
 ## Post-optimization publication and listening confirmed, 2026-11-11
 
 [The approved exact trial](implementation/evidence/bulletin-eskapade-activation-2026-11-11.md) now publishes and plays, confirmed
@@ -120,9 +133,11 @@ confirms the effective window and ready assets without pending outcomes.
 #426 is now delivered to custody with protected histories unchanged and no
 maintenance chain writes. “Eskapade à engong” now publishes and plays on that
 same image; the owner reports 7 min 46 s before the wallet prompt. Captured
-reports succeed with 110 store calls and cover reuse. Repeated finality stages
-remain the main target; investigate offline fewer blocks/stages and format/
-resolver compatibility without relaxing integrity, retention or nonce rules.
+reports succeed with 110 store calls and cover reuse. The completed offline
+compact-layout study selects a startup-preserving 256-KiB pack as a candidate,
+modeling fewer stages without changing current readers or integrity rules.
+Next review explicit layout/reference and per-identity selection, then implement
+API/Host range delivery and recovery/first-sound checks before any rollout.
 Completed identities are not reset for timing. Remaining: reduce the still-long
 wait, distinguishing audio, public assets,
 proof/finality and catalogue intervals. The new MP3 is lighter than the prior
