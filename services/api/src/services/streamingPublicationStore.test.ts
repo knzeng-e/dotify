@@ -397,3 +397,41 @@ it('one sanitized failed-attempt summary cannot replace the original error or ch
   assert.equal(await readFile(join(c.profile.directory, 'owner.json'), 'utf8'), before);
   await store.close();
 });
+
+it('current publication startup refuses a compact inventory before loading any signer or transport', async t => {
+  const c = await setup(t);
+  const name = 'stream-11111111-1111-4111-8111-111111111111';
+  const job = jobSchema.parse({
+    schema: 'dotify.bulletin.media-job.v3',
+    layout: 'rendition-pack-v1',
+    genesis: c.profile.genesis,
+    account: c.profile.account,
+    job: name,
+    root: 'cid',
+    scope: { chainId: 1, runtimeAddress: 'runtime', contentHash: 'hash', keyVersion: 'version' },
+    generation: 'generation',
+    blocks: [{ cid: 'cid', bytes: 100 }],
+    budget: c.profile.budget,
+    pipeline: c.profile.pipeline,
+    attemptedBytes: 0,
+    attemptedStores: 0,
+    receipts: {},
+    pending: {},
+    nextNonce: null,
+    ready: false
+  });
+  await save(c.profile.directory, 'owner.json', {
+    schema: 'dotify.bulletin.media-owner.v2',
+    genesis: c.profile.genesis,
+    account: c.profile.account,
+    jobs: [name],
+    activeJob: null,
+    nextNonce: null
+  });
+  await save(c.profile.directory, name + '.json', job);
+  const before = await readFile(join(c.profile.directory, name + '.json'));
+  await assert.rejects(createStreamingPublicationStore(c.options, c.deps), /not enabled/);
+  assert.deepEqual(c.events, []);
+  assert.deepEqual(await readFile(join(c.profile.directory, name + '.json')), before);
+  await assert.rejects(access(join(c.profile.directory, 'publisher.lock')));
+});

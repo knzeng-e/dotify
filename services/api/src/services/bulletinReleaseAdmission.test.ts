@@ -70,7 +70,10 @@ it('refuses missing, changed, duplicate and orphaned admission state without reb
   await save(c.profile.directory, 'release-admission.json', { ...state, profileSha256: '0'.repeat(64) });
   await assert.rejects(a.validate(), /profile changed/);
   await writeFile(file, JSON.stringify(state), { mode: 0o600 });
-  await assert.rejects(a.validateInventories([{ scope: scope('11'), job: releaseJob(scope('22'), 'audio') } as never]), /lacks its durable release claim/);
+  await assert.rejects(
+    a.validateInventories([{ schema: 'dotify.bulletin.media-job.v2', scope: scope('11'), job: releaseJob(scope('22'), 'audio') } as never]),
+    /lacks its durable release claim/
+  );
   await rm(file);
   await assert.rejects(a.check(scope('11')), { code: 'ENOENT' });
   assert.equal(releaseIdentity(scope('11')).length, 64);

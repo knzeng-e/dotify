@@ -278,6 +278,7 @@ it('keeps original per-part caps on the new identity and serializes competing ma
   const granted = admissionExtensions(state)[0].scope;
   const id = await admission.claim(granted, 'audio');
   const inventory = {
+    schema: 'dotify.bulletin.media-job.v2',
     scope: granted,
     job: id,
     generation: 'synthetic',
@@ -288,6 +289,10 @@ it('keeps original per-part caps on the new identity and serializes competing ma
     attemptedStores: 0
   };
   await admission.validateInventories([inventory as never]);
+  await assert.rejects(
+    admission.validateInventories([{ ...inventory, schema: 'dotify.bulletin.media-job.v3', layout: 'rendition-pack-v1' } as never]),
+    /not enabled/
+  );
   await assert.rejects(
     admission.validateInventories([{ ...inventory, budget: { ...c.profile.budget, maxTransactions: c.profile.budget.maxTransactions + 1 } } as never]),
     /allowance changed/

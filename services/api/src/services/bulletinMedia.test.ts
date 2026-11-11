@@ -14,6 +14,8 @@ import { encodeStreamingRelease } from './streamingEncoder.js';
 import { initializeStreamingNonceLedger, StreamingNonceLedger } from './streamingNonces.js';
 import { verifyStreamingManifest, parseStreamingManifest, decryptStreamingObject, type StreamingScope } from './streamingFormat.js';
 import { buildBulletinMediaGraph, verifyBulletinBlock, type BulletinBlock } from './bulletinGraph.js';
+import { buildBulletinCompactMediaGraph } from './bulletinCompactGraph.js';
+import { bulletinInventoryLayout, jobSchema } from './bulletinMediaState.js';
 import {
   createBulletinMediaStore,
   initializeBulletinMediaStore,
@@ -1140,4 +1142,78 @@ test('complete release waves outlive the pilot deadline and report durable recei
   assert.ok(updates.some(value => value.storedBlocks > 0 && value.storedBlocks < value.totalBlocks));
   assert.deepEqual(updates.at(-1), { storedBlocks: c.graph.blocks.length, totalBlocks: c.graph.blocks.length });
   assert.equal((await c.store.inventory(c.job)).ready, true);
+});
+
+test('compact layout is durable before the first intent and a lost acknowledgement resumes without another generation or nonce', async t => {
+  const c = await fixture(t, 5, 1000);
+  const buildGraph = buildBulletinCompactMediaGraph;
+  const compact = await buildGraph(c.files, signal());
+  const originalStore = c.transport.store.bind(c.transport);
+  let first = true;
+  t.mock.method(c.transport, 'store', async (block: BulletinBlock, intent: { nonce: number; afterBlock: number }) => {
+    const saved = jobSchema.parse(JSON.parse(await readFile(join(c.directory, c.job + '.json'), 'utf8')));
+    assert.equal(saved.schema, 'dotify.bulletin.media-job.v3');
+    assert.equal(bulletinInventoryLayout(saved), 'rendition-pack-v1');
+    assert.equal(saved.root, compact.root);
+    assert.equal(saved.generation, compact.generation);
+    assert.equal(saved.pending[block.cid].nonce, intent.nonce);
+    assert(saved.attemptedStores > 0);
+    const receipt = await originalStore(block, intent);
+    if (first) {
+      first = false;
+      throw new Error('lost compact acknowledgement');
+    }
+    return receipt;
+  });
+  const store = createBulletinMediaStore({ ...c.options, buildGraph });
+  await assert.rejects(store.pin(c.files, c.job, signal()), /lost compact/);
+  const pending = await store.inventory(c.job);
+  assert(Object.keys(pending.pending).length > 0);
+  const before = c.transport.writes.length;
+  const pendingBytes = await readFile(join(c.directory, c.job + '.json'));
+  await assert.rejects(
+    createBulletinMediaStore({ ...c.options, buildGraph: async () => ({ ...compact, layout: 'unixfs-files-v1' }) }).pin(c.files, c.job, signal()),
+    /storage layout changed/
+  );
+  assert.equal(c.transport.writes.length, before);
+  assert.deepEqual(await readFile(join(c.directory, c.job + '.json')), pendingBytes);
+  // A process restart reconstructs the same physical graph, and reconciles the
+  // already broadcast nonce instead of storing those blocks a second time.
+  const restarted = createBulletinMediaStore({ ...c.options, buildGraph });
+  assert.equal(await restarted.pin(c.files, c.job, signal()), compact.root);
+  const ready = await restarted.inventory(c.job);
+  assert.equal(ready.generation, pending.generation);
+  // A trailing reservation cancelled before broadcast stays charged under the
+  // existing conservative budget rule. Restart must not refund that attempt.
+  assert.equal(ready.attemptedStores, pending.attemptedStores + compact.blocks.length - before);
+  assert.deepEqual(ready.pending, {});
+  assert.equal(new Set(c.transport.writes).size, compact.blocks.length);
+  assert.equal(c.transport.writes.length, compact.blocks.length);
+  assert(before > 0);
+  await restarted.pin(c.files, c.job, signal());
+  assert.equal(c.transport.writes.length, compact.blocks.length);
+});
+
+test('saved compact and legacy jobs cannot switch layouts, even with otherwise identical graph bindings', async t => {
+  for (const compact of [false, true]) {
+    const c = await fixture(t);
+    const buildGraph = compact ? buildBulletinCompactMediaGraph : buildBulletinMediaGraph;
+    const graph = await buildGraph(c.files, signal());
+    const store = createBulletinMediaStore({ ...c.options, buildGraph });
+    await store.pin(c.files, c.job, signal());
+    const journal = await readFile(join(c.directory, c.job + '.json'));
+    const before = c.transport.writes.length;
+    const changed = createBulletinMediaStore({
+      ...c.options,
+      buildGraph: async () => ({ ...graph, layout: compact ? 'unixfs-files-v1' : 'rendition-pack-v1' })
+    });
+    await assert.rejects(changed.pin(c.files, c.job, signal()), /storage layout changed/);
+    assert.equal(c.transport.writes.length, before);
+    assert.deepEqual(await readFile(join(c.directory, c.job + '.json')), journal);
+    if (!compact) {
+      const state = JSON.parse(journal.toString());
+      assert.equal(state.schema, 'dotify.bulletin.media-job.v2');
+      assert(!Object.hasOwn(state, 'layout'));
+    }
+  }
 });

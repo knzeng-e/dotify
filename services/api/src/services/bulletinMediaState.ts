@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { BULLETIN_GRAPH_MAX, BULLETIN_BLOCK_COUNT_MAX } from './bulletinGraph.js';
 import { pipelineSchema } from './bulletinPipeline.js';
 import type { BulletinStoreIdentity } from './bulletinMedia.js';
+import { COMPACT_BULLETIN_LAYOUT, STANDARD_BULLETIN_LAYOUT } from './bulletinStorageLayout.js';
 
 export const jobId = z.string().regex(/^stream-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
 export const integer = z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER);
@@ -26,7 +27,7 @@ export const ownerSchema = identitySchema
 export const receiptSchema = z
   .object({ cid: z.string(), bytes: integer.min(1), block: integer, index: integer, expiresAt: integer, finalized: z.literal(true) })
   .strict();
-export const jobSchema = z
+const legacyJobSchema = z
   .object({
     schema: z.literal('dotify.bulletin.media-job.v2'),
     genesis: z.string(),
@@ -49,7 +50,13 @@ export const jobSchema = z
     ready: z.boolean()
   })
   .strict();
+export const jobSchema = z.discriminatedUnion('schema', [
+  legacyJobSchema,
+  legacyJobSchema.extend({ schema: z.literal('dotify.bulletin.media-job.v3'), layout: z.literal(COMPACT_BULLETIN_LAYOUT) }).strict()
+]);
 export type BulletinMediaInventory = z.infer<typeof jobSchema>;
+export const bulletinInventoryLayout = (state: BulletinMediaInventory) =>
+  state.schema === 'dotify.bulletin.media-job.v2' ? STANDARD_BULLETIN_LAYOUT : state.layout;
 
 export async function sync(directory: string) {
   const handle = await open(directory, constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW);

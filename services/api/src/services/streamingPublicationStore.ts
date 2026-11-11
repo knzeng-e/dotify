@@ -19,7 +19,8 @@ import { readMetadataRepair, repairedMetadataFiles, assertRepairInventories } fr
 import { acquireBulletinPublisherLock } from './bulletinPublisherLock.js';
 export { acquireBulletinPublisherLock } from './bulletinPublisherLock.js';
 import { createBulletinMediaStore, type BulletinMediaTransport } from './bulletinMedia.js';
-import { jobSchema, load, ownerSchema, privateDirectory } from './bulletinMediaState.js';
+import { jobSchema, load, ownerSchema, privateDirectory, bulletinInventoryLayout } from './bulletinMediaState.js';
+import { assertStandardBulletinLayout } from './bulletinStorageLayout.js';
 import { assertPublicationBinding, readBulletinPublisherProfile, type BulletinPublisherProfile } from './bulletinPublisherProfile.js';
 import { pinFilesToPinata, type PinataFile } from './pinata.js';
 import { parseStreamingManifest } from './streamingFormat.js';
@@ -61,6 +62,7 @@ async function inventories(profile: BulletinPublisherProfile) {
   const jobs = [];
   for (const name of owner.jobs) {
     const job = jobSchema.parse(await load(join(profile.directory, `${name}.json`)));
+    assertStandardBulletinLayout(bulletinInventoryLayout(job));
     assert.equal(job.job, name);
     assert.equal(job.account, profile.account);
     assert.equal(job.genesis, profile.genesis);

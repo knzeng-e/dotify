@@ -4,7 +4,18 @@ import { createHash } from 'node:crypto';
 import { open } from 'node:fs/promises';
 import { join } from 'node:path';
 import { z } from 'zod';
-import { budgetSchema, integer, jobId, load, privateDirectory, save, sync, type BulletinMediaInventory } from './bulletinMediaState.js';
+import {
+  budgetSchema,
+  integer,
+  jobId,
+  load,
+  privateDirectory,
+  save,
+  sync,
+  bulletinInventoryLayout,
+  type BulletinMediaInventory
+} from './bulletinMediaState.js';
+import { assertStandardBulletinLayout } from './bulletinStorageLayout.js';
 import { PublicationAdmissionError } from './publicationAdmission.js';
 import type { StreamingScope } from './streamingFormat.js';
 import { writeWindowSchema, type BulletinPipelineLimits } from './bulletinPipeline.js';
@@ -200,6 +211,7 @@ export function createReleaseAdmission(input: { directory: string; profileSha256
       const state = await snapshot();
       assert.ok(jobs.length <= (allowedCount + admissionExtensions(state).length) * 3, 'Too many release inventories');
       for (const job of jobs) {
+        assertStandardBulletinLayout(bulletinInventoryLayout(job));
         const entry = state.releases.find(e => releaseIdentity(e.scope) === releaseIdentity(job.scope));
         const part: ReleasePart = job.generation === 'public-cover-v1' ? 'cover' : job.generation === 'public-metadata-v1' ? 'metadata' : 'audio';
         assert.ok(entry && entry[part] === job.job, 'Publication inventory lacks its durable release claim');
