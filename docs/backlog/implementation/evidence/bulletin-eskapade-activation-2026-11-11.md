@@ -3,7 +3,9 @@
 Refs #407. The owner-selected “Eskapade à engong” trial is admitted after the
 [matched #426 custody delivery](bulletin-round-trips-rollout-2026-11-10.md).
 [Machine-readable activation](bulletin-eskapade-activation-2026-11-11.json).
-This records activation, not a completed musical publication or measured speed.
+The activation checkpoint below precedes the later successful publication and
+listening acceptance. The final section records the owner result and captured
+publisher clocks; acceptable publication latency remains open.
 
 ## Authority, source and budget
 
@@ -89,3 +91,47 @@ If a later attempt is uncertain, retain its intentions and reconcile; do not
 re-sign blindly. Recovery keeps all current state and window-compatible code,
 or disables publishing. The owner-selected files and this record authorize no
 additional identity, automatic renewal or further maintenance.
+
+## Later publication, listening and timing acceptance
+
+The owner confirms **publication OK / listening OK**, reporting **7 min 46 s**
+between Publish and the wallet request. The exact UI wallet-render timestamp is
+not instrumented. All three scoped publisher kinds report success; collection
+finishes with zero read failures. The four distinct reports contain one audio,
+two successful observations of the same cover job and one metadata report. The
+cover recheck is not a second release; repeated collection copies are deduplicated.
+No further Fly inspection or writing is needed to interpret these captured data.
+
+| Captured publisher interval | Observed duration / work |
+| --- | --- |
+| Audio attempt | 435,455 ms (7 min 15.5 s); 108 store calls, peak 16; zero store failures |
+| Initial cover attempt | 426,161 ms includes 421,783 ms waiting behind audio; 4,378 ms excluding that queue; no store calls |
+| Cover recheck | 7,143 ms includes 2,769 ms queue; 4,374 ms excluding queue; no store calls |
+| Metadata attempt | 87,384 ms (1 min 27.4 s); two sequential store calls; zero store failures |
+
+There are **110 observed store calls** in these reports, not new operator writes
+or a fresh on-chain inventory audit. The cover is reused. Store/finality timing
+aggregates overlap with reads and sibling transactions; they must not be added
+into end-to-end wall time or converted into elapsed-time percentages. The audio
+report's 108 submit/finalize calls average about **32.04 s** each; first inclusion
+averages about **6.10 s**. Metadata's two submit/finalize calls average **32.31 s**.
+The evidence therefore keeps repeated finality stages as the main latency target,
+with additional read/proof work still present. The selected local nine-wave
+model is not a measured count of live waves.
+
+The approximate interval anchored from the audio report's inferred start
+(`observedAt - elapsedMs`) through the metadata report is **531,947 ms**, about
+8 min 52 s. It covers publisher attempt clocks anchored to log observations,
+not the same boundary as the owner's 7 min 46 s. Do not replace the owner's
+report, invent a wallet timestamp or reconcile the difference as a UI defect
+without instrumentation. Live byte counts and pending journal state are not
+independently read again in this acceptance update; local sizing remains local.
+
+The source is longer/larger than the prior MP3 and conditions differ. The owner
+result is encouraging behavior evidence, not an isolated optimization speedup.
+Successful publication and sound do not establish acceptable latency. Keep #407
+Now/In Progress. Next investigate, offline, fewer storage blocks/dependency
+stages and their format/resolver compatibility while preserving graph integrity,
+canonical receipts, retention, nonce reconciliation and existing playback. The
+unchanged public-asset format tail and repeated proof reads remain explicit.
+No repeated funded trial, new admission or relaxed proof boundary is implied.

@@ -42,5 +42,65 @@
   "hostedMemoryUnderNewWorkMeasuredAtActivation": false,
   "boundedPrivateTimingCollectionApprovedSeconds": 7200,
   "sameFilePerformanceComparison": false,
-  "issue407Closed": false
+  "issue407Closed": false,
+  "laterOwnerAcceptance": {
+    "publication": "OK",
+    "listening": "OK",
+    "approximatePublishToWalletMs": 466000,
+    "exactWalletRenderTimestampMeasured": false
+  },
+  "capturedTimingAcceptance": {
+    "collection": {
+      "parts": 3,
+      "reports": 4,
+      "repeatedCoverReportsAreNotDistinctReleases": true,
+      "readFailures": 0,
+      "rawLogsPersisted": false
+    },
+    "audio": {
+      "publisherElapsedMs": 435455,
+      "storeCalls": 108,
+      "storeFailures": 0,
+      "storePeak": 16,
+      "finalizeMeanMs": 32040.556,
+      "firstInclusionMeanMs": 6101.907,
+      "proofReadPeak": 2,
+      "lookupCalls": 432,
+      "readBlockCalls": 216
+    },
+    "coverReports": [
+      {
+        "publisherElapsedMs": 426161,
+        "queueMs": 421783,
+        "elapsedMinusQueueMs": 4378,
+        "storeCalls": 0
+      },
+      {
+        "publisherElapsedMs": 7143,
+        "queueMs": 2769,
+        "elapsedMinusQueueMs": 4374,
+        "storeCalls": 0
+      }
+    ],
+    "metadata": {
+      "publisherElapsedMs": 87384,
+      "storeCalls": 2,
+      "storeFailures": 0,
+      "storePeak": 1,
+      "finalizeMeanMs": 32308.5,
+      "lookupCalls": 124
+    },
+    "observedStoreCallsTotal": 110,
+    "publisherReportAnchoredSpanMs": 531947,
+    "interpretation": {
+      "spanIsNotPublishToWallet": true,
+      "logTimestampAnchoringIsApproximate": true,
+      "phaseTotalsAreNotAdditive": true,
+      "sourceDiffersFromPriorTrial": true,
+      "isolatedSpeedupFactorEstablished": false,
+      "localSizingBytesAreNotLiveBytes": true
+    }
+  },
+  "liveInventoryOrByteCountReaudited": false,
+  "nextInvestigation": "Offline reduction of storage blocks/dependency stages and format/resolver compatibility; retain integrity, canonical/retention and nonce gates."
 }

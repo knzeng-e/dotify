@@ -1,17 +1,18 @@
 # Dotify product memory
 
-## Post-optimization trial admitted, 2026-11-11
+## Post-optimization publication and listening confirmed, 2026-11-11
 
-[The separately approved exact trial](../backlog/implementation/evidence/bulletin-eskapade-activation-2026-11-11.md) admits the owner-selected
-“Eskapade à engong” using the existing #426 image, with a maximum of 356 attempts /
-75,563,008 bytes and the 16 / 4-MiB window. A completed snapshot, compiled
-inspect/apply, preserved old histories and two health/readiness passes are
-verified. Maintenance performs zero Bulletin/DotNS operations; no registry/code,
-key or Web/Product/public API update occurs. The owner now triggers one new
-release; publication/listening and actual latency for this identity remain to
-measure. Existing releases are not reset, the maintenance approval is consumed,
-and #407 stays Now/In Progress before Room, artwork and CASH research.
-Earlier dated entries retain their checkpoint meaning.
+[The approved exact trial](../backlog/implementation/evidence/bulletin-eskapade-activation-2026-11-11.md) now publishes and plays, confirmed
+by the owner with approximately **7 min 46 s before the wallet prompt**. Captured
+scoped reports show successful audio/cover/metadata work, 110 store calls and
+cover reuse, without collection failures. Publisher clocks have different
+boundaries from the owner's time; overlapping phases are not additive and this
+is not a same-file speed comparison. Submit/finalize averages about 32 s per call.
+#407 stays Now/In Progress: investigate fewer storage/dependency stages and
+format/resolver compatibility offline, preserving proof/retention/nonce gates.
+The same #426 image and Web/Product/public APIs 0.1.82 remain; no further trial,
+maintenance, allowance or renewal is authorized by this acceptance. Earlier
+entries describe their dated checkpoints.
 
 ## Publication round-trip optimization delivered, 2026-11-10
 
