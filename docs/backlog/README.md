@@ -1,5 +1,14 @@
 # Dotify Production Backlog
 
+## Listening security review, 2026-11-11
+
+[The bounded #431 correction](listening-security-hardening.md) keeps disconnect and grant expiry
+authoritative at key delivery, rejects malformed Room input before mutation and
+bounds negotiation work per socket. Shared listening, anonymous guests and free
+access retain their existing policies. This is a code candidate alongside #407,
+without deployment or new publication authority; physical Host/load acceptance
+remains separate. Earlier dated entries retain their historical scope.
+
 ## Offline compact-layout study, 2026-11-11
 
 [The reproducible #407 study](implementation/evidence/bulletin-compact-layout-2026-11-11.md) compares

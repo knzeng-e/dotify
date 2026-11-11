@@ -676,3 +676,106 @@ it('applies independent batch/free budgets per trusted client without caching ke
   assert.equal(limit.headers['cache-control'], 'no-store');
   assert.equal((await server.inject({ ...free, headers: { 'fly-client-ip': '198.51.100.2' } })).statusCode, 200);
 });
+
+for (const code of ['SESSION_REVOKED', 'SESSION_EXPIRED'] as const) {
+  it(`refuses a single key when ${code} occurs during the chain read`, async () => {
+    let current = true;
+    let derived = 0;
+    let started!: () => void;
+    let finish!: () => void;
+    const entered = new Promise<void>(resolve => {
+      started = resolve;
+    });
+    const gate = new Promise<void>(resolve => {
+      finish = resolve;
+    });
+    const server = await buildApp({
+      verifySessionToken: () => (current ? allowAll.verifySessionToken('token') : { valid: false, code, reason: 'Session ended' }),
+      checkTrackAccess: async input => {
+        started();
+        await gate;
+        return allowAll.checkTrackAccess(input);
+      },
+      deriveContentKey: input => {
+        derived++;
+        return allowAll.deriveContentKey(input);
+      }
+    });
+    const response = Promise.resolve(
+      server.inject({
+        method: 'POST',
+        url: `/api/tracks/${CONTENT_HASH}/key-request`,
+        payload: { sessionToken: 'valid-session-token', purpose: 'individual', ...releaseRequestFields() }
+      })
+    );
+    await entered;
+    current = false;
+    finish();
+    const result = await response;
+    assert.equal(result.statusCode, 401);
+    assert.equal(result.json().code, code);
+    assert.equal(derived, 0);
+  });
+}
+
+it('denies a fast batch verdict that expires while another track is still resolving', async t => {
+  const began = Date.now();
+  let clock = began;
+  t.mock.method(Date, 'now', () => clock);
+  let derived = 0;
+  let calls = 0;
+  const server = await buildApp({
+    checkTrackAccess: async input => {
+      if (++calls === 1) return { ...(await allowAll.checkTrackAccess(input)), validUntil: began + 1000 };
+      clock = began + 2000;
+      return { allowed: false, code: 'RPC_UNAVAILABLE', reason: 'Temporary read failure' };
+    },
+    deriveContentKey: input => {
+      derived++;
+      return allowAll.deriveContentKey(input);
+    }
+  });
+  const response = await server.inject({
+    method: 'POST',
+    url: '/api/tracks/keys/prepare',
+    payload: {
+      sessionToken: 'valid-session-token',
+      purpose: 'individual',
+      tracks: [0, 1].map(() => ({ contentHash: CONTENT_HASH, ...releaseRequestFields() }))
+    }
+  });
+  assert.equal(response.statusCode, 200);
+  assert.equal(derived, 0);
+  for (const track of response.json().tracks) {
+    assert.equal(track.access, 'denied');
+    assert.equal(track.reason, 'RPC_UNAVAILABLE');
+    assert.equal(track.contentKey, undefined);
+  }
+});
+
+it('checks verdict freshness after the final asynchronous session verification', async t => {
+  const began = Date.now();
+  let clock = began;
+  t.mock.method(Date, 'now', () => clock);
+  let verified = 0;
+  let derived = 0;
+  const server = await buildApp({
+    verifySessionToken: async () => {
+      if (++verified === 2) clock = began + 2000;
+      return allowAll.verifySessionToken('token');
+    },
+    checkTrackAccess: async input => ({ ...(await allowAll.checkTrackAccess(input)), validUntil: began + 1000 }),
+    deriveContentKey: input => {
+      derived++;
+      return allowAll.deriveContentKey(input);
+    }
+  });
+  const response = await server.inject({
+    method: 'POST',
+    url: `/api/tracks/${CONTENT_HASH}/key-request`,
+    payload: { sessionToken: 'valid-session-token', purpose: 'room_host', ...releaseRequestFields() }
+  });
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.json().reason, 'RPC_UNAVAILABLE');
+  assert.equal(derived, 0);
+});

@@ -546,6 +546,14 @@ export async function requestContentKey(request: ContentKeyRequest): Promise<Con
   let token = await getOrCreateDotifySession(signer, request.chainId);
   assertIdentityCurrent();
   if (!token) throw sessionUnavailable();
+  const assertRequestCurrent = () => {
+    assertIdentityCurrent();
+    // Observe cross-tab replacement as well as local disconnect. A rejected old
+    // token must not clear or renew a different, newer identity session.
+    if (sessionCache.readRenewable(sessionScope(signer, request.chainId))?.token !== token)
+      throw new KeyServiceError('Listening session changed during preparation.', 'SESSION_CANCELLED');
+  };
+  assertRequestCurrent();
   let preparedScope = `${sessionCache.keyFor(sessionScope(signer, request.chainId))}:${token}`;
   let preparedEpoch = preparedKeys.bind(preparedScope);
   if (request.release) {
@@ -554,8 +562,10 @@ export async function requestContentKey(request: ContentKeyRequest): Promise<Con
   }
   try {
     let res = await requestKeyWithSession(request.contentHash, request.purpose, token, request.release);
+    assertRequestCurrent();
     if (res.status === 401) {
       const failure = await parseError(res.clone(), 'Listening is temporarily unavailable.');
+      assertRequestCurrent();
       // Service/proxy failures are not proof that the cached identity expired.
       if (RENEWABLE_SESSION_CODES.has(failure.code)) {
         clearStoredSession(signer.address, token);
@@ -566,10 +576,12 @@ export async function requestContentKey(request: ContentKeyRequest): Promise<Con
         preparedScope = `${sessionCache.keyFor(sessionScope(signer, request.chainId))}:${token}`;
         preparedEpoch = preparedKeys.bind(preparedScope);
         res = await requestKeyWithSession(request.contentHash, request.purpose, token, request.release);
+        assertRequestCurrent();
       }
     }
     if (!res.ok) {
       const { message, code } = await parseError(res, 'Protected listening is temporarily unavailable. Please try again.');
+      assertRequestCurrent();
       if (res.status === 401 && RENEWABLE_SESSION_CODES.has(code)) {
         clearStoredSession(signer.address, token);
         const failure = new KeyServiceError('Your listening session could not be renewed. Reconnect your account to try again.', 'SESSION_SIGN_IN_INTERRUPTED');
@@ -588,6 +600,7 @@ export async function requestContentKey(request: ContentKeyRequest): Promise<Con
       throw new KeyServiceError(message, code);
     }
     const body = (await res.json()) as ContentKeyResponse;
+    assertRequestCurrent();
     if (!preparedKeys.current(preparedScope, preparedEpoch) || existingDotifySession(signer, request.chainId) !== token)
       throw new KeyServiceError('Listening session changed during preparation.', 'SESSION_CANCELLED');
     publishProductKeyResponseSmoke({

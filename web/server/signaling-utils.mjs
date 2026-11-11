@@ -1,6 +1,9 @@
 import { randomInt } from 'node:crypto';
 
 const ROOM_ID_LENGTH = 6;
+// Wire values must never invoke object-supplied coercion hooks. Preserve the
+// harmless scalar conversions supported by the original room text fields.
+const scalarText = value => (['string', 'number', 'boolean'].includes(typeof value) ? String(value) : '');
 
 export function createRoomId(rooms) {
   const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -15,7 +18,7 @@ export function createRoomId(rooms) {
 }
 
 export function normalizeRoomId(value) {
-  return String(value ?? '')
+  return scalarText(value)
     .trim()
     .toUpperCase()
     .replace(/[^A-Z0-9]/g, '')
@@ -23,15 +26,12 @@ export function normalizeRoomId(value) {
 }
 
 export function sanitizeText(value, fallback, maxLength) {
-  const text = String(value ?? '')
-    .trim()
-    .replace(/\s+/g, ' ')
-    .slice(0, maxLength);
+  const text = scalarText(value).trim().replace(/\s+/g, ' ').slice(0, maxLength);
   return text || fallback;
 }
 
 export function sanitizeAddress(value) {
-  const text = String(value ?? '').trim();
+  const text = scalarText(value).trim();
   return /^0x[0-9a-fA-F]{40}$/.test(text) ? text.toLowerCase() : null;
 }
 
@@ -39,7 +39,7 @@ export function sanitizeAddress(value) {
 // only a full bytes32 hash so one noisy client cannot create arbitrary keys in
 // the in-memory aggregate map.
 export function sanitizeTrackHash(value) {
-  const text = String(value ?? '').trim();
+  const text = scalarText(value).trim();
   return /^0x[0-9a-fA-F]{64}$/.test(text) ? text.toLowerCase() : null;
 }
 
@@ -54,7 +54,9 @@ export function sanitizeTrack(track) {
     title: sanitizeText(track.title, 'Untitled', 120),
     artist: sanitizeText(track.artist, 'Unknown artist', 80),
     hash: sanitizeText(track.hash, '', 80),
-    ...(/^0x[\da-f]{40}$/i.test(track.runtimeAddress ?? '') ? { runtimeAddress: track.runtimeAddress.toLowerCase() } : {}),
+    ...(typeof track.runtimeAddress === 'string' && /^0x[\da-f]{40}$/i.test(track.runtimeAddress)
+      ? { runtimeAddress: track.runtimeAddress.toLowerCase() }
+      : {}),
     // TrackInfo crosses the public room and anonymous join boundaries. Source
     // and manifest references are not needed for WebRTC playback: a manifest
     // can reveal the encrypted audio CID even when audioRef itself is absent.
@@ -99,13 +101,13 @@ export const CHAT_TEXT_MAX_LENGTH = 280;
 export const REQUEST_TEXT_MAX_LENGTH = 120;
 
 export function sanitizeReactionEmoji(value) {
-  const text = String(value ?? '').trim();
+  const text = scalarText(value).trim();
   return ROOM_REACTION_EMOJI.includes(text) ? text : null;
 }
 
 export function sanitizeChatText(value, maxLength = CHAT_TEXT_MAX_LENGTH, multiline = false) {
   // Requests stay single-line. Chat preserves bounded paragraphs as plain text.
-  let text = String(value ?? '').replace(/\r\n?/g, '\n');
+  let text = scalarText(value).replace(/\r\n?/g, '\n');
   if (multiline) {
     text = text
       // eslint-disable-next-line no-control-regex

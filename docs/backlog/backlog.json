@@ -25,6 +25,36 @@
   },
   "items": [
     {
+      "id": "tooling-security-migration",
+      "doc": "docs/backlog/tooling-security-migration.md",
+      "issue": 433,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Next",
+      "note": "Migrate Vitest/mocker/Tinypool and lint/estree/minimatch past remaining dev/CI advisories with full unit/lint/Web/Product and CLI compatibility, preserving Node22 and current SDK/signers. Production Web audit is clean after #431, but that does not remove dev criticals. No suppressions, test exclusions, global major overrides or deployment implied; separate from #432 API Zod."
+    },
+    {
+      "id": "api-schema-security-migration",
+      "doc": "docs/backlog/api-schema-security-migration.md",
+      "issue": 432,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Next",
+      "note": "Migrate API schemas from affected Zod3 to patched v4.6.6+ with canonical profile/admission/journal and route error compatibility. The #431 raw JSON budget mitigates the demonstrated network amplification path but does not remove the advisory. No force update, signer downgrade, state/key migration or service rollout is authorized by this record; public-pilot security gate."
+    },
+    {
+      "id": "listening-security-hardening",
+      "doc": "docs/backlog/listening-security-hardening.md",
+      "issue": 431,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Now",
+      "note": "Bounded owner-requested security review candidate: close key/session cancellation and stale-verdict races; reject malformed HTTP/socket input before Room mutation; bound per-socket negotiation and browser pending ICE. Preserve artist-controlled access, free listening and anonymous guests without keys. Separate from #407 compact-format work; no deployment, key/admission/budget change or production operation. Physical Host/load/deployment acceptance remains separate."
+    },
+    {
       "id": "bulletin-publication-admission",
       "doc": "docs/backlog/bulletin-publication-admission.md",
       "issue": 407,

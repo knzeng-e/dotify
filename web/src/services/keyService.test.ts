@@ -1020,3 +1020,100 @@ it('cannot rebind the previous identity if cleanup happens before the cached ses
   await expect(request).rejects.toMatchObject({ code: 'SESSION_CANCELLED' });
   expect(fetchMock).not.toHaveBeenCalled();
 });
+
+for (const boundary of ['response', 'error-body'] as const)
+  it(`a delayed renewable 401 at ${boundary} cannot renew after identity cleanup`, async () => {
+    const scopeKey = `dotify:session:v2:${encodeURIComponent('https://api.test')}:${ADDRESS}:420420417:eip191`;
+    installLocalStorage([[scopeKey, JSON.stringify({ token: 'queue-session-token', expiresAt: new Date(Date.now() + 3_600_000).toISOString() })]]);
+    const service = await loadKeyService();
+    let settleResponse!: (value: Response) => void;
+    let settleBody!: (value: unknown) => void;
+    const parse = vi.fn(
+      () =>
+        new Promise(resolve => {
+          settleBody = resolve;
+        })
+    );
+    const response = jsonResponse({ code: 'SESSION_REVOKED' }, 401);
+    if (boundary === 'error-body') vi.spyOn(response, 'clone').mockReturnValue({ json: parse } as unknown as Response);
+    const fetchMock = vi.fn(() =>
+      boundary === 'response'
+        ? new Promise<Response>(resolve => {
+            settleResponse = resolve;
+          })
+        : Promise.resolve(response)
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    const signMessage = vi.fn();
+    const pending = service.requestContentKey({
+      signer: { address: ADDRESS, signMessage },
+      chainId: 420420417,
+      purpose: 'individual',
+      contentHash: CONTENT_HASH,
+      release: releaseIdentity()
+    });
+    const failed = expect(pending).rejects.toMatchObject({ code: 'SESSION_CANCELLED' });
+    await vi.waitFor(() => expect(boundary === 'response' ? fetchMock : parse).toHaveBeenCalledTimes(1));
+    service.clearPreparedContentKeys();
+    if (boundary === 'response') settleResponse(response);
+    else settleBody({ error: 'Session revoked', code: 'SESSION_REVOKED' });
+    await failed;
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(signMessage).not.toHaveBeenCalled();
+  });
+
+it('a delayed old-token 401 cannot clear a replacement session from another tab', async () => {
+  const scopeKey = `dotify:session:v2:${encodeURIComponent('https://api.test')}:${ADDRESS}:420420417:eip191`;
+  const storage = installLocalStorage([
+    [scopeKey, JSON.stringify({ token: 'queue-session-token', expiresAt: new Date(Date.now() + 3_600_000).toISOString() })]
+  ]);
+  const service = await loadKeyService();
+  let finish!: (value: Response) => void;
+  const fetchMock = vi.fn(
+    () =>
+      new Promise<Response>(resolve => {
+        finish = resolve;
+      })
+  );
+  vi.stubGlobal('fetch', fetchMock);
+  const signMessage = vi.fn();
+  const pending = service.requestContentKey({
+    signer: { address: ADDRESS, signMessage },
+    chainId: 420420417,
+    purpose: 'individual',
+    contentHash: CONTENT_HASH
+  });
+  const failed = expect(pending).rejects.toMatchObject({ code: 'SESSION_CANCELLED' });
+  await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+  storage.store.set(scopeKey, JSON.stringify({ token: 'replacement-session', expiresAt: new Date(Date.now() + 3_600_000).toISOString() }));
+  finish(jsonResponse({ code: 'SESSION_EXPIRED' }, 401));
+  await failed;
+  expect(service.existingDotifySession({ address: ADDRESS }, 420420417)).toBe('replacement-session');
+  expect(fetchMock).toHaveBeenCalledTimes(1);
+  expect(signMessage).not.toHaveBeenCalled();
+});
+
+it.each(['replace', 'remove'] as const)('cannot use a prepared key if another tab %ss the session during the initial await', async action => {
+  const scopeKey = `dotify:session:v2:${encodeURIComponent('https://api.test')}:${ADDRESS}:420420417:eip191`;
+  const storage = installLocalStorage([
+    [scopeKey, JSON.stringify({ token: 'queue-session-token', expiresAt: new Date(Date.now() + 3_600_000).toISOString() })]
+  ]);
+  const service = await loadKeyService();
+  const signer = { address: ADDRESS, signMessage: vi.fn() };
+  const fetchMock = vi.fn(async () =>
+    jsonResponse({
+      expiresAt: new Date(Date.now() + 30_000).toISOString(),
+      tracks: [{ access: 'allowed', playbackMode: 'full', contentKey: CONTENT_KEY, runtime: RUNTIME, contentHash: CONTENT_HASH, releaseId: RELEASE_ID }]
+    })
+  );
+  vi.stubGlobal('fetch', fetchMock);
+  await service.prepareContentKeys({ signer, chainId: 420420417, purpose: 'individual', tracks: [{ contentHash: CONTENT_HASH, release: releaseIdentity() }] });
+  const pending = service.requestContentKey({ signer, chainId: 420420417, purpose: 'individual', contentHash: CONTENT_HASH, release: releaseIdentity() });
+  const failed = expect(pending).rejects.toMatchObject({ code: 'SESSION_CANCELLED' });
+  if (action === 'replace')
+    storage.store.set(scopeKey, JSON.stringify({ token: 'new-tab-session', expiresAt: new Date(Date.now() + 3_600_000).toISOString() }));
+  else storage.store.delete(scopeKey);
+  await failed;
+  expect(fetchMock).toHaveBeenCalledTimes(1);
+  expect(signer.signMessage).not.toHaveBeenCalled();
+});

@@ -20,6 +20,7 @@ import rateLimit from '@fastify/rate-limit';
 import { randomUUID } from 'node:crypto';
 import type { IncomingMessage } from 'node:http';
 import { config } from './config.js';
+import { assertBoundedJson } from './services/jsonBodyBudget.js';
 import { fastifyLoggerOptions } from './logger.js';
 import { authRoutes } from './routes/auth.js';
 import { healthRoutes } from './routes/health.js';
@@ -93,10 +94,17 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   if (config.PUBLIC_ASSET_STORAGE !== 'bulletin' && config.BULLETIN_PUBLIC_ASSET_POLICY) throw new Error('Select Bulletin public assets explicitly');
   await assertSharedState();
   const serverOptions: FastifyServerOptions = {
+    bodyLimit: 1024 * 1024,
     logger: options.logging === false ? false : fastifyLoggerOptions,
     genReqId
   };
   const app = Fastify(serverOptions);
+  app.addHook('preValidation', async request => {
+    const type = request.headers['content-type']?.split(';')[0].trim().toLowerCase() ?? '';
+    // Edge proxy bodies may remain raw buffers; custody checks parsed JSON.
+    // Multipart keeps the existing streaming byte/part limits unchanged.
+    if (request.body !== undefined && !Buffer.isBuffer(request.body) && /^application\/(?:[\w.+-]+\+)?json$/.test(type)) assertBoundedJson(request.body);
+  });
   let streaming: StreamingJobs | undefined;
   let publicAssets: Parameters<typeof createUploadRoutes>[2];
   // Five trusted-header samples per process, with no IP, token, wallet, room

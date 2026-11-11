@@ -1,5 +1,28 @@
 # Deployment Configuration Runbook
 
+## Listening security candidate, 2026-11-11
+
+The [#431 hardening candidate](../backlog/listening-security-hardening.md) changes
+API key/session freshness checks and Web/signaling negotiation boundaries. No
+new secret, environment variable, database migration or hosted setting is needed.
+Parsed JSON now has a pre-schema structural budget (8,192 nodes/depth16/arrays256/
+fields128/key256/string64Ki code units) and an explicit 1-MiB default raw body cap;
+metadata retains its 50-KiB override. Refusals use `BODY_STRUCTURE_TOO_LARGE`/413.
+Multipart/raw worker proxy paths retain their byte/part limits. Compatible locked
+dependency updates require rebuilding Web/API/signaling artifacts; the remaining
+Zod 3 advisory/migration is tracked separately in [#432](../backlog/api-schema-security-migration.md).
+The server adds fixed per-socket 10-second budgets (readiness 4, SDP 128, ICE
+1,024, peer notices 128), SDP 64-KiB and ICE 4,096-byte limits. Rejoin preserves
+the same socket budget. Malformed object envelopes return `INVALID_PAYLOAD` when
+an acknowledgement is available; invalid HTTP request targets return 400.
+
+Browser pending ICE limits are 64 peers, 128 each and 512 total, above the current
+24-listener default. Preserve these bounds when considering higher Room capacity;
+ordinary mobile/relay reconnect and hostile-traffic load acceptance remain gates.
+API rollback restores the prior revocation race, so retain the correction when
+changing unrelated components. This PR does not deploy Web/API/signaling, restart
+Rooms, rotate keys or change publication profiles/admissions/budgets.
+
 ## Offline compact-layout study, 2026-11-11
 
 [The reproducible #407 study](../backlog/implementation/evidence/bulletin-compact-layout-2026-11-11.md) compares
