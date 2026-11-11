@@ -1,5 +1,10 @@
 # Dotify Production Backlog
 
+Current execution and code/deployment boundaries are in the
+[selected sequence](implementation/listening-and-publication-readiness.md).
+The #407 internal compact reader candidate is documented there; dated entries
+below retain their original checkpoints.
+
 ## Listening security review, 2026-11-11
 
 [The bounded #431 correction](listening-security-hardening.md) keeps disconnect and grant expiry

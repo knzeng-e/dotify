@@ -1,5 +1,10 @@
 # Publication, listening reliability and CASH — execution order
 
+Current #407 code checkpoint: [bounded compact object readers](../../reference/bulletin-compact-reader.md)
+are prepared internally, without an ordinary playback/publication selector.
+Next are explicit registered reference/dispatch and immutable admission, followed
+by real-media, legacy and recovery acceptance. The delivery remains 0.1.82 / custody #426.
+
 ## Listening security review, 2026-11-11
 
 [The bounded #431 correction](../listening-security-hardening.md) keeps disconnect and grant expiry
@@ -146,16 +151,17 @@ implementation branch from current tested dev; use one PR per backlog scope.
   → six waves when packing later segments per quality at 256 KiB, keeping init
   and the first segment separate. Range/decrypt tests pass; live readers and
   root/reference semantics remain unchanged.
-- **Immediate action:** review the fixed compact constructor and durable journal
-  binding; implement explicit reference dispatch, reviewed per-identity admission
-  and bounded API/Host range delivery. Legacy dispatch, restart/reconciliation
-  and real-media/first-sound acceptance precede activation.
+- **Immediate action:** review the internal bounded API/Host range readers, then
+  connect explicit registered reference/dispatch and immutable per-identity
+  admission. The compact graph/journal contract is merged; no ordinary selector
+  or live compact deployment exists. Legacy playback, restart/reconciliation and
+  real-media/first-sound acceptance precede activation.
   Cold seeks can overfetch; no modeled percentage is a network speedup or ETA.
   No deployment, old-identity rewrite or new funded trial is implied.
 
 | Order | Scope / owner ticket | Remaining deliverable and exit gate |
 | --- | --- | --- |
-| 1 — Now | [Publication latency and acceptance #407](../bulletin-publication-admission.md) | Admission, progress and catalogue feedback are delivered. The approximately 50-minute Street scriptures run identifies repeated finality waits. #424 is now activated on custody for one approved new exact source (16 / 4 MiB); publication and listening are now owner-confirmed (about nine minutes reported). #426 dependency-order/proof-reuse is delivered with preserved histories and zero maintenance chain writes. The separately approved “Eskapade à engong” trial now publishes and plays (owner: 7 min 46 s). The offline compact-layout study models fewer stages with startup objects retained. Review layout/reference and durable selection, then implement API/Host compatibility and first-sound/recovery checks while preserving proofs and existing playback. Acceptable latency and hosted memory under new work remain open. Keep the different source sizes and unchanged public-asset tail explicit. |
+| 1 — Now | [Publication latency and acceptance #407](../bulletin-publication-admission.md) | Admission, progress and catalogue feedback are delivered. The approximately 50-minute Street scriptures run identifies repeated finality waits. #424 is now activated on custody for one approved new exact source (16 / 4 MiB); publication and listening are now owner-confirmed (about nine minutes reported). #426 dependency-order/proof-reuse is delivered with preserved histories and zero maintenance chain writes. The separately approved “Eskapade à engong” trial now publishes and plays (owner: 7 min 46 s). The offline compact-layout study models fewer stages with startup objects retained. Internal bounded API/Host object readers are prepared; connect explicit registered reference/dispatch and immutable admission next, then ordinary-reader compatibility and first-sound/recovery checks while preserving proofs and existing playback. Acceptable latency and hosted memory under new work remain open. Keep the different source sizes and unchanged public-asset tail explicit. |
 | 2 — Next | [Room startup #395](../room-listener-audio.md) | Delivery to guests works on the reported path. Diagnose the roughly 55-second mobile-host start; repeated comparable full-track starts must finish without retry and with audible Web/Desktop guests. |
 | 3 — Next | [System artwork #388](../listening-controls-and-discovery.md), with #87 | Account access and discovery are delivered. Diagnose intermittent late lock-screen artwork in solo and Room; verify repeated locks/track changes without delaying audio or restoring stale metadata. |
 | 4 — Next research | [CASH tips #406](../product-cash-tip-feasibility.md), with #85/#229 | Shipped-Host/API matrix, honest contribution semantics, durable payment/receipt recovery tests and a go/no-go. Prepare a bounded pilot only if supported. |
