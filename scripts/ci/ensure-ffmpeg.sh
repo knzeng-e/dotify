@@ -5,17 +5,11 @@ set -euo pipefail
 if ! command -v ffmpeg >/dev/null 2>&1; then
   # The workflow pins Ubuntu 24.04. Bound each repository operation as well as
   # the whole Actions step, so DNS/mirror failures cannot stall dependent jobs.
-  apt_options=(
-    -o Acquire::Retries=2
-    -o Acquire::http::Timeout=20
-    -o Acquire::https::Timeout=20
-    -o Acquire::ForceIPv4=true
-    -o APT::Update::Error-Mode=any
-  )
+  # Shared network defaults are installed by use-ubuntu-mirror.sh in CI.
   timeout --kill-after=10s 90s sudo env DEBIAN_FRONTEND=noninteractive \
-    apt-get "${apt_options[@]}" update
+    apt-get update
   timeout --kill-after=10s 180s sudo env DEBIAN_FRONTEND=noninteractive \
-    apt-get "${apt_options[@]}" install --no-install-recommends -y ffmpeg
+    apt-get install --no-install-recommends -y ffmpeg
 fi
 
 # A present but unusable binary must fail. Actual AAC encode/decode coverage

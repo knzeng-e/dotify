@@ -90,3 +90,13 @@ existing binary return failure without a fallback or masked pass; no apt/sudo
 runs in that check. The real installed FFmpeg 7.1 passes **6 codec/nonce tests**
 with zero skips. These local checks do not establish Ubuntu repository health;
 the updated CI must still complete its real package/codec/browser steps.
+
+The first bounded retry (`1ae6ea6d`) confirms the Ubuntu 24.04 runner still uses
+an unresolvable Azure mirror; it now refuses within the deadline rather than
+hanging. The follow-up changes the disposable runner's Ubuntu mirror list to
+[the Kernel Archives' HTTPS Ubuntu mirror](https://mirrors.edge.kernel.org/),
+retaining Ubuntu's signing keys, suites and components. The same setup applies
+to browser jobs so Playwright/PulseAudio do not revisit the broken mirror.
+Direct read-only inspection confirms that mirror serves the signed Noble
+InRelease metadata. Actual APT verification and codec/browser acceptance remain
+the updated CI's responsibility; no signature or TLS check is disabled.

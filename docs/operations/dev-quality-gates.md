@@ -56,8 +56,19 @@ set.
 
 ## Codec prerequisites
 
-The API codec and offline Bulletin-prototype jobs use **Ubuntu 24.04** rather
-than following `ubuntu-latest` image changes. Both call
+The API codec, offline Bulletin-prototype and two browser jobs use **Ubuntu
+24.04** rather than following `ubuntu-latest` image changes. Before installing
+system packages, they call
+[`use-ubuntu-mirror.sh`](../../scripts/ci/use-ubuntu-mirror.sh). This helper
+refuses outside Linux GitHub Actions / the known Ubuntu 24.04 mirror-list
+contract. It selects the Kernel Archives' HTTPS Ubuntu mirror instead of the
+unresolvable Azure mirror. Suites, components, Ubuntu signing keys and repository
+signature checks remain unchanged; no key or unsigned package is imported.
+[Ubuntu's archive-verification model](https://documentation.ubuntu.com/security/software-integrity/archive-verification/)
+explains the package trust boundary independently of the delivery mirror.
+The setting exists only on the disposable CI runner, not a production machine.
+
+The API and prototype jobs then call
 [`scripts/ci/ensure-ffmpeg.sh`](../../scripts/ci/ensure-ffmpeg.sh). An existing
 usable FFmpeg binary is retained; if absent, the helper installs the official
 Ubuntu package with repository signature checks and without recommended extras.
@@ -66,7 +77,8 @@ It never substitutes a third-party binary or skips the codec suite.
 Package operations use IPv4, two acquisition retries and 20-second HTTP/HTTPS
 timeouts. The update command has a 90-second deadline, installation 180 seconds,
 and each can be killed after a further 10 seconds. The Actions prerequisite
-step is capped at five minutes; the API job is capped at 15 minutes. DNS or
+step is capped at five minutes; the API job is capped at 15 minutes. Browser
+system-package/audio setup steps are capped at seven minutes. DNS or
 mirror failure remains a failed prerequisite rather than hours of silent wait.
 `ffmpeg -version`/`-L` record the selected build/license. Existing real AAC
 encode/decode, nonce, recovery and browser-fixture tests remain required.
