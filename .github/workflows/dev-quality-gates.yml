@@ -185,6 +185,7 @@ jobs:
     # Keep codec-fixture tooling reproducible across ubuntu-latest migrations.
     # The 26.04 image stalled for 10+ minutes downloading ffmpeg from Azure.
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: services/api
@@ -208,15 +209,12 @@ jobs:
       - name: Run tests
         run: npm test
 
+      - name: Ensure FFmpeg for real AAC fixtures
+        timeout-minutes: 5
+        run: bash ../../scripts/ci/ensure-ffmpeg.sh
+
       - name: Streaming codec and nonce round-trip
-        run: |
-          if ! command -v ffmpeg >/dev/null; then
-            sudo apt-get update
-            sudo apt-get install --no-install-recommends -y ffmpeg
-          fi
-          ffmpeg -version
-          ffmpeg -L
-          DOTIFY_TEST_FFMPEG="$(command -v ffmpeg)" npm run test:streaming
+        run: DOTIFY_TEST_FFMPEG="$(command -v ffmpeg)" npm run test:streaming
 
       - name: Generate synthetic encrypted browser fixture
         run: DOTIFY_TEST_FFMPEG="$(command -v ffmpeg)" node --import tsx src/scripts/streamingFixture.test.ts "${GITHUB_WORKSPACE}/web/.data/streaming-fixture.json"

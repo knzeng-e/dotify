@@ -66,3 +66,27 @@ No signer, production state, artist file or live Room was used. No image upload,
 service maintenance, chain write, renewal, new allowance, key transfer or
 deployment occurs. Custody remains #426; Web/Product/public APIs remain 0.1.82.
 #407 stays open in the selected sequence before Room/artwork/CASH.
+
+## CI prerequisite follow-up
+
+The first PR run at documentation head `6282d5c6` passes API typecheck/tests,
+Web and Product checks, but the prototype job is cancelled during FFmpeg
+installation after repeated DNS resolution failures for Ubuntu mirrors. Its
+`ubuntu-latest` runner is requesting 26.04/resolute packages. The API's separate
+codec step also stalls on DNS resolution of `azure.archive.ubuntu.com` after
+all 452 service tests pass. The old run is cancelled to release its runner and
+retain the final logs. Neither blocked job reaches its actual codec suite.
+
+The prototype is pinned to the API's Ubuntu 24.04 image. Both now share a
+conditional, bounded official-package prerequisite; the API job also gets an
+overall deadline. Already present FFmpeg avoids an unnecessary apt operation.
+Real codec/decryption/browser assertions remain intact. See
+[the prerequisite contract](../../../operations/dev-quality-gates.md#codec-prerequisites).
+These changes do not deploy an encoder or alter runtime FFmpeg selection.
+
+Local follow-up validation passes Bash syntax and workflow YAML/runner/deadline
+checks. A disposable stub confirms failed prerequisite commands and a broken
+existing binary return failure without a fallback or masked pass; no apt/sudo
+runs in that check. The real installed FFmpeg 7.1 passes **6 codec/nonce tests**
+with zero skips. These local checks do not establish Ubuntu repository health;
+the updated CI must still complete its real package/codec/browser steps.

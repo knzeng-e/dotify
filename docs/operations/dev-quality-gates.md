@@ -54,6 +54,28 @@ set.
 - Playwright checks run deterministic browser flows against local Vite and
   local signaling services from `web/playwright.config.ts`.
 
+## Codec prerequisites
+
+The API codec and offline Bulletin-prototype jobs use **Ubuntu 24.04** rather
+than following `ubuntu-latest` image changes. Both call
+[`scripts/ci/ensure-ffmpeg.sh`](../../scripts/ci/ensure-ffmpeg.sh). An existing
+usable FFmpeg binary is retained; if absent, the helper installs the official
+Ubuntu package with repository signature checks and without recommended extras.
+It never substitutes a third-party binary or skips the codec suite.
+
+Package operations use IPv4, two acquisition retries and 20-second HTTP/HTTPS
+timeouts. The update command has a 90-second deadline, installation 180 seconds,
+and each can be killed after a further 10 seconds. The Actions prerequisite
+step is capped at five minutes; the API job is capped at 15 minutes. DNS or
+mirror failure remains a failed prerequisite rather than hours of silent wait.
+`ffmpeg -version`/`-L` record the selected build/license. Existing real AAC
+encode/decode, nonce, recovery and browser-fixture tests remain required.
+
+This changes CI runners only, not the production encoder image or a hosted
+setting. Do not modify service configuration or weaken assertions to repair a
+runner repository failure. A clean-runner retry after an external outage still
+needs the actual test results before it can count as passing.
+
 ## Operations
 
 Branch protection was enabled on 2026-09-20 after the backlog reconciliation PR
