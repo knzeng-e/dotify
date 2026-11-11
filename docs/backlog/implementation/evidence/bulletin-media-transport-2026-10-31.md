@@ -131,7 +131,7 @@ approval before any network write or signer activation; previous lab budgets
 are completed. Validate real publication, lost acknowledgement/cancellation,
 registration and signed denied/authorized access, Web/Host playback, duration,
 memory and quota costs. Recurring retention and production provider activation
-remain separate gates. See [deployment configuration](../../../operations/deployment-configuration.md#explicit-rpc-transport-prepared-not-deployed).
+remain separate gates. See [deployment configuration](../../../operations/deployment-configuration-history.md#explicit-rpc-transport-prepared-not-deployed).
 
 ## Primary references inspected
 

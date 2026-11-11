@@ -57,7 +57,7 @@ subset is not a clean full-development audit.
 
 ## Validation and limits
 
-Final validation: **437 API tests / 42 suites**, **1,126 Web unit tests**,
+Before integrating #430, commit `21e62391` passes **437 API tests / 42 suites**, **1,126 Web unit tests**,
 **131 signaling tests / 11 suites**, **26 offline Product/CLI guard cases**,
 **22 Room/audio browser cases + 5 logout browser cases** pass. API typecheck/build,
 Web build, frozen Product DevNet build, Web formatting and offline backlog/docs
@@ -87,13 +87,27 @@ operation occurs here.
 ## Shared-state CI follow-up
 
 The first #434 CI exposed a raw JSON proxy stream being inspected as if it were
-parsed JSON, returning413 before custody authentication. The request gate now
+parsed JSON, returning 413 before custody authentication. The request gate now
 exempts actual Node `Readable` and `Buffer` instances without consuming them;
 ordinary JSON cannot forge that exemption with a `pipe` property. Custody still
 validates the parsed body. A dedicated regression covers both directions.
 
-All **15 W36 tests pass locally on disposable PostgreSQL16**, including rolling
+All **15 W36 tests pass locally on disposable PostgreSQL 16**, including rolling
 restart/logout, backup/restore, custody exit/lock loss and streamed proxy failure
-behavior. PostgreSQL16 dump/restore clients run inside that same disposable
-container (the system client is14); the container and temporary clients are
+behavior. PostgreSQL 16 dump/restore clients run inside that same disposable
+container (the system client is 14); the container and temporary clients are
 removed afterwards. No existing database or production state is involved.
+
+## Integrated candidate checkpoint
+
+After merging tested `dev` (`2e4155ed`, including #430), candidate
+`1ce584c0e5294cad86e3d283c639b79c7cf9687f` passes **444 API tests / 42 suites**, with
+zero failures or skips. The earlier 437-test result above describes the earlier
+source; the difference includes #430's compact-graph tests.
+
+[Dev Quality Gates run 43011960969](https://github.com/knzeng-e/dotify/actions/runs/43011960969)
+is green for that commit, including W36 shared-state/recovery, Playwright core
+flows and adaptive streaming in three engines. The separate offline backlog
+and Bulletin prototype checks also pass. The live Project drift check is
+skipped by its workflow conditions, not counted as a live verification.
+No further physical-device acceptance or deployment follows from these checks.

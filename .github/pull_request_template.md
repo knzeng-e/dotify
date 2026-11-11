@@ -24,6 +24,10 @@ the invariant or regression each reviewer should challenge. -->
 
 ## Evidence and remaining gates
 
+<!-- For documentation, follow docs/how-to/document-a-change.md: update the
+authoritative reference, verify links/anchors and distinguish dated evidence
+from current procedures and deployed state. -->
+
 <!-- Say what each test or manual check proves, not just that it ran. Distinguish
 local checks from live/physical-device evidence. State unverified behavior,
 deliberate limits, and what remains before the issue can close. Omit rollout

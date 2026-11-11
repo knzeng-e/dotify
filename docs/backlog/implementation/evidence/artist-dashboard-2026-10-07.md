@@ -36,7 +36,7 @@ This is a verified-receipt collection, not an exhaustive native chain indexer. E
 
 The current user's mobile finalization is confirmed; physical-device confirmation of the newly published dashboard remains pending. Browser tests and a public history read do not substitute for that check. Native room-chat receipt broadcasts, exhaustive historical coverage and the wider funded/device acceptance scope remain under #229. No contract or payment distribution policy changed.
 
-Operational limits and rollback instructions: [deployment configuration](../../../operations/deployment-configuration.md#shared-native-contribution-ledger-product-0140).
+Operational limits and rollback instructions: [deployment configuration](../../../operations/deployment-configuration-history.md#shared-native-contribution-ledger-product-0140).
 
 ## PR #243 review follow-up
 

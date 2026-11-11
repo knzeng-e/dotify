@@ -38,18 +38,11 @@ is introduced.
 
 ## Limits and persistence
 
-Signaling windows are 10 seconds per socket: four readiness relays, 128 SDP
-messages, 1,024 candidates and 128 peer notices. SDP is at most 64 KiB UTF-8,
-candidates 4,096 bytes, and target IDs 128 characters. Membership and host/listener
-roles still decide routing; a budget never grants permission. Leaving/rejoining
-a Room does not reset the budget, while disconnect cleans it up. These are
-conservative service limits, not evidence of unlimited crowd capacity.
-
-The browser retains at most 64 pending peer identities, 128 candidates per peer
-and 512 total; known candidate fields only, bounded strings and no duplicates.
-The current default Room capacity is 24 listeners. Higher capacity or extreme
-network candidate counts need explicit load/compatibility acceptance. Dropping
-excess negotiation protects the host but can require an explicit reconnect.
+The [Socket.IO reference](../reference/socket-events.md#negotiation-limits)
+defines per-socket relay budgets, message shapes and browser pending ICE bounds.
+Membership/roles still decide routing; a budget never grants permission.
+Leaving/rejoining does not reset it. Higher-capacity or extreme-network
+acceptance remains separate; dropping excess negotiation can require reconnect.
 
 Session tokens remain in the existing identity cache; keys remain page-memory
 only. No key format, secret, database schema, stored profile or encryption nonce
@@ -68,11 +61,9 @@ SDK, signer and TrUAPI versions are unchanged.
 remaining Vitest/Tinypool and lint/parser majors; no claim of a clean full-dev audit.
 Final `npm audit --omit=dev` reports zero Web findings and one API high advisory
 (Zod 3). [#432](api-schema-security-migration.md) records the real Zod 4 migration.
-Before route schema parsing, an iterative JSON budget bounds nodes (8,192), depth
-(16), arrays (256), object fields (128), property names (256 code units) and
-strings (64 Ki code units). Oversized input gets a constant typed 413 without issue
-accumulation or reflected data. Raw proxy buffers/multipart retain their existing
-paths and streaming limits; private schemas/journals are not rewritten.
+The [HTTP reference](../reference/request-limits.md) defines structural and byte
+limits, the 413 response and the raw proxy exemption. Private schemas and
+journals are not rewritten.
 
 ## Acceptance and evidence
 
