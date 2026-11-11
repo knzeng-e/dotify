@@ -54,6 +54,19 @@ set.
 - Playwright checks run deterministic browser flows against local Vite and
   local signaling services from `web/playwright.config.ts`.
 
+## Browser font isolation
+
+The core Playwright dev server opts into `DOTIFY_E2E_LOCAL_FONTS=true`.
+Vite removes only the Google Fonts stylesheet and preconnect links from that
+server's HTML; the app uses its existing fallback font stacks. Local media,
+Socket.IO/WebRTC and every audio/capture assertion remain active. These are
+behavior checks, not acceptance of the production typography.
+
+Ordinary development and all builds retain the original font links, even if
+that variable is set during a build. No hosted setting is required. Keep the
+30-second test deadline and zero automatic retries: remote font availability
+must not consume the time intended for a user flow.
+
 ## Codec prerequisites
 
 The API codec, offline Bulletin-prototype and two browser jobs use **Ubuntu

@@ -70,6 +70,11 @@ The [internal compact object readers](../reference/bulletin-compact-reader.md)
 add no environment variable, HTTP endpoint, selector or admission. Their source
 availability is not a compact-format deployment or permission to publish it.
 
+The browser harness alone sets `DOTIFY_E2E_LOCAL_FONTS=true` on its local Vite
+dev server to remove external font links. This is not a `VITE_*` runtime flag;
+it has no build effect and belongs in neither Netlify nor Fly settings. See
+[browser font isolation](dev-quality-gates.md#browser-font-isolation).
+
 ## Prepare the affected components
 
 ### Netlify frontend

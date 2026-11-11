@@ -100,3 +100,23 @@ to browser jobs so Playwright/PulseAudio do not revisit the broken mirror.
 Direct read-only inspection confirms that mirror serves the signed Noble
 InRelease metadata. Actual APT verification and codec/browser acceptance remain
 the updated CI's responsibility; no signature or TLS check is disabled.
+
+The next run (`99e15239`) passes API, prototype and three-engine adaptive checks,
+including their real codec/browser prerequisites. The core suite reports 329
+passes and two timeouts. Retained traces identify the same external dependency:
+Google Fonts remains pending throughout the audio test's navigation; the capture
+test spends about 29 seconds loading that stylesheet before its first action,
+leaving no time for its recording assertions. This is not a failed assertion of
+audible playback or capture behavior.
+
+The core dev server now explicitly uses existing fallback fonts through a
+serve-only HTML transform. Only Google Fonts links are removed, not local media,
+RPC, signaling or app requests. Normal development and builds keep their font
+links. No timeout/retry/skip or assertion changes. See
+[browser font isolation](../../../operations/dev-quality-gates.md#browser-font-isolation).
+Local validation after finishing the transform: **21 tests pass** across the two
+complete affected browser suites, with two workers and zero retries. An explicit
+config matrix verifies dev-server opt-in, unset/false defaults and build mode:
+only opted-in dev HTML loses the three font links; script and icon links remain.
+Formatting, config lint and whitespace checks pass. The corrected complete CI
+run remains required before merge.
