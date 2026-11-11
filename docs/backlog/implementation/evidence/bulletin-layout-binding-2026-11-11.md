@@ -76,3 +76,21 @@ source-bound restart/recovery. Both the public-asset tail and cold range read
 amplification remain open. No artist input, private operational state or physical
 device is used by this evidence. #407 stays Now/In Progress; no new funded trial
 or maintenance is implied.
+
+
+## Review and browser CI follow-up
+
+Independent read-only review of the complete #430 merge diff found no confirmed
+introduced defect. Native delivery and maximum-size memory gates remain open.
+The initial core-flow CI passed 330 tests and failed the normalized-Room receiver
+energy assertion. Its trace shows a progressing 60-second source, ruling out
+fixture exhaustion; the test attached its analyser at UI `In sync`, which occurs
+at `ontrack` before received frames are necessarily available.
+
+The test now uses the live/unmuted receiver-track precondition already exercised
+by `room-sync`, then verifies the meter context is running. The autoplay late-join
+scenario, real WebRTC energy thresholds, suspension silence and explicit Play
+recovery assertions are retained. No retry, timeout increase or application
+fallback is added. Both normalized-Room and Room-sync specs pass five times each
+(**15 browser cases**) locally. This targeted evidence does not replace the full
+new-head CI run.
