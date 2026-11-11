@@ -1,5 +1,18 @@
 # Dotify implementation playbook
 
+## Offline compact-layout study, 2026-11-11
+
+[The reproducible #407 study](evidence/bulletin-compact-layout-2026-11-11.md) compares
+unchanged standard paths with experimental per-quality segment packs. Retaining
+init and the first segment separately models 108 → 60 blocks and nine → six
+waves with 256-KiB chunks. The prototype preserves ciphertext/HMAC/GCM and
+bounds range reads, but existing API/Host paths cannot read later packed segments.
+Cold seeks can fetch extra chunks. Next: review explicit layout/reference and
+per-identity persistence, then implement/test API/Host integration and real
+first sound. 429 API tests pass; this checkout-only experiment changes no
+production reader/writer, format, key, budget or service. No write/maintenance
+is authorized. #407 stays Now/In Progress; Room/artwork/CASH keep their order.
+
 ## Post-optimization publication and listening confirmed, 2026-11-11
 
 [The approved exact trial](evidence/bulletin-eskapade-activation-2026-11-11.md) now publishes and plays, confirmed

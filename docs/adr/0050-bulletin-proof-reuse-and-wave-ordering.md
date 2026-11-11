@@ -1,6 +1,8 @@
 # 0050 — Reuse completed canonical proof data and order dependency work
 
-Date: 2026-11-10. Status: proposed, locally verified; not deployed.
+Date: 2026-11-10. Status: accepted and deployed in #426;
+[matched delivery](../backlog/implementation/evidence/bulletin-round-trips-rollout-2026-11-10.md).
+[ADR 0051](0051-bulletin-compact-layout-study.md) studies the separate format alternative.
 Refs #407; extends [ADR 0049](0049-bounded-direct-write-windows.md).
 [Reproducible evidence](../backlog/implementation/evidence/bulletin-round-trips-2026-11-10.md).
 
@@ -92,7 +94,9 @@ changed canonical hash, bad fresh CID metadata, expiry, caller cancellation,
 wrong nonce, failed cold load, journal order, dependency/root barriers and restart
 reuse. These are local fixtures, not funded chain throughput or an ETA.
 
-Review and matched custody image/maintenance approval remain before live use.
-No admission, image upload, deployment, renewal or musical write follows from
-this decision. Any later funded validation needs its own exact source/budget;
-#407 stays open until acceptable artist latency is demonstrated.
+Review and matched custody image/maintenance approval were required before live
+use and are now satisfied by the linked delivery; subsequent acceptance is in
+its linked trial record. The decision itself grants no admission, image upload,
+deployment, renewal or musical write authority. Any later funded validation needs
+its own exact source/budget; #407 stays open until acceptable artist latency is
+demonstrated.

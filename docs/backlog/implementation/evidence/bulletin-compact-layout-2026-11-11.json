@@ -1,0 +1,1849 @@
+{
+  "schema": "dotify.bulletin.compact-layout-study.v1",
+  "synthetic": true,
+  "artistInputUsed": false,
+  "networkWrites": 0,
+  "productionKeysRead": false,
+  "permanentNonceStateUsed": false,
+  "productionReaderOrWriterChanged": false,
+  "pipeline": {
+    "concurrency": 2,
+    "maxInFlightBytes": 524288,
+    "writeWindow": {
+      "concurrency": 16,
+      "maxInFlightBytes": 4194304
+    }
+  },
+  "results": [
+    {
+      "name": "small-archive-23-segments",
+      "masterBytes": 2302865,
+      "segmentsPerRendition": 23,
+      "variants": [
+        {
+          "mode": "standard",
+          "chunkSize": 262144,
+          "files": 74,
+          "blocks": 88,
+          "bytes": 8946049,
+          "fileOrderWaves": 9,
+          "selectedWaves": 8,
+          "peakWaveBytes": 2807793,
+          "sampledObjectsRoundTrip": true,
+          "originalManifestAndArchiveRetained": true,
+          "coldObjectReads": [
+            {
+              "quality": 96,
+              "object": "init",
+              "objectBytes": 816,
+              "blockReads": 3,
+              "fetchedBytes": 2597
+            },
+            {
+              "quality": 96,
+              "object": "first",
+              "objectBytes": 48016,
+              "blockReads": 3,
+              "fetchedBytes": 49797
+            },
+            {
+              "quality": 96,
+              "object": "middle",
+              "objectBytes": 48016,
+              "blockReads": 3,
+              "fetchedBytes": 49797
+            },
+            {
+              "quality": 96,
+              "object": "last",
+              "objectBytes": 48016,
+              "blockReads": 3,
+              "fetchedBytes": 49797
+            },
+            {
+              "quality": 160,
+              "object": "init",
+              "objectBytes": 816,
+              "blockReads": 3,
+              "fetchedBytes": 2597
+            },
+            {
+              "quality": 160,
+              "object": "first",
+              "objectBytes": 84016,
+              "blockReads": 3,
+              "fetchedBytes": 85797
+            },
+            {
+              "quality": 160,
+              "object": "middle",
+              "objectBytes": 84016,
+              "blockReads": 3,
+              "fetchedBytes": 85797
+            },
+            {
+              "quality": 160,
+              "object": "last",
+              "objectBytes": 84016,
+              "blockReads": 3,
+              "fetchedBytes": 85797
+            },
+            {
+              "quality": 320,
+              "object": "init",
+              "objectBytes": 816,
+              "blockReads": 3,
+              "fetchedBytes": 2597
+            },
+            {
+              "quality": 320,
+              "object": "first",
+              "objectBytes": 156016,
+              "blockReads": 3,
+              "fetchedBytes": 157797
+            },
+            {
+              "quality": 320,
+              "object": "middle",
+              "objectBytes": 156016,
+              "blockReads": 3,
+              "fetchedBytes": 157797
+            },
+            {
+              "quality": 320,
+              "object": "last",
+              "objectBytes": 156016,
+              "blockReads": 3,
+              "fetchedBytes": 157797
+            }
+          ]
+        },
+        {
+          "mode": "standard",
+          "chunkSize": 524288,
+          "files": 74,
+          "blocks": 84,
+          "bytes": 8945841,
+          "fileOrderWaves": 8,
+          "selectedWaves": 7,
+          "peakWaveBytes": 3143857,
+          "sampledObjectsRoundTrip": true,
+          "originalManifestAndArchiveRetained": true,
+          "coldObjectReads": [
+            {
+              "quality": 96,
+              "object": "init",
+              "objectBytes": 816,
+              "blockReads": 3,
+              "fetchedBytes": 2597
+            },
+            {
+              "quality": 96,
+              "object": "first",
+              "objectBytes": 48016,
+              "blockReads": 3,
+              "fetchedBytes": 49797
+            },
+            {
+              "quality": 96,
+              "object": "middle",
+              "objectBytes": 48016,
+              "blockReads": 3,
+              "fetchedBytes": 49797
+            },
+            {
+              "quality": 96,
+              "object": "last",
+              "objectBytes": 48016,
+              "blockReads": 3,
+              "fetchedBytes": 49797
+            },
+            {
+              "quality": 160,
+              "object": "init",
+              "objectBytes": 816,
+              "blockReads": 3,
+              "fetchedBytes": 2597
+            },
+            {
+              "quality": 160,
+              "object": "first",
+              "objectBytes": 84016,
+              "blockReads": 3,
+              "fetchedBytes": 85797
+            },
+            {
+              "quality": 160,
+              "object": "middle",
+              "objectBytes": 84016,
+              "blockReads": 3,
+              "fetchedBytes": 85797
+            },
+            {
+              "quality": 160,
+              "object": "last",
+              "objectBytes": 84016,
+              "blockReads": 3,
+              "fetchedBytes": 85797
+            },
+            {
+              "quality": 320,
+              "object": "init",
+              "objectBytes": 816,
+              "blockReads": 3,
+              "fetchedBytes": 2597
+            },
+            {
+              "quality": 320,
+              "object": "first",
+              "objectBytes": 156016,
+              "blockReads": 3,
+              "fetchedBytes": 157797
+            },
+            {
+              "quality": 320,
+              "object": "middle",
+              "objectBytes": 156016,
+              "blockReads": 3,
+              "fetchedBytes": 157797
+            },
+            {
+              "quality": 320,
+              "object": "last",
+              "objectBytes": 156016,
+              "blockReads": 3,
+              "fetchedBytes": 157797
+            }
+          ]
+        },
+        {
+          "mode": "packed-segments",
+          "chunkSize": 262144,
+          "files": 9,
+          "blocks": 50,
+          "bytes": 8943451,
+          "fileOrderWaves": 6,
+          "selectedWaves": 6,
+          "peakWaveBytes": 3506864,
+          "sampledObjectsRoundTrip": true,
+          "originalManifestAndArchiveRetained": true,
+          "coldObjectReads": [
+            {
+              "quality": 96,
+              "object": "init",
+              "objectBytes": 816,
+              "blockReads": 5,
+              "fetchedBytes": 11634
+            },
+            {
+              "quality": 96,
+              "object": "first",
+              "objectBytes": 48016,
+              "blockReads": 6,
+              "fetchedBytes": 273230
+            },
+            {
+              "quality": 96,
+              "object": "middle",
+              "objectBytes": 48016,
+              "blockReads": 6,
+              "fetchedBytes": 273230
+            },
+            {
+              "quality": 96,
+              "object": "last",
+              "objectBytes": 48016,
+              "blockReads": 6,
+              "fetchedBytes": 66878
+            },
+            {
+              "quality": 160,
+              "object": "init",
+              "objectBytes": 816,
+              "blockReads": 5,
+              "fetchedBytes": 11634
+            },
+            {
+              "quality": 160,
+              "object": "first",
+              "objectBytes": 84016,
+              "blockReads": 6,
+              "fetchedBytes": 273386
+            },
+            {
+              "quality": 160,
+              "object": "middle",
+              "objectBytes": 84016,
+              "blockReads": 6,
+              "fetchedBytes": 273386
+            },
+            {
+              "quality": 160,
+              "object": "last",
+              "objectBytes": 84016,
+              "blockReads": 6,
+              "fetchedBytes": 108602
+            },
+            {
+              "quality": 320,
+              "object": "init",
+              "objectBytes": 816,
+              "blockReads": 5,
+              "fetchedBytes": 11635
+            },
+            {
+              "quality": 320,
+              "object": "first",
+              "objectBytes": 156016,
+              "blockReads": 6,
+              "fetchedBytes": 273700
+            },
+            {
+              "quality": 320,
+              "object": "middle",
+              "objectBytes": 156016,
+              "blockReads": 7,
+              "fetchedBytes": 535844
+            },
+            {
+              "quality": 320,
+              "object": "last",
+              "objectBytes": 156016,
+              "blockReads": 6,
+              "fetchedBytes": 192052
+            }
+          ]
+        },
+        {
+          "mode": "packed-segments",
+          "chunkSize": 524288,
+          "files": 9,
+          "blocks": 33,
+          "bytes": 8942567,
+          "fileOrderWaves": 6,
+          "selectedWaves": 6,
+          "peakWaveBytes": 4112872,
+          "sampledObjectsRoundTrip": true,
+          "originalManifestAndArchiveRetained": true,
+          "coldObjectReads": [
+            {
+              "quality": 96,
+              "object": "init",
+              "objectBytes": 816,
+              "blockReads": 5,
+              "fetchedBytes": 11634
+            },
+            {
+              "quality": 96,
+              "object": "first",
+              "objectBytes": 48016,
+              "blockReads": 6,
+              "fetchedBytes": 535270
+            },
+            {
+              "quality": 96,
+              "object": "middle",
+              "objectBytes": 48016,
+              "blockReads": 6,
+              "fetchedBytes": 535270
+            },
+            {
+              "quality": 96,
+              "object": "last",
+              "objectBytes": 48016,
+              "blockReads": 6,
+              "fetchedBytes": 66774
+            },
+            {
+              "quality": 160,
+              "object": "init",
+              "objectBytes": 816,
+              "blockReads": 5,
+              "fetchedBytes": 11634
+            },
+            {
+              "quality": 160,
+              "object": "first",
+              "objectBytes": 84016,
+              "blockReads": 6,
+              "fetchedBytes": 535322
+            },
+            {
+              "quality": 160,
+              "object": "middle",
+              "objectBytes": 84016,
+              "blockReads": 6,
+              "fetchedBytes": 535322
+            },
+            {
+              "quality": 160,
+              "object": "last",
+              "objectBytes": 84016,
+              "blockReads": 6,
+              "fetchedBytes": 370538
+            },
+            {
+              "quality": 320,
+              "object": "init",
+              "objectBytes": 816,
+              "blockReads": 5,
+              "fetchedBytes": 11635
+            },
+            {
+              "quality": 320,
+              "object": "first",
+              "objectBytes": 156016,
+              "blockReads": 6,
+              "fetchedBytes": 535480
+            },
+            {
+              "quality": 320,
+              "object": "middle",
+              "objectBytes": 156016,
+              "blockReads": 6,
+              "fetchedBytes": 535480
+            },
+            {
+              "quality": 320,
+              "object": "last",
+              "objectBytes": 156016,
+              "blockReads": 6,
+              "fetchedBytes": 453832
+            }
+          ]
+        },
+        {
+          "mode": "packed-after-first",
+          "chunkSize": 262144,
+          "files": 12,
+          "blocks": 53,
+          "bytes": 8943635,
+          "fileOrderWaves": 6,
+          "selectedWaves": 6,
+          "peakWaveBytes": 3327462,
+          "sampledObjectsRoundTrip": true,
+          "originalManifestAndArchiveRetained": true,
+          "coldObjectReads": [
+            {
+              "quality": 96,
+              "object": "init",
+              "objectBytes": 816,
+              "blockReads": 5,
+              "fetchedBytes": 11696
+            },
+            {
+              "quality": 96,
+              "object": "first",
+              "objectBytes": 48016,
+              "blockReads": 5,
+              "fetchedBytes": 58896
+            },
+            {
+              "quality": 96,
+              "object": "middle",
+              "objectBytes": 48016,
+              "blockReads": 7,
+              "fetchedBytes": 535434
+            },
+            {
+              "quality": 96,
+              "object": "last",
+              "objectBytes": 48016,
+              "blockReads": 7,
+              "fetchedBytes": 281066
+            },
+            {
+              "quality": 160,
+              "object": "init",
+              "objectBytes": 816,
+              "blockReads": 5,
+              "fetchedBytes": 11696
+            },
+            {
+              "quality": 160,
+              "object": "first",
+              "objectBytes": 84016,
+              "blockReads": 5,
+              "fetchedBytes": 94896
+            },
+            {
+              "quality": 160,
+              "object": "middle",
+              "objectBytes": 84016,
+              "blockReads": 6,
+              "fetchedBytes": 273446
+            },
+            {
+              "quality": 160,
+              "object": "last",
+              "objectBytes": 84016,
+              "blockReads": 7,
+              "fetchedBytes": 286790
+            },
+            {
+              "quality": 320,
+              "object": "init",
+              "objectBytes": 816,
+              "blockReads": 5,
+              "fetchedBytes": 11697
+            },
+            {
+              "quality": 320,
+              "object": "first",
+              "objectBytes": 156016,
+              "blockReads": 5,
+              "fetchedBytes": 166897
+            },
+            {
+              "quality": 320,
+              "object": "middle",
+              "objectBytes": 156016,
+              "blockReads": 7,
+              "fetchedBytes": 535906
+            },
+            {
+              "quality": 320,
+              "object": "last",
+              "objectBytes": 156016,
+              "blockReads": 7,
+              "fetchedBytes": 298242
+            }
+          ]
+        },
+        {
+          "mode": "packed-after-first",
+          "chunkSize": 524288,
+          "files": 12,
+          "blocks": 36,
+          "bytes": 8942753,
+          "fileOrderWaves": 6,
+          "selectedWaves": 6,
+          "peakWaveBytes": 4188077,
+          "sampledObjectsRoundTrip": true,
+          "originalManifestAndArchiveRetained": true,
+          "coldObjectReads": [
+            {
+              "quality": 96,
+              "object": "init",
+              "objectBytes": 816,
+              "blockReads": 5,
+              "fetchedBytes": 11696
+            },
+            {
+              "quality": 96,
+              "object": "first",
+              "objectBytes": 48016,
+              "blockReads": 5,
+              "fetchedBytes": 58896
+            },
+            {
+              "quality": 96,
+              "object": "middle",
+              "objectBytes": 48016,
+              "blockReads": 7,
+              "fetchedBytes": 1059618
+            },
+            {
+              "quality": 96,
+              "object": "last",
+              "objectBytes": 48016,
+              "blockReads": 7,
+              "fetchedBytes": 543106
+            },
+            {
+              "quality": 160,
+              "object": "init",
+              "objectBytes": 816,
+              "blockReads": 5,
+              "fetchedBytes": 11696
+            },
+            {
+              "quality": 160,
+              "object": "first",
+              "objectBytes": 84016,
+              "blockReads": 5,
+              "fetchedBytes": 94896
+            },
+            {
+              "quality": 160,
+              "object": "middle",
+              "objectBytes": 84016,
+              "blockReads": 6,
+              "fetchedBytes": 535384
+            },
+            {
+              "quality": 160,
+              "object": "last",
+              "objectBytes": 84016,
+              "blockReads": 6,
+              "fetchedBytes": 286584
+            },
+            {
+              "quality": 320,
+              "object": "init",
+              "objectBytes": 816,
+              "blockReads": 5,
+              "fetchedBytes": 11697
+            },
+            {
+              "quality": 320,
+              "object": "first",
+              "objectBytes": 156016,
+              "blockReads": 5,
+              "fetchedBytes": 166897
+            },
+            {
+              "quality": 320,
+              "object": "middle",
+              "objectBytes": 156016,
+              "blockReads": 7,
+              "fetchedBytes": 1059830
+            },
+            {
+              "quality": 320,
+              "object": "last",
+              "objectBytes": 156016,
+              "blockReads": 6,
+              "fetchedBytes": 297878
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "medium-archive-29-segments",
+      "masterBytes": 2781953,
+      "segmentsPerRendition": 29,
+      "variants": [
+        {
+          "mode": "standard",
+          "chunkSize": 262144,
+          "files": 92,
+          "blocks": 108,
+          "bytes": 11157041,
+          "fileOrderWaves": 10,
+          "selectedWaves": 9,
+          "peakWaveBytes": 3118849,
+          "sampledObjectsRoundTrip": true,
+          "originalManifestAndArchiveRetained": true,
+          "coldObjectReads": [
+            {
+              "quality": 96,
+              "object": "init",
+              "objectBytes": 816,
+              "blockReads": 3,
+              "fetchedBytes": 2976
+            },
+            {
+              "quality": 96,
+              "object": "first",
+              "objectBytes": 48016,
+              "blockReads": 3,
+              "fetchedBytes": 50176
+            },
+            {
+              "quality": 96,
+              "object": "middle",
+              "objectBytes": 48016,
+              "blockReads": 3,
+              "fetchedBytes": 50176
+            },
+            {
+              "quality": 96,
+              "object": "last",
+              "objectBytes": 48016,
+              "blockReads": 3,
+              "fetchedBytes": 50176
+            },
+            {
+              "quality": 160,
+              "object": "init",
+              "objectBytes": 816,
+              "blockReads": 3,
+              "fetchedBytes": 2976
+            },
+            {
+              "quality": 160,
+              "object": "first",
+              "objectBytes": 84016,
+              "blockReads": 3,
+              "fetchedBytes": 86176
+            },
+            {
+              "quality": 160,
+              "object": "middle",
+              "objectBytes": 84016,
+              "blockReads": 3,
+              "fetchedBytes": 86176
+            },
+            {
+              "quality": 160,
+              "object": "last",
+              "objectBytes": 84016,
+              "blockReads": 3,
+              "fetchedBytes": 86176
+            },
+            {
+              "quality": 320,
+              "object": "init",
+              "objectBytes": 816,
+              "blockReads": 3,
+              "fetchedBytes": 2976
+            },
+            {
+              "quality": 320,
+              "object": "first",
+              "objectBytes": 156016,
+              "blockReads": 3,
+              "fetchedBytes": 158176
+            },
+            {
+              "quality": 320,
+              "object": "middle",
+              "objectBytes": 156016,
+              "blockReads": 3,
+              "fetchedBytes": 158176
+            },
+            {
+              "quality": 320,
+              "object": "last",
+              "objectBytes": 156016,
+              "blockReads": 3,
+              "fetchedBytes": 158176
+            }
+          ]
+        },
+        {
+          "mode": "standard",
+          "chunkSize": 524288,
+          "files": 92,
+          "blocks": 103,
+          "bytes": 11156781,
+          "fileOrderWaves": 10,
+          "selectedWaves": 9,
+          "peakWaveBytes": 3538929,
+          "sampledObjectsRoundTrip": true,
+          "originalManifestAndArchiveRetained": true,
+          "coldObjectReads": [
+            {
+              "quality": 96,
+              "object": "init",
+              "objectBytes": 816,
+              "blockReads": 3,
+              "fetchedBytes": 2976
+            },
+            {
+              "quality": 96,
+              "object": "first",
+              "objectBytes": 48016,
+              "blockReads": 3,
+              "fetchedBytes": 50176
+            },
+            {
+              "quality": 96,
+              "object": "middle",
+              "objectBytes": 48016,
+              "blockReads": 3,
+              "fetchedBytes": 50176
+            },
+            {
+              "quality": 96,
+              "object": "last",
+              "objectBytes": 48016,
+              "blockReads": 3,
+              "fetchedBytes": 50176
+            },
+            {
+              "quality": 160,
+              "object": "init",
+              "objectBytes": 816,
+              "blockReads": 3,
+              "fetchedBytes": 2976
+            },
+            {
+              "quality": 160,
+              "object": "first",
+              "objectBytes": 84016,
+              "blockReads": 3,
+              "fetchedBytes": 86176
+            },
+            {
+              "quality": 160,
+              "object": "middle",
+              "objectBytes": 84016,
+              "blockReads": 3,
+              "fetchedBytes": 86176
+            },
+            {
+              "quality": 160,
+              "object": "last",
+              "objectBytes": 84016,
+              "blockReads": 3,
+              "fetchedBytes": 86176
+            },
+            {
+              "quality": 320,
+              "object": "init",
+              "objectBytes": 816,
+              "blockReads": 3,
+              "fetchedBytes": 2976
+            },
+            {
+              "quality": 320,
+              "object": "first",
+              "objectBytes": 156016,
+              "blockReads": 3,
+              "fetchedBytes": 158176
+            },
+            {
+              "quality": 320,
+              "object": "middle",
+              "objectBytes": 156016,
+              "blockReads": 3,
+              "fetchedBytes": 158176
+            },
+            {
+              "quality": 320,
+              "object": "last",
+              "objectBytes": 156016,
+              "blockReads": 3,
+              "fetchedBytes": 158176
+            }
+          ]
+        },
+        {
+          "mode": "packed-segments",
+          "chunkSize": 262144,
+          "files": 9,
+          "blocks": 59,
+          "bytes": 11153675,
+          "fileOrderWaves": 7,
+          "selectedWaves": 6,
+          "peakWaveBytes": 4009328,
+          "sampledObjectsRoundTrip": true,
+          "originalManifestAndArchiveRetained": true,
+          "coldObjectReads": [
+            {
+              "quality": 96,
+              "object": "init",
+              "objectBytes": 816,
+              "blockReads": 5,
+              "fetchedBytes": 14012
+            },
+            {
+              "quality": 96,
+              "object": "first",
+              "objectBytes": 48016,
+              "blockReads": 6,
+              "fetchedBytes": 275660
+            },
+            {
+              "quality": 96,
+              "object": "middle",
+              "objectBytes": 48016,
+              "blockReads": 6,
+              "fetchedBytes": 275660
+            },
+            {
+              "quality": 96,
+              "object": "last",
+              "objectBytes": 48016,
+              "blockReads": 6,
+              "fetchedBytes": 95260
+            },
+            {
+              "quality": 160,
+              "object": "init",
+              "objectBytes": 816,
+              "blockReads": 5,
+              "fetchedBytes": 14013
+            },
+            {
+              "quality": 160,
+              "object": "first",
+              "objectBytes": 84016,
+              "blockReads": 6,
+              "fetchedBytes": 275870
+            },
+            {
+              "quality": 160,
+              "object": "middle",
+              "objectBytes": 84016,
+              "blockReads": 6,
+              "fetchedBytes": 275870
+            },
+            {
+              "quality": 160,
+              "object": "last",
+              "objectBytes": 84016,
+              "blockReads": 7,
+              "fetchedBytes": 353038
+            },
+            {
+              "quality": 320,
+              "object": "init",
+              "objectBytes": 816,
+              "blockReads": 5,
+              "fetchedBytes": 14013
+            },
+            {
+              "quality": 320,
+              "object": "first",
+              "objectBytes": 156016,
+              "blockReads": 6,
+              "fetchedBytes": 276286
+            },
+            {
+              "quality": 320,
+              "object": "middle",
+              "objectBytes": 156016,
+              "blockReads": 6,
+              "fetchedBytes": 276286
+            },
+            {
+              "quality": 320,
+              "object": "last",
+              "objectBytes": 156016,
+              "blockReads": 7,
+              "fetchedBytes": 344302
+            }
+          ]
+        },
+        {
+          "mode": "packed-segments",
+          "chunkSize": 524288,
+          "files": 9,
+          "blocks": 37,
+          "bytes": 11152531,
+          "fileOrderWaves": 6,
+          "selectedWaves": 6,
+          "peakWaveBytes": 4185055,
+          "sampledObjectsRoundTrip": true,
+          "originalManifestAndArchiveRetained": true,
+          "coldObjectReads": [
+            {
+              "quality": 96,
+              "object": "init",
+              "objectBytes": 816,
+              "blockReads": 5,
+              "fetchedBytes": 14012
+            },
+            {
+              "quality": 96,
+              "object": "first",
+              "objectBytes": 48016,
+              "blockReads": 6,
+              "fetchedBytes": 537648
+            },
+            {
+              "quality": 96,
+              "object": "middle",
+              "objectBytes": 48016,
+              "blockReads": 6,
+              "fetchedBytes": 537648
+            },
+            {
+              "quality": 96,
+              "object": "last",
+              "objectBytes": 48016,
+              "blockReads": 6,
+              "fetchedBytes": 357248
+            },
+            {
+              "quality": 160,
+              "object": "init",
+              "objectBytes": 816,
+              "blockReads": 5,
+              "fetchedBytes": 14013
+            },
+            {
+              "quality": 160,
+              "object": "first",
+              "objectBytes": 84016,
+              "blockReads": 6,
+              "fetchedBytes": 537754
+            },
+            {
+              "quality": 160,
+              "object": "middle",
+              "objectBytes": 84016,
+              "blockReads": 6,
+              "fetchedBytes": 537754
+            },
+            {
+              "quality": 160,
+              "object": "last",
+              "objectBytes": 84016,
+              "blockReads": 6,
+              "fetchedBytes": 352778
+            },
+            {
+              "quality": 320,
+              "object": "init",
+              "objectBytes": 816,
+              "blockReads": 5,
+              "fetchedBytes": 14013
+            },
+            {
+              "quality": 320,
+              "object": "first",
+              "objectBytes": 156016,
+              "blockReads": 6,
+              "fetchedBytes": 537962
+            },
+            {
+              "quality": 320,
+              "object": "middle",
+              "objectBytes": 156016,
+              "blockReads": 6,
+              "fetchedBytes": 537962
+            },
+            {
+              "quality": 320,
+              "object": "last",
+              "objectBytes": 156016,
+              "blockReads": 6,
+              "fetchedBytes": 343834
+            }
+          ]
+        },
+        {
+          "mode": "packed-after-first",
+          "chunkSize": 262144,
+          "files": 12,
+          "blocks": 60,
+          "bytes": 11153759,
+          "fileOrderWaves": 7,
+          "selectedWaves": 6,
+          "peakWaveBytes": 4187456,
+          "sampledObjectsRoundTrip": true,
+          "originalManifestAndArchiveRetained": true,
+          "coldObjectReads": [
+            {
+              "quality": 96,
+              "object": "init",
+              "objectBytes": 816,
+              "blockReads": 5,
+              "fetchedBytes": 14074
+            },
+            {
+              "quality": 96,
+              "object": "first",
+              "objectBytes": 48016,
+              "blockReads": 5,
+              "fetchedBytes": 61274
+            },
+            {
+              "quality": 96,
+              "object": "middle",
+              "objectBytes": 48016,
+              "blockReads": 6,
+              "fetchedBytes": 275722
+            },
+            {
+              "quality": 96,
+              "object": "last",
+              "objectBytes": 48016,
+              "blockReads": 7,
+              "fetchedBytes": 309450
+            },
+            {
+              "quality": 160,
+              "object": "init",
+              "objectBytes": 816,
+              "blockReads": 5,
+              "fetchedBytes": 14075
+            },
+            {
+              "quality": 160,
+              "object": "first",
+              "objectBytes": 84016,
+              "blockReads": 5,
+              "fetchedBytes": 97275
+            },
+            {
+              "quality": 160,
+              "object": "middle",
+              "objectBytes": 84016,
+              "blockReads": 6,
+              "fetchedBytes": 275880
+            },
+            {
+              "quality": 160,
+              "object": "last",
+              "objectBytes": 84016,
+              "blockReads": 6,
+              "fetchedBytes": 269032
+            },
+            {
+              "quality": 320,
+              "object": "init",
+              "objectBytes": 816,
+              "blockReads": 5,
+              "fetchedBytes": 14075
+            },
+            {
+              "quality": 320,
+              "object": "first",
+              "objectBytes": 156016,
+              "blockReads": 5,
+              "fetchedBytes": 169275
+            },
+            {
+              "quality": 320,
+              "object": "middle",
+              "objectBytes": 156016,
+              "blockReads": 7,
+              "fetchedBytes": 538440
+            },
+            {
+              "quality": 320,
+              "object": "last",
+              "objectBytes": 156016,
+              "blockReads": 6,
+              "fetchedBytes": 188296
+            }
+          ]
+        },
+        {
+          "mode": "packed-after-first",
+          "chunkSize": 524288,
+          "files": 12,
+          "blocks": 40,
+          "bytes": 11152719,
+          "fileOrderWaves": 6,
+          "selectedWaves": 6,
+          "peakWaveBytes": 4186013,
+          "sampledObjectsRoundTrip": true,
+          "originalManifestAndArchiveRetained": true,
+          "coldObjectReads": [
+            {
+              "quality": 96,
+              "object": "init",
+              "objectBytes": 816,
+              "blockReads": 5,
+              "fetchedBytes": 14074
+            },
+            {
+              "quality": 96,
+              "object": "first",
+              "objectBytes": 48016,
+              "blockReads": 5,
+              "fetchedBytes": 61274
+            },
+            {
+              "quality": 96,
+              "object": "middle",
+              "objectBytes": 48016,
+              "blockReads": 6,
+              "fetchedBytes": 537710
+            },
+            {
+              "quality": 96,
+              "object": "last",
+              "objectBytes": 48016,
+              "blockReads": 6,
+              "fetchedBytes": 309294
+            },
+            {
+              "quality": 160,
+              "object": "init",
+              "objectBytes": 816,
+              "blockReads": 5,
+              "fetchedBytes": 14075
+            },
+            {
+              "quality": 160,
+              "object": "first",
+              "objectBytes": 84016,
+              "blockReads": 5,
+              "fetchedBytes": 97275
+            },
+            {
+              "quality": 160,
+              "object": "middle",
+              "objectBytes": 84016,
+              "blockReads": 6,
+              "fetchedBytes": 537816
+            },
+            {
+              "quality": 160,
+              "object": "last",
+              "objectBytes": 84016,
+              "blockReads": 6,
+              "fetchedBytes": 268824
+            },
+            {
+              "quality": 320,
+              "object": "init",
+              "objectBytes": 816,
+              "blockReads": 5,
+              "fetchedBytes": 14075
+            },
+            {
+              "quality": 320,
+              "object": "first",
+              "objectBytes": 156016,
+              "blockReads": 5,
+              "fetchedBytes": 169275
+            },
+            {
+              "quality": 320,
+              "object": "middle",
+              "objectBytes": 156016,
+              "blockReads": 7,
+              "fetchedBytes": 1062312
+            },
+            {
+              "quality": 320,
+              "object": "last",
+              "objectBytes": 156016,
+              "blockReads": 6,
+              "fetchedBytes": 187880
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "large-archive-25-segments",
+      "masterBytes": 17045850,
+      "segmentsPerRendition": 25,
+      "variants": [
+        {
+          "mode": "standard",
+          "chunkSize": 262144,
+          "files": 80,
+          "blocks": 151,
+          "bytes": 24269267,
+          "fileOrderWaves": 13,
+          "selectedWaves": 12,
+          "peakWaveBytes": 4194304,
+          "sampledObjectsRoundTrip": true,
+          "originalManifestAndArchiveRetained": true,
+          "coldObjectReads": [
+            {
+              "quality": 96,
+              "object": "init",
+              "objectBytes": 816,
+              "blockReads": 3,
+              "fetchedBytes": 2724
+            },
+            {
+              "quality": 96,
+              "object": "first",
+              "objectBytes": 48016,
+              "blockReads": 3,
+              "fetchedBytes": 49924
+            },
+            {
+              "quality": 96,
+              "object": "middle",
+              "objectBytes": 48016,
+              "blockReads": 3,
+              "fetchedBytes": 49924
+            },
+            {
+              "quality": 96,
+              "object": "last",
+              "objectBytes": 48016,
+              "blockReads": 3,
+              "fetchedBytes": 49924
+            },
+            {
+              "quality": 160,
+              "object": "init",
+              "objectBytes": 816,
+              "blockReads": 3,
+              "fetchedBytes": 2724
+            },
+            {
+              "quality": 160,
+              "object": "first",
+              "objectBytes": 84016,
+              "blockReads": 3,
+              "fetchedBytes": 85924
+            },
+            {
+              "quality": 160,
+              "object": "middle",
+              "objectBytes": 84016,
+              "blockReads": 3,
+              "fetchedBytes": 85924
+            },
+            {
+              "quality": 160,
+              "object": "last",
+              "objectBytes": 84016,
+              "blockReads": 3,
+              "fetchedBytes": 85924
+            },
+            {
+              "quality": 320,
+              "object": "init",
+              "objectBytes": 816,
+              "blockReads": 3,
+              "fetchedBytes": 2724
+            },
+            {
+              "quality": 320,
+              "object": "first",
+              "objectBytes": 156016,
+              "blockReads": 3,
+              "fetchedBytes": 157924
+            },
+            {
+              "quality": 320,
+              "object": "middle",
+              "objectBytes": 156016,
+              "blockReads": 3,
+              "fetchedBytes": 157924
+            },
+            {
+              "quality": 320,
+              "object": "last",
+              "objectBytes": 156016,
+              "blockReads": 3,
+              "fetchedBytes": 157924
+            }
+          ]
+        },
+        {
+          "mode": "standard",
+          "chunkSize": 524288,
+          "files": 80,
+          "blocks": 118,
+          "bytes": 24267553,
+          "fileOrderWaves": 13,
+          "selectedWaves": 11,
+          "peakWaveBytes": 4194304,
+          "sampledObjectsRoundTrip": true,
+          "originalManifestAndArchiveRetained": true,
+          "coldObjectReads": [
+            {
+              "quality": 96,
+              "object": "init",
+              "objectBytes": 816,
+              "blockReads": 3,
+              "fetchedBytes": 2724
+            },
+            {
+              "quality": 96,
+              "object": "first",
+              "objectBytes": 48016,
+              "blockReads": 3,
+              "fetchedBytes": 49924
+            },
+            {
+              "quality": 96,
+              "object": "middle",
+              "objectBytes": 48016,
+              "blockReads": 3,
+              "fetchedBytes": 49924
+            },
+            {
+              "quality": 96,
+              "object": "last",
+              "objectBytes": 48016,
+              "blockReads": 3,
+              "fetchedBytes": 49924
+            },
+            {
+              "quality": 160,
+              "object": "init",
+              "objectBytes": 816,
+              "blockReads": 3,
+              "fetchedBytes": 2724
+            },
+            {
+              "quality": 160,
+              "object": "first",
+              "objectBytes": 84016,
+              "blockReads": 3,
+              "fetchedBytes": 85924
+            },
+            {
+              "quality": 160,
+              "object": "middle",
+              "objectBytes": 84016,
+              "blockReads": 3,
+              "fetchedBytes": 85924
+            },
+            {
+              "quality": 160,
+              "object": "last",
+              "objectBytes": 84016,
+              "blockReads": 3,
+              "fetchedBytes": 85924
+            },
+            {
+              "quality": 320,
+              "object": "init",
+              "objectBytes": 816,
+              "blockReads": 3,
+              "fetchedBytes": 2724
+            },
+            {
+              "quality": 320,
+              "object": "first",
+              "objectBytes": 156016,
+              "blockReads": 3,
+              "fetchedBytes": 157924
+            },
+            {
+              "quality": 320,
+              "object": "middle",
+              "objectBytes": 156016,
+              "blockReads": 3,
+              "fetchedBytes": 157924
+            },
+            {
+              "quality": 320,
+              "object": "last",
+              "objectBytes": 156016,
+              "blockReads": 3,
+              "fetchedBytes": 157924
+            }
+          ]
+        },
+        {
+          "mode": "packed-segments",
+          "chunkSize": 262144,
+          "files": 9,
+          "blocks": 109,
+          "bytes": 24266395,
+          "fileOrderWaves": 10,
+          "selectedWaves": 9,
+          "peakWaveBytes": 4194304,
+          "sampledObjectsRoundTrip": true,
+          "originalManifestAndArchiveRetained": true,
+          "coldObjectReads": [
+            {
+              "quality": 96,
+              "object": "init",
+              "objectBytes": 816,
+              "blockReads": 5,
+              "fetchedBytes": 12430
+            },
+            {
+              "quality": 96,
+              "object": "first",
+              "objectBytes": 48016,
+              "blockReads": 6,
+              "fetchedBytes": 274026
+            },
+            {
+              "quality": 96,
+              "object": "middle",
+              "objectBytes": 48016,
+              "blockReads": 6,
+              "fetchedBytes": 274026
+            },
+            {
+              "quality": 96,
+              "object": "last",
+              "objectBytes": 48016,
+              "blockReads": 6,
+              "fetchedBytes": 163706
+            },
+            {
+              "quality": 160,
+              "object": "init",
+              "objectBytes": 816,
+              "blockReads": 5,
+              "fetchedBytes": 12431
+            },
+            {
+              "quality": 160,
+              "object": "first",
+              "objectBytes": 84016,
+              "blockReads": 6,
+              "fetchedBytes": 274234
+            },
+            {
+              "quality": 160,
+              "object": "middle",
+              "objectBytes": 84016,
+              "blockReads": 7,
+              "fetchedBytes": 536378
+            },
+            {
+              "quality": 160,
+              "object": "last",
+              "objectBytes": 84016,
+              "blockReads": 7,
+              "fetchedBytes": 277482
+            },
+            {
+              "quality": 320,
+              "object": "init",
+              "objectBytes": 816,
+              "blockReads": 5,
+              "fetchedBytes": 12431
+            },
+            {
+              "quality": 320,
+              "object": "first",
+              "objectBytes": 156016,
+              "blockReads": 6,
+              "fetchedBytes": 274548
+            },
+            {
+              "quality": 320,
+              "object": "middle",
+              "objectBytes": 156016,
+              "blockReads": 6,
+              "fetchedBytes": 274548
+            },
+            {
+              "quality": 320,
+              "object": "last",
+              "objectBytes": 156016,
+              "blockReads": 6,
+              "fetchedBytes": 242788
+            }
+          ]
+        },
+        {
+          "mode": "packed-segments",
+          "chunkSize": 524288,
+          "files": 9,
+          "blocks": 63,
+          "bytes": 24264005,
+          "fileOrderWaves": 10,
+          "selectedWaves": 9,
+          "peakWaveBytes": 4194304,
+          "sampledObjectsRoundTrip": true,
+          "originalManifestAndArchiveRetained": true,
+          "coldObjectReads": [
+            {
+              "quality": 96,
+              "object": "init",
+              "objectBytes": 816,
+              "blockReads": 5,
+              "fetchedBytes": 12430
+            },
+            {
+              "quality": 96,
+              "object": "first",
+              "objectBytes": 48016,
+              "blockReads": 6,
+              "fetchedBytes": 536066
+            },
+            {
+              "quality": 96,
+              "object": "middle",
+              "objectBytes": 48016,
+              "blockReads": 6,
+              "fetchedBytes": 536066
+            },
+            {
+              "quality": 96,
+              "object": "last",
+              "objectBytes": 48016,
+              "blockReads": 6,
+              "fetchedBytes": 163602
+            },
+            {
+              "quality": 160,
+              "object": "init",
+              "objectBytes": 816,
+              "blockReads": 5,
+              "fetchedBytes": 12431
+            },
+            {
+              "quality": 160,
+              "object": "first",
+              "objectBytes": 84016,
+              "blockReads": 6,
+              "fetchedBytes": 536170
+            },
+            {
+              "quality": 160,
+              "object": "middle",
+              "objectBytes": 84016,
+              "blockReads": 7,
+              "fetchedBytes": 1060458
+            },
+            {
+              "quality": 160,
+              "object": "last",
+              "objectBytes": 84016,
+              "blockReads": 7,
+              "fetchedBytes": 539418
+            },
+            {
+              "quality": 320,
+              "object": "init",
+              "objectBytes": 816,
+              "blockReads": 5,
+              "fetchedBytes": 12431
+            },
+            {
+              "quality": 320,
+              "object": "first",
+              "objectBytes": 156016,
+              "blockReads": 6,
+              "fetchedBytes": 536328
+            },
+            {
+              "quality": 320,
+              "object": "middle",
+              "objectBytes": 156016,
+              "blockReads": 6,
+              "fetchedBytes": 536328
+            },
+            {
+              "quality": 320,
+              "object": "last",
+              "objectBytes": 156016,
+              "blockReads": 6,
+              "fetchedBytes": 242424
+            }
+          ]
+        },
+        {
+          "mode": "packed-after-first",
+          "chunkSize": 262144,
+          "files": 12,
+          "blocks": 111,
+          "bytes": 24266531,
+          "fileOrderWaves": 10,
+          "selectedWaves": 9,
+          "peakWaveBytes": 4194304,
+          "sampledObjectsRoundTrip": true,
+          "originalManifestAndArchiveRetained": true,
+          "coldObjectReads": [
+            {
+              "quality": 96,
+              "object": "init",
+              "objectBytes": 816,
+              "blockReads": 5,
+              "fetchedBytes": 12492
+            },
+            {
+              "quality": 96,
+              "object": "first",
+              "objectBytes": 48016,
+              "blockReads": 5,
+              "fetchedBytes": 59692
+            },
+            {
+              "quality": 96,
+              "object": "middle",
+              "objectBytes": 48016,
+              "blockReads": 6,
+              "fetchedBytes": 274088
+            },
+            {
+              "quality": 96,
+              "object": "last",
+              "objectBytes": 48016,
+              "blockReads": 6,
+              "fetchedBytes": 115752
+            },
+            {
+              "quality": 160,
+              "object": "init",
+              "objectBytes": 816,
+              "blockReads": 5,
+              "fetchedBytes": 12492
+            },
+            {
+              "quality": 160,
+              "object": "first",
+              "objectBytes": 84016,
+              "blockReads": 5,
+              "fetchedBytes": 95692
+            },
+            {
+              "quality": 160,
+              "object": "middle",
+              "objectBytes": 84016,
+              "blockReads": 6,
+              "fetchedBytes": 274244
+            },
+            {
+              "quality": 160,
+              "object": "last",
+              "objectBytes": 84016,
+              "blockReads": 6,
+              "fetchedBytes": 193476
+            },
+            {
+              "quality": 320,
+              "object": "init",
+              "objectBytes": 816,
+              "blockReads": 5,
+              "fetchedBytes": 12493
+            },
+            {
+              "quality": 320,
+              "object": "first",
+              "objectBytes": 156016,
+              "blockReads": 5,
+              "fetchedBytes": 167693
+            },
+            {
+              "quality": 320,
+              "object": "middle",
+              "objectBytes": 156016,
+              "blockReads": 7,
+              "fetchedBytes": 536754
+            },
+            {
+              "quality": 320,
+              "object": "last",
+              "objectBytes": 156016,
+              "blockReads": 7,
+              "fetchedBytes": 348978
+            }
+          ]
+        },
+        {
+          "mode": "packed-after-first",
+          "chunkSize": 524288,
+          "files": 12,
+          "blocks": 65,
+          "bytes": 24264141,
+          "fileOrderWaves": 10,
+          "selectedWaves": 9,
+          "peakWaveBytes": 4194304,
+          "sampledObjectsRoundTrip": true,
+          "originalManifestAndArchiveRetained": true,
+          "coldObjectReads": [
+            {
+              "quality": 96,
+              "object": "init",
+              "objectBytes": 816,
+              "blockReads": 5,
+              "fetchedBytes": 12492
+            },
+            {
+              "quality": 96,
+              "object": "first",
+              "objectBytes": 48016,
+              "blockReads": 5,
+              "fetchedBytes": 59692
+            },
+            {
+              "quality": 96,
+              "object": "middle",
+              "objectBytes": 48016,
+              "blockReads": 6,
+              "fetchedBytes": 536128
+            },
+            {
+              "quality": 96,
+              "object": "last",
+              "objectBytes": 48016,
+              "blockReads": 6,
+              "fetchedBytes": 115648
+            },
+            {
+              "quality": 160,
+              "object": "init",
+              "objectBytes": 816,
+              "blockReads": 5,
+              "fetchedBytes": 12492
+            },
+            {
+              "quality": 160,
+              "object": "first",
+              "objectBytes": 84016,
+              "blockReads": 5,
+              "fetchedBytes": 95692
+            },
+            {
+              "quality": 160,
+              "object": "middle",
+              "objectBytes": 84016,
+              "blockReads": 6,
+              "fetchedBytes": 536180
+            },
+            {
+              "quality": 160,
+              "object": "last",
+              "objectBytes": 84016,
+              "blockReads": 6,
+              "fetchedBytes": 455412
+            },
+            {
+              "quality": 320,
+              "object": "init",
+              "objectBytes": 816,
+              "blockReads": 5,
+              "fetchedBytes": 12493
+            },
+            {
+              "quality": 320,
+              "object": "first",
+              "objectBytes": 156016,
+              "blockReads": 5,
+              "fetchedBytes": 167693
+            },
+            {
+              "quality": 320,
+              "object": "middle",
+              "objectBytes": 156016,
+              "blockReads": 6,
+              "fetchedBytes": 536390
+            },
+            {
+              "quality": 320,
+              "object": "last",
+              "objectBytes": 156016,
+              "blockReads": 7,
+              "fetchedBytes": 610758
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "publicAssets": [
+    {
+      "name": "cover",
+      "variants": [
+        {
+          "chunkSize": 262144,
+          "blocks": 8,
+          "bytes": 140404,
+          "waves": 3
+        },
+        {
+          "chunkSize": 524288,
+          "blocks": 8,
+          "bytes": 140404,
+          "waves": 3
+        }
+      ]
+    },
+    {
+      "name": "metadata",
+      "variants": [
+        {
+          "chunkSize": 262144,
+          "blocks": 2,
+          "bytes": 1087,
+          "waves": 2
+        },
+        {
+          "chunkSize": 524288,
+          "blocks": 2,
+          "bytes": 1087,
+          "waves": 2
+        }
+      ]
+    }
+  ],
+  "limitations": [
+    "Equal-duration waves and cold fetched-byte counts, not an ETA, network benchmark or physical-device first-sound measurement.",
+    "Packed segments require a new explicit storage-layout/reference contract and range-aware Web/API/Host readers; old paths do not work.",
+    "Ciphertext and authentication round-trip is verified with synthetic bytes, not AAC decoding, seeking, adaptive quality or Room playback.",
+    "Fewer stores can amplify a cold segment read by fetching whole verified chunks. Init stays separate; packed-after-first also retains the first media segment.",
+    "Packed cold counts include layout/manifest revalidation; standard cold counts use existing per-path reads. These are not a warmed playback profile.",
+    "The original encrypted archive and all renditions are retained. Cover/metadata paths and their stage tail remain unchanged.",
+    "No admission, budget, journal, deployed format, retention check or finalized child/root barrier is changed."
+  ]
+}

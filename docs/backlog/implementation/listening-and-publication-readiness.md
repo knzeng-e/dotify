@@ -1,5 +1,18 @@
 # Publication, listening reliability and CASH — execution order
 
+## Offline compact-layout study, 2026-11-11
+
+[The reproducible #407 study](evidence/bulletin-compact-layout-2026-11-11.md) compares
+unchanged standard paths with experimental per-quality segment packs. Retaining
+init and the first segment separately models 108 → 60 blocks and nine → six
+waves with 256-KiB chunks. The prototype preserves ciphertext/HMAC/GCM and
+bounds range reads, but existing API/Host paths cannot read later packed segments.
+Cold seeks can fetch extra chunks. Next: review explicit layout/reference and
+per-identity persistence, then implement/test API/Host integration and real
+first sound. 429 API tests pass; this checkout-only experiment changes no
+production reader/writer, format, key, budget or service. No write/maintenance
+is authorized. #407 stays Now/In Progress; Room/artwork/CASH keep their order.
+
 ## Post-optimization publication and listening confirmed, 2026-11-11
 
 [The approved exact trial](evidence/bulletin-eskapade-activation-2026-11-11.md) now publishes and plays, confirmed
@@ -108,15 +121,19 @@ implementation branch from current tested dev; use one PR per backlog scope.
 - **Accepted behavior:** “Eskapade à engong” publishes and plays; the owner reports
   7 min 46 s before the wallet prompt. Scoped reports succeed with 110 store calls,
   cover reuse and no collection failures. Publisher clocks are separate.
-- **Immediate action:** investigate fewer storage blocks/dependency stages and
-  format/resolver compatibility offline. Repeated finality remains the main
-  target; preserve canonical proofs, retention, nonce recovery and old playback.
-  Different source sizes and overlapping clocks do not establish an isolated
-  speedup. No new funded trial follows from this acceptance.
+- **Offline result:** the compact-layout study models 108 → 60 blocks and nine
+  → six waves when packing later segments per quality at 256 KiB, keeping init
+  and the first segment separate. Range/decrypt tests pass; live readers and
+  root/reference semantics remain unchanged.
+- **Immediate action:** review the explicit layout/reference and immutable
+  per-identity selection, then implement bounded API/Host range delivery with
+  legacy dispatch, restart/reconciliation and real-media/first-sound checks.
+  Cold seeks can overfetch; no modeled percentage is a network speedup or ETA.
+  No deployment, old-identity rewrite or new funded trial is implied.
 
 | Order | Scope / owner ticket | Remaining deliverable and exit gate |
 | --- | --- | --- |
-| 1 — Now | [Publication latency and acceptance #407](../bulletin-publication-admission.md) | Admission, progress and catalogue feedback are delivered. The approximately 50-minute Street scriptures run identifies repeated finality waits. #424 is now activated on custody for one approved new exact source (16 / 4 MiB); publication and listening are now owner-confirmed (about nine minutes reported). #426 dependency-order/proof-reuse is delivered with preserved histories and zero maintenance chain writes. The separately approved “Eskapade à engong” trial now publishes and plays (owner: 7 min 46 s). Scoped timings still identify repeated finality stages; investigate offline fewer storage blocks/stages and format/resolver compatibility while preserving proofs and existing playback. Acceptable latency and hosted memory under new work remain open. Keep the different source sizes and unchanged public-asset tail explicit. |
+| 1 — Now | [Publication latency and acceptance #407](../bulletin-publication-admission.md) | Admission, progress and catalogue feedback are delivered. The approximately 50-minute Street scriptures run identifies repeated finality waits. #424 is now activated on custody for one approved new exact source (16 / 4 MiB); publication and listening are now owner-confirmed (about nine minutes reported). #426 dependency-order/proof-reuse is delivered with preserved histories and zero maintenance chain writes. The separately approved “Eskapade à engong” trial now publishes and plays (owner: 7 min 46 s). The offline compact-layout study models fewer stages with startup objects retained. Review layout/reference and durable selection, then implement API/Host compatibility and first-sound/recovery checks while preserving proofs and existing playback. Acceptable latency and hosted memory under new work remain open. Keep the different source sizes and unchanged public-asset tail explicit. |
 | 2 — Next | [Room startup #395](../room-listener-audio.md) | Delivery to guests works on the reported path. Diagnose the roughly 55-second mobile-host start; repeated comparable full-track starts must finish without retry and with audible Web/Desktop guests. |
 | 3 — Next | [System artwork #388](../listening-controls-and-discovery.md), with #87 | Account access and discovery are delivered. Diagnose intermittent late lock-screen artwork in solo and Room; verify repeated locks/track changes without delaying audio or restoring stale metadata. |
 | 4 — Next research | [CASH tips #406](../product-cash-tip-feasibility.md), with #85/#229 | Shipped-Host/API matrix, honest contribution semantics, durable payment/receipt recovery tests and a go/no-go. Prepare a bounded pilot only if supported. |
