@@ -23,16 +23,21 @@ on:
       - 'web/src/features/catalog/managedStreaming.ts'
       - 'web/package-lock.json'
       - '.github/workflows/bulletin-prototype.yml'
+      - 'scripts/ci/ensure-ffmpeg.sh'
+      - 'scripts/ci/use-ubuntu-mirror.sh'
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
   offline:
     name: Offline directory, recovery and retention proof
-    runs-on: ubuntu-latest
+    # The prototype and API must use the same stable codec runner image.
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+      - name: Configure signed Ubuntu package mirror
+        run: bash scripts/ci/use-ubuntu-mirror.sh
       - uses: actions/setup-node@v4
         with:
           node-version: 22.13.1
@@ -41,8 +46,9 @@ jobs:
             web/package-lock.json
             services/api/package-lock.json
             research/bulletin-prototype/package-lock.json
-      - name: Install FFmpeg for real AAC fixtures
-        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - name: Ensure FFmpeg for real AAC fixtures
+        timeout-minutes: 5
+        run: bash scripts/ci/ensure-ffmpeg.sh
       - name: Install the unchanged API fixture and isolated prototype
         run: |
           npm ci --prefix services/api --ignore-scripts
@@ -59,6 +65,7 @@ jobs:
       - name: Verify explicit continuity limits and a read-only transaction creator
         run: npm run test:continuity --prefix research/bulletin-prototype
       - name: Install the browser codec control
+        timeout-minutes: 7
         run: npm exec --prefix web -- playwright install --with-deps chromium
       - name: Verify real AAC playback and local-server boundaries
         run: npm run test:host --prefix research/bulletin-prototype

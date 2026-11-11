@@ -51,6 +51,8 @@ export default defineConfig({
         // context with empty storage and cookies, so mock state cannot leak between
         // tests. Do not disable that isolation (e.g. by sharing a context or page
         // across tests) without adding explicit per-test state resets.
+        // Use the app's fallback fonts instead of waiting for an external CDN.
+        DOTIFY_E2E_LOCAL_FONTS: 'true',
         VITE_E2E_CLASSIC_UNLOCK: 'true',
         VITE_E2E_ARTIST_PUBLISH: 'true',
         VITE_E2E_ROOM_JOIN: 'true',

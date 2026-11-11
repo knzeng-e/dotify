@@ -6,10 +6,10 @@ import { blake2b256 } from '@polkadot-apps/utils';
 import { isBulletinMediaRoot } from './streamingTransport';
 
 type HostRead = (cid: string, options: { noReassemble: true; lookupTimeoutMs: number }) => Promise<{ ok: true; value: Uint8Array } | { ok: false }>;
-type HostDeps = { insideHost: () => Promise<boolean> | boolean; queryBytes: HostRead };
+export type HostDeps = { insideHost: () => Promise<boolean> | boolean; queryBytes: HostRead };
 const validPath = /^(manifest\.json|(?:96|160|320)\/(?:init|segment-(?:[01][0-9]{2}|2[0-4][0-9]|25[0-5]))\.bin)$/;
 
-async function bounded<T>(action: (signal: AbortSignal) => Promise<T>, owner: AbortSignal, ms: number): Promise<T> {
+export async function boundedHostRead<T>(action: (signal: AbortSignal) => Promise<T>, owner: AbortSignal, ms: number): Promise<T> {
   owner.throwIfAborted();
   const controller = new AbortController();
   const stop = () => controller.abort(owner.reason);
@@ -40,7 +40,7 @@ function check(value: unknown, message: string): asserts value {
   if (!value) throw new Error(message);
 }
 
-export function createBulletinHostMediaReader(deps: HostDeps, publicAssets = false) {
+export function createBulletinHostBlockReader(deps: HostDeps) {
   // SDK lookups cannot be cancelled externally. Count their actual lifetime,
   // including after an aborted caller, so retries cannot accumulate subscriptions.
   let activeLookups = 0;
@@ -62,7 +62,7 @@ export function createBulletinHostMediaReader(deps: HostDeps, publicAssets = fal
       .finally(() => {
         activeLookups--;
       });
-    const result = await bounded(() => lookup, signal, 10_000);
+    const result = await boundedHostRead(() => lookup, signal, 10_000);
     signal.throwIfAborted();
     check(result.ok && result.value instanceof Uint8Array && result.value.length > 0 && result.value.length <= 512 * 1024, 'Invalid Bulletin block response.');
     const bytes = Uint8Array.from(result.value);
@@ -83,13 +83,17 @@ export function createBulletinHostMediaReader(deps: HostDeps, publicAssets = fal
     }
     return bytes;
   }
+  return block;
+}
+
+export function createBulletinHostMediaReader(deps: HostDeps, publicAssets = false, block = createBulletinHostBlockReader(deps)) {
   return async (root: string, path: string, maxBytes: number, owner: AbortSignal): Promise<Uint8Array | null> => {
     const publicPath = /^(?:release\.json|cover\/(?:placeholder|64|160|320|640)\.webp|cover\/original\.(?:jpg|png|webp|gif))$/;
     check(isBulletinMediaRoot(root) && (publicAssets ? publicPath : validPath).test(path), 'Unsupported Bulletin media path.');
     check(Number.isSafeInteger(maxBytes) && maxBytes > 0 && maxBytes <= (publicAssets ? 5 * 1024 * 1024 : 1024 * 1024 + 16), 'Invalid Bulletin object bound.');
-    return bounded(
+    return boundedHostRead(
       async signal => {
-        if (!(await bounded(async () => deps.insideHost(), signal, 1500))) return null;
+        if (!(await boundedHostRead(async () => deps.insideHost(), signal, 1500))) return null;
         let reads = 0,
           fetched = 0;
         const get = async (cid: CID) => {
@@ -139,7 +143,7 @@ export function createBulletinHostMediaReader(deps: HostDeps, publicAssets = fal
   };
 }
 
-const hostDeps: HostDeps = {
+export const bulletinHostMediaDeps: HostDeps = {
   async insideHost() {
     const { isInsideContainer } = await import('@parity/product-sdk/host');
     return isInsideContainer();
@@ -149,5 +153,6 @@ const hostDeps: HostDeps = {
     return queryBytes(cid, options);
   }
 };
-export const readHostBulletinMedia = createBulletinHostMediaReader(hostDeps);
-export const readHostBulletinAsset = createBulletinHostMediaReader(hostDeps, true);
+export const readHostBulletinBlock = createBulletinHostBlockReader(bulletinHostMediaDeps);
+export const readHostBulletinMedia = createBulletinHostMediaReader(bulletinHostMediaDeps, false, readHostBulletinBlock);
+export const readHostBulletinAsset = createBulletinHostMediaReader(bulletinHostMediaDeps, true);

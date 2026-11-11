@@ -1,5 +1,9 @@
 # Dotify implementation playbook
 
+Start with the [selected execution sequence](listening-and-publication-readiness.md).
+Its #407 checkpoint now includes internal compact object readers; ordinary
+reference/dispatch, admission and real-media acceptance remain before activation.
+
 ## Listening security review, 2026-11-11
 
 [The bounded #431 correction](../listening-security-hardening.md) keeps disconnect and grant expiry

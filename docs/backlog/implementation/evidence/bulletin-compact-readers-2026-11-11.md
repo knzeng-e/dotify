@@ -1,0 +1,122 @@
+# Compact object reader candidate — 2026-11-11
+
+Refs #407. Base: merged `dev` `8213d93fdce1c6ecf189da2224990bde234fb2d6`, whose
+source matches the tested #434 candidate. Tested code:
+**`f260e09b18d6fef9c05debd3c7fedbe91ae920f2`**. Documentation follows in a separate
+commit. [Decision](../../../adr/0053-bulletin-compact-object-readers.md) ·
+[Reader contract](../../../reference/bulletin-compact-reader.md).
+
+## What this candidate proves
+
+The fixed compact constructor can be read by internal API and Host adapters
+through one portable range engine. The same disposable synthetic vector binds
+the constructor, Node authentication and browser WebCrypto/object decryption.
+Its key and ciphertext are public deterministic test fixtures, not artist data.
+Only a selected object's intersecting children are reconstructed. The test trace
+excludes the archive and other qualities and does not fetch the whole pack.
+
+Authentication/scope and invalid-path/size failures occur before block I/O.
+Fixed marker, exact authenticated manifest/root binding, CID corruption and
+readdressed malformed UnixFS sizes/depth fail closed. A readdressed altered
+ciphertext still fails the ordinary object-GCM verifier. Init/segment zero and
+a one-segment rendition remain compatible with the fixed constructor.
+
+Host cancellation returns promptly while actual SDK calls keep their slots
+until settlement. Tests cover two outstanding cancelled SDK calls, refusal of
+a third, reuse only after settlement, shared standard/compact media budgets,
+owner retirement, input mutation and absence of a Host. The five existing Host
+reader/public-asset cases remain green. No old registered reference is inferred
+to be compact and no current route, player or publisher selects the new seams.
+
+## Validation
+
+| Check                                            | Result and scope                                                                                                                              |
+| ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Full API tests                                   | **452 passed / 42 suites**, zero failures or skips; includes 8 new reader cases and existing publication/journal/key/access/recovery coverage |
+| API typecheck and build                          | Pass                                                                                                                                          |
+| Full Web unit suite                              | **1,134 passed / 148 files**, including 8 new compact Host cases                                                                              |
+| Focused Host suite                               | **13 passed**: 8 compact + 5 existing standard/public-asset cases                                                                             |
+| Web and frozen Product DevNet builds             | Pass with API `node_modules` temporarily absent; restored afterwards                                                                          |
+| Web lint                                         | Zero errors; two existing App hook warnings                                                                                                   |
+| Web formatting and changed API source formatting | Pass                                                                                                                                          |
+| Offline backlog consistency                      | Pass                                                                                                                                          |
+
+The isolated Web/Product check verifies that importing the portable source does
+not require installed API packages or Node dependencies. Platform codecs come
+from each adapter's own dependency graph. Lockfiles, SDK and signer versions
+are unchanged. Builds retain existing large-chunk warnings. No dependency audit
+is rerun or claimed by this slice; #432/#433 retain their security scope.
+
+## Limits and remaining acceptance
+
+The fixtures contain authenticated synthetic bytes, not a playable AAC release.
+This is not an audible test, a Host SDK integration test on a physical device,
+a crowd/load/memory benchmark or a publication speed comparison. Accepted read
+bytes, block counts, depth and query/SDK lifetimes are bounded as described in
+the reference. Bounds do not prove acceptable latency or eliminate cold-seek
+overfetch. SDK-internal allocation cannot be controlled by the caller.
+
+Next: explicit registered reference and matching ordinary Web/API/Host dispatch,
+immutable per-identity admission, then real AAC startup/seek/adaptation, legacy
+playback, Room/background, first sound, restart/reconciliation and memory
+acceptance. The API adapter takes an already authorized key and is not exposed
+as an HTTP route. The Host adapter cannot grant an entitlement or a Room role.
+
+No signer, production state, artist file or live Room was used. No image upload,
+service maintenance, chain write, renewal, new allowance, key transfer or
+deployment occurs. Custody remains #426; Web/Product/public APIs remain 0.1.82.
+#407 stays open in the selected sequence before Room/artwork/CASH.
+
+## CI prerequisite follow-up
+
+The first PR run at documentation head `6282d5c6` passes API typecheck/tests,
+Web and Product checks, but the prototype job is cancelled during FFmpeg
+installation after repeated DNS resolution failures for Ubuntu mirrors. Its
+`ubuntu-latest` runner is requesting 26.04/resolute packages. The API's separate
+codec step also stalls on DNS resolution of `azure.archive.ubuntu.com` after
+all 452 service tests pass. The old run is cancelled to release its runner and
+retain the final logs. Neither blocked job reaches its actual codec suite.
+
+The prototype is pinned to the API's Ubuntu 24.04 image. Both now share a
+conditional, bounded official-package prerequisite; the API job also gets an
+overall deadline. Already present FFmpeg avoids an unnecessary apt operation.
+Real codec/decryption/browser assertions remain intact. See
+[the prerequisite contract](../../../operations/dev-quality-gates.md#codec-prerequisites).
+These changes do not deploy an encoder or alter runtime FFmpeg selection.
+
+Local follow-up validation passes Bash syntax and workflow YAML/runner/deadline
+checks. A disposable stub confirms failed prerequisite commands and a broken
+existing binary return failure without a fallback or masked pass; no apt/sudo
+runs in that check. The real installed FFmpeg 7.1 passes **6 codec/nonce tests**
+with zero skips. These local checks do not establish Ubuntu repository health;
+the updated CI must still complete its real package/codec/browser steps.
+
+The first bounded retry (`1ae6ea6d`) confirms the Ubuntu 24.04 runner still uses
+an unresolvable Azure mirror; it now refuses within the deadline rather than
+hanging. The follow-up changes the disposable runner's Ubuntu mirror list to
+[the Kernel Archives' HTTPS Ubuntu mirror](https://mirrors.edge.kernel.org/),
+retaining Ubuntu's signing keys, suites and components. The same setup applies
+to browser jobs so Playwright/PulseAudio do not revisit the broken mirror.
+Direct read-only inspection confirms that mirror serves the signed Noble
+InRelease metadata. Actual APT verification and codec/browser acceptance remain
+the updated CI's responsibility; no signature or TLS check is disabled.
+
+The next run (`99e15239`) passes API, prototype and three-engine adaptive checks,
+including their real codec/browser prerequisites. The core suite reports 329
+passes and two timeouts. Retained traces identify the same external dependency:
+Google Fonts remains pending throughout the audio test's navigation; the capture
+test spends about 29 seconds loading that stylesheet before its first action,
+leaving no time for its recording assertions. This is not a failed assertion of
+audible playback or capture behavior.
+
+The core dev server now explicitly uses existing fallback fonts through a
+serve-only HTML transform. Only Google Fonts links are removed, not local media,
+RPC, signaling or app requests. Normal development and builds keep their font
+links. No timeout/retry/skip or assertion changes. See
+[browser font isolation](../../../operations/dev-quality-gates.md#browser-font-isolation).
+Local validation after finishing the transform: **21 tests pass** across the two
+complete affected browser suites, with two workers and zero retries. An explicit
+config matrix verifies dev-server opt-in, unset/false defaults and build mode:
+only opted-in dev HTML loses the three font links; script and icon links remain.
+Formatting, config lint and whitespace checks pass. The corrected complete CI
+run remains required before merge.

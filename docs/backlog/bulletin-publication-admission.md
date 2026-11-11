@@ -1,5 +1,14 @@
 # Bulletin publication beyond the synthetic pilot
 
+## Current code checkpoint, 2026-11-11
+
+The [internal compact readers](../reference/bulletin-compact-reader.md) now reconstruct
+authenticated objects with one bounded API/Host engine. Ordinary references,
+publication and playback still use the standard path. Next: explicit reference
+and dispatch, immutable admission, then real-media/legacy/recovery acceptance.
+[Candidate evidence](implementation/evidence/bulletin-compact-readers-2026-11-11.md).
+Earlier dated checkpoints below retain their observation-time scope.
+
 ## Compact graph and durable layout binding, 2026-11-11
 
 [The next #407 implementation](../adr/0052-bulletin-layout-inventory-binding.md) adds a fixed 256-KiB compact graph constructor

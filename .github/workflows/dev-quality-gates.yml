@@ -185,12 +185,16 @@ jobs:
     # Keep codec-fixture tooling reproducible across ubuntu-latest migrations.
     # The 26.04 image stalled for 10+ minutes downloading ffmpeg from Azure.
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: services/api
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Configure signed Ubuntu package mirror
+        run: bash ../../scripts/ci/use-ubuntu-mirror.sh
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -208,15 +212,12 @@ jobs:
       - name: Run tests
         run: npm test
 
+      - name: Ensure FFmpeg for real AAC fixtures
+        timeout-minutes: 5
+        run: bash ../../scripts/ci/ensure-ffmpeg.sh
+
       - name: Streaming codec and nonce round-trip
-        run: |
-          if ! command -v ffmpeg >/dev/null; then
-            sudo apt-get update
-            sudo apt-get install --no-install-recommends -y ffmpeg
-          fi
-          ffmpeg -version
-          ffmpeg -L
-          DOTIFY_TEST_FFMPEG="$(command -v ffmpeg)" npm run test:streaming
+        run: DOTIFY_TEST_FFMPEG="$(command -v ffmpeg)" npm run test:streaming
 
       - name: Generate synthetic encrypted browser fixture
         run: DOTIFY_TEST_FFMPEG="$(command -v ffmpeg)" node --import tsx src/scripts/streamingFixture.test.ts "${GITHUB_WORKSPACE}/web/.data/streaming-fixture.json"
@@ -368,6 +369,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Configure signed Ubuntu package mirror
+        run: bash ../scripts/ci/use-ubuntu-mirror.sh
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -379,11 +383,13 @@ jobs:
         run: npm ci
 
       - name: Install Playwright browser
+        timeout-minutes: 7
         run: npx playwright install --with-deps chromium webkit firefox
 
       # Nearby verifies decoded WebRTC energy through a real AudioContext, just
       # like the three-engine streaming gate. Give both jobs an audio clock.
       - name: Start a real audio service with a headless output
+        timeout-minutes: 7
         run: |
           sudo apt-get update
           sudo apt-get install --no-install-recommends -y pulseaudio
@@ -434,7 +440,7 @@ jobs:
 
   streaming-browser:
     name: W35 / Adaptive streaming in three engines
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: api
     defaults:
       run:
@@ -442,6 +448,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Configure signed Ubuntu package mirror
+        run: bash ../scripts/ci/use-ubuntu-mirror.sh
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -454,9 +463,11 @@ jobs:
         run: npm ci
 
       - name: Install three browser engines
+        timeout-minutes: 7
         run: npx playwright install --with-deps chromium webkit firefox
 
       - name: Start a real audio service with a headless output
+        timeout-minutes: 7
         run: |
           sudo apt-get update
           sudo apt-get install --no-install-recommends -y pulseaudio

@@ -1,5 +1,10 @@
 # Dotify product memory
 
+Current code/deployment checkpoint: see the
+[selected sequence](../backlog/implementation/listening-and-publication-readiness.md).
+Internal compact readers are prepared; ordinary format selection and live compact
+acceptance are still ahead. Earlier dated notes retain their original scope.
+
 ## Listening security review, 2026-11-11
 
 [The bounded #431 correction](../backlog/listening-security-hardening.md) keeps disconnect and grant expiry
