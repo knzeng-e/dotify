@@ -1,6 +1,7 @@
 // Physical storage only: neither a content-key version nor listening authority.
 import assert from 'node:assert/strict';
 import { z } from 'zod';
+import { COMPACT_MARKER } from './bulletinCompactRange.js';
 
 export const STANDARD_BULLETIN_LAYOUT = 'unixfs-files-v1' as const;
 export const COMPACT_BULLETIN_LAYOUT = 'rendition-pack-v1' as const;
@@ -16,12 +17,7 @@ export const compactLayoutMarkerSchema = z
     startup: z.literal('init-and-first')
   })
   .strict();
-export const compactLayoutMarker = () =>
-  compactLayoutMarkerSchema.parse({
-    schema: 'dotify.bulletin.rendition-pack.v1',
-    chunkSize: 262144,
-    startup: 'init-and-first'
-  });
+export const compactLayoutMarker = () => compactLayoutMarkerSchema.parse(COMPACT_MARKER);
 
 /** Only an absent field on a legacy graph means standard. Null, unknown and
  * misspelled selections must never silently choose a different graph. */
