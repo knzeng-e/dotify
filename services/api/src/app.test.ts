@@ -16,6 +16,21 @@ afterEach(async () => {
   app = null;
 });
 
+it('rejects small but structurally oversized JSON before key schema parsing and authentication', async () => {
+  const server = await build();
+  assert.equal(server.initialConfig.bodyLimit, 1024 * 1024);
+  const oversized = await server.inject({ method: 'POST', url: '/api/tracks/keys/prepare', payload: { tracks: new Array(257).fill({}) } });
+  assert.equal(oversized.statusCode, 413);
+  assert.equal(oversized.json().code, 'BODY_STRUCTURE_TOO_LARGE');
+  assert(!oversized.body.includes('issues'));
+  // Ordinary input reaches the normal validator instead of the structural gate.
+  const ordinary = await server.inject({ method: 'POST', url: '/api/tracks/keys/prepare', payload: { tracks: new Array(5).fill({}) } });
+  assert.equal(ordinary.statusCode, 400);
+  assert.equal(typeof ordinary.json().error, 'string');
+  assert(Array.isArray(ordinary.json().issues));
+  assert.equal((await server.inject({ method: 'GET', url: '/health' })).statusCode, 200);
+});
+
 describe('request correlation IDs', () => {
   it('echoes a well-formed incoming x-request-id on the response', async () => {
     const server = await build();

@@ -112,4 +112,4 @@ Before any live canary:
    quota consumption/cost and recurring retention. The model and earlier lab
    listens do not establish real-release throughput or protected device acceptance.
 
-See [deployment configuration](../../../operations/deployment-configuration.md#prepared-v2-publication-pipeline).
+See [deployment configuration](../../../operations/deployment-configuration-history.md#prepared-v2-publication-pipeline).

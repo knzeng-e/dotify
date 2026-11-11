@@ -55,6 +55,59 @@ one-way network latency. Server restarts invalidate cross-epoch comparisons.
 
 ---
 
+## Negotiation limits
+
+These bounds are part of the #434 candidate. A running signaling service needs
+that build before these protections apply. See
+[deployment verification](../operations/deployment-configuration.md).
+
+SDP describes how two peers will exchange media; ICE candidates describe the
+network paths they can try. The server relays them only between admitted host
+and listener sockets in the same Room. A valid message or an unused budget
+never grants membership or access to the track.
+
+The [server limits](../../web/server/signaling-boundaries.mjs) use **10-second
+windows per socket**, shared across its target peers:
+
+| Client event                                | Maximum relays per window |
+| ------------------------------------------- | ------------------------- |
+| `listener:ready`                            | 4                         |
+| `webrtc:offer` and `webrtc:answer` combined | 128                       |
+| `webrtc:ice-candidate`                      | 1,024                     |
+| `peer:connected`                            | 128                       |
+
+These are separate from existing creation, joining, chat and discovery limits.
+Leaving and rejoining a Room does not reset these socket budgets. Disconnect
+clears them. Over-budget negotiation messages are dropped without an ack;
+there is no new `RATE_LIMITED` response for these relay events. Other sockets
+have independent budgets, including people sharing a network.
+
+| Field                        | Accepted shape and limit                                        |
+| ---------------------------- | --------------------------------------------------------------- |
+| `targetId`                   | Nonempty string, at most 128 UTF-16 code units                  |
+| Offer/answer                 | Object with only `type` and `sdp`; `type` must match the event  |
+| `sdp`                        | Nonempty string, at most 65,536 UTF-8 bytes                     |
+| Candidate object             | Only `candidate`, `sdpMid`, `sdpMLineIndex`, `usernameFragment` |
+| `candidate`                  | String, at most 4,096 UTF-8 bytes; empty string is allowed      |
+| `sdpMid`, `usernameFragment` | Optional/nullable strings, at most 256 UTF-16 code units each   |
+| `sdpMLineIndex`              | Optional/nullable integer, 0–65,535                             |
+
+Malformed envelopes on object-event handlers return
+`{ ok: false, code: 'INVALID_PAYLOAD', error: 'Invalid room request.' }` when a
+function acknowledgement is supplied. A caught handler failure returns
+`REQUEST_FAILED`. A non-function acknowledgement is not called. Invalid nested
+SDP/ICE fields are dropped by their handler without an acknowledgement. The
+intentional nullable `room:track`/`player:state` and array lineup protocols keep
+their own handlers; this is not a blanket ban on arrays or null.
+
+The [browser's pending ICE queue](../../web/src/features/rooms/pendingIce.ts)
+retains at most **64 peer identities, 128 candidates per peer and 512 total**
+before a remote description is ready. It deduplicates candidates, retains only
+known fields and removes departed listeners. Its string check uses code units;
+the server's candidate wire check uses UTF-8 bytes. Excess items are not queued.
+These bounds do not enlarge the configured Room capacity (default 24 listeners)
+or prove higher-capacity/reconnect acceptance.
+
 ## Room lifecycle events
 
 ### `rooms:list`
@@ -131,7 +184,7 @@ socket.emit('room:create', {
 { ok: true; roomId: string; hostName: string; expiresAt?: number }
 
 // Ack — failure
-{ ok: false; error: string; code?: 'RATE_LIMITED' | 'ROOMS_BUSY' }
+{ ok: false; error: string; code?: 'RATE_LIMITED' | 'ROOMS_BUSY' | 'INVALID_PAYLOAD' | 'REQUEST_FAILED' }
 ```
 
 The server assigns a random six-character alphanumeric `roomId` from a

@@ -116,7 +116,7 @@ separately in any future cold-start comparison.
    chord cannot establish prolonged listening, renewal or scalable publication.
 
 Production storage, its key/access boundaries and hosting costs are unchanged.
-The [runbook](../../../operations/deployment-configuration.md#generated-only-bulletin-mobile-diagnostic-not-deployed)
+The [runbook](../../../operations/deployment-configuration-history.md#generated-only-bulletin-mobile-diagnostic-not-deployed)
 and [commands](../../../../research/bulletin-prototype/README.md#standalone-mobile-diagnostic-preparation)
 record build, publication and rollback boundaries. No physical mobile run or
 production replacement is claimed.

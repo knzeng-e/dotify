@@ -163,6 +163,15 @@ function deniedResponse(denial: Extract<TrackAccessResult, { allowed: false }>, 
   };
 }
 
+/** A block-bound verdict can expire while other asynchronous work completes.
+ * Refuse it before derivation; an expired response timestamp cannot retract a key. */
+function currentAccess(access: TrackAccessResult): TrackAccessResult {
+  if (access.allowed && access.validUntil !== undefined && (!Number.isFinite(access.validUntil) || access.validUntil <= Date.now())) {
+    return { allowed: false, code: 'RPC_UNAVAILABLE', reason: 'Access verification expired. Please try again.' };
+  }
+  return access;
+}
+
 export function createKeyRoutes(deps: KeyRouteDeps = defaultDeps) {
   return async function keyRoutes(app: FastifyInstance): Promise<void> {
     // Keys, denials and errors must never be stored by a browser or proxy cache.
@@ -199,17 +208,17 @@ export function createKeyRoutes(deps: KeyRouteDeps = defaultDeps) {
       // Logout/expiry during reads wins over a prepared grant.
       const current = await deps.verifySessionToken(body.data.sessionToken);
       if (!current.valid) return reply.status(401).send({ error: current.reason, code: current.code });
-      const tracks = results.map(({ track, access }) => {
+      const grantExpiries: number[] = [];
+      const tracks = results.map(({ track, access: observed }) => {
+        const access = currentAccess(observed);
         const identity = { contentHash: track.contentHash, releaseId: track.releaseId };
         if (!access.allowed) return { ...identity, ...deniedResponse(access, body.data.purpose) };
         const key = deps.deriveContentKey(access.keyScope);
         if (!key.ok) return { ...identity, access: 'denied' as const, reason: key.code, message: key.reason, hostAction: { type: 'none', label: '' } };
+        if (access.validUntil !== undefined) grantExpiries.push(access.validUntil);
         return { ...identity, access: 'allowed' as const, playbackMode: 'full' as const, contentKey: key.contentKey, runtime: access.runtime };
       });
-      const until = Math.min(
-        Date.parse(expiresAt),
-        ...results.flatMap(({ access }) => (access.allowed && access.validUntil !== undefined ? [access.validUntil] : []))
-      );
+      const until = Math.min(Date.parse(expiresAt), ...grantExpiries);
       return { expiresAt: new Date(until).toISOString(), tracks };
     });
 
@@ -238,12 +247,16 @@ export function createKeyRoutes(deps: KeyRouteDeps = defaultDeps) {
           return reply.status(401).send({ error: domain.reason, code: domain.code });
         }
 
-        const access = await deps.checkTrackAccess({
+        const observed = await deps.checkTrackAccess({
           contentHash: params.data.contentHash,
           requester: session.address,
           purpose: sessionBody.data.purpose,
           release: release.release
         });
+        // Sign-out and expiry during the chain read win over key delivery.
+        const current = await deps.verifySessionToken(sessionBody.data.sessionToken);
+        if (!current.valid) return reply.status(401).send({ error: current.reason, code: current.code });
+        const access = currentAccess(observed);
         if (!access.allowed) {
           return reply.status(200).send(deniedResponse(access, sessionBody.data.purpose));
         }
@@ -310,12 +323,14 @@ export function createKeyRoutes(deps: KeyRouteDeps = defaultDeps) {
         return reply.status(401).send({ error: signature.reason, code: signature.code });
       }
 
-      const access = await deps.checkTrackAccess({
-        contentHash: params.data.contentHash,
-        requester: body.data.requester,
-        purpose: body.data.purpose,
-        release: release.release
-      });
+      const access = currentAccess(
+        await deps.checkTrackAccess({
+          contentHash: params.data.contentHash,
+          requester: body.data.requester,
+          purpose: body.data.purpose,
+          release: release.release
+        })
+      );
 
       if (!access.allowed) {
         // Denial is a normal product state, not a transport error: the
@@ -358,7 +373,7 @@ export function createKeyRoutes(deps: KeyRouteDeps = defaultDeps) {
         return validationError(reply, 'Invalid release identity', release.issues);
       }
 
-      const access = await deps.checkPublicAccess({ contentHash: params.data.contentHash, release: release.release });
+      const access = currentAccess(await deps.checkPublicAccess({ contentHash: params.data.contentHash, release: release.release }));
       if (!access.allowed) {
         return reply.status(200).send(deniedResponse(access, 'individual'));
       }

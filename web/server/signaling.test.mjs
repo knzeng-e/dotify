@@ -2,12 +2,26 @@
 // Run with: npm run test:signal
 import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
+import { request as httpRequest } from 'node:http';
+import { SIGNAL_LIMITS, boundedDescription, boundedCandidate } from './signaling-boundaries.mjs';
 import { afterEach, beforeEach, describe, it } from 'node:test';
 import { Fetch as EngineFetch } from 'engine.io-client';
 import { io as ioClient } from 'socket.io-client';
 import { isSignalingOriginAllowed, readConfigFromEnv, startSignalingServer } from './signaling.mjs';
 import { coarseNearbyCell } from '../shared/nearby-v2.mjs';
-import { clientKey, createWindowLimiter, sanitizeTrack, sanitizeTrackHash, sanitizePlayerState, snapshotPlayerState } from './signaling-utils.mjs';
+import {
+  clientKey,
+  createWindowLimiter,
+  sanitizeText,
+  normalizeRoomId,
+  sanitizeAddress,
+  sanitizeChatText,
+  sanitizeReactionEmoji,
+  sanitizeTrack,
+  sanitizeTrackHash,
+  sanitizePlayerState,
+  snapshotPlayerState
+} from './signaling-utils.mjs';
 
 let server;
 let port;
@@ -1572,5 +1586,161 @@ describe('shared playback clock', () => {
     const reset = once(guest, 'player:state');
     host.emit('room:track', { hash: 'second', title: 'Second' });
     assert.equal(await reset, null);
+  });
+});
+
+describe('signaling wire boundaries and negotiation budgets', () => {
+  it('parses request targets independently of Host and rejects malformed URLs without losing rooms', async () => {
+    const host = connectClient();
+    const created = await createRoom(host);
+    const get = (path, hostHeader) =>
+      new Promise((resolve, reject) => {
+        const request = httpRequest({ host: '127.0.0.1', port, path, headers: { host: hostHeader } }, response => {
+          const chunks = [];
+          response.on('data', chunk => chunks.push(chunk));
+          response.on('end', () => resolve({ status: response.statusCode, body: JSON.parse(Buffer.concat(chunks).toString()) }));
+        });
+        request.on('error', reject);
+        request.end();
+      });
+    assert.equal((await get('/health', '[')).body.ok, true);
+    assert.equal((await get('http://[', 'irrelevant.example')).status, 400);
+    assert.equal((await get('/health', 'dotify.example')).body.rooms, 1);
+    assert(server.rooms.has(created.roomId));
+  });
+
+  it('rejects malformed object envelopes before mutating a current room and ignores nonfunction acknowledgements', async () => {
+    const host = connectClient();
+    const created = await createRoom(host);
+    const events = [
+      'presence:solo',
+      'room:turn-capability',
+      'room:create',
+      'room:resume',
+      'room:join',
+      'room:playback-mode',
+      'room:rename',
+      'room:reaction',
+      'room:typing',
+      'room:pin',
+      'room:chat',
+      'room:request',
+      'room:request:remove',
+      'webrtc:offer',
+      'webrtc:answer',
+      'webrtc:ice-candidate',
+      'peer:connected',
+      'webrtc:diagnostic',
+      'room:tip-bind',
+      'room:tip-quote',
+      'room:tip-notify'
+    ];
+    for (const event of events)
+      for (const payload of [null, [], 'invalid', 42]) {
+        const result = await emitAck(host, event, payload);
+        assert.equal(result.code, 'INVALID_PAYLOAD', event);
+        assert.equal(server.rooms.get(created.roomId)?.hostId, host.id, event);
+        assert.equal(server.rooms.size, 1);
+      }
+    const poison = { toString: null, valueOf: null };
+    for (const [event, payload] of [
+      ['room:create', { displayName: poison }],
+      ['room:join', { roomId: poison }],
+      ['room:resume', { roomId: poison }],
+      ['room:rename', { displayName: poison }]
+    ]) {
+      assert.equal((await emitAck(host, event, payload)).code, 'INVALID_PAYLOAD');
+      assert.equal(server.rooms.get(created.roomId)?.hostId, host.id);
+    }
+    host.emit('room:resume', { roomId: 'MISSING' }, 'invalid-ack');
+    host.emit('room:turn-capability', {}, { invalid: 'ack' });
+    host.emit('rooms:list', { invalid: 'ack' });
+    assert.equal((await emitAck(host, 'room:profile:get', {})).ok, true);
+    assert.equal((await (await fetch(`http://127.0.0.1:${port}/health`)).json()).rooms, 1);
+    // Nullable media state and array lineup remain deliberate valid protocols.
+    host.emit('room:track', null);
+    host.emit('player:state', null);
+    host.emit('room:lineup', []);
+    await emitAck(host, 'room:profile:get', {});
+    assert.equal(server.rooms.get(created.roomId).track, null);
+    assert.equal(server.rooms.get(created.roomId).playerState, null);
+    assert.deepEqual(server.rooms.get(created.roomId).lineup, []);
+  });
+
+  it('never invokes object coercion hooks for room text or metadata', () => {
+    const poison = { toString: null, valueOf: null };
+    for (const value of [poison, [], { toString: 'not-callable' }]) {
+      assert.equal(sanitizeText(value, 'fallback', 30), 'fallback');
+      assert.equal(normalizeRoomId(value), '');
+      assert.equal(sanitizeAddress(value), null);
+      assert.equal(sanitizeTrackHash(value), null);
+      assert.equal(sanitizeChatText(value), null);
+      assert.equal(sanitizeReactionEmoji(value), null);
+      const track = sanitizeTrack({ title: value, artist: value, runtimeAddress: value });
+      assert.equal(track.title, 'Untitled');
+      assert.equal(track.runtimeAddress, undefined);
+    }
+    assert.equal(sanitizeText(42, '', 10), '42');
+    assert.equal(sanitizeText(false, '', 10), 'false');
+  });
+
+  it('limits readiness separately per listener without resetting that budget on room rejoin', async () => {
+    const host = connectClient();
+    const created = await createRoom(host);
+    const listeners = [];
+    for (let i = 0; i < 2; i++) {
+      const listener = connectClient();
+      await once(listener, 'connect');
+      await emitAck(listener, 'room:join', { roomId: created.roomId });
+      listeners.push(listener);
+    }
+    const received = [];
+    host.on('listener:ready', event => received.push(event.listenerId));
+    for (const [index, listener] of listeners.entries()) {
+      const renamed = once(host, 'listener:renamed');
+      for (let i = 0; i < SIGNAL_LIMITS.readiness + 3; i++) listener.emit('listener:ready');
+      await emitAck(listener, 'room:rename', { displayName: 'Guest ' + index });
+      await renamed;
+      assert.equal(received.filter(id => id === listener.id).length, SIGNAL_LIMITS.readiness);
+    }
+    const [listener] = listeners;
+    listener.emit('room:leave');
+    await emitAck(listener, 'room:join', { roomId: created.roomId });
+    const renamed = once(host, 'listener:renamed');
+    listener.emit('listener:ready');
+    await emitAck(listener, 'room:rename', { displayName: 'Back again' });
+    await renamed;
+    assert.equal(received.filter(id => id === listener.id).length, SIGNAL_LIMITS.readiness);
+  });
+
+  it('bounds SDP and trickle ICE messages while preserving legitimate candidate fields', async () => {
+    const host = connectClient();
+    const created = await createRoom(host);
+    const listener = connectClient();
+    await once(listener, 'connect');
+    await emitAck(listener, 'room:join', { roomId: created.roomId });
+    const offers = [],
+      candidates = [];
+    listener.on('webrtc:offer', payload => offers.push(payload));
+    host.on('webrtc:ice-candidate', payload => candidates.push(payload));
+    const normalCandidate = { candidate: 'candidate:normal', sdpMid: 'audio', sdpMLineIndex: 0, usernameFragment: null };
+    host.emit('webrtc:offer', { targetId: listener.id, offer: { type: 'offer', sdp: 'x'.repeat(SIGNAL_LIMITS.sdpBytes + 1) } });
+    host.emit('webrtc:offer', { targetId: listener.id, offer: { type: 'answer', sdp: 'wrong type' } });
+    listener.emit('webrtc:ice-candidate', { targetId: host.id, candidate: { candidate: 'é'.repeat(SIGNAL_LIMITS.candidateBytes) } });
+    listener.emit('webrtc:ice-candidate', { targetId: host.id, candidate: { ...normalCandidate, extra: 'not relayed' } });
+    for (let i = 0; i < SIGNAL_LIMITS.descriptions + 2; i++) host.emit('webrtc:offer', { targetId: listener.id, offer: { type: 'offer', sdp: 'offer-' + i } });
+    const hostRenamed = once(listener, 'host:renamed');
+    await emitAck(host, 'room:rename', { displayName: 'Done offering' });
+    await hostRenamed;
+    assert.equal(offers.length, SIGNAL_LIMITS.descriptions);
+    for (let i = 0; i < SIGNAL_LIMITS.candidates + 2; i++) listener.emit('webrtc:ice-candidate', { targetId: host.id, candidate: normalCandidate });
+    const listenerRenamed = once(host, 'listener:renamed');
+    await emitAck(listener, 'room:rename', { displayName: 'Done trickling' });
+    await listenerRenamed;
+    assert.equal(candidates.length, SIGNAL_LIMITS.candidates);
+    assert.deepEqual(candidates[0], { from: listener.id, candidate: normalCandidate });
+    assert.equal(boundedDescription({ type: 'offer', sdp: 'x'.repeat(SIGNAL_LIMITS.sdpBytes) }, 'offer')?.sdp.length, SIGNAL_LIMITS.sdpBytes);
+    assert.equal(boundedCandidate({ candidate: '' })?.candidate, '');
+    assert.equal(boundedCandidate({ ...normalCandidate, sdpMLineIndex: -1 }), null);
   });
 });

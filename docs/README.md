@@ -33,10 +33,14 @@ For an uncertain gift, tip or Classic purchase, use
 | Understand Product integration             | [Product architecture](explanation/product-devnet-architecture.md)                                              |
 | Make a focused contribution                | [AGENTS.md](../AGENTS.md), [PR guide](explanation/pull-requests-as-knowledge-sharing.md)                        |
 
+For documentation changes, follow [Document a change](how-to/document-a-change.md):
+choose the reader, give each rule one home and keep evidence tied to its artifact.
+
 ## Look something up
 
 - [Environment variables](reference/environment-variables.md)
-- [Socket events](reference/socket-events.md)
+- [Socket events and negotiation limits](reference/socket-events.md)
+- [HTTP request limits](reference/request-limits.md)
 - [DAV2 encrypted audio](reference/audio-v2-container.md)
 - [Contract reference](reference/contracts-api.md) and [generated bindings](../web/src/generated/contracts/)
 - [Shared TypeScript source](../web/src/shared/types.ts)
@@ -45,7 +49,8 @@ For an uncertain gift, tip or Classic purchase, use
 
 ## Operate and prepare a release
 
-- [Deployment configuration](operations/deployment-configuration.md): Web/API/signaling settings, persistent state and checks.
+- [Verify deployment configuration](operations/deployment-configuration.md): identify affected components, compare settings and validate delivery.
+- [Deployment history](operations/deployment-configuration-history.md): preserved dated checkpoints, outside the operating procedure.
 - [Product publication](operations/product-devnet-deployment.md): package identity, signer boundary, publish and rollback.
 - [Quality gates](operations/dev-quality-gates.md): automated verification.
 - [Pilot release plan](operations/pilot-release-plan.md): device journeys, evidence and the release decision.

@@ -112,6 +112,15 @@ metadata checklist into the reviewer-facing description.
   request the PR author to review their own change.
 - Keep the PR draft until its stated review prerequisites are satisfied.
 
+## Documentation in the same change
+
+Follow [Document a change](../how-to/document-a-change.md). Update the rule's
+reference or procedure rather than appending the same release paragraph to
+multiple documents. Link dated evidence with its commit and environment; keep
+candidate, deployed and accepted states distinct. When moving a document,
+verify its relative links and section anchors. Review diagrams as well as prose
+for retired behavior or guarantees the implementation cannot provide.
+
 ## Review-ready checklist
 
 Before requesting review:

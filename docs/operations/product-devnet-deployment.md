@@ -457,7 +457,7 @@ room-tip and release-editor follow-up in #269/#270. Build from the tested
 release commit and preserve `product-cdm` on `devnet`. Deploy matching API and
 signaling services, with the shared server-only native-receipt token configured,
 before publishing the ordinary Web and Product bundles. See the
-[configuration runbook](deployment-configuration.md#publication-and-room-follow-up-269).
+[configuration runbook](deployment-configuration-history.md#publication-and-room-follow-up-269).
 
 Published source: `fc7faf5a49e6d5b3392285bab2ee957d325b4cb6`; executable CID:
 `bafybeicqj4ekyiz7pmbt7ry2ixpwvpa24v5liialmhe3zwonjslt47wvna`. Independent DotNS and public

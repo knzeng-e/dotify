@@ -25,6 +25,7 @@ import { createArtistRoomActivity } from './artist-room-activity.mjs';
 import { createNearby } from './nearby.mjs';
 import { roomProfile } from './room-profile.mjs';
 import { sameRoomTrack } from './room-track.mjs';
+import { onObjectEvent, boundedDescription, boundedCandidate, SIGNAL_LIMITS } from './signaling-boundaries.mjs';
 import {
   REQUEST_TEXT_MAX_LENGTH,
   CHAT_TEXT_MAX_LENGTH,
@@ -174,6 +175,11 @@ export function startSignalingServer(overrides = {}, dependencies = {}) {
   const requestLimiter = createWindowLimiter(config.requestRateLimit.limit, config.requestRateLimit.windowMs);
   const typingLimiter = createWindowLimiter(8, 5000);
   const pinLimiter = createWindowLimiter(5, 5000);
+  // Per socket, never network: people sharing one venue keep independent budgets.
+  const readinessLimiter = createWindowLimiter(SIGNAL_LIMITS.readiness, SIGNAL_LIMITS.windowMs);
+  const descriptionLimiter = createWindowLimiter(SIGNAL_LIMITS.descriptions, SIGNAL_LIMITS.windowMs);
+  const candidateLimiter = createWindowLimiter(SIGNAL_LIMITS.candidates, SIGNAL_LIMITS.windowMs);
+  const peerNoticeLimiter = createWindowLimiter(SIGNAL_LIMITS.peerNotices, SIGNAL_LIMITS.windowMs);
   // Keyed by network address, never cleared on disconnect (that is the point):
   // a reconnect from the same address keeps consuming the same join budget.
   const joinLimiter = createWindowLimiter(config.joinRateLimit.limit, config.joinRateLimit.windowMs);
@@ -213,7 +219,14 @@ export function startSignalingServer(overrides = {}, dependencies = {}) {
   }
 
   const httpServer = createServer((request, response) => {
-    const requestUrl = new URL(request.url ?? '/', `http://${request.headers.host ?? 'localhost'}`);
+    // Only pathname/query matter. A client-controlled Host is not a URL base.
+    let requestUrl;
+    try {
+      requestUrl = new URL(request.url ?? '/', 'http://dotify.invalid');
+    } catch {
+      sendJson(request, response, 400, { error: 'Invalid request target.' });
+      return;
+    }
 
     if (requestUrl.pathname === '/contributions/config' && request.method === 'GET') {
       response.setHeader('cache-control', 'no-store');
@@ -428,6 +441,7 @@ export function startSignalingServer(overrides = {}, dependencies = {}) {
 
   let identitySamples = 0;
   io.on('connection', socket => {
+    const onObject = (event, handler) => onObjectEvent(socket, event, handler, () => logEvent('socket:invalid-handler', { event }));
     if (identitySamples < 5) {
       const identity = clientIdentity(socket, { trustProxy: config.trustProxy });
       if (identity.source !== 'socket') {
@@ -440,7 +454,7 @@ export function startSignalingServer(overrides = {}, dependencies = {}) {
       }
     }
     for (const event of ['room:tip-bind', 'room:tip-quote', 'room:tip-notify']) {
-      socket.on(event, async (payload = {}, ack) => {
+      onObject(event, async (payload = {}, ack) => {
         const reply = typeof ack === 'function' ? ack : () => {};
         const participant = getParticipant(socket);
         if (!participant || !requestLimiter.allow(socket.id)) return reply({ ok: false, error: 'Reconnect or wait before trying again.' });
@@ -554,7 +568,7 @@ export function startSignalingServer(overrides = {}, dependencies = {}) {
       if (roster) emitRealtimeRoster(participant.room, roster);
     });
 
-    socket.on('presence:solo', (payload = {}) => {
+    onObject('presence:solo', (payload = {}) => {
       const trackHash = sanitizeTrackHash(payload.trackHash);
       // A socket is either listening solo or participating in a room, never
       // both. Null and invalid hashes clear the caller's own declaration.
@@ -570,7 +584,7 @@ export function startSignalingServer(overrides = {}, dependencies = {}) {
       emitSoloPresence();
     });
 
-    socket.on('room:turn-capability', (_payload = {}, reply) => {
+    onObject('room:turn-capability', (_payload = {}, reply) => {
       if (!config.turnCapabilitySecret) {
         reply?.({ ok: false, error: 'Room relay authorization is not configured.', code: 'TURN_CAPABILITY_NOT_CONFIGURED' });
         return;
@@ -583,7 +597,7 @@ export function startSignalingServer(overrides = {}, dependencies = {}) {
       reply?.({ ok: true, capability: capability.token, expiresAt: capability.expiresAt });
     });
 
-    socket.on('room:create', (payload = {}, reply) => {
+    onObject('room:create', (payload = {}, reply) => {
       // Check limits before leaving: a refused creation keeps any current room.
       if (!roomCreateLimiter.allow(clientKey(socket, { trustProxy: config.trustProxy }))) {
         logEvent('room:create-throttled', { socketId: socket.id });
@@ -642,7 +656,7 @@ export function startSignalingServer(overrides = {}, dependencies = {}) {
       recoverRoomContributionTrack(roomId, room);
     });
 
-    socket.on('room:resume', (payload = {}, reply) => {
+    onObject('room:resume', (payload = {}, reply) => {
       socket.data.joinRevision = (socket.data.joinRevision ?? 0) + 1;
       const roomId = normalizeRoomId(payload.roomId);
       const room = rooms.get(roomId);
@@ -695,7 +709,7 @@ export function startSignalingServer(overrides = {}, dependencies = {}) {
       recoverRoomContributionTrack(roomId, room);
     });
 
-    socket.on('room:join', async (payload = {}, reply) => {
+    onObject('room:join', async (payload = {}, reply) => {
       reply = typeof reply === 'function' ? reply : () => {};
       if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
         reply({ ok: false, error: 'Invalid room request.' });
@@ -849,7 +863,7 @@ export function startSignalingServer(overrides = {}, dependencies = {}) {
 
     // Host-declared playback mode: 'full' when the host satisfies the track
     // access policy, 'preview' when streaming the 42% fallback.
-    socket.on('room:playback-mode', (payload = {}) => {
+    onObject('room:playback-mode', (payload = {}) => {
       const room = getHostedRoom(socket);
       if (!room) return;
 
@@ -862,7 +876,7 @@ export function startSignalingServer(overrides = {}, dependencies = {}) {
       socket.to(socket.data.roomId).emit('room:playback-mode', { playbackMode });
     });
 
-    socket.on('room:rename', (payload = {}, reply) => {
+    onObject('room:rename', (payload = {}, reply) => {
       const participant = getParticipant(socket);
       if (!participant) {
         reply?.({ ok: false, error: 'Not in a room.' });
@@ -926,7 +940,7 @@ export function startSignalingServer(overrides = {}, dependencies = {}) {
     // Social layer: reactions and chat are open to every room participant
     // (host and listeners alike). Malformed or over-limit events are dropped
     // silently -- fail closed, no error channel to probe.
-    socket.on('room:reaction', (payload = {}) => {
+    onObject('room:reaction', (payload = {}) => {
       const participant = getParticipant(socket);
       if (!participant) return;
       if (!reactionLimiter.allow(socket.id)) return;
@@ -944,12 +958,12 @@ export function startSignalingServer(overrides = {}, dependencies = {}) {
       });
     });
 
-    socket.on('room:typing', (payload = {}) => {
+    onObject('room:typing', (payload = {}) => {
       const participant = getParticipant(socket);
       if (!participant || typeof payload?.active !== 'boolean' || !typingLimiter.allow(socket.id)) return;
       life.typing(socket, payload.active, participant.displayName);
     });
-    socket.on('room:pin', (payload = {}, ack) => {
+    onObject('room:pin', (payload = {}, ack) => {
       ack = typeof ack === 'function' ? ack : () => {};
       if (!payload || (payload.id !== null && typeof payload.id !== 'string')) {
         ack({ ok: false });
@@ -977,7 +991,7 @@ export function startSignalingServer(overrides = {}, dependencies = {}) {
         nearby.changed(participant.roomId);
       }
     });
-    socket.on('room:chat', (payload = {}, ack) => {
+    onObject('room:chat', (payload = {}, ack) => {
       const reply = result => {
         if (typeof ack === 'function') ack(result);
       };
@@ -1025,7 +1039,7 @@ export function startSignalingServer(overrides = {}, dependencies = {}) {
     // next; the host vetoes or clears. Every mutation broadcasts the full
     // list (room:requests) so the queue has a single server-authoritative
     // render path, exactly like chat -- no optimistic divergence.
-    socket.on('room:request', (payload = {}, ack) => {
+    onObject('room:request', (payload = {}, ack) => {
       const reply = result => {
         if (typeof ack === 'function') ack(result);
       };
@@ -1062,7 +1076,7 @@ export function startSignalingServer(overrides = {}, dependencies = {}) {
     });
 
     // Host veto: remove one request by id. Host-only.
-    socket.on('room:request:remove', (payload = {}) => {
+    onObject('room:request:remove', (payload = {}) => {
       const room = getHostedRoom(socket);
       if (!room) return;
 
@@ -1086,26 +1100,32 @@ export function startSignalingServer(overrides = {}, dependencies = {}) {
       io.to(socket.data.roomId).emit('room:requests', room.requests);
     });
 
-    socket.on('webrtc:offer', (payload = {}) => {
-      routePeerMessage(socket, payload.targetId, 'webrtc:offer', { from: socket.id, offer: payload.offer }, 'host', 'listener');
+    onObject('webrtc:offer', (payload = {}) => {
+      const offer = boundedDescription(payload.offer, 'offer');
+      if (!offer) return;
+      routePeerMessage(socket, payload.targetId, 'webrtc:offer', { from: socket.id, offer }, 'host', 'listener');
     });
 
-    socket.on('webrtc:answer', (payload = {}) => {
-      routePeerMessage(socket, payload.targetId, 'webrtc:answer', { from: socket.id, answer: payload.answer }, 'listener', 'host');
+    onObject('webrtc:answer', (payload = {}) => {
+      const answer = boundedDescription(payload.answer, 'answer');
+      if (!answer) return;
+      routePeerMessage(socket, payload.targetId, 'webrtc:answer', { from: socket.id, answer }, 'listener', 'host');
     });
 
-    socket.on('webrtc:ice-candidate', (payload = {}) => {
-      routePeerMessage(socket, payload.targetId, 'webrtc:ice-candidate', { from: socket.id, candidate: payload.candidate });
+    onObject('webrtc:ice-candidate', (payload = {}) => {
+      const candidate = boundedCandidate(payload.candidate);
+      if (!candidate) return;
+      routePeerMessage(socket, payload.targetId, 'webrtc:ice-candidate', { from: socket.id, candidate });
     });
 
-    socket.on('peer:connected', (payload = {}) => {
+    onObject('peer:connected', (payload = {}) => {
       routePeerMessage(socket, payload.targetId, 'peer:connected', { from: socket.id }, 'listener', 'host');
     });
 
     // Client-side WebRTC failures are otherwise invisible inside native
     // Product webviews. Keep this deliberately metadata-only: no SDP, ICE
     // candidates, IP addresses, media identifiers, or user agent strings.
-    socket.on('webrtc:diagnostic', (payload = {}) => {
+    onObject('webrtc:diagnostic', (payload = {}) => {
       const participant = getParticipant(socket);
       if (!participant || !socket.rooms.has(participant.roomId)) return;
 
@@ -1124,7 +1144,7 @@ export function startSignalingServer(overrides = {}, dependencies = {}) {
         'have-remote-offer'
       ]);
       const safeState = value => (states.has(value) ? value : null);
-      const errorCode = Number(payload.errorCode);
+      const errorCode = ['number', 'string'].includes(typeof payload.errorCode) ? Number(payload.errorCode) : NaN;
       logEvent('webrtc:diagnostic', {
         roomId: participant.roomId,
         sourceId: socket.id,
@@ -1147,7 +1167,7 @@ export function startSignalingServer(overrides = {}, dependencies = {}) {
     socket.on('listener:ready', () => {
       const roomId = socket.data.roomId;
       const room = rooms.get(roomId);
-      if (socket.data.role !== 'listener' || !room?.hostId) return;
+      if (socket.data.role !== 'listener' || !room?.hostId || !room.listeners.has(socket.id) || !readinessLimiter.allow(socket.id)) return;
 
       const listener = room.listeners.get(socket.id);
       logEvent('listener:ready', {
@@ -1164,7 +1184,7 @@ export function startSignalingServer(overrides = {}, dependencies = {}) {
     });
 
     socket.on('rooms:list', reply => {
-      reply?.(publicRooms());
+      if (typeof reply === 'function') reply(publicRooms());
     });
 
     socket.on('room:leave', () => {
@@ -1204,11 +1224,11 @@ export function startSignalingServer(overrides = {}, dependencies = {}) {
         sourceId: sourceSocket.id,
         sourceRole: sourceSocket.data.role ?? null,
         roomId: sourceSocket.data.roomId ?? null,
-        targetId: typeof targetId === 'string' ? targetId : null
+        targetId: typeof targetId === 'string' ? targetId.slice(0, 128) : null
       });
     };
 
-    if (typeof targetId !== 'string' || !targetId) {
+    if (typeof targetId !== 'string' || !targetId || targetId.length > 128) {
       logPeerDrop('missing-target');
       return;
     }
@@ -1239,6 +1259,8 @@ export function startSignalingServer(overrides = {}, dependencies = {}) {
       return;
     }
 
+    const limiter = eventName === 'webrtc:ice-candidate' ? candidateLimiter : eventName === 'peer:connected' ? peerNoticeLimiter : descriptionLimiter;
+    if (!limiter.allow(sourceSocket.id)) return;
     if (logPeerEvent) {
       logEvent('peer:route', {
         event: eventName,
@@ -1316,6 +1338,10 @@ export function startSignalingServer(overrides = {}, dependencies = {}) {
   function disconnectFromRoom(socket, reason) {
     clearSoloPresence(socket);
     soloPresenceLimiter.clear(socket.id);
+    readinessLimiter.clear(socket.id);
+    descriptionLimiter.clear(socket.id);
+    candidateLimiter.clear(socket.id);
+    peerNoticeLimiter.clear(socket.id);
     const roomId = socket.data.roomId;
     const role = socket.data.role;
     if (!roomId || !role) return;

@@ -32,6 +32,7 @@ import { ensureProductHostRoomPermissions, isProductHostWebRtcUnavailable, openP
 import { isChosenDisplayName, sanitizeDisplayName, storeDisplayName } from '../features/identity/walletIdentity';
 import { nextCaptureAttempt, shouldReuseCapture, type CaptureAttempt } from '../features/rooms/streamCapture';
 import { RoomCreationController } from '../features/rooms/roomCreation';
+import { queuePendingIce } from '../features/rooms/pendingIce';
 import { registerHostAudioOutput, releaseHostAudioOutput, resumeHostAudioOutput, syncHostAudioOutput } from '../features/player/hostAudioOutput';
 import { CHAT_CLIENT_LIMIT, CHAT_TEXT_MAX_LENGTH, REQUEST_QUEUE_CLIENT_LIMIT, REQUEST_TEXT_MAX_LENGTH, ROOM_LINEUP_CLIENT_LIMIT } from '../shared/social';
 import { normalizeRoomCode, normalizeRooms, peerStatusLabel, getPeerStatus } from '../shared/utils/format';
@@ -682,6 +683,7 @@ export function useSession(deps: UseSessionDeps) {
       clearHostConnectionTimer(payload.listenerId);
       hostPeersRef.current.get(payload.listenerId)?.close();
       hostPeersRef.current.delete(payload.listenerId);
+      pendingIceCandidatesRef.current.delete(payload.listenerId);
       removeListener(payload.listenerId);
       setListenerCount(payload.listenerCount);
     });
@@ -1538,9 +1540,7 @@ export function useSession(deps: UseSessionDeps) {
   }
 
   function queueRemoteCandidate(from: string, candidate: RTCIceCandidateInit) {
-    const pending = pendingIceCandidatesRef.current.get(from) ?? [];
-    pending.push(candidate);
-    pendingIceCandidatesRef.current.set(from, pending);
+    queuePendingIce(pendingIceCandidatesRef.current, from, candidate);
   }
 
   async function flushRemoteCandidates(from: string, peer: RTCPeerConnection) {
