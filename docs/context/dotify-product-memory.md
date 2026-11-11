@@ -1,5 +1,19 @@
 # Dotify product memory
 
+## Post-optimization publication and listening confirmed, 2026-11-11
+
+[The approved exact trial](../backlog/implementation/evidence/bulletin-eskapade-activation-2026-11-11.md) now publishes and plays, confirmed
+by the owner with approximately **7 min 46 s before the wallet prompt**. Captured
+scoped reports show successful audio/cover/metadata work, 110 store calls and
+cover reuse, without collection failures. Publisher clocks have different
+boundaries from the owner's time; overlapping phases are not additive and this
+is not a same-file speed comparison. Submit/finalize averages about 32 s per call.
+#407 stays Now/In Progress: investigate fewer storage/dependency stages and
+format/resolver compatibility offline, preserving proof/retention/nonce gates.
+The same #426 image and Web/Product/public APIs 0.1.82 remain; no further trial,
+maintenance, allowance or renewal is authorized by this acceptance. Earlier
+entries describe their dated checkpoints.
+
 ## Publication round-trip optimization delivered, 2026-11-10
 
 [The approved custody-only delivery](../backlog/implementation/evidence/bulletin-round-trips-rollout-2026-11-10.md) installs #426 from tested

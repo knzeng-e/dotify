@@ -1,5 +1,19 @@
 # Bulletin publication beyond the synthetic pilot
 
+## Post-optimization publication and listening confirmed, 2026-11-11
+
+[The approved exact trial](implementation/evidence/bulletin-eskapade-activation-2026-11-11.md) now publishes and plays, confirmed
+by the owner with approximately **7 min 46 s before the wallet prompt**. Captured
+scoped reports show successful audio/cover/metadata work, 110 store calls and
+cover reuse, without collection failures. Publisher clocks have different
+boundaries from the owner's time; overlapping phases are not additive and this
+is not a same-file speed comparison. Submit/finalize averages about 32 s per call.
+#407 stays Now/In Progress: investigate fewer storage/dependency stages and
+format/resolver compatibility offline, preserving proof/retention/nonce gates.
+The same #426 image and Web/Product/public APIs 0.1.82 remain; no further trial,
+maintenance, allowance or renewal is authorized by this acceptance. Earlier
+entries describe their dated checkpoints.
+
 ## Publication round-trip optimization delivered, 2026-11-10
 
 [The approved custody-only delivery](implementation/evidence/bulletin-round-trips-rollout-2026-11-10.md) installs #426 from tested
@@ -89,7 +103,7 @@ the same audio. No duplicate is proposed merely to collect timings. No writing
 sample, deployment or admission change occurs; full-publication latency remains
 unverified.
 
-## Current remaining scope after #426, 2026-11-10
+## Current remaining scope after trial acceptance, 2026-11-11
 
 Issue #407 · P1 · Production spine · Now · Work. Workflow: Project 5.
 
@@ -104,9 +118,13 @@ The owner now confirms publication and listening for the new identity, with
 about nine minutes reported before the wallet prompt. Source-scoped readback
 confirms the effective window and ready assets without pending outcomes.
 #426 is now delivered to custody with protected histories unchanged and no
-maintenance chain writes. Actual gains still require a separately admitted new
-source; completed identities are not reset for timing. Remaining: reduce the
-still-long wait, distinguishing audio, public assets,
+maintenance chain writes. “Eskapade à engong” now publishes and plays on that
+same image; the owner reports 7 min 46 s before the wallet prompt. Captured
+reports succeed with 110 store calls and cover reuse. Repeated finality stages
+remain the main target; investigate offline fewer blocks/stages and format/
+resolver compatibility without relaxing integrity, retention or nonce rules.
+Completed identities are not reset for timing. Remaining: reduce the still-long
+wait, distinguishing audio, public assets,
 proof/finality and catalogue intervals. The new MP3 is lighter than the prior
 WAV, so their elapsed times do not isolate the window correction. Keep #407
 open until acceptable complete latency and repeatable acceptance are verified.
