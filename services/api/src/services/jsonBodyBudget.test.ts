@@ -1,6 +1,17 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { assertBoundedJson, JsonBodyBudgetError } from './jsonBodyBudget.js';
+import { Readable } from 'node:stream';
+import { assertBoundedJson, assertBoundedJsonRequest, JsonBodyBudgetError } from './jsonBodyBudget.js';
+
+test('raw custody JSON streams remain unconsumed and parsed JSON cannot forge that exemption', () => {
+  const raw = Readable.from(['{"tracks":[]}']);
+  assertBoundedJsonRequest('application/json', raw);
+  assert.equal(raw.readableDidRead, false);
+  assertBoundedJsonRequest('application/json', Buffer.from('{}'));
+  assertBoundedJsonRequest('multipart/form-data', { parts: new Array(257) });
+  assert.throws(() => assertBoundedJsonRequest('application/json; charset=utf-8', { pipe: true, tracks: new Array(257) }), JsonBodyBudgetError);
+  raw.destroy();
+});
 
 test('network JSON budget refuses oversized collections before enumerating their elements', () => {
   const array = new Array(257);

@@ -1,5 +1,14 @@
 // Bound parsed network JSON before schema validators can accumulate issues.
 // Not a schema replacement, persisted-state parser or multipart/upload limit.
+import { Readable } from 'node:stream';
+
+export function assertBoundedJsonRequest(contentType: string | undefined, body: unknown): void {
+  const type = contentType?.split(';')[0].trim().toLowerCase() ?? '';
+  // Raw forwarding must not inspect/consume a stream. Custody checks its parsed
+  // JSON. Actual Node types, rather than a forgeable `pipe` property, decide.
+  if (body !== undefined && !Buffer.isBuffer(body) && !(body instanceof Readable) && /^application\/(?:[\w.+-]+\+)?json$/.test(type)) assertBoundedJson(body);
+}
+
 export class JsonBodyBudgetError extends Error {
   statusCode = 413;
   code = 'BODY_STRUCTURE_TOO_LARGE';

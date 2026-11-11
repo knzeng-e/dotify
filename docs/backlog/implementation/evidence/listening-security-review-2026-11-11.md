@@ -57,7 +57,7 @@ subset is not a clean full-development audit.
 
 ## Validation and limits
 
-Final validation: **436 API tests / 42 suites**, **1,126 Web unit tests**,
+Final validation: **437 API tests / 42 suites**, **1,126 Web unit tests**,
 **131 signaling tests / 11 suites**, **26 offline Product/CLI guard cases**,
 **22 Room/audio browser cases + 5 logout browser cases** pass. API typecheck/build,
 Web build, frozen Product DevNet build, Web formatting and offline backlog/docs
@@ -83,3 +83,17 @@ The existing large-bundle and two App hook lint warnings are not silently
 changed by this scope. Public-pilot security, conservation and recovery gates
 remain; no image upload, maintenance, deployment, real musical write or signer
 operation occurs here.
+
+## Shared-state CI follow-up
+
+The first #434 CI exposed a raw JSON proxy stream being inspected as if it were
+parsed JSON, returning413 before custody authentication. The request gate now
+exempts actual Node `Readable` and `Buffer` instances without consuming them;
+ordinary JSON cannot forge that exemption with a `pipe` property. Custody still
+validates the parsed body. A dedicated regression covers both directions.
+
+All **15 W36 tests pass locally on disposable PostgreSQL16**, including rolling
+restart/logout, backup/restore, custody exit/lock loss and streamed proxy failure
+behavior. PostgreSQL16 dump/restore clients run inside that same disposable
+container (the system client is14); the container and temporary clients are
+removed afterwards. No existing database or production state is involved.
