@@ -1,5 +1,17 @@
 # Listening controls and room discovery — next iteration
 
+## Optional-storage correction candidate — 2026-11-13
+
+A controlled regression demonstrates that a stalled Cache Storage write can
+withhold an already downloaded cover. The candidate bounds optional disk lookup,
+returns the in-memory image before persistence and limits background storage to
+one writer without a queue. See the [cache contract](../reference/public-artwork-cache.md)
+and [source-bound evidence](implementation/evidence/public-artwork-persistence-2026-11-13.md).
+This is a narrow #388 correction available for offline review while independent
+recovery is coordinated; the delivery/acceptance order remains #407 → #395 → #388.
+It does not establish the cause of the reported iPhone delay. Prepared-PNG reuse,
+matched timing reports, rapid changes and repeated physical locks remain open.
+
 ## Remaining artwork reliability, 2026-11-08
 
 The owner confirms intermittent late lock-screen cover display in **both solo

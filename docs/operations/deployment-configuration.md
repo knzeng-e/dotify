@@ -120,6 +120,12 @@ already served bundle. Confirm the build and publish paths against
 [netlify.toml](../../netlify.toml). Keep frontend secrets out of all contexts,
 including deploy previews.
 
+For a client change involving covers, verify the
+[public-artwork cache boundary](../reference/public-artwork-cache.md): denied or
+stalled Cache Storage must retain public-image delivery and must not restore
+metadata after disconnect. This source candidate adds no hosted setting or cache
+schema change. Native repeated lock/unlock acceptance is still a device check.
+
 ### Product DevNet frontend
 
 Follow [Product publication](product-devnet-deployment.md) for package identity,
