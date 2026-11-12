@@ -17,8 +17,10 @@ its original history. The
 adds independent-runner transfer, source loss and restored-object authentication.
 The same procedure now covers compiled historical compatibility and an unsupported
 pilot-era refusal; actual service/image rollback remains separate.
-Operational backup/key restoration, service/image rollback, physical-device
-and memory acceptance remain before activation. No deployed service or live
+The [generated resource probe](../operations/bulletin-resource-envelope.md) now
+exercises real AAC encoding, graph construction and authenticated reads inside
+locally bounded containers. Operational backup/key restoration, service/image
+rollback, physical-device and hosted-memory acceptance remain before activation. No deployed service or live
 allowance changes. #407 stays Now/In Progress before Room/artwork/CASH.
 
 ## Object-reader checkpoint, 2026-11-11

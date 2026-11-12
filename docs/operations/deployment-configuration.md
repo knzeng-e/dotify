@@ -84,6 +84,10 @@ public fixtures and disposable CI runners, with seven-day artifact retention.
 A third runner builds the candidate and two fixed historical revisions with their
 own lockfiles for [compiled-module compatibility](bulletin-generated-restore-rehearsal.md#compare-compiled-historical-versions); it does not start a deployed service/image.
 It changes no Fly mount, secret, backup job or production recovery configuration.
+The [resource-envelope exercise](bulletin-resource-envelope.md) uses the unchanged
+API/encoder images on an internal Docker network, with 1-GiB/512-MiB cgroups,
+no swap and generated 97/900-second profiles. Its temporary settings are never
+Fly/Netlify environment variables; no service capacity or hosted load is accepted.
 Source availability is not a deployment or permission to apply an extension.
 
 The browser harness alone sets `DOTIFY_E2E_LOCAL_FONTS=true` on its local Vite

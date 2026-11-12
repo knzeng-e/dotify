@@ -173,5 +173,6 @@ layouts; it uses public structural fixtures and simulated chain history.
 A separate [compiled-version comparison](../operations/bulletin-generated-restore-rehearsal.md#compare-compiled-historical-versions) now exercises #438 recovery/readers and #426 refusal against those fixtures,
 without rewinding journals. Operational backup/key restoration, service/image rollback, physical Host
 startup/seek/adaptation, Room/background behavior, real first sound and memory
-pressure remain acceptance gates before activation. Automated AAC/sample checks
-do not prove faster publication or audible physical-device output.
+pressure remain acceptance gates before activation. The [generated container resource probe](../operations/bulletin-resource-envelope.md) now measures encoding, graph construction and authenticated reads at 97/900
+seconds under local enforced limits. Hosted capacity remains unverified.
+Automated AAC/sample checks do not prove faster publication or audible physical-device output.
