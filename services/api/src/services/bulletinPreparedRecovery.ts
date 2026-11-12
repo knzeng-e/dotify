@@ -1,4 +1,4 @@
-// Maintenance-only recovery of one already-bound pilot. No encoder, new job,
+// Maintenance-only recovery of one already-bound audio job. No encoder, new job,
 // nonce reservation, attempt reset, public route, or alternate provider.
 import assert from 'node:assert/strict';
 import { createHash, randomUUID } from 'node:crypto';
@@ -8,8 +8,15 @@ import { isAbsolute, join } from 'node:path';
 import { blake2b } from '@noble/hashes/blake2';
 import { z } from 'zod';
 import { buildBulletinMediaGraph, BULLETIN_GRAPH_MAX } from './bulletinGraph.js';
-import { jobSchema, ownerSchema, privateDirectory, save, sync, bulletinInventoryLayout } from './bulletinMediaState.js';
-import { assertStandardBulletinLayout } from './bulletinStorageLayout.js';
+import { buildBulletinCompactMediaGraph } from './bulletinCompactGraph.js';
+import { privateDirectory, save, sync } from './bulletinMediaState.js';
+import type { BulletinStorageLayout } from './bulletinStorageLayout.js';
+import type { BulletinPipelineLimits } from './bulletinPipeline.js';
+import { readPreparedPublicationBinding, readRecoveryProfileBinding } from './bulletinRecoveryBinding.js';
+import { assertFreshContentKey } from './freshContentKey.js';
+import type { ContentKeyVaultConfigInput } from './keyVault.js';
+import { CID } from 'multiformats/cid';
+import { formatStreamingReference } from './streamingReference.js';
 import { assertPublicationBinding, publicationBinding, readBulletinPublisherProfile, type BulletinPublisherProfile } from './bulletinPublisherProfile.js';
 import { decryptStreamingObject, parseStreamingManifest, verifyStreamingManifest, type StreamingScope } from './streamingFormat.js';
 import { STREAM_NONCE_SCHEME, streamingKeyFingerprint } from './streamingNonces.js';
@@ -21,8 +28,7 @@ const sha256 = (value: Uint8Array | string) => createHash('sha256').update(value
 const inputSchema = z.object({ jobId: z.string().uuid(), owner: z.string().regex(/^0x[0-9a-f]{40}$/) }).strict();
 const nonceMarker = 'dotify.streaming.nonce-ledger.v1';
 // No raw errors or key fingerprints are returned in the operator report.
-export type PreparedRecoveryPlan = {
-  schema: 'dotify.bulletin.prepared-recovery.v1';
+type RecoveryPlanFields = {
   jobId: string;
   owner: string;
   scope: StreamingScope;
@@ -38,6 +44,11 @@ export type PreparedRecoveryPlan = {
   maxBytes: number;
   snapshotSha256: string;
 };
+export type PreparedRecoveryPlan = RecoveryPlanFields &
+  (
+    | { schema: 'dotify.bulletin.prepared-recovery.v1' }
+    | { schema: 'dotify.bulletin.prepared-recovery.v2'; audioLayout: BulletinStorageLayout; admissionSha256: string; pipeline: BulletinPipelineLimits }
+  );
 type Options = {
   queue: string;
   profileFile: string;
@@ -51,6 +62,8 @@ type Dependencies = {
   deriveKey(scope: StreamingScope): Buffer | null;
   authority(owner: string, runtime: string, chainId: number): Promise<boolean>;
   publisher?: PublisherDependencies;
+  /** Trusted server/test vault selection, never an operator CLI key argument. */
+  contentKeyVault?: ContentKeyVaultConfigInput;
 };
 async function privateBytes(file: string, maximum: number): Promise<Buffer> {
   const handle = await open(file, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
@@ -78,10 +91,12 @@ async function prepare(options: Options, profile: BulletinPublisherProfile, deps
       if (error.code !== 'ENOENT') throw error;
     }
   );
-  assert.ok(profile.pilotScope, 'Prepared recovery requires an immutable one-release pilot scope');
+  assertFreshContentKey(profile.freshContentKey, deps.contentKeyVault);
   const snapshots: Array<[string, string]> = [];
   const read = async (name: string, file: string, limit = 2 * 1024 * 1024) => {
+    options.signal.throwIfAborted();
     const bytes = await privateBytes(file, limit);
+    options.signal.throwIfAborted();
     snapshots.push([name, sha256(bytes)]);
     return bytes;
   };
@@ -91,7 +106,8 @@ async function prepare(options: Options, profile: BulletinPublisherProfile, deps
   const job = queue.jobs.find(job => job.id === options.jobId);
   assert.ok(job && job.owner === options.owner, 'Recovery job/owner mismatch');
   assert.ok(job.state === 'failed' && job.attempts === 3 && !job.ref, 'Recovery requires an exhausted failed job');
-  assert.deepEqual(job.scope, profile.pilotScope, 'Recovery scope differs from the pilot');
+  await readRecoveryProfileBinding(profile, options.profileFile, options.queue, read);
+  const binding = await readPreparedPublicationBinding(profile, job, read);
   const allowed = () => deps.authority(job.owner, job.scope.runtimeAddress, job.scope.chainId);
   assert.ok(await allowed(), 'Artist authority unavailable');
   const folder = join(options.queue, 'jobs', job.id);
@@ -154,25 +170,10 @@ async function prepare(options: Options, profile: BulletinPublisherProfile, deps
     }
     // Same representation as the normal queue, preserving the existing root.
     files.push({ path: 'manifest.json', bytes: Buffer.from(JSON.stringify(manifest)) });
-    const graph = await buildBulletinMediaGraph(files, options.signal);
-    const owner = ownerSchema.parse(JSON.parse((await read('publisher-owner', join(profile.directory, 'owner.json'))).toString('utf8')));
-    const name = `stream-${job.id}`;
-    assert.equal(owner.account, profile.account);
-    assert.equal(owner.genesis, profile.genesis);
-    assert.equal(new Set(owner.jobs).size, owner.jobs.length, 'Duplicate publisher jobs');
-    assert.ok(owner.jobs.includes(name) && (!owner.activeJob || owner.activeJob === name), 'Existing publication ownership unavailable');
-    // Never create or adopt a new publication inventory during recovery.
-    const inventory = jobSchema.parse(JSON.parse((await read('publication', join(profile.directory, `${name}.json`))).toString('utf8')));
-    assertStandardBulletinLayout(bulletinInventoryLayout(inventory));
-    for (const retained of owner.jobs.filter(id => id !== name)) {
-      const other = jobSchema.parse(JSON.parse((await read(`retained-${retained}`, join(profile.directory, `${retained}.json`))).toString('utf8')));
-      assertStandardBulletinLayout(bulletinInventoryLayout(other));
-      assert.equal(other.job, retained);
-      assert.equal(other.account, profile.account);
-      assert.equal(other.genesis, profile.genesis);
-    }
-    const binding = {
-      job: name,
+    const graph = await (binding.layout === 'rendition-pack-v1' ? buildBulletinCompactMediaGraph : buildBulletinMediaGraph)(files, options.signal);
+    const { inventory } = binding;
+    const expectedInventory = {
+      job: binding.name,
       genesis: profile.genesis,
       account: profile.account,
       root: graph.root,
@@ -180,16 +181,23 @@ async function prepare(options: Options, profile: BulletinPublisherProfile, deps
       generation: graph.generation,
       blocks: graph.blocks.map(block => ({ cid: block.cid, bytes: block.bytes.length })),
       budget: profile.budget,
-      pipeline: profile.pipeline
+      pipeline: binding.pipeline
     };
-    for (const field of Object.keys(binding) as (keyof typeof binding)[])
-      assert.deepEqual(inventory[field], binding[field], 'Saved publication binding changed');
+    for (const field of Object.keys(expectedInventory) as (keyof typeof expectedInventory)[])
+      assert.deepEqual(inventory[field], expectedInventory[field], 'Saved publication binding changed');
     assert.ok(
       inventory.attemptedStores <= profile.budget.maxTransactions && inventory.attemptedBytes <= profile.budget.maxBytes,
       'Existing allowance exhausted'
     );
     const plan: PreparedRecoveryPlan = {
-      schema: 'dotify.bulletin.prepared-recovery.v1',
+      ...(binding.admissionSha256
+        ? {
+            schema: 'dotify.bulletin.prepared-recovery.v2' as const,
+            audioLayout: binding.layout,
+            admissionSha256: binding.admissionSha256,
+            pipeline: binding.pipeline
+          }
+        : { schema: 'dotify.bulletin.prepared-recovery.v1' as const }),
       jobId: job.id,
       owner: job.owner,
       scope: job.scope,
@@ -206,7 +214,7 @@ async function prepare(options: Options, profile: BulletinPublisherProfile, deps
       snapshotSha256: sha256(JSON.stringify({ queue: options.queue, profile: publicationBinding(profile), snapshots }))
     };
     const planSha256 = sha256(JSON.stringify(plan));
-    return { plan, planSha256, files, queue, queueBytes, job, allowed };
+    return { plan, planSha256, files, queue, queueBytes, job, allowed, layout: binding.layout };
   } finally {
     key.fill(0);
   }
@@ -233,6 +241,14 @@ export async function recoverPreparedBulletinJob(options: Options, deps: Depende
       provider: 'bulletin',
       queue: options.queue,
       profileFile: options.profileFile,
+      contentKeyVault: deps.contentKeyVault,
+      ...(profile.releasePolicy
+        ? {
+            releaseAssets: true,
+            // Enable the multi-release validator, never public-asset publication.
+            assetAuthority: async () => false
+          }
+        : {}),
       validateBeforeSigner: async () => {
         prepared = await prepare(options, profile, deps);
         assert.equal(prepared.planSha256, options.executePlan, 'Recovery plan changed; inspect again');
@@ -248,7 +264,16 @@ export async function recoverPreparedBulletinJob(options: Options, deps: Depende
     const { job, plan, planSha256 } = prepared;
     options.signal.throwIfAborted();
     assert.ok(await prepared.allowed(), 'Artist authority changed before recovery publication');
-    audit = { schema: 'dotify.bulletin.prepared-recovery-attempt.v1', plan, planSha256, previousJob: { ...job }, startedAt: Date.now() };
+    audit = {
+      schema:
+        plan.schema === 'dotify.bulletin.prepared-recovery.v2'
+          ? 'dotify.bulletin.prepared-recovery-attempt.v2'
+          : 'dotify.bulletin.prepared-recovery-attempt.v1',
+      plan,
+      planSha256,
+      previousJob: { ...job },
+      startedAt: Date.now()
+    };
     const audits = join(options.queue, 'recoveries');
     await mkdir(audits, { mode: 0o700 }).catch(error => {
       if (error.code !== 'EEXIST') throw error;
@@ -261,7 +286,9 @@ export async function recoverPreparedBulletinJob(options: Options, deps: Depende
     options.signal.throwIfAborted();
     assert.equal(cid, plan.root, 'Recovered publication root changed');
     assert.ok((await privateBytes(join(options.queue, 'jobs.json'), 256 * 1024)).equals(prepared.queueBytes), 'Queue changed during exclusive recovery');
-    const ref = `dotify:enc:v3:${job.scope.keyVersion.replace('dotify-content-', '')}:ipfs://${cid}`;
+    const expectedRef = formatStreamingReference(cid, job.scope.keyVersion, prepared.layout, value => CID.parse(value));
+    const ref = publication.audioReference ? await publication.audioReference(job.scope, cid) : expectedRef;
+    assert.equal(ref, expectedRef, 'Recovered reference differs from the inspected layout');
     job.ref = ref;
     job.state = 'ready';
     job.updatedAt = Date.now();
