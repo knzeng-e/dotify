@@ -6,8 +6,11 @@ The [explicit compact-delivery candidate](../reference/bulletin-compact-delivery
 connects ordinary Web/API/Host dispatch to a distinct registered reference and an
 immutable exact-source admission. Standard references, prior claims and budgets
 retain their interpretation. Simulated publication/restart, response loss and
-ciphertext delivery have coverage; real AAC/device, broader recovery/rollback
-and memory acceptance remain before activation. No deployed service or live
+ciphertext delivery have coverage. The
+[synthetic AAC gate](../reference/bulletin-compact-delivery.md#automated-codec-acceptance)
+adds real PCM, seek/mixed-selection and loopback guest-signal checks, with explicit
+WebKit progressive and native-recovery boundaries. Physical-device, broader
+recovery/rollback and memory acceptance remain before activation. No deployed service or live
 allowance changes. #407 stays Now/In Progress before Room/artwork/CASH.
 
 ## Object-reader checkpoint, 2026-11-11

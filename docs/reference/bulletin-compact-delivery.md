@@ -6,7 +6,8 @@ candidate for #407, not a deployed format or permission to publish. The recorded
 services remain Web/Product/public API 0.1.82 and custody #426.
 
 [Decision](../adr/0054-explicit-compact-delivery.md) ·
-[Local evidence](../backlog/implementation/evidence/bulletin-compact-dispatch-2026-11-12.md) ·
+[Dispatch evidence](../backlog/implementation/evidence/bulletin-compact-dispatch-2026-11-12.md) ·
+[Codec evidence](../backlog/implementation/evidence/bulletin-compact-aac-2026-11-12.md) ·
 [Object-reader limits](bulletin-compact-reader.md) ·
 [Publication procedure](../operations/bulletin-artist-publication.md).
 
@@ -112,6 +113,44 @@ conservative attempt charges; no failed attempt grants a new allowance. The
 whole original per-release budget, separate original slots, publisher lease,
 account cursor and prior retention reservations remain authoritative.
 
+## Automated codec acceptance
+
+The [compact AAC harness](../../web/e2e/compact-audio.spec.ts) uses an FFmpeg
+encoded 24.2-second synthetic tone, its real authenticated objects, and the
+production standard/compact graph constructors. The loopback API runs the actual
+catalogue media route, HTTP block reader and range reconstruction against those
+graphs. The Host case injects only SDK block responses into the actual native
+adapter; it is not a physical Product Host or bridge compatibility test.
+
+| Check                                 | What it establishes                                                                                                                                                                                                              |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 96/160/320 AAC → PCM                  | Each quality authenticates, reconstructs and decodes into nonzero real audio samples on Chromium, WebKit and Firefox, through Web and injected-Host delivery.                                                                    |
+| Seek, mixed selection, cold transport | Decoded signal returns after forward/backward seeks, standard → compact → standard selection and a fresh browser/reader cache. Chromium/Firefox use progressive playback; WebKit uses the complete-rendition compatibility path. |
+| Adaptive Web transport                | Chromium/Firefox decode 96 → 320 → 160 under controlled HTTP delays. This is an estimator/decoder regression, not a measured network speedup.                                                                                    |
+| Compatibility Room capture            | The full compact rendition produces measured normalized source and loopback WebRTC guest signal, then reaches its authenticated duration.                                                                                        |
+
+WebKit's progressive MediaSource-to-WebAudio signal is not accepted by this
+harness. Existing progressive codec/container tests remain; the new WebKit
+energy checks exercise compatibility playback instead. Native adaptive output,
+physical Host/iPhone background behavior and real first-sound latency remain
+separate acceptance work. A moving media clock alone never satisfies a signal
+check.
+
+The public fixture key and account scope are synthetic. The Node artifact keeps
+the full encrypted graph for dependency checks, while the injected browser
+receives only playback-reachable blocks. Tests reject external HTTP requests,
+archive block reads and archive/pack/marker HTTP paths. They do not exercise
+production key delivery or grant a listener entitlement. The cold restart clears
+only in-memory transports; it is not a prepared-job repair, durable backup
+restore, nonce recovery or rollback rehearsal. See the
+[reproduction procedure](../operations/dev-quality-gates.md#compact-aac-acceptance).
+
+Native progressive cases require no HTTP recovery in this fixture. The complete
+compatibility reader can issue four logical reads against the unchanged shared
+two-SDK-lookup budget. Its existing API recovery is allowed only for the same
+registered root/format and is recorded by the harness; the test does not enlarge
+the SDK budget or claim native-only compatibility preparation.
+
 ## Deployment and remaining gates
 
 This source change runs no extension apply, network write, maintenance,
@@ -125,7 +164,7 @@ fields or restore an older ledger to obtain capacity.
 Ordinary queue restart/retry has simulated compact response-loss coverage. The
 separate stopped-writer prepared-job repair tool remains standard-only and
 refuses compact inventories; do not use it to repair compact work. Extending that
-tool, coherent recovery/rollback rehearsal, real AAC startup/seek/adaptation,
-legacy playback, Room/background behavior, first sound and memory pressure on
-intended Hosts remain acceptance gates before activation. Synthetic graph and
-structural media tests do not prove faster publication or audible device output.
+tool, coherent recovery/rollback rehearsal, physical Host startup/seek/adaptation,
+Room/background behavior, real first sound and memory pressure remain acceptance
+gates before activation. Automated AAC/sample checks do not prove faster
+publication or audible physical-device output.

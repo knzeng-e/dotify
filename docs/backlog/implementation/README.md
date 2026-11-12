@@ -2,7 +2,8 @@
 
 Start with the [selected execution sequence](listening-and-publication-readiness.md).
 Its #407 checkpoint includes explicit compact reference/dispatch and exact-source
-admission. Real-media/device, recovery and memory acceptance remain before activation.
+admission, with a synthetic real-AAC decoder/loopback gate. Physical-device,
+recovery and memory acceptance remain before activation.
 
 ## Listening security review, 2026-11-11
 
