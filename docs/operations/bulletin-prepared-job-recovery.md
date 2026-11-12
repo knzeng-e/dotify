@@ -116,4 +116,8 @@ is needed for this operator-only command when matching format readers are alread
 delivered. Retention monitoring, bounded renewals,
 coherent off-volume restoration/rollback and physical Host acceptance remain
 separate work.
-A passing in-memory transport test does not validate a live recovery or backup.
+The [generated backup rehearsal](bulletin-generated-restore-rehearsal.md) tests
+source loss and cross-runner transfer of public fixtures, including empty
+directories and pending intents. It does not validate a live recovery, real key
+backup or historical-binary rollback. A matching snapshot hash alone cannot
+prove no later broadcast; establish current account history before writes.

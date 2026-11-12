@@ -166,8 +166,11 @@ Ordinary queue restart/retry has simulated compact response-loss coverage. The
 [stopped-writer prepared-job recovery candidate](../operations/bulletin-prepared-job-recovery.md)
 now verifies the original audio claim, layout, lineage and saved ciphertext for
 admitted standard/compact work. It preserves cumulative charges, receipts and
-nonce history; an older pilot-only binary still refuses this state. These local
-checks do not rehearse disk-loss restoration. Coherent off-volume recovery and
-rollback, physical Host startup/seek/adaptation, Room/background behavior, real
-first sound and memory pressure remain acceptance gates before activation. Automated AAC/sample checks do not prove faster
-publication or audible physical-device output.
+nonce history; an older pilot-only binary still refuses this state. The
+[generated backup rehearsal](../operations/bulletin-generated-restore-rehearsal.md)
+adds an independent-runner artifact transfer and source-loss exercise for both
+layouts; it uses public structural fixtures and simulated chain history.
+Operational backup/key restoration, historical-binary rollback, physical Host
+startup/seek/adaptation, Room/background behavior, real first sound and memory
+pressure remain acceptance gates before activation. Automated AAC/sample checks
+do not prove faster publication or audible physical-device output.

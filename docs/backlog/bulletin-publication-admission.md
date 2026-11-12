@@ -12,8 +12,11 @@ adds real PCM, seek/mixed-selection and loopback guest-signal checks, with expli
 WebKit progressive and native-recovery boundaries. The
 [prepared-job recovery candidate](../operations/bulletin-prepared-job-recovery.md)
 now resumes already-admitted standard/compact audio from saved ciphertext and
-its original history. Coherent off-volume restore/rollback, physical-device and
-memory acceptance remain before activation. No deployed service or live
+its original history. The
+[generated backup rehearsal](../operations/bulletin-generated-restore-rehearsal.md)
+adds independent-runner transfer, source loss and restored-object authentication.
+Operational backup/key restoration, historical-binary rollback, physical-device
+and memory acceptance remain before activation. No deployed service or live
 allowance changes. #407 stays Now/In Progress before Room/artwork/CASH.
 
 ## Object-reader checkpoint, 2026-11-11
