@@ -7,7 +7,7 @@
 
 import { CID } from 'multiformats/cid';
 import { parseStreamingReference } from './streamingReference.js';
-import { hkdfSync } from 'node:crypto';
+import { deriveReleaseKeyMaterial } from './contentKeyMaterial.js';
 import { config } from '../config.js';
 
 export const RELEASE_BOUND_CONTENT_KEY_VERSION = 'dotify-content-key-v2';
@@ -170,7 +170,7 @@ function masterSecretBytes(keyVersion: ContentKeyVersion, overrides: ContentKeyV
 function normalizeDerivationScope(
   input: ContentKeyDerivationInput,
   overrides: ContentKeyVaultConfigInput = {}
-): { contentHash: string; keyVersion: ContentKeyVersion; info: string } | null {
+): { contentHash: string; keyVersion: ContentKeyVersion; chainId: number; runtimeAddress: string } | null {
   if (!input || typeof input !== 'object' || typeof input.contentHash !== 'string') return null;
 
   const contentHash = input.contentHash.toLowerCase();
@@ -183,7 +183,8 @@ function normalizeDerivationScope(
   return {
     contentHash,
     keyVersion,
-    info: `${keyVersion}:${chainId}:${runtimeAddress}:${contentHash}`
+    chainId,
+    runtimeAddress
   };
 }
 
@@ -203,7 +204,7 @@ export function deriveContentKeyBytes(input: ContentKeyDerivationInput, override
   const scope = normalizeDerivationScope(input, overrides);
   const secret = scope ? masterSecretBytes(scope.keyVersion, overrides) : null;
   if (!secret || !scope) return null;
-  return Buffer.from(hkdfSync('sha256', secret, Buffer.alloc(0), Buffer.from(scope.info, 'utf8'), 32));
+  return deriveReleaseKeyMaterial(secret, scope);
 }
 
 /** Derive the per-track content key for delivery. Fails closed when unconfigured. */
