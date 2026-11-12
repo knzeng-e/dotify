@@ -6,7 +6,8 @@ Implementation: `6c7b50021a693a711a043737bca63c3e3d57c91d`
 (initial extraction/refactor `a3afb4102014e995e7e6331e8b823a10c609945d`), from tested merged dev
 `4565cc29f81634485b2fbfce86da4b0c381d963e` (#442). The follow-up makes refusal directory entries durable before ordinary data and
 adds real publication-store factory refusal tests. Generated transfer/container harness: `63c64880`
-(the production TypeScript remains at `6c7b5002`). Documentation-only commits
+(the production TypeScript remains at `6c7b5002`). The Linux byte-bound test
+correction is `4a450668`; it changes no production limits. Documentation-only commits
 do not change those sources. All three merged-dev integration
 workflows were green before the branch started.
 
@@ -103,9 +104,22 @@ containers and volume were removed. This owner-mapping workaround is local;
 Linux CI retains native runner UID/GID checks on binds. Image:
 `sha256:fd550e479a8b50b94b3dfb5ed58076486a3dfc02c321f47eed6373707f93da27`.
 
-Workflow YAML and embedded Bash parse locally. Independent GitHub-runner and full
-integration results remain to be recorded against the final PR head; the local
-container result alone does not claim those checks passed.
+Workflow YAML and embedded Bash parse locally. The first candidate head
+`94b10118` also passes all five [generated backup jobs](https://github.com/knzeng-e/dotify/actions/runs/43259513286),
+including independent transfer and native Linux non-root offline/read-only
+reconstruction: standard 27 files, compact 28, thirteen authenticated synthetic
+objects per layout in both phases, with real-key/service flags false.
+
+The first Quality Gates run exposed an existing API assertion: it inferred the
+byte cap from `peak < 4`, but four small siblings may fit. `4a450668` instead
+checks each assigned wave's byte sum and count, every actual in-flight byte/count
+bound, drained counters, the exact cap being exercised and complete publication.
+The wave's finalized pre-submission head identifies siblings independent of disk
+speed. It replaces the 5-ms timing assumption with an event-loop yield. A local
+mutation deliberately disabling the scheduler byte bound fails at the new wave
+assertion; the untouched production scheduler passes. No production limit,
+deadline or test exclusion changes. The corrected targeted check and typecheck
+pass locally; final-head full CI remains to be recorded.
 
 ## Unaccepted operational gates
 
