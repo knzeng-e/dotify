@@ -88,6 +88,11 @@ The [resource-envelope exercise](bulletin-resource-envelope.md) uses the unchang
 API/encoder images on an internal Docker network, with 1-GiB/512-MiB cgroups,
 no swap and generated 97/900-second profiles. Its temporary settings are never
 Fly/Netlify environment variables; no service capacity or hosted load is accepted.
+The [data-only checkpoint CLI](bulletin-custody-checkpoint.md) needs separately
+arranged stopped-writer maintenance, private canonical paths and a reviewed
+compiled revision. It adds no environment variable, transfer, key export or
+restore. Actual storage independence and key recovery remain unaccepted; no Fly
+mount, secret, backup schedule or service configuration changes here.
 Source availability is not a deployment or permission to apply an extension.
 
 The browser harness alone sets `DOTIFY_E2E_LOCAL_FONTS=true` on its local Vite

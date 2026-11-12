@@ -3,7 +3,9 @@
 Start with the [selected execution sequence](listening-and-publication-readiness.md).
 Its #407 checkpoint includes explicit compact reference/dispatch and exact-source
 admission, with a synthetic real-AAC decoder/loopback gate. Physical-device,
-recovery and memory acceptance remain before activation.
+operational data/key recovery and hosted-memory acceptance remain before activation.
+The [data-only custody checkpoint candidate](../../operations/bulletin-custody-checkpoint.md)
+prepares exact settled-state capture; generated tests are not a real backup.
 
 ## Listening security review, 2026-11-11
 

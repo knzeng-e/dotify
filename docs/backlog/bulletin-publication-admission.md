@@ -19,8 +19,11 @@ The same procedure now covers compiled historical compatibility and an unsupport
 pilot-era refusal; actual service/image rollback remains separate.
 The [generated resource probe](../operations/bulletin-resource-envelope.md) now
 exercises real AAC encoding, graph construction and authenticated reads inside
-locally bounded containers. Operational backup/key restoration, service/image
-rollback, physical-device and hosted-memory acceptance remain before activation. No deployed service or live
+locally bounded containers. A [data-only custody checkpoint command](../operations/bulletin-custody-checkpoint.md)
+now inspects/copies a settled multi-release store and verifies its exact bytes
+without reading keys or creating a runnable queue. It has generated-state coverage
+only. Independent operational data/key recovery, service/image rollback,
+physical-device and hosted-memory acceptance remain before activation. No deployed service or live
 allowance changes. #407 stays Now/In Progress before Room/artwork/CASH.
 
 ## Object-reader checkpoint, 2026-11-11
