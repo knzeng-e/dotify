@@ -853,6 +853,7 @@ export function useCatalog(deps: UseCatalogDeps) {
       }
       if (!options?.speculative) setAudioStartupStatus('Preparing audio');
       const prepared = await createStreamingPlayback({
+        audioRef,
         cid: encryptedRefToCID(audioRef),
         key,
         scope: {

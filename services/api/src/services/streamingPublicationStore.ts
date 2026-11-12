@@ -14,6 +14,9 @@ import {
   type PublicAssetKind,
   type PublicAssetOwner
 } from './bulletinPublicAssets.js';
+import { CID } from 'multiformats/cid';
+import { formatStreamingReference } from './streamingReference.js';
+import { buildBulletinCompactMediaGraph } from './bulletinCompactGraph.js';
 import { join } from 'node:path';
 import { readMetadataRepair, repairedMetadataFiles, assertRepairInventories } from './bulletinMetadataRepair.js';
 import { acquireBulletinPublisherLock } from './bulletinPublisherLock.js';
@@ -26,6 +29,7 @@ import { pinFilesToPinata, type PinataFile } from './pinata.js';
 import { parseStreamingManifest } from './streamingFormat.js';
 import type { StreamingScope } from './streamingFormat.js';
 import { PublicationAdmissionError } from './publicationAdmission.js';
+import { releaseJob as releaseJobForReference } from './bulletinReleaseAdmission.js';
 import { createReleasePublication, verifyReleaseDependencies } from './bulletinReleasePublication.js';
 import { buildBulletinMediaGraph } from './bulletinGraph.js';
 import type { BulletinSigner } from './bulletinPapiTransport.js';
@@ -36,6 +40,7 @@ export type PublicationStore = {
   assertCanPrepare?: (scope: StreamingScope, name?: string, owner?: string) => Promise<void>;
   admitPreparation?: (scope: StreamingScope, owner: string) => Promise<string>;
   publicationTimeoutMs?: number;
+  audioReference?: (scope: StreamingScope, root: string) => Promise<string>;
   pin(files: PinataFile[], name: string, signal: AbortSignal, onProgress?: (progress: BulletinPublicationProgress) => void): Promise<string>;
   pinAsset?: (files: PinataFile[], kind: PublicAssetKind, owner: PublicAssetOwner, signal: AbortSignal) => Promise<string>;
   canDiscard(name: string): Promise<boolean>;
@@ -62,7 +67,7 @@ async function inventories(profile: BulletinPublisherProfile) {
   const jobs = [];
   for (const name of owner.jobs) {
     const job = jobSchema.parse(await load(join(profile.directory, `${name}.json`)));
-    assertStandardBulletinLayout(bulletinInventoryLayout(job));
+    if (!profile.releasePolicy || isPublicAssetGeneration(job.generation)) assertStandardBulletinLayout(bulletinInventoryLayout(job));
     assert.equal(job.job, name);
     assert.equal(job.account, profile.account);
     assert.equal(job.genesis, profile.genesis);
@@ -224,7 +229,11 @@ export async function createStreamingPublicationStore(
           assert.ok(manifest, 'Release manifest required');
           const { chainId, runtimeAddress, contentHash, keyVersion } = parseStreamingManifest(manifest.bytes);
           await releases.audio({ chainId, runtimeAddress, contentHash, keyVersion }, name);
-          graph = await buildBulletinMediaGraph(files, signal);
+          graph = await (
+            (await releases.audioLayout({ chainId, runtimeAddress, contentHash, keyVersion })) === 'rendition-pack-v1'
+              ? buildBulletinCompactMediaGraph
+              : buildBulletinMediaGraph
+          )(files, signal);
           if (graph.bytes > budget.maxBytes || graph.blocks.length > budget.maxTransactions) throw new PublicationAdmissionError();
         }
         assert.ok(!owner.activeJob || owner.activeJob === name, 'Previous publication requires reconciliation');
@@ -362,6 +371,17 @@ export async function createStreamingPublicationStore(
         }
       : {}),
     ...(releases ? { publicationTimeoutMs: BULLETIN_PUBLICATION_MS } : {}),
+    ...(releases
+      ? {
+          async audioReference(scope: StreamingScope, root: string) {
+            assert.ok(!closed, 'Publisher is closed');
+            const jobs = await releases.validate();
+            const job = jobs.find(j => j.job === releaseJobForReference(scope, 'audio'));
+            assert.ok(job && job.ready && !Object.keys(job.pending).length && job.root === root, 'Ready reference lacks its admitted inventory');
+            return formatStreamingReference(root, scope.keyVersion, bulletinInventoryLayout(job), value => CID.parse(value));
+          }
+        }
+      : {}),
     pin: (files, name, signal, onProgress) => publish(files, name, signal, undefined, onProgress),
     ...(assetPolicy || releases
       ? {

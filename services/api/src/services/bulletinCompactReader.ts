@@ -2,7 +2,7 @@ import { CID } from 'multiformats/cid';
 import * as dagPB from '@ipld/dag-pb';
 import { UnixFS } from 'ipfs-unixfs';
 import { blake2b } from '@noble/hashes/blake2';
-// Internal authenticated object seam. No route, profile or publisher selects it.
+// Authenticated object seam behind explicit compact dispatch; never key delivery.
 import { parseStreamingManifest, verifyStreamingManifest, type StreamingScope } from './streamingFormat.js';
 import { compactObjectRanges, readCompactBulletinRange } from './bulletinCompactRange.js';
 

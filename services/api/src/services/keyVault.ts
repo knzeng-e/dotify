@@ -5,6 +5,8 @@
 // authority controls delivery. Version rotation and permanent nonce custody
 // remain required even with an empty catalog. This is access control, not DRM.
 
+import { CID } from 'multiformats/cid';
+import { parseStreamingReference } from './streamingReference.js';
 import { hkdfSync } from 'node:crypto';
 import { config } from '../config.js';
 
@@ -55,7 +57,7 @@ export function isSupportedContentKeyVersion(value: string): value is ContentKey
 export function contentKeyVersionForAudioRef(audioRef: string): ContentKeyVersion | null {
   const releaseBound = RELEASE_BOUND_AUDIO_REF_PATTERN.exec(audioRef);
   if (releaseBound?.[1]) return `dotify-content-key-v${releaseBound[1]}` as ContentKeyVersion;
-  return null;
+  return parseStreamingReference(audioRef, value => CID.parse(value))?.keyVersion ?? null;
 }
 
 function normalizeSecretHex(secret: string | undefined): string | null {

@@ -1,3 +1,5 @@
+import { streamingReference } from '../../shared/utils/protectedAudio';
+import type { StreamingLayout } from '../../../../services/api/src/services/streamingReference';
 import { streamingMediaSource, roomCaptureNeedsCompatibility, ownManagedAudioUrl, STREAMING_AAC_MIME, type ManagedAudioSource } from './streamingMediaSource';
 import { pumpManagedAudio } from './managedStreaming';
 import { AdaptiveStreaming } from './adaptiveStreaming';
@@ -44,17 +46,24 @@ function storeWarmObject(key: string, bytes: Uint8Array) {
   }
 }
 
+export type StreamingTransportOptions = {
+  layout: StreamingLayout;
+  compactRead?: (path: string, maxBytes: number, signal: AbortSignal) => Promise<Uint8Array | null>;
+};
 export async function fetchStreamingObject(
   cid: string,
   path: string,
   maxBytes: number,
   signal: AbortSignal,
   observe?: (metric: TransportObservation) => void,
-  exactLength = true
+  exactLength = true,
+  transport: StreamingTransportOptions = { layout: 'unixfs-files-v1' }
 ): Promise<Uint8Array> {
   if (!/^(Qm[1-9A-HJ-NP-Za-km-z]{44}|b[a-z2-7]{20,110})$/.test(cid) || !/^(manifest\.json|(?:96|160|320)\/(init|segment-[0-9]{3})\.bin)$/.test(path))
     throw new Error('Invalid streaming media path');
-  const cacheKey = `${cid}/${path}`;
+  if (transport.layout !== 'unixfs-files-v1' && transport.layout !== 'rendition-pack-v1') throw new Error('Unsupported streaming layout');
+  if (transport.layout === 'rendition-pack-v1' && !isBulletinMediaRoot(cid)) throw new Error('Invalid compact Bulletin root');
+  const cacheKey = `${transport.layout}:${cid}/${path}`;
   const cached = warmObjects.get(cacheKey);
   signal.throwIfAborted();
   if (cached) {
@@ -72,7 +81,11 @@ export async function fetchStreamingObject(
       const { readHostBulletinMedia } = await import('./bulletinHostMedia');
       signal.throwIfAborted();
       nativeAttempted = true;
-      const bytes = await readHostBulletinMedia(cid, path, maxBytes, signal);
+      const bytes =
+        transport.layout === 'rendition-pack-v1' && path !== 'manifest.json'
+          ? await transport.compactRead?.(path, maxBytes, signal)
+          : await readHostBulletinMedia(cid, path, maxBytes, signal);
+      signal.throwIfAborted();
       if (bytes) {
         if (exactLength && path !== 'manifest.json' && bytes.length !== maxBytes) throw new Error('Incomplete streaming object');
         storeWarmObject(cacheKey, bytes);
@@ -88,7 +101,7 @@ export async function fetchStreamingObject(
   // origins. The catalog-gated API is its Web path and native recovery path.
   const urls = bulletin
     ? api
-      ? [`${api}/api/media/${cid}/stream/${path}`]
+      ? [`${api}/api/media/${cid}/${transport.layout === 'rendition-pack-v1' ? 'compact-v1' : 'stream'}/${path}`]
       : []
     : streamingObjectUrls(cid, path, {
         edge: import.meta.env.VITE_DOTIFY_MEDIA_EDGE_URL,
@@ -174,6 +187,7 @@ async function pause(ms: number, signal: AbortSignal) {
 }
 export async function createStreamingPlayback(input: {
   cid: string;
+  audioRef?: string;
   key: Uint8Array;
   scope: StreamingScope;
   signal: AbortSignal;
@@ -187,6 +201,10 @@ export async function createStreamingPlayback(input: {
   // Research may observe/wrap the same producer; ordinary playback always uses the default.
   managedProducer?: typeof pumpManagedAudio;
 }): Promise<{ url: string; gainDb: number; progressive: boolean }> {
+  const reference = input.audioRef ? streamingReference(input.audioRef) : undefined;
+  if (input.audioRef && (!reference || reference.root !== input.cid || reference.keyVersion !== input.scope.keyVersion))
+    throw new Error('Streaming reference identity mismatch');
+  const transport: StreamingTransportOptions = { layout: reference?.layout ?? 'unixfs-files-v1' };
   const emit = (metric: ReaderMetric) => {
     if (!input.signal.aborted) input.onMetric?.(metric);
   };
@@ -197,10 +215,18 @@ export async function createStreamingPlayback(input: {
     emit({ phase: 'error', errorKind: authentication ? 'authentication' : 'transport' });
   };
   const get = async (cid: string, path: string, maxBytes: number, signal: AbortSignal, observe?: (metric: TransportObservation) => void) => {
-    const bytes = await (input.fetchObject ?? fetchStreamingObject)(cid, path, maxBytes, signal, metric => {
-      emit({ phase: 'gateway-selected', objectPath: path, ...metric });
-      observe?.(metric);
-    });
+    const bytes = await (input.fetchObject ?? fetchStreamingObject)(
+      cid,
+      path,
+      maxBytes,
+      signal,
+      metric => {
+        emit({ phase: 'gateway-selected', objectPath: path, ...metric });
+        observe?.(metric);
+      },
+      true,
+      transport
+    );
     if (path.endsWith('/segment-000.bin')) emit({ phase: 'first-object-ready', objectPath: path, objectBytes: bytes.length, segmentIndex: 0 });
     return bytes;
   };
@@ -209,6 +235,11 @@ export async function createStreamingPlayback(input: {
     const bytes = await get(input.cid, 'manifest.json', 256 * 1024, input.signal);
     try {
       context = await readStreamingManifest(bytes, input.key, input.scope);
+      if (transport.layout === 'rendition-pack-v1' && ['auto', 'required'].includes(import.meta.env.VITE_DOTIFY_HOST_MODE ?? 'off')) {
+        const { prepareHostCompactMedia } = await import('./bulletinCompactMedia');
+        const prepared = await prepareHostCompactMedia({ root: input.cid, manifestBytes: bytes, key: input.key, scope: input.scope, signal: input.signal });
+        transport.compactRead = prepared.read;
+      }
     } catch (error) {
       failure(error, true);
       throw error;

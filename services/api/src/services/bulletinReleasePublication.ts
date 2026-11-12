@@ -1,5 +1,8 @@
 // Multi-release composition over the existing graph writer and nonce journal.
 import assert from 'node:assert/strict';
+import { CID } from 'multiformats/cid';
+import { formatStreamingReference } from './streamingReference.js';
+import { bulletinInventoryLayout } from './bulletinMediaState.js';
 import { buildPublicAssetGraph, preservePublicMetadata, type PublicAssetOwner, type PublicAssetKind, type PublicAssetPolicy } from './bulletinPublicAssets.js';
 import { createReleaseAdmission, releaseIdentity, releaseJob, releasePipeline } from './bulletinReleaseAdmission.js';
 import { publicationBinding, type BulletinPublisherProfile } from './bulletinPublisherProfile.js';
@@ -36,6 +39,7 @@ export function createReleasePublication(profile: BulletinPublisherProfile, inve
   return {
     validate,
     check,
+    audioLayout: admission.audioLayout,
     async pipeline(scope: StreamingScope) {
       admission.artistFor(scope);
       const state = await admission.validate();
@@ -65,9 +69,12 @@ export function createReleasePublication(profile: BulletinPublisherProfile, inve
         const audio = jobs.find(j => j.job === releaseJob(scope, 'audio') && j.ready && !Object.keys(j.pending).length);
         assert.ok(audio, 'Release audio is not ready');
         dependencies.push(audio);
-        const expected = `dotify:enc:v3:${scope.keyVersion.replace('dotify-content-', '')}:ipfs://${audio.root}`;
+        const expected = formatStreamingReference(audio.root, scope.keyVersion, bulletinInventoryLayout(audio), value => CID.parse(value));
         assert.ok(
-          metadata.assets.encrypted === true && [audio.root, `ipfs://${audio.root}`, expected].includes(metadata.assets.audioCID),
+          metadata.assets.encrypted === true &&
+            (bulletinInventoryLayout(audio) === 'rendition-pack-v1'
+              ? metadata.assets.audioCID === expected
+              : [audio.root, `ipfs://${audio.root}`, expected].includes(metadata.assets.audioCID)),
           'Metadata audio differs from the admitted release'
         );
         if (metadata.assets.coverCID) {

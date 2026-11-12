@@ -28,3 +28,28 @@ describe('streaming audio references', () => {
     }
   });
 });
+
+describe('explicit compact streaming identity', () => {
+  const root = 'bafykbzacec2bpys6cfd23kbnvg4p7fidf6laimhd5afshs32sgilt74gkybhw';
+  const ref = `dotify:enc:v3:key-v3:bulletin-pack-v1://${root}`;
+  it('preserves layout, key rotation and the canonical Bulletin root', async () => {
+    const { streamingReference, audioReferenceForMetadata } = await import('./protectedAudio');
+    expect(normalizeEncryptedAudioRef(ref)).toBe(ref);
+    expect(encryptedRefToCID(ref)).toBe(root);
+    expect(contentKeyVersionForAudioRef(ref)).toBe('dotify-content-key-v3');
+    expect(streamingReference(ref)?.layout).toBe('rendition-pack-v1');
+    expect(audioReferenceForMetadata(ref, root)).toBe(ref);
+    expect(audioReferenceForMetadata(ref.replace('bulletin-pack-v1', 'ipfs'), root)).toBe(root);
+    expect(() => audioReferenceForMetadata(ref, cid)).toThrow('identity');
+    for (const invalid of [
+      ref + '/96/init.bin',
+      ref + '?offset=1',
+      ref.replace('pack-v1', 'pack-v2'),
+      ref.replace(root, cid),
+      ref.replace(root, 'b' + 'a'.repeat(58))
+    ]) {
+      expect(isEncryptedAudioRef(invalid)).toBe(false);
+      expect(contentKeyVersionForAudioRef(invalid)).toBeNull();
+    }
+  });
+});

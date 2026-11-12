@@ -1,4 +1,4 @@
-// Internal format construction, not selected by any profile, route or queue.
+// Compact construction is selected only by reviewed exact-source admission.
 import { buildBulletinDirectoryGraph, validateBulletinMediaFiles, type BulletinGraph } from './bulletinGraph.js';
 import { COMPACT_BULLETIN_LAYOUT, compactLayoutMarker } from './bulletinStorageLayout.js';
 import type { PinataFile } from './pinata.js';
