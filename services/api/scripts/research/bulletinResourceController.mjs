@@ -7,7 +7,7 @@ import { blake2b } from '@noble/hashes/blake2';
 import { CID } from 'multiformats/cid';
 import { StreamingJobs, initializeStreamingJobs } from './dist/services/streamingJobs.js';
 import { createStreamingWorkerClient } from './dist/services/streamingWorkerClient.js';
-import { buildBulletinMediaGraph, readBulletinMediaPath } from './dist/services/bulletinGraph.js';
+import { buildBulletinMediaGraph, readBulletinMediaPath, verifyBulletinBlock } from './dist/services/bulletinGraph.js';
 import { buildBulletinCompactMediaGraph } from './dist/services/bulletinCompactGraph.js';
 import { readAuthenticatedCompactObject } from './dist/services/bulletinCompactReader.js';
 import { formatStreamingReference } from './dist/services/streamingReference.js';
@@ -76,6 +76,7 @@ const queue = new StreamingJobs({
   directory: '/state/streaming',
   deriveKey: () => Buffer.from(key),
   authority: async () => true,
+  onFailure: failure => console.error(JSON.stringify({ generatedFailureStage: failure.stage, phases })),
   transcode: createStreamingWorkerClient(endpoint, process.env.STREAMING_WORKER_TOKEN),
   pin: async files => {
     observe('encrypted-output');
@@ -88,6 +89,7 @@ const queue = new StreamingJobs({
     const graphMs = Math.round(performance.now() - graphStart);
     graphRoot = graph.root;
     observe('built-graph');
+    for (const block of graph.blocks) verifyBulletinBlock(block.cid, block.bytes);
     const blocks = new Map(graph.blocks.map(block => [block.cid, block.bytes]));
     let readBytes = 0;
     const readBlock = async cid => {
@@ -96,11 +98,14 @@ const queue = new StreamingJobs({
       readBytes += bytes.length;
       return bytes;
     };
-    const archived = await readBulletinMediaPath(readBlock, graph.root, manifest.master.path, manifest.master.encryptedLength, signal);
+    // Production playback deliberately excludes archives. Authenticate the
+    // publisher's original encrypted input, not an invented playback route.
+    await assert.rejects(readBulletinMediaPath(readBlock, graph.root, manifest.master.path, manifest.master.encryptedLength, signal));
+    const archived = files.find(file => file.path === manifest.master.path).bytes;
     const original = decryptStreamingObject(archived, key, manifest, manifest.master);
     assert.deepEqual(original, source);
     original.fill(0);
-    observe('authenticated-archive');
+    observe('authenticated-archive-input');
     let objects = 0;
     const readStart = performance.now();
     for (const rendition of manifest.renditions) {
