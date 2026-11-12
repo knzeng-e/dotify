@@ -24,9 +24,9 @@ assert.equal(new Set([candidateRoot, compatibleRoot, pilotRoot]).size, 3, 'Use s
 const moduleAt = (root, name) => import(pathToFileURL(join(root, 'services/api/dist/services', `${name}.js`)).href);
 async function runtime(root, sha, pilot = false) {
   const recover = (await moduleAt(root, 'bulletinPreparedRecovery')).recoverPreparedBulletinJob;
-  const parseStreamingReference = (await moduleAt(root, 'streamingReference')).parseStreamingReference;
   assert.equal(typeof recover, 'function');
-  if (pilot) return { revision: sha, recover, parseReference: parseStreamingReference };
+  if (pilot) return { revision: sha, recover, mediaRoot: (await moduleAt(root, 'encryptedMedia')).encryptedMediaCid };
+  const parseStreamingReference = (await moduleAt(root, 'streamingReference')).parseStreamingReference;
   return {
     revision: sha,
     recover,

@@ -22,7 +22,7 @@ export type CompiledRecoveryRuntime = {
   readers: typeof restoreFixtureReaders;
 };
 type PilotRuntime = Pick<CompiledRecoveryRuntime, 'revision' | 'recover'> & {
-  parseReference: typeof restoreFixtureReaders.parseStreamingReference;
+  mediaRoot: (ref: string) => string | null;
 };
 
 export async function rehearseCompiledRollback(
@@ -83,12 +83,7 @@ export async function rehearseCompiledRollback(
           assert.equal(ready[path], value, 'Executable switching must retain ciphertext, nonce reservations and admission lineage');
       assert.equal(c.wire.stored.size, snapshot.chain.stored.length + c.wire.writes.length, 'No duplicate broadcast');
       assert.equal(c.wire.signerLoads, c.wire.closed);
-      if (snapshot.mode === 'compact')
-        assert.equal(
-          pilot.parseReference(ref, value => CID.parse(value)),
-          null,
-          'Pilot-era readers cannot read compact refs'
-        );
+      if (snapshot.mode === 'compact') assert.equal(pilot.mediaRoot(ref), null, 'Pilot-era readers cannot read compact refs');
 
       // Both emitted queue implementations consume the same committed result.
       // These dependencies make any unexpected preparation/publication fatal.
