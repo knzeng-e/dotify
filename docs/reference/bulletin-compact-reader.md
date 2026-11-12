@@ -1,26 +1,29 @@
 # Compact Bulletin object readers
 
-Status: internal implementation candidate for #407, **not selected by ordinary
-playback or publication**. The current registered references, HTTP media route,
-queue and per-release admissions keep the standard layout. This reference does
-not authorize storing a compact graph or interpreting an old CID as compact.
+Status: bounded reader implementation for #407. Ordinary selection now requires
+the [explicit compact reference and exact admission](bulletin-compact-delivery.md).
+Existing references and live publications keep their standard layout; this
+reference grants no publication authority.
 [Decision](../adr/0053-bulletin-compact-object-readers.md) ·
 [Acceptance evidence](../backlog/implementation/evidence/bulletin-compact-readers-2026-11-11.md).
 
 ## Entry points and authority
 
-| Entry point                                 | Contract                                                                                                                                                                                                 |
-| ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| API `readAuthenticatedCompactObject`        | Receives exact manifest bytes, an already authorized key/scope, root, logical object path, byte limit and cancellation signal. Authenticates before reading blocks. Returns ciphertext, not clear audio. |
-| Host `createBulletinHostCompactMediaReader` | Prepares a session by authenticating a copied manifest with the ordinary browser verifier. Returns the verified context and a bounded `read(path, maxBytes, signal)` method.                             |
-| Portable `readCompactBulletinRange`         | Internal algorithm called by those adapters. Receives the locally derived range and platform codec ports; it is not a public offset API or a key-delivery endpoint.                                      |
+| Entry point                                 | Contract                                                                                                                                                                                             |
+| ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| API `readAuthenticatedCompactObject`        | Receives exact manifest bytes, a trusted release key/scope, root, logical object path, byte limit and cancellation signal. Authenticates before reading blocks. Returns ciphertext, not clear audio. |
+| Host `createBulletinHostCompactMediaReader` | Prepares a session by authenticating a copied manifest with the ordinary browser verifier. Returns the verified context and a bounded `read(path, maxBytes, signal)` method.                         |
+| Portable `readCompactBulletinRange`         | Internal algorithm called by those adapters. Receives the locally derived range and platform codec ports; it is not a public offset API or a key-delivery endpoint.                                  |
 
 The API adapter lives in
 [`bulletinCompactReader.ts`](../../services/api/src/services/bulletinCompactReader.ts),
 the Host adapter in
 [`bulletinCompactMedia.ts`](../../web/src/features/catalog/bulletinCompactMedia.ts).
-The caller must obtain its key through the existing access boundary. Preparing
-an internal reader grants no entitlement, Room membership or storage allowance.
+The Host caller must obtain its key through the existing access boundary. The
+public API may derive a retained key internally solely to authenticate
+catalogue-selected ciphertext, as specified in the
+[delivery contract](bulletin-compact-delivery.md#ciphertext-delivery). Preparing
+a reader grants no entitlement, Room membership or storage allowance.
 
 The marker is the fixed [ADR 0052](../adr/0052-bulletin-layout-inventory-binding.md)
 `rendition-pack-v1` contract. Init and segment zero stay standalone. Later
@@ -83,14 +86,14 @@ more subscriptions; it admits work again when an actual lookup settles.
 
 Malformed paths, markers, CID bytes, file sizes, child-size counts, depth or
 bounds fail closed. A readdressed altered ciphertext may pass graph validation
-but must fail ordinary object GCM. There is no HTTP status mapping for these
-internal errors yet; current media endpoints are unchanged.
+but must fail ordinary object GCM. The [delivery contract](bulletin-compact-delivery.md#ciphertext-delivery) maps
+these failures at the catalogue-gated HTTP boundary.
 
-## Integration still required
+## Acceptance still required
 
-Before ordinary selection, implement an explicit versioned registered reference,
-matching Web/API/Host dispatch and immutable per-identity admission. Preserve
-legacy references, ready-job reuse, journal/nonce history, cache identity and
-access checks. Then validate real AAC startup, seeking/adaptation, Room and
-background behavior, restart/recovery, first sound and memory on the intended
-Hosts. A compatible deployment and any funded trial need their own review.
+[Explicit reference/dispatch and immutable admission](bulletin-compact-delivery.md)
+connect these seams without reinterpreting old references. Real AAC startup,
+seeking/adaptation, Room/background behavior, recovery/rollback, first sound and
+memory on intended Hosts still need acceptance. A compatible deployment and any
+funded trial require their own reviewed operational plan; merging code is not
+activation.

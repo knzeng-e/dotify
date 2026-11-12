@@ -2,8 +2,9 @@
 
 Current execution and code/deployment boundaries are in the
 [selected sequence](implementation/listening-and-publication-readiness.md).
-The #407 internal compact reader candidate is documented there; dated entries
-below retain their original checkpoints.
+The #407 explicit compact delivery/admission candidate is documented there;
+real-media and recovery acceptance remain before activation. Dated entries below
+retain their original checkpoints.
 
 ## Listening security review, 2026-11-11
 
@@ -118,7 +119,6 @@ and audible playback on Web and Desktop. Bounded new-domain publication is
 active; no new admission is granted by this record. Long-preparation acceptance
 and publication/indexing latency remain open in #407 before the following
 Room/artwork slices. Earlier dated pending gates describe their original phase.
-
 
 ## Current execution, 2026-11-09
 
@@ -276,7 +276,6 @@ registry/DotNS writes. Product/Web remain 0.1.71. Next: ordinary New release and
 artist-wallet registration, then protected acceptance and conservation. General
 editable-draft/multi-release admission is still a production gap.
 
-
 ## Prepared-release recovery rollout, 2026-11-04
 
 [The current rollout](implementation/evidence/product-0.1.71-rollout-2026-11-04.md) deploys merged #384 to API/custody, Web and Product 0.1.71
@@ -288,7 +287,6 @@ then leaves storage and wallet approval to ordinary Publish. Pilot inventories,
 three preparation attempts and the exact name-only permit remain unchanged.
 Real registration, protected physical/Web acceptance and conservation remain W33
 gates. The reused app dependencies expire earlier than pilot media; track both.
-
 
 ## Product 0.1.70 and exact repair admission, 2026-11-03
 
@@ -305,11 +303,9 @@ Older dated checkpoints below retain their historical meaning.
 
 The [bounded repair](implementation/evidence/bulletin-metadata-name-repair-2026-11-03.md) follows merged #381: inspect and admit one exact name-only metadata graph, preserve old receipts/caps and ready audio/cover, then publish through normal authenticated custody. Canonical finalized/latest checks refuse an already registered release. This is implementation only; maintenance, admission, additional stores and client rollout still need review and authorization. W33 remains open for real registration/listening and conservation.
 
-
 ## Artist-name publication correction, 2026-11-02
 
 The [reported late registration rejection](implementation/evidence/publication-artist-name-2026-11-02.md) is corrected before metadata storage: required artist name/title/note, an editable name in Details, and matching trimmed metadata/registration. The existing synthetic pilot already has finalized audio, cover and metadata; its saved manifest says `Unknown artist`. The owner selected `Thot Nzeng`. That immutable manifest needs a separately reviewed and authorized revision while preserving its receipts and all prepared assets. This frontend PR does not replace it, reset a budget or deploy. W33 remains open for repair, real registration/listening and conservation.
-
 
 ## Product 0.1.69 deployment, 2026-11-02
 
@@ -324,7 +320,6 @@ open. No allowance/counter reset, new service or key installation occurred.
 Conservation monitoring/renewal and off-volume restore remain open; Capacity stays
 deferred research. Older checkpoints below retain their dated meaning.
 
-
 ## Bulletin publication UX, 2026-11-02
 
 The [publication cleanup](implementation/evidence/bulletin-publication-ux-2026-11-02.md) removes the obsolete optional client archive
@@ -334,7 +329,6 @@ are unchanged. The server-side public-asset path is merged in #376; this cleanup
 does not activate it. The owner selected Bulletin stabilization first; Capacity
 remains deferred research. Next: reviewed public-asset activation and pilot
 recovery, then conservation inventory, bounded renewal and off-volume restore.
-
 
 ## Current Bulletin deployment, 2026-11-01
 
@@ -709,30 +703,30 @@ implemented for review against the owner-requested fresh runtime generation;
 W39 remains Later. Project 5 owns workflow status; this table describes remaining scope
 without reopening delivered work.
 
-| Priority | GitHub issue | Phase                    | Remaining outcome                                                                                                                                               |
-| -------- | ------------ | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| P0       | #158 / W13   | Now                      | Bind Product payment/access, room, first-sound, rollback, release-profile, and consented pilot evidence to one accepted candidate.                              |
-| P1       | #317         | Now (cutover acceptance) | Record current-catalog real publication/pinning, same-runtime native recovery and current-format access/audio/value acceptance; the cutover itself is deployed. |
-| P1       | #269         | Now (release follow-up)  | Verify the new runtime's metadata-edit capability and correction/read-back; coordinate room-tip continuity with #229 without upgrading retired runtimes.        |
-| P1       | #229         | Now (value flows)        | Complete coordinated room-policy/authority activation and actual native quote, receipt recovery and exactly-once chat acceptance with artist consent.           |
-| P0       | #88          | Next                     | Measure current v3 AAC first sound with schema-6 evidence on exact physical Web/Product builds and adverse delivery conditions.                                 |
-| P1       | #87          | Next                     | Validate responsive covers on new live uploads/mobile and adverse gateways; the retired catalog needs no backfill.                                              |
-| P1       | #89          | Next                     | Exercise forced TURN, independent networks, mobile recovery, host capacity, and the mesh/SFU decision.                                                          |
-| P1       | #85          | Product feasibility      | Maintain the Product capability/compatibility epic around evidence that the current Host actually exposes.                                                      |
-| P1       | #90          | Next                     | Re-scope only the wallet-later gaps observed in pilot evidence; do not replay the delivered UX work.                                                            |
-| P1       | #274 / W19   | Device acceptance        | Verify merged Nearby behavior and subsequent discovery follow-ups on physical Product/mobile devices; retain host opt-in, both radii and wallet-free joining.   |
-| P1       | #287 / W32   | Next (streaming)         | Validate deployed current-format publication, pinning, native playback, walletless room audio and prolonged listening; preserve permanent nonce custody.        |
-| P1       | #288 / W33   | Next (streaming)         | Resolve dedicated gateway 401, activate reviewed ciphertext-only delivery, and measure cold/warm audible startup in three regions.                              |
-| P1       | #291 / W36   | Next (scaling)           | Implementation and two-instance rollout are recorded in W36 evidence; finish physical acceptance of the deployed shared state and private custody.                                                               |
-| P2       | #292 / W37   | Next (scaling)           | Implementation and synthetic load checks are recorded in W37 evidence; retain live indexing/load acceptance on the deployed candidate.                                                                       |
-| P2       | #293 / W38   | Review / fresh activation | Review implemented string/split bounds and paged readers, then deploy matching fresh contracts/API/Web/Product and verify native publication and payment.                                                           |
-| P2       | #294 / W39   | Later                    | Measure horizontal signaling and an SFU prototype while preserving anonymous entry and the no-guest-key boundary.                                               |
-| P1       | #275         | Next                     | Design artist-controlled runtime modules, safe owner-approved updates, admin inventory, and a separate artist-admission boundary.                               |
-| P1       | #276         | Next                     | Prove per-artist key export and restore through a second compatible operator without exposing a global master secret.                                           |
-| P1       | #214 / W27   | Next Product sprint      | Prove Celerity room events behind a typed dual-transport boundary, preserve anonymous link entry, and decide each Socket.IO responsibility from live evidence.  |
-| P2       | #12          | Product feasibility      | Prove a private personhood source and address binding before implementing Human free.                                                                           |
-| P3       | #13          | Later                    | Design consented cultural propagation after the first pilot.                                                                                                    |
-| P2       | #181 / W26   | Later                    | Add French after W13 and the visual contract are accepted.                                                                                                      |
+| Priority | GitHub issue | Phase                     | Remaining outcome                                                                                                                                               |
+| -------- | ------------ | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P0       | #158 / W13   | Now                       | Bind Product payment/access, room, first-sound, rollback, release-profile, and consented pilot evidence to one accepted candidate.                              |
+| P1       | #317         | Now (cutover acceptance)  | Record current-catalog real publication/pinning, same-runtime native recovery and current-format access/audio/value acceptance; the cutover itself is deployed. |
+| P1       | #269         | Now (release follow-up)   | Verify the new runtime's metadata-edit capability and correction/read-back; coordinate room-tip continuity with #229 without upgrading retired runtimes.        |
+| P1       | #229         | Now (value flows)         | Complete coordinated room-policy/authority activation and actual native quote, receipt recovery and exactly-once chat acceptance with artist consent.           |
+| P0       | #88          | Next                      | Measure current v3 AAC first sound with schema-6 evidence on exact physical Web/Product builds and adverse delivery conditions.                                 |
+| P1       | #87          | Next                      | Validate responsive covers on new live uploads/mobile and adverse gateways; the retired catalog needs no backfill.                                              |
+| P1       | #89          | Next                      | Exercise forced TURN, independent networks, mobile recovery, host capacity, and the mesh/SFU decision.                                                          |
+| P1       | #85          | Product feasibility       | Maintain the Product capability/compatibility epic around evidence that the current Host actually exposes.                                                      |
+| P1       | #90          | Next                      | Re-scope only the wallet-later gaps observed in pilot evidence; do not replay the delivered UX work.                                                            |
+| P1       | #274 / W19   | Device acceptance         | Verify merged Nearby behavior and subsequent discovery follow-ups on physical Product/mobile devices; retain host opt-in, both radii and wallet-free joining.   |
+| P1       | #287 / W32   | Next (streaming)          | Validate deployed current-format publication, pinning, native playback, walletless room audio and prolonged listening; preserve permanent nonce custody.        |
+| P1       | #288 / W33   | Next (streaming)          | Resolve dedicated gateway 401, activate reviewed ciphertext-only delivery, and measure cold/warm audible startup in three regions.                              |
+| P1       | #291 / W36   | Next (scaling)            | Implementation and two-instance rollout are recorded in W36 evidence; finish physical acceptance of the deployed shared state and private custody.              |
+| P2       | #292 / W37   | Next (scaling)            | Implementation and synthetic load checks are recorded in W37 evidence; retain live indexing/load acceptance on the deployed candidate.                          |
+| P2       | #293 / W38   | Review / fresh activation | Review implemented string/split bounds and paged readers, then deploy matching fresh contracts/API/Web/Product and verify native publication and payment.       |
+| P2       | #294 / W39   | Later                     | Measure horizontal signaling and an SFU prototype while preserving anonymous entry and the no-guest-key boundary.                                               |
+| P1       | #275         | Next                      | Design artist-controlled runtime modules, safe owner-approved updates, admin inventory, and a separate artist-admission boundary.                               |
+| P1       | #276         | Next                      | Prove per-artist key export and restore through a second compatible operator without exposing a global master secret.                                           |
+| P1       | #214 / W27   | Next Product sprint       | Prove Celerity room events behind a typed dual-transport boundary, preserve anonymous link entry, and decide each Socket.IO responsibility from live evidence.  |
+| P2       | #12          | Product feasibility       | Prove a private personhood source and address binding before implementing Human free.                                                                           |
+| P3       | #13          | Later                     | Design consented cultural propagation after the first pilot.                                                                                                    |
+| P2       | #181 / W26   | Later                     | Add French after W13 and the visual contract are accepted.                                                                                                      |
 
 ## Strategic improvement plan
 

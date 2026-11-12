@@ -264,12 +264,14 @@ that profile's `budget`, illustrated as 16 MiB / 128 stores):
 {
   "releasePolicy": {
     "schema": "dotify.bulletin.release-policy.v1",
-    "artists": [{
-      "owner": "REPLACE_WITH_LOWERCASE_EVM_ARTIST",
-      "chainId": 420420417,
-      "runtimeAddress": "REPLACE_WITH_LOWERCASE_RUNTIME",
-      "keyVersion": "dotify-content-key-v2"
-    }],
+    "artists": [
+      {
+        "owner": "REPLACE_WITH_LOWERCASE_EVM_ARTIST",
+        "chainId": 420420417,
+        "runtimeAddress": "REPLACE_WITH_LOWERCASE_RUNTIME",
+        "keyVersion": "dotify-content-key-v2"
+      }
+    ],
     "maxReleases": 2,
     "cover": { "maxBytes": 8388608, "maxTransactions": 32, "minimumLifetimeBlocks": 100 },
     "metadata": { "maxBytes": 65536, "maxTransactions": 4, "minimumLifetimeBlocks": 100 },
@@ -360,6 +362,23 @@ No recurring renewal, new account/key, Pinata fallback or wallet approval bypass
 is introduced. Missing archives or altered claims fail closed at startup.
 After activation, older builds reject v2; keep compatible code or disable new
 publication during rollback, preserving all state. Do not restore an old ledger.
+
+## Compact exact-source candidate
+
+The [compact delivery reference](../reference/bulletin-compact-delivery.md#immutable-exact-source-admission)
+defines a new `dotify.bulletin.release-extension.v2` request with
+`audioLayout: rendition-pack-v1`. It uses the same inspect/apply procedure,
+reviewed digests and stopped-writer safeguards above, for a new exact identity.
+Its ledger is v3; retained standard claims stay standard. Do not add a layout to
+an existing request, extension, claim or bound profile. Compact metadata must
+retain its full registered reference.
+
+This is implementation guidance, not an active allowance. Compatible clients,
+API and custody plus remaining real-media/recovery acceptance and a separately
+reviewed maintenance/budget plan precede any apply. Ordinary restart/retry is
+covered by simulated tests; the dedicated prepared-job repair tool remains
+standard-only. Retain compatible binaries/state on rollback; never downgrade the
+ledger by deleting its layout field.
 
 ## Prepare a future exact direct-write window
 

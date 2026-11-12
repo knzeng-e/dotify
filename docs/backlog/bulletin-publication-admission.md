@@ -1,6 +1,16 @@
 # Bulletin publication beyond the synthetic pilot
 
-## Current code checkpoint, 2026-11-11
+## Current code checkpoint, 2026-11-12
+
+The [explicit compact-delivery candidate](../reference/bulletin-compact-delivery.md)
+connects ordinary Web/API/Host dispatch to a distinct registered reference and an
+immutable exact-source admission. Standard references, prior claims and budgets
+retain their interpretation. Simulated publication/restart, response loss and
+ciphertext delivery have coverage; real AAC/device, broader recovery/rollback
+and memory acceptance remain before activation. No deployed service or live
+allowance changes. #407 stays Now/In Progress before Room/artwork/CASH.
+
+## Object-reader checkpoint, 2026-11-11
 
 The [internal compact readers](../reference/bulletin-compact-reader.md) now reconstruct
 authenticated objects with one bounded API/Host engine. Ordinary references,
@@ -177,7 +187,6 @@ show shorter marker-check medians with unchanged request counts; publication/
 finality latency remains unverified. No profile, write concurrency, key, budget
 or deployed service changes; custody remains f9fdd693 and Web/Product 0.1.82.
 
-
 ## Custody diagnostics delivered, 2026-11-09
 
 [The server-only delivery](implementation/evidence/custody-diagnostics-rollout-2026-11-09.md) installs merged #415/#416 on private custody
@@ -187,7 +196,6 @@ inventories and two prepared jobs are retained. Web/Product and public APIs
 remain 0.1.82. No Bulletin/DotNS operation, new musical allowance or key transfer
 occurs. Private timing logs are active, but live per-store latency and faster
 publication remain unverified; #407 stays open.
-
 
 ## Custody availability follow-up, 2026-11-09
 
@@ -207,7 +215,6 @@ no key/raw error/CID payload, not new custody state or an ETA. Overlapping phase
 totals are not wall time. A three-sample read-only root probe is not a store or
 throughput benchmark. API/custody rollout and live timing acceptance remain
 open; no new publication, maintenance, policy or deadline is activated.
-
 
 The [0.1.82 delivery](implementation/evidence/product-0.1.82-rollout-2026-11-09.md)
 publishes merged #413 to Web/Product/API and custody with independent source,
