@@ -1,7 +1,7 @@
 # API schema security migration
 
 GitHub: #432. Priority: P1. Track: Production spine. Phase: Next. Type: Work.
-Status: implementation in progress; service rollout remains separately reviewed.
+Status: PR #446 candidate; CI and separate service delivery remain acceptance gates.
 
 The pre-upgrade API dependency Zod 3.25.76 is affected by [GHSA-mrhx-c7xc-m3w5](https://github.com/advisories/GHSA-mrhx-c7xc-m3w5).
 The fix is in v4.6.6+; importing the v3 compatibility module from a v4 install
@@ -28,3 +28,5 @@ shared-state, publication/recovery and old-state compatibility evidence.
 The candidate pins real Zod 4.6.7 and preserves versioned state. See the
 [schema compatibility reference](../reference/api-schema-compatibility.md) for
 the historical fixtures, stricter malformed-input behavior and rollout boundary.
+
+[Source-bound implementation evidence](implementation/evidence/api-schema-security-2026-11-12.md).
