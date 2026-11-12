@@ -20,7 +20,9 @@ offline verification, without copying key files or creating a runnable queue.
 The [isolated reconstruction candidate](../operations/bulletin-isolated-restore.md)
 now recovers its original files/history in a guarded workspace, reusing local
 coherence checks without following saved paths or enabling a writer. Generated
-coverage leaves real independent data/key recovery unaccepted.
+coverage leaves real independent data/key recovery unaccepted. An [offline key-check candidate](../operations/bulletin-recovered-key-check.md)
+now authenticates retained audio with explicit versions, without vault fallback or
+writer activation. The selected second Mac/Docker has not received real data or keys.
 Earlier dated notes retain their original scope.
 
 ## Listening security review, 2026-11-11

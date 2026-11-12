@@ -98,6 +98,11 @@ review directories and permanent binding barriers, not a service restore, key
 installation or new setting. Its saved profile paths are metadata only; a future
 operational restoration still needs compatible images/UID/mounts, separately
 recovered keys and current canonical history.
+The [offline recovered-key checker](bulletin-recovered-key-check.md) reads only
+an explicit private recovery file and guarded workspace. It introduces no hosted
+secret/setting or automatic key export, rotation, transfer or service activation.
+The planned second-Mac rehearsal still needs reviewed data/key destinations,
+transfer method and stopped-writer scope.
 Source availability is not a deployment or permission to apply an extension.
 
 The browser harness alone sets `DOTIFY_E2E_LOCAL_FONTS=true` on its local Vite
