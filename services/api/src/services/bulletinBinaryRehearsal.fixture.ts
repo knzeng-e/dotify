@@ -115,6 +115,10 @@ export async function rehearseCompiledRollback(
         }
       }
       assert.equal(c.wire.writes.length, stores);
+      const afterRestart = await tree(c.root);
+      for (const [path, value] of Object.entries(ready))
+        if (/^(publisher|queue\/nonces|queue\/recoveries)\//.test(path))
+          assert.equal(afterRestart[path], value, 'Ready restarts must not rewrite account/admission/nonce/recovery history');
       const index = JSON.parse(await readFile(join(c.queue, 'jobs.json'), 'utf8'));
       assert.equal(index.jobs.find((job: { id: string }) => job.id === snapshot.jobId).ref, ref);
       results.push({
