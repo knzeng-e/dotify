@@ -35,3 +35,26 @@ that phone audio/locked-screen acceptance or independent backup recovery is done
 
 See [the dependency boundaries](../../../reference/development-toolchain.md)
 and [#433 scope](../../tooling-security-migration.md).
+
+## Nearby browser follow-up — 2026-11-13
+
+On candidate `5409fbc96dd23e19212af8aa97fb5aac6288b1d1`, CI passes the Node
+22.12 Web gate, 331 core browser cases and the three-engine audio gate, but the
+Nearby case measures zero guest output after successful signaling. The original
+case also passes three unchanged local repetitions, so the first failure's
+root cause is not established. Its retained trace remains evidence; this is not
+a claimed production-audio correction.
+
+Test source `bcc836d1a6b9913d3c8896843dc94ed0805f0997` replaces the negotiation-only
+near-silent oscillator in this one acceptance case with the ordinary Web Audio
+capture path and the existing synthetic protected audio. It waits for the current
+live, unmuted, enabled receiver, checks that the measurement context is running,
+and requires decoded RMS above 0.01 with the same ten-second energy deadline.
+It retains real signaling/WebRTC and the guest's zero-key-request assertion.
+On energy failure, bounded fixture/audio-state details accompany the trace.
+No production module, access check, automatic retry or timeout is changed.
+
+Three local repetitions pass, followed by all nine Web Nearby cases and all
+three Product Nearby cases. Targeted ESLint, formatting and diff checks pass.
+The new full CI remains the review gate. A successful synthetic browser run does
+not establish physical Host, locked-screen or real recovery acceptance.

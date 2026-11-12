@@ -31,6 +31,9 @@ matcher; SDK, signer and TrUAPI pins are unchanged. See the
 [toolchain reference](../reference/development-toolchain.md) for the tested
 consumer boundary and required Node version. Unit constructor mocks and signer
 helper types are adapted without removing assertions or changing runtime code.
+The Nearby browser acceptance now measures ordinary captured audio after receiver
+readiness, with a stronger decoded-energy assertion and unchanged deadlines;
+the original intermittent CI observation is retained in the evidence below.
 CI and review remain open; this does not deploy any service.
 
 [Source-bound candidate validation](implementation/evidence/toolchain-security-2026-11-12.md).
