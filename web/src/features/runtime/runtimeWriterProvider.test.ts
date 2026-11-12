@@ -78,11 +78,13 @@ function mockProductSigner(selectedAccount = productAccount()) {
     getState: vi.fn(() => ({ selectedAccount })),
     destroy: vi.fn()
   };
-  const SignerManager = vi.fn((options?: unknown) => {
+  const SignerManager = vi.fn(function (options?: unknown) {
     signerManagerOptions.push(options);
     return signerManager;
   });
-  const HostProvider = vi.fn(() => ({ type: 'host' }));
+  const HostProvider = vi.fn(function () {
+    return { type: 'host' };
+  });
   const deriveH160 = vi.fn((publicKey: Uint8Array) => h160ForPublicKey(hexFromBytes(publicKey)));
   vi.doMock('@parity/product-sdk/wallet', () => ({ SignerManager, HostProvider }));
   vi.doMock('@parity/product-sdk/address', () => ({ deriveH160 }));
