@@ -105,7 +105,7 @@ if (mode === 'prepare') {
   await privateRoot(output);
   // Keep the explicitly public test key OUTSIDE the reconstructed artifact.
   // This exercises readback, not real independently recovered key custody.
-  const keyDirectory = await mkdtemp('/tmp/dotify-generated-readback-key-');
+  const keyDirectory = await mkdtemp(join(await realpath('/tmp'), 'dotify-generated-readback-key-'));
   const keyFile = join(keyDirectory, 'versions.json');
   await writeFile(keyFile, JSON.stringify({ schema: 'dotify.content-key-recovery.v1', masters: { 'dotify-content-key-v3': publicSecret } }), { mode: 0o600 });
   const modules = new Set();
