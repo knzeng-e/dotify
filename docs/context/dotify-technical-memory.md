@@ -2,8 +2,9 @@
 
 Current code/deployment checkpoint: see the
 [selected sequence](../backlog/implementation/listening-and-publication-readiness.md).
-Internal compact readers are prepared; ordinary format selection and live compact
-acceptance are still ahead. Earlier dated notes retain their original scope.
+Explicit compact reference/dispatch and exact-source admission are implemented
+as a candidate; real-media/device, recovery and live acceptance remain ahead.
+Earlier dated notes retain their original scope.
 
 ## Listening security review, 2026-11-11
 
@@ -173,7 +174,6 @@ show shorter marker-check medians with unchanged request counts; publication/
 finality latency remains unverified. No profile, write concurrency, key, budget
 or deployed service changes; custody remains f9fdd693 and Web/Product 0.1.82.
 
-
 ## Custody diagnostics delivered, 2026-11-09
 
 [The server-only delivery](../backlog/implementation/evidence/custody-diagnostics-rollout-2026-11-09.md) installs merged #415/#416 on private custody
@@ -184,7 +184,6 @@ remain 0.1.82. No Bulletin/DotNS operation, new musical allowance or key transfe
 occurs. Private timing logs are active, but live per-store latency and faster
 publication remain unverified; #407 stays open.
 
-
 ## Publication checkpoint and next diagnosis, 2026-11-09
 
 [0.1.82 is delivered](../backlog/implementation/evidence/product-0.1.82-rollout-2026-11-09.md);
@@ -194,7 +193,6 @@ adds bounded private publisher stage timings before changing concurrency or
 formats. It is not deployed and does not claim faster publication; catalogue
 latency, long-preparation acceptance and broader production gates remain open.
 No new admission, musical write, schema/key reset or deadline extension occurs.
-
 
 ## Fresh development start selected, 2026-11-08
 
@@ -403,7 +401,6 @@ open. No allowance/counter reset, new service or key installation occurred.
 Conservation monitoring/renewal and off-volume restore remain open; Capacity stays
 deferred research. Older checkpoints below retain their dated meaning.
 
-
 ## Bulletin publication UX, 2026-11-02
 
 The [publication cleanup](../backlog/implementation/evidence/bulletin-publication-ux-2026-11-02.md) removes the obsolete optional client archive
@@ -414,12 +411,10 @@ does not activate it. The owner selected Bulletin stabilization first; Capacity
 remains deferred research. Next: reviewed public-asset activation and pilot
 recovery, then conservation inventory, bounded renewal and off-volume restore.
 
-
 > 2026-10-28 owner decision: retire the optional 3D renderer and Three.js.
 > Radar and List remain the supported discovery views. Historical 3D delivery
 > notes below are evidence, not a request to restore it. Immersive metaverse
 > exploration is deferred, with no implementation commitment.
-
 
 ## Owner priority: stabilize Bulletin, 2026-11-01
 
@@ -737,7 +732,6 @@ resume the preserved draft and approve registration.
 Protected physical/Web acceptance, conservation/renewal and off-volume restore
 remain gates; no broader artist allowance or automatic renewal is enabled.
 
-
 ## Prepared-release recovery rollout, 2026-11-04
 
 [API/custody, Web and Product 0.1.71](../backlog/implementation/evidence/product-0.1.71-rollout-2026-11-04.md)
@@ -752,7 +746,6 @@ Custody had stopped after losing its database lease before deployment; same-imag
 restart restored inspection. Investigate supervised recovery separately while
 preserving fail-closed shared-writer ownership. Conservation of reused app blocks
 (expiry 1,532,185), protected acceptance and off-volume restore remain open.
-
 
 ## Fresh Bulletin publication trial active, 2026-11-04
 

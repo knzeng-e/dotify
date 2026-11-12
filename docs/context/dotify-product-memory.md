@@ -2,8 +2,9 @@
 
 Current code/deployment checkpoint: see the
 [selected sequence](../backlog/implementation/listening-and-publication-readiness.md).
-Internal compact readers are prepared; ordinary format selection and live compact
-acceptance are still ahead. Earlier dated notes retain their original scope.
+Explicit compact reference/dispatch and exact-source admission are implemented
+as a candidate; real-media/device, recovery and live acceptance remain ahead.
+Earlier dated notes retain their original scope.
 
 ## Listening security review, 2026-11-11
 
@@ -153,7 +154,6 @@ remain 0.1.82. No Bulletin/DotNS operation, new musical allowance or key transfe
 occurs. Private timing logs are active, but live per-store latency and faster
 publication remain unverified; #407 stays open.
 
-
 ## Publication checkpoint and next diagnosis, 2026-11-09
 
 [0.1.82 is delivered](../backlog/implementation/evidence/product-0.1.82-rollout-2026-11-09.md);
@@ -163,7 +163,6 @@ adds bounded private publisher stage timings before changing concurrency or
 formats. It is not deployed and does not claim faster publication; catalogue
 latency, long-preparation acceptance and broader production gates remain open.
 No new admission, musical write, schema/key reset or deadline extension occurs.
-
 
 ## Fresh development start selected, 2026-11-08
 
@@ -362,12 +361,10 @@ open. No allowance/counter reset, new service or key installation occurred.
 Conservation monitoring/renewal and off-volume restore remain open; Capacity stays
 deferred research. Older checkpoints below retain their dated meaning.
 
-
 > 2026-10-28 owner decision: retire the optional 3D renderer and Three.js.
 > Radar and List remain the supported discovery views. Historical 3D delivery
 > notes below are evidence, not a request to restore it. Immersive metaverse
 > exploration is deferred, with no implementation commitment.
-
 
 ## Delivery checkpoint, 2026-10-26
 
@@ -574,6 +571,7 @@ historical context where their priorities differ.
 - Treating rooms as secondary when they are the social core.
 
 ## Product mantra
+
 **Let the music connect the dots**
 
 This is Dotify's official slogan. Keep its wording in the app's About view,
@@ -602,7 +600,6 @@ resume the preserved draft and approve registration.
 Protected physical/Web acceptance, conservation/renewal and off-volume restore
 remain gates; no broader artist allowance or automatic renewal is enabled.
 
-
 ## Prepared-release recovery published, 2026-11-04
 
 [Product 0.1.71, Web and existing services](../backlog/implementation/evidence/product-0.1.71-rollout-2026-11-04.md)
@@ -611,7 +608,6 @@ price and artwork before ordinary Publish. Ready audio and the exact name-only
 permit remain intact. The rollout itself publishes only the app; the artist still
 submits corrected metadata and approves registry publication. Protected Web and
 physical Host acceptance, conservation/renewals and off-volume recovery remain gates.
-
 
 ## Clean publication trial replaces draft repair, 2026-11-04
 
@@ -624,7 +620,6 @@ chooses details/cover, then signs ordinary publication. This is a bounded test,
 not successful registration or general multi-release readiness. Prioritize a
 successful end-to-end flow; ordinary draft editing and usage-based admission must
 remove the need for operator intervention on routine artist choices.
-
 
 ## Co-creation and restrained system branding, 2026-11-06
 

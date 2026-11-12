@@ -1,3 +1,5 @@
+import { CID } from 'multiformats/cid';
+import { parseStreamingReference } from './streamingReference.js';
 import { withDeadline } from './deadline.js';
 import type { BulletinPublicationProgress } from './bulletinLimits.js';
 import { randomUUID } from 'node:crypto';
@@ -91,6 +93,7 @@ export type StreamingJobDeps = {
   authority: (owner: string, runtime: string, chainId: number) => Promise<boolean>;
   transcode: (master: Buffer, signal?: AbortSignal) => Promise<EncodedStreamingAudio>;
   publicationTimeoutMs?: number;
+  audioReference?: (scope: StreamingScope, root: string) => Promise<string>;
   pin: (files: PinataFile[], name: string, signal: AbortSignal, onProgress?: (progress: BulletinPublicationProgress) => void) => Promise<string>;
   /** Reject deletion while a storage transaction or retained ciphertext needs reconciliation. */
   canDiscard?: (name: string) => Promise<boolean>;
@@ -475,8 +478,12 @@ export class StreamingJobs {
       if (!/^(Qm[1-9A-HJ-NP-Za-km-z]{44}|b[a-z2-7]{20,110})$/.test(cid)) throw new Error('Invalid storage directory');
       stage = 'persistence';
       const version = job.scope.keyVersion.replace('dotify-content-', '');
+      const ref = this.deps.audioReference ? await this.deps.audioReference(job.scope, cid) : `dotify:enc:v3:${version}:ipfs://${cid}`;
+      const reference = parseStreamingReference(ref, value => CID.parse(value));
+      if (!reference || reference.root !== cid || reference.keyVersion !== job.scope.keyVersion)
+        throw new Error('Published reference differs from its release');
       await this.exclusive(async () => {
-        job.ref = `dotify:enc:v3:${version}:ipfs://${cid}`;
+        job.ref = ref;
         job.state = 'ready';
         job.updatedAt = this.now();
         delete job.reason;

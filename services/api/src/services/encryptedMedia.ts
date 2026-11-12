@@ -1,3 +1,6 @@
+import { CID } from 'multiformats/cid';
+import { parseStreamingReference } from './streamingReference.js';
+export const streamingMediaReference = (ref: string) => parseStreamingReference(ref, value => CID.parse(value));
 // Bounded ciphertext delivery for fixed objects of registered streaming releases.
 const MAX_CACHE_BYTES = 16 * 1024 * 1024;
 const MAX_ENTRIES = 64;
@@ -26,7 +29,7 @@ export class MediaError extends Error {
   }
 }
 export function encryptedMediaCid(ref: string): string | null {
-  return /^dotify:enc:v3:key-v(?:[2-9]|[1-9][0-9]+):ipfs:\/\/((?:Qm[1-9A-HJ-NP-Za-km-z]{44}|b[a-z2-7]{20,110}))$/.exec(ref)?.[1] ?? null;
+  return streamingMediaReference(ref)?.root ?? null;
 }
 function objectBudget(object: string): number {
   if (

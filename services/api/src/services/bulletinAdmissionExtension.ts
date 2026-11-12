@@ -12,15 +12,19 @@ import {
   releaseIdentity,
   releaseJob,
   releasePipeline,
+  releaseAudioLayout,
   releaseScopeSchema
 } from './bulletinReleaseAdmission.js';
 import { assertPublicationBinding, publicationBinding, readBulletinPublisherProfile } from './bulletinPublisherProfile.js';
 import { acquireBulletinPublisherLock } from './bulletinPublisherLock.js';
 import { jobSchema, load, ownerSchema, privateDirectory, save, sync, type BulletinMediaInventory } from './bulletinMediaState.js';
 import { streamingJobsSchema } from './streamingJobState.js';
+import { CID } from 'multiformats/cid';
+import { formatStreamingReference } from './streamingReference.js';
+import { COMPACT_BULLETIN_LAYOUT } from './bulletinStorageLayout.js';
 import { writeWindowSchema } from './bulletinPipeline.js';
 
-export const admissionExtensionRequestSchema = z
+const legacyAdmissionExtensionRequestSchema = z
   .object({
     schema: z.literal('dotify.bulletin.release-extension.v1'),
     profileFile: z.string().refine(isAbsolute),
@@ -33,6 +37,12 @@ export const admissionExtensionRequestSchema = z
   })
   .strict();
 
+export const admissionExtensionRequestSchema = z.discriminatedUnion('schema', [
+  legacyAdmissionExtensionRequestSchema,
+  legacyAdmissionExtensionRequestSchema
+    .extend({ schema: z.literal('dotify.bulletin.release-extension.v2'), audioLayout: z.literal(COMPACT_BULLETIN_LAYOUT) })
+    .strict()
+]);
 export async function extendBulletinAdmission(input: unknown, apply = false) {
   const request = admissionExtensionRequestSchema.parse(input);
   const profile = await readBulletinPublisherProfile(request.profileFile);
@@ -107,7 +117,7 @@ export async function extendBulletinAdmission(input: unknown, apply = false) {
       assert.deepEqual(audio.scope, job.scope, 'Ready queue scope differs from its inventory');
       assert.equal(
         job.ref,
-        `dotify:enc:v3:${job.scope.keyVersion.replace('dotify-content-', '')}:ipfs://${audio.root}`,
+        formatStreamingReference(audio.root, job.scope.keyVersion, releaseAudioLayout(before, job.scope), value => CID.parse(value)),
         'Ready queue reference differs from its inventory'
       );
     }
@@ -115,12 +125,16 @@ export async function extendBulletinAdmission(input: unknown, apply = false) {
     assert.deepEqual(await load(join(request.queue, 'nonces', 'ledger.json')), { schema: 'dotify.streaming.nonce-ledger.v1' });
     const after = releaseAdmissionLedgerSchema.parse({
       ...before,
-      schema: 'dotify.bulletin.release-admission.v2',
+      schema:
+        request.schema === 'dotify.bulletin.release-extension.v2' || before.schema === 'dotify.bulletin.release-admission.v3'
+          ? 'dotify.bulletin.release-admission.v3'
+          : 'dotify.bulletin.release-admission.v2',
       extensions: [
         ...extensions,
         {
           owner: request.owner,
           scope: request.scope,
+          ...(request.schema === 'dotify.bulletin.release-extension.v2' ? { audioLayout: request.audioLayout } : {}),
           previousAdmissionSha256: request.expectedAdmissionSha256,
           ...(request.writeWindow ? { writeWindow: request.writeWindow } : {})
         }
@@ -168,6 +182,7 @@ export async function extendBulletinAdmission(input: unknown, apply = false) {
       capacity: baseCapacity + extensions.length + 1,
       addedWholeReleaseBudget: budget,
       writeWindow: request.writeWindow ?? null,
+      audioLayout: releaseAudioLayout(after, request.scope),
       networkWrites: 0,
       keysChanged: false,
       nonceStateChanged: false

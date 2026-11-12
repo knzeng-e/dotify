@@ -517,3 +517,36 @@ describe('W34 block-bound verdicts', () => {
     else assert.fail('wrong chain allowed');
   });
 });
+
+it('compact physical layout retains canonical Classic/Room denials and rejects reference substitution', async () => {
+  const candidate = release({ audioRef: 'dotify:enc:v3:key-v2:bulletin-pack-v1://bafykbzacec2bpys6cfd23kbnvg4p7fidf6laimhd5afshs32sgilt74gkybhw' });
+  const { access, client } = service([candidate]);
+  const canonical = { ...identity(candidate), keyVersion: RELEASE_BOUND_CONTENT_KEY_VERSION };
+  assert.equal((await access.checkTrackAccess({ contentHash: HASH, requester: REQUESTER, purpose: 'individual', release: canonical })).allowed, true);
+  client.access.set(`${RUNTIME_A}:${HASH}:${REQUESTER}`.toLowerCase(), false);
+  client.blockNumber++;
+  for (const purpose of ['individual', 'room_host'] as const) {
+    const verdict = await access.checkTrackAccess({ contentHash: HASH, requester: REQUESTER, purpose, release: canonical });
+    assert.equal(verdict.allowed, false);
+    assert.equal('contentKey' in verdict, false);
+  }
+  assert.equal(
+    (
+      await access.checkTrackAccess({
+        contentHash: HASH,
+        requester: REQUESTER,
+        purpose: 'individual',
+        release: { ...canonical, audioRef: canonical.audioRef.replace('bulletin-pack-v1', 'ipfs') }
+      })
+    ).allowed,
+    false
+  );
+  const free = release({ audioRef: candidate.audioRef, accessMode: 'free', priceWei: '0', priceDot: '0' });
+  const publicService = service([free]);
+  const freeIdentity = { ...identity(free), keyVersion: RELEASE_BOUND_CONTENT_KEY_VERSION };
+  publicService.client.access.set(`${RUNTIME_A}:${HASH}:${ZERO_ADDRESS}`.toLowerCase(), true);
+  assert.equal((await publicService.access.checkPublicAccess({ contentHash: HASH, release: freeIdentity })).allowed, true);
+  publicService.client.access.set(`${RUNTIME_A}:${HASH}:${ZERO_ADDRESS}`.toLowerCase(), false);
+  publicService.client.blockNumber++;
+  assert.equal((await publicService.access.checkPublicAccess({ contentHash: HASH, release: freeIdentity })).allowed, false);
+});

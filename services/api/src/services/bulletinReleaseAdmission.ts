@@ -15,7 +15,7 @@ import {
   bulletinInventoryLayout,
   type BulletinMediaInventory
 } from './bulletinMediaState.js';
-import { assertStandardBulletinLayout } from './bulletinStorageLayout.js';
+import { COMPACT_BULLETIN_LAYOUT, STANDARD_BULLETIN_LAYOUT, type BulletinStorageLayout } from './bulletinStorageLayout.js';
 import { PublicationAdmissionError } from './publicationAdmission.js';
 import type { StreamingScope } from './streamingFormat.js';
 import { writeWindowSchema, type BulletinPipelineLimits } from './bulletinPipeline.js';
@@ -69,10 +69,21 @@ export const admissionExtensionSchema = z
     writeWindow: writeWindowSchema.optional()
   })
   .strict();
+export const compactAdmissionExtensionSchema = admissionExtensionSchema.extend({ audioLayout: z.literal(COMPACT_BULLETIN_LAYOUT) }).strict();
 export const releaseAdmissionLedgerSchema = z.discriminatedUnion('schema', [
   legacyLedgerSchema,
   legacyLedgerSchema
     .extend({ schema: z.literal('dotify.bulletin.release-admission.v2'), extensions: z.array(admissionExtensionSchema).min(1).max(63) })
+    .strict(),
+  legacyLedgerSchema
+    .extend({
+      schema: z.literal('dotify.bulletin.release-admission.v3'),
+      releases: z.array(z.union([entrySchema, entrySchema.extend({ audioLayout: z.literal(COMPACT_BULLETIN_LAYOUT) }).strict()])).max(64),
+      extensions: z
+        .array(z.union([admissionExtensionSchema, compactAdmissionExtensionSchema]))
+        .min(1)
+        .max(63)
+    })
     .strict()
 ]);
 export type ReleaseAdmissionLedger = z.infer<typeof releaseAdmissionLedgerSchema>;
@@ -84,6 +95,10 @@ export function releasePipeline(pipeline: BulletinPipelineLimits, state: Release
     maxInFlightBytes: pipeline.maxInFlightBytes,
     ...(extension?.writeWindow ? { writeWindow: extension.writeWindow } : {})
   };
+}
+export function releaseAudioLayout(state: ReleaseAdmissionLedger, scope: StreamingScope): BulletinStorageLayout {
+  const extension = admissionExtensions(state).find(e => releaseIdentity(e.scope) === releaseIdentity(scope));
+  return extension && 'audioLayout' in extension && extension.audioLayout === COMPACT_BULLETIN_LAYOUT ? COMPACT_BULLETIN_LAYOUT : STANDARD_BULLETIN_LAYOUT;
 }
 // A normalized JSON digest binds the reviewed checkpoint without trusting file whitespace.
 export const admissionDigest = (state: ReleaseAdmissionLedger) => createHash('sha256').update(JSON.stringify(state)).digest('hex');
@@ -172,6 +187,11 @@ export function createReleaseAdmission(input: { directory: string; profileSha256
         const retained = state.releases.find(e => releaseIdentity(e.scope) === releaseIdentity(entry.scope));
         assert.ok(retained, 'Release extension lost a prior reservation');
         assert.deepEqual(retained.scope, entry.scope, 'Release extension changed a prior scope');
+        assert.equal(
+          'audioLayout' in retained ? retained.audioLayout : STANDARD_BULLETIN_LAYOUT,
+          'audioLayout' in entry ? entry.audioLayout : STANDARD_BULLETIN_LAYOUT,
+          'Release extension changed a prior layout'
+        );
         for (const part of ['audio', 'cover', 'metadata'] as const)
           if (entry[part]) assert.equal(retained[part], entry[part], 'Release extension changed a prior claim');
       }
@@ -182,6 +202,11 @@ export function createReleaseAdmission(input: { directory: string; profileSha256
     assert.equal(new Set(jobs).size, jobs.length, 'Duplicate release job claim');
     for (const entry of state.releases) {
       artistFor(entry.scope);
+      assert.equal(
+        'audioLayout' in entry ? entry.audioLayout : STANDARD_BULLETIN_LAYOUT,
+        releaseAudioLayout(state, entry.scope),
+        'Release claim layout differs from admission'
+      );
       if (entry.audio) assert.equal(entry.audio, releaseJob(entry.scope, 'audio'), 'Audio admission identity changed');
     }
     expectedExtensions ??= observedExtensions;
@@ -207,14 +232,22 @@ export function createReleaseAdmission(input: { directory: string; profileSha256
     check,
     validate: snapshot,
     artistFor,
+    async audioLayout(scope: StreamingScope) {
+      artistFor(scope);
+      return releaseAudioLayout(await snapshot(), scope);
+    },
     async validateInventories(jobs: BulletinMediaInventory[]) {
       const state = await snapshot();
       assert.ok(jobs.length <= (allowedCount + admissionExtensions(state).length) * 3, 'Too many release inventories');
       for (const job of jobs) {
-        assertStandardBulletinLayout(bulletinInventoryLayout(job));
         const entry = state.releases.find(e => releaseIdentity(e.scope) === releaseIdentity(job.scope));
         const part: ReleasePart = job.generation === 'public-cover-v1' ? 'cover' : job.generation === 'public-metadata-v1' ? 'metadata' : 'audio';
         assert.ok(entry && entry[part] === job.job, 'Publication inventory lacks its durable release claim');
+        assert.equal(
+          bulletinInventoryLayout(job),
+          part === 'audio' ? releaseAudioLayout(state, job.scope) : STANDARD_BULLETIN_LAYOUT,
+          'Publication layout differs from immutable admission'
+        );
         assert.equal(job.job, releaseJob(job.scope, part, part === 'audio' ? '' : job.root), 'Release inventory job changed');
         assert.deepEqual(job.budget, part === 'audio' ? input.audio : policy[part], 'Release inventory allowance changed');
         assert.ok(
@@ -235,7 +268,8 @@ export function createReleaseAdmission(input: { directory: string; profileSha256
           const extended = new Set(admissionExtensions(state).map(e => releaseIdentity(e.scope)));
           if (!extended.has(releaseIdentity(scope)) && state.releases.filter(e => !extended.has(releaseIdentity(e.scope))).length >= allowedCount)
             throw new PublicationAdmissionError();
-          entry = { scope: releaseScopeSchema.parse(scope) };
+          const layout = releaseAudioLayout(state, scope);
+          entry = { scope: releaseScopeSchema.parse(scope), ...(layout === COMPACT_BULLETIN_LAYOUT ? { audioLayout: layout } : {}) };
           state.releases.push(entry);
         }
         const name = releaseJob(scope, part, root);

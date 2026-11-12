@@ -1,10 +1,14 @@
+import { deriveContentKeyBytes } from './keyVault.js';
+import type { StreamingScope } from './streamingFormat.js';
 import { CID } from 'multiformats/cid';
 import { createEncryptedMediaReader, MediaError } from './encryptedMedia.js';
 import { createBulletinMediaReader } from './bulletinReader.js';
 import { createBulletinHttpBlockReader } from './bulletinHttpReader.js';
 
 /** Catalog routes remain the admission boundary. Never expose the raw reader. */
-export function createMediaDeliveryReader(options: { bulletinRpcUrl?: string; dedicatedGateway?: string; fetchImpl?: typeof fetch } = {}) {
+export function createMediaDeliveryReader(
+  options: { bulletinRpcUrl?: string; dedicatedGateway?: string; fetchImpl?: typeof fetch; deriveKey?: (scope: StreamingScope) => Buffer | null } = {}
+) {
   const pinata = createEncryptedMediaReader(options.fetchImpl, options.dedicatedGateway);
   const raw = options.bulletinRpcUrl ? createBulletinHttpBlockReader(options.bulletinRpcUrl, options.fetchImpl) : undefined;
   const bulletin = raw ? createBulletinMediaReader(raw) : undefined;
@@ -23,6 +27,19 @@ export function createMediaDeliveryReader(options: { bulletinRpcUrl?: string; de
         return bulletin.read(object, signal);
       }
       return pinata.read(object, signal);
+    },
+    async readCompact(object: string, scope: StreamingScope, signal?: AbortSignal) {
+      signal?.throwIfAborted();
+      if (!bulletin) throw new MediaError(502, 'MEDIA_UNAVAILABLE');
+      // Catalog-selected scope authenticates offsets only. No clear audio/key
+      // leaves this public ciphertext path; ordinary key-delivery rules remain.
+      const key = (options.deriveKey ?? deriveContentKeyBytes)(scope);
+      if (!key) throw new MediaError(502, 'MEDIA_UNAVAILABLE');
+      try {
+        return await bulletin.read(object, signal, { scope, key });
+      } finally {
+        key.fill(0);
+      }
     },
     clear() {
       bulletin?.clear();

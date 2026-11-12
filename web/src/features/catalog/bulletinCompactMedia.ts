@@ -1,4 +1,4 @@
-// Internal Host seam; ordinary playback/publication still use the old format.
+// Host seam selected only by an explicit compact registered reference.
 // One portable range algorithm is compiled by the API and available to the Host adapter. Its
 // module has no Node imports, config, secrets or signer/SDK dependencies.
 import { CID } from 'multiformats/cid';

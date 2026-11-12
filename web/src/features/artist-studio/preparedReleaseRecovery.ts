@@ -1,3 +1,4 @@
+import { streamingReference } from '../../shared/utils/protectedAudio';
 // A recovery offer is public draft data, never a storage authorization or a key.
 import { getAddress, isAddress } from 'viem';
 import { bulletinAssetLocation } from '../../services/bulletinPublicAssets';
@@ -68,7 +69,8 @@ export function parsePreparedRelease(value: unknown, requested: DotifyTrackManif
       return null;
     if (
       m.assets.audioCID !== requested.assets.audioCID ||
-      !isBulletinMediaRoot(m.assets.audioCID) ||
+      !isBulletinMediaRoot(streamingReference(m.assets.audioCID)?.root ?? m.assets.audioCID) ||
+      (streamingReference(m.assets.audioCID) !== null && streamingReference(m.assets.audioCID)!.keyVersion !== m.assets.keyVersion) ||
       m.assets.encrypted !== true ||
       m.assets.keyVersion !== requested.assets.keyVersion
     )

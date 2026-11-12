@@ -1,8 +1,8 @@
 # Dotify implementation playbook
 
 Start with the [selected execution sequence](listening-and-publication-readiness.md).
-Its #407 checkpoint now includes internal compact object readers; ordinary
-reference/dispatch, admission and real-media acceptance remain before activation.
+Its #407 checkpoint includes explicit compact reference/dispatch and exact-source
+admission. Real-media/device, recovery and memory acceptance remain before activation.
 
 ## Listening security review, 2026-11-11
 
@@ -132,7 +132,6 @@ remain 0.1.82. No Bulletin/DotNS operation, new musical allowance or key transfe
 occurs. Private timing logs are active, but live per-store latency and faster
 publication remain unverified; #407 stays open.
 
-
 ## Publisher latency diagnosis candidate, 2026-11-09
 
 [The next #407 slice](evidence/bulletin-publication-timings-2026-11-09.md) measures publisher queue/setup,
@@ -142,8 +141,6 @@ no key/raw error/CID payload, not new custody state or an ETA. Overlapping phase
 totals are not wall time. A three-sample read-only root probe is not a store or
 throughput benchmark. API/custody rollout and live timing acceptance remain
 open; no new publication, maintenance, policy or deadline is activated.
-
-
 
 ## Publication reliability delivered in 0.1.82, 2026-11-09
 
@@ -319,7 +316,6 @@ precedes a separate ordinary Publish and wallet action. Artist registration,
 protected Web/physical Host acceptance, dependency conservation and off-volume
 recovery remain W33/#288 gates; no renewal is performed by this rollout.
 
-
 ## Product 0.1.70 and exact repair admission, 2026-11-03
 
 The [verified rollout](evidence/product-0.1.70-rollout-2026-11-03.md) deploys the required artist-name checks and admits
@@ -344,7 +340,6 @@ open. No allowance/counter reset, new service or key installation occurred.
 Conservation monitoring/renewal and off-volume restore remain open; Capacity stays
 deferred research. Older checkpoints below retain their dated meaning.
 
-
 ## Bulletin publication UX, 2026-11-02
 
 The [publication cleanup](evidence/bulletin-publication-ux-2026-11-02.md) removes the obsolete optional client archive
@@ -354,7 +349,6 @@ are unchanged. The server-side public-asset path is merged in #376; this cleanup
 does not activate it. The owner selected Bulletin stabilization first; Capacity
 remains deferred research. Next: reviewed public-asset activation and pilot
 recovery, then conservation inventory, bounded renewal and off-volume restore.
-
 
 Agent-ready work sequences for shipping a trustworthy musical commons on Product DevNet and ordinary web, then expanding discovery. Written 2026-09-05 against dev `bb3e2557215ee8628f4c0e107de6d1e984baaccf` and extended with W27 on 2026-09-22; agents must refresh the source before acting. This is a plan, not a claim that these features or branches already exist.
 
@@ -394,7 +388,6 @@ On October 28, the owner selected W38 and confirmed that internal runtimes will
 be redeployed from scratch. [W38 evidence](evidence/W38.md) records the implemented
 bounds and paged readers, ready for review. Activation requires a coordinated
 fresh contract/API/Web/Product generation; no retired-runtime fallback is kept.
-
 
 ## Bulletin application readers, 2026-11-01
 

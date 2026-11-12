@@ -291,7 +291,7 @@ it('keeps original per-part caps on the new identity and serializes competing ma
   await admission.validateInventories([inventory as never]);
   await assert.rejects(
     admission.validateInventories([{ ...inventory, schema: 'dotify.bulletin.media-job.v3', layout: 'rendition-pack-v1' } as never]),
-    /not enabled/
+    /layout differs from immutable admission/
   );
   await assert.rejects(
     admission.validateInventories([{ ...inventory, budget: { ...c.profile.budget, maxTransactions: c.profile.budget.maxTransactions + 1 } } as never]),
@@ -359,4 +359,48 @@ it('CLI inspection runs without application configuration, vault secrets, networ
   assert.equal(JSON.parse(result.stdout).applied, false);
   assert.deepEqual(await c.snapshot(), before);
   assert.deepEqual(await c.admission.validate(), c.before);
+});
+
+it('binds compact only to a reviewed fresh identity and its durable claim before graph work', async t => {
+  const c = await fixture(t);
+  const request = { ...c.request, schema: 'dotify.bulletin.release-extension.v2', audioLayout: 'rendition-pack-v1' };
+  const old = await c.snapshot();
+  const report = await extendBulletinAdmission(request, true);
+  assert.equal(report.audioLayout, 'rendition-pack-v1');
+  assert.deepEqual(await c.snapshot(), old);
+  const a = createReleaseAdmission(c.options);
+  assert.equal(await a.audioLayout(scope('11')), 'unixfs-files-v1');
+  assert.equal(await a.audioLayout(request.scope), 'rendition-pack-v1');
+  const id = await a.claim(request.scope, 'audio');
+  const state = await a.validate();
+  assert.equal(state.schema, 'dotify.bulletin.release-admission.v3');
+  const entry = state.releases.find(e => e.audio === id)!;
+  assert.equal('audioLayout' in entry && entry.audioLayout, 'rendition-pack-v1');
+  const restarted = createReleaseAdmission(c.options);
+  assert.equal(await restarted.claim(request.scope, 'audio'), id);
+  const compact = {
+    schema: 'dotify.bulletin.media-job.v3',
+    layout: 'rendition-pack-v1',
+    scope: request.scope,
+    job: id,
+    generation: 'synthetic',
+    root: 'synthetic',
+    budget: c.profile.budget,
+    blocks: [{ cid: 'block', bytes: 1 }],
+    attemptedBytes: 0,
+    attemptedStores: 0
+  };
+  await restarted.validateInventories([compact as never]);
+  await assert.rejects(restarted.validateInventories([{ ...compact, schema: 'dotify.bulletin.media-job.v2', layout: undefined } as never]), /layout differs/);
+  await assert.rejects(extendBulletinAdmission({ ...request, expectedAdmissionSha256: admissionDigest(state) }, true), /existing admitted/);
+  await assert.rejects(extendBulletinAdmission({ ...request, audioLayout: 'future-layout' }, true));
+  const changed = structuredClone(state);
+  const changedEntry = changed.releases.find(e => e.audio === id)!;
+  Reflect.deleteProperty(changedEntry, 'audioLayout');
+  await save(c.profile.directory, 'release-admission.json', changed);
+  await assert.rejects(createReleaseAdmission(c.options).validate(), /claim layout differs/);
+  await save(c.profile.directory, 'release-admission.json', state);
+  const downgraded = { ...state, schema: 'dotify.bulletin.release-admission.v2' };
+  await save(c.profile.directory, 'release-admission.json', downgraded);
+  await assert.rejects(createReleaseAdmission(c.options).validate());
 });

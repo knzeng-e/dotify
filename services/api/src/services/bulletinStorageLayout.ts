@@ -25,8 +25,8 @@ export function bulletinGraphLayout(graph: { layout?: BulletinStorageLayout }): 
   return graph.layout === undefined ? STANDARD_BULLETIN_LAYOUT : bulletinStorageLayoutSchema.parse(graph.layout);
 }
 
-/** Current queues/references are v3 path-based. Refuse a compact inventory at
- * composition/recovery boundaries until versioned delivery is installed. */
+/** Legacy-only boundaries (single pilot and stopped prepared-job repair) must
+ * refuse compact inventories rather than interpreting their root as paths. */
 export function assertStandardBulletinLayout(layout: BulletinStorageLayout) {
   assert.equal(layout, STANDARD_BULLETIN_LAYOUT, 'Compact Bulletin delivery is not enabled for this publication');
 }

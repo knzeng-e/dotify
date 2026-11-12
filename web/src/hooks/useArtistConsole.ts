@@ -1,3 +1,4 @@
+import { audioReferenceForMetadata } from '../shared/utils/protectedAudio';
 import { preparePublicationAssets } from '../features/uploads/preparePublicationAssets';
 import { PreparedReleaseRecoveryError, type PreparedRelease } from '../features/artist-studio/preparedReleaseRecovery';
 import { audioPreparationLabel, AudioPreparationError, AudioPreparationPending } from '../features/uploads/streamingPreparation';
@@ -810,7 +811,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
       schema: 'dotify.track.v2',
       createdAt: new Date().toISOString(),
       assets: {
-        audioCID: resolvedAudioCID,
+        audioCID: audioReferenceForMetadata(resolvedAudioRef, resolvedAudioCID),
         coverCID: resolvedCoverCID,
         encrypted: true,
         ...(keyVersion ? { keyVersion } : {})

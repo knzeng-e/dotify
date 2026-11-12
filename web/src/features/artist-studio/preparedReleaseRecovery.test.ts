@@ -87,3 +87,15 @@ describe('prepared release recovery', () => {
       expect(matchesPreparedRelease(fixture, { ...context, ...changed })).toBe(false);
   });
 });
+
+it('retains a compact prepared metadata reference and refuses layout/key drift', () => {
+  const value = structuredClone(fixture);
+  value.manifest.assets.audioCID = `dotify:enc:v3:key-v2:bulletin-pack-v1://${fixture.manifest.assets.audioCID}`;
+  expect(parsePreparedRelease(value, value.manifest, fixture.owner, fixture.chainId)?.manifest.assets.audioCID).toBe(value.manifest.assets.audioCID);
+  const altered = structuredClone(value);
+  altered.manifest.assets.audioCID = altered.manifest.assets.audioCID.replace('pack-v1', 'pack-v2');
+  expect(parsePreparedRelease(altered, altered.manifest, fixture.owner, fixture.chainId)).toBeNull();
+  const wrongKey = structuredClone(value);
+  wrongKey.manifest.assets.keyVersion = 'dotify-content-key-v3';
+  expect(parsePreparedRelease(wrongKey, wrongKey.manifest, fixture.owner, fixture.chainId)).toBeNull();
+});

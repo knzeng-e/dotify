@@ -38,6 +38,7 @@ function queueFor(
     assertCanPrepare: store.assertCanPrepare,
     admitPreparation: store.admitPreparation,
     pin: store.pin,
+    audioReference: store.audioReference,
     canDiscard: store.canDiscard
   });
 }
@@ -259,55 +260,86 @@ it('publishes two audio/cover/metadata releases through one cursor and recovers 
   assert.equal(c.writes, count, 'Response-loss retries must not broadcast another store');
   await store.close();
 });
-it('keeps an ambiguous store charged, blocks another release and reconciles the same ciphertext exactly once', async t => {
-  const c = await assetFixture(t, true);
-  const original = c.transport.store;
-  const submitted = new Map<string, number>();
-  let lose = true,
-    encodes = 0;
-  c.transport.store = async (block, intent, s) => {
-    submitted.set(block.cid, (submitted.get(block.cid) ?? 0) + 1);
-    const receipt = await original(block, intent, s);
-    if (lose) {
-      lose = false;
-      throw new Error('Synthetic lost response after inclusion');
+for (const compact of [false, true])
+  it(`keeps an ambiguous ${compact ? 'compact' : 'standard'} store charged and reconciles the same ciphertext exactly once`, async t => {
+    const c = await assetFixture(t, true);
+    const master = Buffer.alloc(64, 4),
+      scope = scopeFor(master, c);
+    if (compact) {
+      const admission = createReleaseAdmission({
+        directory: c.profile.directory,
+        profileSha256: publicationBinding(c.profile).profileSha256,
+        policy: c.profile.releasePolicy!,
+        audio: c.profile.budget
+      });
+      await extendBulletinAdmission(
+        {
+          schema: 'dotify.bulletin.release-extension.v2',
+          profileFile: c.profileFile,
+          queue: c.queue,
+          expectedProfileSha256: publicationBinding(c.profile).profileSha256,
+          expectedAdmissionSha256: admissionDigest(await admission.validate()),
+          owner: c.owner.address,
+          scope,
+          audioLayout: 'rendition-pack-v1'
+        },
+        true
+      );
     }
-    return receipt;
-  };
-  let store = await createStreamingPublicationStore(c.options, c.deps);
-  let queue = queueFor(c, store, async () => {
-    encodes++;
-    return encoded;
+    const original = c.transport.store;
+    const submitted = new Map<string, number>();
+    let lose = true,
+      encodes = 0;
+    c.transport.store = async (block, intent, s) => {
+      submitted.set(block.cid, (submitted.get(block.cid) ?? 0) + 1);
+      const receipt = await original(block, intent, s);
+      if (lose) {
+        lose = false;
+        throw new Error('Synthetic lost response after inclusion');
+      }
+      return receipt;
+    };
+    let store = await createStreamingPublicationStore(c.options, c.deps);
+    let queue = queueFor(c, store, async () => {
+      encodes++;
+      return encoded;
+    });
+    await queue.start(false);
+    const job = await queue.enqueue({ owner: c.owner.address, scope, master });
+    await queue.runNext();
+    assert.equal(queue.get(job.id, c.owner.address, scope.chainId)?.state, 'failed');
+    const before = await readFile(join(c.profile.directory, 'release-admission.json'));
+    const saved = (await load(join(c.profile.directory, `stream-${job.id}.json`))) as { root: string; generation: string; blocks: unknown; layout?: string };
+    await assert.rejects(store.admitPreparation!(scopeFor(Buffer.alloc(64, 5), c), c.owner.address), PublicationAdmissionError);
+    await assert.rejects(
+      store.pinAsset!(
+        c.cover.files,
+        'cover',
+        { ...c.owner, contentHash: scopeFor(Buffer.alloc(64, 5), c).contentHash, keyVersion: scope.keyVersion },
+        signal()
+      ),
+      /reconciliation/
+    );
+    assert.deepEqual(await readFile(join(c.profile.directory, 'release-admission.json')), before);
+    await queue.stop();
+    await store.close();
+    store = await createStreamingPublicationStore(c.options, c.deps);
+    queue = queueFor(c, store, async () => {
+      encodes++;
+      return encoded;
+    });
+    await queue.start(false);
+    await queue.retry(job.id, c.owner.address, scope.chainId);
+    await queue.runNext();
+    assert.equal(queue.get(job.id, c.owner.address, scope.chainId)?.state, 'ready');
+    const retained = (await load(join(c.profile.directory, `stream-${job.id}.json`))) as typeof saved;
+    for (const field of ['root', 'generation', 'blocks', 'layout'] as const) assert.deepEqual(retained[field], saved[field]);
+    assert.equal(queue.get(job.id, c.owner.address, scope.chainId)?.result?.ref.includes(':bulletin-pack-v1://'), compact);
+    assert.equal(encodes, 1);
+    assert([...submitted.values()].every(count => count === 1));
+    await queue.stop();
+    await store.close();
   });
-  await queue.start(false);
-  const master = Buffer.alloc(64, 4),
-    scope = scopeFor(master, c),
-    job = await queue.enqueue({ owner: c.owner.address, scope, master });
-  await queue.runNext();
-  assert.equal(queue.get(job.id, c.owner.address, scope.chainId)?.state, 'failed');
-  const before = await readFile(join(c.profile.directory, 'release-admission.json'));
-  await assert.rejects(store.admitPreparation!(scopeFor(Buffer.alloc(64, 5), c), c.owner.address), PublicationAdmissionError);
-  await assert.rejects(
-    store.pinAsset!(c.cover.files, 'cover', { ...c.owner, contentHash: scopeFor(Buffer.alloc(64, 5), c).contentHash, keyVersion: scope.keyVersion }, signal()),
-    /reconciliation/
-  );
-  assert.deepEqual(await readFile(join(c.profile.directory, 'release-admission.json')), before);
-  await queue.stop();
-  await store.close();
-  store = await createStreamingPublicationStore(c.options, c.deps);
-  queue = queueFor(c, store, async () => {
-    encodes++;
-    return encoded;
-  });
-  await queue.start(false);
-  await queue.retry(job.id, c.owner.address, scope.chainId);
-  await queue.runNext();
-  assert.equal(queue.get(job.id, c.owner.address, scope.chainId)?.state, 'ready');
-  assert.equal(encodes, 1);
-  assert([...submitted.values()].every(count => count === 1));
-  await queue.stop();
-  await store.close();
-});
 it('requires explicit asset selection, immutable policy and intact admission history before reading a signer', async t => {
   const c = await assetFixture(t, true);
   let reads = 0;
@@ -330,4 +362,79 @@ it('requires explicit asset selection, immutable policy and intact admission his
   await writeFile(c.profileFile, JSON.stringify({ ...c.profile, releasePolicy: { ...c.profile.releasePolicy, maxReleases: 3 } }), { mode: 0o600 });
   await assert.rejects(createStreamingPublicationStore(c.options, deps), /profile changed/);
   assert.equal(reads, 0);
+});
+
+it('publishes an exactly admitted compact identity, preserves its reference/details on restart and refuses format drift', async t => {
+  const c = await assetFixture(t, true, { maxBytes: 512 * 1024, maxTransactions: 40, minimumLifetimeBlocks: 100 });
+  const master = Buffer.alloc(64, 79),
+    scope = scopeFor(master, c);
+  const admission = createReleaseAdmission({
+    directory: c.profile.directory,
+    profileSha256: publicationBinding(c.profile).profileSha256,
+    policy: c.profile.releasePolicy!,
+    audio: c.profile.budget
+  });
+  await extendBulletinAdmission(
+    {
+      schema: 'dotify.bulletin.release-extension.v2',
+      profileFile: c.profileFile,
+      queue: c.queue,
+      expectedProfileSha256: publicationBinding(c.profile).profileSha256,
+      expectedAdmissionSha256: admissionDigest(await admission.validate()),
+      owner: c.owner.address,
+      scope,
+      audioLayout: 'rendition-pack-v1'
+    },
+    true
+  );
+  let store = await createStreamingPublicationStore(c.options, c.deps);
+  let queue = queueFor(c, store, async () => ({
+    ...encoded,
+    renditions: encoded.renditions.map(r => ({ ...r, segments: [Buffer.alloc(48, 1), Buffer.alloc(48, 2), Buffer.alloc(48, 3)] }))
+  }));
+  await queue.start(false);
+  const job = await queue.enqueue({ owner: c.owner.address, scope, master });
+  await queue.runNext();
+  const ready = queue.get(job.id, c.owner.address, scope.chainId)!;
+  assert.equal(ready.state, 'ready');
+  assert.match(ready.result!.ref, /^dotify:enc:v3:key-v2:bulletin-pack-v1:\/\/b/);
+  const inventory = (await load(join(c.profile.directory, `stream-${job.id}.json`))) as { schema: string; layout: string; root: string };
+  assert.equal(inventory.schema, 'dotify.bulletin.media-job.v3');
+  assert.equal(inventory.layout, 'rendition-pack-v1');
+  const cover = await store.pinAsset!(c.cover.files, 'cover', { ...c.owner, contentHash: scope.contentHash, keyVersion: scope.keyVersion }, signal());
+  const writes = c.writes;
+  await assert.rejects(
+    store.pinAsset!(filesFor(metadataFor(c, scope.contentHash, inventory.root, `${cover}/cover/640.webp`)), 'metadata', c.owner, signal()),
+    /Metadata audio differs/
+  );
+  assert.equal(c.writes, writes);
+  await store.pinAsset!(filesFor(metadataFor(c, scope.contentHash, ready.result!.ref, `${cover}/cover/640.webp`)), 'metadata', c.owner, signal());
+  const written = c.writes;
+  await queue.stop();
+  await store.close();
+  store = await createStreamingPublicationStore(c.options, c.deps);
+  queue = queueFor(c, store);
+  await queue.start(false);
+  assert.deepEqual(queue.get(job.id, c.owner.address, scope.chainId)?.result, ready.result);
+  assert.equal(await store.audioReference!(scope, inventory.root), ready.result!.ref);
+  await queue.runNext();
+  assert.equal(c.writes, written, 'Ready restart must not republish');
+  await queue.stop();
+  await store.close();
+  const file = join(c.profile.directory, 'release-admission.json');
+  const ledger = JSON.parse(await readFile(file, 'utf8'));
+  delete ledger.extensions[0].audioLayout;
+  await writeFile(file, JSON.stringify(ledger), { mode: 0o600 });
+  let loaded = false;
+  await assert.rejects(
+    createStreamingPublicationStore(c.options, {
+      ...c.deps,
+      loadSigner: async p => {
+        loaded = true;
+        return c.deps.loadSigner(p);
+      }
+    }),
+    /claim layout differs/
+  );
+  assert.equal(loaded, false, 'Layout drift must refuse before loading a signer');
 });
