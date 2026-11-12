@@ -5,6 +5,7 @@ import path from 'node:path';
 import { blake2b } from '@noble/hashes/blake2';
 import { encodeStreamingRelease } from '../services/streamingEncoder.js';
 import { initializeStreamingNonceLedger, StreamingNonceLedger } from '../services/streamingNonces.js';
+import { writeBulletinCodecFixture } from './streamingBulletinFixture.test.js';
 
 const output = process.argv[2];
 if (!output) throw new Error('Provide an explicit synthetic fixture output path');
@@ -56,6 +57,15 @@ try {
     })
   );
   console.log('Synthetic streaming fixture generated; archive intentionally excluded.');
+  if (process.argv[3]) {
+    await writeBulletinCodecFixture(
+      process.argv[3],
+      result.files.map(file => ({ path: file.name, bytes: file.bytes })),
+      key,
+      scope
+    );
+    console.log('Synthetic full Bulletin graphs generated for loopback-only codec acceptance.');
+  }
 } finally {
   await rm(directory, { recursive: true, force: true });
 }

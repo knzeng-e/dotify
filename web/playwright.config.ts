@@ -13,7 +13,8 @@ export default defineConfig({
     '**/nearby.spec.ts',
     '**/nearby-product.spec.ts',
     '**/nearby-off.spec.ts',
-    '**/streaming-format.spec.ts'
+    '**/streaming-format.spec.ts',
+    '**/compact-audio.spec.ts'
   ],
   timeout: 30_000,
   expect: {
