@@ -15,7 +15,9 @@ now resumes already-admitted standard/compact audio from saved ciphertext and
 its original history. The
 [generated backup rehearsal](../operations/bulletin-generated-restore-rehearsal.md)
 adds independent-runner transfer, source loss and restored-object authentication.
-Operational backup/key restoration, historical-binary rollback, physical-device
+The same procedure now covers compiled historical compatibility and an unsupported
+pilot-era refusal; actual service/image rollback remains separate.
+Operational backup/key restoration, service/image rollback, physical-device
 and memory acceptance remain before activation. No deployed service or live
 allowance changes. #407 stays Now/In Progress before Room/artwork/CASH.
 

@@ -9,7 +9,7 @@ content-key secret. It is not a production backup or restoration command.
 ## Run across independent CI machines
 
 The [Generated Bulletin backup restore workflow](../../.github/workflows/bulletin-backup-restore.yml)
-uses two fresh Ubuntu 24.04 runners on the same source revision:
+uses a producer and a fresh restore runner on the same source revision:
 
 1. The producer creates public fixtures, simulates lost storage acknowledgements,
    captures the queue, encrypted files, admission lineage, nonce reservations,
@@ -70,10 +70,9 @@ for each of `unixfs-files-v1` and `rendition-pack-v1`.
 | Stale active account cursor | Refuse new stores when the simulated account has advanced beyond the saved active intent window. |
 | Unknown pending submission | Refuse new stores while sender/nonce reconciliation remains uncertain. |
 
-Compatible current-code restart is exercised after the ready reference commits.
-No historical executable is run: the report explicitly sets
-`historicalBinaryRollbackTested: false`. Keep old binaries away from new
-layout/reference state until a separate compatibility rehearsal accepts them.
+The original restore job exercises current-code restart only and still reports
+`historicalBinaryRollbackTested: false`. The separate compiled-version job below
+has its own result and narrower executable compatibility claims.
 
 The test objects are structural encrypted fixtures, not AAC. Authentication of
 restored playback objects is separate from the
@@ -81,6 +80,57 @@ restored playback objects is separate from the
 
 [Dated local evidence](../backlog/implementation/evidence/bulletin-generated-restore-2026-11-12.md)
 binds these observations to their tested source.
+
+## Compare compiled historical versions
+
+A third fresh runner downloads the same producer bundle/digest. It checks out
+three independent source trees, installs each tree's own locked dependencies
+and compiles its production API modules. The contributor script verifies clean
+tracked files and both historical commit identities before importing emitted
+JavaScript from their separate `dist/services/` directories.
+
+| Revision | Role and accepted observation |
+| --- | --- |
+| Candidate commit under test | Inspects the checkpoint, writes additional generated intents/receipts, then loses a broadcast acknowledgement. |
+| `61869fb41f91bc69b7430410e4915153af7cc315` (#438) | Reinspects the advanced journals, reconciles the pending submission and finishes the original standard/compact graph without duplicate stores. Its readers authenticate all twelve playback objects and its normal queue consumes the ready result. |
+| `8d0706548416fe5e17711a5d480def7499776c1a` (#426) | The original recovery command refuses admitted-release state before signer loading and without persistent changes. Its original media-reference parser rejects the compact reference. This is an unsupported rollback control. |
+
+The old inspect plan must fail **before signer loading** after the candidate
+advances the journals. The compatible command must inspect again. Both compatible
+and candidate ready queues retain attempts at three, the same reference and
+account/admission/nonce/recovery history. Saved ciphertext and admission lineage
+remain byte-identical; only ready-file cleanup follows normal queue behavior.
+The exercise never restores older journals over newer broadcasts.
+
+To reproduce, prepare the generated bundle as above. Use three separate clean
+repository checkouts at the candidate and the two exact historical commits.
+From each checkout's `services/api`, run `npm ci` and `npm run build`. From the
+candidate's `services/api`, use absolute repository-root paths:
+
+```sh
+node --import tsx scripts/rehearse-bulletin-binaries.mjs \
+  /PRIVATE/generated-bulletin-backup.json EXPECTED_SHA256 \
+  /PRIVATE/candidate /PRIVATE/compatible /PRIVATE/pilot
+```
+
+The JSON report binds all three revisions, with two layout cases and
+`compiledModulesTested: true`, `serviceEntrypointTested: false`. The workflow
+retains only this generated report for seven days. Historical dependency
+advisories are retained with the frozen lockfiles, not fixed by silently
+changing the historical executable; this exercise does not endorse redeploying
+those dependencies.
+
+This executes **compiled recovery, reader and queue modules in a harness**, not
+an HTTP service, container entrypoint or Fly restart. The candidate's persistent
+implementation currently matches #438; this establishes a compatible format
+floor and an incompatible older control, not compatibility with every future
+schema change. The fixture transport, clock, authority and signer are injected;
+no real key or chain is used. Image/UID/mount/supervisor compatibility, current
+canonical history, live key restoration and any real rollback still require
+reviewed operational acceptance. A passing module test never grants permission
+to start #426 against new state.
+
+[Source-bound local evidence](../backlog/implementation/evidence/bulletin-compiled-rollback-2026-11-12.md) records the tested revisions and remaining gates.
 
 ## Operational boundaries and remaining acceptance
 
@@ -99,7 +149,7 @@ all later DotNS activity. Never replay older account/nonce journals over newer
 submissions merely because an offline hash matches. Uncertain history requires
 operator reconciliation while the writer stays stopped.
 
-Real backup/key restoration, rollback between reviewed executable versions,
+Real backup/key restoration, service/image rollback with current canonical history,
 physical Host/adaptation/Room/background behavior, first sound and hosted peak
 memory remain #407 gates. A generated cross-runner result does not accept those
 production journeys or prove improved publication latency.

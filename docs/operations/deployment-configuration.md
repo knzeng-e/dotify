@@ -80,7 +80,9 @@ fresh inspect/execute plan during separately arranged maintenance. Existing
 claims, key versions, admission archives and nonce/account journals must remain
 available; no running service is changed by this source candidate.
 The [generated restore workflow](bulletin-generated-restore-rehearsal.md) uses
-public fixtures and two disposable CI runners, with seven-day artifact retention.
+public fixtures and disposable CI runners, with seven-day artifact retention.
+A third runner builds the candidate and two fixed historical revisions with their
+own lockfiles for [compiled-module compatibility](bulletin-generated-restore-rehearsal.md#compare-compiled-historical-versions); it does not start a deployed service/image.
 It changes no Fly mount, secret, backup job or production recovery configuration.
 Source availability is not a deployment or permission to apply an extension.
 

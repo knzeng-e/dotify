@@ -170,7 +170,8 @@ nonce history; an older pilot-only binary still refuses this state. The
 [generated backup rehearsal](../operations/bulletin-generated-restore-rehearsal.md)
 adds an independent-runner artifact transfer and source-loss exercise for both
 layouts; it uses public structural fixtures and simulated chain history.
-Operational backup/key restoration, historical-binary rollback, physical Host
+A separate [compiled-version comparison](../operations/bulletin-generated-restore-rehearsal.md#compare-compiled-historical-versions) now exercises #438 recovery/readers and #426 refusal against those fixtures,
+without rewinding journals. Operational backup/key restoration, service/image rollback, physical Host
 startup/seek/adaptation, Room/background behavior, real first sound and memory
 pressure remain acceptance gates before activation. Automated AAC/sample checks
 do not prove faster publication or audible physical-device output.

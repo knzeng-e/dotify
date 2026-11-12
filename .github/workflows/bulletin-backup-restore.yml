@@ -97,3 +97,60 @@ jobs:
           path: ${{ runner.temp }}/restore-report.json
           retention-days: 7
           if-no-files-found: ignore
+
+  binary-compatibility:
+    name: Reconcile with compiled historical recovery and reader modules
+    needs: backup
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: candidate
+      - name: Checkout reviewed admitted-recovery floor
+        uses: actions/checkout@v4
+        with:
+          ref: 61869fb41f91bc69b7430410e4915153af7cc315
+          path: compatible
+      - name: Checkout deployed pilot-era refusal control
+        uses: actions/checkout@v4
+        with:
+          ref: 8d0706548416fe5e17711a5d480def7499776c1a
+          path: pilot
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            candidate/services/api/package-lock.json
+            compatible/services/api/package-lock.json
+            pilot/services/api/package-lock.json
+      - name: Build each clean executable with its own lockfile
+        shell: bash
+        run: |
+          for revision in candidate compatible pilot; do
+            (cd "$revision/services/api" && npm ci && npm run build)
+          done
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.backup.outputs.artifact }}
+          path: ${{ runner.temp }}/generated-binary-restore
+      - name: Switch executables without rewinding generated account journals
+        working-directory: candidate/services/api
+        env:
+          EXPECTED_DIGEST: ${{ needs.backup.outputs.digest }}
+          BUNDLE_PATH: ${{ runner.temp }}/generated-binary-restore/generated-bulletin-backup.json
+        run: |
+          node --import tsx scripts/rehearse-bulletin-binaries.mjs \
+            "$BUNDLE_PATH" "$EXPECTED_DIGEST" \
+            "$GITHUB_WORKSPACE/candidate" "$GITHUB_WORKSPACE/compatible" "$GITHUB_WORKSPACE/pilot" \
+            > "$RUNNER_TEMP/binary-compatibility-report.json"
+          cat "$RUNNER_TEMP/binary-compatibility-report.json"
+      - name: Keep the generated compatibility report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-bulletin-binary-result-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/binary-compatibility-report.json
+          retention-days: 7
+          if-no-files-found: ignore

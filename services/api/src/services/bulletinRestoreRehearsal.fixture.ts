@@ -56,12 +56,13 @@ const bundleSchema = z
   .strict();
 type Snapshot = z.infer<typeof snapshotSchema>;
 export const backupDigest = (bytes: Uint8Array) => createHash('sha256').update(bytes).digest('hex');
-const vault = {
+export const restoreFixtureVault = {
   contentKeyMasterSecret: '',
   contentKeyMasterSecrets: JSON.stringify({ 'dotify-content-key-v3': '43'.repeat(32) }),
   contentKeyActiveVersion: 'dotify-content-key-v3',
   chainId: 420420417
 };
+const vault = restoreFixtureVault;
 
 async function directories(root: string, prefix = ''): Promise<string[]> {
   const found: string[] = [];
@@ -155,7 +156,7 @@ export async function readRestoreBundle(file: string, sha256: string) {
   return bundle;
 }
 
-async function materialize(snapshot: Snapshot) {
+export async function materializeRestoreSnapshot(snapshot: Snapshot) {
   const root = join(await realpath('/tmp'), snapshot.rootName);
   // Refuse an existing destination; never clear another run or live state.
   await mkdir(root, { mode: 0o700 });
@@ -198,27 +199,36 @@ async function materialize(snapshot: Snapshot) {
   }
 }
 
-async function verifyRestoredAudio(c: Awaited<ReturnType<typeof materialize>>, ref: string) {
-  const parsed = parseStreamingReference(ref, value => CID.parse(value));
+export const restoreFixtureReaders = {
+  parseStreamingReference,
+  readBulletinMediaPath,
+  readAuthenticatedCompactObject,
+  deriveContentKeyBytes,
+  parseStreamingManifest,
+  verifyStreamingManifest,
+  decryptStreamingObject
+};
+export async function verifyRestoredAudio(c: Awaited<ReturnType<typeof materializeRestoreSnapshot>>, ref: string, readers = restoreFixtureReaders) {
+  const parsed = readers.parseStreamingReference(ref, value => CID.parse(value));
   assert.ok(parsed);
   const read = async (cid: string) => {
     const item = c.wire.stored.get(cid);
     assert.ok(item);
     return item.bytes;
   };
-  const bytes = await readBulletinMediaPath(read, parsed.root, 'manifest.json', 256 * 1024, signal());
-  const manifest = parseStreamingManifest(bytes);
+  const bytes = await readers.readBulletinMediaPath(read, parsed.root, 'manifest.json', 256 * 1024, signal());
+  const manifest = readers.parseStreamingManifest(bytes);
   const scope = { chainId: manifest.chainId, runtimeAddress: manifest.runtimeAddress, contentHash: manifest.contentHash, keyVersion: manifest.keyVersion };
-  const key = deriveContentKeyBytes(scope, vault);
+  const key = readers.deriveContentKeyBytes(scope, vault);
   assert.ok(key);
   try {
-    verifyStreamingManifest(manifest, key, scope);
+    readers.verifyStreamingManifest(manifest, key, scope);
     let objects = 0;
     for (const rendition of manifest.renditions)
       for (const object of [rendition.init, ...rendition.segments]) {
         const encrypted =
           parsed.layout === 'rendition-pack-v1'
-            ? await readAuthenticatedCompactObject({
+            ? await readers.readAuthenticatedCompactObject({
                 readBlock: read,
                 root: parsed.root,
                 manifestBytes: bytes,
@@ -228,8 +238,8 @@ async function verifyRestoredAudio(c: Awaited<ReturnType<typeof materialize>>, r
                 maxBytes: object.encryptedLength,
                 signal: signal()
               })
-            : await readBulletinMediaPath(read, parsed.root, object.path, object.encryptedLength, signal());
-        const plain = decryptStreamingObject(encrypted, key, manifest, object);
+            : await readers.readBulletinMediaPath(read, parsed.root, object.path, object.encryptedLength, signal());
+        const plain = readers.decryptStreamingObject(encrypted, key, manifest, object);
         if (object.kind === 'init') assert.deepEqual(plain, Buffer.from('structural init'));
         else assert.deepEqual(plain, Buffer.alloc(64, object.index + 1));
         plain.fill(0);
@@ -255,7 +265,7 @@ export async function restoreRehearsal(file: string, digest: string) {
       'unknown-submission'
     ] as const;
     for (const scenario of cases) {
-      const c = await materialize(snapshot);
+      const c = await materializeRestoreSnapshot(snapshot);
       try {
         if (scenario === 'missing-reservation') {
           const path = Object.keys(snapshot.files).find(p => /^queue\/nonces\/.+\/.+\.json$/.test(p));

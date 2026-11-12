@@ -8,8 +8,10 @@ the [prepared-job recovery candidate](../operations/bulletin-prepared-job-recove
 now preserves original admitted standard/compact audio and its storage history.
 A [generated cross-runner backup rehearsal](../operations/bulletin-generated-restore-rehearsal.md)
 now exercises source loss and coherent restoration of both layouts. Operational
-backup/key recovery, historical-binary rollback, physical-device, hosted-memory
+backup/key recovery, service/image rollback, physical-device, hosted-memory
 and live acceptance remain ahead.
+The generated rehearsal now checks compiled #438 recovery/readers and #426 refusal
+without replaying older journals; it does not start a historical service/image.
 Earlier dated notes retain their original scope.
 
 ## Listening security review, 2026-11-11
