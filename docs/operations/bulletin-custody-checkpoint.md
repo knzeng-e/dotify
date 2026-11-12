@@ -55,8 +55,7 @@ retained-file structure and permanent nonce reservations. Every audio inventory
 requires its output generation reservation even when normal cleanup has removed
 its ciphertext and queue entry. Retained manifests must name that same generation.
 Public covers/metadata are unencrypted and have no output-nonce requirement.
-It does not contact
-the chain or authenticate ciphertext with a content key.
+It does not contact the chain or authenticate ciphertext with a content key.
 
 Use that exact digest for the copy:
 
@@ -132,7 +131,10 @@ database/service configuration and externally stored media need separate plans.
 Already-pruned ciphertext is not recreated; the copied ready references and
 receipts are not proof that remote blocks remain retrievable.
 
-There is **no restore or writer-activation command**. Before recovery, establish
+An [isolated data reconstruction command](bulletin-isolated-restore.md) now
+recovers a guarded review workspace, with original binding bytes preserved
+under `.checkpoint` names. It cannot activate a service. There is **no live
+restore or writer-activation command**. Before recovery, establish
 current canonical account/receipt history and compatible binaries, verify the
 separately recovered keys, and preserve every newer intent, receipt and permanent
 nonce reservation. An older idle snapshot can miss a later broadcast; a matching

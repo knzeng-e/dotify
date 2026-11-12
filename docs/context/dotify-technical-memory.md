@@ -18,7 +18,10 @@ hosted capacity and physical listening remain separate.
 The [data-only custody checkpoint candidate](../operations/bulletin-custody-checkpoint.md)
 now captures a settled domain into private hashed objects with exact-plan and
 offline verification, without copying key files or creating a runnable queue.
-Generated coverage leaves real independent data/key recovery unaccepted.
+The [isolated reconstruction candidate](../operations/bulletin-isolated-restore.md)
+now recovers its original files/history in a guarded workspace, reusing local
+coherence checks without following saved paths or enabling a writer. Generated
+coverage leaves real independent data/key recovery unaccepted.
 Earlier dated notes retain their original scope.
 
 ## Listening security review, 2026-11-11

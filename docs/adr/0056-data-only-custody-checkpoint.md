@@ -1,6 +1,7 @@
 # ADR 0056: Capture settled custody as data, never as a runnable writer
 
 - Status: implementation candidate for #407; generated-state validation only
+- Extended by: [ADR 0057, isolated reconstruction](0057-isolated-checkpoint-reconstruction.md)
 - Related: [admitted recovery](0055-admitted-audio-recovery.md),
   [generated restore rehearsal](../operations/bulletin-generated-restore-rehearsal.md)
 

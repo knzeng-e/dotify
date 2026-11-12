@@ -57,6 +57,7 @@ choose the reader, give each rule one home and keep evidence tied to its artifac
 - [Quality gates](operations/dev-quality-gates.md): automated verification.
 - [Generated Bulletin resource envelope](operations/bulletin-resource-envelope.md): real encoding and standard/compact readback inside bounded local containers; hosted capacity remains separate.
 - [Data-only custody checkpoint](operations/bulletin-custody-checkpoint.md): inspect a settled store, copy an exact plan and verify private data without keys or writer activation; operational use remains separate.
+- [Isolated Bulletin reconstruction](operations/bulletin-isolated-restore.md): recover original data/history into a guarded review workspace after source loss; no service activation or key recovery.
 - [Generated Bulletin restore rehearsal](operations/bulletin-generated-restore-rehearsal.md): independent-runner fixture transfer, source loss, compiled historical compatibility and refusal checks; operational recovery remains separate.
 - [Pilot release plan](operations/pilot-release-plan.md): device journeys, evidence and the release decision.
 - [Dated implementation and rollout evidence](backlog/implementation/evidence/).

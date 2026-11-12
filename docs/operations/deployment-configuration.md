@@ -93,6 +93,11 @@ arranged stopped-writer maintenance, private canonical paths and a reviewed
 compiled revision. It adds no environment variable, transfer, key export or
 restore. Actual storage independence and key recovery remain unaccepted; no Fly
 mount, secret, backup schedule or service configuration changes here.
+The [isolated reconstruction CLI](bulletin-isolated-restore.md) adds private
+review directories and permanent binding barriers, not a service restore, key
+installation or new setting. Its saved profile paths are metadata only; a future
+operational restoration still needs compatible images/UID/mounts, separately
+recovered keys and current canonical history.
 Source availability is not a deployment or permission to apply an extension.
 
 The browser harness alone sets `DOTIFY_E2E_LOCAL_FONTS=true` on its local Vite

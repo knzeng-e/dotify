@@ -5,7 +5,9 @@ Its #407 checkpoint includes explicit compact reference/dispatch and exact-sourc
 admission, with a synthetic real-AAC decoder/loopback gate. Physical-device,
 operational data/key recovery and hosted-memory acceptance remain before activation.
 The [data-only custody checkpoint candidate](../../operations/bulletin-custody-checkpoint.md)
-prepares exact settled-state capture; generated tests are not a real backup.
+prepares exact settled-state capture. [Isolated reconstruction](../../operations/bulletin-isolated-restore.md)
+now recovers its files/history behind publication barriers; generated tests are
+not real independent data/key recovery.
 
 ## Listening security review, 2026-11-11
 
