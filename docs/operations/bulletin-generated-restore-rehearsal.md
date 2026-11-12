@@ -6,6 +6,11 @@ command. It tests storage history and authenticated bytes for standard and
 compact audio. It never reads an artist file, custody directory, seed or real
 content-key secret. It is not a production backup or restoration command.
 
+The workflow also tests the production data-only CLI in separate
+[isolated reconstruction jobs](bulletin-isolated-restore.md#generated-independent-runner-acceptance).
+Those checkpoints and guards are distinct from the generated bundle below;
+neither format is an operational writer restore.
+
 ## Run across independent CI machines
 
 The [Generated Bulletin backup restore workflow](../../.github/workflows/bulletin-backup-restore.yml)

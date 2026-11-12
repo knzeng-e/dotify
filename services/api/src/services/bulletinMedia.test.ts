@@ -584,21 +584,42 @@ test('pipeline byte limits, immutable settings and nonce exhaustion reject befor
   }
   await assert.rejects(createBulletinMediaStore({ ...c.options, pipeline: { maxInFlightBytes: 100 } }).pin(c.files, c.job, signal()), /in-flight/);
   assert.equal(c.transport.writes.length, 0);
+  const cap = Math.max(...c.graph.blocks.map(b => b.bytes.length));
   let active = 0,
-    peak = 0;
+    activeBytes = 0,
+    peakBytes = 0;
+  const waves = new Map<number, { bytes: number; count: number }>();
   const store = c.transport.store.bind(c.transport);
   c.transport.store = async (block, intent) => {
-    peak = Math.max(peak, ++active);
-    await new Promise(r => setTimeout(r, 5));
+    // The finalized pre-submission head identifies this fixture's wave even
+    // when disk writes let an earlier sibling finish before another enters.
+    const { afterBlock } = intent as Parameters<BulletinMediaTransport['store']>[1];
+    assert.ok(Number.isSafeInteger(afterBlock));
+    const wave = waves.get(afterBlock) ?? { bytes: 0, count: 0 };
+    wave.bytes += block.bytes.length;
+    wave.count++;
+    waves.set(afterBlock, wave);
+    assert.ok(wave.bytes <= cap && wave.count <= 4, 'Assigned wave exceeds its byte or concurrency limit');
+    active++;
+    activeBytes += block.bytes.length;
+    peakBytes = Math.max(peakBytes, activeBytes);
     try {
+      // Four small siblings may fit. Check the actual byte bound at EVERY
+      // entry instead of inferring it from a timing-dependent call count.
+      assert.ok(active <= 4, 'Store concurrency exceeds its configured limit');
+      assert.ok(activeBytes <= cap, 'In-flight store bytes exceed their configured limit');
+      await new Promise(r => setImmediate(r));
       return await store(block, intent);
     } finally {
       active--;
+      activeBytes -= block.bytes.length;
     }
   };
-  const cap = Math.max(...c.graph.blocks.map(b => b.bytes.length));
   await createBulletinMediaStore({ ...c.options, pipeline: { concurrency: 4, maxInFlightBytes: cap } }).pin(c.files, c.job, signal());
-  assert.ok(peak < 4, 'Byte cap prevents four full-sized siblings');
+  assert.equal(active, 0);
+  assert.equal(activeBytes, 0);
+  assert.equal(peakBytes, cap, 'Exercise the full byte cap without exceeding it');
+  assert.equal(c.transport.writes.length, c.graph.blocks.length);
   await assert.rejects(c.store.pin(c.files, c.job, signal()), /pipeline changed/);
   const d = await fixture(t);
   d.transport.nonce = 0xffffffff;

@@ -22,7 +22,11 @@ exercises real AAC encoding, graph construction and authenticated reads inside
 locally bounded containers. A [data-only custody checkpoint command](../operations/bulletin-custody-checkpoint.md)
 now inspects/copies a settled multi-release store and verifies its exact bytes
 without reading keys or creating a runnable queue. It has generated-state coverage
-only. Independent operational data/key recovery, service/image rollback,
+only. The [isolated reconstruction candidate](../operations/bulletin-isolated-restore.md)
+now recovers exact files/history into a guarded private workspace and reapplies
+the same state rules without following saved source paths. Generated fixture
+keys authenticate retained objects in tests; the command never obtains keys.
+Independent operational data/key recovery, service/image rollback,
 physical-device and hosted-memory acceptance remain before activation. No deployed service or live
 allowance changes. #407 stays Now/In Progress before Room/artwork/CASH.
 
