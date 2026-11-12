@@ -10,7 +10,7 @@ where preparation time goes. About now offers explicit support copy after succes
 as well as failure, without automatic transmission. No latency improvement,
 deployment or physical background acceptance is claimed. #407 remains the release
 gate; #395 stays Next / In Progress pending comparable real-device reports and
-a measured correction.
+a measured correction. See the [commit-bound local evidence](implementation/evidence/room-startup-diagnostics-2026-11-12.md).
 
 ## Current remaining scope, 2026-11-09
 
