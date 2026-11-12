@@ -1,0 +1,43 @@
+name: Generated Bulletin resource envelope
+
+on:
+  pull_request:
+    branches: [dev]
+    paths:
+      - 'services/api/**'
+      - '.github/workflows/bulletin-resource-envelope.yml'
+  push:
+    branches: [dev]
+    paths:
+      - 'services/api/**'
+      - '.github/workflows/bulletin-resource-envelope.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bulletin-resources-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  resources:
+    name: Encode, build and authenticate both layouts within isolated cgroups
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Measure 97-second and 15-minute synthetic profiles
+        working-directory: services/api
+        run: node scripts/rehearse-bulletin-resources.mjs > "$RUNNER_TEMP/bulletin-resource-report.json"
+      - name: Keep only the generated numeric resource report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-bulletin-resources-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/bulletin-resource-report.json
+          retention-days: 7
+          if-no-files-found: ignore
