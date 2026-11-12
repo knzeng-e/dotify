@@ -3,8 +3,8 @@
 // container; the public constant below is only for external fixture readback.
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { chmod, lstat, mkdir, readFile, readdir, realpath, rm } from 'node:fs/promises';
-import { basename, isAbsolute, join, resolve } from 'node:path';
+import { chmod, lstat, mkdir, mkdtemp, readFile, readdir, realpath, rm, writeFile } from 'node:fs/promises';
+import { basename, dirname, isAbsolute, join, resolve } from 'node:path';
 import { readCheckpointManifest } from '../dist/services/bulletinCheckpoint.js';
 import { checkpointMetadata } from '../dist/services/bulletinCheckpointFiles.js';
 import { publisherProfileSchema, assertPublicationBinding } from '../dist/services/bulletinPublisherProfile.js';
@@ -103,6 +103,20 @@ if (mode === 'prepare') {
   const output = mode === 'restore' ? args[0] : directory;
   const digests = mode === 'restore' ? args.slice(1) : args;
   await privateRoot(output);
+  // Keep the explicitly public test key OUTSIDE the reconstructed artifact.
+  // This exercises readback, not real independently recovered key custody.
+  const keyDirectory = await mkdtemp(join(await realpath('/tmp'), 'dotify-generated-readback-key-'));
+  const keyFile = join(keyDirectory, 'versions.json');
+  await writeFile(keyFile, JSON.stringify({ schema: 'dotify.content-key-recovery.v1', masters: { 'dotify-content-key-v3': publicSecret } }), { mode: 0o600 });
+  const modules = new Set();
+  const checkImports = async path => {
+    if (modules.has(path)) return;
+    modules.add(path);
+    assert.ok(!/\/(config|keyVault|index|streamingJobs|streamingPublicationStore|bulletinTransport)\.js$/.test(path), 'Forbidden operational recovery import');
+    const source = await readFile(path, 'utf8');
+    for (const match of source.matchAll(/(?:from\s*|import\s*)['"](\.[^'"]+\.js)['"]/g)) await checkImports(resolve(dirname(path), match[1]));
+  };
+  await checkImports(resolve('dist/scripts/verifyRecoveredBulletinKeys.js'));
   const cases = [];
   for (const [index, layout] of layouts.entries()) {
     const digest = digests[index];
@@ -157,7 +171,29 @@ if (mode === 'prepare') {
         generation
       });
     for (const path of Object.values(read.manifest.plan.sources)) await assert.rejects(lstat(path), { code: 'ENOENT' });
+    const authenticated = spawnSync(process.execPath, ['dist/scripts/verifyRecoveredBulletinKeys.js', target, digest, keyFile], {
+      encoding: 'utf8',
+      env: { PATH: process.env.PATH },
+      timeout: 300_000
+    });
+    assert.equal(authenticated.status, 0, authenticated.stderr);
+    const readback = JSON.parse(authenticated.stdout);
+    assert.equal(readback.authenticatedObjects, 14);
+    assert.equal(readback.retainedAudioInventories, 1);
+    assert.equal(readback.prunedAudioInventories, 0);
+    assert.equal(readback.nonceReservationsChecked, 2);
+    assert.equal(readback.allAudioCiphertextRetained, true);
+    for (const flag of [
+      'writerActivationAllowed',
+      'keyBackupOriginVerified',
+      'canonicalHistoryChecked',
+      'independentStorageVerified',
+      'signerLoaded',
+      'serviceStarted'
+    ])
+      assert.equal(readback[flag], false);
     cases.push({
+      keyReadbackAuthenticatedObjects: readback.authenticatedObjects,
       layout,
       files: report.files,
       authenticatedSyntheticObjects: objects.length,
@@ -165,6 +201,7 @@ if (mode === 'prepare') {
       writerActivationAllowed: report.writerActivationAllowed
     });
   }
+  await rm(keyDirectory, { recursive: true });
   console.log(
     JSON.stringify({
       schema: 'dotify.bulletin.generated-isolated-restore.v1',

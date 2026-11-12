@@ -26,6 +26,10 @@ only. The [isolated reconstruction candidate](../operations/bulletin-isolated-re
 now recovers exact files/history into a guarded private workspace and reapplies
 the same state rules without following saved source paths. Generated fixture
 keys authenticate retained objects in tests; the command never obtains keys.
+A separate [offline recovered-key checker](../operations/bulletin-recovered-key-check.md)
+now verifies retained audio without vault/environment fallback or writer activation.
+Only generated keys/data are exercised; the selected other Mac/Docker is a
+future destination, not an accepted transfer.
 Independent operational data/key recovery, service/image rollback,
 physical-device and hosted-memory acceptance remain before activation. No deployed service or live
 allowance changes. #407 stays Now/In Progress before Room/artwork/CASH.

@@ -82,6 +82,17 @@ export async function checkpointFile(path: string, output?: string, signal?: Abo
 /** Read bounded metadata once, without reopening a path between digest and parse. */
 export async function checkpointMetadata(path: string, maximum: number, signal: AbortSignal) {
   assert.ok(maximum > 0 && maximum <= 4 * 1024 * 1024);
+  return checkpointBytes(path, maximum, signal);
+}
+/** Read one retained encrypted object, matching the trusted plan on these bytes. */
+export async function checkpointCiphertext(path: string, expected: Omit<CheckpointEntry, 'path'>, signal: AbortSignal) {
+  assert.ok(expected.bytes > 0 && expected.bytes <= 50 * 1024 * 1024 + 16);
+  const bytes = await checkpointBytes(path, expected.bytes, signal);
+  assert.equal(bytes.length, expected.bytes, 'Ciphertext size differs from checkpoint');
+  assert.equal(checkpointHash(bytes), expected.sha256, 'Ciphertext differs from checkpoint');
+  return bytes;
+}
+async function checkpointBytes(path: string, maximum: number, signal: AbortSignal) {
   const file = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
   try {
     const before = await file.stat();

@@ -7,7 +7,8 @@ operational data/key recovery and hosted-memory acceptance remain before activat
 The [data-only custody checkpoint candidate](../../operations/bulletin-custody-checkpoint.md)
 prepares exact settled-state capture. [Isolated reconstruction](../../operations/bulletin-isolated-restore.md)
 now recovers its files/history behind publication barriers; generated tests are
-not real independent data/key recovery.
+not real independent data/key recovery. The [explicit recovered-key check](../../operations/bulletin-recovered-key-check.md)
+adds offline ciphertext authentication; second-Mac data/key transfer remains separate.
 
 ## Listening security review, 2026-11-11
 

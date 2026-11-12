@@ -15,7 +15,9 @@ seconds under enforced local limits. The [data-only custody checkpoint candidate
 adds settled-state inspection, exact-plan capture and offline verification; it
 has not captured real custody. The [isolated reconstruction candidate](../../operations/bulletin-isolated-restore.md)
 now recovers files/history behind publication barriers and checks local coherence
-after source/input loss. Real independent data/key recovery, service/image
+after source/input loss. A separate [offline key-check candidate](../../operations/bulletin-recovered-key-check.md)
+now authenticates retained audio with explicit recovered versions; only generated
+keys/data have been exercised. Real independent data/key recovery, service/image
 rollback, physical-device and hosted-memory acceptance remain before activation. Delivery stays 0.1.82 / custody #426.
 
 ## Listening security review, 2026-11-11
@@ -164,8 +166,9 @@ implementation branch from current tested dev; use one PR per backlog scope.
   → six waves when packing later segments per quality at 256 KiB, keeping init
   and the first segment separate. Range/decrypt tests pass; live readers and
   root/reference semantics remain unchanged.
-- **Immediate action:** review the isolated data reconstruction candidate, then
-  prepare separately authorized independent data/key recovery and service/image
+- **Immediate action:** review the offline recovered-key check, then
+  prepare the selected second-Mac encrypted data transfer and separate key recovery,
+  followed by service/image
   rollback against current canonical history. Generated AAC, prepared-recovery,
   compiled-version and bounded-memory gates now exist. Physical Host startup/seek/
   adaptation, Room/background, first sound and hosted memory remain.
