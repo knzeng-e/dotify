@@ -100,7 +100,7 @@ const queue = new StreamingJobs({
     };
     // Production playback deliberately excludes archives. Authenticate the
     // publisher's original encrypted input, not an invented playback route.
-    await assert.rejects(readBulletinMediaPath(readBlock, graph.root, manifest.master.path, manifest.master.encryptedLength, signal));
+    await assert.rejects(readBulletinMediaPath(readBlock, graph.root, manifest.master.path, 1024 * 1024, signal), /Unsupported media path/);
     const archived = files.find(file => file.path === manifest.master.path).bytes;
     const original = decryptStreamingObject(archived, key, manifest, manifest.master);
     assert.deepEqual(original, source);
@@ -187,6 +187,7 @@ console.log(
     cgroup: { limitBytes: limit, observedPeakBytes: peak, events },
     productionAccessTested: false,
     networkStores: 0,
+    archivePlaybackRefused: true,
     syntheticOnly: true
   })
 );
