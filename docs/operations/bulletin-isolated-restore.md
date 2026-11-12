@@ -113,6 +113,10 @@ Structural reservation presence cannot authenticate a key fingerprint without
 that key. Hash consistency alone is not sufficient: an internally hashed but
 unsettled inventory is rejected by local state validation.
 
+For explicitly recovered versions, the separate [offline key check](bulletin-recovered-key-check.md)
+authenticates retained audio without altering this artifact or enabling publication.
+Its real second-computer rehearsal remains a separately reviewed operation.
+
 ## Generated independent-runner acceptance
 
 The [backup workflow](../../.github/workflows/bulletin-backup-restore.yml) includes
@@ -127,7 +131,9 @@ A second container verifies a read-only destination without mounting the input.
 The [generated harness](../../services/api/scripts/rehearse-isolated-checkpoint.mjs)
 uses public structural fixtures only. Its readback key is supplied outside the
 production CLI, which still reports `ciphertextAuthenticated: false`. This
-acceptance checks both layouts and ordinary publication refusal. It neither
+acceptance checks both layouts and ordinary publication refusal. It also invokes
+the compiled key checker with an explicit public key outside the artifact: fourteen
+objects (source plus thirteen output objects) authenticate per layout. It neither
 starts custody nor establishes real data/key recovery. Artifact reception may
 repair modes only for this explicit generated shape; do not use it for real
 backups. Consult the dated evidence for actual local/CI observations.
