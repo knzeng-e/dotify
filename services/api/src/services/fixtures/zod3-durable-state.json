@@ -1,0 +1,2310 @@
+{
+  "sourceCommit": "1a6b22d49679a4af4c9156f3229e69c754fcd0be",
+  "validator": "3.25.76",
+  "syntheticOnly": true,
+  "cases": [
+    {
+      "name": "pilot/prepared/profile",
+      "schema": "profile",
+      "input": {
+        "schema": "dotify.bulletin.publisher.v1",
+        "genesis": "0xe101f0fa4627d29a257645e02be86d80378fea1a2bf8fa6a918d150ebc760a59",
+        "account": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+        "endpoint": "wss://bulletin.example:8443",
+        "directory": "/var/folders/vb/bk17h1154vvd4bsz64dlrfr00000gn/T/dotify-prepared-recovery-BGtsnn/publisher",
+        "seedFile": "/var/folders/vb/bk17h1154vvd4bsz64dlrfr00000gn/T/dotify-prepared-recovery-BGtsnn/keys/test.seed",
+        "budget": {
+          "maxBytes": 1048576,
+          "maxTransactions": 16,
+          "minimumLifetimeBlocks": 100
+        },
+        "pipeline": {
+          "concurrency": 2,
+          "maxInFlightBytes": 524288
+        },
+        "priorRenewalReserve": {
+          "transactions": 107,
+          "bytes": 20971520
+        },
+        "pilotScope": {
+          "chainId": 420420417,
+          "runtimeAddress": "0x3434343434343434343434343434343434343434",
+          "contentHash": "0x337ad33831c2f1e15777a11e60904e5c5c62faf1f6d9d9d477590cb73967efa4",
+          "keyVersion": "dotify-content-key-v2"
+        }
+      },
+      "canonicalSha256": "4dfc30482da77d30bd4af7133544d40841d9e27506b3bd9a065eee2320b1ae40"
+    },
+    {
+      "name": "pilot/prepared/owner",
+      "schema": "owner",
+      "input": {
+        "schema": "dotify.bulletin.media-owner.v2",
+        "genesis": "0xe101f0fa4627d29a257645e02be86d80378fea1a2bf8fa6a918d150ebc760a59",
+        "account": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+        "jobs": ["stream-7334f572-46ae-471c-8300-5f19a3c974c8"],
+        "activeJob": null,
+        "nextNonce": null
+      },
+      "canonicalSha256": "b33d9dfbef7aca9865f39ed421642034e4f8cf4c0cfdd7d9f0fa66aed28fb5c0"
+    },
+    {
+      "name": "pilot/prepared/queue",
+      "schema": "queue",
+      "input": {
+        "schema": "dotify.streaming.jobs.v1",
+        "jobs": [
+          {
+            "id": "7334f572-46ae-471c-8300-5f19a3c974c8",
+            "owner": "0x1212121212121212121212121212121212121212",
+            "scope": {
+              "chainId": 420420417,
+              "runtimeAddress": "0x3434343434343434343434343434343434343434",
+              "contentHash": "0x337ad33831c2f1e15777a11e60904e5c5c62faf1f6d9d9d477590cb73967efa4",
+              "keyVersion": "dotify-content-key-v2"
+            },
+            "state": "failed",
+            "attempts": 3,
+            "createdAt": 1794521439691,
+            "updatedAt": 1794521440126,
+            "sourceBytes": 22,
+            "sourceGeneration": "1920b06a0e033d0b",
+            "reason": "RETRY_LIMIT"
+          }
+        ]
+      },
+      "canonicalSha256": "fa95f0e64ff90c4eb83442983383d5b80598bc18852d19dfdcf4a729b1f1cab5"
+    },
+    {
+      "name": "pilot/prepared/inventory",
+      "schema": "inventory",
+      "input": {
+        "schema": "dotify.bulletin.media-job.v2",
+        "genesis": "0xe101f0fa4627d29a257645e02be86d80378fea1a2bf8fa6a918d150ebc760a59",
+        "account": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+        "job": "stream-7334f572-46ae-471c-8300-5f19a3c974c8",
+        "root": "bafykbzaceaxdh722vfb3v4wnpbavolk7hugf6i5w767lstsgtixvgua5mhro6",
+        "scope": {
+          "chainId": 420420417,
+          "runtimeAddress": "0x3434343434343434343434343434343434343434",
+          "contentHash": "0x337ad33831c2f1e15777a11e60904e5c5c62faf1f6d9d9d477590cb73967efa4",
+          "keyVersion": "dotify-content-key-v2"
+        },
+        "generation": "d34b54467c6807ff",
+        "blocks": [
+          {
+            "cid": "bafk2bzacebqk6a2t4eukvlp7ryjd4qvu7dor7ixbnmcqipjhgle6ivfsn5rnc",
+            "bytes": 31
+          },
+          {
+            "cid": "bafk2bzacecavyqbkodheulrzakzmm2ejehc2dcsgqttunk6ioi4rk5i4zahci",
+            "bytes": 34
+          },
+          {
+            "cid": "bafykbzacedg4slyjh7e4slxv56pby6amgzb3r6xsybkqj4kdtfbw5tly6wlm4",
+            "bytes": 119
+          },
+          {
+            "cid": "bafk2bzaced5edepnsmfef6nzk33c43dtfbr5uscfx66uflm2e7qzjwn7dlrt4",
+            "bytes": 31
+          },
+          {
+            "cid": "bafk2bzaceacpcv7oegd5hwvzlwhkjhji5d4ryggbbn3kkuqetzxchuju7iwjc",
+            "bytes": 34
+          },
+          {
+            "cid": "bafykbzacebttzdj2snhhwj6mvly64uye7m7ribuvjimttcxqrg3ycl3tadjpw",
+            "bytes": 119
+          },
+          {
+            "cid": "bafk2bzacedrkujvhtbhcjlj7h3p3cxafchfyk323vqcmeyuk7w3ar5pglpwdc",
+            "bytes": 31
+          },
+          {
+            "cid": "bafk2bzacebfyf55p6dszd3im6iuigul7p2mdmokov4g52ky6wr7gtdja6mi5c",
+            "bytes": 34
+          },
+          {
+            "cid": "bafykbzacec4usoyu2i7qpy4ciq4pwfoczuyieyxnzh7hchb6mid3lwknlbk5w",
+            "bytes": 119
+          },
+          {
+            "cid": "bafk2bzaceat3zs3kztujc2znpxzs6xkaxfkmboqw6waaynnwdqyujdrei2o62",
+            "bytes": 38
+          },
+          {
+            "cid": "bafykbzaceawhzrgwdpws2j6kwflhfh2cq5ihs6eiabii7o53tqw7il6z23re4",
+            "bytes": 60
+          },
+          {
+            "cid": "bafk2bzacedjta4jo5fyucjusimmr3nfkkvc66bn2tnj3jlibcbhdfnueqbrz6",
+            "bytes": 1566
+          },
+          {
+            "cid": "bafykbzaceaxdh722vfb3v4wnpbavolk7hugf6i5w767lstsgtixvgua5mhro6",
+            "bytes": 266
+          }
+        ],
+        "budget": {
+          "maxBytes": 1048576,
+          "maxTransactions": 16,
+          "minimumLifetimeBlocks": 100
+        },
+        "pipeline": {
+          "concurrency": 2,
+          "maxInFlightBytes": 524288
+        },
+        "attemptedStores": 0,
+        "attemptedBytes": 0,
+        "receipts": {},
+        "pending": {},
+        "nextNonce": null,
+        "ready": false
+      },
+      "canonicalSha256": "ea7239265e34749a8ee99f86184244839290b08ff3db9dd2956f6a761c92934f"
+    },
+    {
+      "name": "pilot/uncertain/profile",
+      "schema": "profile",
+      "input": {
+        "schema": "dotify.bulletin.publisher.v1",
+        "genesis": "0xe101f0fa4627d29a257645e02be86d80378fea1a2bf8fa6a918d150ebc760a59",
+        "account": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+        "endpoint": "wss://bulletin.example:8443",
+        "directory": "/var/folders/vb/bk17h1154vvd4bsz64dlrfr00000gn/T/dotify-prepared-recovery-BGtsnn/publisher",
+        "seedFile": "/var/folders/vb/bk17h1154vvd4bsz64dlrfr00000gn/T/dotify-prepared-recovery-BGtsnn/keys/test.seed",
+        "budget": {
+          "maxBytes": 1048576,
+          "maxTransactions": 16,
+          "minimumLifetimeBlocks": 100
+        },
+        "pipeline": {
+          "concurrency": 2,
+          "maxInFlightBytes": 524288
+        },
+        "priorRenewalReserve": {
+          "transactions": 107,
+          "bytes": 20971520
+        },
+        "pilotScope": {
+          "chainId": 420420417,
+          "runtimeAddress": "0x3434343434343434343434343434343434343434",
+          "contentHash": "0x337ad33831c2f1e15777a11e60904e5c5c62faf1f6d9d9d477590cb73967efa4",
+          "keyVersion": "dotify-content-key-v2"
+        }
+      },
+      "canonicalSha256": "4dfc30482da77d30bd4af7133544d40841d9e27506b3bd9a065eee2320b1ae40"
+    },
+    {
+      "name": "pilot/uncertain/owner",
+      "schema": "owner",
+      "input": {
+        "genesis": "0xe101f0fa4627d29a257645e02be86d80378fea1a2bf8fa6a918d150ebc760a59",
+        "account": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+        "schema": "dotify.bulletin.media-owner.v2",
+        "activeJob": "stream-7334f572-46ae-471c-8300-5f19a3c974c8",
+        "nextNonce": 11,
+        "jobs": ["stream-7334f572-46ae-471c-8300-5f19a3c974c8"]
+      },
+      "canonicalSha256": "229d13e72615dd54dac8fb83af7902c80f85dfae9f08c5bc88a6653c48824bdc"
+    },
+    {
+      "name": "pilot/uncertain/queue",
+      "schema": "queue",
+      "input": {
+        "schema": "dotify.streaming.jobs.v1",
+        "jobs": [
+          {
+            "id": "7334f572-46ae-471c-8300-5f19a3c974c8",
+            "owner": "0x1212121212121212121212121212121212121212",
+            "scope": {
+              "chainId": 420420417,
+              "runtimeAddress": "0x3434343434343434343434343434343434343434",
+              "contentHash": "0x337ad33831c2f1e15777a11e60904e5c5c62faf1f6d9d9d477590cb73967efa4",
+              "keyVersion": "dotify-content-key-v2"
+            },
+            "state": "failed",
+            "attempts": 3,
+            "createdAt": 1794521439691,
+            "updatedAt": 1794521440126,
+            "sourceBytes": 22,
+            "sourceGeneration": "1920b06a0e033d0b",
+            "reason": "RETRY_LIMIT"
+          }
+        ]
+      },
+      "canonicalSha256": "fa95f0e64ff90c4eb83442983383d5b80598bc18852d19dfdcf4a729b1f1cab5"
+    },
+    {
+      "name": "pilot/uncertain/inventory",
+      "schema": "inventory",
+      "input": {
+        "schema": "dotify.bulletin.media-job.v2",
+        "genesis": "0xe101f0fa4627d29a257645e02be86d80378fea1a2bf8fa6a918d150ebc760a59",
+        "account": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+        "job": "stream-7334f572-46ae-471c-8300-5f19a3c974c8",
+        "root": "bafykbzaceaxdh722vfb3v4wnpbavolk7hugf6i5w767lstsgtixvgua5mhro6",
+        "scope": {
+          "chainId": 420420417,
+          "runtimeAddress": "0x3434343434343434343434343434343434343434",
+          "contentHash": "0x337ad33831c2f1e15777a11e60904e5c5c62faf1f6d9d9d477590cb73967efa4",
+          "keyVersion": "dotify-content-key-v2"
+        },
+        "generation": "d34b54467c6807ff",
+        "blocks": [
+          {
+            "cid": "bafk2bzacebqk6a2t4eukvlp7ryjd4qvu7dor7ixbnmcqipjhgle6ivfsn5rnc",
+            "bytes": 31
+          },
+          {
+            "cid": "bafk2bzacecavyqbkodheulrzakzmm2ejehc2dcsgqttunk6ioi4rk5i4zahci",
+            "bytes": 34
+          },
+          {
+            "cid": "bafykbzacedg4slyjh7e4slxv56pby6amgzb3r6xsybkqj4kdtfbw5tly6wlm4",
+            "bytes": 119
+          },
+          {
+            "cid": "bafk2bzaced5edepnsmfef6nzk33c43dtfbr5uscfx66uflm2e7qzjwn7dlrt4",
+            "bytes": 31
+          },
+          {
+            "cid": "bafk2bzaceacpcv7oegd5hwvzlwhkjhji5d4ryggbbn3kkuqetzxchuju7iwjc",
+            "bytes": 34
+          },
+          {
+            "cid": "bafykbzacebttzdj2snhhwj6mvly64uye7m7ribuvjimttcxqrg3ycl3tadjpw",
+            "bytes": 119
+          },
+          {
+            "cid": "bafk2bzacedrkujvhtbhcjlj7h3p3cxafchfyk323vqcmeyuk7w3ar5pglpwdc",
+            "bytes": 31
+          },
+          {
+            "cid": "bafk2bzacebfyf55p6dszd3im6iuigul7p2mdmokov4g52ky6wr7gtdja6mi5c",
+            "bytes": 34
+          },
+          {
+            "cid": "bafykbzacec4usoyu2i7qpy4ciq4pwfoczuyieyxnzh7hchb6mid3lwknlbk5w",
+            "bytes": 119
+          },
+          {
+            "cid": "bafk2bzaceat3zs3kztujc2znpxzs6xkaxfkmboqw6waaynnwdqyujdrei2o62",
+            "bytes": 38
+          },
+          {
+            "cid": "bafykbzaceawhzrgwdpws2j6kwflhfh2cq5ihs6eiabii7o53tqw7il6z23re4",
+            "bytes": 60
+          },
+          {
+            "cid": "bafk2bzacedjta4jo5fyucjusimmr3nfkkvc66bn2tnj3jlibcbhdfnueqbrz6",
+            "bytes": 1566
+          },
+          {
+            "cid": "bafykbzaceaxdh722vfb3v4wnpbavolk7hugf6i5w767lstsgtixvgua5mhro6",
+            "bytes": 266
+          }
+        ],
+        "budget": {
+          "maxBytes": 1048576,
+          "maxTransactions": 16,
+          "minimumLifetimeBlocks": 100
+        },
+        "attemptedBytes": 65,
+        "attemptedStores": 2,
+        "receipts": {},
+        "pending": {
+          "bafk2bzacebqk6a2t4eukvlp7ryjd4qvu7dor7ixbnmcqipjhgle6ivfsn5rnc": {
+            "nonce": 10,
+            "afterBlock": 1000
+          }
+        },
+        "nextNonce": 11,
+        "pipeline": {
+          "concurrency": 2,
+          "maxInFlightBytes": 524288
+        },
+        "ready": false
+      },
+      "canonicalSha256": "bff59476302870ad39aade2ed950c2bc0571119ffb1b95c0da9957cb687b6d55"
+    },
+    {
+      "name": "pilot/ready/profile",
+      "schema": "profile",
+      "input": {
+        "schema": "dotify.bulletin.publisher.v1",
+        "genesis": "0xe101f0fa4627d29a257645e02be86d80378fea1a2bf8fa6a918d150ebc760a59",
+        "account": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+        "endpoint": "wss://bulletin.example:8443",
+        "directory": "/var/folders/vb/bk17h1154vvd4bsz64dlrfr00000gn/T/dotify-prepared-recovery-BGtsnn/publisher",
+        "seedFile": "/var/folders/vb/bk17h1154vvd4bsz64dlrfr00000gn/T/dotify-prepared-recovery-BGtsnn/keys/test.seed",
+        "budget": {
+          "maxBytes": 1048576,
+          "maxTransactions": 16,
+          "minimumLifetimeBlocks": 100
+        },
+        "pipeline": {
+          "concurrency": 2,
+          "maxInFlightBytes": 524288
+        },
+        "priorRenewalReserve": {
+          "transactions": 107,
+          "bytes": 20971520
+        },
+        "pilotScope": {
+          "chainId": 420420417,
+          "runtimeAddress": "0x3434343434343434343434343434343434343434",
+          "contentHash": "0x337ad33831c2f1e15777a11e60904e5c5c62faf1f6d9d9d477590cb73967efa4",
+          "keyVersion": "dotify-content-key-v2"
+        }
+      },
+      "canonicalSha256": "4dfc30482da77d30bd4af7133544d40841d9e27506b3bd9a065eee2320b1ae40"
+    },
+    {
+      "name": "pilot/ready/owner",
+      "schema": "owner",
+      "input": {
+        "genesis": "0xe101f0fa4627d29a257645e02be86d80378fea1a2bf8fa6a918d150ebc760a59",
+        "account": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+        "schema": "dotify.bulletin.media-owner.v2",
+        "activeJob": null,
+        "nextNonce": 23,
+        "jobs": ["stream-7334f572-46ae-471c-8300-5f19a3c974c8"]
+      },
+      "canonicalSha256": "91fb492ff290e95bc82d23652d6954bcd21015865019e9f884f4b587102af57c"
+    },
+    {
+      "name": "pilot/ready/queue",
+      "schema": "queue",
+      "input": {
+        "schema": "dotify.streaming.jobs.v1",
+        "jobs": [
+          {
+            "id": "7334f572-46ae-471c-8300-5f19a3c974c8",
+            "owner": "0x1212121212121212121212121212121212121212",
+            "scope": {
+              "chainId": 420420417,
+              "runtimeAddress": "0x3434343434343434343434343434343434343434",
+              "contentHash": "0x337ad33831c2f1e15777a11e60904e5c5c62faf1f6d9d9d477590cb73967efa4",
+              "keyVersion": "dotify-content-key-v2"
+            },
+            "state": "ready",
+            "attempts": 3,
+            "createdAt": 1794521439691,
+            "updatedAt": 1794521441387,
+            "sourceBytes": 22,
+            "sourceGeneration": "1920b06a0e033d0b",
+            "ref": "dotify:enc:v3:key-v2:ipfs://bafykbzaceaxdh722vfb3v4wnpbavolk7hugf6i5w767lstsgtixvgua5mhro6"
+          }
+        ]
+      },
+      "canonicalSha256": "b589ebf8baa55701af34abcf3f34af25ab94355af3fbfaf8be871019a354b686"
+    },
+    {
+      "name": "pilot/ready/inventory",
+      "schema": "inventory",
+      "input": {
+        "schema": "dotify.bulletin.media-job.v2",
+        "genesis": "0xe101f0fa4627d29a257645e02be86d80378fea1a2bf8fa6a918d150ebc760a59",
+        "account": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+        "job": "stream-7334f572-46ae-471c-8300-5f19a3c974c8",
+        "root": "bafykbzaceaxdh722vfb3v4wnpbavolk7hugf6i5w767lstsgtixvgua5mhro6",
+        "scope": {
+          "chainId": 420420417,
+          "runtimeAddress": "0x3434343434343434343434343434343434343434",
+          "contentHash": "0x337ad33831c2f1e15777a11e60904e5c5c62faf1f6d9d9d477590cb73967efa4",
+          "keyVersion": "dotify-content-key-v2"
+        },
+        "generation": "d34b54467c6807ff",
+        "blocks": [
+          {
+            "cid": "bafk2bzacebqk6a2t4eukvlp7ryjd4qvu7dor7ixbnmcqipjhgle6ivfsn5rnc",
+            "bytes": 31
+          },
+          {
+            "cid": "bafk2bzacecavyqbkodheulrzakzmm2ejehc2dcsgqttunk6ioi4rk5i4zahci",
+            "bytes": 34
+          },
+          {
+            "cid": "bafykbzacedg4slyjh7e4slxv56pby6amgzb3r6xsybkqj4kdtfbw5tly6wlm4",
+            "bytes": 119
+          },
+          {
+            "cid": "bafk2bzaced5edepnsmfef6nzk33c43dtfbr5uscfx66uflm2e7qzjwn7dlrt4",
+            "bytes": 31
+          },
+          {
+            "cid": "bafk2bzaceacpcv7oegd5hwvzlwhkjhji5d4ryggbbn3kkuqetzxchuju7iwjc",
+            "bytes": 34
+          },
+          {
+            "cid": "bafykbzacebttzdj2snhhwj6mvly64uye7m7ribuvjimttcxqrg3ycl3tadjpw",
+            "bytes": 119
+          },
+          {
+            "cid": "bafk2bzacedrkujvhtbhcjlj7h3p3cxafchfyk323vqcmeyuk7w3ar5pglpwdc",
+            "bytes": 31
+          },
+          {
+            "cid": "bafk2bzacebfyf55p6dszd3im6iuigul7p2mdmokov4g52ky6wr7gtdja6mi5c",
+            "bytes": 34
+          },
+          {
+            "cid": "bafykbzacec4usoyu2i7qpy4ciq4pwfoczuyieyxnzh7hchb6mid3lwknlbk5w",
+            "bytes": 119
+          },
+          {
+            "cid": "bafk2bzaceat3zs3kztujc2znpxzs6xkaxfkmboqw6waaynnwdqyujdrei2o62",
+            "bytes": 38
+          },
+          {
+            "cid": "bafykbzaceawhzrgwdpws2j6kwflhfh2cq5ihs6eiabii7o53tqw7il6z23re4",
+            "bytes": 60
+          },
+          {
+            "cid": "bafk2bzacedjta4jo5fyucjusimmr3nfkkvc66bn2tnj3jlibcbhdfnueqbrz6",
+            "bytes": 1566
+          },
+          {
+            "cid": "bafykbzaceaxdh722vfb3v4wnpbavolk7hugf6i5w767lstsgtixvgua5mhro6",
+            "bytes": 266
+          }
+        ],
+        "budget": {
+          "maxBytes": 1048576,
+          "maxTransactions": 16,
+          "minimumLifetimeBlocks": 100
+        },
+        "attemptedBytes": 2516,
+        "attemptedStores": 14,
+        "receipts": {
+          "bafk2bzacebqk6a2t4eukvlp7ryjd4qvu7dor7ixbnmcqipjhgle6ivfsn5rnc": {
+            "cid": "bafk2bzacebqk6a2t4eukvlp7ryjd4qvu7dor7ixbnmcqipjhgle6ivfsn5rnc",
+            "bytes": 31,
+            "block": 1001,
+            "index": 0,
+            "expiresAt": 100000,
+            "finalized": true
+          },
+          "bafk2bzacecavyqbkodheulrzakzmm2ejehc2dcsgqttunk6ioi4rk5i4zahci": {
+            "cid": "bafk2bzacecavyqbkodheulrzakzmm2ejehc2dcsgqttunk6ioi4rk5i4zahci",
+            "bytes": 34,
+            "block": 1002,
+            "index": 1,
+            "expiresAt": 100000,
+            "finalized": true
+          },
+          "bafk2bzaced5edepnsmfef6nzk33c43dtfbr5uscfx66uflm2e7qzjwn7dlrt4": {
+            "cid": "bafk2bzaced5edepnsmfef6nzk33c43dtfbr5uscfx66uflm2e7qzjwn7dlrt4",
+            "bytes": 31,
+            "block": 1003,
+            "index": 2,
+            "expiresAt": 100000,
+            "finalized": true
+          },
+          "bafykbzacedg4slyjh7e4slxv56pby6amgzb3r6xsybkqj4kdtfbw5tly6wlm4": {
+            "cid": "bafykbzacedg4slyjh7e4slxv56pby6amgzb3r6xsybkqj4kdtfbw5tly6wlm4",
+            "bytes": 119,
+            "block": 1004,
+            "index": 3,
+            "expiresAt": 100000,
+            "finalized": true
+          },
+          "bafk2bzaceacpcv7oegd5hwvzlwhkjhji5d4ryggbbn3kkuqetzxchuju7iwjc": {
+            "cid": "bafk2bzaceacpcv7oegd5hwvzlwhkjhji5d4ryggbbn3kkuqetzxchuju7iwjc",
+            "bytes": 34,
+            "block": 1005,
+            "index": 4,
+            "expiresAt": 100000,
+            "finalized": true
+          },
+          "bafykbzacebttzdj2snhhwj6mvly64uye7m7ribuvjimttcxqrg3ycl3tadjpw": {
+            "cid": "bafykbzacebttzdj2snhhwj6mvly64uye7m7ribuvjimttcxqrg3ycl3tadjpw",
+            "bytes": 119,
+            "block": 1006,
+            "index": 5,
+            "expiresAt": 100000,
+            "finalized": true
+          },
+          "bafk2bzacedrkujvhtbhcjlj7h3p3cxafchfyk323vqcmeyuk7w3ar5pglpwdc": {
+            "cid": "bafk2bzacedrkujvhtbhcjlj7h3p3cxafchfyk323vqcmeyuk7w3ar5pglpwdc",
+            "bytes": 31,
+            "block": 1007,
+            "index": 6,
+            "expiresAt": 100000,
+            "finalized": true
+          },
+          "bafk2bzacebfyf55p6dszd3im6iuigul7p2mdmokov4g52ky6wr7gtdja6mi5c": {
+            "cid": "bafk2bzacebfyf55p6dszd3im6iuigul7p2mdmokov4g52ky6wr7gtdja6mi5c",
+            "bytes": 34,
+            "block": 1008,
+            "index": 7,
+            "expiresAt": 100000,
+            "finalized": true
+          },
+          "bafk2bzaceat3zs3kztujc2znpxzs6xkaxfkmboqw6waaynnwdqyujdrei2o62": {
+            "cid": "bafk2bzaceat3zs3kztujc2znpxzs6xkaxfkmboqw6waaynnwdqyujdrei2o62",
+            "bytes": 38,
+            "block": 1009,
+            "index": 8,
+            "expiresAt": 100000,
+            "finalized": true
+          },
+          "bafykbzacec4usoyu2i7qpy4ciq4pwfoczuyieyxnzh7hchb6mid3lwknlbk5w": {
+            "cid": "bafykbzacec4usoyu2i7qpy4ciq4pwfoczuyieyxnzh7hchb6mid3lwknlbk5w",
+            "bytes": 119,
+            "block": 1010,
+            "index": 9,
+            "expiresAt": 100000,
+            "finalized": true
+          },
+          "bafykbzaceawhzrgwdpws2j6kwflhfh2cq5ihs6eiabii7o53tqw7il6z23re4": {
+            "cid": "bafykbzaceawhzrgwdpws2j6kwflhfh2cq5ihs6eiabii7o53tqw7il6z23re4",
+            "bytes": 60,
+            "block": 1011,
+            "index": 10,
+            "expiresAt": 100000,
+            "finalized": true
+          },
+          "bafk2bzacedjta4jo5fyucjusimmr3nfkkvc66bn2tnj3jlibcbhdfnueqbrz6": {
+            "cid": "bafk2bzacedjta4jo5fyucjusimmr3nfkkvc66bn2tnj3jlibcbhdfnueqbrz6",
+            "bytes": 1566,
+            "block": 1012,
+            "index": 11,
+            "expiresAt": 100000,
+            "finalized": true
+          },
+          "bafykbzaceaxdh722vfb3v4wnpbavolk7hugf6i5w767lstsgtixvgua5mhro6": {
+            "cid": "bafykbzaceaxdh722vfb3v4wnpbavolk7hugf6i5w767lstsgtixvgua5mhro6",
+            "bytes": 266,
+            "block": 1013,
+            "index": 12,
+            "expiresAt": 100000,
+            "finalized": true
+          }
+        },
+        "pending": {},
+        "nextNonce": 23,
+        "pipeline": {
+          "concurrency": 2,
+          "maxInFlightBytes": 524288
+        },
+        "ready": true
+      },
+      "canonicalSha256": "b67fc6e416dde8a6b0da70a6104fa7ebe82a46592578e8208f9a0255bcea442c"
+    },
+    {
+      "name": "standard/prepared/profile",
+      "schema": "profile",
+      "input": {
+        "schema": "dotify.bulletin.publisher.v1",
+        "genesis": "0xe101f0fa4627d29a257645e02be86d80378fea1a2bf8fa6a918d150ebc760a59",
+        "account": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+        "endpoint": "wss://bulletin.example:8443",
+        "directory": "/var/folders/vb/bk17h1154vvd4bsz64dlrfr00000gn/T/dotify-prepared-recovery-Rhlkmq/publisher",
+        "seedFile": "/var/folders/vb/bk17h1154vvd4bsz64dlrfr00000gn/T/dotify-prepared-recovery-Rhlkmq/keys/test.seed",
+        "budget": {
+          "maxBytes": 1048576,
+          "maxTransactions": 64,
+          "minimumLifetimeBlocks": 100
+        },
+        "pipeline": {
+          "concurrency": 2,
+          "maxInFlightBytes": 524288
+        },
+        "priorRenewalReserve": {
+          "transactions": 107,
+          "bytes": 20971520
+        },
+        "freshContentKey": {
+          "version": "dotify-content-key-v3",
+          "masterSha256": "4113d54b0b611294b7f595b691c9db541fc0fc719848d6c5c34522eacc0b3a24"
+        },
+        "releasePolicy": {
+          "schema": "dotify.bulletin.release-policy.v1",
+          "artists": [
+            {
+              "owner": "0x1212121212121212121212121212121212121212",
+              "chainId": 420420417,
+              "runtimeAddress": "0x3434343434343434343434343434343434343434",
+              "keyVersion": "dotify-content-key-v3"
+            }
+          ],
+          "maxReleases": 2,
+          "cover": {
+            "maxBytes": 1048576,
+            "maxTransactions": 16,
+            "minimumLifetimeBlocks": 100
+          },
+          "metadata": {
+            "maxBytes": 1048576,
+            "maxTransactions": 16,
+            "minimumLifetimeBlocks": 100
+          },
+          "total": {
+            "maxBytes": 6291456,
+            "maxTransactions": 192
+          }
+        }
+      },
+      "canonicalSha256": "c0af1a1c494ecc2486e96113ec7d07776ee7c82842849c9a2d4ae7a2e3df2019"
+    },
+    {
+      "name": "standard/prepared/owner",
+      "schema": "owner",
+      "input": {
+        "schema": "dotify.bulletin.media-owner.v2",
+        "genesis": "0xe101f0fa4627d29a257645e02be86d80378fea1a2bf8fa6a918d150ebc760a59",
+        "account": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+        "jobs": ["stream-83c7141a-a317-4e96-a025-1d77205e36af"],
+        "activeJob": null,
+        "nextNonce": null
+      },
+      "canonicalSha256": "c097dce3aaa807832e6c8a2a43e4abd8dedc99d2aceac2b449017225f79ea074"
+    },
+    {
+      "name": "standard/prepared/queue",
+      "schema": "queue",
+      "input": {
+        "schema": "dotify.streaming.jobs.v1",
+        "jobs": [
+          {
+            "id": "83c7141a-a317-4e96-a025-1d77205e36af",
+            "owner": "0x1212121212121212121212121212121212121212",
+            "scope": {
+              "chainId": 420420417,
+              "runtimeAddress": "0x3434343434343434343434343434343434343434",
+              "contentHash": "0x337ad33831c2f1e15777a11e60904e5c5c62faf1f6d9d9d477590cb73967efa4",
+              "keyVersion": "dotify-content-key-v3"
+            },
+            "state": "failed",
+            "attempts": 3,
+            "createdAt": 1794521441633,
+            "updatedAt": 1794521442137,
+            "sourceBytes": 22,
+            "sourceGeneration": "780803e4a73c1562",
+            "reason": "RETRY_LIMIT"
+          }
+        ]
+      },
+      "canonicalSha256": "6402c4ac168514ffc27f2ba7056bc84fe240dfeb492e138b5baa5811946be175"
+    },
+    {
+      "name": "standard/prepared/inventory",
+      "schema": "inventory",
+      "input": {
+        "schema": "dotify.bulletin.media-job.v2",
+        "genesis": "0xe101f0fa4627d29a257645e02be86d80378fea1a2bf8fa6a918d150ebc760a59",
+        "account": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+        "job": "stream-83c7141a-a317-4e96-a025-1d77205e36af",
+        "root": "bafykbzacecvjkei4e3b3t2f7hdz3igngf4emi3hyj5vjpzer33l6alyd6pdg4",
+        "scope": {
+          "chainId": 420420417,
+          "runtimeAddress": "0x3434343434343434343434343434343434343434",
+          "contentHash": "0x337ad33831c2f1e15777a11e60904e5c5c62faf1f6d9d9d477590cb73967efa4",
+          "keyVersion": "dotify-content-key-v3"
+        },
+        "generation": "b7969c77dfdb4f7d",
+        "blocks": [
+          {
+            "cid": "bafk2bzaceb7pzw45kcu3kgrlksu2o7o2peii6az76cez2toqurztmvuhgwtc6",
+            "bytes": 31
+          },
+          {
+            "cid": "bafk2bzacedtyglsmo3rlytmwby4po5kxbt7z2vu4wbbjwlnjlf67wmaghqc44",
+            "bytes": 80
+          },
+          {
+            "cid": "bafk2bzacecqkrvazz3r3m2mydld4glib3ii37bba4lkavcvgkjf4zczvnalq2",
+            "bytes": 80
+          },
+          {
+            "cid": "bafk2bzacebnep6t567p5dd35drdgsojzpm23s526niuwtisg54b27hwglgdo6",
+            "bytes": 80
+          },
+          {
+            "cid": "bafykbzaceci3srbivpxiwjpbp24t2mgb6mcfxq66hehrd6gr6k7doe3l5u2ii",
+            "bytes": 241
+          },
+          {
+            "cid": "bafk2bzacebvn2plfjj6tqw4k25jogwbsrqoc7z4kjknpcxzgltdbdsfbiqihg",
+            "bytes": 31
+          },
+          {
+            "cid": "bafk2bzacedl3ys2awdyodku2grth7jvggfqftk3go27w32l35misgluq6soba",
+            "bytes": 80
+          },
+          {
+            "cid": "bafk2bzaced6n766k5daiadwheh6ijllio65ieuqty6n2kll5zazwcfgpjwbgm",
+            "bytes": 80
+          },
+          {
+            "cid": "bafk2bzacebcizj5uy56ihcwhjbtzwydp3nypumcj7ugzjjs5rzpotggcinzcc",
+            "bytes": 80
+          },
+          {
+            "cid": "bafykbzacec2hwi4to2xa3m4eoqoylzyfkm6ulcyuocoqcrqm4fmwbqlibud3o",
+            "bytes": 241
+          },
+          {
+            "cid": "bafk2bzaceaztcx3whutn4n4uumhz3kqlrq6ezaw24y6o2fihn7euluph5yd2s",
+            "bytes": 31
+          },
+          {
+            "cid": "bafk2bzaceco5hzwd3mfbuxacnsuaemhm6ivxj7upoccjad6ewmz2eu5ekqt6w",
+            "bytes": 80
+          },
+          {
+            "cid": "bafk2bzaced75w6uekijkagcnydoabu4grd5sfcehmdc6qm7zr7ymdznxnuz5u",
+            "bytes": 80
+          },
+          {
+            "cid": "bafk2bzacecbpnflu4lloaqyzivcn7mlxgw6snl5qundybukcwcwdoqosfk3ou",
+            "bytes": 80
+          },
+          {
+            "cid": "bafykbzacec24fsqgh25h3g76nuhhsde5jrlwwl2ccmeoputb4gamsl3rwuhka",
+            "bytes": 241
+          },
+          {
+            "cid": "bafk2bzacebrzn3ffr57cwqmaa4etf5c2chccexqlkvkyvkep6a7v3woy6ierk",
+            "bytes": 38
+          },
+          {
+            "cid": "bafykbzacebzlz3fm3ybcls4ycg36idhuvcai56gkxtmtp5gkb76oj5xjd37la",
+            "bytes": 60
+          },
+          {
+            "cid": "bafk2bzacebbxxcu26zkxdbf2to7bo4uv76xjuvfnjvw5shwmzi7hgx7iwi5mw",
+            "bytes": 2310
+          },
+          {
+            "cid": "bafykbzacecvjkei4e3b3t2f7hdz3igngf4emi3hyj5vjpzer33l6alyd6pdg4",
+            "bytes": 266
+          }
+        ],
+        "budget": {
+          "maxBytes": 1048576,
+          "maxTransactions": 64,
+          "minimumLifetimeBlocks": 100
+        },
+        "pipeline": {
+          "concurrency": 2,
+          "maxInFlightBytes": 524288
+        },
+        "attemptedStores": 0,
+        "attemptedBytes": 0,
+        "receipts": {},
+        "pending": {},
+        "nextNonce": null,
+        "ready": false
+      },
+      "canonicalSha256": "8501cbf87f9338bb21b0cc30e60474909644f0ea580b3dd7c3be9a2ebd7422ab"
+    },
+    {
+      "name": "standard/prepared/admission",
+      "schema": "admission",
+      "input": {
+        "schema": "dotify.bulletin.release-admission.v1",
+        "profileSha256": "c0af1a1c494ecc2486e96113ec7d07776ee7c82842849c9a2d4ae7a2e3df2019",
+        "releases": [
+          {
+            "scope": {
+              "chainId": 420420417,
+              "runtimeAddress": "0x3434343434343434343434343434343434343434",
+              "keyVersion": "dotify-content-key-v3",
+              "contentHash": "0x337ad33831c2f1e15777a11e60904e5c5c62faf1f6d9d9d477590cb73967efa4"
+            },
+            "audio": "stream-83c7141a-a317-4e96-a025-1d77205e36af"
+          }
+        ]
+      },
+      "canonicalSha256": "8e7c2b069a103037c7a2a1d28e6953cbd7fa14d797b19d2e9884e8be017e2d08"
+    },
+    {
+      "name": "standard/uncertain/profile",
+      "schema": "profile",
+      "input": {
+        "schema": "dotify.bulletin.publisher.v1",
+        "genesis": "0xe101f0fa4627d29a257645e02be86d80378fea1a2bf8fa6a918d150ebc760a59",
+        "account": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+        "endpoint": "wss://bulletin.example:8443",
+        "directory": "/var/folders/vb/bk17h1154vvd4bsz64dlrfr00000gn/T/dotify-prepared-recovery-Rhlkmq/publisher",
+        "seedFile": "/var/folders/vb/bk17h1154vvd4bsz64dlrfr00000gn/T/dotify-prepared-recovery-Rhlkmq/keys/test.seed",
+        "budget": {
+          "maxBytes": 1048576,
+          "maxTransactions": 64,
+          "minimumLifetimeBlocks": 100
+        },
+        "pipeline": {
+          "concurrency": 2,
+          "maxInFlightBytes": 524288
+        },
+        "priorRenewalReserve": {
+          "transactions": 107,
+          "bytes": 20971520
+        },
+        "freshContentKey": {
+          "version": "dotify-content-key-v3",
+          "masterSha256": "4113d54b0b611294b7f595b691c9db541fc0fc719848d6c5c34522eacc0b3a24"
+        },
+        "releasePolicy": {
+          "schema": "dotify.bulletin.release-policy.v1",
+          "artists": [
+            {
+              "owner": "0x1212121212121212121212121212121212121212",
+              "chainId": 420420417,
+              "runtimeAddress": "0x3434343434343434343434343434343434343434",
+              "keyVersion": "dotify-content-key-v3"
+            }
+          ],
+          "maxReleases": 2,
+          "cover": {
+            "maxBytes": 1048576,
+            "maxTransactions": 16,
+            "minimumLifetimeBlocks": 100
+          },
+          "metadata": {
+            "maxBytes": 1048576,
+            "maxTransactions": 16,
+            "minimumLifetimeBlocks": 100
+          },
+          "total": {
+            "maxBytes": 6291456,
+            "maxTransactions": 192
+          }
+        }
+      },
+      "canonicalSha256": "c0af1a1c494ecc2486e96113ec7d07776ee7c82842849c9a2d4ae7a2e3df2019"
+    },
+    {
+      "name": "standard/uncertain/owner",
+      "schema": "owner",
+      "input": {
+        "genesis": "0xe101f0fa4627d29a257645e02be86d80378fea1a2bf8fa6a918d150ebc760a59",
+        "account": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+        "schema": "dotify.bulletin.media-owner.v2",
+        "activeJob": "stream-83c7141a-a317-4e96-a025-1d77205e36af",
+        "nextNonce": 11,
+        "jobs": ["stream-83c7141a-a317-4e96-a025-1d77205e36af"]
+      },
+      "canonicalSha256": "31f11aba16b1f0fa212c922b776e6521e8541a6dbfa9114a9723ff604baf1eaa"
+    },
+    {
+      "name": "standard/uncertain/queue",
+      "schema": "queue",
+      "input": {
+        "schema": "dotify.streaming.jobs.v1",
+        "jobs": [
+          {
+            "id": "83c7141a-a317-4e96-a025-1d77205e36af",
+            "owner": "0x1212121212121212121212121212121212121212",
+            "scope": {
+              "chainId": 420420417,
+              "runtimeAddress": "0x3434343434343434343434343434343434343434",
+              "contentHash": "0x337ad33831c2f1e15777a11e60904e5c5c62faf1f6d9d9d477590cb73967efa4",
+              "keyVersion": "dotify-content-key-v3"
+            },
+            "state": "failed",
+            "attempts": 3,
+            "createdAt": 1794521441633,
+            "updatedAt": 1794521442137,
+            "sourceBytes": 22,
+            "sourceGeneration": "780803e4a73c1562",
+            "reason": "RETRY_LIMIT"
+          }
+        ]
+      },
+      "canonicalSha256": "6402c4ac168514ffc27f2ba7056bc84fe240dfeb492e138b5baa5811946be175"
+    },
+    {
+      "name": "standard/uncertain/inventory",
+      "schema": "inventory",
+      "input": {
+        "schema": "dotify.bulletin.media-job.v2",
+        "genesis": "0xe101f0fa4627d29a257645e02be86d80378fea1a2bf8fa6a918d150ebc760a59",
+        "account": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+        "job": "stream-83c7141a-a317-4e96-a025-1d77205e36af",
+        "root": "bafykbzacecvjkei4e3b3t2f7hdz3igngf4emi3hyj5vjpzer33l6alyd6pdg4",
+        "scope": {
+          "chainId": 420420417,
+          "runtimeAddress": "0x3434343434343434343434343434343434343434",
+          "contentHash": "0x337ad33831c2f1e15777a11e60904e5c5c62faf1f6d9d9d477590cb73967efa4",
+          "keyVersion": "dotify-content-key-v3"
+        },
+        "generation": "b7969c77dfdb4f7d",
+        "blocks": [
+          {
+            "cid": "bafk2bzaceb7pzw45kcu3kgrlksu2o7o2peii6az76cez2toqurztmvuhgwtc6",
+            "bytes": 31
+          },
+          {
+            "cid": "bafk2bzacedtyglsmo3rlytmwby4po5kxbt7z2vu4wbbjwlnjlf67wmaghqc44",
+            "bytes": 80
+          },
+          {
+            "cid": "bafk2bzacecqkrvazz3r3m2mydld4glib3ii37bba4lkavcvgkjf4zczvnalq2",
+            "bytes": 80
+          },
+          {
+            "cid": "bafk2bzacebnep6t567p5dd35drdgsojzpm23s526niuwtisg54b27hwglgdo6",
+            "bytes": 80
+          },
+          {
+            "cid": "bafykbzaceci3srbivpxiwjpbp24t2mgb6mcfxq66hehrd6gr6k7doe3l5u2ii",
+            "bytes": 241
+          },
+          {
+            "cid": "bafk2bzacebvn2plfjj6tqw4k25jogwbsrqoc7z4kjknpcxzgltdbdsfbiqihg",
+            "bytes": 31
+          },
+          {
+            "cid": "bafk2bzacedl3ys2awdyodku2grth7jvggfqftk3go27w32l35misgluq6soba",
+            "bytes": 80
+          },
+          {
+            "cid": "bafk2bzaced6n766k5daiadwheh6ijllio65ieuqty6n2kll5zazwcfgpjwbgm",
+            "bytes": 80
+          },
+          {
+            "cid": "bafk2bzacebcizj5uy56ihcwhjbtzwydp3nypumcj7ugzjjs5rzpotggcinzcc",
+            "bytes": 80
+          },
+          {
+            "cid": "bafykbzacec2hwi4to2xa3m4eoqoylzyfkm6ulcyuocoqcrqm4fmwbqlibud3o",
+            "bytes": 241
+          },
+          {
+            "cid": "bafk2bzaceaztcx3whutn4n4uumhz3kqlrq6ezaw24y6o2fihn7euluph5yd2s",
+            "bytes": 31
+          },
+          {
+            "cid": "bafk2bzaceco5hzwd3mfbuxacnsuaemhm6ivxj7upoccjad6ewmz2eu5ekqt6w",
+            "bytes": 80
+          },
+          {
+            "cid": "bafk2bzaced75w6uekijkagcnydoabu4grd5sfcehmdc6qm7zr7ymdznxnuz5u",
+            "bytes": 80
+          },
+          {
+            "cid": "bafk2bzacecbpnflu4lloaqyzivcn7mlxgw6snl5qundybukcwcwdoqosfk3ou",
+            "bytes": 80
+          },
+          {
+            "cid": "bafykbzacec24fsqgh25h3g76nuhhsde5jrlwwl2ccmeoputb4gamsl3rwuhka",
+            "bytes": 241
+          },
+          {
+            "cid": "bafk2bzacebrzn3ffr57cwqmaa4etf5c2chccexqlkvkyvkep6a7v3woy6ierk",
+            "bytes": 38
+          },
+          {
+            "cid": "bafykbzacebzlz3fm3ybcls4ycg36idhuvcai56gkxtmtp5gkb76oj5xjd37la",
+            "bytes": 60
+          },
+          {
+            "cid": "bafk2bzacebbxxcu26zkxdbf2to7bo4uv76xjuvfnjvw5shwmzi7hgx7iwi5mw",
+            "bytes": 2310
+          },
+          {
+            "cid": "bafykbzacecvjkei4e3b3t2f7hdz3igngf4emi3hyj5vjpzer33l6alyd6pdg4",
+            "bytes": 266
+          }
+        ],
+        "budget": {
+          "maxBytes": 1048576,
+          "maxTransactions": 64,
+          "minimumLifetimeBlocks": 100
+        },
+        "attemptedBytes": 111,
+        "attemptedStores": 2,
+        "receipts": {},
+        "pending": {
+          "bafk2bzaceb7pzw45kcu3kgrlksu2o7o2peii6az76cez2toqurztmvuhgwtc6": {
+            "nonce": 10,
+            "afterBlock": 1000
+          }
+        },
+        "nextNonce": 11,
+        "pipeline": {
+          "concurrency": 2,
+          "maxInFlightBytes": 524288
+        },
+        "ready": false
+      },
+      "canonicalSha256": "b2f27dfca44d69dafcfa84264555b5d59420210a3d454b34bdb4887fdf8000af"
+    },
+    {
+      "name": "standard/uncertain/admission",
+      "schema": "admission",
+      "input": {
+        "schema": "dotify.bulletin.release-admission.v1",
+        "profileSha256": "c0af1a1c494ecc2486e96113ec7d07776ee7c82842849c9a2d4ae7a2e3df2019",
+        "releases": [
+          {
+            "scope": {
+              "chainId": 420420417,
+              "runtimeAddress": "0x3434343434343434343434343434343434343434",
+              "keyVersion": "dotify-content-key-v3",
+              "contentHash": "0x337ad33831c2f1e15777a11e60904e5c5c62faf1f6d9d9d477590cb73967efa4"
+            },
+            "audio": "stream-83c7141a-a317-4e96-a025-1d77205e36af"
+          }
+        ]
+      },
+      "canonicalSha256": "8e7c2b069a103037c7a2a1d28e6953cbd7fa14d797b19d2e9884e8be017e2d08"
+    },
+    {
+      "name": "standard/ready/profile",
+      "schema": "profile",
+      "input": {
+        "schema": "dotify.bulletin.publisher.v1",
+        "genesis": "0xe101f0fa4627d29a257645e02be86d80378fea1a2bf8fa6a918d150ebc760a59",
+        "account": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+        "endpoint": "wss://bulletin.example:8443",
+        "directory": "/var/folders/vb/bk17h1154vvd4bsz64dlrfr00000gn/T/dotify-prepared-recovery-Rhlkmq/publisher",
+        "seedFile": "/var/folders/vb/bk17h1154vvd4bsz64dlrfr00000gn/T/dotify-prepared-recovery-Rhlkmq/keys/test.seed",
+        "budget": {
+          "maxBytes": 1048576,
+          "maxTransactions": 64,
+          "minimumLifetimeBlocks": 100
+        },
+        "pipeline": {
+          "concurrency": 2,
+          "maxInFlightBytes": 524288
+        },
+        "priorRenewalReserve": {
+          "transactions": 107,
+          "bytes": 20971520
+        },
+        "freshContentKey": {
+          "version": "dotify-content-key-v3",
+          "masterSha256": "4113d54b0b611294b7f595b691c9db541fc0fc719848d6c5c34522eacc0b3a24"
+        },
+        "releasePolicy": {
+          "schema": "dotify.bulletin.release-policy.v1",
+          "artists": [
+            {
+              "owner": "0x1212121212121212121212121212121212121212",
+              "chainId": 420420417,
+              "runtimeAddress": "0x3434343434343434343434343434343434343434",
+              "keyVersion": "dotify-content-key-v3"
+            }
+          ],
+          "maxReleases": 2,
+          "cover": {
+            "maxBytes": 1048576,
+            "maxTransactions": 16,
+            "minimumLifetimeBlocks": 100
+          },
+          "metadata": {
+            "maxBytes": 1048576,
+            "maxTransactions": 16,
+            "minimumLifetimeBlocks": 100
+          },
+          "total": {
+            "maxBytes": 6291456,
+            "maxTransactions": 192
+          }
+        }
+      },
+      "canonicalSha256": "c0af1a1c494ecc2486e96113ec7d07776ee7c82842849c9a2d4ae7a2e3df2019"
+    },
+    {
+      "name": "standard/ready/owner",
+      "schema": "owner",
+      "input": {
+        "genesis": "0xe101f0fa4627d29a257645e02be86d80378fea1a2bf8fa6a918d150ebc760a59",
+        "account": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+        "schema": "dotify.bulletin.media-owner.v2",
+        "activeJob": null,
+        "nextNonce": 29,
+        "jobs": ["stream-83c7141a-a317-4e96-a025-1d77205e36af"]
+      },
+      "canonicalSha256": "bc9035f0766c5c4123313c2912f6cc4cb82eeee580e93585b688807c98bcc489"
+    },
+    {
+      "name": "standard/ready/queue",
+      "schema": "queue",
+      "input": {
+        "schema": "dotify.streaming.jobs.v1",
+        "jobs": [
+          {
+            "id": "83c7141a-a317-4e96-a025-1d77205e36af",
+            "owner": "0x1212121212121212121212121212121212121212",
+            "scope": {
+              "chainId": 420420417,
+              "runtimeAddress": "0x3434343434343434343434343434343434343434",
+              "contentHash": "0x337ad33831c2f1e15777a11e60904e5c5c62faf1f6d9d9d477590cb73967efa4",
+              "keyVersion": "dotify-content-key-v3"
+            },
+            "state": "ready",
+            "attempts": 3,
+            "createdAt": 1794521441633,
+            "updatedAt": 1794521443774,
+            "sourceBytes": 22,
+            "sourceGeneration": "780803e4a73c1562",
+            "ref": "dotify:enc:v3:key-v3:ipfs://bafykbzacecvjkei4e3b3t2f7hdz3igngf4emi3hyj5vjpzer33l6alyd6pdg4"
+          }
+        ]
+      },
+      "canonicalSha256": "3d59f5395195020ebcff95f477f3d0df8a01bcf82bc979d5e22690422ab1ad92"
+    },
+    {
+      "name": "standard/ready/inventory",
+      "schema": "inventory",
+      "input": {
+        "schema": "dotify.bulletin.media-job.v2",
+        "genesis": "0xe101f0fa4627d29a257645e02be86d80378fea1a2bf8fa6a918d150ebc760a59",
+        "account": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+        "job": "stream-83c7141a-a317-4e96-a025-1d77205e36af",
+        "root": "bafykbzacecvjkei4e3b3t2f7hdz3igngf4emi3hyj5vjpzer33l6alyd6pdg4",
+        "scope": {
+          "chainId": 420420417,
+          "runtimeAddress": "0x3434343434343434343434343434343434343434",
+          "contentHash": "0x337ad33831c2f1e15777a11e60904e5c5c62faf1f6d9d9d477590cb73967efa4",
+          "keyVersion": "dotify-content-key-v3"
+        },
+        "generation": "b7969c77dfdb4f7d",
+        "blocks": [
+          {
+            "cid": "bafk2bzaceb7pzw45kcu3kgrlksu2o7o2peii6az76cez2toqurztmvuhgwtc6",
+            "bytes": 31
+          },
+          {
+            "cid": "bafk2bzacedtyglsmo3rlytmwby4po5kxbt7z2vu4wbbjwlnjlf67wmaghqc44",
+            "bytes": 80
+          },
+          {
+            "cid": "bafk2bzacecqkrvazz3r3m2mydld4glib3ii37bba4lkavcvgkjf4zczvnalq2",
+            "bytes": 80
+          },
+          {
+            "cid": "bafk2bzacebnep6t567p5dd35drdgsojzpm23s526niuwtisg54b27hwglgdo6",
+            "bytes": 80
+          },
+          {
+            "cid": "bafykbzaceci3srbivpxiwjpbp24t2mgb6mcfxq66hehrd6gr6k7doe3l5u2ii",
+            "bytes": 241
+          },
+          {
+            "cid": "bafk2bzacebvn2plfjj6tqw4k25jogwbsrqoc7z4kjknpcxzgltdbdsfbiqihg",
+            "bytes": 31
+          },
+          {
+            "cid": "bafk2bzacedl3ys2awdyodku2grth7jvggfqftk3go27w32l35misgluq6soba",
+            "bytes": 80
+          },
+          {
+            "cid": "bafk2bzaced6n766k5daiadwheh6ijllio65ieuqty6n2kll5zazwcfgpjwbgm",
+            "bytes": 80
+          },
+          {
+            "cid": "bafk2bzacebcizj5uy56ihcwhjbtzwydp3nypumcj7ugzjjs5rzpotggcinzcc",
+            "bytes": 80
+          },
+          {
+            "cid": "bafykbzacec2hwi4to2xa3m4eoqoylzyfkm6ulcyuocoqcrqm4fmwbqlibud3o",
+            "bytes": 241
+          },
+          {
+            "cid": "bafk2bzaceaztcx3whutn4n4uumhz3kqlrq6ezaw24y6o2fihn7euluph5yd2s",
+            "bytes": 31
+          },
+          {
+            "cid": "bafk2bzaceco5hzwd3mfbuxacnsuaemhm6ivxj7upoccjad6ewmz2eu5ekqt6w",
+            "bytes": 80
+          },
+          {
+            "cid": "bafk2bzaced75w6uekijkagcnydoabu4grd5sfcehmdc6qm7zr7ymdznxnuz5u",
+            "bytes": 80
+          },
+          {
+            "cid": "bafk2bzacecbpnflu4lloaqyzivcn7mlxgw6snl5qundybukcwcwdoqosfk3ou",
+            "bytes": 80
+          },
+          {
+            "cid": "bafykbzacec24fsqgh25h3g76nuhhsde5jrlwwl2ccmeoputb4gamsl3rwuhka",
+            "bytes": 241
+          },
+          {
+            "cid": "bafk2bzacebrzn3ffr57cwqmaa4etf5c2chccexqlkvkyvkep6a7v3woy6ierk",
+            "bytes": 38
+          },
+          {
+            "cid": "bafykbzacebzlz3fm3ybcls4ycg36idhuvcai56gkxtmtp5gkb76oj5xjd37la",
+            "bytes": 60
+          },
+          {
+            "cid": "bafk2bzacebbxxcu26zkxdbf2to7bo4uv76xjuvfnjvw5shwmzi7hgx7iwi5mw",
+            "bytes": 2310
+          },
+          {
+            "cid": "bafykbzacecvjkei4e3b3t2f7hdz3igngf4emi3hyj5vjpzer33l6alyd6pdg4",
+            "bytes": 266
+          }
+        ],
+        "budget": {
+          "maxBytes": 1048576,
+          "maxTransactions": 64,
+          "minimumLifetimeBlocks": 100
+        },
+        "attemptedBytes": 4290,
+        "attemptedStores": 20,
+        "receipts": {
+          "bafk2bzaceb7pzw45kcu3kgrlksu2o7o2peii6az76cez2toqurztmvuhgwtc6": {
+            "cid": "bafk2bzaceb7pzw45kcu3kgrlksu2o7o2peii6az76cez2toqurztmvuhgwtc6",
+            "bytes": 31,
+            "block": 1001,
+            "index": 0,
+            "expiresAt": 100000,
+            "finalized": true
+          },
+          "bafk2bzacedtyglsmo3rlytmwby4po5kxbt7z2vu4wbbjwlnjlf67wmaghqc44": {
+            "cid": "bafk2bzacedtyglsmo3rlytmwby4po5kxbt7z2vu4wbbjwlnjlf67wmaghqc44",
+            "bytes": 80,
+            "block": 1002,
+            "index": 1,
+            "expiresAt": 100000,
+            "finalized": true
+          },
+          "bafk2bzacecqkrvazz3r3m2mydld4glib3ii37bba4lkavcvgkjf4zczvnalq2": {
+            "cid": "bafk2bzacecqkrvazz3r3m2mydld4glib3ii37bba4lkavcvgkjf4zczvnalq2",
+            "bytes": 80,
+            "block": 1003,
+            "index": 2,
+            "expiresAt": 100000,
+            "finalized": true
+          },
+          "bafk2bzacebnep6t567p5dd35drdgsojzpm23s526niuwtisg54b27hwglgdo6": {
+            "cid": "bafk2bzacebnep6t567p5dd35drdgsojzpm23s526niuwtisg54b27hwglgdo6",
+            "bytes": 80,
+            "block": 1004,
+            "index": 3,
+            "expiresAt": 100000,
+            "finalized": true
+          },
+          "bafk2bzacebvn2plfjj6tqw4k25jogwbsrqoc7z4kjknpcxzgltdbdsfbiqihg": {
+            "cid": "bafk2bzacebvn2plfjj6tqw4k25jogwbsrqoc7z4kjknpcxzgltdbdsfbiqihg",
+            "bytes": 31,
+            "block": 1005,
+            "index": 4,
+            "expiresAt": 100000,
+            "finalized": true
+          },
+          "bafykbzaceci3srbivpxiwjpbp24t2mgb6mcfxq66hehrd6gr6k7doe3l5u2ii": {
+            "cid": "bafykbzaceci3srbivpxiwjpbp24t2mgb6mcfxq66hehrd6gr6k7doe3l5u2ii",
+            "bytes": 241,
+            "block": 1006,
+            "index": 5,
+            "expiresAt": 100000,
+            "finalized": true
+          },
+          "bafk2bzacedl3ys2awdyodku2grth7jvggfqftk3go27w32l35misgluq6soba": {
+            "cid": "bafk2bzacedl3ys2awdyodku2grth7jvggfqftk3go27w32l35misgluq6soba",
+            "bytes": 80,
+            "block": 1007,
+            "index": 6,
+            "expiresAt": 100000,
+            "finalized": true
+          },
+          "bafk2bzaced6n766k5daiadwheh6ijllio65ieuqty6n2kll5zazwcfgpjwbgm": {
+            "cid": "bafk2bzaced6n766k5daiadwheh6ijllio65ieuqty6n2kll5zazwcfgpjwbgm",
+            "bytes": 80,
+            "block": 1008,
+            "index": 7,
+            "expiresAt": 100000,
+            "finalized": true
+          },
+          "bafk2bzacebcizj5uy56ihcwhjbtzwydp3nypumcj7ugzjjs5rzpotggcinzcc": {
+            "cid": "bafk2bzacebcizj5uy56ihcwhjbtzwydp3nypumcj7ugzjjs5rzpotggcinzcc",
+            "bytes": 80,
+            "block": 1009,
+            "index": 8,
+            "expiresAt": 100000,
+            "finalized": true
+          },
+          "bafykbzacec2hwi4to2xa3m4eoqoylzyfkm6ulcyuocoqcrqm4fmwbqlibud3o": {
+            "cid": "bafykbzacec2hwi4to2xa3m4eoqoylzyfkm6ulcyuocoqcrqm4fmwbqlibud3o",
+            "bytes": 241,
+            "block": 1010,
+            "index": 9,
+            "expiresAt": 100000,
+            "finalized": true
+          },
+          "bafk2bzaceaztcx3whutn4n4uumhz3kqlrq6ezaw24y6o2fihn7euluph5yd2s": {
+            "cid": "bafk2bzaceaztcx3whutn4n4uumhz3kqlrq6ezaw24y6o2fihn7euluph5yd2s",
+            "bytes": 31,
+            "block": 1011,
+            "index": 10,
+            "expiresAt": 100000,
+            "finalized": true
+          },
+          "bafk2bzaceco5hzwd3mfbuxacnsuaemhm6ivxj7upoccjad6ewmz2eu5ekqt6w": {
+            "cid": "bafk2bzaceco5hzwd3mfbuxacnsuaemhm6ivxj7upoccjad6ewmz2eu5ekqt6w",
+            "bytes": 80,
+            "block": 1012,
+            "index": 11,
+            "expiresAt": 100000,
+            "finalized": true
+          },
+          "bafk2bzaced75w6uekijkagcnydoabu4grd5sfcehmdc6qm7zr7ymdznxnuz5u": {
+            "cid": "bafk2bzaced75w6uekijkagcnydoabu4grd5sfcehmdc6qm7zr7ymdznxnuz5u",
+            "bytes": 80,
+            "block": 1013,
+            "index": 12,
+            "expiresAt": 100000,
+            "finalized": true
+          },
+          "bafk2bzacecbpnflu4lloaqyzivcn7mlxgw6snl5qundybukcwcwdoqosfk3ou": {
+            "cid": "bafk2bzacecbpnflu4lloaqyzivcn7mlxgw6snl5qundybukcwcwdoqosfk3ou",
+            "bytes": 80,
+            "block": 1014,
+            "index": 13,
+            "expiresAt": 100000,
+            "finalized": true
+          },
+          "bafk2bzacebrzn3ffr57cwqmaa4etf5c2chccexqlkvkyvkep6a7v3woy6ierk": {
+            "cid": "bafk2bzacebrzn3ffr57cwqmaa4etf5c2chccexqlkvkyvkep6a7v3woy6ierk",
+            "bytes": 38,
+            "block": 1015,
+            "index": 14,
+            "expiresAt": 100000,
+            "finalized": true
+          },
+          "bafykbzacec24fsqgh25h3g76nuhhsde5jrlwwl2ccmeoputb4gamsl3rwuhka": {
+            "cid": "bafykbzacec24fsqgh25h3g76nuhhsde5jrlwwl2ccmeoputb4gamsl3rwuhka",
+            "bytes": 241,
+            "block": 1016,
+            "index": 15,
+            "expiresAt": 100000,
+            "finalized": true
+          },
+          "bafykbzacebzlz3fm3ybcls4ycg36idhuvcai56gkxtmtp5gkb76oj5xjd37la": {
+            "cid": "bafykbzacebzlz3fm3ybcls4ycg36idhuvcai56gkxtmtp5gkb76oj5xjd37la",
+            "bytes": 60,
+            "block": 1017,
+            "index": 16,
+            "expiresAt": 100000,
+            "finalized": true
+          },
+          "bafk2bzacebbxxcu26zkxdbf2to7bo4uv76xjuvfnjvw5shwmzi7hgx7iwi5mw": {
+            "cid": "bafk2bzacebbxxcu26zkxdbf2to7bo4uv76xjuvfnjvw5shwmzi7hgx7iwi5mw",
+            "bytes": 2310,
+            "block": 1018,
+            "index": 17,
+            "expiresAt": 100000,
+            "finalized": true
+          },
+          "bafykbzacecvjkei4e3b3t2f7hdz3igngf4emi3hyj5vjpzer33l6alyd6pdg4": {
+            "cid": "bafykbzacecvjkei4e3b3t2f7hdz3igngf4emi3hyj5vjpzer33l6alyd6pdg4",
+            "bytes": 266,
+            "block": 1019,
+            "index": 18,
+            "expiresAt": 100000,
+            "finalized": true
+          }
+        },
+        "pending": {},
+        "nextNonce": 29,
+        "pipeline": {
+          "concurrency": 2,
+          "maxInFlightBytes": 524288
+        },
+        "ready": true
+      },
+      "canonicalSha256": "07e1955a4ceda973a1d6611bd524a436c485d2c2ceb37b2fdc7556c1d97af4d4"
+    },
+    {
+      "name": "standard/ready/admission",
+      "schema": "admission",
+      "input": {
+        "schema": "dotify.bulletin.release-admission.v1",
+        "profileSha256": "c0af1a1c494ecc2486e96113ec7d07776ee7c82842849c9a2d4ae7a2e3df2019",
+        "releases": [
+          {
+            "scope": {
+              "chainId": 420420417,
+              "runtimeAddress": "0x3434343434343434343434343434343434343434",
+              "keyVersion": "dotify-content-key-v3",
+              "contentHash": "0x337ad33831c2f1e15777a11e60904e5c5c62faf1f6d9d9d477590cb73967efa4"
+            },
+            "audio": "stream-83c7141a-a317-4e96-a025-1d77205e36af"
+          }
+        ]
+      },
+      "canonicalSha256": "8e7c2b069a103037c7a2a1d28e6953cbd7fa14d797b19d2e9884e8be017e2d08"
+    },
+    {
+      "name": "compact/prepared/profile",
+      "schema": "profile",
+      "input": {
+        "schema": "dotify.bulletin.publisher.v1",
+        "genesis": "0xe101f0fa4627d29a257645e02be86d80378fea1a2bf8fa6a918d150ebc760a59",
+        "account": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+        "endpoint": "wss://bulletin.example:8443",
+        "directory": "/var/folders/vb/bk17h1154vvd4bsz64dlrfr00000gn/T/dotify-prepared-recovery-I1hKZA/publisher",
+        "seedFile": "/var/folders/vb/bk17h1154vvd4bsz64dlrfr00000gn/T/dotify-prepared-recovery-I1hKZA/keys/test.seed",
+        "budget": {
+          "maxBytes": 1048576,
+          "maxTransactions": 64,
+          "minimumLifetimeBlocks": 100
+        },
+        "pipeline": {
+          "concurrency": 2,
+          "maxInFlightBytes": 524288
+        },
+        "priorRenewalReserve": {
+          "transactions": 107,
+          "bytes": 20971520
+        },
+        "freshContentKey": {
+          "version": "dotify-content-key-v3",
+          "masterSha256": "4113d54b0b611294b7f595b691c9db541fc0fc719848d6c5c34522eacc0b3a24"
+        },
+        "releasePolicy": {
+          "schema": "dotify.bulletin.release-policy.v1",
+          "artists": [
+            {
+              "owner": "0x1212121212121212121212121212121212121212",
+              "chainId": 420420417,
+              "runtimeAddress": "0x3434343434343434343434343434343434343434",
+              "keyVersion": "dotify-content-key-v3"
+            }
+          ],
+          "maxReleases": 2,
+          "cover": {
+            "maxBytes": 1048576,
+            "maxTransactions": 16,
+            "minimumLifetimeBlocks": 100
+          },
+          "metadata": {
+            "maxBytes": 1048576,
+            "maxTransactions": 16,
+            "minimumLifetimeBlocks": 100
+          },
+          "total": {
+            "maxBytes": 6291456,
+            "maxTransactions": 192
+          }
+        }
+      },
+      "canonicalSha256": "ddfad58a04b34fb428979e80dc3545f550362272ba4c29a02e759263ac7a2efc"
+    },
+    {
+      "name": "compact/prepared/owner",
+      "schema": "owner",
+      "input": {
+        "schema": "dotify.bulletin.media-owner.v2",
+        "genesis": "0xe101f0fa4627d29a257645e02be86d80378fea1a2bf8fa6a918d150ebc760a59",
+        "account": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+        "jobs": ["stream-83c7141a-a317-4e96-a025-1d77205e36af"],
+        "activeJob": null,
+        "nextNonce": null
+      },
+      "canonicalSha256": "c097dce3aaa807832e6c8a2a43e4abd8dedc99d2aceac2b449017225f79ea074"
+    },
+    {
+      "name": "compact/prepared/queue",
+      "schema": "queue",
+      "input": {
+        "schema": "dotify.streaming.jobs.v1",
+        "jobs": [
+          {
+            "id": "83c7141a-a317-4e96-a025-1d77205e36af",
+            "owner": "0x1212121212121212121212121212121212121212",
+            "scope": {
+              "chainId": 420420417,
+              "runtimeAddress": "0x3434343434343434343434343434343434343434",
+              "contentHash": "0x337ad33831c2f1e15777a11e60904e5c5c62faf1f6d9d9d477590cb73967efa4",
+              "keyVersion": "dotify-content-key-v3"
+            },
+            "state": "failed",
+            "attempts": 3,
+            "createdAt": 1794521444085,
+            "updatedAt": 1794521444761,
+            "sourceBytes": 22,
+            "sourceGeneration": "d20f050878c7b2ad",
+            "reason": "RETRY_LIMIT"
+          }
+        ]
+      },
+      "canonicalSha256": "5faab4e01edb8e496619db50f90bb255ccc1dc45b314dd85e94ef8b2e1367e3c"
+    },
+    {
+      "name": "compact/prepared/inventory",
+      "schema": "inventory",
+      "input": {
+        "schema": "dotify.bulletin.media-job.v3",
+        "layout": "rendition-pack-v1",
+        "genesis": "0xe101f0fa4627d29a257645e02be86d80378fea1a2bf8fa6a918d150ebc760a59",
+        "account": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+        "job": "stream-83c7141a-a317-4e96-a025-1d77205e36af",
+        "root": "bafykbzacecqzefmxjsze23oaams3iy4zgf363ixml72n56iyl7xfa4rkjyja6",
+        "scope": {
+          "chainId": 420420417,
+          "runtimeAddress": "0x3434343434343434343434343434343434343434",
+          "contentHash": "0x337ad33831c2f1e15777a11e60904e5c5c62faf1f6d9d9d477590cb73967efa4",
+          "keyVersion": "dotify-content-key-v3"
+        },
+        "generation": "90a7c590a54ef220",
+        "blocks": [
+          {
+            "cid": "bafk2bzacebnwiltsn5qgawfdhccditnaigqjwjsl4xxv3buertvrpfh4xfv7u",
+            "bytes": 31
+          },
+          {
+            "cid": "bafk2bzacecaayy7vt7brzfjpld5fnquolf7dzfvwbaaxlnn3gjbycbtdwvuzc",
+            "bytes": 160
+          },
+          {
+            "cid": "bafk2bzacecxsxd4dbrgjuny2pdpftyf7wkjrlrlznhied4v23dtvomh2jkojs",
+            "bytes": 80
+          },
+          {
+            "cid": "bafykbzaceanjndbez5z5uvrx4ro6vpceikisyvzray7wdztrl5ekuh6ymzcsk",
+            "bytes": 174
+          },
+          {
+            "cid": "bafk2bzacedfh7omr2kk5c6scn336xpme3euvw4bpeyswqakykurvi3m2r4bvk",
+            "bytes": 31
+          },
+          {
+            "cid": "bafk2bzacedjzoaqz3wcbqgjxvxod36zptmf3nezto72kplhduncowunijwz22",
+            "bytes": 160
+          },
+          {
+            "cid": "bafk2bzaceazct7mf7eohy4mrhxcbww3xfzd5tzqpd4ohmiwhxy2zkwp2in5ya",
+            "bytes": 80
+          },
+          {
+            "cid": "bafykbzacechihlcjx35bp3ruxmgp6j5hsvrify5qeztgi5khcqz6z5ulntngm",
+            "bytes": 174
+          },
+          {
+            "cid": "bafk2bzaced6oq4yatfm2armzlqa6njms7kx5lkoqfl6w7oxbemzyfmn2sy52q",
+            "bytes": 31
+          },
+          {
+            "cid": "bafk2bzaced7oxxmu33txtjeckyl33qg3jfxc2ittxbzimtzsociyqtzm6ne6k",
+            "bytes": 160
+          },
+          {
+            "cid": "bafk2bzacea5vcuxqmg6w6cr7b5xhxnbnjesn6gm3p7yyi5drtzeigdm23pwkq",
+            "bytes": 80
+          },
+          {
+            "cid": "bafykbzacecf7yenr7jxmnf4zjy2gxcfwgfrrbyvfqwvuasjcjwg557bhgvixq",
+            "bytes": 174
+          },
+          {
+            "cid": "bafk2bzaceb6hyadye2hrza2i5c7aeiflcyuonfbthpjet6556wzbq6ajgtvly",
+            "bytes": 38
+          },
+          {
+            "cid": "bafykbzacebtj3zut4m5iagceicenzyaezds6xbb4ff7jg3cq6uuvflfppekqu",
+            "bytes": 60
+          },
+          {
+            "cid": "bafk2bzacececvc65cethqt2rp463uqxidxj2frzr42y6mugdwao63lsfsjray",
+            "bytes": 92
+          },
+          {
+            "cid": "bafk2bzacea7xclldtru72krf3no6oe66wrktvoqvdpcgrtdulqej2vfco2prq",
+            "bytes": 2310
+          },
+          {
+            "cid": "bafykbzacecqzefmxjsze23oaams3iy4zgf363ixml72n56iyl7xfa4rkjyja6",
+            "bytes": 323
+          }
+        ],
+        "budget": {
+          "maxBytes": 1048576,
+          "maxTransactions": 64,
+          "minimumLifetimeBlocks": 100
+        },
+        "pipeline": {
+          "concurrency": 2,
+          "maxInFlightBytes": 524288,
+          "writeWindow": {
+            "concurrency": 4,
+            "maxInFlightBytes": 1048576
+          }
+        },
+        "attemptedStores": 0,
+        "attemptedBytes": 0,
+        "receipts": {},
+        "pending": {},
+        "nextNonce": null,
+        "ready": false
+      },
+      "canonicalSha256": "6f3da3e379efd7470ed6c4abe9c7041c899cee1028a01c6203458d7683db9fa4"
+    },
+    {
+      "name": "compact/prepared/admission",
+      "schema": "admission",
+      "input": {
+        "schema": "dotify.bulletin.release-admission.v3",
+        "profileSha256": "ddfad58a04b34fb428979e80dc3545f550362272ba4c29a02e759263ac7a2efc",
+        "releases": [
+          {
+            "scope": {
+              "chainId": 420420417,
+              "runtimeAddress": "0x3434343434343434343434343434343434343434",
+              "keyVersion": "dotify-content-key-v3",
+              "contentHash": "0x337ad33831c2f1e15777a11e60904e5c5c62faf1f6d9d9d477590cb73967efa4"
+            },
+            "audioLayout": "rendition-pack-v1",
+            "audio": "stream-83c7141a-a317-4e96-a025-1d77205e36af"
+          }
+        ],
+        "extensions": [
+          {
+            "owner": "0x1212121212121212121212121212121212121212",
+            "scope": {
+              "chainId": 420420417,
+              "runtimeAddress": "0x3434343434343434343434343434343434343434",
+              "keyVersion": "dotify-content-key-v3",
+              "contentHash": "0x337ad33831c2f1e15777a11e60904e5c5c62faf1f6d9d9d477590cb73967efa4"
+            },
+            "previousAdmissionSha256": "d904ef227b0679378614408bafd7aa2f0f6b8bf02916e67c95c657708a6be152",
+            "writeWindow": {
+              "concurrency": 4,
+              "maxInFlightBytes": 1048576
+            },
+            "audioLayout": "rendition-pack-v1"
+          }
+        ]
+      },
+      "canonicalSha256": "6625a21f8a762c7b49e36e3090f61b6eabcf371452029ea4c283dffaebc5564e"
+    },
+    {
+      "name": "compact/uncertain/profile",
+      "schema": "profile",
+      "input": {
+        "schema": "dotify.bulletin.publisher.v1",
+        "genesis": "0xe101f0fa4627d29a257645e02be86d80378fea1a2bf8fa6a918d150ebc760a59",
+        "account": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+        "endpoint": "wss://bulletin.example:8443",
+        "directory": "/var/folders/vb/bk17h1154vvd4bsz64dlrfr00000gn/T/dotify-prepared-recovery-I1hKZA/publisher",
+        "seedFile": "/var/folders/vb/bk17h1154vvd4bsz64dlrfr00000gn/T/dotify-prepared-recovery-I1hKZA/keys/test.seed",
+        "budget": {
+          "maxBytes": 1048576,
+          "maxTransactions": 64,
+          "minimumLifetimeBlocks": 100
+        },
+        "pipeline": {
+          "concurrency": 2,
+          "maxInFlightBytes": 524288
+        },
+        "priorRenewalReserve": {
+          "transactions": 107,
+          "bytes": 20971520
+        },
+        "freshContentKey": {
+          "version": "dotify-content-key-v3",
+          "masterSha256": "4113d54b0b611294b7f595b691c9db541fc0fc719848d6c5c34522eacc0b3a24"
+        },
+        "releasePolicy": {
+          "schema": "dotify.bulletin.release-policy.v1",
+          "artists": [
+            {
+              "owner": "0x1212121212121212121212121212121212121212",
+              "chainId": 420420417,
+              "runtimeAddress": "0x3434343434343434343434343434343434343434",
+              "keyVersion": "dotify-content-key-v3"
+            }
+          ],
+          "maxReleases": 2,
+          "cover": {
+            "maxBytes": 1048576,
+            "maxTransactions": 16,
+            "minimumLifetimeBlocks": 100
+          },
+          "metadata": {
+            "maxBytes": 1048576,
+            "maxTransactions": 16,
+            "minimumLifetimeBlocks": 100
+          },
+          "total": {
+            "maxBytes": 6291456,
+            "maxTransactions": 192
+          }
+        }
+      },
+      "canonicalSha256": "ddfad58a04b34fb428979e80dc3545f550362272ba4c29a02e759263ac7a2efc"
+    },
+    {
+      "name": "compact/uncertain/owner",
+      "schema": "owner",
+      "input": {
+        "genesis": "0xe101f0fa4627d29a257645e02be86d80378fea1a2bf8fa6a918d150ebc760a59",
+        "account": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+        "schema": "dotify.bulletin.media-owner.v2",
+        "activeJob": "stream-83c7141a-a317-4e96-a025-1d77205e36af",
+        "nextNonce": 11,
+        "jobs": ["stream-83c7141a-a317-4e96-a025-1d77205e36af"]
+      },
+      "canonicalSha256": "31f11aba16b1f0fa212c922b776e6521e8541a6dbfa9114a9723ff604baf1eaa"
+    },
+    {
+      "name": "compact/uncertain/queue",
+      "schema": "queue",
+      "input": {
+        "schema": "dotify.streaming.jobs.v1",
+        "jobs": [
+          {
+            "id": "83c7141a-a317-4e96-a025-1d77205e36af",
+            "owner": "0x1212121212121212121212121212121212121212",
+            "scope": {
+              "chainId": 420420417,
+              "runtimeAddress": "0x3434343434343434343434343434343434343434",
+              "contentHash": "0x337ad33831c2f1e15777a11e60904e5c5c62faf1f6d9d9d477590cb73967efa4",
+              "keyVersion": "dotify-content-key-v3"
+            },
+            "state": "failed",
+            "attempts": 3,
+            "createdAt": 1794521444085,
+            "updatedAt": 1794521444761,
+            "sourceBytes": 22,
+            "sourceGeneration": "d20f050878c7b2ad",
+            "reason": "RETRY_LIMIT"
+          }
+        ]
+      },
+      "canonicalSha256": "5faab4e01edb8e496619db50f90bb255ccc1dc45b314dd85e94ef8b2e1367e3c"
+    },
+    {
+      "name": "compact/uncertain/inventory",
+      "schema": "inventory",
+      "input": {
+        "schema": "dotify.bulletin.media-job.v3",
+        "genesis": "0xe101f0fa4627d29a257645e02be86d80378fea1a2bf8fa6a918d150ebc760a59",
+        "account": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+        "job": "stream-83c7141a-a317-4e96-a025-1d77205e36af",
+        "root": "bafykbzacecqzefmxjsze23oaams3iy4zgf363ixml72n56iyl7xfa4rkjyja6",
+        "scope": {
+          "chainId": 420420417,
+          "runtimeAddress": "0x3434343434343434343434343434343434343434",
+          "contentHash": "0x337ad33831c2f1e15777a11e60904e5c5c62faf1f6d9d9d477590cb73967efa4",
+          "keyVersion": "dotify-content-key-v3"
+        },
+        "generation": "90a7c590a54ef220",
+        "blocks": [
+          {
+            "cid": "bafk2bzacebnwiltsn5qgawfdhccditnaigqjwjsl4xxv3buertvrpfh4xfv7u",
+            "bytes": 31
+          },
+          {
+            "cid": "bafk2bzacecaayy7vt7brzfjpld5fnquolf7dzfvwbaaxlnn3gjbycbtdwvuzc",
+            "bytes": 160
+          },
+          {
+            "cid": "bafk2bzacecxsxd4dbrgjuny2pdpftyf7wkjrlrlznhied4v23dtvomh2jkojs",
+            "bytes": 80
+          },
+          {
+            "cid": "bafykbzaceanjndbez5z5uvrx4ro6vpceikisyvzray7wdztrl5ekuh6ymzcsk",
+            "bytes": 174
+          },
+          {
+            "cid": "bafk2bzacedfh7omr2kk5c6scn336xpme3euvw4bpeyswqakykurvi3m2r4bvk",
+            "bytes": 31
+          },
+          {
+            "cid": "bafk2bzacedjzoaqz3wcbqgjxvxod36zptmf3nezto72kplhduncowunijwz22",
+            "bytes": 160
+          },
+          {
+            "cid": "bafk2bzaceazct7mf7eohy4mrhxcbww3xfzd5tzqpd4ohmiwhxy2zkwp2in5ya",
+            "bytes": 80
+          },
+          {
+            "cid": "bafykbzacechihlcjx35bp3ruxmgp6j5hsvrify5qeztgi5khcqz6z5ulntngm",
+            "bytes": 174
+          },
+          {
+            "cid": "bafk2bzaced6oq4yatfm2armzlqa6njms7kx5lkoqfl6w7oxbemzyfmn2sy52q",
+            "bytes": 31
+          },
+          {
+            "cid": "bafk2bzaced7oxxmu33txtjeckyl33qg3jfxc2ittxbzimtzsociyqtzm6ne6k",
+            "bytes": 160
+          },
+          {
+            "cid": "bafk2bzacea5vcuxqmg6w6cr7b5xhxnbnjesn6gm3p7yyi5drtzeigdm23pwkq",
+            "bytes": 80
+          },
+          {
+            "cid": "bafykbzacecf7yenr7jxmnf4zjy2gxcfwgfrrbyvfqwvuasjcjwg557bhgvixq",
+            "bytes": 174
+          },
+          {
+            "cid": "bafk2bzaceb6hyadye2hrza2i5c7aeiflcyuonfbthpjet6556wzbq6ajgtvly",
+            "bytes": 38
+          },
+          {
+            "cid": "bafykbzacebtj3zut4m5iagceicenzyaezds6xbb4ff7jg3cq6uuvflfppekqu",
+            "bytes": 60
+          },
+          {
+            "cid": "bafk2bzacececvc65cethqt2rp463uqxidxj2frzr42y6mugdwao63lsfsjray",
+            "bytes": 92
+          },
+          {
+            "cid": "bafk2bzacea7xclldtru72krf3no6oe66wrktvoqvdpcgrtdulqej2vfco2prq",
+            "bytes": 2310
+          },
+          {
+            "cid": "bafykbzacecqzefmxjsze23oaams3iy4zgf363ixml72n56iyl7xfa4rkjyja6",
+            "bytes": 323
+          }
+        ],
+        "budget": {
+          "maxBytes": 1048576,
+          "maxTransactions": 64,
+          "minimumLifetimeBlocks": 100
+        },
+        "attemptedBytes": 191,
+        "attemptedStores": 2,
+        "receipts": {},
+        "pending": {
+          "bafk2bzacebnwiltsn5qgawfdhccditnaigqjwjsl4xxv3buertvrpfh4xfv7u": {
+            "nonce": 10,
+            "afterBlock": 1000
+          }
+        },
+        "nextNonce": 11,
+        "pipeline": {
+          "concurrency": 2,
+          "maxInFlightBytes": 524288,
+          "writeWindow": {
+            "concurrency": 4,
+            "maxInFlightBytes": 1048576
+          }
+        },
+        "ready": false,
+        "layout": "rendition-pack-v1"
+      },
+      "canonicalSha256": "1c5a0abb00bf641fda07900308e5744189eed4f96233a2eea9bc883500cd48f1"
+    },
+    {
+      "name": "compact/uncertain/admission",
+      "schema": "admission",
+      "input": {
+        "schema": "dotify.bulletin.release-admission.v3",
+        "profileSha256": "ddfad58a04b34fb428979e80dc3545f550362272ba4c29a02e759263ac7a2efc",
+        "releases": [
+          {
+            "scope": {
+              "chainId": 420420417,
+              "runtimeAddress": "0x3434343434343434343434343434343434343434",
+              "keyVersion": "dotify-content-key-v3",
+              "contentHash": "0x337ad33831c2f1e15777a11e60904e5c5c62faf1f6d9d9d477590cb73967efa4"
+            },
+            "audioLayout": "rendition-pack-v1",
+            "audio": "stream-83c7141a-a317-4e96-a025-1d77205e36af"
+          }
+        ],
+        "extensions": [
+          {
+            "owner": "0x1212121212121212121212121212121212121212",
+            "scope": {
+              "chainId": 420420417,
+              "runtimeAddress": "0x3434343434343434343434343434343434343434",
+              "keyVersion": "dotify-content-key-v3",
+              "contentHash": "0x337ad33831c2f1e15777a11e60904e5c5c62faf1f6d9d9d477590cb73967efa4"
+            },
+            "previousAdmissionSha256": "d904ef227b0679378614408bafd7aa2f0f6b8bf02916e67c95c657708a6be152",
+            "writeWindow": {
+              "concurrency": 4,
+              "maxInFlightBytes": 1048576
+            },
+            "audioLayout": "rendition-pack-v1"
+          }
+        ]
+      },
+      "canonicalSha256": "6625a21f8a762c7b49e36e3090f61b6eabcf371452029ea4c283dffaebc5564e"
+    },
+    {
+      "name": "compact/ready/profile",
+      "schema": "profile",
+      "input": {
+        "schema": "dotify.bulletin.publisher.v1",
+        "genesis": "0xe101f0fa4627d29a257645e02be86d80378fea1a2bf8fa6a918d150ebc760a59",
+        "account": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+        "endpoint": "wss://bulletin.example:8443",
+        "directory": "/var/folders/vb/bk17h1154vvd4bsz64dlrfr00000gn/T/dotify-prepared-recovery-I1hKZA/publisher",
+        "seedFile": "/var/folders/vb/bk17h1154vvd4bsz64dlrfr00000gn/T/dotify-prepared-recovery-I1hKZA/keys/test.seed",
+        "budget": {
+          "maxBytes": 1048576,
+          "maxTransactions": 64,
+          "minimumLifetimeBlocks": 100
+        },
+        "pipeline": {
+          "concurrency": 2,
+          "maxInFlightBytes": 524288
+        },
+        "priorRenewalReserve": {
+          "transactions": 107,
+          "bytes": 20971520
+        },
+        "freshContentKey": {
+          "version": "dotify-content-key-v3",
+          "masterSha256": "4113d54b0b611294b7f595b691c9db541fc0fc719848d6c5c34522eacc0b3a24"
+        },
+        "releasePolicy": {
+          "schema": "dotify.bulletin.release-policy.v1",
+          "artists": [
+            {
+              "owner": "0x1212121212121212121212121212121212121212",
+              "chainId": 420420417,
+              "runtimeAddress": "0x3434343434343434343434343434343434343434",
+              "keyVersion": "dotify-content-key-v3"
+            }
+          ],
+          "maxReleases": 2,
+          "cover": {
+            "maxBytes": 1048576,
+            "maxTransactions": 16,
+            "minimumLifetimeBlocks": 100
+          },
+          "metadata": {
+            "maxBytes": 1048576,
+            "maxTransactions": 16,
+            "minimumLifetimeBlocks": 100
+          },
+          "total": {
+            "maxBytes": 6291456,
+            "maxTransactions": 192
+          }
+        }
+      },
+      "canonicalSha256": "ddfad58a04b34fb428979e80dc3545f550362272ba4c29a02e759263ac7a2efc"
+    },
+    {
+      "name": "compact/ready/owner",
+      "schema": "owner",
+      "input": {
+        "genesis": "0xe101f0fa4627d29a257645e02be86d80378fea1a2bf8fa6a918d150ebc760a59",
+        "account": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+        "schema": "dotify.bulletin.media-owner.v2",
+        "activeJob": null,
+        "nextNonce": 27,
+        "jobs": ["stream-83c7141a-a317-4e96-a025-1d77205e36af"]
+      },
+      "canonicalSha256": "78f89e999de42c040b3e6bb638e683406d6f3fc5b77a4a3047f7cec8af2ea0ec"
+    },
+    {
+      "name": "compact/ready/queue",
+      "schema": "queue",
+      "input": {
+        "schema": "dotify.streaming.jobs.v1",
+        "jobs": [
+          {
+            "id": "83c7141a-a317-4e96-a025-1d77205e36af",
+            "owner": "0x1212121212121212121212121212121212121212",
+            "scope": {
+              "chainId": 420420417,
+              "runtimeAddress": "0x3434343434343434343434343434343434343434",
+              "contentHash": "0x337ad33831c2f1e15777a11e60904e5c5c62faf1f6d9d9d477590cb73967efa4",
+              "keyVersion": "dotify-content-key-v3"
+            },
+            "state": "ready",
+            "attempts": 3,
+            "createdAt": 1794521444085,
+            "updatedAt": 1794521446769,
+            "sourceBytes": 22,
+            "sourceGeneration": "d20f050878c7b2ad",
+            "ref": "dotify:enc:v3:key-v3:bulletin-pack-v1://bafykbzacecqzefmxjsze23oaams3iy4zgf363ixml72n56iyl7xfa4rkjyja6"
+          }
+        ]
+      },
+      "canonicalSha256": "995ab2482ed7503d1de6bb106ce3a7f24dd2fc5d01cdce2f4d49e3cca565cc85"
+    },
+    {
+      "name": "compact/ready/inventory",
+      "schema": "inventory",
+      "input": {
+        "schema": "dotify.bulletin.media-job.v3",
+        "genesis": "0xe101f0fa4627d29a257645e02be86d80378fea1a2bf8fa6a918d150ebc760a59",
+        "account": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+        "job": "stream-83c7141a-a317-4e96-a025-1d77205e36af",
+        "root": "bafykbzacecqzefmxjsze23oaams3iy4zgf363ixml72n56iyl7xfa4rkjyja6",
+        "scope": {
+          "chainId": 420420417,
+          "runtimeAddress": "0x3434343434343434343434343434343434343434",
+          "contentHash": "0x337ad33831c2f1e15777a11e60904e5c5c62faf1f6d9d9d477590cb73967efa4",
+          "keyVersion": "dotify-content-key-v3"
+        },
+        "generation": "90a7c590a54ef220",
+        "blocks": [
+          {
+            "cid": "bafk2bzacebnwiltsn5qgawfdhccditnaigqjwjsl4xxv3buertvrpfh4xfv7u",
+            "bytes": 31
+          },
+          {
+            "cid": "bafk2bzacecaayy7vt7brzfjpld5fnquolf7dzfvwbaaxlnn3gjbycbtdwvuzc",
+            "bytes": 160
+          },
+          {
+            "cid": "bafk2bzacecxsxd4dbrgjuny2pdpftyf7wkjrlrlznhied4v23dtvomh2jkojs",
+            "bytes": 80
+          },
+          {
+            "cid": "bafykbzaceanjndbez5z5uvrx4ro6vpceikisyvzray7wdztrl5ekuh6ymzcsk",
+            "bytes": 174
+          },
+          {
+            "cid": "bafk2bzacedfh7omr2kk5c6scn336xpme3euvw4bpeyswqakykurvi3m2r4bvk",
+            "bytes": 31
+          },
+          {
+            "cid": "bafk2bzacedjzoaqz3wcbqgjxvxod36zptmf3nezto72kplhduncowunijwz22",
+            "bytes": 160
+          },
+          {
+            "cid": "bafk2bzaceazct7mf7eohy4mrhxcbww3xfzd5tzqpd4ohmiwhxy2zkwp2in5ya",
+            "bytes": 80
+          },
+          {
+            "cid": "bafykbzacechihlcjx35bp3ruxmgp6j5hsvrify5qeztgi5khcqz6z5ulntngm",
+            "bytes": 174
+          },
+          {
+            "cid": "bafk2bzaced6oq4yatfm2armzlqa6njms7kx5lkoqfl6w7oxbemzyfmn2sy52q",
+            "bytes": 31
+          },
+          {
+            "cid": "bafk2bzaced7oxxmu33txtjeckyl33qg3jfxc2ittxbzimtzsociyqtzm6ne6k",
+            "bytes": 160
+          },
+          {
+            "cid": "bafk2bzacea5vcuxqmg6w6cr7b5xhxnbnjesn6gm3p7yyi5drtzeigdm23pwkq",
+            "bytes": 80
+          },
+          {
+            "cid": "bafykbzacecf7yenr7jxmnf4zjy2gxcfwgfrrbyvfqwvuasjcjwg557bhgvixq",
+            "bytes": 174
+          },
+          {
+            "cid": "bafk2bzaceb6hyadye2hrza2i5c7aeiflcyuonfbthpjet6556wzbq6ajgtvly",
+            "bytes": 38
+          },
+          {
+            "cid": "bafykbzacebtj3zut4m5iagceicenzyaezds6xbb4ff7jg3cq6uuvflfppekqu",
+            "bytes": 60
+          },
+          {
+            "cid": "bafk2bzacececvc65cethqt2rp463uqxidxj2frzr42y6mugdwao63lsfsjray",
+            "bytes": 92
+          },
+          {
+            "cid": "bafk2bzacea7xclldtru72krf3no6oe66wrktvoqvdpcgrtdulqej2vfco2prq",
+            "bytes": 2310
+          },
+          {
+            "cid": "bafykbzacecqzefmxjsze23oaams3iy4zgf363ixml72n56iyl7xfa4rkjyja6",
+            "bytes": 323
+          }
+        ],
+        "budget": {
+          "maxBytes": 1048576,
+          "maxTransactions": 64,
+          "minimumLifetimeBlocks": 100
+        },
+        "attemptedBytes": 4318,
+        "attemptedStores": 18,
+        "receipts": {
+          "bafk2bzacebnwiltsn5qgawfdhccditnaigqjwjsl4xxv3buertvrpfh4xfv7u": {
+            "cid": "bafk2bzacebnwiltsn5qgawfdhccditnaigqjwjsl4xxv3buertvrpfh4xfv7u",
+            "bytes": 31,
+            "block": 1001,
+            "index": 0,
+            "expiresAt": 100000,
+            "finalized": true
+          },
+          "bafk2bzacecaayy7vt7brzfjpld5fnquolf7dzfvwbaaxlnn3gjbycbtdwvuzc": {
+            "cid": "bafk2bzacecaayy7vt7brzfjpld5fnquolf7dzfvwbaaxlnn3gjbycbtdwvuzc",
+            "bytes": 160,
+            "block": 1002,
+            "index": 1,
+            "expiresAt": 100000,
+            "finalized": true
+          },
+          "bafk2bzacecxsxd4dbrgjuny2pdpftyf7wkjrlrlznhied4v23dtvomh2jkojs": {
+            "cid": "bafk2bzacecxsxd4dbrgjuny2pdpftyf7wkjrlrlznhied4v23dtvomh2jkojs",
+            "bytes": 80,
+            "block": 1003,
+            "index": 2,
+            "expiresAt": 100000,
+            "finalized": true
+          },
+          "bafk2bzacedfh7omr2kk5c6scn336xpme3euvw4bpeyswqakykurvi3m2r4bvk": {
+            "cid": "bafk2bzacedfh7omr2kk5c6scn336xpme3euvw4bpeyswqakykurvi3m2r4bvk",
+            "bytes": 31,
+            "block": 1004,
+            "index": 3,
+            "expiresAt": 100000,
+            "finalized": true
+          },
+          "bafk2bzacedjzoaqz3wcbqgjxvxod36zptmf3nezto72kplhduncowunijwz22": {
+            "cid": "bafk2bzacedjzoaqz3wcbqgjxvxod36zptmf3nezto72kplhduncowunijwz22",
+            "bytes": 160,
+            "block": 1005,
+            "index": 4,
+            "expiresAt": 100000,
+            "finalized": true
+          },
+          "bafykbzaceanjndbez5z5uvrx4ro6vpceikisyvzray7wdztrl5ekuh6ymzcsk": {
+            "cid": "bafykbzaceanjndbez5z5uvrx4ro6vpceikisyvzray7wdztrl5ekuh6ymzcsk",
+            "bytes": 174,
+            "block": 1006,
+            "index": 5,
+            "expiresAt": 100000,
+            "finalized": true
+          },
+          "bafk2bzaceazct7mf7eohy4mrhxcbww3xfzd5tzqpd4ohmiwhxy2zkwp2in5ya": {
+            "cid": "bafk2bzaceazct7mf7eohy4mrhxcbww3xfzd5tzqpd4ohmiwhxy2zkwp2in5ya",
+            "bytes": 80,
+            "block": 1007,
+            "index": 6,
+            "expiresAt": 100000,
+            "finalized": true
+          },
+          "bafk2bzaced6oq4yatfm2armzlqa6njms7kx5lkoqfl6w7oxbemzyfmn2sy52q": {
+            "cid": "bafk2bzaced6oq4yatfm2armzlqa6njms7kx5lkoqfl6w7oxbemzyfmn2sy52q",
+            "bytes": 31,
+            "block": 1008,
+            "index": 7,
+            "expiresAt": 100000,
+            "finalized": true
+          },
+          "bafk2bzaced7oxxmu33txtjeckyl33qg3jfxc2ittxbzimtzsociyqtzm6ne6k": {
+            "cid": "bafk2bzaced7oxxmu33txtjeckyl33qg3jfxc2ittxbzimtzsociyqtzm6ne6k",
+            "bytes": 160,
+            "block": 1009,
+            "index": 8,
+            "expiresAt": 100000,
+            "finalized": true
+          },
+          "bafykbzacechihlcjx35bp3ruxmgp6j5hsvrify5qeztgi5khcqz6z5ulntngm": {
+            "cid": "bafykbzacechihlcjx35bp3ruxmgp6j5hsvrify5qeztgi5khcqz6z5ulntngm",
+            "bytes": 174,
+            "block": 1010,
+            "index": 9,
+            "expiresAt": 100000,
+            "finalized": true
+          },
+          "bafk2bzacea5vcuxqmg6w6cr7b5xhxnbnjesn6gm3p7yyi5drtzeigdm23pwkq": {
+            "cid": "bafk2bzacea5vcuxqmg6w6cr7b5xhxnbnjesn6gm3p7yyi5drtzeigdm23pwkq",
+            "bytes": 80,
+            "block": 1011,
+            "index": 10,
+            "expiresAt": 100000,
+            "finalized": true
+          },
+          "bafk2bzaceb6hyadye2hrza2i5c7aeiflcyuonfbthpjet6556wzbq6ajgtvly": {
+            "cid": "bafk2bzaceb6hyadye2hrza2i5c7aeiflcyuonfbthpjet6556wzbq6ajgtvly",
+            "bytes": 38,
+            "block": 1012,
+            "index": 11,
+            "expiresAt": 100000,
+            "finalized": true
+          },
+          "bafk2bzacececvc65cethqt2rp463uqxidxj2frzr42y6mugdwao63lsfsjray": {
+            "cid": "bafk2bzacececvc65cethqt2rp463uqxidxj2frzr42y6mugdwao63lsfsjray",
+            "bytes": 92,
+            "block": 1013,
+            "index": 12,
+            "expiresAt": 100000,
+            "finalized": true
+          },
+          "bafykbzacecf7yenr7jxmnf4zjy2gxcfwgfrrbyvfqwvuasjcjwg557bhgvixq": {
+            "cid": "bafykbzacecf7yenr7jxmnf4zjy2gxcfwgfrrbyvfqwvuasjcjwg557bhgvixq",
+            "bytes": 174,
+            "block": 1014,
+            "index": 13,
+            "expiresAt": 100000,
+            "finalized": true
+          },
+          "bafykbzacebtj3zut4m5iagceicenzyaezds6xbb4ff7jg3cq6uuvflfppekqu": {
+            "cid": "bafykbzacebtj3zut4m5iagceicenzyaezds6xbb4ff7jg3cq6uuvflfppekqu",
+            "bytes": 60,
+            "block": 1015,
+            "index": 14,
+            "expiresAt": 100000,
+            "finalized": true
+          },
+          "bafk2bzacea7xclldtru72krf3no6oe66wrktvoqvdpcgrtdulqej2vfco2prq": {
+            "cid": "bafk2bzacea7xclldtru72krf3no6oe66wrktvoqvdpcgrtdulqej2vfco2prq",
+            "bytes": 2310,
+            "block": 1016,
+            "index": 15,
+            "expiresAt": 100000,
+            "finalized": true
+          },
+          "bafykbzacecqzefmxjsze23oaams3iy4zgf363ixml72n56iyl7xfa4rkjyja6": {
+            "cid": "bafykbzacecqzefmxjsze23oaams3iy4zgf363ixml72n56iyl7xfa4rkjyja6",
+            "bytes": 323,
+            "block": 1017,
+            "index": 16,
+            "expiresAt": 100000,
+            "finalized": true
+          }
+        },
+        "pending": {},
+        "nextNonce": 27,
+        "pipeline": {
+          "concurrency": 2,
+          "maxInFlightBytes": 524288,
+          "writeWindow": {
+            "concurrency": 4,
+            "maxInFlightBytes": 1048576
+          }
+        },
+        "ready": true,
+        "layout": "rendition-pack-v1"
+      },
+      "canonicalSha256": "37cb608b15a6f5147518f1b74748489a18c4c5f0658d9360ba7e1e1a37936f53"
+    },
+    {
+      "name": "compact/ready/admission",
+      "schema": "admission",
+      "input": {
+        "schema": "dotify.bulletin.release-admission.v3",
+        "profileSha256": "ddfad58a04b34fb428979e80dc3545f550362272ba4c29a02e759263ac7a2efc",
+        "releases": [
+          {
+            "scope": {
+              "chainId": 420420417,
+              "runtimeAddress": "0x3434343434343434343434343434343434343434",
+              "keyVersion": "dotify-content-key-v3",
+              "contentHash": "0x337ad33831c2f1e15777a11e60904e5c5c62faf1f6d9d9d477590cb73967efa4"
+            },
+            "audioLayout": "rendition-pack-v1",
+            "audio": "stream-83c7141a-a317-4e96-a025-1d77205e36af"
+          }
+        ],
+        "extensions": [
+          {
+            "owner": "0x1212121212121212121212121212121212121212",
+            "scope": {
+              "chainId": 420420417,
+              "runtimeAddress": "0x3434343434343434343434343434343434343434",
+              "keyVersion": "dotify-content-key-v3",
+              "contentHash": "0x337ad33831c2f1e15777a11e60904e5c5c62faf1f6d9d9d477590cb73967efa4"
+            },
+            "previousAdmissionSha256": "d904ef227b0679378614408bafd7aa2f0f6b8bf02916e67c95c657708a6be152",
+            "writeWindow": {
+              "concurrency": 4,
+              "maxInFlightBytes": 1048576
+            },
+            "audioLayout": "rendition-pack-v1"
+          }
+        ]
+      },
+      "canonicalSha256": "6625a21f8a762c7b49e36e3090f61b6eabcf371452029ea4c283dffaebc5564e"
+    }
+  ]
+}

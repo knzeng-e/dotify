@@ -43,8 +43,8 @@ const legacyJobSchema = z
     budget: budgetSchema,
     attemptedBytes: integer,
     attemptedStores: integer,
-    receipts: z.record(receiptSchema),
-    pending: z.record(z.object({ nonce: integer.max(0xffffffff), afterBlock: integer }).strict()),
+    receipts: z.record(z.string(), receiptSchema),
+    pending: z.record(z.string(), z.object({ nonce: integer.max(0xffffffff), afterBlock: integer }).strict()),
     nextNonce: integer.max(0x100000000).nullable(),
     pipeline: pipelineSchema,
     ready: z.boolean()

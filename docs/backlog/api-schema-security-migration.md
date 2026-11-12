@@ -1,9 +1,9 @@
 # API schema security migration
 
 GitHub: #432. Priority: P1. Track: Production spine. Phase: Next. Type: Work.
-Status: separate follow-up; no migration or deployment authorized by this record.
+Status: implementation in progress; service rollout remains separately reviewed.
 
-API Zod 3.25.76 remains affected by [GHSA-mrhx-c7xc-m3w5](https://github.com/advisories/GHSA-mrhx-c7xc-m3w5).
+The pre-upgrade API dependency Zod 3.25.76 is affected by [GHSA-mrhx-c7xc-m3w5](https://github.com/advisories/GHSA-mrhx-c7xc-m3w5).
 The fix is in v4.6.6+; importing the v3 compatibility module from a v4 install
 would keep the vulnerable validator. The [upstream patch](https://github.com/colinhacks/zod/commit/a0ebf97)
 checks collection cardinality before parsing elements.
@@ -24,3 +24,7 @@ not new payment/media capability. #407 format integration and Room/artwork/CASH
 keep their selected sequence; do not smuggle this major upgrade into an SDK
 refresh or force a signer downgrade. Code completion requires full API,
 shared-state, publication/recovery and old-state compatibility evidence.
+
+The candidate pins real Zod 4.6.7 and preserves versioned state. See the
+[schema compatibility reference](../reference/api-schema-compatibility.md) for
+the historical fixtures, stricter malformed-input behavior and rollout boundary.

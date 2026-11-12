@@ -155,6 +155,47 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
+  schema-upgrade:
+    name: Recover Zod 3 state with the patched validator
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: candidate
+      - uses: actions/checkout@v4
+        with:
+          ref: 1a6b22d49679a4af4c9156f3229e69c754fcd0be
+          path: zod3-baseline
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            candidate/services/api/package-lock.json
+            zod3-baseline/services/api/package-lock.json
+      - name: Install the two independent lockfiles
+        run: |
+          npm ci --prefix zod3-baseline/services/api
+          npm ci --prefix candidate/services/api
+      - name: Prepare generated journals with the historical validator
+        working-directory: zod3-baseline/services/api
+        run: |
+          npm run --silent bulletin:rehearse-backup -- prepare "$RUNNER_TEMP/zod3-generated-backup.json" > "$RUNNER_TEMP/zod3-producer.json"
+      - name: Recover with the new validator and authenticate the original audio
+        working-directory: candidate/services/api
+        run: |
+          digest=$(node --input-type=module -e 'import {readFileSync} from "node:fs"; const r=JSON.parse(readFileSync(process.env.RUNNER_TEMP+"/zod3-producer.json","utf8")); if(r.syntheticOnly!==true || !/^[0-9a-f]{64}$/.test(r.sha256)) throw new Error("Invalid generated report"); console.log(r.sha256)')
+          npm run --silent bulletin:rehearse-backup -- restore "$RUNNER_TEMP/zod3-generated-backup.json" "$digest" > "$RUNNER_TEMP/schema-upgrade-report.json"
+          cat "$RUNNER_TEMP/schema-upgrade-report.json"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: generated-schema-upgrade-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/schema-upgrade-report.json
+          retention-days: 7
+          if-no-files-found: ignore
+
   isolated-checkpoint-producer:
     name: Capture generated data-only checkpoints and discard originals
     runs-on: ubuntu-24.04
