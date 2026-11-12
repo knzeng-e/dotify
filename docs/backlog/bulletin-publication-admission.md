@@ -9,8 +9,11 @@ retain their interpretation. Simulated publication/restart, response loss and
 ciphertext delivery have coverage. The
 [synthetic AAC gate](../reference/bulletin-compact-delivery.md#automated-codec-acceptance)
 adds real PCM, seek/mixed-selection and loopback guest-signal checks, with explicit
-WebKit progressive and native-recovery boundaries. Physical-device, broader
-recovery/rollback and memory acceptance remain before activation. No deployed service or live
+WebKit progressive and native-recovery boundaries. The
+[prepared-job recovery candidate](../operations/bulletin-prepared-job-recovery.md)
+now resumes already-admitted standard/compact audio from saved ciphertext and
+its original history. Coherent off-volume restore/rollback, physical-device and
+memory acceptance remain before activation. No deployed service or live
 allowance changes. #407 stays Now/In Progress before Room/artwork/CASH.
 
 ## Object-reader checkpoint, 2026-11-11

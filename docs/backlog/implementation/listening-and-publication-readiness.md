@@ -5,7 +5,9 @@ connect the bounded readers to ordinary Web/API/Host selection through a distinc
 registered reference. A [synthetic AAC gate](../../reference/bulletin-compact-delivery.md#automated-codec-acceptance)
 now tests real decoded samples and a loopback guest, with explicit WebKit and
 native-recovery boundaries. Existing sources stay standard; no live allowance or
-deployment changes. Physical-device, prepared recovery/rollback and memory
+deployment changes. The [prepared-job recovery candidate](../../operations/bulletin-prepared-job-recovery.md)
+now binds admitted standard/compact audio to its original ciphertext and history.
+Coherent off-volume restore/rollback, physical-device and hosted-memory
 acceptance remain before activation. Delivery stays 0.1.82 / custody #426.
 
 ## Listening security review, 2026-11-11

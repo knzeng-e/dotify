@@ -1,4 +1,5 @@
 // Run only inside stopped private custody, as its normal non-root operator.
+// Reuses an existing admitted standard/compact audio claim or legacy pilot.
 // Inspection authenticates local bytes and reads canonical artist authority;
 // it opens no Bulletin session or signer.
 import { config } from '../config.js';
