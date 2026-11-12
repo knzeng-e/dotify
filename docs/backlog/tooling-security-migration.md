@@ -32,3 +32,5 @@ matcher; SDK, signer and TrUAPI pins are unchanged. See the
 consumer boundary and required Node version. Unit constructor mocks and signer
 helper types are adapted without removing assertions or changing runtime code.
 CI and review remain open; this does not deploy any service.
+
+[Source-bound candidate validation](implementation/evidence/toolchain-security-2026-11-12.md).
