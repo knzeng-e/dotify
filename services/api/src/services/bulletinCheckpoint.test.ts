@@ -10,6 +10,8 @@ import { acquireBulletinPublisherLock } from './bulletinPublisherLock.js';
 import { load, save } from './bulletinMediaState.js';
 import type { TestContext } from 'node:test';
 import { tmpdir } from 'node:os';
+import { StreamingJobs } from './streamingJobs.js';
+import { jobSchema } from './bulletinMediaState.js';
 const fixture = async (t: TestContext, mode: 'standard' | 'compact') => recoveryFixture(t, mode, await realpath(tmpdir()));
 
 for (const mode of ['standard', 'compact'] as const) {
@@ -215,3 +217,62 @@ test('aborted operations, directory aliases and legacy pilot refuse without init
   assert.deepEqual(await tree(pilot.root), pilotBefore);
   assert.equal(pilot.signerLoads, 0);
 });
+
+for (const mode of ['standard', 'compact'] as const) {
+  test(`${mode}: output reservations remain required after normal ciphertext and queue-entry pruning`, async t => {
+    const c = await fixture(t, mode);
+    await c.execute((await c.inspect()).planSha256);
+    let now = Date.now();
+    const normal = new StreamingJobs({
+      directory: c.queue,
+      deriveKey: () => assert.fail('Ready cleanup must not load a key'),
+      authority: async () => assert.fail('Ready cleanup must not check authority'),
+      transcode: async () => assert.fail('Ready cleanup must not encode'),
+      pin: async () => assert.fail('Ready cleanup must not publish'),
+      now: () => now
+    });
+    t.after(() => normal.stop());
+    await normal.start(false); // Real startup prunes ready ciphertext, keeping the ready index.
+    await assert.rejects(readdir(join(c.queue, 'jobs', c.options.jobId)), /ENOENT/);
+    const inventory = jobSchema.parse(await load(join(c.profile.directory, `${c.name}.json`)));
+    const state = (await load(join(c.queue, 'jobs.json'))) as { jobs: { sourceGeneration: string }[] };
+    assert.equal(state.jobs.length, 1);
+    assert.notEqual(state.jobs[0].sourceGeneration, inventory.generation);
+    const root = join(c.queue, 'nonces');
+    const fingerprints = (await readdir(root)).filter(name => name !== 'ledger.json');
+    const fingerprint = (
+      await Promise.all(fingerprints.map(async name => ((await readdir(join(root, name))).includes(`${inventory.generation}.json`) ? name : null)))
+    ).find(Boolean)!;
+    assert.ok(fingerprint);
+    const reservation = join(root, fingerprint, `${inventory.generation}.json`);
+    const original = await readFile(reservation);
+    // Exercise both supported settled shapes through normal queue cleanup:
+    // ready index + no ciphertext, then no index/ciphertext + permanent inventory.
+    for (const queueJobs of [1, 0]) {
+      if (!queueJobs) {
+        now += 8 * 24 * 60 * 60_000;
+        await normal.runNext(); // Real seven-day retention removes the ready index.
+      }
+      const plan = await inspectBulletinCheckpoint(c.options);
+      assert.equal(plan.report.queueJobs, queueJobs);
+      assert.equal(plan.report.inventories, 1);
+      const valid = join(c.root, `valid-pruned-${queueJobs}`);
+      const copied = await copyBulletinCheckpoint({ ...c.options, destination: valid, expectedPlanSha256: plan.report.planSha256 });
+      assert.equal((await verifyBulletinCheckpoint(valid, copied.manifestSha256, c.options.signal)).queueJobs, queueJobs);
+      await rm(reservation); // Source reservation remains: only the output reservation is missing.
+      assert.ok(
+        (await Promise.all(fingerprints.map(name => readdir(join(root, name))))).flat().some(name => name === `${state.jobs[0].sourceGeneration}.json`)
+      );
+      const before = await tree(c.root);
+      await assert.rejects(inspectBulletinCheckpoint(c.options), /Output nonce reservation missing/);
+      const destination = join(c.root, `refused-pruned-${queueJobs}`);
+      await assert.rejects(
+        copyBulletinCheckpoint({ ...c.options, destination, expectedPlanSha256: plan.report.planSha256 }),
+        /Output nonce reservation missing/
+      );
+      assert.deepEqual(await tree(c.root), before);
+      await assert.rejects(readdir(destination), /ENOENT/);
+      await writeFile(reservation, original, { mode: 0o600 });
+    }
+  });
+}

@@ -180,6 +180,12 @@ async function inspectLocked(options: Options, profile: Awaited<ReturnType<typeo
     assert.deepEqual(await load(join(queue, file.path.slice('queue/'.length))), { schema: 'dotify.streaming.nonce-ledger.v1', fingerprint, generation });
     generations.add(generation);
   }
+  // Ready queue entries and their ciphertext are routinely pruned. The permanent
+  // audio inventory still binds the output generation, so its reservation must
+  // survive independently of either temporary representation. Public assets
+  // are unencrypted and use non-nonce generation labels.
+  for (const inventory of inventories)
+    if (inventory.job === releaseJob(inventory.scope, 'audio')) assert.ok(generations.has(inventory.generation), 'Output nonce reservation missing');
   const jobIds = new Set(state.jobs.map(job => job.id));
   for (const directory of directories.filter(path => /^queue\/jobs\/[^/]+$/.test(path)))
     assert.ok(jobIds.has(directory.split('/')[2]), 'Orphan queue directory');
@@ -202,7 +208,7 @@ async function inspectLocked(options: Options, profile: Awaited<ReturnType<typeo
       const manifest = parseStreamingManifest(await checkpointMetadata(join(folder, 'output', 'manifest.json'), 256 * 1024, signal));
       for (const key of ['chainId', 'runtimeAddress', 'contentHash', 'keyVersion'] as const)
         assert.equal(manifest[key], job.scope[key], 'Manifest scope changed');
-      assert.ok(generations.has(manifest.generation), 'Output nonce reservation missing');
+      assert.equal(manifest.generation, inventory.generation, 'Manifest output generation changed');
       const expected = new Map<string, number | undefined>([
         [`queue/jobs/${job.id}/job.json`, undefined],
         [`queue/jobs/${job.id}/source.bin`, job.sourceBytes + 16],
