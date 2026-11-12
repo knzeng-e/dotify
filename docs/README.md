@@ -36,6 +36,9 @@ For an uncertain gift, tip or Classic purchase, use
 For documentation changes, follow [Document a change](how-to/document-a-change.md):
 choose the reader, give each rule one home and keep evidence tied to its artifact.
 
+For slow Room startup, [collect comparable listening reports](how-to/measure-room-startup.md),
+including successful starts and physical locked-screen observations.
+
 ## Look something up
 
 - [Environment variables](reference/environment-variables.md)

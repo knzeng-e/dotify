@@ -854,3 +854,42 @@ for (const clipboardWorks of [true, false]) {
     await expect(page.getByTestId('state')).toHaveAttribute('data-failure', 'audio-unavailable');
   });
 }
+
+test('successful complete preparation keeps correlated reader and host timing evidence', async ({ page }) => {
+  const probe = await setup(page, 'none', true);
+  await playing(page);
+  const report = await page.evaluate(async () => {
+    const { getAudioStartupTelemetrySnapshot, serializeAudioDiagnostics } = await import('/src/features/catalog/audioStartupTelemetry.ts');
+    return JSON.parse(serializeAudioDiagnostics(getAudioStartupTelemetrySnapshot()));
+  });
+  const ready = report.streaming.find((event: { phase: string }) => event.phase === 'compatibility-ready');
+  expect(ready).toMatchObject({ readAttempt: 1, forRoomCapture: false });
+  expect(ready.attempt).toBeGreaterThan(0);
+  expect(ready.readTimings.objectsRead).toBeGreaterThan(2);
+  expect(ready.readTimings.objectsDecrypted).toBe(ready.readTimings.objectsRead);
+  expect(ready.readTimings.encryptedBytes).toBeGreaterThan(0);
+  const downloaded = report.streaming.find((event: { phase: string }) => event.phase === 'compatibility-downloaded');
+  expect(ready.elapsedMs).toBeGreaterThanOrEqual(downloaded.elapsedMs);
+  expect(ready.selectionElapsedMs).toBeGreaterThanOrEqual(ready.elapsedMs);
+  expect(report.host.some((event: { phase: string; attempt: number }) => event.phase === 'media-playing' && event.attempt === ready.attempt)).toBe(true);
+  expect(probe.keyRequests()).toBe(1);
+});
+
+test('a retried access request stays in one startup attempt and reports Room intent', async ({ page }) => {
+  await page.addInitScript(() => Reflect.set(window, '__captureForRoom', true));
+  const probe = await setup(page, 'key-retry', true);
+  await playing(page);
+  const report = await page.evaluate(async () => {
+    const { getAudioStartupTelemetrySnapshot, serializeAudioDiagnostics } = await import('/src/features/catalog/audioStartupTelemetry.ts');
+    return JSON.parse(serializeAudioDiagnostics(getAudioStartupTelemetrySnapshot()));
+  });
+  const starts = report.streaming.filter((event: { phase: string }) => event.phase === 'preparation-started');
+  expect(starts.map((event: { readAttempt: number }) => event.readAttempt)).toEqual([1, 2]);
+  expect(starts[0].attempt).toBe(starts[1].attempt);
+  expect(starts[0].forRoomCapture).toBe(true);
+  const failure = report.streaming.find((event: { phase: string; errorKind: string }) => event.phase === 'error' && event.errorKind === 'key-unavailable');
+  expect(failure).toMatchObject({ attempt: starts[0].attempt, readAttempt: 1 });
+  const ready = report.streaming.find((event: { phase: string }) => event.phase === 'compatibility-ready');
+  expect(ready).toMatchObject({ attempt: starts[0].attempt, readAttempt: 2, forRoomCapture: true });
+  expect(probe.keyRequests()).toBe(2);
+});

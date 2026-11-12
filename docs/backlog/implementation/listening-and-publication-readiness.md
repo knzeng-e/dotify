@@ -1,5 +1,11 @@
 # Publication, listening reliability and CASH — execution order
 
+A separate [Room-start measurement candidate](../../how-to/measure-room-startup.md)
+can progress offline while #407 independent recovery is coordinated. It adds
+correlated success/failure reports, not a deployed latency fix. The activation
+order and outstanding recovery/device gates below are unchanged.
+
+
 Current #407 code checkpoint: [explicit compact delivery and admission](../../reference/bulletin-compact-delivery.md)
 connect the bounded readers to ordinary Web/API/Host selection through a distinct
 registered reference. A [synthetic AAC gate](../../reference/bulletin-compact-delivery.md#automated-codec-acceptance)

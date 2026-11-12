@@ -805,7 +805,8 @@ export function useCatalog(deps: UseCatalogDeps) {
     signal?: AbortSignal,
     isCurrent: () => boolean = () => true,
     options?: { key: Uint8Array; audio: () => HTMLAudioElement; speculative: true },
-    onAuthorized?: () => void
+    onAuthorized?: () => void,
+    evidence?: { attemptId: string; readAttempt: number; startedAt: number }
   ): Promise<string> {
     const forRoomCapture = roomCaptureRef.current;
     throwIfAborted(signal);
@@ -832,22 +833,33 @@ export function useCatalog(deps: UseCatalogDeps) {
         if (!options?.speculative && isCurrent() && !controllerSignal.aborted)
           publishStreamingStartupMetric({
             ...detail,
+            attemptId: evidence?.attemptId,
+            readAttempt: evidence?.readAttempt,
+            selectionElapsedMs: evidence ? nowMs() - evidence.startedAt : undefined,
+            forRoomCapture,
             audioRef,
             cid: encryptedRefToCID(audioRef),
             elapsedMs: performance.now() - startedAt,
             timestamp: wallTimestamp()
           });
       };
-      const key =
-        options?.key ?? (accessMode === 'free' ? await resolveFreeContentKey(contentHash, release) : await resolveServerContentKey(contentHash, release));
-      controllerSignal.throwIfAborted();
-      if (!key) throw new Error('The audio access check could not be completed.');
+      metric({ phase: 'preparation-started' });
+      let key: Uint8Array | null;
+      try {
+        key = options?.key ?? (accessMode === 'free' ? await resolveFreeContentKey(contentHash, release) : await resolveServerContentKey(contentHash, release));
+        controllerSignal.throwIfAborted();
+        if (!key) throw new Error('The audio access check could not be completed.');
+      } catch (error) {
+        metric({ phase: 'error', errorKind: 'key-unavailable' });
+        throw error;
+      }
       onAuthorized?.();
       metric({ phase: 'key-authorized' });
       // A decoded Blob is reusable media, not an authorization grant. Recheck
       // access (or use a still-valid prepared grant) before exposing it again.
       const cached = resolvedAudioSourcesRef.current.get(cacheKey);
       if (cached) {
+        metric({ phase: 'prepared-source-reused' });
         if (!options?.speculative) setAudioStartupStatus('Starting audio');
         return cached;
       }
@@ -933,6 +945,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     if (!canAdopt) standbyAudio.clear();
     publishHostAudioStartupMetric({
       phase: 'playback-intent',
+      forRoomCapture: roomCaptureRef.current,
       attemptId: selection.attemptId,
       source: track.id,
       elapsedMs: 0,
@@ -941,6 +954,9 @@ export function useCatalog(deps: UseCatalogDeps) {
     if (warmSource && isEncryptedAudioV3Ref(track.audioRef))
       publishStreamingStartupMetric({
         phase: 'prepared-source-adopted',
+        attemptId: selection.attemptId,
+        forRoomCapture: roomCaptureRef.current,
+        selectionElapsedMs: nowMs() - selection.startedAt,
         audioRef: track.audioRef,
         cid: encryptedRefToCID(track.audioRef),
         elapsedMs: 0,
@@ -1066,7 +1082,8 @@ export function useCatalog(deps: UseCatalogDeps) {
                     freeKeyAccessConfirmed = true;
                     setCatalogAccessByTrackId(previous => ({ ...previous, [track.id]: true }));
                   }
-                }
+                },
+                { attemptId: selection.attemptId, readAttempt: attempt + 1, startedAt: selection.startedAt }
               );
               failureKind = null;
               break;

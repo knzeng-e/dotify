@@ -1,5 +1,17 @@
 # Mobile-host Room startup and listening continuity
 
+## Offline measurement candidate, 2026-11-12
+
+While #407 real recovery awaits destination coordination, a separate client
+candidate prepares the [matched Room-start measurement](../how-to/measure-room-startup.md).
+Export-local attempt numbers correlate selection, retries and native readiness;
+read/authentication aggregates and compatibility assembly boundaries distinguish
+where preparation time goes. About now offers explicit support copy after success
+as well as failure, without automatic transmission. No latency improvement,
+deployment or physical background acceptance is claimed. #407 remains the release
+gate; #395 stays Next / In Progress pending comparable real-device reports and
+a measured correction.
+
 ## Current remaining scope, 2026-11-09
 
 Guest sound is restored on the owner-tested path. #395 remains Next for
