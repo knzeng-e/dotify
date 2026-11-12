@@ -79,8 +79,10 @@ CLI flag or setting, but requires a reviewed compatible custody binary and a
 fresh inspect/execute plan during separately arranged maintenance. Existing
 claims, key versions, admission archives and nonce/account journals must remain
 available; no running service is changed by this source candidate.
-Source availability is not a
-deployment or permission to apply an extension.
+The [generated restore workflow](bulletin-generated-restore-rehearsal.md) uses
+public fixtures and two disposable CI runners, with seven-day artifact retention.
+It changes no Fly mount, secret, backup job or production recovery configuration.
+Source availability is not a deployment or permission to apply an extension.
 
 The browser harness alone sets `DOTIFY_E2E_LOCAL_FONTS=true` on its local Vite
 dev server to remove external font links. This is not a `VITE_*` runtime flag;

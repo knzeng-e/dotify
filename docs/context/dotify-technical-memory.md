@@ -6,8 +6,10 @@ Explicit compact reference/dispatch and exact-source admission are implemented
 as a candidate, with an automated synthetic AAC/sample and loopback guest gate;
 the [prepared-job recovery candidate](../operations/bulletin-prepared-job-recovery.md)
 now preserves original admitted standard/compact audio and its storage history.
-Coherent off-volume restore/rollback, physical-device, hosted-memory and live
-acceptance remain ahead.
+A [generated cross-runner backup rehearsal](../operations/bulletin-generated-restore-rehearsal.md)
+now exercises source loss and coherent restoration of both layouts. Operational
+backup/key recovery, historical-binary rollback, physical-device, hosted-memory
+and live acceptance remain ahead.
 Earlier dated notes retain their original scope.
 
 ## Listening security review, 2026-11-11

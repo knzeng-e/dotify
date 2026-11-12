@@ -7,8 +7,10 @@ now tests real decoded samples and a loopback guest, with explicit WebKit and
 native-recovery boundaries. Existing sources stay standard; no live allowance or
 deployment changes. The [prepared-job recovery candidate](../../operations/bulletin-prepared-job-recovery.md)
 now binds admitted standard/compact audio to its original ciphertext and history.
-Coherent off-volume restore/rollback, physical-device and hosted-memory
-acceptance remain before activation. Delivery stays 0.1.82 / custody #426.
+The [generated backup rehearsal](../../operations/bulletin-generated-restore-rehearsal.md)
+adds source loss, independent-runner transfer and inconsistent-state refusals.
+Operational backup/key recovery, historical-binary rollback, physical-device and
+hosted-memory acceptance remain before activation. Delivery stays 0.1.82 / custody #426.
 
 ## Listening security review, 2026-11-11
 

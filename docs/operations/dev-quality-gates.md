@@ -160,3 +160,14 @@ Rollback is straightforward: remove the required checks from branch protection,
 then revert the W01 workflow commit if the workflow itself is the blocker. Do
 not disable branch protection as a way to hide baseline failures; record the
 failing job and fix it in a scoped PR.
+
+## Generated Bulletin backup transfer
+
+The [generated restore procedure](bulletin-generated-restore-rehearsal.md) covers
+the two-runner artifact workflow and local commands. It retains a complete public
+fixture checkpoint, removes the source, then authenticates restored standard and
+compact playback objects and refuses six inconsistent states per layout.
+The API unit suite also checks the producer digest, safe paths, required empty
+directories, bounded inputs, symlinks and destination preservation. The shared
+fixture extraction keeps the existing 49 prepared-recovery scenarios in place.
+No producer or consumer code is included in the production API build.
