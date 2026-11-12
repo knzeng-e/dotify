@@ -12,6 +12,9 @@ backup/key recovery, service/image rollback, physical-device, hosted-memory
 and live acceptance remain ahead.
 The generated rehearsal now checks compiled #438 recovery/readers and #426 refusal
 without replaying older journals; it does not start a historical service/image.
+A [generated container resource probe](../operations/bulletin-resource-envelope.md)
+now measures the standard/compact pipeline under local API/encoder limits;
+hosted capacity and physical listening remain separate.
 Earlier dated notes retain their original scope.
 
 ## Listening security review, 2026-11-11

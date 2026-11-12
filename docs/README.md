@@ -55,6 +55,7 @@ choose the reader, give each rule one home and keep evidence tied to its artifac
 - [Deployment history](operations/deployment-configuration-history.md): preserved dated checkpoints, outside the operating procedure.
 - [Product publication](operations/product-devnet-deployment.md): package identity, signer boundary, publish and rollback.
 - [Quality gates](operations/dev-quality-gates.md): automated verification.
+- [Generated Bulletin resource envelope](operations/bulletin-resource-envelope.md): real encoding and standard/compact readback inside bounded local containers; hosted capacity remains separate.
 - [Generated Bulletin restore rehearsal](operations/bulletin-generated-restore-rehearsal.md): independent-runner fixture transfer, source loss, compiled historical compatibility and refusal checks; operational recovery remains separate.
 - [Pilot release plan](operations/pilot-release-plan.md): device journeys, evidence and the release decision.
 - [Dated implementation and rollout evidence](backlog/implementation/evidence/).

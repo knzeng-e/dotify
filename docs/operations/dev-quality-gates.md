@@ -174,3 +174,13 @@ The same workflow also builds two pinned historical API revisions with their own
 lockfiles. Its [compiled-version comparison](bulletin-generated-restore-rehearsal.md#compare-compiled-historical-versions) checks advanced-journal recovery, stale-plan refusal, authenticated objects
 and compatible queue restarts. It does not start the service/container entrypoint.
 No generated harness is included in the production API build.
+
+## Generated Bulletin resource envelope
+
+The [resource procedure](bulletin-resource-envelope.md) owns profile limits,
+reproduction and interpretation. Its separate workflow builds the existing API
+and encoder images, generates 97/900-second inputs and exercises both layouts
+inside fresh, bounded containers. It authenticates the archive input and playback
+objects, checks cgroup/process observations and refuses OOM or failed ready state.
+Only numeric generated reports are retained for seven days. Real hosted load,
+service entrypoint and physical first-sound acceptance remain separate.
