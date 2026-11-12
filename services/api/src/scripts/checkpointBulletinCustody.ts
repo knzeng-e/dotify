@@ -1,5 +1,6 @@
 // Maintenance only. Deliberately no app config, secret/vault or signer import.
 import { inspectBulletinCheckpoint, copyBulletinCheckpoint, verifyBulletinCheckpoint } from '../services/bulletinCheckpoint.js';
+import { restoreIsolatedBulletinCheckpoint, verifyIsolatedBulletinRestore } from '../services/bulletinIsolatedRestore.js';
 const [mode, ...args] = process.argv.slice(2);
 const signal = AbortSignal.timeout(6 * 60_000);
 try {
@@ -15,6 +16,15 @@ try {
     );
   } else if (mode === 'verify' && args.length === 2) {
     console.log(JSON.stringify({ mode, ...(await verifyBulletinCheckpoint(args[0], args[1], signal)) }));
+  } else if (mode === 'restore' && args.length === 3) {
+    console.log(
+      JSON.stringify({
+        mode,
+        ...(await restoreIsolatedBulletinCheckpoint({ checkpoint: args[0], destination: args[1], expectedManifestSha256: args[2], signal }))
+      })
+    );
+  } else if (mode === 'verify-restored' && args.length === 2) {
+    console.log(JSON.stringify({ mode, ...(await verifyIsolatedBulletinRestore(args[0], args[1], signal)) }));
   } else throw new Error('Invalid checkpoint arguments');
 } catch {
   // Never turn private file contents/provider errors into support output.
