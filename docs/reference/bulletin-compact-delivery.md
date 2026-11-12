@@ -8,6 +8,7 @@ services remain Web/Product/public API 0.1.82 and custody #426.
 [Decision](../adr/0054-explicit-compact-delivery.md) ·
 [Dispatch evidence](../backlog/implementation/evidence/bulletin-compact-dispatch-2026-11-12.md) ·
 [Codec evidence](../backlog/implementation/evidence/bulletin-compact-aac-2026-11-12.md) ·
+[Prepared-recovery evidence](../backlog/implementation/evidence/bulletin-admitted-recovery-2026-11-12.md) ·
 [Object-reader limits](bulletin-compact-reader.md) ·
 [Publication procedure](../operations/bulletin-artist-publication.md).
 
@@ -162,9 +163,11 @@ retain compatible readers/state handling or stop new work, never erase layout
 fields or restore an older ledger to obtain capacity.
 
 Ordinary queue restart/retry has simulated compact response-loss coverage. The
-separate stopped-writer prepared-job repair tool remains standard-only and
-refuses compact inventories; do not use it to repair compact work. Extending that
-tool, coherent recovery/rollback rehearsal, physical Host startup/seek/adaptation,
-Room/background behavior, real first sound and memory pressure remain acceptance
-gates before activation. Automated AAC/sample checks do not prove faster
+[stopped-writer prepared-job recovery candidate](../operations/bulletin-prepared-job-recovery.md)
+now verifies the original audio claim, layout, lineage and saved ciphertext for
+admitted standard/compact work. It preserves cumulative charges, receipts and
+nonce history; an older pilot-only binary still refuses this state. These local
+checks do not rehearse disk-loss restoration. Coherent off-volume recovery and
+rollback, physical Host startup/seek/adaptation, Room/background behavior, real
+first sound and memory pressure remain acceptance gates before activation. Automated AAC/sample checks do not prove faster
 publication or audible physical-device output.

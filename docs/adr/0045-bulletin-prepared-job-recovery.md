@@ -4,6 +4,9 @@
 - Scope: W33 / #288, the exhausted one-release synthetic pilot
 - Related: [publication ownership](0043-bulletin-artist-publication.md), [direct-store reconciliation](0040-bulletin-direct-store-receipts.md)
 
+The [admitted-audio extension](0055-admitted-audio-recovery.md) preserves this
+legacy pilot path and adds a separate layout-bound multi-release procedure.
+
 ## Problem and decision
 
 The pilot's durable streaming job reached three preparation attempts before any

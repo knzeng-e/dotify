@@ -1,11 +1,17 @@
-# Recover one prepared Bulletin pilot job
+# Recover one prepared Bulletin audio job
 
-Use this only for the existing failed pilot job with three consumed preparation
-attempts. It reuses saved encrypted audio; it does not re-encode or reset retries.
-See [ADR 0045](../adr/0045-bulletin-prepared-job-recovery.md) for authority and crash
-boundaries. The [2026-11-02 intervention](../backlog/implementation/evidence/bulletin-prepared-recovery-rollout-2026-11-02.md)
-deployed this command and recovered the original synthetic pilot. That job is
-now ready: do not execute recovery again for it. General runbook steps follow.
+Use this operator procedure for an existing failed audio job with three consumed
+preparation attempts, complete saved ciphertext and its original publication
+inventory. It supports individually admitted standard/compact audio and the
+legacy synthetic pilot. It neither re-encodes nor resets retries. See
+[ADR 0055](../adr/0055-admitted-audio-recovery.md) for the admission boundary and
+[ADR 0045](../adr/0045-bulletin-prepared-job-recovery.md) for the original design.
+
+The admitted recovery extension is a source candidate for #407, **not deployed**.
+The [2026-11-02 intervention](../backlog/implementation/evidence/bulletin-prepared-recovery-rollout-2026-11-02.md)
+recovered the original synthetic pilot with the older command; that job is ready
+and must not be recovered again. Do not run an older pilot-only binary against
+compact or multi-release state.
 
 ## Prepare maintenance
 
@@ -25,7 +31,8 @@ Investigate crash locks under verified exclusive ownership; it never clears them
 Required existing settings:
 
 - `API_ROLE=custody`, `STREAMING_AUDIO_STORAGE=bulletin`;
-- unchanged `STREAMING_STATE_PATH`, `BULLETIN_PUBLICATION_PROFILE` with `pilotScope`;
+- unchanged `STREAMING_STATE_PATH`, `BULLETIN_PUBLICATION_PROFILE` with its
+  existing `releasePolicy` or legacy `pilotScope`;
 - existing content-key version secrets and chain authority configuration;
 - the existing profile's signer file, account, budgets and renewal floors.
 
@@ -47,12 +54,23 @@ Inspection reads canonical artist authority and authenticates private local
 bytes. It makes no Bulletin request, loads no storage signer and writes no
 persistent state beyond its temporary exclusive lease. Its report gives the
 root, scope, consumed attempts, block/byte totals, attempted stores/bytes,
-receipt/pending counts, immutable allowance and `planSha256`.
+receipt/pending counts, immutable allowance and `planSha256`. Individually
+admitted work returns plan schema `dotify.bulletin.prepared-recovery.v2` with its
+layout, admission digest and effective write pipeline. Legacy pilot reports keep
+v1. A plan from an earlier executable must be inspected again with the reviewed
+execution revision.
+
+For admitted work, verify the original audio claim and exact-source extension
+history are present. Inspection binds their raw bytes, profile bindings, every
+owned inventory, source/output and permanent reservations. Missing or orphan
+inventories, layout/pipeline changes and another unfinished or uncertain
+publication block recovery. At most 192 owned inventories are inspected; the
+command cannot bypass that bound, claim another slot or repair public assets.
 
 Inspect does **not** establish current Bulletin retention or sufficient network
 quota; execution's existing publisher preflight/adapter checks those. Confirm
-the report matches the reviewed pilot and remaining original allowance. If any
-file/binding/reservation is absent or authentication fails, preserve state and
+the report matches the reviewed audio admission and remaining original allowance.
+If any file/binding/reservation is absent or authentication fails, preserve state and
 investigate rather than deleting output or allowing an encoder fallback.
 
 After reviewing that report and the exact execution revision/budget:
@@ -62,8 +80,8 @@ node dist/scripts/recoverPreparedBulletinJob.js execute JOB_UUID ARTIST_H160 INS
 ```
 
 The hash is required and rechecked before loading the storage signer. A changed
-queue, bundle, profile or inventory requires a new inspection. This hash is not
-an additional transaction authorization. Execution stays within the original
+queue, bundle, profile, admission/archive, binding or inventory requires a new
+inspection. This hash is not an additional transaction authorization. Execution stays within the original
 cumulative storage caps; it does not grant another full budget for every run.
 
 ## Verify and restore service
@@ -71,10 +89,13 @@ cumulative storage caps; it does not grant another full budget for every run.
 On success, preserve the returned reference and `auditId`. Confirm:
 
 - queue state `ready`, original job ID/scope and `attempts=3`;
-- expected graph root, all finalized publication receipts, zero unresolved
+- expected graph root and complete reference: standard `ipfs://` or compact
+  `bulletin-pack-v1://` within the existing `dotify:enc:v3:key-vN:` grammar;
+- all finalized publication receipts, zero unresolved
   pending intents and a cleared active account barrier;
 - unchanged allowance/profile, source/output bytes and permanent reservations;
-- a `ready` audit in `STREAMING_STATE_PATH/recoveries/` retaining the original job.
+- a `ready` audit in `STREAMING_STATE_PATH/recoveries/` retaining the original
+  job (audit v2 for admitted work, v1 for the pilot).
 
 Restore the normal custody command/settings and readiness, then refresh the
 artist's existing draft/status. The normal API returns the recovered audio
@@ -91,5 +112,8 @@ normal app. The CLI prints a fixed diagnostic rather than private provider error
 
 Rollback restores normal custody with the unchanged paths/bindings; do not replay
 an older nonce/account inventory over newer submissions. No Product/Web redeploy
-is needed for this operator-only command. Retention monitoring, bounded renewals,
-off-volume restoration and the broader W33 acceptance remain separate work.
+is needed for this operator-only command when matching format readers are already
+delivered. Retention monitoring, bounded renewals,
+coherent off-volume restoration/rollback and physical Host acceptance remain
+separate work.
+A passing in-memory transport test does not validate a live recovery or backup.
