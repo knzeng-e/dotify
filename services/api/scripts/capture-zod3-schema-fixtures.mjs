@@ -6,7 +6,7 @@ import { createRequire } from 'node:module';
 import { isAbsolute } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { createHash } from 'node:crypto';
-import { writeFile } from 'node:fs/promises';
+import { realpath, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 const [root, output, ...extra] = process.argv.slice(2);
 assert.ok(!extra.length && isAbsolute(root ?? '') && isAbsolute(output ?? ''));
@@ -26,7 +26,7 @@ const cases = [];
 for (const mode of ['pilot', 'standard', 'compact']) {
   const cleanup = [];
   try {
-    const c = await fixture({ after: cb => cleanup.push(cb) }, mode);
+    const c = await fixture({ after: cb => cleanup.push(cb) }, mode, await realpath('/tmp'));
     const capture = async phase => {
       const specs = [
         ['profile', publisherProfileSchema, join(c.root, 'profile.json')],
