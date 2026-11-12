@@ -2,9 +2,10 @@
 
 ## Artifact and scope
 
-Implementation commit: `013e14c52af572eaa4f56953d57ecaffcc3179cc`,
+Initial implementation commit: `013e14c52af572eaa4f56953d57ecaffcc3179cc`,
 from tested merged dev `2508605841854ac07835a7feb22e6296b3d788a9` (#441).
-Documentation-only follow-up commits do not change the implementation.
+Review correction: `c54c6a14cff807a3fd6b99b72d41d9be7b165718`.
+Documentation-only follow-ups do not change their respective source trees.
 All three dev workflows were green before this branch started. Scope: #407;
 the [selected sequence](../listening-and-publication-readiness.md) stays
 publication readiness → Room → artwork → CASH research.
@@ -34,6 +35,29 @@ artist files, service directories or wallet secrets.
 The first local fixture run refused macOS `/var` → `/private/var` aliases as
 designed. Tests now create their generated roots under the canonical temporary
 parent; production path/privacy checks were not weakened.
+
+## Review correction: retain output-nonce proof after normal cleanup
+
+The [automated P2 finding](https://github.com/knzeng-e/dotify/pull/442#discussion_r4551506658)
+identified a real gap in the initially green candidate: output reservations were
+checked only while the prepared manifest remained on disk. Normal startup removes
+ready ciphertext, and seven-day retention later removes the ready queue entry.
+Neither action is allowed to remove the permanent output reservation.
+
+`c54c6a14` validates every audio inventory's generation against the retained nonce
+ledger, independently of temporary queue/files. A retained manifest must agree
+with that inventory generation. Unencrypted public-asset generation labels are
+not treated as nonce reservations.
+
+Two new layout regressions use real `StreamingJobs.start(false)` cleanup and its
+eight-day clock/`runNext()` retention path. Both intact pruned states inspect,
+copy and verify successfully. Removing **only** the output reservation while
+leaving the source reservation makes inspect/copy refuse without output creation
+or source mutation, with and without a ready index. The new regressions fail on
+`fe8ff21` with two missing-rejection failures and pass after correction; all
+**11 focused checkpoint cases** pass. The initial 511-test table above belongs
+to `013e14c5`, not a claim that the review gap was covered. Corrected full-suite
+and integration results are bound to their exact head in [PR #442](https://github.com/knzeng-e/dotify/pull/442).
 
 ## What the generated cases establish
 

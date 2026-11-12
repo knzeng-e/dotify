@@ -51,7 +51,11 @@ The JSON result contains counts, byte size, required key versions and
 `planSha256`, without file paths, raw journals or contents. Keep this digest in
 the private operational record. Inspection checks profile bindings, admission
 lineage, owned inventories and complete local receipts, queue references,
-retained-file structure and permanent nonce reservations. It does not contact
+retained-file structure and permanent nonce reservations. Every audio inventory
+requires its output generation reservation even when normal cleanup has removed
+its ciphertext and queue entry. Retained manifests must name that same generation.
+Public covers/metadata are unencrypted and have no output-nonce requirement.
+It does not contact
 the chain or authenticate ciphertext with a content key.
 
 Use that exact digest for the copy:

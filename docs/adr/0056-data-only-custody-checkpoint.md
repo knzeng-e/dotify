@@ -22,7 +22,10 @@ No route, scheduler, transfer, initializer, secret reader or restore is added.
 
 Inspection allowlists private file names, rejects links/open permissions and
 unknown files, and validates local settled state. The plan binds raw file hashes,
-empty directories, profile identity and required key versions. Copy repeats
+empty directories, profile identity and required key versions. The permanent
+audio inventory supplies the output generation after normal ciphertext/index
+pruning; its nonce reservation remains mandatory independently of temporary
+files. Public-asset generation labels are not encryption nonces. Copy repeats
 inspection against that exact digest, creates a new private destination, streams
 files to content-addressed objects, rechecks sources and verifies copied bytes.
 A durable manifest is committed last, after which `INCOMPLETE` is removed.
