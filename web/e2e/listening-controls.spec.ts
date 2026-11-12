@@ -81,16 +81,44 @@ test('a public artwork response arriving after disconnect cannot restore system 
   await page.locator('.solo-player-header .player-account-trigger').click();
   await page.getByRole('dialog').getByRole('button', { name: 'Disconnect', exact: true }).click();
   release();
-  await expect
-    .poll(() =>
-      page.evaluate(async path => {
-        const cache = await caches.open('dotify-public-artwork-v1');
-        return Boolean(await cache.match(`https://dotify.artwork.invalid/ipfs/${path}/cover/640.webp`));
-      }, root)
-    )
-    .toBe(true);
+  // Public delivery finishes independently of best-effort disk persistence.
+  // Await that same immutable image before checking the retired metadata owner.
+  await page.evaluate(async path => {
+    const modulePath = '/src/services/publicArtworkCache.ts';
+    const { loadPublicArtwork } = await import(modulePath);
+    await loadPublicArtwork([`https://gateway.pinata.cloud/ipfs/${path}/cover/640.webp`]);
+  }, root);
   expect(await readMediaSessionProbe(page)).toMatchObject({ title: null, artwork: [], actions: [], state: 'none' });
   await expect(page.locator('audio[src]')).toHaveCount(0);
+});
+
+test('a stalled disk write cannot hold back system artwork', async ({ page }) => {
+  await page.addInitScript(() => {
+    const put = Cache.prototype.put;
+    Reflect.set(window, '__heldArtworkWrites', 0);
+    Cache.prototype.put = function (request, response) {
+      const url = typeof request === 'string' ? request : request instanceof URL ? request.href : request.url;
+      if (url.startsWith('https://dotify.artwork.invalid/')) {
+        Reflect.set(window, '__heldArtworkWrites', Reflect.get(window, '__heldArtworkWrites') + 1);
+        return new Promise<void>(() => {});
+      }
+      return put.call(this, request, response);
+    };
+  });
+  const root = 'QmQEkYGFqbS7AV58HrTgqfwPpSeQJMh4MeeSY1RwWRtVhu';
+  await page.route(`**/ipfs/${root}/cover/*.webp`, route =>
+    route.fulfill({
+      body: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aX1cAAAAASUVORK5CYII=', 'base64'),
+      contentType: 'image/png',
+      headers: { 'access-control-allow-origin': '*' }
+    })
+  );
+  await unlockFixture(page, 'bulletin-delayed-cover');
+  await expect.poll(() => page.evaluate(() => Reflect.get(window, '__heldArtworkWrites'))).toBe(1);
+  await expect.poll(async () => (await readMediaSessionProbe(page)).artwork[0]?.src).toMatch(/^data:image\/png;base64,/);
+  await expect(page.locator('audio[src]')).toHaveCount(1);
+  // Additional rendered variants share bounded persistence even while put stalls.
+  expect(await page.evaluate(() => Reflect.get(window, '__heldArtworkWrites'))).toBe(1);
 });
 
 test('room system artwork keeps track attribution and a stable Dotify signature without room text', async ({ page }, testInfo) => {
