@@ -14,6 +14,10 @@ and live acceptance remain ahead.
 A [generated container resource probe](../operations/bulletin-resource-envelope.md)
 now measures the standard/compact pipeline under local API/encoder limits;
 hosted capacity and physical listening remain separate.
+The [data-only custody checkpoint candidate](../operations/bulletin-custody-checkpoint.md)
+now captures a settled domain into private hashed objects with exact-plan and
+offline verification, without copying key files or creating a runnable queue.
+Generated coverage leaves real independent data/key recovery unaccepted.
 Earlier dated notes retain their original scope.
 
 ## Listening security review, 2026-11-11
