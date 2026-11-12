@@ -119,5 +119,7 @@ separate work.
 The [generated backup rehearsal](bulletin-generated-restore-rehearsal.md) tests
 source loss and cross-runner transfer of public fixtures, including empty
 directories and pending intents. It does not validate a live recovery, real key
-backup or historical-binary rollback. A matching snapshot hash alone cannot
+backup or service/image rollback. The same procedure now includes a separate
+compiled #438 compatibility/#426 refusal exercise; do not interpret that as
+permission to run an unsupported old service. A matching snapshot hash alone cannot
 prove no later broadcast; establish current account history before writes.

@@ -170,4 +170,7 @@ compact playback objects and refuses six inconsistent states per layout.
 The API unit suite also checks the producer digest, safe paths, required empty
 directories, bounded inputs, symlinks and destination preservation. The shared
 fixture extraction keeps the existing 49 prepared-recovery scenarios in place.
-No producer or consumer code is included in the production API build.
+The same workflow also builds two pinned historical API revisions with their own
+lockfiles. Its [compiled-version comparison](bulletin-generated-restore-rehearsal.md#compare-compiled-historical-versions) checks advanced-journal recovery, stale-plan refusal, authenticated objects
+and compatible queue restarts. It does not start the service/container entrypoint.
+No generated harness is included in the production API build.

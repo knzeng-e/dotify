@@ -9,7 +9,8 @@ deployment changes. The [prepared-job recovery candidate](../../operations/bulle
 now binds admitted standard/compact audio to its original ciphertext and history.
 The [generated backup rehearsal](../../operations/bulletin-generated-restore-rehearsal.md)
 adds source loss, independent-runner transfer and inconsistent-state refusals.
-Operational backup/key recovery, historical-binary rollback, physical-device and
+Its [compiled-version comparison](../../operations/bulletin-generated-restore-rehearsal.md#compare-compiled-historical-versions) now checks #438 recovery/readers and #426 refusal without rewinding journals.
+Operational backup/key recovery, service/image rollback, physical-device and
 hosted-memory acceptance remain before activation. Delivery stays 0.1.82 / custody #426.
 
 ## Listening security review, 2026-11-11
