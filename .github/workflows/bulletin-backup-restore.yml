@@ -1,0 +1,99 @@
+name: Generated Bulletin backup restore
+
+on:
+  pull_request:
+    branches: [dev]
+    paths:
+      - 'services/api/**'
+      - '.github/workflows/bulletin-backup-restore.yml'
+  push:
+    branches: [dev]
+    paths:
+      - 'services/api/**'
+      - '.github/workflows/bulletin-backup-restore.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bulletin-backup-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backup:
+    name: Produce generated backup and discard source
+    runs-on: ubuntu-24.04
+    timeout-minutes: 7
+    outputs:
+      digest: ${{ steps.prepare.outputs.digest }}
+      artifact: ${{ steps.prepare.outputs.artifact }}
+    defaults:
+      run:
+        working-directory: services/api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: services/api/package-lock.json
+      - run: npm ci
+      - id: prepare
+        name: Prepare public fixtures, lose acknowledgements and discard original state
+        env:
+          BUNDLE_PATH: ${{ runner.temp }}/generated-bulletin-backup.json
+          BACKUP_ARTIFACT: generated-bulletin-backup-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          npm run --silent bulletin:rehearse-backup -- prepare "$BUNDLE_PATH" > "$RUNNER_TEMP/backup-report.json"
+          node --input-type=module <<'NODE'
+          import {readFileSync, appendFileSync} from 'node:fs';
+          const report = JSON.parse(readFileSync(process.env.RUNNER_TEMP + '/backup-report.json', 'utf8'));
+          if (!/^[0-9a-f]{64}$/.test(report.sha256) || report.syntheticOnly !== true) throw new Error('Invalid generated report');
+          if (!/^generated-bulletin-backup-[0-9]+-[0-9]+$/.test(process.env.BACKUP_ARTIFACT)) throw new Error('Invalid artifact name');
+          appendFileSync(process.env.GITHUB_OUTPUT, 'digest=' + report.sha256 + '\nartifact=' + process.env.BACKUP_ARTIFACT + '\n');
+          console.log(JSON.stringify(report));
+          NODE
+      - name: Keep only the generated bundle in independent artifact storage
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.prepare.outputs.artifact }}
+          path: ${{ runner.temp }}/generated-bulletin-backup.json
+          retention-days: 7
+          if-no-files-found: error
+
+  restore:
+    name: Restore on a fresh runner and refuse inconsistent history
+    needs: backup
+    runs-on: ubuntu-24.04
+    timeout-minutes: 7
+    defaults:
+      run:
+        working-directory: services/api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: services/api/package-lock.json
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.backup.outputs.artifact }}
+          path: ${{ runner.temp }}/generated-restore
+      - name: Verify separate producer digest, restore and authenticate both layouts
+        env:
+          EXPECTED_DIGEST: ${{ needs.backup.outputs.digest }}
+          BUNDLE_PATH: ${{ runner.temp }}/generated-restore/generated-bulletin-backup.json
+        run: |
+          npm run --silent bulletin:rehearse-backup -- restore "$BUNDLE_PATH" "$EXPECTED_DIGEST" > "$RUNNER_TEMP/restore-report.json"
+          cat "$RUNNER_TEMP/restore-report.json"
+      - name: Preserve the generated-only restore result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-bulletin-restore-result-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/restore-report.json
+          retention-days: 7
+          if-no-files-found: ignore
