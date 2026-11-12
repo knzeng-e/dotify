@@ -154,3 +154,125 @@ jobs:
           path: ${{ runner.temp }}/binary-compatibility-report.json
           retention-days: 7
           if-no-files-found: ignore
+
+  isolated-checkpoint-producer:
+    name: Capture generated data-only checkpoints and discard originals
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    outputs:
+      standard: ${{ steps.capture.outputs.standard }}
+      compact: ${{ steps.capture.outputs.compact }}
+      artifact: ${{ steps.capture.outputs.artifact }}
+    defaults:
+      run:
+        working-directory: services/api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: services/api/package-lock.json
+      - run: npm ci
+      - run: npm run build
+      - id: capture
+        name: Use the compiled capture CLI on public fixtures only
+        env:
+          GENERATED_DIRECTORY: ${{ runner.temp }}/generated-isolated-checkpoints
+          GENERATED_ARTIFACT: generated-isolated-checkpoints-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          node --import tsx scripts/rehearse-isolated-checkpoint.mjs prepare "$GENERATED_DIRECTORY" > "$RUNNER_TEMP/isolated-producer.json"
+          node --input-type=module <<'NODE'
+          import {readFileSync, appendFileSync} from 'node:fs';
+          const result=JSON.parse(readFileSync(process.env.RUNNER_TEMP+'/isolated-producer.json','utf8'));
+          if(result.syntheticOnly!==true || !/^[0-9a-f]{64}$/.test(result.standard) || !/^[0-9a-f]{64}$/.test(result.compact)) throw new Error('Invalid generated result');
+          if(!/^generated-isolated-checkpoints-[0-9]+-[0-9]+$/.test(process.env.GENERATED_ARTIFACT)) throw new Error('Invalid generated artifact');
+          appendFileSync(process.env.GITHUB_OUTPUT, `standard=${result.standard}\ncompact=${result.compact}\nartifact=${process.env.GENERATED_ARTIFACT}\n`);
+          console.log(JSON.stringify(result));
+          NODE
+      - name: Transfer only explicitly generated checkpoint directories
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.capture.outputs.artifact }}
+          path: ${{ runner.temp }}/generated-isolated-checkpoints/
+          retention-days: 7
+          if-no-files-found: error
+
+  isolated-checkpoint-consumer:
+    name: Reconstruct on a fresh runner without network and verify read-only
+    needs: isolated-checkpoint-producer
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: services/api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: services/api/package-lock.json
+      - run: npm ci
+      - run: npm run build
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.isolated-checkpoint-producer.outputs.artifact }}
+          path: ${{ runner.temp }}/generated-isolated-checkpoints
+      - name: Restore private modes for generated downloaded files only
+        run: node scripts/rehearse-isolated-checkpoint.mjs receive "$RUNNER_TEMP/generated-isolated-checkpoints"
+      - name: Build the unchanged production API image locally
+        run: docker build --target runner -t dotify-generated-isolated-restore .
+      - name: Run compiled reconstruction offline, then verify with no input and read-only output
+        env:
+          EXPECTED_STANDARD: ${{ needs.isolated-checkpoint-producer.outputs.standard }}
+          EXPECTED_COMPACT: ${{ needs.isolated-checkpoint-producer.outputs.compact }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          output_dir=$(mktemp -d "$RUNNER_TEMP/dotify-isolated-output.XXXXXX")
+          restore_uid=$(id -u)
+          restore_gid=$(id -g)
+          container=''
+          cleanup() { if [ -n "$container" ]; then docker rm -f "$container" >/dev/null; fi; }
+          trap cleanup EXIT
+          for phase in restore verify; do
+            mounts=(--mount "type=bind,source=$PWD/scripts/rehearse-isolated-checkpoint.mjs,target=/app/dist/rehearse-isolated-checkpoint.mjs,readonly")
+            if [ "$phase" = restore ]; then
+              mounts+=(--mount "type=bind,source=$RUNNER_TEMP/generated-isolated-checkpoints,target=/input,readonly")
+              mounts+=(--mount "type=bind,source=$output_dir,target=/review")
+              parameters=(restore /input /review "$EXPECTED_STANDARD" "$EXPECTED_COMPACT")
+            else
+              mounts+=(--mount "type=bind,source=$output_dir,target=/review,readonly")
+              parameters=(verify /review "$EXPECTED_STANDARD" "$EXPECTED_COMPACT")
+            fi
+            container=$(docker create --network none --read-only --cap-drop ALL --security-opt no-new-privileges --pids-limit 64 --memory 1g --memory-swap 1g --cpus 1 --user "$restore_uid:$restore_gid" --tmpfs /tmp:rw,noexec,mode=1777 "${mounts[@]}" dotify-generated-isolated-restore node dist/rehearse-isolated-checkpoint.mjs "${parameters[@]}")
+            observed=$(docker inspect --format '{{.HostConfig.NetworkMode}}/{{.HostConfig.ReadonlyRootfs}}/{{.Config.User}}/{{.HostConfig.Memory}}/{{.HostConfig.MemorySwap}}/{{.HostConfig.PidsLimit}}' "$container")
+            test "$observed" = "none/true/$restore_uid:$restore_gid/1073741824/1073741824/64"
+            observed_mounts=$(docker inspect --format '{{range .Mounts}}{{.Destination}}={{.RW}};{{end}}' "$container")
+            if [ "$phase" = verify ]; then
+              [[ "$observed_mounts" == *"/review=false;"* && "$observed_mounts" != *"/input="* ]]
+            else
+              [[ "$observed_mounts" == *"/review=true;"* && "$observed_mounts" == *"/input=false;"* ]]
+            fi
+            docker start -a "$container" > "$RUNNER_TEMP/isolated-$phase.json"
+            test "$(docker inspect --format '{{.State.ExitCode}}' "$container")" = 0
+            node --input-type=module - "$RUNNER_TEMP/isolated-$phase.json" "$phase" <<'NODE'
+          import {readFileSync} from 'node:fs';
+          const report=JSON.parse(readFileSync(process.argv[2],'utf8'));
+          if(report.syntheticOnly!==true || report.phase!==process.argv[3] || report.cases.length!==2 || report.realKeyRecoveryTested!==false || report.serviceEntrypointTested!==false || report.cases.some(item=>item.writerActivationAllowed!==false || item.originalSourcesAbsent!==true || item.authenticatedSyntheticObjects!==13)) throw new Error('Invalid isolated fixture result');
+          NODE
+            cat "$RUNNER_TEMP/isolated-$phase.json"
+            docker rm "$container" >/dev/null
+            container=''
+          done
+      - name: Retain generated-only reconstruction reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-isolated-results-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/isolated-restore.json
+            ${{ runner.temp }}/isolated-verify.json
+          retention-days: 7
+          if-no-files-found: ignore
