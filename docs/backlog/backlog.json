@@ -92,7 +92,7 @@
       "priority": "P1",
       "track": "Production spine",
       "phase": "Next",
-      "note": "Reported mobile-host delivery to Web/Desktop guests works. Remaining scope is measured startup latency (about 55 seconds on one owner run), repeated no-retry full-track starts and broader lifecycle acceptance after #407; keep access boundaries."
+      "note": "Reported mobile-host delivery to Web/Desktop guests works. Offline correlated success/failure reporting can progress while #407 independent recovery is coordinated. Remaining scope is measured startup latency (about 55 seconds on one owner run), repeated no-retry full-track starts and broader lifecycle acceptance after #407; keep access boundaries."
     },
     {
       "id": "listening-controls-and-discovery",

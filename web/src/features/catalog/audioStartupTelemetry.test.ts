@@ -120,3 +120,66 @@ it('exports support timings without source identifiers or arbitrary transport de
   expect(diagnostic.host[0]).toMatchObject({ phase: 'media-playing', elapsedMs: 820.2 });
   expect(diagnostic.buildSha).toBeNull();
 });
+
+it('correlates retries and host readiness with export-local numbers without leaking identities', () => {
+  const report = JSON.parse(
+    serializeAudioDiagnostics({
+      streaming: [
+        { ...streamingMetric, phase: 'preparation-started', attemptId: 'PRIVATE-ONE', readAttempt: 1, selectionElapsedMs: 20, forRoomCapture: true },
+        { ...streamingMetric, phase: 'preparation-started', attemptId: 'PRIVATE-ONE', readAttempt: 2, selectionElapsedMs: 200, forRoomCapture: true },
+        { ...streamingMetric, phase: 'compatibility-ready', attemptId: 'PRIVATE-TWO', readAttempt: 1, forRoomCapture: false }
+      ],
+      host: [
+        { ...hostMetric, attemptId: 'PRIVATE-ONE' },
+        { ...hostMetric, attemptId: 'PRIVATE-TWO' }
+      ],
+      latestMediaPlayingMs: null
+    })
+  );
+  expect(report.streaming.map((event: { attempt: number }) => event.attempt)).toEqual([1, 1, 2]);
+  expect(report.host.map((event: { attempt: number }) => event.attempt)).toEqual([1, 2]);
+  expect(report.streaming[1]).toMatchObject({ readAttempt: 2, selectionElapsedMs: 200, forRoomCapture: true });
+  expect(JSON.stringify(report)).not.toContain('PRIVATE');
+});
+
+it('allowlists aggregate counters and rejects injected nonnumeric values in the support export', () => {
+  const snapshot = {
+    streaming: [
+      {
+        ...streamingMetric,
+        readTimings: {
+          objectsRead: 10,
+          objectsDecrypted: 9,
+          encryptedBytes: 400,
+          cachedObjects: 2,
+          hostObjects: 0,
+          httpObjects: 8,
+          recoveredObjects: 1,
+          readWorkMs: 500,
+          decryptWorkMs: 8,
+          maxReadMs: 130,
+          privateKey: 'DO-NOT-EXPORT',
+          gatewayUrl: 'PRIVATE-URL'
+        }
+      }
+    ],
+    host: [],
+    latestMediaPlayingMs: null
+  };
+  const report = JSON.parse(serializeAudioDiagnostics(snapshot));
+  expect(report.streaming[0].readTimings).toEqual({
+    objectsRead: 10,
+    objectsDecrypted: 9,
+    encryptedBytes: 400,
+    cachedObjects: 2,
+    hostObjects: 0,
+    httpObjects: 8,
+    recoveredObjects: 1,
+    readWorkMs: 500,
+    decryptWorkMs: 8,
+    maxReadMs: 130
+  });
+  expect(JSON.stringify(report)).not.toMatch(/PRIVATE|DO-NOT-EXPORT/);
+  snapshot.streaming[0].readTimings.readWorkMs = NaN;
+  expect(JSON.parse(serializeAudioDiagnostics(snapshot)).streaming[0].readTimings.readWorkMs).toBeUndefined();
+});
