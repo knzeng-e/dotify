@@ -31,6 +31,20 @@ replenish. Missing claims/archives, changed bindings/layout/pipeline/key mapping
 other unfinished work and orphan inventories fail closed. Raw profile,
 admission or archive whitespace changes also invalidate an earlier plan.
 
+## Remote infrastructure correction
+
+The first #438 checks on head `56b7e094` passed the 497 API tests, then failed
+before codec checks because `mirrors.kernel.org` / its edge endpoint timed out.
+The offline prototype prerequisite failed at the same mirror and failed again
+on an unchanged-code rerun. No application assertion or timeout is relaxed.
+
+The follow-up uses APT's existing mirror transport with the official HTTPS
+Ubuntu archive and a lower-priority official security archive. Existing signing
+keys, suites/components, strict update errors, acquisition retries and deadlines
+stay unchanged. Both required suite endpoints return HTTP 200 in bounded local
+header checks; that availability check does not prove CI codec acceptance.
+The exact final-head GitHub checks are recorded in the pull request.
+
 ## Remaining acceptance
 
 The encoded test objects in the recovery fixture establish authenticated storage

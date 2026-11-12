@@ -74,9 +74,13 @@ The API codec, offline Bulletin-prototype and two browser jobs use **Ubuntu
 system packages, they call
 [`use-ubuntu-mirror.sh`](../../scripts/ci/use-ubuntu-mirror.sh). This helper
 refuses outside Linux GitHub Actions / the known Ubuntu 24.04 mirror-list
-contract. It selects the Kernel Archives' HTTPS Ubuntu mirror instead of the
-unresolvable Azure mirror. Suites, components, Ubuntu signing keys and repository
-signature checks remain unchanged; no key or unsigned package is imported.
+contract. It selects the official HTTPS Ubuntu archive, with Ubuntu's security
+archive as a lower-preference fallback. Both serve the configured suites; APT's
+[mirror transport](https://manpages.ubuntu.com/manpages/noble/man1/apt-transport-mirror.1.html)
+tries the next endpoint when a file cannot be acquired. This avoids depending
+only on the Azure or Kernel Archives endpoints that have timed out in CI.
+Suites, components, Ubuntu signing keys and repository signature checks remain
+unchanged; no key or unsigned package is imported.
 [Ubuntu's archive-verification model](https://documentation.ubuntu.com/security/software-integrity/archive-verification/)
 explains the package trust boundary independently of the delivery mirror.
 The setting exists only on the disposable CI runner, not a production machine.
