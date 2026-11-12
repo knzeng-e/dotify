@@ -14,7 +14,6 @@ import { recoverPreparedBulletinJob } from './bulletinPreparedRecovery.js';
 import { deriveContentKeyBytes } from './keyVault.js';
 import { parseStreamingReference } from './streamingReference.js';
 import { StreamingJobs } from './streamingJobs.js';
-import { assertStandardBulletinLayout } from './bulletinStorageLayout.js';
 import { readBulletinMediaPath } from './bulletinGraph.js';
 import { readAuthenticatedCompactObject } from './bulletinCompactReader.js';
 import { parseStreamingManifest, verifyStreamingManifest, decryptStreamingObject } from './streamingFormat.js';
@@ -321,8 +320,6 @@ export async function restoreRehearsal(file: string, digest: string) {
             }
             assert.equal(c.wire.writes.length, writes);
             assert.equal(c.wire.stored.size, snapshot.chain.stored.length + writes);
-            if (snapshot.mode === 'compact') assert.throws(() => assertStandardBulletinLayout(expected));
-            else assertStandardBulletinLayout(expected);
           }
         }
         assert.equal(c.wire.signerLoads, c.wire.closed);

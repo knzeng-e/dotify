@@ -5,6 +5,7 @@ import { readStreamingManifest, decryptStreamingMedia } from '../../src/features
 import { compatibilityMp4 } from '../../src/features/catalog/compatibilityMp4';
 import { registerAudioGain, forgetAudioGain, attachAudioNormalization, normalizedAudioCapture } from '../../src/features/player/audioNormalization';
 import { resumeHostAudioOutput, releaseHostAudioOutput } from '../../src/features/player/hostAudioOutput';
+import { audioOutputObservations } from '../../src/features/player/audioOutputLifecycle';
 import type { StreamingScope } from '../../src/features/catalog/streamingFormat';
 
 type Layout = 'standard' | 'compact';
@@ -209,6 +210,9 @@ export const harness = {
         ?.stream.getAudioTracks()
         .filter(t => t.readyState === 'live').length ?? 0,
     peers: peers.map(peer => ({ connection: peer.connectionState, ice: peer.iceConnectionState })),
+    // Distinguish the normalization/source context from this downstream probe.
+    // Both clocks can run while one graph emits no measurable samples.
+    sourceOutput: audioOutputObservations(),
     probeState: probe?.state ?? null,
     guestState: guestContext?.state ?? null,
     guestPlaying: guestAudio ? !guestAudio.paused : null
