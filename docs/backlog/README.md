@@ -2,8 +2,8 @@
 
 Current execution and code/deployment boundaries are in the
 [selected sequence](implementation/listening-and-publication-readiness.md).
-The #407 explicit compact delivery/admission candidate is documented there;
-real-media and recovery acceptance remain before activation. Dated entries below
+The #407 compact delivery/admission and synthetic AAC checks are documented there;
+physical-device and recovery acceptance remain before activation. Dated entries below
 retain their original checkpoints.
 
 ## Listening security review, 2026-11-11

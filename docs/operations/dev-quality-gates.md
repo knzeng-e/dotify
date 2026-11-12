@@ -101,6 +101,48 @@ setting. Do not modify service configuration or weaken assertions to repair a
 runner repository failure. A clean-runner retry after an external outage still
 needs the actual test results before it can count as passing.
 
+## Compact AAC acceptance
+
+Contributors can reproduce the local codec/transport gate without a wallet,
+storage account, production key or live Bulletin endpoint. It is part of
+`W35 / Adaptive streaming in three engines`, after the existing streaming and
+Room-output suites. Use Node 22, FFmpeg with AAC encoding, and the lock-matched
+Web and API dependencies. From the repository root:
+
+```sh
+npm ci --prefix services/api
+npm ci --prefix web
+cd services/api
+DOTIFY_TEST_FFMPEG="$(command -v ffmpeg)" node --import tsx src/scripts/streamingFixture.test.ts ../../web/.data/streaming-fixture.json ../../web/.data/compact-streaming-fixture.json
+cd ../../web
+npx playwright install chromium webkit firefox
+npx tsc --noEmit -p tsconfig.compact.json
+npx playwright test --config playwright.compact.config.ts
+```
+
+The first artifact retains the existing archive-free browser contract. The second
+contains complete standard/compact graphs of that same public synthetic audio;
+only its playback subset enters the Host browser fixture. Missing artifacts,
+decoding failures, absent audio signal and unexpected external HTTP traffic
+fail the gate. In CI, the API job generates both artifacts; only this specialized
+browser gate installs API dependencies to run its loopback fixture. Ordinary
+Web/Product builds keep their existing dependency boundary.
+
+The test servers bind only `127.0.0.1`: Vite Web `5293`, media API `5294`, Vite
+Host mode `5295`. Run this configuration serially, without another process on
+these ports. Its SDK responses and retained-key resolver are injected public
+synthetic data, not the real Host bridge or key-delivery service. All fixture
+scripts end in `.test.ts` and are excluded from the production API build.
+Do not publish the fixture server or copy these local settings into Fly/Netlify.
+
+The matrix's four intentional exclusions concern native HTTP-congestion cases
+and WebKit progressive capture energy. PCM decoding at all three qualities and
+compatibility guest-signal checks remain active on every engine/transport.
+The [coverage and remaining gates](../reference/bulletin-compact-delivery.md#automated-codec-acceptance)
+distinguish cold transport reopening from publication recovery and physical
+device acceptance. Failure traces and filtered synthetic codec reports are
+retained with the streaming job diagnostics.
+
 ## Operations
 
 Branch protection was enabled on 2026-09-20 after the backlog reconciliation PR

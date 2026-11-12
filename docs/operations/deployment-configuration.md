@@ -70,9 +70,11 @@ The [compact delivery candidate](../reference/bulletin-compact-delivery.md) adds
 an explicit reference, catalogue-gated ciphertext path and exact-source ledger
 version. It adds no environment variable or active allowance. A later delivery
 must match Web/Product/API/custody and preserve all retained keys and state;
-older binaries cannot interpret the new ledger/reference. Real-media/device and
-recovery gates remain before activation. Source availability is not a deployment
-or permission to apply an extension.
+older binaries cannot interpret the new ledger/reference. The
+[loopback AAC gate](dev-quality-gates.md#compact-aac-acceptance) uses test-only
+ports 5293–5295 and injected synthetic data, not hosted settings. Physical-device,
+recovery and memory gates remain before activation. Source availability is not a
+deployment or permission to apply an extension.
 
 The browser harness alone sets `DOTIFY_E2E_LOCAL_FONTS=true` on its local Vite
 dev server to remove external font links. This is not a `VITE_*` runtime flag;
