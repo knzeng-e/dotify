@@ -142,6 +142,11 @@ export async function restoreIsolatedBulletinCheckpoint(options: {
   // Poison normal publication bindings BEFORE materializing operational data.
   // Preserve original bytes under .checkpoint, never at the service entrypoint.
   for (const guard of guards) await privateWrite(join(destination, 'data', guard), guardBytes(digest));
+  // Make the refusal names durable before any ordinary data filename can
+  // survive a crash. A synced file alone does not commit its directory entry.
+  for (const directory of ['queue', 'publisher']) await sync(join(destination, 'data', directory));
+  await sync(join(destination, 'data'));
+  await sync(destination);
   for (const directory of plan.directories
     .filter(path => !['queue', 'publisher'].includes(path))
     .sort((a, b) => a.split('/').length - b.split('/').length || a.localeCompare(b))) {

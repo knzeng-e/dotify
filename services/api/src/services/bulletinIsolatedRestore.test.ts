@@ -12,6 +12,7 @@ import { assertPublicationBinding, publicationBinding } from './bulletinPublishe
 import { decryptStreamingObject, parseStreamingManifest, verifyStreamingManifest } from './streamingFormat.js';
 import { streamingKeyFingerprint } from './streamingNonces.js';
 import { StreamingJobs } from './streamingJobs.js';
+import { createStreamingPublicationStore } from './streamingPublicationStore.js';
 
 async function generated(t: TestContext, mode: 'standard' | 'compact' = 'standard', pruned = false) {
   const parent = await realpath(tmpdir());
@@ -79,6 +80,24 @@ for (const mode of ['standard', 'compact'] as const) {
     const relocated = { ...x.c.profile, directory: join(x.destination, 'data', 'publisher') };
     await writeFile(join(probe, 'publication-store.json'), JSON.stringify(publicationBinding(relocated)), { mode: 0o600 });
     await assert.rejects(assertPublicationBinding(probe, relocated), /Bulletin publication profile changed/);
+    const probeProfile = join(x.root, 'probe-profile.json');
+    await writeFile(probeProfile, JSON.stringify(relocated), { mode: 0o600 });
+    const noPublisher = {
+      loadSigner: async () => assert.fail('Restore must refuse before signer loading'),
+      openSession: () => assert.fail('Restore must never open a transport')
+    };
+    const options = {
+      provider: 'bulletin' as const,
+      queue: join(x.destination, 'data', 'queue'),
+      profileFile: probeProfile,
+      releaseAssets: true,
+      contentKeyVault: x.c.vault,
+      assetAuthority: async () => true
+    };
+    await assert.rejects(createStreamingPublicationStore(options, noPublisher), /Streaming publication profile changed/);
+    await assert.rejects(createStreamingPublicationStore({ ...options, queue: probe }, noPublisher), /Bulletin publication profile changed/);
+    await assert.rejects(createStreamingPublicationStore({ provider: 'pinata', queue: options.queue }, noPublisher), /cannot be opened with Pinata/);
+
     await assert.rejects(readFile(x.c.profile.seedFile), /ENOENT/);
     const output = join(x.destination, 'data', 'queue', 'jobs', x.c.options.jobId, 'output');
     const manifest = parseStreamingManifest(await readFile(join(output, 'manifest.json')));
