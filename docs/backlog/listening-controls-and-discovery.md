@@ -1,5 +1,20 @@
 # Listening controls and room discovery — next iteration
 
+## Artwork delivery and prepared-PNG candidate — 2026-11-13
+
+A controlled regression demonstrates that a stalled Cache Storage write can
+withhold an already downloaded cover. The candidate bounds optional disk lookup,
+returns the in-memory image before persistence and limits background storage to
+one writer without a queue. A bounded page-memory cache also lets a reopened
+metadata owner publish its already composed PNG immediately, while taking the
+current title/artist and preserving cancellation. See the [cache contract](../reference/public-artwork-cache.md)
+and [source-bound evidence](implementation/evidence/public-artwork-persistence-2026-11-13.md).
+This is a narrow #388 correction available for offline review while independent
+recovery is coordinated; the delivery/acceptance order remains #407 → #395 → #388.
+It does not establish the cause of the reported iPhone delay. Prepared-PNG reuse
+is a tested code candidate; matched timing reports, rapid changes and repeated
+physical locks remain open.
+
 ## Remaining artwork reliability, 2026-11-08
 
 The owner confirms intermittent late lock-screen cover display in **both solo

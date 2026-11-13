@@ -45,6 +45,7 @@ including successful starts and physical locked-screen observations.
 - [Socket events and negotiation limits](reference/socket-events.md)
 - [Development toolchain security](reference/development-toolchain.md)
 - [HTTP request limits](reference/request-limits.md)
+- [Public artwork cache](reference/public-artwork-cache.md): bounded delivery independent of optional browser storage
 - [API schema compatibility](reference/api-schema-compatibility.md)
 - [Compact Bulletin delivery and admission](reference/bulletin-compact-delivery.md): explicit format, encrypted delivery and immutable source selection
 - [Compact Bulletin object readers](reference/bulletin-compact-reader.md): authentication, bounds and cancellation
