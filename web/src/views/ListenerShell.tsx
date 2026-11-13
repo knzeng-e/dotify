@@ -191,16 +191,15 @@ export function ListenerShell() {
     const trackInfo = catalogTrackToTrackInfo(track);
     const isCurrentReadyTrack = track.id === catalog.selectedTrackId && Boolean(catalog.audioSource) && !isManagedAudioUrl(catalog.audioSource);
     if (isCurrentReadyTrack) {
-      if (!playback.transport.playing) void playback.togglePlay();
       prepareLocalStream();
       session.createSession(trackInfo, 'full', undefined, { audioSourceHint: catalog.audioSource, onCreated, creationSignal, profile });
       return;
     }
 
-    // Opening a room is an explicit playback action. Re-arm intent before the
-    // source changes so a previous solo Pause does not keep the room track
-    // silent. Transport Next/Previous still preserves pause independently.
-    playback.requestAutoplay();
+    // Sharing the current track changes its audience, not its playback intent.
+    // Only choosing a different/unloaded track starts a new listening action.
+    // A Pause before or during preparation must survive the Room handoff.
+    if (track.id !== catalog.selectedTrackId || !catalog.audioSource) playback.requestAutoplay();
     let mediaDeadlineMs: number | undefined;
     if (track.id === catalog.selectedTrackId && isManagedAudioUrl(catalog.audioSource)) {
       try {

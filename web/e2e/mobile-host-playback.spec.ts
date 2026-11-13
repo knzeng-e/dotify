@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
+import { installMediaSessionProbe } from './fixtures/mediaSessionProbe';
 
 async function instrumentOutput(page: Page) {
   await page.addInitScript(() => {
@@ -171,6 +172,56 @@ test('opening a room with another track re-arms playback after a solo pause', as
   await expect(audio).toHaveJSProperty('paused', false);
   await expect(page.getByRole('button', { name: 'Pause', exact: true })).toBeEnabled();
 });
+
+for (const pause of ['transport', 'native'] as const)
+  test(`opening the current paused track in a Room preserves its ${pause} pause`, async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/?e2eRoom=public&e2eSync=on&e2eCapture=web-audio&e2eAutoplay=on');
+    await page.getByRole('button', { name: /^Play E2E Public Room Track by Dotify Room Host,/ }).click();
+    const audio = page.locator('audio.native-player-source').first();
+    await expect(audio).toHaveJSProperty('paused', false);
+    if (pause === 'transport') await page.getByRole('button', { name: 'Pause', exact: true }).click();
+    else await audio.evaluate(element => element.pause());
+    await expect(audio).toHaveJSProperty('paused', true);
+    const position = await audio.evaluate(element => element.currentTime);
+    await page.getByRole('button', { name: 'Open a room', exact: true }).click();
+    await page.getByLabel('Your name or nickname').fill('Paused host');
+    await page.getByRole('button', { name: 'Open the room', exact: true }).click();
+    await expect(page.getByTestId('room-code')).toHaveText(/[A-Z0-9]{4,}/);
+    await expect(audio).toHaveJSProperty('paused', true);
+    await page.waitForTimeout(250);
+    expect(await audio.evaluate(element => element.currentTime)).toBeCloseTo(position, 1);
+    await page.getByRole('button', { name: 'Play', exact: true }).click();
+    await expect(audio).toHaveJSProperty('paused', false);
+  });
+
+for (const pause of ['system', 'native'] as const)
+  test(`a ${pause} pause rejects an unsolicited foreground play until explicit Play`, async ({ page }) => {
+    await installMediaSessionProbe(page);
+    await page.goto('/?e2eRoom=public&e2eSync=on&e2eCapture=web-audio&e2eAutoplay=on');
+    await page.getByRole('button', { name: /^Play E2E Public Room Track by Dotify Room Host,/ }).click();
+    const audio = page.locator('audio.native-player-source').first();
+    await expect(audio).toHaveJSProperty('paused', false);
+    if (pause === 'system') await page.evaluate(() => Reflect.get(window, '__TEST_MUSIC_SESSION__').handlers.pause({ action: 'pause' }));
+    else await audio.evaluate(element => element.pause());
+    await expect(audio).toHaveJSProperty('paused', true);
+    const position = await audio.evaluate(element => element.currentTime);
+    // Controlled Host fault: foreground completion attempts play without a new
+    // registered Play command. This does not claim to emulate iOS locking.
+    await page.evaluate(async () => {
+      document.dispatchEvent(new Event('visibilitychange'));
+      window.dispatchEvent(new Event('pageshow'));
+      await document
+        .querySelector('audio')!
+        .play()
+        .catch(() => undefined);
+    });
+    await expect(audio).toHaveJSProperty('paused', true);
+    await page.waitForTimeout(250);
+    expect(await audio.evaluate(element => element.currentTime)).toBeCloseTo(position, 1);
+    await page.evaluate(() => Reflect.get(window, '__TEST_MUSIC_SESSION__').handlers.play({ action: 'play' }));
+    await expect(audio).toHaveJSProperty('paused', false);
+  });
 
 test('room colors stay consistent between desktop and mobile in either system theme', async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
