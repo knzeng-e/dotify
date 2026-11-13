@@ -1,14 +1,11 @@
 # Dotify implementation playbook
 
 Start with the [selected execution sequence](listening-and-publication-readiness.md).
-Its #407 checkpoint includes explicit compact reference/dispatch and exact-source
-admission, with a synthetic real-AAC decoder/loopback gate. Physical-device,
-operational data/key recovery and hosted-memory acceptance remain before activation.
-The [data-only custody checkpoint candidate](../../operations/bulletin-custody-checkpoint.md)
-prepares exact settled-state capture. [Isolated reconstruction](../../operations/bulletin-isolated-restore.md)
-now recovers its files/history behind publication barriers; generated tests are
-not real independent data/key recovery. The [explicit recovered-key check](../../operations/bulletin-recovered-key-check.md)
-adds offline ciphertext authentication; second-Mac data/key transfer remains separate.
+Its [bounded recovery slice](listening-and-publication-readiness.md#bounded-recovery-before-the-public-pilot)
+ends with one real independently authenticated release/key recovery, then returns
+to publication latency. General backup-platform expansion is outside this slice.
+Merged archive/authentication code and accepted generated rehearsals do not
+complete the real, activation, physical-device or public-pilot gates.
 
 ## Listening security review, 2026-11-11
 
