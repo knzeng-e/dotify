@@ -36,12 +36,15 @@ Local Linux arm64 application image IDs (not a delivered combined image):
 | Encoder   | `sha256:e6343c6b59a267cf53686e2350169ea94f964795fa3c5c1d1a3ab4e9784f2bf3` |
 | Signaling | `sha256:0d880215e4ae7546e758ea49697ce6c9728a7926e49407a1d1b9ce696422f6d2` |
 
-## Demonstrated context failure
+## Demonstrated context-filter gap
 
 With each original context filter, a generated-only Docker `COPY .` rehearsal
 receives a private canary: Web includes `.data`; API includes an unexcluded local
-credential directory. Selective application COPY rules do not prevent the
-preceding context transmission. No real private tree is read or copied.
+credential directory. The rehearsal deliberately consumes the whole available
+context, exposing missing exclusions independently of BuildKit’s unused-file
+optimization. Ordinary application COPY rules are selective; this is not proof
+that a previous live build transmitted those files. No real private tree is read
+or copied.
 
 The corrected filters pass both staged contexts: nine private canaries per
 context are absent, while four public source sentinels remain. The test uses the
@@ -77,7 +80,9 @@ new Linux arm64 images. The dependency lockfiles are unchanged.
 
 ## Remaining gates
 
-Exact PR-head CI, including amd64 Docker execution, remains pending at recording.
+Formatting/whitespace, offline/live backlog checks and 188 local documentation
+paths/anchors pass. Exact PR-head CI, including amd64 Docker execution, remains
+pending at recording.
 The API-schema (#432/#446) and toolchain (#433/#447) fixes are separate candidates;
 this runtime patch does not remove their npm advisories or establish an empty
 OS/package vulnerability scan. Test the eventual combined image before delivery.

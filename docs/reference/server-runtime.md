@@ -50,7 +50,10 @@ Build from a clean reviewed worktree. Both context filters exclude `.data`,
 local environment files, dependency/build output, Git metadata, local credential
 directories and `.npmrc`. `.data` contains operator archives and reports; it is
 not application source. A file excluded by Docker’s context filter is not sent
-to its builder. A selective `COPY` alone does not provide that guarantee.
+to its builder. [BuildKit](https://docs.docker.com/build/buildkit/) can also skip
+unused files, but explicit exclusions keep that privacy boundary independent of
+the builder and future COPY changes. The canary test forces whole-context use;
+it does not measure a previous live transfer.
 
 Run `node scripts/rehearse-container-context.mjs` from `services/api` to exercise
 the actual filters with generated canaries and public source sentinels. It builds
