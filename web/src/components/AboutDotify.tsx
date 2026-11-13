@@ -1,6 +1,7 @@
 import { streamingMediaSource } from '../features/catalog/streamingMediaSource';
 import { Check, Copy, Info, X } from 'lucide-react';
 import { useState } from 'react';
+import { AudioFailureDiagnostics } from './AudioFailureDiagnostics';
 import { Dialog } from './Dialog';
 
 function productVersion(): string | null {
@@ -106,6 +107,14 @@ export function AboutDotify() {
                 ? 'App details copied. No account or listening information included.'
                 : 'Only app details are copied. No account or listening information.'}
           </p>
+          <details className='about-dotify-details'>
+            <summary>Listening support</summary>
+            <p className='about-dotify-note'>
+              Copy recent loading timings to help investigate slow or interrupted listening, even if it worked. No account, track name or audio is included.
+              Nothing is sent automatically.
+            </p>
+            <AudioFailureDiagnostics />
+          </details>
         </Dialog>
       )}
     </>

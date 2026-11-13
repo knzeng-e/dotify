@@ -1,6 +1,10 @@
 import { audioOutputObservations, clearAudioOutputObservations, type AudioOutputObservation } from '../player/audioOutputLifecycle';
+import type { StreamingReadTimings } from './streamingReadTimings';
 import { playbackContinuity } from '../player/playbackContinuity';
 export type StreamingStartupPhase =
+  | 'preparation-started'
+  | 'prepared-source-reused'
+  | 'compatibility-downloaded'
   | 'prepared-source-adopted'
   | 'rendition-selected'
   | 'key-authorized'
@@ -18,6 +22,11 @@ export type HostAudioTerminalReason = 'access-denied' | 'selection-failed' | 'se
 
 export type StreamingStartupMetric = {
   phase: StreamingStartupPhase;
+  attemptId?: string;
+  readAttempt?: number;
+  selectionElapsedMs?: number;
+  forRoomCapture?: boolean;
+  readTimings?: StreamingReadTimings;
   audioRef: string;
   cid: string;
   elapsedMs: number;
@@ -36,6 +45,7 @@ export type StreamingStartupMetric = {
 };
 
 export type HostAudioStartupMetric = {
+  forRoomCapture?: boolean;
   phase: 'playback-intent' | 'source-selected' | 'metadata-ready' | 'media-playing' | 'error';
   attemptId: string;
   source: string;
@@ -72,6 +82,9 @@ declare global {
 
 const MAX_AUDIO_STARTUP_EVENTS = 160;
 const streamingPhases = new Set<StreamingStartupPhase>([
+  'preparation-started',
+  'prepared-source-reused',
+  'compatibility-downloaded',
   'prepared-source-adopted',
   'rendition-selected',
   'key-authorized',
@@ -122,6 +135,10 @@ function isStreamingStartupMetric(value: unknown): value is StreamingStartupMetr
   if (!isRecord(value)) return false;
   return (
     streamingPhases.has(value.phase as StreamingStartupPhase) &&
+    optionalString(value.attemptId) &&
+    optionalNumber(value.readAttempt) &&
+    optionalNumber(value.selectionElapsedMs) &&
+    optionalBoolean(value.forRoomCapture) &&
     typeof value.audioRef === 'string' &&
     typeof value.cid === 'string' &&
     isFiniteNumber(value.elapsedMs) &&
@@ -144,6 +161,7 @@ function isHostAudioStartupMetric(value: unknown): value is HostAudioStartupMetr
   if (!isRecord(value)) return false;
   return (
     hostPhases.has(value.phase as HostAudioStartupMetric['phase']) &&
+    optionalBoolean(value.forRoomCapture) &&
     typeof value.attemptId === 'string' &&
     value.attemptId.length > 0 &&
     typeof value.source === 'string' &&
@@ -199,20 +217,73 @@ export function getAudioStartupTelemetrySnapshot(): AudioStartupTelemetrySnapsho
 
 /** Explicit support export: never serialize source URLs, CIDs or arbitrary error detail. */
 export function serializeAudioDiagnostics(snapshot: AudioStartupTelemetrySnapshot, buildSha?: string | null): string {
+  // Correlate within this export only; never disclose internal selection/source IDs.
+  const attempts = new Map<string, number>();
+  const attemptNumber = (id?: string) => {
+    if (!id) return undefined;
+    if (!attempts.has(id)) attempts.set(id, attempts.size + 1);
+    return attempts.get(id);
+  };
+  const host = snapshot.host.slice(-160);
+  const streaming = snapshot.streaming.slice(-160);
+  [...host, ...streaming].sort((a, b) => a.timestamp - b.timestamp).forEach(event => attemptNumber(event.attemptId));
+  const safeNumber = (value: unknown) => (typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : undefined);
+  const readTimings = (value?: StreamingReadTimings) =>
+    value &&
+    Object.fromEntries(
+      [
+        'objectsRead',
+        'objectsDecrypted',
+        'encryptedBytes',
+        'cachedObjects',
+        'hostObjects',
+        'httpObjects',
+        'recoveredObjects',
+        'readWorkMs',
+        'decryptWorkMs',
+        'maxReadMs'
+      ].map(key => [key, safeNumber(value[key as keyof StreamingReadTimings])])
+    );
   return JSON.stringify(
     {
       schema: 'dotify.audio-diagnostics.v1',
       buildSha: /^[a-f0-9]{40}$/i.test(buildSha ?? '') ? buildSha : null,
       observedAt: new Date().toISOString(),
-      streaming: snapshot.streaming.slice(-160).map(({ phase, elapsedMs, timestamp, objectPath, fromCache, errorKind }) => ({
+      streaming: streaming.map(
+        ({
+          phase,
+          elapsedMs,
+          timestamp,
+          objectPath,
+          fromCache,
+          errorKind,
+          attemptId,
+          readAttempt,
+          selectionElapsedMs,
+          forRoomCapture,
+          readTimings: timings
+        }) => ({
+          attempt: attemptNumber(attemptId),
+          readAttempt: safeNumber(readAttempt),
+          selectionElapsedMs: safeNumber(selectionElapsedMs),
+          forRoomCapture: typeof forRoomCapture === 'boolean' ? forRoomCapture : undefined,
+          readTimings: readTimings(timings),
+          phase,
+          elapsedMs,
+          timestamp,
+          fromCache,
+          errorKind,
+          objectPath: /^(manifest\.json|(?:96|160|320)\/(?:init|segment-[0-9]{3})\.bin)$/.test(objectPath ?? '') ? objectPath : undefined
+        })
+      ),
+      host: host.map(({ phase, elapsedMs, timestamp, terminalReason, attemptId, forRoomCapture }) => ({
+        attempt: attemptNumber(attemptId),
         phase,
         elapsedMs,
         timestamp,
-        fromCache,
-        errorKind,
-        objectPath: /^(manifest\.json|(?:96|160|320)\/(?:init|segment-[0-9]{3})\.bin)$/.test(objectPath ?? '') ? objectPath : undefined
+        terminalReason,
+        forRoomCapture: typeof forRoomCapture === 'boolean' ? forRoomCapture : undefined
       })),
-      host: snapshot.host.slice(-160).map(({ phase, elapsedMs, timestamp, terminalReason }) => ({ phase, elapsedMs, timestamp, terminalReason })),
       output: (snapshot.output ?? [])
         .slice(-96)
         .map(({ generation, event, timestamp, contextState, contextSeconds, mediaSeconds, paused, readyState, visibility, sessionType, sessionState }) => ({

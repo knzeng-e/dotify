@@ -169,7 +169,9 @@ Test late join, pause/resume, seek, track change and reconnect with actual host
 and guest clients. Check silence on pause or stale state and sound after explicit
 resume. Include foreground, locked/background and relay-only paths when they
 are in scope. Browser automation does not establish physical-device audibility
-or acoustic synchronization.
+or acoustic synchronization. For slow starts, collect successful and failed
+[correlated support reports](../how-to/measure-room-startup.md) from the same
+reviewed client build before changing timeouts or transport behavior.
 
 ## Rollback and uncertain state
 
