@@ -1,4 +1,14 @@
 # Listening controls and room discovery — next iteration
+## Immediate-lock observation after 0.1.83 delivery
+
+The owner reports a blank cover after a requested signature and immediate phone
+lock on the verified 0.1.83 managed-AAC client. Its timing report is lost after
+restart. A [separate successful control](implementation/evidence/system-artwork-owner-control-2026-11-13.json)
+registers PNG metadata in 20 ms and is explicitly confirmed to show the cover and
+sound. It cannot establish the missing-cover cause or native display latency.
+Retain this trigger and collect a matching failed-attempt report before the next
+reload; #388 remains open. Pause follow-ups are handled under #395 first.
+
 
 ## Matched artwork timing candidate — 2026-11-13
 

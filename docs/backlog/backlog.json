@@ -7,12 +7,40 @@
     "number": 5,
     "url": "https://github.com/users/knzeng-e/projects/5",
     "statusField": "Status",
-    "statusOptions": ["Todo", "In Progress", "In Review", "Done"],
+    "statusOptions": [
+      "Todo",
+      "In Progress",
+      "In Review",
+      "Done"
+    ],
     "recommendedFields": {
-      "Priority": ["P0", "P1", "P2", "P3"],
-      "Track": ["Production spine", "Product SDK", "Room reliability", "Personhood", "Cultural propagation", "Design record"],
-      "Phase": ["Now", "Next", "Product feasibility", "Later", "Record"],
-      "Type": ["Work", "Research", "Epic", "Record"],
+      "Priority": [
+        "P0",
+        "P1",
+        "P2",
+        "P3"
+      ],
+      "Track": [
+        "Production spine",
+        "Product SDK",
+        "Room reliability",
+        "Personhood",
+        "Cultural propagation",
+        "Design record"
+      ],
+      "Phase": [
+        "Now",
+        "Next",
+        "Product feasibility",
+        "Later",
+        "Record"
+      ],
+      "Type": [
+        "Work",
+        "Research",
+        "Epic",
+        "Record"
+      ],
       "Backlog doc": "text"
     }
   },
@@ -112,7 +140,7 @@
       "priority": "P1",
       "track": "Production spine",
       "phase": "Next",
-      "note": "Web/Product 0.1.83 delivers #457/#458 from tested dev for same-track solo-to-Room continuity, local reports and artwork checks. Exact release CI, independent Web/object/DotNS readback and unchanged custody restart/health pass. Repeated full-track/locked-phone and audible Web/Desktop guest acceptance remain open; no startup speedup is claimed. Publication latency and deferred recovery retain their separate gates. Canonical checkpoint: docs/backlog/implementation/evidence/product-0.1.83-rollout-2026-11-13.md."
+      "note": "Web/Product 0.1.83 is independently delivered; the owner confirms audible/control use during Room preparation and audible Web/Desktop guests under the requested short phone lock. Pause fails at Room opening and intermittently after native locked-screen Pause. A bounded shared-intent correction is implemented for review, not deployed; its evidence is docs/backlog/implementation/evidence/explicit-pause-authority-2026-11-13.md. Matching native controls, repeated/full-track listening and startup latency remain open; real recovery remains deferred."
     },
     {
       "id": "listening-controls-and-discovery",
@@ -122,7 +150,7 @@
       "priority": "P1",
       "track": "Production spine",
       "phase": "Next",
-      "note": "Web/Product 0.1.83 delivers #448/#458 public-storage/prepared-PNG fixes, local phase observations and guarded metadata cleanup. Native delay is not yet diagnosed or accepted as fixed. Repeated solo/Room phone locks, rapid changes, correct attribution, disconnect and actual native controls remain. Canonical checkpoint: docs/backlog/implementation/evidence/product-0.1.83-rollout-2026-11-13.md."
+      "note": "Web/Product 0.1.83 delivers prepared-PNG reuse and bounded phase observations. The owner reports a blank cover after a requested signature and immediate lock; its timing history was lost on restart. A separate owner-confirmed successful control publishes PNG metadata in 20 ms; it does not explain the failure. Keep matched failed-report, repeated solo/Room locks, attribution, disconnect and native-control acceptance open. Canonical checkpoint: docs/backlog/implementation/evidence/product-0.1.83-rollout-2026-11-13.md."
     },
     {
       "id": "room-galaxy-restoration",

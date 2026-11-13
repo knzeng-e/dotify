@@ -1,6 +1,6 @@
 # Web/Product 0.1.83 delivery — 2026-11-13
 
-**Delivered and independently verified; matching phone acceptance remains open.**
+**Delivered and independently verified; partial phone acceptance exposes Pause and artwork follow-ups.**
 Web and `dotify-test01.dot` serve frozen release `929abe9306d0cc83fee4a74eb2f94b5416bdb8a5`,
 from tested merged dev `0bb52754`. This brings the solo-to-Room continuity,
 public artwork reuse and bounded local observation changes to users. Refs #395,
@@ -70,11 +70,28 @@ No application source, timeout or layout assertion changes. Seven of eight
 focused cases pass initially; the landscape case hits local ENOSPC while saving
 a screenshot, not a UI assertion. After space is available, all six focused
 portrait/landscape repetitions pass. Together the runs cover the eight selected
-scenarios. Format/diff checks pass; renewed full #459 CI remains a separate check.
+scenarios. Format/diff checks and the complete #459 CI at `91bb1768` pass ([run](https://github.com/knzeng-e/dotify/actions/runs/43445484506)). Later Pause application changes require their own exact-head CI.
+
+## Owner phone observations
+
+The owner confirms continued audible/control use during the requested solo-to-Room
+preparation and audible Web/Desktop guests under the requested short phone lock.
+Pause is **not** accepted: a pause during preparation is overridden at Room opening,
+and intermittent resume after locked-screen Pause is reported. The [separate
+corrective candidate](explicit-pause-authority-2026-11-13.md) is not part of this
+frozen delivered artifact. The Host version is not restated in this reply.
+
+A missing cover after a requested signature and immediate phone lock remains
+reported. The first exported empty report follows an app restart and cannot
+diagnose it. The next uploaded report is explicitly a **successful cover/sound
+control**, with source `929abe93`: PNG metadata assignment finishes in 20 ms while
+visible, before audio authorization and lock. [Sanitized control facts](system-artwork-owner-control-2026-11-13.json)
+retain its source/phase provenance. They do not identify the missing-cover cause
+or prove native reliability. #388 stays open for a matching failed-attempt report.
 
 ## Next acceptance
 
-On the actual phone/Host, repeat same-track solo-to-Room preparation, Pause during
+After a matching corrected client delivery, repeat same-track solo-to-Room preparation, Pause during
 the wait, audible Web/Desktop guests, short and full-track locked listening,
 Room-to-solo, repeated artwork locks/changes and disconnect. Use existing music;
 copy the explicit local report before retrying. Startup latency and late native

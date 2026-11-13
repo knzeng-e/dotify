@@ -61,6 +61,14 @@
     ],
     "observedAt": "2026-11-13T14:31:38.653168+00:00"
   },
-  "physicalAcceptance": "pending",
+  "physicalAcceptance": {
+    "status": "partial; Pause failure remains",
+    "ownerConfirmsSoloPreparationContinuity": true,
+    "ownerConfirmsGuestsDuringRequestedShortLock": true,
+    "pauseDuringRoomPreparation": "failed",
+    "nativePauseThenUnlock": "intermittent automatic resume reported",
+    "artwork": "intermittent missing cover reported; separate successful control",
+    "hostVersionRestated": false
+  },
   "automaticRenewalActivated": false
 }
