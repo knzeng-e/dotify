@@ -8,6 +8,7 @@ const phases = new Set([
   'decoded',
   'composed',
   'fallback',
+  'retry-requested',
   'metadata-published',
   'failed',
   'cancelled',

@@ -60,6 +60,7 @@ including successful starts and physical locked-screen observations.
 - [Contract reference](reference/contracts-api.md) and [generated bindings](../web/src/generated/contracts/)
 - [Shared TypeScript source](../web/src/shared/types.ts)
 - [Access and key-delivery threat model](security/content-key-delivery-threat-model.md)
+- [CASH work-tip feasibility](design/product-cash-tip-decision-2026-11-13.md): dated API/recovery decision and remaining Host/settlement gates
 - [Native contributions](design/native-contributions.md) and [royalty settlement](explanation/royalty-settlement.md)
 
 ## Operate and prepare a release

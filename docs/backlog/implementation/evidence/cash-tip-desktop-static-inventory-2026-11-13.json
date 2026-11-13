@@ -1,0 +1,65 @@
+{
+  "observedAt": "2026-11-13",
+  "method": "Read public Info.plist and bounded allowlisted ASAR entries; no application execution or user-profile access.",
+  "scope": "Static bundled declarations only; active backend, permissions, payment units and receipt persistence not verified.",
+  "applications": [
+    {
+      "application": "Polkadot Desktop",
+      "wrapperVersion": "1.0.0-rc.1",
+      "wrapperBuild": "1.0.0-rc.1",
+      "archiveBytes": 459949508,
+      "packageVersionsAtInspectedPaths": {
+        "polkadot-desktop": "1.0.0-rc.1",
+        "@novasamatech/host-api": "0.8.10"
+      },
+      "files": {
+        "package.json": {
+          "bytes": 426,
+          "sha256": "fb4fb3c123b08c0edb87d93b4efcbcc1d8379cdbad0ee6478991b7aa3ca3613f"
+        },
+        "node_modules/@parity/truapi/package.json": {
+          "foundAtExactPath": false
+        },
+        "node_modules/@novasamatech/host-api/package.json": {
+          "bytes": 777,
+          "sha256": "b66a5a0711f323818dc639e77c4648f75eaffc5946f0f4352a59e0c1935cc7f6"
+        },
+        "node_modules/@novasamatech/host-api/dist/protocol/v1/payments.js": {
+          "bytes": 2787,
+          "sha256": "cdadc8fbfbf4ec3cc5096d4d9e7d56ec8aa309156d6ccaa52ec9eea270b21cb4"
+        }
+      }
+    },
+    {
+      "application": "Polkadot Desktop Dev",
+      "wrapperVersion": "0.1.4-rc.3",
+      "wrapperBuild": "0.1.4-rc.3",
+      "archiveBytes": 502972603,
+      "packageVersionsAtInspectedPaths": {
+        "polkadot-desktop": "0.1.4-rc.3",
+        "@parity/truapi": "0.25.0",
+        "@novasamatech/host-api": "0.12.0"
+      },
+      "files": {
+        "package.json": {
+          "bytes": 462,
+          "sha256": "246918fdba893d56d9153d177aa781df504e7683bb81ce33437ec75d05273515"
+        },
+        "node_modules/@parity/truapi/package.json": {
+          "bytes": 2332,
+          "sha256": "531c28f1f412ead551dc3646ff33dfb8174639b265593442ec9e1320bddf36f7"
+        },
+        "node_modules/@novasamatech/host-api/package.json": {
+          "bytes": 777,
+          "sha256": "c2e0a162fb03828953d1925db36e94ca2ef3f55075f4e5e01056006c0044494a"
+        },
+        "node_modules/@novasamatech/host-api/dist/protocol/v1/payments.js": {
+          "bytes": 5000,
+          "sha256": "e47bf26a20200f44e735f6c396707ea110406c4523c6d22ea008a047964d289d"
+        }
+      }
+    }
+  ],
+  "hostMethodsCalled": 0,
+  "paymentsSubmitted": 0
+}
