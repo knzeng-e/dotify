@@ -1,5 +1,14 @@
 # Publication, listening reliability and CASH — execution order
 
+## Room continuity candidate, 2026-11-13
+
+[The same-track handoff](../../adr/0059-preserve-solo-during-room-preparation.md)
+keeps solo listening active during mobile Room preparation, within the existing
+access and media limits. It is an independent #395 product slice, not deployment,
+a measured startup speedup or physical background acceptance. Recovery remains
+deferred at the owner's request; #407 and the public-pilot safety gates stay open.
+
+
 The [published-data archive candidate](../../operations/bulletin-published-archive.md)
 now separates immutable graph backup from prunable queue files. The refreshed
 [V4 generated reader is owner-accepted on the second Mac](evidence/second-mac-v4-2026-11-13.md);

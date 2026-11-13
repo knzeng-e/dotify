@@ -9,6 +9,10 @@ system controls and local resume](explanation/continuous-listening.md). Its
 [W35 evidence](backlog/implementation/evidence/W35.md) separates browser checks
 from physical Product acceptance and publication.
 
+The [solo-to-Room continuity candidate](adr/0059-preserve-solo-during-room-preparation.md)
+keeps current solo audio usable during authenticated mobile Room preparation;
+matching physical-device acceptance remains open.
+
 ## Use Dotify
 
 | I want to…                                        | Start here                                                                |
