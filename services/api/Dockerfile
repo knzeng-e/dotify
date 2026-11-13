@@ -1,4 +1,4 @@
-FROM node:22.13.1-slim AS build
+FROM node:22.23.5-bookworm-slim@sha256:e9f565d32859f0cbfb52125eafe8be39390f24dac302dc3cdf566e8ba3ab21ee AS build
 
 WORKDIR /app
 
@@ -10,7 +10,7 @@ COPY src ./src
 RUN npm run build
 RUN npm prune --omit=dev
 
-FROM node:22.13.1-slim AS runtime-base
+FROM node:22.23.5-bookworm-slim@sha256:e9f565d32859f0cbfb52125eafe8be39390f24dac302dc3cdf566e8ba3ab21ee AS runtime-base
 
 WORKDIR /app
 ENV NODE_ENV=production

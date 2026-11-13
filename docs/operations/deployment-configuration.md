@@ -145,6 +145,10 @@ that DotNS points to it or that the Host can run it.
 
 ### Fly backend API
 
+For Node image updates, follow the [runtime selection and validation boundary](../reference/server-runtime.md).
+A source pin is a build candidate; record the delivered image/version separately,
+and preserve the existing UID, mounts, keys and historical state.
+
 Determine whether the change affects public API replicas, custody, the encoder,
 or several components. Do not replace one role's configuration with another's.
 Check shared state, mounts, retained keys and readiness using the appropriate

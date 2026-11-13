@@ -9,7 +9,9 @@ and **You** form the listener app; `/artists` opens the artist studio.
 
 ## Run locally
 
-Use Node 22.12+ (within Node 22) and npm 10+. From this directory:
+Use the [maintained Node 22 patch](../docs/reference/server-runtime.md) selected
+in `.nvmrc`, and npm 10+. See [tooling requirements](../docs/reference/development-toolchain.md)
+for the supported version range. From this directory:
 
 ```sh
 npm ci

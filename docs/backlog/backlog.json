@@ -25,6 +25,16 @@
   },
   "items": [
     {
+      "id": "server-node-runtime",
+      "doc": "docs/backlog/server-node-runtime.md",
+      "issue": 449,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Next",
+      "note": "Same-major Node22 security refresh for API, isolated encoder and signaling; pin the reviewed Bookworm image, validate crypto/HTTP/AAC/non-root recovery, and keep real-key capture and service delivery separate. Complements #432/#433; no live inspection, maintenance, key export or chain operation is authorized. #407 remains Now/In Progress."
+    },
+    {
       "id": "tooling-security-migration",
       "doc": "docs/backlog/tooling-security-migration.md",
       "issue": 433,
@@ -62,7 +72,7 @@
       "priority": "P1",
       "track": "Production spine",
       "phase": "Now",
-      "note": "Publication/listening succeed; latest owner Publish-to-wallet report is 7 min 46 s. The compact constructor and v3 journal binding are merged; legacy standard jobs retain v2 and their histories. Internal API/Host object readers now share a bounded portable engine, authenticate the manifest/scope and root binding, and reconstruct only intersecting chunks. No ordinary route/player/publisher or admission selects compact. Next connect explicit registered reference/dispatch and immutable per-identity admission, then real AAC startup/seek/adaptation, legacy/restart recovery, Room/background, first-sound and memory acceptance. Synthetic block/wave reductions are not a live speedup. No deployment or new funded trial is authorized; custody stays #426 and Web/Product/public APIs 0.1.82. #407 stays Now/In Progress before Room/artwork/CASH; conservation/access/off-provider recovery remain pilot gates. See docs/reference/bulletin-compact-reader.md."
+      "note": "Publication/listening succeed; latest owner Publish-to-wallet report is 7 min 46 s. Explicit compact references, ordinary Web/API/Host dispatch, exact-source admission, prepared recovery and guarded checkpoint/key readback are implemented candidates with generated AAC/recovery coverage. The owner confirms the generated-only second-Mac reconstruction/authentication; real data and keys have not been transferred. Next pin a maintained reader (#449), prepare separately reviewed encrypted data/key recovery, and complete current-history/service rollback, physical listening/background and hosted-capacity acceptance. Existing live sources remain standard; custody stays #426 and Web/Product/public APIs 0.1.82. No deployment, new funded trial or renewal is authorized; #407 stays Now/In Progress before #395/#388/CASH. Canonical detail: docs/backlog/implementation/listening-and-publication-readiness.md."
     },
     {
       "id": "product-cash-tip-feasibility",

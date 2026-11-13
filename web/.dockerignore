@@ -6,3 +6,9 @@ dist-bulletin
 .playwright-cli
 npm-debug.log*
 
+.data
+.git
+.aws
+.codex
+.agents
+.npmrc
