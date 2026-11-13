@@ -1,6 +1,8 @@
 # Bounded artwork recovery on return — 2026-11-13
 
 Base: tested merged dev `0bb52754b14bc366690ac85d1d7ad1dc089d8d28`.
+Implementation validated at `412c91122b19924f81717f763e4e32009b413702`; the following evidence-only
+commit changes no application or test source.
 Branch: `fix/system-artwork-return`. Refs #388. Implemented candidate, not a client
 or service delivery; current deployed Product remains 0.1.83. This branch does
 not include the independent Pause correction in #459 or payment research #460.
