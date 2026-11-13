@@ -92,3 +92,43 @@ occurs here. A real reader must be separately frozen and accepted, with encrypte
 transfer and independently recovered content keys. Physical Web/Host listening,
 locked-screen behavior, current canonical history, service/image rollback, hosted
 capacity and acceptable live latency remain separate public-pilot gates.
+
+## Integration with the schema and toolchain fixes
+
+Merge `1622cbe8314b1681dfe4570c6c49f0397b2784d1` incorporates tested dev
+`53df0b850160583789000c5ec7843c31d3edbde7` (#446/#447). Only local-development
+instructions conflicted: the maintained patch recommendation and a link to the
+toolchain compatibility range are both retained. API TypeScript/package/lock
+inputs match that dev; the runtime recipes and context guard match the earlier
+runtime source. The merged frontend passes **1,147 tests / 149 files** with the
+locked Vitest 5 dependencies. Updated-head CI remains separate from earlier CI.
+Web/frozen Product builds and lint also pass; the two existing App hook and
+large-chunk warnings remain. Conflict-marker, reference/anchor, formatting,
+whitespace and offline backlog checks pass.
+
+A Linux arm64 reader image combines that API subtree
+`8a740639942fe2f39539e05cecf880e3f5b1ec3d` and the pinned runtime recipe. Its
+build stage adds the three required tracked public test fixtures and runs all
+**616 API tests / 43 suites as UID 1000: zero failures/skips**, then compiles and
+prunes development dependencies. An initial incomplete test context failed on
+missing fixtures; an earlier root pass skipped two ownership cases. Neither is
+the final coverage claim. Runtime image
+`sha256:673ace88bfb912168baf96226952e0f816cf9e3fd58227db6f9c06e7b03b5c7e`
+replaces default service startup with an exit-one refusal; canonical recovery
+commands are unchanged. No live service uses this image.
+
+Under the source Mac UID, both generated layouts reconstruct and authenticate
+14 objects each after removal of the input copy/volume. Six wrong-digest/key/
+file-permission cases refuse. The privileged provisioner handles empty volumes
+and is removed before payload. Archive-mode data copies preserve ownership;
+the public test key enters a private temporary filesystem separately on stdin,
+without key bytes in arguments/output or post-transfer owner/mode changes.
+Readback has read-only data, no input/host mounts and network `none`; publication,
+key-origin, independence and service/history activation claims remain false.
+
+This is local generated evidence only. No refreshed ZIP or second-Mac acceptance
+exists yet. A native macOS alternative is withheld because local signature
+verification fails despite matching official archive hashes; its cause is not
+established and no security setting is bypassed. The owner-accepted Docker v2
+packet remains a different earlier result. Freeze/cold-import the refreshed
+reader before proposing it, then obtain a concrete real-data/key agreement.

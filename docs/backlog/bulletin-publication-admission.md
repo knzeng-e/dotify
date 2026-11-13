@@ -11,6 +11,11 @@ before selecting a real-key reader. No real inspection, key export or maintenanc
 is authorized by this result. #407 remains Now / In Progress with its real data,
 history, rollback, capacity and physical listening gates open.
 
+A [local refreshed-reader check](implementation/evidence/node-runtime-security-2026-11-13.md#integration-with-the-schema-and-toolchain-fixes)
+now combines the patched schema and runtime, retaining owner permissions during
+generated reconstruction. Its named export, cold import and refreshed second-Mac
+acceptance remain ahead; it has not handled real data or keys.
+
 ## Current code checkpoint, 2026-11-12
 
 The [explicit compact-delivery candidate](../reference/bulletin-compact-delivery.md)

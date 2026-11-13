@@ -39,5 +39,5 @@ No live read, key export, deployment, restart, chain write, budget change or new
 release is part of this candidate. A later rollout needs compatible image, UID,
 configuration and state readback under separately reviewed maintenance. Do not
 reactivate a writer from a data-only reconstruction or infer secret custody from
-a generated authentication result. #432/#433 remain separate review prerequisites
-for the eventual combined image.
+a generated authentication result. The separately reviewed #432/#433 fixes are
+now included through dev; validate the final combined image before delivery.

@@ -83,8 +83,8 @@ key/file isolation; generated fixture ownership adapters are not real importers.
 ## Delivery boundary
 
 Changing these files builds a candidate. It does not update Fly, transfer keys,
-activate compact publishing or alter retained histories. Review the independent
-API-schema and toolchain candidates before choosing a combined image. A live
+activate compact publishing or alter retained histories. Include the independently
+reviewed API-schema and toolchain fixes when validating a combined image. A live
 rollout still needs the [deployment controls](../operations/deployment-configuration.md)
 and a compatible image/UID/configuration/state plan. Never activate custody from
 a guarded data-only reconstruction.
