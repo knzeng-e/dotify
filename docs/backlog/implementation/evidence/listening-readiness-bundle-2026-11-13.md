@@ -65,3 +65,21 @@ The [artwork collection guide](../../../how-to/check-system-artwork.md),
 [Room startup guide](../../../how-to/measure-room-startup.md) and
 [selected sequence](../listening-and-publication-readiness.md) own the procedures
 and scheduling; the source evidence remains available for focused review.
+
+## Selected workflow and dev synchronization — 2026-11-13
+
+The owner selects one combined PR. #461 has meanwhile merged into dev
+`ecfcd12da55ec3532c4f890b274802f8f8ed3d5f`, so #465 finishes the remaining
+#462–#464 scopes; the original diffs/discussions remain the review trail, and
+unmerged source PRs are superseded rather than separate merge targets.
+
+Synchronization implementation `4eb62f4a438a0b305c5947de04ffddf614901db5`
+merges that dev and #462's updated history
+`b0d3b206ab8025b77ecd469906c189ed29d4353e`. Its entire tree is identical to
+previous combined head `879b592147bcc24a6438a68d2fb438d442e36918`, whose full
+[quality CI passed](https://github.com/knzeng-e/dotify/actions/runs/43482603069).
+No runtime/test inputs changed, so the existing local evidence above is retained.
+This following documentation-only commit records the choice; GitHub's strict
+up-to-date rule still requires a fresh CI for the synchronized PR head. The
+source PRs' earlier green heads remain dated evidence, not claims about #462's
+new merge commit. Matching delivery and physical listening remain open.
