@@ -92,7 +92,7 @@
       "priority": "P2",
       "track": "Product SDK",
       "phase": "Next",
-      "note": "Owner reopens bounded research after publication/listening reliability. Verify shipped Host/SDK capabilities, contribution policy and durable receipt recovery before proposing a disabled pilot; no funded action or access grant."
+      "note": "Bounded reassessment candidate identifies caller-id/partial status in published TrUAPI 0.26.0, absent from pinned Host SDK 0.28.0/TrUAPI 0.25.0. Offline fault tests and dated no-go keep work tips unavailable pending matched shipped Host, exact units, durable recovery and artist-policy split/Room receipts. #85 compatibility is the next gate; no SDK upgrade, funded action or access grant. Canonical decision: docs/design/product-cash-tip-decision-2026-11-13.md."
     },
     {
       "id": "product-cash-access-settlement",
