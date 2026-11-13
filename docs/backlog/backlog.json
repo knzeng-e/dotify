@@ -122,7 +122,7 @@
       "priority": "P1",
       "track": "Production spine",
       "phase": "Next",
-      "note": "Product 0.1.83 delivers #448/#458; the owner still reports an immediate-lock missing cover, while the next uploaded report is explicitly a healthy cover/sound control. A bounded foreground-recovery candidate fixes a controlled stuck URL fallback after decode failure: one extra attempt for the same metadata owner, without audio/Play/Pause or retry loops. It does not diagnose the iPhone cause. Matching delivery, rapid changes/disconnect and repeated physical solo/Room locks remain open after #395 Pause. Canonical contract: docs/reference/public-artwork-cache.md#recovery-on-foreground-return."
+      "note": "Mobile Player account access, Room discovery and the cover with bottom-right Dotify badge are delivered. #448 optional-storage/prepared-PNG corrections are merged in dev; matching native acceptance remains open. A local timing candidate distinguishes image acquisition, decode/composition and system metadata assignment without retaining image or account identity. Remaining: compare matched solo/Room phone reports, rapid changes, disconnect and actual native artwork/navigation after #395. Canonical fields and boundaries: docs/reference/system-artwork-observations.md."
     },
     {
       "id": "room-galaxy-restoration",
