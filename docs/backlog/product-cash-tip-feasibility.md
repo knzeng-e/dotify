@@ -8,6 +8,16 @@ the September W16 result remains dated evidence, not a claim about newer Hosts.
 Coordinate #85 compatibility and #229 native contribution policy; do not reopen
 or duplicate their delivered adapter and native PAS work.
 
+## Reassessment candidate, 2026-11-13
+
+The [dated decision](../design/product-cash-tip-decision-2026-11-13.md) and
+[offline tests](implementation/evidence/cash-tip-feasibility-2026-11-13.md) identify
+new caller-id/partial-status support in published TrUAPI 0.26.0, absent from
+Dotify's pinned pair. Work tips remain no-go pending shipped-Host/unit evidence
+and artist-policy settlement. CoinPayment references exist in the API; support
+must be proved rather than inferred from codec availability. #85 owns the next
+compatibility decision; no payment or dependency upgrade is enabled here.
+
 ## Deliverable and gates
 
 - Pin shipped Host/SDK pairs, actual protocol/API and supported surfaces. Current

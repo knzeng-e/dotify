@@ -1,0 +1,57 @@
+{
+  "observedAt": "2026-11-13",
+  "packages": [
+    {
+      "name": "@parity/truapi",
+      "version": "0.26.0",
+      "integrity": "sha512-KhKxfXtvo0wKj6LyRGbAN5coBi6AUbn3dhHO9ZEDv0zvzYU+KbpxzjNeM94op83NoBEwB9W0Uocc1dU0WE4j6Q==",
+      "tarSha256": "d9cd5a70669b83729dd87fd27163f551fc8fa359a41841b2d633d28c5f71597b",
+      "publishedAt": null,
+      "declarationSha256": "5220fe1424c114e1bdf6090ae801e6bcd3baf2858cadf37dec572155738131ee"
+    },
+    {
+      "name": "@parity/product-sdk-host",
+      "version": "0.33.0",
+      "integrity": "sha512-jCVuSH6OOTHnpVDeZSx22Yv9cBwNxFof1REtfwucioisREtlEw2aGfdOAAZCXvXii2VRi7CQKFb5IvIpi/WOxg==",
+      "tarSha256": "dd02fba8161def7571f182834a2be3c2dd2018a5cd02a38b5ff68816af2d85e8",
+      "publishedAt": null,
+      "declarationSha256": "8eea396fe29c55e4e71ae82d4ede4d8cb7aa689d52e5ae9c49ce858562a9910c"
+    }
+  ],
+  "sdkSource": "f14ff5e2ebf5f5cb7d237a11a9c4371db466e80f",
+  "protocolSource": "12ff192f2ca5b1fd060a866ba20b775154e146c0",
+  "publishedDeclarationFacts": {
+    "hostSDK": {
+      "version": "0.33.0",
+      "requiresProtocol": "^0.29.0",
+      "requestParameterTypes": [
+        "PaymentRequest"
+      ],
+      "sdkCallerChosenId": true
+    },
+    "protocol": {
+      "version": "0.26.0",
+      "requestFields": [
+        "from",
+        "amount",
+        "destination",
+        "id"
+      ],
+      "protocolCallerChosenId": true,
+      "statusTags": [
+        "ClaimedPartially",
+        "Completed",
+        "Failed",
+        "Processing"
+      ],
+      "requestErrorTags": [
+        "AlreadyExists",
+        "InsufficientBalance",
+        "InvalidAmount",
+        "Rejected",
+        "Unknown"
+      ]
+    },
+    "matchedShippedPairVerified": false
+  }
+}

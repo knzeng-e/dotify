@@ -1,6 +1,10 @@
 # Product CASH Settlement Decision
 
-Status: W16 decision record.
+Status: historical W16 decision record. For the 2026-11-13 API and unit
+reassessment, see [CASH work-tip feasibility](product-cash-tip-decision-2026-11-13.md).
+Its newer caller-id/partial-status evidence does not enable access settlement;
+retain this record's September scope rather than reusing its assumptions as a
+current protocol contract.
 
 Date: 2026-09-14.
 

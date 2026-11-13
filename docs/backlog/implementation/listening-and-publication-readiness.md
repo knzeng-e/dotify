@@ -1,5 +1,15 @@
 # Publication, listening reliability and CASH — execution order
 
+## Bounded CASH reassessment candidate, 2026-11-13
+
+The [#406 decision](../../design/product-cash-tip-decision-2026-11-13.md) and
+[offline evidence](evidence/cash-tip-feasibility-2026-11-13.md) distinguish pinned
+payment APIs from published caller-id/partial-status support. Work tips stay
+no-go pending shipped-Host/unit verification and artist-controlled distribution.
+#85 compatibility inspection is the next independent payment slice. This research
+adds no payment UI, SDK upgrade, funded trial or access; the pending listening
+rollout and physical acceptance retain their order.
+
 ## Room continuity candidate, 2026-11-13
 
 [The same-track handoff](../../adr/0059-preserve-solo-during-room-preparation.md)
