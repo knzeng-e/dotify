@@ -34,8 +34,9 @@ All 11 focused Node tests pass. They cover the actual pinned declaration surface
 fault scenarios: legacy lost-id counterexample, persisted caller-id recovery,
 AlreadyExists, storage failure before request, changed payer/payee/work/runtime/
 network/units/amount, missing/partial/failed outcomes and CoinPayment clearing
-that never becomes verified contribution or access. A mixed newer wire/older SDK
-and an optional id remain insufficient. The mock's durable server map is an
+that never becomes verified contribution or access. The initial inspector also
+rejected an optional SDK id; the follow-up below corrects that unnecessary
+requirement. A mixed newer wire/older SDK remains insufficient. The mock's durable server map is an
 explicit assumption, not evidence of Host persistence.
 
 Formatting and focused ESLint pass; 217 local links/anchors, offline backlog and
@@ -47,6 +48,49 @@ Application dependencies, lockfile, runtime ports and user payment UI are
 unchanged. No Host API, wallet, balance query, payment, contract, service or live
 quote was invoked. Versioned local inspection and public source reads were the
 only external research activity.
+
+## Coherent published candidate and static Desktop follow-up
+
+The integrity-verified [SDK 0.40.0 metadata](https://registry.npmjs.org/@parity/product-sdk/0.40.0)
+pins [Host SDK 0.29.0](https://registry.npmjs.org/@parity/product-sdk-host/0.29.0),
+whose `^0.26.0` protocol range permits TrUAPI 0.26.0. This is a coherent
+published candidate, not an installed or device-accepted dependency graph.
+Host SDK 0.29 accepts `requestPayment(amount, destination, from?, id?)` and its
+static implementation forwards a supplied id to `payment.request`. Its generated
+fallback id is used only when no id is supplied. Dotify would have to persist
+and always supply the id before approval; changing ids after an unknown result
+remains forbidden.
+
+The inspector now recognizes this fourth-argument form and the later request
+object. Optional SDK acceptance is sufficient to carry an id; an absent or
+optional required-wire id is still unknown. The [candidate report](cash-tip-candidate-report-2026-11-13.json)
+removes that one API blocker, retaining all three shipped-Host/unit/policy
+blockers. [Source identities](cash-tip-source-identities-2026-11-13.json) bind
+package metadata, full declarations and the static Host SDK implementation.
+Downloaded code was read, never installed or executed.
+
+The [static Desktop inventory](cash-tip-desktop-static-inventory-2026-11-13.json)
+reads only public Info.plist and bounded allowlisted ASAR entries. Desktop
+1.0.0-rc.1 bundles Nova Host API 0.8.10's response-id contract. Desktop Dev
+0.1.4-rc.3 bundles TrUAPI 0.25.0 alongside Nova Host API 0.12.0's caller-id
+contract. That Nova declaration names its partial result `PartiallyClaimed`
+with a bare amount; TrUAPI 0.26 declares `ClaimedPartially { actualClaimed }`.
+Neither multiple included declarations nor their comments establish the selected
+backend, consent, units or actual terminal-state persistence. No app was launched
+and no user profile or key was accessed.
+
+Fourteen focused tests pass after the correction, including the exact 0.29
+PaymentManager excerpt, optional SDK ids, missing/optional wire ids, wrong fourth
+arguments and an unrecognized manager declaration. The pinned report remains
+no-go. Application code, package pins and lockfile are unchanged. Source digests
+below bind this follow-up independently of the earlier 11-test checkpoint.
+Focused ESLint, 108 local links/anchors, offline backlog and whitespace checks pass:
+
+| Source                                              | SHA-256                                                            |
+| --------------------------------------------------- | ------------------------------------------------------------------ |
+| `web/scripts/product-cash-tip-feasibility.mjs`      | `37ee22ebf67b2750458d4560519300fe1d1f8de229e0d5fecb4c8d22d4b7c764` |
+| `web/scripts/product-cash-tip-feasibility.test.mjs` | `11d1be549f07ed600a76fe36c5b1e319a764aadb592edc3a540015abaaf1f591` |
+| `web/scripts/fixtures/cash-host-0.29.d.ts`          | `cccc3d69dbf4872dd13cc475fc040ca617d51d103d1fc751e3bd87761a1fa57e` |
 
 Remaining: reviewed compatible SDK/Host selection; actual non-spending capability
 and unit inspection; restart/lock/background status evidence; work-policy split

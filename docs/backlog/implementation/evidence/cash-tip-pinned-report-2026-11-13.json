@@ -4,32 +4,16 @@
     "sdk": "0.39.0",
     "host": "0.28.0",
     "protocol": "0.25.0",
-    "requestParameterTypes": [
-      "bigint",
-      "HexString",
-      "number"
-    ],
+    "requestParameterTypes": ["bigint", "HexString", "number"],
     "callerChosenId": false,
     "protocolCallerChosenId": false,
     "sdkCallerChosenId": false,
-    "requestFields": [
-      "from",
-      "amount",
-      "destination"
-    ],
-    "statusTags": [
-      "Completed",
-      "Failed",
-      "Processing"
-    ],
-    "requestErrorTags": [
-      "InsufficientBalance",
-      "Rejected",
-      "Unknown"
-    ],
-    "statusLookupFields": [
-      "paymentId"
-    ],
+    "sdkCallerIdRequired": false,
+    "sdkCallerIdForm": "unavailable",
+    "requestFields": ["from", "amount", "destination"],
+    "statusTags": ["Completed", "Failed", "Processing"],
+    "requestErrorTags": ["InsufficientBalance", "Rejected", "Unknown"],
+    "statusLookupFields": ["paymentId"],
     "hostDeclarationsSha256": "47d9c2995647c72c276e607cf96cbc867a8dcb5fafe832e7fd658e4ce10525a7",
     "protocolDeclarationsSha256": "400a4162a9378d3b81116e863a503a9ec738357675285d73a9685c68741dccec"
   },

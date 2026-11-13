@@ -12,8 +12,10 @@ or duplicate their delivered adapter and native PAS work.
 
 The [dated decision](../design/product-cash-tip-decision-2026-11-13.md) and
 [offline tests](implementation/evidence/cash-tip-feasibility-2026-11-13.md) identify
-new caller-id/partial-status support in published TrUAPI 0.26.0, absent from
-Dotify's pinned pair. Work tips remain no-go pending shipped-Host/unit evidence
+a coherent published SDK 0.40.0 / Host SDK 0.29.0 / TrUAPI 0.26.0
+candidate with caller-id/partial-status support, absent from Dotify's pinned pair.
+Static Desktop archives contain differing API declarations; their wrapper labels
+do not identify the active payment backend. Work tips remain no-go pending shipped-Host/unit evidence
 and artist-policy settlement. CoinPayment references exist in the API; support
 must be proved rather than inferred from codec availability. #85 owns the next
 compatibility decision; no payment or dependency upgrade is enabled here.

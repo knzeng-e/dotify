@@ -34,7 +34,8 @@ export function inspectPaymentDeclarations(hostText, protocolText) {
     return found.sort();
   };
   const manager = named(host, 'PaymentManager');
-  const request = manager?.members.find(member => member.name?.getText() === 'requestPayment');
+  const member = manager && ts.isInterfaceDeclaration(manager) ? manager.members.find(member => member.name?.getText() === 'requestPayment') : undefined;
+  const request = member && ts.isMethodSignature(member) ? member : undefined;
   const protocolRequest = named(protocol, 'HostPaymentRequest');
   const requestFields = members(protocolRequest);
   const hasRequiredId = node =>
@@ -44,14 +45,32 @@ export function inspectPaymentDeclarations(hostText, protocolText) {
       node.members.some(member => member.name?.getText() === 'id' && !member.questionToken && member.type?.getText() === 'HexString')
     );
   const protocolCallerChosenId = hasRequiredId(protocolRequest);
-  const sdkCallerChosenId = Boolean(
-    request?.parameters.length === 1 && request.parameters[0].type?.getText() === 'PaymentRequest' && hasRequiredId(named(host, 'PaymentRequest'))
-  );
+  // 0.29 accepts an optional fourth id; 0.33 takes a request object. Either can
+  // carry Dotify's pre-persisted id. Optionality is an adapter obligation, not
+  // evidence that the SDK cannot forward a caller id. No Host support is inferred.
+  const parameterTypes = request?.parameters.map(parameter => parameter.type?.getText() ?? 'unknown') ?? [];
+  const paymentRequest = named(host, 'PaymentRequest');
+  const objectId =
+    parameterTypes.length === 1 &&
+    parameterTypes[0] === 'PaymentRequest' &&
+    paymentRequest &&
+    ts.isInterfaceDeclaration(paymentRequest) &&
+    paymentRequest.members.find(member => member.name?.getText() === 'id' && member.type?.getText() === 'HexString');
+  const positionalId =
+    JSON.stringify(parameterTypes) === JSON.stringify(['bigint', 'HexString', 'number', 'HexString']) && request.parameters[3].name.getText() === 'id'
+      ? request.parameters[3]
+      : null;
+  const sdkId = objectId || positionalId;
+  const sdkCallerChosenId = Boolean(sdkId);
+  const sdkCallerIdRequired = Boolean(sdkId && !sdkId.questionToken && !sdkId.initializer);
+  const sdkCallerIdForm = sdkId ? (objectId ? 'request-object' : 'fourth-argument') : 'unavailable';
   return {
-    requestParameterTypes: request?.parameters.map(parameter => parameter.type?.getText() ?? 'unknown') ?? [],
+    requestParameterTypes: parameterTypes,
     callerChosenId: protocolCallerChosenId && sdkCallerChosenId,
     protocolCallerChosenId,
     sdkCallerChosenId,
+    sdkCallerIdRequired,
+    sdkCallerIdForm,
     requestFields,
     statusTags: tags('HostPaymentStatusSubscribeItem'),
     requestErrorTags: tags('HostPaymentError'),

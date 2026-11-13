@@ -19,12 +19,22 @@ The [W16 decision](product-cash-settlement-decision.md) remains historical evide
 about access payments. Do not carry its SDK snapshot or a universal six-decimal
 assumption into a new integration.
 
-| Surface inspected | Evidence | What it establishes |
-| --- | --- | --- |
-| Dotify SDK 0.39.0 / Host SDK 0.28.0 / TrUAPI 0.25.0 | Installed declarations and implementation | Payment request takes amount, destination and optional purse; Host id comes back afterwards. A lost response can lose the only status lookup id. |
-| Published TrUAPI 0.26.0 | Integrity-verified package declarations | Caller-chosen id, `AlreadyExists`, and `ClaimedPartially` are defined. This does not establish that a named phone/Desktop build implements them. |
-| Published Host SDK 0.33.0 | Integrity-verified package declarations | Request-object API includes the id; the package depends on TrUAPI ^0.29.0. No dependency is upgraded here. |
-| Current upstream runtime source, pinned in the evidence | Payment capability implementation | Payment delegates to an installed platform service and can return Unsupported. Its CoinPayment methods explicitly return Unsupported in this source snapshot. This is not a binary audit of the owner's Host. |
+| Surface inspected                                       | Evidence                                                                      | What it establishes                                                                                                                                                                                           |
+| ------------------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Dotify SDK 0.39.0 / Host SDK 0.28.0 / TrUAPI 0.25.0     | Installed declarations and implementation                                     | Payment request takes amount, destination and optional purse; Host id comes back afterwards. A lost response can lose the only status lookup id.                                                              |
+| Published TrUAPI 0.26.0                                 | Integrity-verified package declarations                                       | Caller-chosen id, `AlreadyExists`, and `ClaimedPartially` are defined. This does not establish that a named phone/Desktop build implements them.                                                              |
+| Published SDK 0.40.0 / Host SDK 0.29.0 / TrUAPI 0.26.0  | Integrity-verified package metadata, declarations and Host SDK implementation | A coherent published candidate accepts a fourth caller id and forwards it. The id is optional in the SDK; Dotify would have to persist and always supply it. This is not a verified shipped pair.             |
+| Published Host SDK 0.33.0                               | Integrity-verified package declarations                                       | Request-object API includes the id; the package depends on TrUAPI ^0.29.0. No dependency is upgraded here.                                                                                                    |
+| Current upstream runtime source, pinned in the evidence | Payment capability implementation                                             | Payment delegates to an installed platform service and can return Unsupported. Its CoinPayment methods explicitly return Unsupported in this source snapshot. This is not a binary audit of the owner's Host. |
+
+The [candidate report](../backlog/implementation/evidence/cash-tip-candidate-report-2026-11-13.json)
+removes only the API caller-id blocker. An optional SDK parameter does not prevent
+recovery when the caller always supplies its saved id; it also does not establish
+Host durability. The offline inspector recognizes both that positional form and
+the later request-object form instead of requiring an unnecessary SDK jump.
+The dependency range `^0.26.0` permits selecting 0.26.0; it is not an exact lock
+or a tested migration. Existing wire tests bind the 0.25 schema, not merely codec 3. Preserve those tests and check handshake/schema compatibility before changing
+the application pin.
 
 The SDK's `getPaymentManager()` returns an adapter when a TrUAPI client exists;
 it does not confirm payment capability or permission. Public methods in a codec
@@ -78,14 +88,19 @@ make this distinction reproducible.
 
 ## Host matrix and next decision
 
-| Target | Known observation | Payment acceptance |
-| --- | --- | --- |
-| iPhone Polkadot app 0.10.0 (20), owner-reported Runtime 0.26.0 | Earlier account connection and existing audio accepted | Payment method support, exact units, consent, partial status, terminal recovery after reload/lock and recipient proof are untested. A Runtime version label is not an inspected payment implementation. |
-| Installed Desktop wrappers | Earlier source inspection found Polkadot Desktop 1.0.0-rc.1 / Polkadot Dev 0.1.4-rc.3 | Wrapper versions do not establish the embedded protocol or payment platform. Capture actual runtime identity and supported domains before a pilot. |
-| Ordinary Web | No Product Host client | CASH Host payments unavailable; do not supply a fallback signer. |
+| Target                                                         | Known observation                                                                                                                                                                             | Payment acceptance                                                                                                                                                                                      |
+| -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| iPhone Polkadot app 0.10.0 (20), owner-reported Runtime 0.26.0 | Earlier account connection and existing audio accepted                                                                                                                                        | Payment method support, exact units, consent, partial status, terminal recovery after reload/lock and recipient proof are untested. A Runtime version label is not an inspected payment implementation. |
+| Installed Desktop 1.0.0-rc.1                                   | Static archive contains Nova Host API 0.8.10; its payment declaration returns a Host id after request                                                                                         | No active backend, consent, units or durable status observed.                                                                                                                                           |
+| Installed Desktop Dev 0.1.4-rc.3                               | Static archive contains TrUAPI 0.25.0 and Nova Host API 0.12.0. The latter declares caller ids and `PartiallyClaimed: u128`, distinct from TrUAPI 0.26's `ClaimedPartially { actualClaimed }` | Bundled alternatives are not interchangeable. A wrapper version or one included declaration does not establish the active backend.                                                                      |
+| Ordinary Web                                                   | No Product Host client                                                                                                                                                                        | CASH Host payments unavailable; do not supply a fallback signer.                                                                                                                                        |
 
-**Next eligible slice:** #85 compatibility inspection selects a coherent SDK/Host
-pair and verifies non-spending identity/capability evidence, exact balance-unit
+The [static Desktop inventory](../backlog/implementation/evidence/cash-tip-desktop-static-inventory-2026-11-13.json)
+records only public bundle hashes and versions. No app was launched and no user
+profile was inspected. These are declarations, not successful payment calls.
+
+**Next eligible slice:** #85 verifies the published candidate against actual
+non-spending Host identity/capability evidence, wire compatibility, exact balance-unit
 provenance and status persistence. Then decide whether a separately named personal
 gift is useful or an authoritative work-split mechanism is available. A work tip
 still needs independently verifiable policy/recipient/Room settlement. No funded

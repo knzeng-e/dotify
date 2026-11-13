@@ -1,0 +1,34 @@
+{
+  "schema": "dotify.cash-tip-feasibility.v1",
+  "packages": {
+    "sdk": "0.40.0",
+    "host": "0.29.0",
+    "protocol": "0.26.0"
+  },
+  "observed": {
+    "requestParameterTypes": ["bigint", "HexString", "number", "HexString"],
+    "callerChosenId": true,
+    "protocolCallerChosenId": true,
+    "sdkCallerChosenId": true,
+    "sdkCallerIdRequired": false,
+    "sdkCallerIdForm": "fourth-argument",
+    "requestFields": ["from", "amount", "destination", "id"],
+    "statusTags": ["ClaimedPartially", "Completed", "Failed", "Processing"],
+    "requestErrorTags": ["AlreadyExists", "InsufficientBalance", "InvalidAmount", "Rejected", "Unknown"],
+    "statusLookupFields": ["id"],
+    "hostDeclarationsSha256": "f0fa7fe5385e31b814a7d42a4041c54d17ef44f24b739e66ca2cc10aae1573cc",
+    "protocolDeclarationsSha256": "5220fe1424c114e1bdf6090ae801e6bcd3baf2858cadf37dec572155738131ee"
+  },
+  "decision": "no-go",
+  "scope": "cash-work-tip",
+  "blockers": [
+    "shipped-host-payment-and-restart-support-unverified",
+    "payment-balance-unit-not-bound-to-the-shipped-host",
+    "no-verified-runtime-split-and-room-receipt-settlement"
+  ],
+  "cashEnabled": false,
+  "accessGranted": false,
+  "evidence": "integrity-verified-static-declarations-only",
+  "hostMethodsCalled": 0,
+  "paymentsSubmitted": 0
+}

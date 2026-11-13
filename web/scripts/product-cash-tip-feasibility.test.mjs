@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { readFileSync } from 'node:fs';
 import {
   decideCashWorkTip,
   inspectPaymentDeclarations,
@@ -23,7 +24,7 @@ const terms = {
   work: 'synthetic-work'
 };
 
-// A server with a durable caller-id map models the audited newer contract, not
+// A server with a durable caller-id map models the inspected newer contract, not
 // an installed device. The legacy counterexample intentionally lacks that map.
 function simulatedHost() {
   const requests = new Map();
@@ -177,7 +178,7 @@ test('offline report enables no rail and calls no Host, network, signer or payme
   assert.equal(report.nativePasChanged, false);
 });
 
-test('a newer wire declaration cannot hide an older SDK method or an optional id', () => {
+test('a newer wire declaration cannot hide an older SDK method', () => {
   const protocol = 'interface HostPaymentRequest { id: HexString; } type HostPaymentError = { tag: "AlreadyExists" };';
   const legacy = inspectPaymentDeclarations(
     'interface PaymentManager { requestPayment(amount: bigint, destination: HexString): Promise<{ id: string }>; }',
@@ -190,5 +191,42 @@ test('a newer wire declaration cannot hide an older SDK method or an optional id
     'interface PaymentRequest { id?: HexString; } interface PaymentManager { requestPayment(request: PaymentRequest): Promise<void>; }',
     protocol
   );
-  assert.equal(optional.callerChosenId, false);
+  assert.equal(optional.callerChosenId, true);
+  assert.equal(optional.sdkCallerIdRequired, false);
+  assert.equal(optional.sdkCallerIdForm, 'request-object');
+  assert.equal(decideCashWorkTip(optional).decision, 'no-go');
+});
+
+test('published Host SDK 0.29 can accept a caller id without requiring an SDK-wide object API', () => {
+  const host = readFileSync(new URL('./fixtures/cash-host-0.29.d.ts', import.meta.url), 'utf8');
+  const protocol = 'interface HostPaymentRequest { id: HexString; } type HostPaymentError = { tag: "AlreadyExists" };';
+  const surface = inspectPaymentDeclarations(host, protocol);
+  assert.equal(surface.callerChosenId, true);
+  assert.equal(surface.sdkCallerIdRequired, false);
+  assert.equal(surface.sdkCallerIdForm, 'fourth-argument');
+  assert.deepEqual(surface.requestParameterTypes, ['bigint', 'HexString', 'number', 'HexString']);
+  assert.equal(decideCashWorkTip(surface).decision, 'no-go');
+  assert.equal(decideCashWorkTip(surface).blockers.length, 3);
+});
+
+test('an optional SDK id does not make a missing or optional wire id sufficient', () => {
+  const host = 'interface PaymentManager { requestPayment(amount: bigint, destination: HexString, from?: number, id?: HexString): Promise<void>; }';
+  for (const wire of ['interface HostPaymentRequest { paymentId: HexString; }', 'interface HostPaymentRequest { id?: HexString; }']) {
+    const surface = inspectPaymentDeclarations(host, wire);
+    assert.equal(surface.sdkCallerChosenId, true);
+    assert.equal(surface.protocolCallerChosenId, false);
+    assert.equal(surface.callerChosenId, false);
+  }
+});
+
+test('wrong fourth argument identity/type and a non-interface manager remain unknown', () => {
+  const wire = 'interface HostPaymentRequest { id: HexString; }';
+  for (const host of [
+    'interface PaymentManager { requestPayment(amount: bigint, destination: HexString, from?: number, memo?: HexString): Promise<void>; }',
+    'interface PaymentManager { requestPayment(amount: bigint, destination: HexString, from?: number, id?: string): Promise<void>; }',
+    'interface PaymentManager { requestPayment: unknown; }',
+    'type PaymentManager = unknown;'
+  ]) {
+    assert.equal(inspectPaymentDeclarations(host, wire).sdkCallerChosenId, false);
+  }
 });

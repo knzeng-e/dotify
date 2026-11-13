@@ -3,6 +3,24 @@
 Status: active execution note; the Product DevNet baseline is delivered on
 `dev` and remains tracked through Product compatibility issue #85.
 
+## Compatibility checkpoint — 2026-11-13
+
+Use the [selected execution sequence](implementation/listening-and-publication-readiness.md)
+for scheduling; the October Nearby/SDK-0.36 sections below are historical.
+Dotify pins SDK 0.39.0 / Host SDK 0.28.0 / TrUAPI 0.25.0. The owner reports
+connection and existing audio on iPhone 0.10.0 (20) / Runtime 0.26.0; that scoped
+observation is not payment or wire-negotiation acceptance for a newer client.
+
+The [bounded CASH decision](../design/product-cash-tip-decision-2026-11-13.md)
+identifies a coherent published SDK 0.40.0 / Host SDK 0.29.0 / TrUAPI 0.26.0
+candidate. Static Desktop archives also contain different payment declarations;
+no active payment backend is established. Next: non-spending runtime/capability
+and wire-schema evidence on named distributions before any coordinated SDK
+migration. Preserve the standalone path, explicit failures and artist policies.
+No package upgrade, Host call, funded rehearsal or deployed payment follows.
+
+## Historical Host incident — 2026-10-10
+
 Host incident update: 2026-10-10. The 0.1.44 rollout timed out on owner-reported
 Desktop 0.1.3 and mobile 0.10.0. Recovery candidate 0.1.45 restores SDK 0.27.0,
 host 0.19.1, statement-store 0.6.9, descriptors 0.11.0 and transaction helpers

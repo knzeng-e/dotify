@@ -4,7 +4,9 @@
 
 The [#406 decision](../../design/product-cash-tip-decision-2026-11-13.md) and
 [offline evidence](evidence/cash-tip-feasibility-2026-11-13.md) distinguish pinned
-payment APIs from published caller-id/partial-status support. Work tips stay
+payment APIs from the coherent published SDK 0.40.0 / Host SDK 0.29.0 /
+TrUAPI 0.26.0 caller-id/partial-status candidate. Static Desktop declarations
+do not prove an active payment backend. Work tips stay
 no-go pending shipped-Host/unit verification and artist-controlled distribution.
 #85 compatibility inspection is the next independent payment slice. This research
 adds no payment UI, SDK upgrade, funded trial or access; the pending listening
