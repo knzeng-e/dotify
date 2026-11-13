@@ -1,5 +1,11 @@
 # Mobile-host Room startup and listening continuity
 
+The owner has deferred the real recovery rehearsal until after the selected
+product-readiness work. Follow [the product-first execution order](implementation/listening-and-publication-readiness.md#product-work-first):
+#395 follows publication-latency engineering, without waiting for every deferred
+#407 operational gate to close. Activation safety and physical listening remain
+separate acceptance requirements; earlier dated entries retain their scope.
+
 ## Solo-to-Room continuity candidate, 2026-11-13
 
 The [separate preparation lifetime](../adr/0059-preserve-solo-during-room-preparation.md)
