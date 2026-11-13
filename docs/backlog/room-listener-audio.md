@@ -16,7 +16,7 @@ Authorization and the total 60-second media budget remain. This improves the
 waiting experience, not measured download latency. Matching delivery, repeated
 full-length/locked-phone and audible guest acceptance remain open. Real independent
 recovery is deferred at the owner's request; it does not block this product slice.
-Earlier dated checkpoints below retain their original scope.
+[Local validation](implementation/evidence/room-preparation-continuity-2026-11-13.md) records the exact source and test scope. Earlier dated checkpoints below retain their original scope.
 
 ## Offline measurement candidate, 2026-11-12
 
