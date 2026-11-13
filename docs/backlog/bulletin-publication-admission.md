@@ -388,3 +388,17 @@ The next [offline published-audio check](bulletin-published-audio-authentication
 uses separate explicit trust/key inputs to authenticate that graph, without
 recreating pruned state. Real capture, key provenance and service recovery stay
 open; this implementation adds no operational authority.
+
+
+## Concurrent proof-read candidate, 2026-11-13
+
+[ADR 0058](../adr/0058-coordinate-bulletin-proof-loads.md) coordinates initial
+body/event loads per canonical hash while preserving each caller’s finalized
+snapshot, retention, sender/nonce and receipt verification. The
+[public-fixture comparison](implementation/evidence/bulletin-cold-proof-2026-11-13.md)
+removes repeated immutable reads without changing graph format, write count,
+nonce history, allowances or timeouts. Different hashes can still load together.
+This is an implementation candidate, not a deployed improvement or a measured
+reduction in the artist’s publication wait. #407 remains open. The real recovery
+rehearsal is deferred by the owner; no recovery work, transfer or live operation
+is authorized by this correction.

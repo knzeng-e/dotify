@@ -6,6 +6,9 @@ Date: 2026-11-10. Status: accepted and deployed in #426;
 Refs #407; extends [ADR 0049](0049-bounded-direct-write-windows.md).
 [Reproducible evidence](../backlog/implementation/evidence/bulletin-round-trips-2026-11-10.md).
 
+[ADR 0058](0058-coordinate-bulletin-proof-loads.md) proposes coordinating concurrent
+initial proof loads; the original deployed decision below retains its dated scope.
+
 ## Problem and decision
 
 The owner confirms publication and sound with the exact 16-write window, but
