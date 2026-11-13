@@ -17,8 +17,9 @@ For an explicitly requested Room of the **current managed-source track**, prepar
 that complete rendition while leaving the existing solo selection, media element,
 producer and transport untouched. Once prepared, use the ordinary selection path
 and its authorization checks to replace the source. Capture the media position
-at that handoff, including any seek made during preparation. Arm playback intent
-at the original Room gesture, so a subsequent explicit Pause is respected.
+at that handoff, including any seek made during preparation. Preserve the current
+playback intent at the Room gesture, including a pre-existing or subsequent
+explicit Pause. Sharing the current track never requests a new Play.
 Different-track selection still retires the outgoing track immediately; ordinary
 Web/Desktop sources keep their existing Room path.
 

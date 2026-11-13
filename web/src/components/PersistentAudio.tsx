@@ -57,16 +57,16 @@ function LocalAudio(props: PersistentAudioProps) {
       on('canplay', p => p.playback.handleHostCanPlay(audio)),
       on('play', p => {
         p.playback.syncFromAudio(audio);
-        void p.onPrepareLocalStream();
+        if (!audio.paused) void p.onPrepareLocalStream();
         p.onEmitPlayerState(true);
       }),
       on('playing', p => {
         p.playback.handleHostPlaying(audio);
         p.onEmitPlayerState(true);
-        void p.onPrepareLocalStream();
+        if (!audio.paused) void p.onPrepareLocalStream();
       }),
       on('pause', p => {
-        p.playback.syncFromAudio(audio);
+        p.playback.handleHostPause(audio);
         p.onEmitPlayerState(true);
       }),
       on('waiting', p => {

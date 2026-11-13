@@ -82,7 +82,7 @@
       "priority": "P1",
       "track": "Production spine",
       "phase": "Now",
-      "note": "Publication/listening succeed; latest owner Publish-to-wallet report is 7 min 46 s. Compact delivery/admission and recovery code has generated coverage; archive/authentication are merged in tested dev 93e99042. The owner accepts the generated-only second-Mac rehearsal, not real data/key recovery. Owner defers the bounded real recovery rehearsal until after publication latency, Room startup, reliable artwork and bounded CASH research. Resume product engineering now; #407 remains open for measured latency and deferred operational acceptance. General backup-platform expansion is outside this slice. Current-history/service rollback, physical listening/background, hosted capacity, conservation/access and value-flow gates remain before activation/public pilot. Live sources remain standard; custody stays #426 and Web/Product/public APIs 0.1.82. No capture, key transfer, deployment, funded trial or renewal is authorized. #407 remains Now/In Progress before #395/#388/CASH. Canonical detail: docs/backlog/implementation/listening-and-publication-readiness.md."
+      "note": "Publication/listening succeed; latest owner Publish-to-wallet report is 7 min 46 s. Compact delivery/admission and recovery code has generated coverage; archive/authentication are merged in tested dev 93e99042. The owner accepts the generated-only second-Mac rehearsal, not real data/key recovery. Owner defers the bounded real recovery rehearsal until after publication latency, Room startup, reliable artwork and bounded CASH research. Resume product engineering now; #407 remains open for measured latency and deferred operational acceptance. General backup-platform expansion is outside this slice. Current-history/service rollback, physical listening/background, hosted capacity, conservation/access and value-flow gates remain before activation/public pilot. Live musical sources remain standard; custody stays #426 and public APIs 0.1.82. The separate Web/Product 0.1.83 client delivery is verified; it activates no compact format or server optimization. No real recovery capture, key transfer, funded musical trial or further renewal is authorized by this ticket. #407 remains Now/In Progress before #395/#388/CASH. Canonical detail: docs/backlog/implementation/listening-and-publication-readiness.md."
     },
     {
       "id": "product-cash-tip-feasibility",
@@ -112,7 +112,7 @@
       "priority": "P1",
       "track": "Production spine",
       "phase": "Next",
-      "note": "Reported mobile-host delivery to Web/Desktop guests works. Offline correlated success/failure reporting can progress while the owner defers the real recovery rehearsal. Remaining scope is measured startup latency (about 55 seconds on one owner run), repeated no-retry full-track starts and broader lifecycle acceptance after the publication-latency work; deferred #407 recovery acceptance need not close before independent Room work. Keep access boundaries."
+      "note": "Web/Product 0.1.83 is independently delivered; the owner confirms audible/control use during Room preparation and audible Web/Desktop guests under the requested short phone lock. Pause fails at Room opening and intermittently after native locked-screen Pause. A bounded shared-intent correction is implemented for review, not deployed; its evidence is docs/backlog/implementation/evidence/explicit-pause-authority-2026-11-13.md. Matching native controls, repeated/full-track listening and startup latency remain open; real recovery remains deferred."
     },
     {
       "id": "listening-controls-and-discovery",
@@ -122,7 +122,7 @@
       "priority": "P1",
       "track": "Production spine",
       "phase": "Next",
-      "note": "Mobile Player account access, Room discovery and the cover with bottom-right Dotify badge are delivered. #448 optional-storage/prepared-PNG corrections are merged in dev; matching native acceptance remains open. A local timing candidate distinguishes image acquisition, decode/composition and system metadata assignment without retaining image or account identity. Remaining: compare matched solo/Room phone reports, rapid changes, disconnect and actual native artwork/navigation after #395. Canonical fields and boundaries: docs/reference/system-artwork-observations.md."
+      "note": "Web/Product 0.1.83 delivers prepared-PNG reuse and bounded phase observations. The owner reports a blank cover after a requested signature and immediate lock; its timing history was lost on restart. A separate owner-confirmed successful control publishes PNG metadata in 20 ms; it does not explain the failure. Keep matched failed-report, repeated solo/Room locks, attribution, disconnect and native-control acceptance open. Canonical checkpoint: docs/backlog/implementation/evidence/product-0.1.83-rollout-2026-11-13.md."
     },
     {
       "id": "room-galaxy-restoration",

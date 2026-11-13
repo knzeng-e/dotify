@@ -226,6 +226,9 @@ export function usePlayback(deps: UsePlaybackDeps) {
       // A MediaStream's currentTime is time since reception, not song position.
       // Neither its events nor a leftover solo element may own the room clock.
       if (!audio || mode !== 'host' || audio !== localAudioRef.current) return;
+      // A late native play/foreground completion cannot replace explicit Pause.
+      // Real Play commands re-arm this intent before requesting native playback.
+      if (userPausedRef.current && !audio.paused) pauseHostAudio(audio);
       if (audio.paused) playbackContinuity.nativePause();
       setTransport(previous => ({
         // Keep play intent while buffering so the transport still offers Pause.
@@ -712,6 +715,22 @@ export function usePlayback(deps: UsePlaybackDeps) {
     [audioContinuation, localAudioRef, onHostMediaSettled, reportHostPlaybackError, startupForAudio, syncFromAudio]
   );
 
+  // Native lock-screen controls can pause the element without invoking the
+  // Media Session callback. Record that intent only for the active loaded source;
+  // retirement removes src, and natural end still owns automatic queue advance.
+  const handleHostPause = useCallback(
+    (audio: HTMLAudioElement) => {
+      if (!startupForAudio(audio) || !audio.getAttribute('src') || !audio.paused) return;
+      if (!audio.ended) {
+        userPausedRef.current = true;
+        autoplayIntentRef.current = false;
+        playbackContinuity.event('paused');
+      }
+      syncFromAudio(audio);
+    },
+    [startupForAudio, syncFromAudio]
+  );
+
   const handleHostWaiting = useCallback(
     (audio: HTMLAudioElement) => {
       const startup = startupForAudio(audio);
@@ -741,13 +760,14 @@ export function usePlayback(deps: UsePlaybackDeps) {
   const handleHostPlaying = useCallback(
     (audio: HTMLAudioElement) => {
       const startup = startupForAudio(audio);
-      if (startup && !audio.paused) playbackContinuity.event('playing');
+      syncFromAudio(audio);
+      if (!startup || audio.paused) return;
+      playbackContinuity.event('playing');
       // Discovery history means actual media playback, not selection/readiness.
       // It stays in memory and never changes previous/next transport history.
       if (startup && !startup.errorReported && !audio.paused) setRecentTrackIds(history => rememberRecentPlay(history, selectedTrackIdRef.current));
-      if (startup) onHostMediaSettled(startup.source, true, startup.attemptId);
-      syncFromAudio(audio);
-      if (!startup || startup.mediaPlayingReported || startup.errorReported) return;
+      onHostMediaSettled(startup.source, true, startup.attemptId);
+      if (startup.mediaPlayingReported || startup.errorReported) return;
       // `playing` means the media clock is advancing, not that a person can
       // hear it. A muted or zero-volume run must never satisfy physical-device
       // first-sound budgets; close the attempt as a controlled terminal error.
@@ -833,6 +853,7 @@ export function usePlayback(deps: UsePlaybackDeps) {
     syncFromAudio,
     handleEnded,
     handleHostLoadedMetadata,
+    handleHostPause,
     handleHostCanPlay,
     handleHostPlaying,
     handleHostWaiting,
