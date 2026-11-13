@@ -24,6 +24,12 @@ The #430 compact-layout code and #434 security candidate are not deployment
 records. This checkpoint is not a fresh inspection of hosted state. Before a
 new intervention, compare the actual served identities with the reviewed plan.
 
+At the [2026-11-13 delivery checkpoint](../backlog/implementation/evidence/product-0.1.83-rollout-2026-11-13.md),
+Web/Product serve 0.1.83. Independent Web/object/finalized-DotNS reads pass;
+custody restarts once with its unchanged #426 image/configuration, protected
+state and two health/readiness passes. This client operation replaces no server
+image or key and activates no compact publication. Phone acceptance remains open.
+
 Do not infer an active key, remaining publication allowance, available quota or
 permission to reuse an admission from this page. Use the applicable private
 review package and component checks; preserve existing receipts and history.
