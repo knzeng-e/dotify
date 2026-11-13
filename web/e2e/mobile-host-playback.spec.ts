@@ -80,7 +80,9 @@ async function openRoom(page: Page, autoplay = false) {
   await page.getByRole('button', { name: 'Open the room', exact: true }).click();
   await expect(page.getByTestId('room-code')).toHaveText(/[A-Z0-9]{4,}/);
   await expect(page.locator('.transport-play')).toBeEnabled();
-  if (await page.getByRole('button', { name: 'Pause', exact: true }).isVisible()) {
+  // With autoplay enabled, wait for playback to start before pausing it.
+  // A one-time visibility snapshot can race the asynchronous Room handoff.
+  if (autoplay) {
     await page.getByRole('button', { name: 'Pause', exact: true }).click();
   }
   await expect(page.getByRole('button', { name: 'Play', exact: true })).toBeEnabled();
