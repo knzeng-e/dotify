@@ -1,5 +1,26 @@
 # Publication, listening reliability and CASH — execution order
 
+## Combined listening delivery, 2026-11-13
+
+[Web/Product 0.1.83 is delivered](evidence/product-0.1.83-rollout-2026-11-13.md)
+from tested dev for the next physical Room/artwork checks. Exact release CI,
+independent object/Web/finalized-DotNS readback and the unchanged custody image's
+restart/health are verified. Physical continuity, latency and artwork acceptance
+remain open. This delivery activates no compact publication and deploys no #456
+server optimization. Resume the existing-track phone/guest checks; safe bounded
+CASH research may proceed while device acceptance waits. Keep #407/#395/#388 open
+and keep the real second-computer recovery deferred.
+
+## Pause follow-up after phone delivery
+
+The owner accepts the reported 0.1.83 audible preparation/short-lock guest paths,
+but reports Pause overridden at Room opening and sometimes on phone unlock.
+[The bounded Pause correction](evidence/explicit-pause-authority-2026-11-13.md)
+is implemented for review, not delivered. Finish its matching Pause/native-control
+acceptance next. #388 remains open: an immediate-lock cover failure lacks a matched
+failed report; the subsequent 20-ms PNG report is a successful control. Keep these
+facts separate from native-display reliability, startup speed and CASH readiness.
+
 ## Room continuity candidate, 2026-11-13
 
 [The same-track handoff](../../adr/0059-preserve-solo-during-room-preparation.md)

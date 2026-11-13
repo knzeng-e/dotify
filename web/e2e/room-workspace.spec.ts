@@ -3,7 +3,20 @@ import { expect, test, type Page } from '@playwright/test';
 async function hostRoom(page: Page) {
   await page.goto('/?e2eRoom=public');
   await page.getByRole('button', { name: 'Open a room', exact: true }).click();
-  await page.getByRole('button', { name: 'Select E2E Public Room Track' }).click();
+  const setup = page.getByRole('dialog', { name: 'Open a room', exact: true });
+  // At 320px the picker scrolls inside an entering sheet. Wait for its finite
+  // motion before clicking; a click during that scroll/entry can miss the choice.
+  await setup.evaluate(async element => {
+    await Promise.all(
+      element
+        .getAnimations({ subtree: true })
+        .filter(animation => animation.effect?.getTiming().iterations !== Infinity)
+        .map(animation => animation.finished.catch(() => undefined))
+    );
+  });
+  const publicTrack = setup.getByRole('button', { name: 'Select E2E Public Room Track', exact: true });
+  await publicTrack.click();
+  await expect(publicTrack).toHaveAttribute('aria-pressed', 'true');
   await page.getByLabel('Your name or nickname').fill('Room host');
   await page.getByRole('button', { name: 'Open the room', exact: true }).click();
   await expect(page.getByTestId('room-code')).toHaveText(/[A-Z0-9]{4,}/);

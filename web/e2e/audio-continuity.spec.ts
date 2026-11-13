@@ -978,6 +978,23 @@ test('a pause during Room preparation stays paused across the replacement', asyn
   await expect.poll(() => time(page)).toBeCloseTo(position, 1);
 });
 
+test('a native pause during Room preparation stays paused across the replacement', async ({ page }) => {
+  const probe = await managedHandoff(page);
+  await audio(page).evaluate(element => element.pause());
+  await expect(page.getByTestId('state')).toHaveAttribute('data-playing', 'false');
+  const position = await time(page);
+  probe.release();
+  await expect(page.getByTestId('room-preparation')).toHaveText('ready');
+  await expect(page.getByTestId('state')).toHaveAttribute('data-generation', '2');
+  await expect.poll(() => audio(page).evaluate(element => element.readyState)).toBeGreaterThanOrEqual(3);
+  await expect(audio(page)).toHaveJSProperty('paused', true);
+  await expect.poll(() => time(page)).toBeCloseTo(position, 1);
+  await page.waitForTimeout(250);
+  expect(await time(page)).toBeCloseTo(position, 1);
+  await page.getByRole('button', { name: 'Toggle playback', exact: true }).click();
+  await playing(page, position + 0.2);
+});
+
 test('a Room transport failure leaves the current solo decoder usable', async ({ page }) => {
   const probe = await managedHandoff(page);
   const position = await time(page);
