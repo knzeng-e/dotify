@@ -3,8 +3,8 @@
 Latest source: `d767c466cd030e08b1e2a8f91a09b44d0505abe2`; the optional-storage
 correction starts at `bd0a051424a1f0381733f8f8075f9cf9f58d0971`. Based on tested dev
 `c6e6fea8f237ba754bf388f0ba1022f064dc895b`. This is an offline #388 candidate;
-no client or service has been delivered. The later dev #445 measurement merge
-is independent; this branch starts from the last fully green dev checkpoint.
+no client or service has been delivered. The branch starts from the last fully
+green dev checkpoint and subsequently integrates #445 from dev, as recorded below.
 
 The [cache reference](../../../reference/public-artwork-cache.md) owns behavior,
 limits and failure semantics. This record describes observations, not an iPhone
@@ -82,8 +82,19 @@ Local validation on source `d767c466cd030e08b1e2a8f91a09b44d0505abe2`:
   hook and large-chunk warnings remain. The browser probe records at most 64
   compact registration summaries, without retaining PNG history.
 
-No source change follows those checks; subsequent documentation commits only
-record the contract and evidence. Full extended PR CI remains pending.
+## Integration with dev
+
+Merge source `b3d919005c28cb978e79447ecadd2a538c26ec3f` integrates dev
+`17e6be04716e6289d9b4bee791950a9c1bbd0bc3` (#445 startup telemetry), without
+conflict. All **1,163 unit tests / 150 files**, Web/frozen Product builds and full
+lint pass. All seven listening-controls cases pass again in Chromium and WebKit;
+the WebKit group also passes its additional host-output autoplay case (eight
+total). Existing warnings remain. Local link/anchor checks pass for 72
+reference targets across the four updated documents; offline backlog validation
+and live Project 5 drift checks pass. Exact extended PR-head CI remains pending.
+
+The earlier 1,159-test observation belongs to the prepared-image source before
+that integration; neither result is a native artwork-display measurement.
 
 ## Remaining acceptance
 
