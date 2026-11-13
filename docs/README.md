@@ -41,6 +41,7 @@ including successful starts and physical locked-screen observations.
 
 ## Look something up
 
+- [Server Node runtime and offline reader packaging](reference/server-runtime.md)
 - [Environment variables](reference/environment-variables.md)
 - [Socket events and negotiation limits](reference/socket-events.md)
 - [HTTP request limits](reference/request-limits.md)

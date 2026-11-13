@@ -115,7 +115,9 @@ Before any live read/maintenance/transfer, complete one private review record:
    masters with the data checkpoint or use a signing seed as a content backup.
    Readback here needs no signing key. Signing-key recovery remains a distinct
    operational custody duty before any future writer reactivation.
-4. Build/verify the exact reader executable separately from the data. On the
+4. Build/verify the exact reader executable separately from the data, following
+   the [runtime and cold-import contract](../reference/server-runtime.md#portable-offline-readers).
+   A generated rehearsal does not approve an old runtime for real secrets. On the
    destination, use Node 22 as the owning Mac UID, or an explicitly reviewed Docker
    staging layout. Docker Desktop may expose bind ownership as root: **do not**
    weaken file checks or run the reader as root to evade them. The generated

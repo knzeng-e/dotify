@@ -1,5 +1,16 @@
 # Bulletin publication beyond the synthetic pilot
 
+## Generated second-computer acceptance — 2026-11-13
+
+The owner confirms reconstruction/authentication of the generated package on the
+selected second Mac. The [dated record](implementation/evidence/second-mac-synthetic-2026-11-13.md)
+distinguishes that reported acceptance, the initial image-lookup failure and
+cold-import correction from real music/key recovery. The reader used the older
+runtime; [#449](server-node-runtime.md) prepares the maintained-runtime candidate
+before selecting a real-key reader. No real inspection, key export or maintenance
+is authorized by this result. #407 remains Now / In Progress with its real data,
+history, rollback, capacity and physical listening gates open.
+
 ## Current code checkpoint, 2026-11-12
 
 The [explicit compact-delivery candidate](../reference/bulletin-compact-delivery.md)
