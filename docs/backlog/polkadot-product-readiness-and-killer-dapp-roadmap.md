@@ -19,6 +19,17 @@ and wire-schema evidence on named distributions before any coordinated SDK
 migration. Preserve the standalone path, explicit failures and artist policies.
 No package upgrade, Host call, funded rehearsal or deployed payment follows.
 
+## Bounded Host software observation candidate
+
+The [software-support candidate](../reference/host-software-support.md) reads the
+pinned `system.info` method only when About is open, then allowlists optional
+Host platform/name/version in the manual support report. No account, permission,
+balance or payment query is introduced. The 1,500-ms deadline, one outstanding
+request and cancellation keep optional diagnostics independent of listening.
+This prepares named-Host collection without upgrading the SDK or establishing
+wire/payment compatibility. Matching delivery and actual Desktop/mobile labels
+remain open; the current listening-repair rollout is independent of this slice.
+
 ## Historical Host incident — 2026-10-10
 
 Host incident update: 2026-10-10. The 0.1.44 rollout timed out on owner-reported

@@ -19,7 +19,9 @@ detail is retained. The observer performs no network, storage or logging operati
 whitelists fields, rejects invalid timing/phases and replaces internal attempt
 numbers with numbers local to that export. Artwork and audio attempts are distinct
 namespaces; equal numbers do not link them. The existing explicit **Copy support
-report** action includes these observations; opening About sends and copies nothing.
+report** action includes these observations; opening About does not copy or transmit
+the report. A separate optional [Host software read](host-software-support.md) can
+add public software labels on Product-enabled clients.
 Reloading loses them. Clearing diagnostics discards history and ignores pending
 observers from the cleared generation. A missing phase is unknown, never zero time.
 
