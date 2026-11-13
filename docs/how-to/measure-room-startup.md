@@ -15,7 +15,8 @@ readiness; it does not measure what a person actually hears.
    repeated warm run as cold. The Host cache state may be unknown.
 3. If ready, let Web/Desktop guests join, then explicitly play. Record whether
    the host and each guest hear sound; a connected peer or moving bar is not proof.
-4. Open **You → About Dotify → Listening support → Copy support report**. The
+4. Open **You → About Dotify → Copy support report** (expand **Listening support**
+   first on older clients). The
    failure panel offers the same action. If the Host refuses clipboard access,
    select the report in the displayed text field. Opening the section alone
    neither copies nor sends anything.

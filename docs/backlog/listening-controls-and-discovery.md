@@ -10,6 +10,17 @@ sound. It cannot establish the missing-cover cause or native display latency.
 Retain this trigger and collect a matching failed-attempt report before the next
 reload; #388 remains open. Pause follow-ups are handled under #395 first.
 
+## Report collection clarity candidate
+
+The owner's failed-attempt report was lost after restarting, after copying app
+version details instead of listening observations. About now exposes **Copy support
+report** directly, explains copying before reload, and groups version-only copying
+under **Technical details**. The existing local serializer, manual clipboard action
+and selectable fallback remain; no persistence, automatic transmission or playback
+change is introduced. This supports #388 collection, not native artwork acceptance.
+The [device guide](../how-to/check-system-artwork.md) distinguishes current and older
+client navigation. Review and matching delivery remain ahead.
+
 ## Matched artwork timing candidate — 2026-11-13
 
 The #448 cache/prepared-PNG correction is merged into dev, with native acceptance

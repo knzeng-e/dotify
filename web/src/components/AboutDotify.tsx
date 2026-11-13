@@ -62,7 +62,10 @@ export function AboutDotify() {
       <button
         type='button'
         className='secondary-action compact-action about-dotify-trigger'
-        onClick={() => {
+        onClick={event => {
+          // Safari does not focus tapped buttons. Give Dialog an explicit
+          // opening target to restore on Escape, Back or close.
+          event.currentTarget.focus({ preventScroll: true });
           setCopyStatus('idle');
           setOpen(true);
         }}
@@ -85,6 +88,16 @@ export function AboutDotify() {
             <strong>{version ?? (build === 'Unavailable' ? 'Unavailable' : build.slice(0, 8))}</strong>
           </div>
           {version && <p className='about-dotify-note'>This is Dotify’s version. Polkadot App has its own version, shown outside Dotify.</p>}
+          <section className='about-dotify-support' aria-labelledby='about-dotify-support-title'>
+            <h3 id='about-dotify-support-title'>Listening support</h3>
+            <p className='about-dotify-note'>
+              Sound or cover not behaving as expected? Copy a report before reloading or closing Dotify: recent listening details disappear when it restarts.
+            </p>
+            <AudioFailureDiagnostics prominent />
+            <p className='about-dotify-note'>
+              Only loading and playback timings, with the app build. No account, track name or audio. Nothing is sent automatically.
+            </p>
+          </section>
           <details className='about-dotify-details'>
             <summary>Technical details</summary>
             <dl>
@@ -95,25 +108,17 @@ export function AboutDotify() {
                 </div>
               ))}
             </dl>
-          </details>
-          <button type='button' className='secondary-action' onClick={() => void copyDetails()}>
-            {copyStatus === 'copied' ? <Check size={16} aria-hidden='true' /> : <Copy size={16} aria-hidden='true' />}
-            {copyStatus === 'copied' ? 'Copied' : 'Copy app details'}
-          </button>
-          <p className='about-dotify-note' role='status'>
-            {copyStatus === 'failed'
-              ? 'Copy is unavailable here. Open Technical details to select the text or take a screenshot.'
-              : copyStatus === 'copied'
-                ? 'App details copied. No account or listening information included.'
-                : 'Only app details are copied. No account or listening information.'}
-          </p>
-          <details className='about-dotify-details'>
-            <summary>Listening support</summary>
-            <p className='about-dotify-note'>
-              Copy recent loading timings to help investigate slow or interrupted listening, even if it worked. No account, track name or audio is included.
-              Nothing is sent automatically.
+            <button type='button' className='secondary-action' onClick={() => void copyDetails()}>
+              {copyStatus === 'copied' ? <Check size={16} aria-hidden='true' /> : <Copy size={16} aria-hidden='true' />}
+              {copyStatus === 'copied' ? 'Copied' : 'Copy app details'}
+            </button>
+            <p className='about-dotify-note' role='status'>
+              {copyStatus === 'failed'
+                ? 'Copy is unavailable here. Select the details above or take a screenshot.'
+                : copyStatus === 'copied'
+                  ? 'App details copied. No account or listening information included.'
+                  : 'Version and compatibility only. For a listening problem, use Copy support report above.'}
             </p>
-            <AudioFailureDiagnostics />
           </details>
         </Dialog>
       )}

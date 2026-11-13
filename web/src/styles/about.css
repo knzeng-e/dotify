@@ -52,7 +52,22 @@
   overflow-wrap: anywhere;
   user-select: text;
 }
-.about-dotify > .secondary-action {
+.about-dotify-details > .secondary-action {
   width: 100%;
   min-height: 44px;
+}
+
+.about-dotify-support {
+  border-block: 1px solid var(--line);
+  padding-block: 1rem;
+}
+.about-dotify-support h3 {
+  margin: 0;
+  font-size: var(--text-base);
+}
+.about-dotify-support .audio-support-report {
+  justify-items: stretch;
+}
+.about-dotify-support .about-dotify-note:last-child {
+  margin-bottom: 0;
 }

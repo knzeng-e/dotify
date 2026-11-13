@@ -12,9 +12,12 @@ registered while native display remains late.
    Dotify badge appear with the correct title/artist, and roughly when. Do not
    confuse a moving bar or a submitted metadata object with audible sound or a
    visible cover. Note whether host and guests still hear the music in Room.
-3. Unlock, open **You → About Dotify → Listening support → Copy support report**,
+3. Unlock, open **You → About Dotify → Copy support report**,
    and retain that report with your observation before reloading. If clipboard
    access is refused, select/copy the displayed report. Nothing is sent automatically.
+   In clients before the support-layout update, expand **Listening support** first.
+   **Technical details → Copy app details** only copies version/capability information;
+   it does not include the listening report.
 4. Repeat after reopening the same player, then with a different track. Label
    these warm runs honestly; Host/browser cache state may be unknown. Verify that
    the old title/cover never returns after a rapid change.
