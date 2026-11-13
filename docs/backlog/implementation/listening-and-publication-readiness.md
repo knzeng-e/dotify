@@ -6,6 +6,10 @@ now separates immutable graph backup from prunable queue files. The refreshed
 real independent audio/key recovery remains open. #451 is the current #407 data
 backup slice, before writer rollback, hosted capacity and physical acceptance.
 
+The [#453 offline authentication candidate](../../operations/bulletin-published-audio-check.md)
+binds published data to an explicit release reference and recovered keys. It
+adds no real transfer, registration/history proof or writer activation.
+
 A separate [Room-start measurement candidate](../../how-to/measure-room-startup.md)
 can progress offline while #407 independent recovery is coordinated. It adds
 correlated success/failure reports, not a deployed latency fix. The activation

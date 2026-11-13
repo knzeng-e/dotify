@@ -2,7 +2,6 @@
 // config, signer, RPC, transport, service startup or key/cleartext export.
 import assert from 'node:assert/strict';
 import { dirname, isAbsolute, join, resolve } from 'node:path';
-import { z } from 'zod';
 import { blake2b } from '@noble/hashes/blake2';
 import { verifyIsolatedBulletinRestore } from './bulletinIsolatedRestore.js';
 import { readCheckpointManifest } from './bulletinCheckpoint.js';
@@ -15,22 +14,8 @@ import { contentMasterDigest } from './freshContentKeyBinding.js';
 import { deriveReleaseKeyMaterial } from './contentKeyMaterial.js';
 import { decryptStreamingObject, parseStreamingManifest, validateStreamingScope, verifyStreamingManifest, type StreamingScope } from './streamingFormat.js';
 import { STREAM_NONCE_SCHEME, streamingKeyFingerprint } from './streamingNonces.js';
+import { recoveredContentKeySchema } from './recoveredContentKeySchema.js';
 
-const version = /^dotify-content-key-v(?:[2-9]|[1-9][0-9]+)$/;
-const recoveredSchema = z
-  .object({
-    schema: z.literal('dotify.content-key-recovery.v1'),
-    masters: z.record(
-      z.string().max(80).regex(version),
-      z
-        .string()
-        .min(64)
-        .max(1024)
-        .regex(/^(?:[0-9a-fA-F]{2})+$/)
-    )
-  })
-  .strict()
-  .refine(value => Object.keys(value.masters).length > 0 && Object.keys(value.masters).length <= 64);
 const within = (parent: string, child: string) => child === parent || child.startsWith(`${parent}/`);
 
 export async function verifyRecoveredBulletinKeys(options: { directory: string; expectedManifestSha256: string; keyFile: string; signal: AbortSignal }) {
@@ -57,7 +42,7 @@ export async function verifyRecoveredBulletinKeys(options: { directory: string; 
     prunedAudioInventories = 0,
     nonceReservationsChecked = 0;
   try {
-    const recovered = recoveredSchema.parse(JSON.parse(rawKeys.toString('utf8')));
+    const recovered = recoveredContentKeySchema.parse(JSON.parse(rawKeys.toString('utf8')));
     for (const [keyVersion, secret] of Object.entries(recovered.masters)) masters.set(keyVersion, Buffer.from(secret, 'hex'));
     for (const required of manifest.plan.requiredKeyVersions) assert.ok(masters.has(required), 'Required recovered version is missing');
     if (profile.freshContentKey)

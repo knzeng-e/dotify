@@ -77,8 +77,8 @@ contacts an RPC or retrieves a missing block.
 The report distinguishes `completeReachableGraphVerified` from
 `ciphertextAuthenticated`, canonical history, storage independence, key provenance
 and writer authority. The latter guarantees remain false. No key is loaded or
-returned. The original archive is present as blocks; a separate authenticated
-reader is still needed to prove listening-data recovery with recovered masters.
+returned. The original archive is present as blocks; the separate [offline audio checker](bulletin-published-audio-check.md)
+authenticates it against explicit release/key expectations.
 Do not describe this data-only success as recovered audio or a deployable backup.
 
 ## Interrupted capture

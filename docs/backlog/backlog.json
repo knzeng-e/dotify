@@ -852,6 +852,16 @@
       "track": "Production spine",
       "phase": "Next",
       "note": "Owner-requested bounded mobile motion: explicit dock/player transitions and Queue sheet, preserving audio, access, history/focus and reduced motion. Candidate only; physical Host feel follows matching rollout."
+    },
+    {
+      "id": "bulletin-published-audio-authentication",
+      "doc": "docs/backlog/bulletin-published-audio-authentication.md",
+      "issue": 453,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Now",
+      "note": "Separate offline authentication of published graph with trusted reference/scope/digests and separately recovered keys. No real data/key capture or writer authority; parent #407 remains open."
     }
   ]
 }

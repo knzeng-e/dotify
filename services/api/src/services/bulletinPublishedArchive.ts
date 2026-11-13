@@ -229,3 +229,34 @@ export async function verifyPublishedBulletinArchive(directory: string, expected
   assert.deepEqual(await names(objects, BULLETIN_BLOCK_COUNT_MAX + 1), files);
   return report(expectedManifestSha256, verified.blocks.length, verified.totalBytes);
 }
+
+/** Offline consumers get only verified CID-addressed bytes, never saved paths.
+ * Recheck the full artifact after consumption, before exposing its result. */
+export async function withVerifiedPublishedBulletinArchive<T>(
+  directory: string,
+  expectedManifestSha256: string,
+  signal: AbortSignal,
+  consume: (archive: { root: string; readBlock: ReadBlock }) => Promise<T>
+): Promise<T> {
+  await verifyPublishedBulletinArchive(directory, expectedManifestSha256, signal);
+  const bytes = await checkpointMetadata(join(directory, 'archive.json'), 1024 * 1024, signal);
+  assert.equal(checkpointHash(bytes), expectedManifestSha256, 'Archive manifest changed before consumption');
+  const manifest = archiveSchema.parse(JSON.parse(bytes.toString('utf8')));
+  const byCid = new Map(manifest.blocks.map(row => [row.cid, row]));
+  const result = await consume({
+    root: manifest.root,
+    readBlock: async (cid, owner) => {
+      const readSignal = AbortSignal.any([signal, owner]);
+      readSignal.throwIfAborted();
+      const row = byCid.get(cid);
+      assert.ok(row, 'Missing archived block');
+      await canonicalCheckpointDirectory(directory);
+      await canonicalCheckpointDirectory(join(directory, 'objects'));
+      const block = await checkpointCiphertext(join(directory, 'objects', row.sha256 + '.bin'), row, readSignal);
+      verifyBulletinBlock(cid, block);
+      return block;
+    }
+  });
+  await verifyPublishedBulletinArchive(directory, expectedManifestSha256, signal);
+  return result;
+}

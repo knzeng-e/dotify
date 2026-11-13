@@ -66,6 +66,7 @@ including successful starts and physical locked-screen observations.
 - [Data-only custody checkpoint](operations/bulletin-custody-checkpoint.md): inspect a settled store, copy an exact plan and verify private data without keys or writer activation; operational use remains separate.
 - [Isolated Bulletin reconstruction](operations/bulletin-isolated-restore.md): recover original data/history into a guarded review workspace after source loss; no service activation or key recovery.
 - [Published Bulletin graph archive](operations/bulletin-published-archive.md): preserve reachable published blocks independently of pruned custody files and verify offline; no keys, history repair or writer activation.
+- [Published Bulletin audio authentication](operations/bulletin-published-audio-check.md): check a published backup against separate trusted release/key inputs, without exporting plaintext or activating custody.
 - [Recovered Bulletin key check](operations/bulletin-recovered-key-check.md): authenticate retained encrypted audio using explicitly recovered versions, without service activation; real transfer remains separate.
 - [Generated Bulletin restore rehearsal](operations/bulletin-generated-restore-rehearsal.md): independent-runner fixture transfer, source loss, compiled historical compatibility and refusal checks; operational recovery remains separate.
 - [Pilot release plan](operations/pilot-release-plan.md): device journeys, evidence and the release decision.
