@@ -67,8 +67,10 @@ a secret override can shadow a non-secret setting.
 The [HTTP request limits](../reference/request-limits.md) and
 [Room negotiation limits](../reference/socket-events.md#negotiation-limits)
 are references for the security candidate. Their presence in source does not
-mean the running service has that build. The remaining Zod migration is
-[#432](../backlog/api-schema-security-migration.md); development-tool advisories
+mean the running service has that build. The [#432 validator candidate](../reference/api-schema-compatibility.md)
+requires historical-state compatibility and the existing shared-state/publication
+checks before delivery; no journal reset or admission change is part of it.
+Development-tool advisories
 are tracked in [#433](../backlog/tooling-security-migration.md).
 
 The [compact delivery candidate](../reference/bulletin-compact-delivery.md) adds
