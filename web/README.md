@@ -9,7 +9,7 @@ and **You** form the listener app; `/artists` opens the artist studio.
 
 ## Run locally
 
-Use Node 22 and npm 10+. From this directory:
+Use Node 22.12+ (within Node 22) and npm 10+. From this directory:
 
 ```sh
 npm ci

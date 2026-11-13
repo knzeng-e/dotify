@@ -88,7 +88,7 @@ function walletClient(signMessage = vi.fn(async () => `0x${'11'.repeat(65)}`)): 
   return { account: { address: ADDRESS }, signMessage } as unknown as WalletClient;
 }
 
-function productSigner(signMessage = vi.fn(async () => PRODUCT_SIGNATURE)) {
+function productSigner(signMessage: (message: string) => Promise<`0x${string}`> = vi.fn(async () => PRODUCT_SIGNATURE)) {
   return {
     signatureScheme: 'product-sr25519-v1' as const,
     address: ADDRESS,
