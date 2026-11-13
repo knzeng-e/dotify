@@ -379,7 +379,14 @@ test('CLI verifies offline with no fallback and emits only fixed refusal text fo
       cwd: resolve('.'),
       encoding: 'utf8',
       timeout: 30_000,
-      env: { ...process.env, CONTENT_KEY_MASTER_SECRET: 'ff'.repeat(32), CONTENT_KEY_MASTER_SECRETS: '{}' }
+      // A usable matching application key must still never replace the missing
+      // explicitly recovered file; otherwise this refusal test is too weak.
+      env: {
+        ...process.env,
+        CONTENT_KEY_MASTER_SECRET: '43'.repeat(32),
+        CONTENT_KEY_MASTER_SECRETS: JSON.stringify({ 'dotify-content-key-v3': '43'.repeat(32) }),
+        CONTENT_KEY_ACTIVE_VERSION: 'dotify-content-key-v3'
+      }
     });
   const ok = run(args);
   assert.equal(ok.status, 0, ok.stderr);
