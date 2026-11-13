@@ -42,6 +42,8 @@ async function setup(
     accessReads = 0,
     plainRequests = 0;
   let freeAccess = fault !== 'denied';
+  let holdRoom = false;
+  let failRoom = false;
   let release = () => {};
   const gate = new Promise<void>(resolve => {
     release = resolve;
@@ -113,6 +115,10 @@ async function setup(
           relayActive--;
         }
       }
+      if (holdRoom && object === 'manifest.json') {
+        await gate;
+        if (failRoom) return route.fulfill({ status: 503 });
+      }
       if (((fault === 'held-startup' && name === 'a') || (fault === 'held-next-startup' && name === 'b')) && object === '96/segment-000.bin') await gate;
       if (name === 'a' && object === '96/segment-001.bin') {
         attempts++;
@@ -134,6 +140,12 @@ async function setup(
   await page.getByRole('button', { name: 'Select a', exact: true }).click();
   return {
     requests,
+    failRoom: () => {
+      failRoom = true;
+    },
+    holdRoom: () => {
+      holdRoom = true;
+    },
     attempts: () => attempts,
     keyRequests: () => keyRequests,
     release,
@@ -892,4 +904,97 @@ test('a retried access request stays in one startup attempt and reports Room int
   const ready = report.streaming.find((event: { phase: string }) => event.phase === 'compatibility-ready');
   expect(ready).toMatchObject({ attempt: starts[0].attempt, readAttempt: 2, forRoomCapture: true });
   expect(probe.keyRequests()).toBe(2);
+});
+
+async function managedSolo(page: Page) {
+  const probe = await setup(page);
+  await playing(page);
+  await page.evaluate(async () => {
+    const path = '/src/features/catalog/streamingMediaSource.ts';
+    const { ownManagedAudioUrl } = await import(path);
+    ownManagedAudioUrl(document.querySelector('audio')!.getAttribute('src')!, new AbortController().signal);
+    // Exercise the managed-only capability contract with the real MSE solo
+    // decoder still alive, then the real complete AAC compatibility reader.
+    Object.defineProperty(window, 'ManagedMediaSource', { value: window.MediaSource, configurable: true });
+    Object.defineProperty(window, 'MediaSource', { value: undefined, configurable: true });
+    Reflect.set(window, '__soloBeforeRoom', document.querySelector('audio'));
+    if (!(await import(path)).roomCaptureNeedsCompatibility(true)) throw new Error('Managed-only capability was not installed');
+  });
+  // Expire the documented 30-second ciphertext cache so the network gate
+  // observes an actual new preparation rather than a fully warm replay.
+  await page.clock.setFixedTime(Date.now() + 60_000);
+  return probe;
+}
+
+async function managedHandoff(page: Page) {
+  const probe = await managedSolo(page);
+  probe.holdRoom();
+  await page.getByRole('button', { name: 'Prepare current for room', exact: true }).click();
+  await expect.poll(() => probe.requests.filter(path => path === 'a:manifest.json').length).toBe(2);
+  await expect(page.getByTestId('room-preparation')).toHaveText('preparing');
+  return probe;
+}
+
+test('solo media continues through delayed Room preparation, then switches at the live position', async ({ page }) => {
+  const probe = await managedHandoff(page);
+  await audio(page).evaluate((audio: HTMLAudioElement) => {
+    audio.currentTime = 5;
+  });
+  await playing(page, 5.3);
+  await expect(page.getByTestId('state')).toHaveAttribute('data-generation', '1');
+  await expect(page.getByTestId('state')).toHaveAttribute('data-pending', 'false');
+  const atHandoff = await time(page);
+  probe.release();
+  await expect(page.getByTestId('room-preparation')).toHaveText('ready');
+  await playing(page, atHandoff);
+  await expect(page.getByTestId('state')).toHaveAttribute('data-generation', '2');
+  expect(await audio(page).evaluate(audio => audio !== Reflect.get(window, '__soloBeforeRoom'))).toBe(true);
+});
+
+for (const action of ['cancel', 'select'] as const)
+  test(`a ${action} during Room preparation cannot replace the continuing solo selection`, async ({ page }) => {
+    const probe = await managedHandoff(page);
+    if (action === 'cancel') await page.getByRole('button', { name: 'Cancel room preparation', exact: true }).click();
+    else {
+      await page.evaluate(() => Object.defineProperty(window, 'MediaSource', { value: Reflect.get(window, 'ManagedMediaSource'), configurable: true }));
+      await page.getByRole('button', { name: 'Select b', exact: true }).click();
+    }
+    await expect(page.getByTestId('room-preparation')).toHaveText('cancelled-or-failed');
+    probe.release();
+    await page.waitForTimeout(200);
+    await playing(page);
+    await expect(page.getByTestId('state')).toHaveAttribute('data-generation', action === 'cancel' ? '1' : '2');
+    await expect(page.getByTestId('state')).toHaveAttribute('data-track', action === 'cancel' ? /:a$/ : /:b$/);
+  });
+
+test('a pause during Room preparation stays paused across the replacement', async ({ page }) => {
+  const probe = await managedHandoff(page);
+  await page.getByRole('button', { name: 'Toggle playback', exact: true }).click();
+  const position = await time(page);
+  probe.release();
+  await expect(page.getByTestId('room-preparation')).toHaveText('ready');
+  await expect(page.getByTestId('state')).toHaveAttribute('data-generation', '2');
+  await expect(audio(page)).toHaveJSProperty('paused', true);
+  await expect.poll(() => time(page)).toBeCloseTo(position, 1);
+});
+
+test('a Room transport failure leaves the current solo decoder usable', async ({ page }) => {
+  const probe = await managedHandoff(page);
+  const position = await time(page);
+  probe.failRoom();
+  probe.release();
+  await expect(page.getByTestId('room-preparation')).toHaveText('cancelled-or-failed');
+  await playing(page, position + 0.2);
+  await expect(page.getByTestId('state')).toHaveAttribute('data-generation', '1');
+  await expect(page.getByTestId('state')).toHaveAttribute('data-failure', '');
+});
+
+test('an authoritative access denial during Room preparation retires the solo decoder too', async ({ page }) => {
+  const probe = await managedSolo(page);
+  probe.setFreeAccess(false);
+  await page.getByRole('button', { name: 'Prepare current for room', exact: true }).click();
+  await expect(page.getByTestId('room-preparation')).toHaveText('cancelled-or-failed');
+  await expect(page.getByTestId('state')).toHaveAttribute('data-access', 'false');
+  await expect(audio(page)).toHaveJSProperty('paused', true);
+  await expect(audio(page)).not.toHaveAttribute('src', /blob:/);
 });

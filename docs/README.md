@@ -9,6 +9,10 @@ system controls and local resume](explanation/continuous-listening.md). Its
 [W35 evidence](backlog/implementation/evidence/W35.md) separates browser checks
 from physical Product acceptance and publication.
 
+The [solo-to-Room continuity candidate](adr/0059-preserve-solo-during-room-preparation.md)
+keeps current solo audio usable during authenticated mobile Room preparation;
+matching physical-device acceptance remains open.
+
 ## Use Dotify
 
 | I want to…                                        | Start here                                                                |
@@ -42,6 +46,7 @@ including successful starts and physical locked-screen observations.
 
 ## Look something up
 
+- [Bulletin proof read coordination](adr/0058-coordinate-bulletin-proof-loads.md): avoid duplicate block downloads while retaining per-query checks
 - [Server Node runtime and offline reader packaging](reference/server-runtime.md)
 - [Environment variables](reference/environment-variables.md)
 - [Socket events and negotiation limits](reference/socket-events.md)

@@ -1,4 +1,5 @@
-import { streamingMediaSource } from '../features/catalog/streamingMediaSource';
+import { RoomAudioPreparation } from '../features/player/roomAudioPreparation';
+import { roomCaptureNeedsCompatibility, streamingMediaSource } from '../features/catalog/streamingMediaSource';
 import { StandbyAudio } from '../features/player/standbyAudio';
 import { publishStreamingStartupMetric, type StreamingStartupMetric } from '../features/catalog/audioStartupTelemetry';
 import { createStreamingPlayback } from '../features/catalog/streamingPlayback';
@@ -120,6 +121,7 @@ type ActiveTrackSelection = {
   requiresAccount: boolean;
   terminalReported: boolean;
   startupDeadline?: ReturnType<typeof setTimeout>;
+  mediaDeadlineMs?: number;
 };
 
 function nowMs(): number {
@@ -406,6 +408,8 @@ export function useCatalog(deps: UseCatalogDeps) {
   // 'room_host' when the selected track streams into a room; room listeners
   // never request keys at all (they only receive the WebRTC stream).
   const roomCaptureRef = useRef(false);
+  const [roomAudioPreparation] = useState(() => new RoomAudioPreparation());
+  const roomPreparationAttemptRef = useRef('');
   const keyRequestPurposeRef = useRef<KeyRequestPurpose>('individual');
 
   useEffect(() => {
@@ -490,7 +494,8 @@ export function useCatalog(deps: UseCatalogDeps) {
     pendingTrackMediaSourceRef.current = null;
   }
 
-  function beginTrackSelection(source: string, startedAt: number, requiresAccount: boolean) {
+  function beginTrackSelection(source: string, startedAt: number, requiresAccount: boolean, mediaDeadlineMs?: number) {
+    roomAudioPreparation.cancel();
     // A new choice ends the previous in-flight attempt. Publish its terminal
     // event before the next playback intent so evidence correlation does not
     // strand an interrupted attempt in "Timing active".
@@ -508,6 +513,7 @@ export function useCatalog(deps: UseCatalogDeps) {
       startedAt,
       pending: true,
       requiresAccount,
+      mediaDeadlineMs,
       terminalReported: false
     };
     activeTrackSelectionRef.current = selection;
@@ -520,26 +526,29 @@ export function useCatalog(deps: UseCatalogDeps) {
     // Start after authorization, so waiting for a wallet signature consumes no
     // media budget. Bound retries, compatibility downloads and native readiness
     // together; a transport that keeps dribbling bytes must not trap the UI.
-    selection.startupDeadline = setTimeout(() => {
-      if (!isTrackSelectionCurrent(selection) || !selection.pending) return;
-      selection.terminalReported = true;
-      publishHostAudioStartupMetric({
-        phase: 'error',
-        attemptId: selection.attemptId,
-        source: selection.source,
-        elapsedMs: Number((nowMs() - selection.startedAt).toFixed(1)),
-        timestamp: wallTimestamp(),
-        terminalReason: 'selection-failed'
-      });
-      retireActiveTrackSelection(false);
-      if (localAudioRef.current) retireHostAudio(localAudioRef.current);
-      setResolvedAudioSource(null);
-      setAudioSourcePending(false);
-      setTrackSelectionPending(false);
-      setAudioRecovery(null);
-      setAudioStartupStatus(null);
-      setPlaybackFailure({ trackId: selection.source, kind: 'audio-unavailable' });
-    }, AUDIO_STARTUP_TIMEOUT_MS);
+    selection.startupDeadline = setTimeout(
+      () => {
+        if (!isTrackSelectionCurrent(selection) || !selection.pending) return;
+        selection.terminalReported = true;
+        publishHostAudioStartupMetric({
+          phase: 'error',
+          attemptId: selection.attemptId,
+          source: selection.source,
+          elapsedMs: Number((nowMs() - selection.startedAt).toFixed(1)),
+          timestamp: wallTimestamp(),
+          terminalReason: 'selection-failed'
+        });
+        retireActiveTrackSelection(false);
+        if (localAudioRef.current) retireHostAudio(localAudioRef.current);
+        setResolvedAudioSource(null);
+        setAudioSourcePending(false);
+        setTrackSelectionPending(false);
+        setAudioRecovery(null);
+        setAudioStartupStatus(null);
+        setPlaybackFailure({ trackId: selection.source, kind: 'audio-unavailable' });
+      },
+      Math.max(0, Math.min(AUDIO_STARTUP_TIMEOUT_MS, (selection.mediaDeadlineMs ?? nowMs() + AUDIO_STARTUP_TIMEOUT_MS) - nowMs()))
+    );
   }
 
   function isTrackSelectionCurrent(selection: ActiveTrackSelection): boolean {
@@ -547,6 +556,7 @@ export function useCatalog(deps: UseCatalogDeps) {
   }
 
   function abortActiveTrackSelection() {
+    roomAudioPreparation.cancel();
     retireActiveTrackSelection(true);
     setAudioSourcePending(false);
     setTrackSelectionPending(false);
@@ -563,6 +573,7 @@ export function useCatalog(deps: UseCatalogDeps) {
   }
 
   function cancelPlaybackPreparation() {
+    roomAudioPreparation.cancel();
     if (!activeTrackSelectionRef.current?.pending || (localAudioRef.current?.readyState ?? 0) >= 3) return;
     abortActiveTrackSelection();
     setResolvedAudioSource(null);
@@ -747,7 +758,11 @@ export function useCatalog(deps: UseCatalogDeps) {
    * Configured-service failures travel with their invocation as thrown errors;
    * concurrent requests never share mutable failure state.
    */
-  async function resolveServerContentKey(contentHash: `0x${string}`, release?: ContentKeyReleaseIdentity): Promise<Uint8Array | null> {
+  async function resolveServerContentKey(
+    contentHash: `0x${string}`,
+    release?: ContentKeyReleaseIdentity,
+    purpose = keyRequestPurposeRef.current
+  ): Promise<Uint8Array | null> {
     if (isClassicUnlockE2e && contentHash.toLowerCase() === E2E_CLASSIC_HASH.toLowerCase()) {
       return requestClassicUnlockE2eKey(E2E_CLASSIC_TRACK.accessMode === 'free' || classicUnlockE2eHasAccess(listenerEvmAddress));
     }
@@ -769,7 +784,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     const chainId = walletClient?.chain?.id ?? PRODUCT_DEVNET_EVM_CHAIN_ID;
     const response = await requestContentKey({
       contentHash,
-      purpose: keyRequestPurposeRef.current,
+      purpose,
       ...(connectedWallet.keyRequestSigner ? { signer: connectedWallet.keyRequestSigner } : { walletClient: walletClient! }),
       chainId,
       release
@@ -786,10 +801,14 @@ export function useCatalog(deps: UseCatalogDeps) {
    * backend re-verifies the mode on-chain before releasing anything, so this
    * cannot open a paid or human-gated track.
    */
-  async function resolveFreeContentKey(contentHash: `0x${string}`, release?: ContentKeyReleaseIdentity): Promise<Uint8Array | null> {
+  async function resolveFreeContentKey(
+    contentHash: `0x${string}`,
+    release?: ContentKeyReleaseIdentity,
+    purpose = keyRequestPurposeRef.current
+  ): Promise<Uint8Array | null> {
     if (!isKeyServiceConfigured()) return null;
 
-    const response = await requestFreeContentKey(contentHash, release, keyRequestPurposeRef.current);
+    const response = await requestFreeContentKey(contentHash, release, purpose);
     if (response.access !== 'allowed') {
       throw new ProtectedPlaybackError('access-not-confirmed', response.message);
     }
@@ -806,19 +825,21 @@ export function useCatalog(deps: UseCatalogDeps) {
     isCurrent: () => boolean = () => true,
     options?: { key: Uint8Array; audio: () => HTMLAudioElement; speculative: true },
     onAuthorized?: () => void,
-    evidence?: { attemptId: string; readAttempt: number; startedAt: number }
+    evidence?: { attemptId: string; readAttempt: number; startedAt: number },
+    intent?: { forRoomCapture: boolean; purpose: KeyRequestPurpose }
   ): Promise<string> {
-    const forRoomCapture = roomCaptureRef.current;
+    const forRoomCapture = intent?.forRoomCapture ?? roomCaptureRef.current;
+    const purpose = intent?.purpose ?? keyRequestPurposeRef.current;
     throwIfAborted(signal);
     if (isClassicUnlockE2e && contentHash.toLowerCase() === E2E_CLASSIC_HASH.toLowerCase()) {
-      const serverKey = await resolveServerContentKey(contentHash, release);
+      const serverKey = await resolveServerContentKey(contentHash, release, purpose);
       throwIfAborted(signal);
       if (!serverKey) throw new Error('E2E full key request denied before payment.');
       return E2E_CLASSIC_AUDIO_URL;
     }
 
     if (isRoomJoinE2eProtectedHash(contentHash)) {
-      const serverKey = await resolveServerContentKey(contentHash, release);
+      const serverKey = await resolveServerContentKey(contentHash, release, purpose);
       throwIfAborted(signal);
       if (!serverKey) throw new Error('E2E room host is not authorized for full playback.');
       return E2E_ROOM_PROTECTED_AUDIO_URL;
@@ -846,7 +867,9 @@ export function useCatalog(deps: UseCatalogDeps) {
       metric({ phase: 'preparation-started' });
       let key: Uint8Array | null;
       try {
-        key = options?.key ?? (accessMode === 'free' ? await resolveFreeContentKey(contentHash, release) : await resolveServerContentKey(contentHash, release));
+        key =
+          options?.key ??
+          (accessMode === 'free' ? await resolveFreeContentKey(contentHash, release, purpose) : await resolveServerContentKey(contentHash, release, purpose));
         controllerSignal.throwIfAborted();
         if (!key) throw new Error('The audio access check could not be completed.');
       } catch (error) {
@@ -886,7 +909,7 @@ export function useCatalog(deps: UseCatalogDeps) {
         },
         bufferAheadSeconds: options ? () => (options.audio().isConnected ? 30 : 4) : undefined,
         onError: () => {
-          if ((!options?.speculative || options.audio().isConnected) && isCurrent()) {
+          if (!intent && (!options?.speculative || options.audio().isConnected) && isCurrent()) {
             setAudioRecovery('failed');
             setAudioStartupStatus('Audio connection interrupted');
           }
@@ -917,18 +940,79 @@ export function useCatalog(deps: UseCatalogDeps) {
     throw new Error('This audio format is no longer supported. Publish this track again from your artist space.');
   }
 
+  /** Keep the current solo source alive while its authenticated Room Blob loads. */
+  async function prepareCurrentTrackForRoom(track: CatalogTrack, signal: AbortSignal) {
+    const outgoing = activeTrackSelectionRef.current;
+    const source = audioSourceRef.current;
+    const lifetime = preparationLifetime.current;
+    const identity = preparationIdentityRef.current;
+    const current = () =>
+      selectedTrackIdRef.current === track.id &&
+      audioSourceRef.current === source &&
+      activeTrackSelectionRef.current === outgoing &&
+      preparationIdentityRef.current === identity;
+    if (!source || !outgoing || !current() || !isEncryptedAudioV3Ref(track.audioRef) || !roomCaptureNeedsCompatibility(true)) return;
+    // This is explicit hosting intent, not speculative individual listening.
+    // Do not mutate the solo purpose or transfer the audible producer's lifetime.
+    const startedAt = nowMs();
+    let mediaDeadlineMs: number | undefined;
+    const attemptId = `room-preparation:${++nextTrackSelectionIdRef.current}`;
+    roomPreparationAttemptRef.current = attemptId;
+    setAudioStartupStatus('Preparing room audio');
+    try {
+      await roomAudioPreparation.run({
+        signals: [signal, lifetime.signal, outgoing.controller.signal],
+        isCurrent: current,
+        timeoutMs: AUDIO_STARTUP_TIMEOUT_MS,
+        prepare: (owner, authorized) =>
+          prepareStreamingAudio(
+            track.audioRef,
+            track.hash,
+            track.accessMode,
+            releaseIdentityFromTrack(track),
+            owner,
+            () => current() && !owner.aborted,
+            undefined,
+            () => {
+              mediaDeadlineMs ??= nowMs() + AUDIO_STARTUP_TIMEOUT_MS;
+              authorized();
+            },
+            { attemptId, readAttempt: 1, startedAt },
+            { forRoomCapture: true, purpose: 'room_host' }
+          )
+      });
+      return mediaDeadlineMs;
+    } catch (error) {
+      if (current() && classifyProtectedPlaybackFailure(error) === 'access-not-confirmed') {
+        // A current denial is authoritative, unlike a failed download. Never
+        // preserve an audible decoder after learning access is no longer valid.
+        clearPlayback();
+        setCatalogAccessByTrackId(previous => ({ ...previous, [track.id]: false }));
+        setAccessGate(buildAccessGateInfo(track));
+      }
+      throw error;
+    } finally {
+      if (current() && roomPreparationAttemptRef.current === attemptId) setAudioStartupStatus(null);
+    }
+  }
+
   async function selectTrack(
     track: CatalogTrack,
     socketEmit?: RoomTrackEmitter,
     setLocalStreamReady?: (ready: boolean) => void,
     closeHostPeers?: () => void,
     showAccessGateOnDenied = false,
-    playbackOptions: { forRoomCapture?: boolean; preserveCurrentPosition?: boolean } = {}
+    playbackOptions: { forRoomCapture?: boolean; preserveCurrentPosition?: boolean; mediaDeadlineMs?: number } = {}
   ): Promise<TrackSelectionResult> {
     const continuation =
       playbackOptions.preserveCurrentPosition && selectedTrackIdRef.current === track.id ? captureAudioContinuation(localAudioRef.current, '') : null;
     const selectionStartedAt = nowMs();
-    const selection = beginTrackSelection(track.id, selectionStartedAt, isPolicyManagedTrack(track) && track.accessMode !== 'free');
+    const selection = beginTrackSelection(
+      track.id,
+      selectionStartedAt,
+      isPolicyManagedTrack(track) && track.accessMode !== 'free',
+      playbackOptions.mediaDeadlineMs
+    );
     // Resolve the destination purpose before comparing a prepared identity.
     // A solo candidate cannot be adopted for a room-host request (or vice versa).
     roomCaptureRef.current = playbackOptions.forRoomCapture === true;
@@ -1158,7 +1242,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     setLocalStreamReady?: (ready: boolean) => void,
     closeHostPeers?: () => void,
     showAccessGateOnDenied = false,
-    playbackOptions: { forRoomCapture?: boolean; preserveCurrentPosition?: boolean } = {}
+    playbackOptions: { forRoomCapture?: boolean; preserveCurrentPosition?: boolean; mediaDeadlineMs?: number } = {}
   ) {
     navigateToView('player');
     return selectTrack(track, socketEmit, setLocalStreamReady, closeHostPeers, showAccessGateOnDenied, playbackOptions);
@@ -1620,11 +1704,12 @@ export function useCatalog(deps: UseCatalogDeps) {
     preparationLifetime.current = lifetime;
     return () => {
       lifetime.abort();
+      roomAudioPreparation.cancel();
       standbyAudio.clear();
     };
     // Identity primitives own this lifetime; profile labels and render closures do not.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [preparationIdentity, standbyAudio]);
+  }, [preparationIdentity, standbyAudio, roomAudioPreparation]);
 
   async function prepareQueuedContentKeys(tracks: CatalogTrack[], signal: AbortSignal) {
     if (
@@ -1722,6 +1807,7 @@ export function useCatalog(deps: UseCatalogDeps) {
         ? Promise.resolve({ name: track.artist, recipient: E2E_CLASSIC_TRACK.artistAddress!, releaseTitle: track.title })
         : resolveDonationArtist(track, runtimeReader),
     prepareQueuedContentKeys,
+    prepareCurrentTrackForRoom,
     prepareNextPlayback,
     cancelNextPlayback: () => standbyAudio.clear(),
     adoptPreparedAudio: (url: string | null) => standbyAudio.adopt(url),

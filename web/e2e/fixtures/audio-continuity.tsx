@@ -40,6 +40,8 @@ function Harness() {
   const [policyApplied, setPolicyApplied] = useState(!Reflect.get(window, '__plainSeedCandidate'));
   const [preparations, setPreparations] = useState(0);
   const [preparationFailed, setPreparationFailed] = useState(false);
+  const roomPreparation = useRef<AbortController | null>(null);
+  const [roomResult, setRoomResult] = useState('idle');
   const playbackTracks = tracks.map(track =>
     plainPolicy && track.id.endsWith(':b')
       ? {
@@ -116,6 +118,28 @@ function Harness() {
           Select {track.title.slice(-1)}
         </button>
       ))}
+      <button
+        onClick={() => {
+          roomPreparation.current?.abort();
+          const controller = new AbortController();
+          roomPreparation.current = controller;
+          const track = playbackTracks.find(track => track.id === catalog.selectedTrackId)!;
+          setRoomResult('preparing');
+          playback.requestAutoplay();
+          void catalog
+            .prepareCurrentTrackForRoom(track, controller.signal)
+            .then(async mediaDeadlineMs => {
+              controller.signal.throwIfAborted();
+              await catalog.selectTrack(track, undefined, undefined, undefined, true, { forRoomCapture: true, preserveCurrentPosition: true, mediaDeadlineMs });
+              setRoomResult('ready');
+            })
+            .catch(() => setRoomResult('cancelled-or-failed'));
+        }}
+      >
+        Prepare current for room
+      </button>
+      <button onClick={() => roomPreparation.current?.abort()}>Cancel room preparation</button>
+      <output data-testid='room-preparation'>{roomResult}</output>
       <button onClick={() => void playback.togglePlay()}>Toggle playback</button>
       <PlayerTransport playback={playback} duration={playback.transport.duration} listener={false} />
       {catalog.playbackFailure && <AudioFailureDiagnostics />}

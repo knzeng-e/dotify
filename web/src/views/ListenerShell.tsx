@@ -73,7 +73,7 @@ export function ListenerShell() {
     productHostStatus
   } = useWalletContext();
   const discovery = useRoomDiscovery(session.socketRef.current, !session.roomId || activeView === 'rooms');
-  const { openWalletModal } = useUiFeedback();
+  const { openWalletModal, pushNotice } = useUiFeedback();
   const { artistName } = useReleaseForm();
   const { artistConsole, totalRoyaltyWei } = useArtistStudio();
 
@@ -201,8 +201,29 @@ export function ListenerShell() {
     // source changes so a previous solo Pause does not keep the room track
     // silent. Transport Next/Previous still preserves pause independently.
     playback.requestAutoplay();
+    let mediaDeadlineMs: number | undefined;
+    if (track.id === catalog.selectedTrackId && isManagedAudioUrl(catalog.audioSource)) {
+      try {
+        mediaDeadlineMs = await catalog.prepareCurrentTrackForRoom(track, creationSignal);
+      } catch (error) {
+        if (!creationSignal.aborted && !(error instanceof Error && error.name === 'AbortError'))
+          pushNotice({
+            tone: 'info',
+            title: 'Room audio is not ready',
+            message: 'The room was not opened. Check your listening access or try again when the connection is ready.'
+          });
+        if (!creationSignal.aborted) session.cancelRoomCreation();
+        return;
+      }
+      if (creationSignal.aborted) return;
+    }
+
     const selection = await catalog
-      .openTrack(track, undefined, undefined, undefined, true, { forRoomCapture: true, preserveCurrentPosition: track.id === catalog.selectedTrackId })
+      .openTrack(track, undefined, undefined, undefined, true, {
+        forRoomCapture: true,
+        preserveCurrentPosition: track.id === catalog.selectedTrackId,
+        mediaDeadlineMs
+      })
       .catch(() => null);
     if (creationSignal.aborted) return;
     // A failed/cancelled source is not a prepared room. Preserve access-gated
