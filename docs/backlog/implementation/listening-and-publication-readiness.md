@@ -1,5 +1,13 @@
 # Publication, listening reliability and CASH — execution order
 
+## Room continuity candidate, 2026-11-13
+
+[The same-track handoff](../../adr/0059-preserve-solo-during-room-preparation.md)
+keeps solo listening active during mobile Room preparation, within the existing
+access and media limits. It is an independent #395 product slice, not deployment,
+a measured startup speedup or physical background acceptance. Recovery remains
+deferred at the owner's request; #407 and the public-pilot safety gates stay open.
+
 ## Product work first
 
 The owner has deferred the real second-computer recovery rehearsal until after

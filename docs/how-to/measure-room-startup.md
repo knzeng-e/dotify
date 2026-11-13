@@ -30,6 +30,22 @@ Play was needed. Desktop emulation cannot establish iOS background acceptance.
 The report includes bounded output/context observations, not a microphone recording
 or a proof of acoustic output.
 
+## Check a solo-to-Room handoff
+
+On a client containing [the continuity candidate](../adr/0059-preserve-solo-during-room-preparation.md),
+start an existing full-length track in solo before opening its Room. While the
+Room is preparing, check that the original sound and controls remain usable.
+Seek once, then check that handoff continues from that live position. Repeat with
+an explicit Pause during preparation: the replacement must stay paused. Cancel
+one preparation and verify no late Room appears and solo listening remains usable.
+Also test lock/unlock during the wait and after hosting with audible guests.
+Record this separately from cold Room startup without an existing solo source.
+
+The candidate emits a separate streaming preparation attempt before the normal
+handoff selection. Its completed-source reuse is not a cold second download.
+Keep both attempts when interpreting the local report; do not subtract timestamps
+from different attempt origins or count native clock advancement as audible sound.
+
 ## Read the report
 
 The additive fields below belong to `dotify.audio-diagnostics.v1`.
