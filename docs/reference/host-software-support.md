@@ -68,3 +68,5 @@ CASH still needs verified units, durable status and artist-controlled settlement
 
 Scope: [Product compatibility #85](../backlog/polkadot-product-readiness-and-killer-dapp-roadmap.md).
 This candidate performs no deployment, funded trial or independent recovery.
+
+Validation: [dated local evidence](../backlog/implementation/evidence/host-software-support-2026-11-13.md).
