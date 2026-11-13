@@ -3,9 +3,9 @@ import AxeBuilder from '@axe-core/playwright';
 
 const fix = { latitude: 0.392, longitude: 9.454, accuracy: 100 };
 const title = 'E2E Protected Room Track';
-async function openHost(context: BrowserContext, visibility?: 'Nearby' | 'Everyone') {
+async function openHost(context: BrowserContext, visibility?: 'Nearby' | 'Everyone', capture: 'synthetic' | 'web-audio' = 'synthetic') {
   const host = await context.newPage();
-  await host.goto('/?e2eRoom=protected-authorized&e2eSync=on&e2eAutoplay=on');
+  await host.goto(`/?e2eRoom=protected-authorized&e2eSync=on&e2eAutoplay=on&e2eCapture=${capture}`);
   await host.getByRole('button', { name: 'Open a room' }).click();
   await host.getByRole('button', { name: `Select ${title}` }).click();
   await host.getByLabel('Your name or nickname').fill('Radar host');
@@ -42,7 +42,9 @@ test('automatic radar finds a later nearby publication, then joins real guest au
   });
   const packets: string[] = [];
   try {
-    const host = await openHost(hostContext);
+    // Exercise the ordinary Web Audio capture path, not the near-silent
+    // negotiation-only oscillator. The protected source is still synthetic.
+    const host = await openHost(hostContext, undefined, 'web-audio');
     await expect(host.getByRole('region', { name: 'Room visibility' })).toContainText('Link only');
     const guest = await guestContext.newPage();
     guest.on('websocket', socket =>
@@ -80,11 +82,23 @@ test('automatic radar finds a later nearby publication, then joins real guest au
     await expect(guest.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20_000 });
     await expect.poll(() => guest.evaluate(() => window.__DOTIFY_E2E_ROOM_JOIN__?.remotePlaybackCues ?? 0), { timeout: 15_000 }).toBeGreaterThan(0);
     expect(await guest.evaluate(() => window.__DOTIFY_E2E_ROOM_JOIN__?.keyRequests ?? 0)).toBe(0);
+    // ontrack/signaling can precede decoded frames. Bind the measurement to
+    // the current live receiver, as in the Room continuity acceptance tests.
+    await expect
+      .poll(() =>
+        guest.evaluate(() => {
+          const audio = [...document.querySelectorAll('audio')].find(item => item.srcObject instanceof MediaStream);
+          const tracks = (audio?.srcObject as MediaStream | null)?.getAudioTracks() ?? [];
+          return tracks.length > 0 && tracks.every(track => track.readyState === 'live' && !track.muted && track.enabled);
+        })
+      )
+      .toBe(true);
     const meter = await guest.evaluateHandle(async () => {
       const audio = [...document.querySelectorAll('audio')].find(item => item.srcObject instanceof MediaStream);
       if (!audio?.srcObject) throw new Error('The guest has no received audio stream.');
       const context = new AudioContext();
       await context.resume();
+      if (context.state !== 'running') throw new Error('The guest audio meter did not start.');
       const source = context.createMediaStreamSource(audio.srcObject as MediaStream);
       const analyser = context.createAnalyser();
       source.connect(analyser);
@@ -92,13 +106,12 @@ test('automatic radar finds a later nearby publication, then joins real guest au
       const silentOutput = context.createGain();
       silentOutput.gain.value = 0;
       analyser.connect(silentOutput).connect(context.destination);
-      // The fixture transmits a 0.0001-gain tone. Byte samples quantize that
-      // near-silent signal away; float samples retain its actual amplitude.
+      // Measure decoded samples from the actual captured fixture audio.
       const samples = new Float32Array(analyser.fftSize);
       return {
         energy() {
           analyser.getFloatTimeDomainData(samples);
-          return Math.max(...samples) - Math.min(...samples);
+          return Math.sqrt(samples.reduce((sum, sample) => sum + sample * sample, 0) / samples.length);
         },
         async dispose() {
           source.disconnect();
@@ -110,7 +123,29 @@ test('automatic radar finds a later nearby publication, then joins real guest au
     });
     try {
       // Signaling cues can arrive before the first decoded WebRTC frames.
-      await expect.poll(() => meter.evaluate(probe => probe.energy()), { timeout: 10_000 }).toBeGreaterThan(0.000001);
+      await expect.poll(() => meter.evaluate(probe => probe.energy()), { timeout: 10_000 }).toBeGreaterThan(0.01);
+    } catch (error) {
+      const inspectAudio = (page: Page) =>
+        page.evaluate(() => ({
+          fixture: window.__DOTIFY_E2E_ROOM_JOIN__,
+          audio: [...document.querySelectorAll('audio')].map(audio => ({
+            paused: audio.paused,
+            muted: audio.muted,
+            volume: audio.volume,
+            currentTime: audio.currentTime,
+            readyState: audio.readyState,
+            tracks: (audio.srcObject instanceof MediaStream ? audio.srcObject.getAudioTracks() : []).map(track => ({
+              enabled: track.enabled,
+              muted: track.muted,
+              readyState: track.readyState
+            }))
+          }))
+        }));
+      await testInfo.attach('nearby-audio-state', {
+        body: JSON.stringify({ host: await inspectAudio(host), guest: await inspectAudio(guest) }),
+        contentType: 'application/json'
+      });
+      throw error;
     } finally {
       await meter.evaluate(probe => probe.dispose());
       await meter.dispose();

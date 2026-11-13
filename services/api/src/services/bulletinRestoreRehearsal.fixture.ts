@@ -46,7 +46,7 @@ const snapshotSchema = z
     rootName: z.string().regex(/^dotify-prepared-recovery-[a-zA-Z0-9]{6}$/),
     jobId: z.string().uuid(),
     graphRoot: z.string().max(128),
-    files: z.record(hex),
+    files: z.record(z.string(), hex),
     directories: z.array(z.string().max(256)).min(1).max(128),
     chain: checkpointSchema
   })

@@ -126,10 +126,10 @@ changing the historical executable; this exercise does not endorse redeploying
 those dependencies.
 
 This executes **compiled recovery, reader and queue modules in a harness**, not
-an HTTP service, container entrypoint or Fly restart. The candidate's persistent
-implementation currently matches #438; this establishes a compatible format
-floor and an incompatible older control, not compatibility with every future
-schema change. The fixture transport, clock, authority and signer are injected;
+an HTTP service, container entrypoint or Fly restart. It establishes a tested
+format floor and an incompatible older control for the candidate commit, not
+compatibility with every future schema change. The [validator upgrade](../reference/api-schema-compatibility.md)
+also checks journals produced by a pinned Zod 3 checkout. The fixture transport, clock, authority and signer are injected;
 no real key or chain is used. Image/UID/mount/supervisor compatibility, current
 canonical history, live key restoration and any real rollback still require
 reviewed operational acceptance. A passing module test never grants permission
