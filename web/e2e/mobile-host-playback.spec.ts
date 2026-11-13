@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { installMediaSessionProbe } from './fixtures/mediaSessionProbe';
 
 async function instrumentOutput(page: Page) {
@@ -38,6 +38,39 @@ async function instrumentOutput(page: Page) {
     } as AudioNode['connect'];
   });
 }
+
+test.afterEach(async ({ page }, info) => {
+  if (info.status === info.expectedStatus) return;
+  const snapshot = await page
+    .evaluate(async () => {
+      const path = '/src/features/player/audioOutputLifecycle.ts';
+      const { audioOutputObservations } = await import(path);
+      return {
+        audio: [...document.querySelectorAll('audio')].map(audio => ({
+          paused: audio.paused,
+          ended: audio.ended,
+          muted: audio.muted,
+          volume: audio.volume,
+          readyState: audio.readyState,
+          time: audio.currentTime,
+          error: audio.error?.code
+        })),
+        outputs: Reflect.get(window, '__hostOutputs')?.map((output: { context: AudioContext; input: GainNode; rms: () => number }) => ({
+          state: output.context.state,
+          time: output.context.currentTime,
+          gain: output.input.gain?.value,
+          rms: output.rms()
+        })),
+        observations: audioOutputObservations()
+      };
+    })
+    .catch(() => null);
+  if (snapshot) {
+    const path = info.outputPath('host-output-state.json');
+    writeFileSync(path, JSON.stringify(snapshot, null, 2));
+    await info.attach('host-output-state', { path, contentType: 'application/json' });
+  }
+});
 
 async function openRoom(page: Page, autoplay = false) {
   await page.goto(`/?e2eRoom=public&e2eSync=on&e2eCatalog=sequence&e2eCapture=web-audio&e2eAutoplay=${autoplay ? 'on' : 'off'}`);

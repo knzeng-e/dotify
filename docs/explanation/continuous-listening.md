@@ -131,16 +131,21 @@ supported Next/Previous/seek actions; guests keep local pause/resume. Unsupporte
 actions are optional individually, and dismissal clears system controls and
 metadata. See the [Media Session specification](https://www.w3.org/TR/mediasession/).
 
-One versioned checkpoint stores a release ID/hash, position, at most 24 queued
-IDs, save time and local account/network scope. It expires after seven days and
-is saved only on this device, never sent as listening history. Keys, media URLs,
-room invitations and draft uploads are excluded. Another account/network cannot
-see a matching resume offer. Storage denial leaves playback usable.
+The active player owns playback intent. An explicit Pause, including an observed
+native pause of the current loaded element, survives same-track Room preparation,
+source replacement and a late foreground/native play event. Sharing the current
+track changes the audience; it does not request Play. Choosing another track or
+using the registered Play command can start it explicitly. Retired sources and
+natural end are excluded from native-pause ownership so they cannot pause a new
+selection or disable ordinary queue advance.
 
-Returning offers Resume; it does not play or rejoin automatically. Resume
-resolves active catalog entries and repeats the ordinary access flow, then seeks
-after metadata. Closing the mini-player or dismissing saved listening clears the
-checkpoint. A new explicit music choice replaces the old intent.
+A listening session lasts while its player remains open. The paused mini-player
+can resume its current selection and position; closing it retires the source and
+selecting that track again starts at the beginning. No cross-visit audio position
+or Room auto-rejoin is restored. Hosts can explicitly close a Room and keep the
+same playing or paused source in solo; guests retain only their local controls.
+See [the Pause correction evidence](../backlog/implementation/evidence/explicit-pause-authority-2026-11-13.md)
+for the tested source and remaining physical lock-screen acceptance.
 
 ## Evidence boundaries
 
