@@ -233,3 +233,58 @@ test('a Host that rejects system metadata cannot break account disconnect or the
   await expect(page.locator('.solo-player-header').getByRole('button', { name: 'Connect account' })).toBeVisible();
   expect(errors).toEqual([]);
 });
+
+test('returning to the app retries a failed cover once without restarting playback', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => {
+    const NativeImage = window.Image;
+    const source = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, 'src')!;
+    Reflect.set(window, '__systemDecodeAttempts', 0);
+    window.Image = function (...args: ConstructorParameters<typeof Image>) {
+      const image = new NativeImage(...args);
+      Object.defineProperty(image, 'src', {
+        get: () => source.get!.call(image),
+        set: (value: string) => {
+          if (value.startsWith('blob:')) {
+            const attempts = Number(Reflect.get(window, '__systemDecodeAttempts')) + 1;
+            Reflect.set(window, '__systemDecodeAttempts', attempts);
+            if (attempts === 1) {
+              queueMicrotask(() => image.dispatchEvent(new Event('error')));
+              return;
+            }
+          }
+          source.set!.call(image, value);
+        }
+      });
+      return image;
+    } as typeof Image;
+  });
+  const root = 'QmQEkYGFqbS7AV58HrTgqfwPpSeQJMh4MeeSY1RwWRtVhu';
+  await page.route(`**/ipfs/${root}/cover/*.webp`, route =>
+    route.fulfill({
+      body: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aX1cAAAAASUVORK5CYII=', 'base64'),
+      contentType: 'image/png',
+      headers: { 'access-control-allow-origin': '*' }
+    })
+  );
+  await unlockFixture(page, 'bulletin-delayed-cover');
+  await expect.poll(async () => (await readArtworkEvidence(page)).some(event => event.phase === 'fallback')).toBe(true);
+  expect((await readMediaSessionProbe(page)).artwork[0].src).toMatch(/^https?:/);
+  await page.evaluate(() => {
+    Reflect.get(window, '__TEST_MUSIC_SESSION__').handlers.pause();
+    for (const state of ['hidden', 'visible']) {
+      Object.defineProperty(document, 'visibilityState', { configurable: true, value: state });
+      document.dispatchEvent(new Event('visibilitychange'));
+    }
+  });
+  await expect.poll(async () => (await readMediaSessionProbe(page)).artwork[0]?.src).toMatch(/^data:image\/png;base64,/);
+  await expect.poll(async () => (await readMediaSessionProbe(page)).state).toBe('paused');
+  expect(await page.evaluate(() => Reflect.get(window, '__systemDecodeAttempts'))).toBe(2);
+  await page.evaluate(() => {
+    for (const state of ['hidden', 'visible', 'hidden', 'visible']) {
+      Object.defineProperty(document, 'visibilityState', { configurable: true, value: state });
+      document.dispatchEvent(new Event('visibilitychange'));
+    }
+  });
+  expect(await page.evaluate(() => Reflect.get(window, '__systemDecodeAttempts'))).toBe(2);
+});

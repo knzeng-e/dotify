@@ -1,8 +1,8 @@
-import { beginSystemArtworkObservation } from './systemArtworkObservation';
+import { publishSystemArtwork } from './systemArtworkPublication';
 import { useLayoutEffect, useEffect, useRef } from 'react';
 import type { PlaybackControls } from '../../hooks/usePlayback';
 import { bindMediaSession } from './systemMediaSession';
-import { preparedSystemArtwork, resolveSystemArtwork, systemArtworkCandidates, type SystemMediaTrack } from './systemArtwork';
+import type { SystemMediaTrack } from './systemArtwork';
 
 export function useSystemMediaSession(playback: PlaybackControls, track: SystemMediaTrack | null, enabled: boolean) {
   const latest = useRef(playback);
@@ -44,57 +44,11 @@ export function useSystemMediaSession(playback: PlaybackControls, track: SystemM
   const title = track?.title;
   const artist = track?.artist;
   const imageRef = track?.imageRef;
-  const album = 'Dotify';
   useEffect(() => {
     const session = navigator.mediaSession;
     if (!session) return;
-    const controller = new AbortController();
     const currentTrack = enabled && title !== undefined ? { title, artist: artist ?? '', imageRef } : null;
-    const observe = currentTrack ? beginSystemArtworkObservation() : undefined;
-    let settled = false;
-    const clearMetadata = () => {
-      try {
-        session.metadata = null;
-      } catch {
-        observe?.('failed');
-        // A partial Host can reject clearing as well as registration. Retiring
-        // this owner must still finish without taking down playback/account UI.
-      }
-    };
-    try {
-      const prepared = currentTrack ? preparedSystemArtwork(currentTrack) : null;
-      if (prepared) observe?.('prepared-hit', 'png');
-      const initialArtwork = prepared ?? systemArtworkCandidates(imageRef);
-      const metadata = currentTrack && typeof MediaMetadata !== 'undefined' ? new MediaMetadata({ title, artist, album, artwork: initialArtwork }) : null;
-      session.metadata = metadata;
-      if (metadata) observe?.('metadata-published', prepared ? 'png' : initialArtwork.length ? 'url' : 'none');
-      if (metadata && currentTrack && !prepared) {
-        void resolveSystemArtwork(currentTrack, controller.signal, observe)
-          .then(artwork => {
-            if (!controller.signal.aborted && active.current && session.metadata === metadata) {
-              session.metadata = new MediaMetadata({ title, artist, album, artwork });
-              observe?.('metadata-published', artwork[0]?.type === 'image/png' ? 'png' : artwork.length ? 'url' : 'none');
-              settled = true;
-            }
-          })
-          .catch(() => {
-            if (!controller.signal.aborted) observe?.('failed');
-            settled = true;
-            /* Artwork must never delay or interrupt audio. */
-          });
-      } else {
-        settled = true;
-      }
-    } catch {
-      observe?.('failed');
-      settled = true;
-      clearMetadata();
-    }
-    return () => {
-      observe?.(settled ? 'retired' : 'cancelled');
-      controller.abort();
-      clearMetadata();
-    };
+    return publishSystemArtwork(session, currentTrack, () => active.current);
   }, [enabled, title, artist, imageRef]);
   useEffect(() => {
     const session = navigator.mediaSession;

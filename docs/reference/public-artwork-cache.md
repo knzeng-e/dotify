@@ -90,9 +90,30 @@ images from this shared path, then composes a PNG with the Dotify badge. Its
 caller still owns cancellation and current-track metadata. A shared public
 download may finish after disconnect, but it must not restore retired metadata.
 
-Prepared-PNG reuse is implemented in this candidate. Actual native lock-screen
-rendering, rapid track changes and timing remain separate
+### Recovery on foreground return
+
+[The metadata publisher](../../web/src/features/player/systemArtworkPublication.ts)
+owns the current track's assignment and cancellation; the React hook delegates
+that lifecycle to it. If preparation falls back to source URLs, rejects, or the
+Host rejects a metadata assignment, it can make **one additional attempt per
+metadata owner** when the page returns to visible. Pending work finishes first;
+a successful prepared PNG needs no additional composition or repaint. A return
+while pending is remembered only until that work settles and can recover only
+while the page is still visible.
+
+This is an event-driven recovery, not polling or a background timer. Further
+returns cannot start further attempts for that owner, even after a second failure.
+Existing image/cache limits still apply. It does not call Play, Pause, seek,
+authorization or key delivery, and never waits in the audio path. Disconnect,
+selection change or replacement by another metadata owner prevents late
+publication; cleanup does not clear another owner's metadata. A known failed
+preparation is different from an OS that has not displayed an already registered
+PNG: no display acknowledgement or native workaround is inferred.
+
+Prepared-PNG reuse and bounded return recovery are implemented candidates. Actual
+native lock-screen rendering, rapid track changes and timing remain separate
 [#388 acceptance](../backlog/listening-controls-and-discovery.md). A browser
 metadata fixture does not prove that iOS or a Host displays the cover promptly.
 
-See [dated implementation evidence](../backlog/implementation/evidence/public-artwork-persistence-2026-11-13.md).
+See [prepared-cache implementation evidence](../backlog/implementation/evidence/public-artwork-persistence-2026-11-13.md)
+and [bounded return-recovery evidence](../backlog/implementation/evidence/system-artwork-return-2026-11-13.md).
