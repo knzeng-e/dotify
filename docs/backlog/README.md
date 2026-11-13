@@ -1,5 +1,7 @@
 # Dotify Production Backlog
 
+The selected #407 recovery work also includes [#453 offline published-audio authentication](bulletin-published-audio-authentication.md), with explicit trusted reference and separately recovered keys. Real data/key recovery remains open.
+
 The selected #407 recovery work now includes [#451 published-data archive](bulletin-published-graph-backup.md),
 separate from prunable custody files. [Refreshed V4 generated second-Mac acceptance](implementation/evidence/second-mac-v4-2026-11-13.md)
 does not complete real data/key recovery. Follow the [selected sequence](implementation/listening-and-publication-readiness.md).

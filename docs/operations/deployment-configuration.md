@@ -275,3 +275,8 @@ checkpoint, not an instruction for a new deployment.
 [Historical checkpoint: publication and room follow up 269](deployment-configuration-history.md#publication-and-room-follow-up-269).
 
 </details>
+
+The [published-audio authentication command](bulletin-published-audio-check.md)
+is an explicit offline operator tool with separate private plan/key paths and
+trusted digests. It adds no hosted route, environment setting, volume, secret
+installation or startup action. Ordinary media still refuses original archives.

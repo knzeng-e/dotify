@@ -383,3 +383,8 @@ profile replacement, increased quota, service maintenance, key transfer or a liv
 payment. The current deployed pilot remains restricted until reviewed activation.
 See [execution order](implementation/listening-and-publication-readiness.md) and
 [publication runbook](../operations/bulletin-artist-publication.md).
+
+The next [offline published-audio check](bulletin-published-audio-authentication.md)
+uses separate explicit trust/key inputs to authenticate that graph, without
+recreating pruned state. Real capture, key provenance and service recovery stay
+open; this implementation adds no operational authority.
