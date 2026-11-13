@@ -52,6 +52,15 @@ export function useSystemMediaSession(playback: PlaybackControls, track: SystemM
     const currentTrack = enabled && title !== undefined ? { title, artist: artist ?? '', imageRef } : null;
     const observe = currentTrack ? beginSystemArtworkObservation() : undefined;
     let settled = false;
+    const clearMetadata = () => {
+      try {
+        session.metadata = null;
+      } catch {
+        observe?.('failed');
+        // A partial Host can reject clearing as well as registration. Retiring
+        // this owner must still finish without taking down playback/account UI.
+      }
+    };
     try {
       const prepared = currentTrack ? preparedSystemArtwork(currentTrack) : null;
       if (prepared) observe?.('prepared-hit', 'png');
@@ -79,12 +88,12 @@ export function useSystemMediaSession(playback: PlaybackControls, track: SystemM
     } catch {
       observe?.('failed');
       settled = true;
-      session.metadata = null;
+      clearMetadata();
     }
     return () => {
       observe?.(settled ? 'retired' : 'cancelled');
       controller.abort();
-      session.metadata = null;
+      clearMetadata();
     };
   }, [enabled, title, artist, imageRef]);
   useEffect(() => {

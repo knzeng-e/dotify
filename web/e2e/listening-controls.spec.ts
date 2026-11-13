@@ -210,3 +210,26 @@ test('reopening a prepared cover publishes its PNG immediately without composing
   expect((await readMediaSessionProbe(page)).artwork[0].src).toBe(prepared);
   expect(await page.evaluate(() => Reflect.get(window, '__systemPngCompositions'))).toBe(compositions);
 });
+
+test('a Host that rejects system metadata cannot break account disconnect or the player', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const errors: string[] = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await unlockFixture(page, 'bulletin-generated-cover');
+  await expect.poll(async () => (await readMediaSessionProbe(page)).artwork[0]?.src).toMatch(/^data:image\/png;base64,/);
+  await page.evaluate(() => {
+    const session = Reflect.get(window, '__TEST_MUSIC_SESSION__');
+    Object.defineProperty(session, 'metadata', {
+      configurable: true,
+      get: () => null,
+      set: () => {
+        throw new Error('Host rejected metadata');
+      }
+    });
+  });
+  await page.locator('.solo-player-header .player-account-trigger').click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Disconnect', exact: true }).click();
+  await expect(page.locator('audio[src]')).toHaveCount(0);
+  await expect(page.locator('.solo-player-header').getByRole('button', { name: 'Connect account' })).toBeVisible();
+  expect(errors).toEqual([]);
+});

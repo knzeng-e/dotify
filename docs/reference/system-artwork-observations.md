@@ -23,11 +23,16 @@ report** action includes these observations; opening About sends and copies noth
 Reloading loses them. Clearing diagnostics discards history and ignores pending
 observers from the cleared generation. A missing phase is unknown, never zero time.
 
+An empty artwork list can mean no enabled metadata owner or unavailable Media
+Session support; it does not prove that a native cover appeared or failed.
+
 Observation does not introduce another metadata, image or playback owner. The
 existing hook still cancels retired work and checks that the same metadata object
 is current before replacing it. Cancelling a shared public-image consumer cannot
 cancel someone else's image request; a late image must not restore retired metadata.
-The [public-artwork cache contract](public-artwork-cache.md) owns its resource limits.
+If a partial Host rejects metadata registration or clearing, the owner still
+retires and playback/account controls remain available. A failed native clear
+is not reported as a native-display acknowledgement. The [public-artwork cache contract](public-artwork-cache.md) owns its resource limits.
 
 ## Fields and phases
 
@@ -50,7 +55,7 @@ The [public-artwork cache contract](public-artwork-cache.md) owns its resource l
 | `metadata-published` | Dotify's `MediaSession.metadata` assignment returned; an initial URL/empty publication can precede the prepared PNG |
 | `failed` | This metadata/preparation path failed without interrupting audio; the last preceding phase provides context |
 | `cancelled` | A pending metadata owner was retired; later completion cannot publish into it |
-| `retired` | A settled metadata owner was cleared or replaced |
+| `retired` | Dotify retired a settled metadata owner; native clearing can still fail |
 
 The initial metadata publication may contain only URLs or no image; inspect
 `kind` and the later PNG publication rather than interpreting the first assignment

@@ -2,7 +2,8 @@
 
 ## Matched artwork timing candidate — 2026-11-13
 
-The existing local support report now distinguishes image acquisition, decode,
+The #448 cache/prepared-PNG correction is merged into dev, with native acceptance
+still open. The existing local support report now distinguishes image acquisition, decode,
 PNG composition, prepared reuse and metadata publication, with bounded,
 identifier-free observations. [The reference](../reference/system-artwork-observations.md)
 owns fields/limits; [the device guide](../how-to/check-system-artwork.md) keeps
