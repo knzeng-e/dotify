@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { installMediaSessionProbe, readMediaSessionProbe } from './fixtures/mediaSessionProbe';
+import { installMediaSessionProbe, readMediaSessionHistory, readMediaSessionProbe } from './fixtures/mediaSessionProbe';
 
 async function unlockFixture(page: Page, scenario: string) {
   await installMediaSessionProbe(page);
@@ -138,4 +138,48 @@ test('room system artwork keeps track attribution and a stable Dotify signature 
   await page.getByRole('button', { name: 'Close room', exact: true }).click();
   await page.getByRole('button', { name: 'Close room and keep listening', exact: true }).click();
   await expect.poll(async () => (await readMediaSessionProbe(page)).album ?? '').toBe('Dotify');
+});
+
+test('reopening a prepared cover publishes its PNG immediately without composing it again', async ({ page }) => {
+  await installMediaSessionProbe(page);
+  await page.addInitScript(() => {
+    const encode = HTMLCanvasElement.prototype.toDataURL;
+    Reflect.set(window, '__systemPngCompositions', 0);
+    HTMLCanvasElement.prototype.toDataURL = function (...args) {
+      if (this.width === 640 && this.height === 640 && args[0] === 'image/png') {
+        Reflect.set(window, '__systemPngCompositions', Reflect.get(window, '__systemPngCompositions') + 1);
+      }
+      return encode.apply(this, args);
+    };
+  });
+  await page.goto('/?e2eRoom=public&e2eAutoplay=on&e2eSync=on&e2eCatalog=sequence');
+  await page.getByRole('button', { name: 'Open a room', exact: true }).click();
+  await page.getByRole('button', { name: 'Select E2E Public Room Track' }).click();
+  await page.getByLabel('Your name or nickname').fill('Cover host');
+  await page.getByRole('button', { name: 'Open the room', exact: true }).click();
+  await expect.poll(async () => (await readMediaSessionProbe(page)).artwork[0]?.src).toMatch(/^data:image\/png;base64,/);
+  const prepared = (await readMediaSessionProbe(page)).artwork[0].src;
+  await page.getByRole('button', { name: 'Close room', exact: true }).click();
+  await page.getByRole('button', { name: 'Close room and keep listening', exact: true }).click();
+  await page.getByRole('button', { name: 'Close mini-player', exact: true }).click();
+  await expect.poll(async () => (await readMediaSessionProbe(page)).title).toBeNull();
+  const historyStart = (await readMediaSessionHistory(page)).length;
+  const compositions = await page.evaluate(() => Reflect.get(window, '__systemPngCompositions'));
+  await page.getByRole('button', { name: /^Play E2E Public Room Track by/ }).click();
+  await expect.poll(async () => (await readMediaSessionProbe(page)).title).toBe('E2E Public Room Track');
+  const registrations = (await readMediaSessionHistory(page)).slice(historyStart).filter(entry => entry.title !== null);
+  expect(registrations[0]).toEqual({ title: 'E2E Public Room Track', artist: 'Dotify Room Host', preparedPng: true });
+  expect((await readMediaSessionProbe(page)).artwork[0].src).toBe(prepared);
+  expect(await page.evaluate(() => Reflect.get(window, '__systemPngCompositions'))).toBe(compositions);
+  // A second track on the same cover reuses pixels, never the old attribution.
+  await page.getByRole('button', { name: 'Music', exact: true }).click();
+  await page.getByRole('button', { name: 'Close mini-player', exact: true }).click();
+  await expect.poll(async () => (await readMediaSessionProbe(page)).title).toBeNull();
+  const nextStart = (await readMediaSessionHistory(page)).length;
+  await page.getByRole('button', { name: /^Play Second room track by/ }).click();
+  await expect.poll(async () => (await readMediaSessionProbe(page)).title).toBe('Second room track');
+  const next = (await readMediaSessionHistory(page)).slice(nextStart).filter(entry => entry.title !== null);
+  expect(next[0]).toEqual({ title: 'Second room track', artist: 'Dotify Room Host', preparedPng: true });
+  expect((await readMediaSessionProbe(page)).artwork[0].src).toBe(prepared);
+  expect(await page.evaluate(() => Reflect.get(window, '__systemPngCompositions'))).toBe(compositions);
 });

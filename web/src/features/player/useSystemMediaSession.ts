@@ -1,7 +1,7 @@
 import { useLayoutEffect, useEffect, useRef } from 'react';
 import type { PlaybackControls } from '../../hooks/usePlayback';
 import { bindMediaSession } from './systemMediaSession';
-import { resolveSystemArtwork, systemArtworkCandidates, type SystemMediaTrack } from './systemArtwork';
+import { preparedSystemArtwork, resolveSystemArtwork, systemArtworkCandidates, type SystemMediaTrack } from './systemArtwork';
 
 export function useSystemMediaSession(playback: PlaybackControls, track: SystemMediaTrack | null, enabled: boolean) {
   const latest = useRef(playback);
@@ -49,13 +49,15 @@ export function useSystemMediaSession(playback: PlaybackControls, track: SystemM
     if (!session) return;
     const controller = new AbortController();
     try {
+      const currentTrack = enabled && title !== undefined ? { title, artist: artist ?? '', imageRef } : null;
+      const prepared = currentTrack ? preparedSystemArtwork(currentTrack) : null;
       const metadata =
-        enabled && title !== undefined && typeof MediaMetadata !== 'undefined'
-          ? new MediaMetadata({ title, artist, album, artwork: systemArtworkCandidates(imageRef) })
+        currentTrack && typeof MediaMetadata !== 'undefined'
+          ? new MediaMetadata({ title, artist, album, artwork: prepared ?? systemArtworkCandidates(imageRef) })
           : null;
       session.metadata = metadata;
-      if (metadata) {
-        void resolveSystemArtwork({ title: title!, artist: artist ?? '', imageRef }, controller.signal)
+      if (metadata && currentTrack && !prepared) {
+        void resolveSystemArtwork(currentTrack, controller.signal)
           .then(artwork => {
             if (!controller.signal.aborted && active.current && session.metadata === metadata) {
               session.metadata = new MediaMetadata({ title, artist, album, artwork });
