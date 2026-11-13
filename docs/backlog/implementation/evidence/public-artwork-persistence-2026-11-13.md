@@ -105,3 +105,20 @@ timing and repeated
 solo/Room locks on the actual Host/iOS remain #388 work. Keep its physical gate
 open even if browser CI passes. The source adds no setting, storage schema,
 key, publication allowance, deployment or network write.
+
+## Security-update integration
+
+Merge `87ffbdff4826439d768cc471a9b433f01146d466` integrates dev
+`53df0b850160583789000c5ec7843c31d3edbde7`, including the reviewed API schema
+and development-toolchain fixes #446/#447. The only conflict is adjacent links
+in the documentation index; both the public-artwork and API-schema references
+are retained. Artwork implementation and its browser scenarios are unchanged.
+
+With freshly installed locked dependencies and Node 22.23.5, all **1,163 unit
+tests / 150 files**, Web/frozen Product builds and lint pass. All seven
+listening-controls cases pass in Chromium and WebKit; the WebKit group also
+passes the additional host-output autoplay case (eight total). The two existing
+App hook warnings and large-chunk warnings remain. Offline backlog validation,
+both conflicted reference targets and whitespace checks pass. Exact updated-head
+CI remains a separate check; this integration changes no deployed state or
+physical-device acceptance.
