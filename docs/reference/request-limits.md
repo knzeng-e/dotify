@@ -34,6 +34,6 @@ An ordinary JSON property named `pipe` does not bypass the guard. Multipart has
 its own byte/part limits; this table does not set an audio upload allowance.
 Private journals and persisted schemas are outside this network-body guard.
 
-This mitigates the demonstrated Zod 3 request-amplification path. It does not
-remove the dependency advisory; [#432](../backlog/api-schema-security-migration.md)
-tracks the real schema migration.
+The guard mitigates request amplification independently of the validator. The
+[#432 candidate](api-schema-compatibility.md) replaces Zod 3 with patched Zod 4
+while retaining these limits; a source update is not a deployment record.
