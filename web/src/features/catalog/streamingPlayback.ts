@@ -11,9 +11,11 @@ import { readCompatibilityAudio, type CompatibilityAudioProgress } from './compa
 import { compatibilityMp4 } from './compatibilityMp4';
 import { acquireMediaRelaySlot } from './mediaRelaySlots';
 import { isBulletinMediaRoot, streamingObjectUrls } from './streamingTransport';
+import { createStreamingReadTimings } from './streamingReadTimings';
 import type { StreamingStartupMetric } from './audioStartupTelemetry';
 type ReaderMetric = Pick<
   StreamingStartupMetric,
+  | 'readTimings'
   | 'phase'
   | 'objectPath'
   | 'objectBytes'
@@ -205,6 +207,7 @@ export async function createStreamingPlayback(input: {
   if (input.audioRef && (!reference || reference.root !== input.cid || reference.keyVersion !== input.scope.keyVersion))
     throw new Error('Streaming reference identity mismatch');
   const transport: StreamingTransportOptions = { layout: reference?.layout ?? 'unixfs-files-v1' };
+  const timings = createStreamingReadTimings();
   const emit = (metric: ReaderMetric) => {
     if (!input.signal.aborted) input.onMetric?.(metric);
   };
@@ -212,20 +215,26 @@ export async function createStreamingPlayback(input: {
   const failure = (error: unknown, authentication = false) => {
     if (reportedErrors.has(error)) return;
     reportedErrors.add(error);
-    emit({ phase: 'error', errorKind: authentication ? 'authentication' : 'transport' });
+    emit({ phase: 'error', errorKind: authentication ? 'authentication' : 'transport', readTimings: timings.snapshot() });
   };
   const get = async (cid: string, path: string, maxBytes: number, signal: AbortSignal, observe?: (metric: TransportObservation) => void) => {
-    const bytes = await (input.fetchObject ?? fetchStreamingObject)(
-      cid,
-      path,
-      maxBytes,
-      signal,
-      metric => {
-        emit({ phase: 'gateway-selected', objectPath: path, ...metric });
-        observe?.(metric);
-      },
-      true,
-      transport
+    let observation: TransportObservation = {};
+    const bytes = await timings.read(
+      () =>
+        (input.fetchObject ?? fetchStreamingObject)(
+          cid,
+          path,
+          maxBytes,
+          signal,
+          metric => {
+            observation = metric;
+            emit({ phase: 'gateway-selected', objectPath: path, ...metric });
+            observe?.(metric);
+          },
+          true,
+          transport
+        ),
+      () => observation
     );
     if (path.endsWith('/segment-000.bin')) emit({ phase: 'first-object-ready', objectPath: path, objectBytes: bytes.length, segmentIndex: 0 });
     return bytes;
@@ -234,7 +243,7 @@ export async function createStreamingPlayback(input: {
   try {
     const bytes = await get(input.cid, 'manifest.json', 256 * 1024, input.signal);
     try {
-      context = await readStreamingManifest(bytes, input.key, input.scope);
+      context = await timings.decrypt(() => readStreamingManifest(bytes, input.key, input.scope));
       if (transport.layout === 'rendition-pack-v1' && ['auto', 'required'].includes(import.meta.env.VITE_DOTIFY_HOST_MODE ?? 'off')) {
         const { prepareHostCompactMedia } = await import('./bulletinCompactMedia');
         const prepared = await prepareHostCompactMedia({ root: input.cid, manifestBytes: bytes, key: input.key, scope: input.scope, signal: input.signal });
@@ -244,7 +253,7 @@ export async function createStreamingPlayback(input: {
       failure(error, true);
       throw error;
     }
-    emit({ phase: 'manifest-ready', objectPath: 'manifest.json', objectBytes: bytes.length });
+    emit({ phase: 'manifest-ready', objectPath: 'manifest.json', objectBytes: bytes.length, readTimings: timings.snapshot() });
   } catch (error) {
     failure(error);
     throw error;
@@ -261,7 +270,7 @@ export async function createStreamingPlayback(input: {
     if (object.kind === 'media') adaptive.observe(bytes.length, performance.now() - start, cached);
     let clear;
     try {
-      clear = await decryptStreamingMedia(context, object, bytes);
+      clear = await timings.decrypt(() => decryptStreamingMedia(context, object, bytes));
     } catch (error) {
       failure(error, true);
       throw error;
@@ -271,15 +280,16 @@ export async function createStreamingPlayback(input: {
   };
   const capability = streamingMediaSource();
   if (!capability || roomCaptureNeedsCompatibility(input.forRoomCapture === true)) {
-    emit({ phase: 'compatibility-reader' });
+    emit({ phase: 'compatibility-reader', readTimings: timings.snapshot() });
     // Same authenticated rendition, never the archival master or a different key.
     const parts = await readCompatibilityAudio([rendition.init, ...rendition.segments], read, input.signal, input.onPreparationProgress).catch(error => {
       failure(error);
       throw error;
     });
     input.signal.throwIfAborted();
+    emit({ phase: 'compatibility-downloaded', readTimings: timings.snapshot() });
     const url = URL.createObjectURL(new Blob(compatibilityMp4(parts), { type: 'audio/mp4' }));
-    emit({ phase: 'compatibility-ready' });
+    emit({ phase: 'compatibility-ready', readTimings: timings.snapshot() });
     return { url, gainDb: context.manifest.gainDb, progressive: false };
   }
   const source = new capability.ctor();

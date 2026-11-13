@@ -108,7 +108,9 @@ function Harness() {
           key={track.id}
           onClick={() => {
             playback.requestAutoplay();
-            void catalog.selectTrack(track).then(result => setPreparationFailed(result.preparationFailed === true));
+            void catalog
+              .selectTrack(track, undefined, undefined, undefined, false, { forRoomCapture: Reflect.get(window, '__captureForRoom') === true })
+              .then(result => setPreparationFailed(result.preparationFailed === true));
           }}
         >
           Select {track.title.slice(-1)}
