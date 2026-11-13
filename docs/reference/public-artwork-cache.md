@@ -47,6 +47,38 @@ The optional-storage budget is not an audio timeout. Cache Storage quota or
 availability cannot withhold an already downloaded cover. Clearing this cache
 affects cover reuse; it does not unlock listening or recover missing audio.
 
+## Prepared system PNGs
+
+[System artwork](../../web/src/features/player/systemArtwork.ts) keeps a separate,
+page-memory LRU of successfully composed public PNGs. It stores only derived
+pixels and their visual identity, never an audio source, key or listening grant.
+A reopened solo/Room metadata owner can use a ready PNG on its first registration
+instead of decoding and composing the same cover again.
+
+Immutable gateway aliases share a CID/path identity. Small inline raster/SVG
+images use their exact source; generated covers include their title and seed.
+Mutable HTTP URLs, blob URLs and unknown/private schemes are not memoized. A
+composition-version key includes the output size and badge layout; change it
+when those pixels change.
+
+| Resource | Bound |
+| --- | --- |
+| Completed PNG entries | 8; LRU eviction |
+| Retained key/image strings | 8 MiB estimated as UTF-16 code units × 2, including source, sizes and type; not a browser heap measurement |
+| Identity length | 16,384 code units; larger identities skip retention |
+| Persistence | Page memory only; no additional Cache Storage or local storage |
+
+An output exceeding the retention budget can still be delivered to the active
+owner; it is not retained. Returned image descriptors are copies. Eviction drops
+the cache reference without revoking the self-contained data URL already given
+to a metadata owner. Decoded images/canvases are not retained.
+
+Failed or cancelled preparation is not memoized, so a later attempt can retry.
+This cache keeps public pixels across account changes; each metadata registration
+still obtains the current title and artist, and disconnect/selection cancellation
+remains authoritative. Sharing an album cover cannot reuse another track’s
+attribution.
+
 ## System metadata boundary
 
 [System artwork](../../web/src/features/player/systemArtwork.ts) obtains public
@@ -54,7 +86,8 @@ images from this shared path, then composes a PNG with the Dotify badge. Its
 caller still owns cancellation and current-track metadata. A shared public
 download may finish after disconnect, but it must not restore retired metadata.
 
-PNG composition reuse and actual native lock-screen rendering remain separate
+Prepared-PNG reuse is implemented in this candidate. Actual native lock-screen
+rendering, rapid track changes and timing remain separate
 [#388 acceptance](../backlog/listening-controls-and-discovery.md). A browser
 metadata fixture does not prove that iOS or a Host displays the cover promptly.
 
