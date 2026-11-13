@@ -25,6 +25,16 @@
   },
   "items": [
     {
+      "id": "bulletin-published-graph-backup",
+      "doc": "docs/backlog/bulletin-published-graph-backup.md",
+      "issue": 451,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Now",
+      "note": "Separate bounded published-graph archive after ordinary custody pruning: capture every reachable CID-verified block, including encrypted archive data, and verify offline against a trusted digest. Preserve private history/checkpoints; no recreated queue files, keys, public archive route or writer. #407 retains real data/key recovery and all other activation gates."
+    },
+    {
       "id": "server-node-runtime",
       "doc": "docs/backlog/server-node-runtime.md",
       "issue": 449,

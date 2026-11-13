@@ -1,5 +1,15 @@
 # Bulletin publication beyond the synthetic pilot
 
+## Published-data backup candidate — 2026-11-13
+
+The [refreshed V4 generated reader](implementation/evidence/second-mac-v4-2026-11-13.md)
+is now accepted by the owner on the second Mac; real data/key recovery remains
+open. [#451](bulletin-published-graph-backup.md) prepares a separate bounded archive
+of published blocks so ordinary temporary-file pruning does not limit the data
+backup to metadata. It does not recreate the original queue or grant writer/key
+authority. Real capture/authentication and all #407 operational gates remain.
+Earlier dated entries retain their original scope.
+
 ## Generated second-computer acceptance — 2026-11-13
 
 The owner confirms reconstruction/authentication of the generated package on the

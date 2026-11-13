@@ -1,5 +1,10 @@
 # Dotify Production Backlog
 
+The selected #407 recovery work now includes [#451 published-data archive](bulletin-published-graph-backup.md),
+separate from prunable custody files. [Refreshed V4 generated second-Mac acceptance](implementation/evidence/second-mac-v4-2026-11-13.md)
+does not complete real data/key recovery. Follow the [selected sequence](implementation/listening-and-publication-readiness.md).
+
+
 Current execution and code/deployment boundaries are in the
 [selected sequence](implementation/listening-and-publication-readiness.md).
 The #407 compact delivery/admission and synthetic AAC checks are documented there;
