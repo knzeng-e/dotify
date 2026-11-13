@@ -6,6 +6,17 @@ product-readiness work. Follow [the product-first execution order](implementatio
 #407 operational gate to close. Activation safety and physical listening remain
 separate acceptance requirements; earlier dated entries retain their scope.
 
+## Explicit Pause follow-up, 2026-11-13
+
+The owner confirms 0.1.83 solo audio/control continuity during Room preparation
+and audible Web/Desktop guests under the requested short phone lock. Pause does
+not remain authoritative at Room opening; a second report describes intermittent
+resume on unlock after native Pause. The [bounded correction](implementation/evidence/explicit-pause-authority-2026-11-13.md)
+keeps current-track intent, records native pauses and rejects unsolicited play.
+It is a code candidate, not a rollout or proof of the physical Host cause.
+Repeated phone Pause/Room/lock acceptance and extended listening remain open.
+Artwork is still unaccepted and tracked in #388; real recovery remains deferred.
+
 ## Solo-to-Room continuity candidate, 2026-11-13
 
 The [separate preparation lifetime](../adr/0059-preserve-solo-during-room-preparation.md)
