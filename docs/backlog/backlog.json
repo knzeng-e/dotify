@@ -7,40 +7,12 @@
     "number": 5,
     "url": "https://github.com/users/knzeng-e/projects/5",
     "statusField": "Status",
-    "statusOptions": [
-      "Todo",
-      "In Progress",
-      "In Review",
-      "Done"
-    ],
+    "statusOptions": ["Todo", "In Progress", "In Review", "Done"],
     "recommendedFields": {
-      "Priority": [
-        "P0",
-        "P1",
-        "P2",
-        "P3"
-      ],
-      "Track": [
-        "Production spine",
-        "Product SDK",
-        "Room reliability",
-        "Personhood",
-        "Cultural propagation",
-        "Design record"
-      ],
-      "Phase": [
-        "Now",
-        "Next",
-        "Product feasibility",
-        "Later",
-        "Record"
-      ],
-      "Type": [
-        "Work",
-        "Research",
-        "Epic",
-        "Record"
-      ],
+      "Priority": ["P0", "P1", "P2", "P3"],
+      "Track": ["Production spine", "Product SDK", "Room reliability", "Personhood", "Cultural propagation", "Design record"],
+      "Phase": ["Now", "Next", "Product feasibility", "Later", "Record"],
+      "Type": ["Work", "Research", "Epic", "Record"],
       "Backlog doc": "text"
     }
   },
