@@ -1,3 +1,4 @@
+import type { SystemArtworkObserver } from './systemArtworkObservation';
 import { drawSystemBrandedArtwork } from './systemBrandedArtwork';
 import { createCoverFallbackDataUri } from '../catalog/coverArtwork';
 import { getGatewayUrlsForAssetRef } from '../../services/pinata';
@@ -68,8 +69,9 @@ export function systemArtworkCandidates(imageRef: string | undefined): MediaImag
     .map(src => ({ src }));
 }
 
-function pngArtwork(src: string, signal: AbortSignal): Promise<MediaImage> {
+function pngArtwork(src: string, signal: AbortSignal, observe?: SystemArtworkObserver): Promise<MediaImage> {
   signal.throwIfAborted();
+  observe?.('decode-started');
   return new Promise((resolve, reject) => {
     const image = new Image();
     const finish = (error?: unknown) => {
@@ -92,6 +94,7 @@ function pngArtwork(src: string, signal: AbortSignal): Promise<MediaImage> {
     image.onload = () => {
       try {
         signal.throwIfAborted();
+        observe?.('decoded');
         const canvas = document.createElement('canvas');
         canvas.width = canvas.height = 640;
         const context = canvas.getContext('2d');
@@ -104,6 +107,7 @@ function pngArtwork(src: string, signal: AbortSignal): Promise<MediaImage> {
         if (!frame) throw new Error('System artwork canvas unavailable');
         drawSystemBrandedArtwork(frame, canvas);
         const result = { src: output.toDataURL('image/png'), sizes: '640x640', type: 'image/png' };
+        observe?.('composed', 'png');
         finish();
         resolve(result);
       } catch (error) {
@@ -116,12 +120,15 @@ function pngArtwork(src: string, signal: AbortSignal): Promise<MediaImage> {
 }
 
 /** Public artwork only. Reuse bounded IPFS/Host cache; never read audio or keys. */
-export async function resolveSystemArtwork(track: SystemMediaTrack, signal: AbortSignal): Promise<MediaImage[]> {
+export async function resolveSystemArtwork(track: SystemMediaTrack, signal: AbortSignal, observe?: SystemArtworkObserver): Promise<MediaImage[]> {
   signal.throwIfAborted();
   const hit = preparedSystemArtwork(track);
-  if (hit) return hit;
+  if (hit) {
+    observe?.('prepared-hit', 'png');
+    return hit;
+  }
   const compose = async (src: string) => {
-    const artwork = await pngArtwork(src, signal);
+    const artwork = await pngArtwork(src, signal, observe);
     signal.throwIfAborted();
     rememberPreparedArtwork(track, artwork);
     return [artwork];
@@ -133,15 +140,19 @@ export async function resolveSystemArtwork(track: SystemMediaTrack, signal: Abor
         return await compose(candidates[0].src);
       } catch {
         signal.throwIfAborted();
+        observe?.('fallback', 'url');
         return candidates;
       }
     }
     try {
+      observe?.('image-load-started');
       const source = await loadPublicArtwork(candidates.map(candidate => candidate.src));
       signal.throwIfAborted();
+      observe?.('image-ready');
       return await compose(source);
     } catch {
       signal.throwIfAborted();
+      observe?.('fallback', 'url');
       // Ordinary image URLs remain usable by platforms that fetch directly.
       return candidates;
     }

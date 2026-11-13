@@ -1,5 +1,17 @@
 # Listening controls and room discovery — next iteration
 
+## Matched artwork timing candidate — 2026-11-13
+
+The #448 cache/prepared-PNG correction is merged into dev, with native acceptance
+still open. The existing local support report now distinguishes image acquisition, decode,
+PNG composition, prepared reuse and metadata publication, with bounded,
+identifier-free observations. [The reference](../reference/system-artwork-observations.md)
+owns fields/limits; [the device guide](../how-to/check-system-artwork.md) keeps
+actual cover appearance and sound separate from registration. Cancellation and
+rapid-track metadata ownership retain authority. This prepares matching #388
+acceptance without claiming that the intermittent iPhone delay is fixed or
+starting a new recovery/rollout operation. [Source-bound evidence](implementation/evidence/system-artwork-observations-2026-11-13.md) also records a reproduced partial-Host metadata rejection and its isolation from player cleanup. Prior dated results retain their scope.
+
 ## Artwork delivery and prepared-PNG candidate — 2026-11-13
 
 A controlled regression demonstrates that a stalled Cache Storage write can

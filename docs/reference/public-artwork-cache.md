@@ -79,6 +79,10 @@ still obtains the current title and artist, and disconnect/selection cancellatio
 remains authoritative. Sharing an album cover cannot reuse another track’s
 attribution.
 
+The [local artwork observation reference](system-artwork-observations.md) defines
+preparation/publication timing separately from these cache limits. It retains no
+image identity or pixels and does not acknowledge native display.
+
 ## System metadata boundary
 
 [System artwork](../../web/src/features/player/systemArtwork.ts) obtains public
