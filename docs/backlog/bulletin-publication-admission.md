@@ -1,5 +1,12 @@
 # Bulletin publication beyond the synthetic pilot
 
+The [selected sequence defines the bounded recovery slice and its stop rule](implementation/listening-and-publication-readiness.md#bounded-recovery-before-the-public-pilot).
+Resume measured publication latency and the other selected product work; the
+owner has deferred the real independent release/key rehearsal until afterwards.
+Broader activation and public-pilot gates remain open;
+recovery platform expansion is not a prerequisite for ongoing development.
+The dated checkpoints below retain their original scope.
+
 ## Published-data backup candidate — 2026-11-13
 
 The [refreshed V4 generated reader](implementation/evidence/second-mac-v4-2026-11-13.md)

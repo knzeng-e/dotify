@@ -1,7 +1,12 @@
 # Authenticate published Bulletin audio offline
 
 Issue: [#453](https://github.com/knzeng-e/dotify/issues/453) · Parent: [#407](https://github.com/knzeng-e/dotify/issues/407)
-P1 · Production spine · Now · Work. Project 5 owns workflow status.
+P1 · Production spine · Record · Record. Project 5 owns workflow status.
+
+The code scope is complete in [#454](https://github.com/knzeng-e/dotify/pull/454),
+merged into dev `93e99042`. This is a completed implementation record;
+[the bounded real recovery](implementation/listening-and-publication-readiness.md#bounded-recovery-before-the-public-pilot)
+and broader activation/public-pilot acceptance remain in #407.
 
 ## Problem and boundary
 

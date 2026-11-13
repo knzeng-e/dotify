@@ -1,7 +1,12 @@
 # Back up published Bulletin graphs after custody pruning
 
 Issue: [#451](https://github.com/knzeng-e/dotify/issues/451) · Parent: [#407](https://github.com/knzeng-e/dotify/issues/407)
-P1 · Production spine · Now · Work. Project 5 owns workflow status.
+P1 · Production spine · Record · Record. Project 5 owns workflow status.
+
+The code scope is complete in [#452](https://github.com/knzeng-e/dotify/pull/452),
+merged into dev `40e9e593`. This is a completed implementation record;
+[the bounded real recovery](implementation/listening-and-publication-readiness.md#bounded-recovery-before-the-public-pilot)
+and broader activation/public-pilot acceptance remain in #407.
 
 ## Problem and boundary
 

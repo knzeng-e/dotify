@@ -1,5 +1,11 @@
 # Mobile-host Room startup and listening continuity
 
+The owner has deferred the real recovery rehearsal until after the selected
+product-readiness work. Follow [the product-first execution order](implementation/listening-and-publication-readiness.md#product-work-first):
+#395 follows publication-latency engineering, without waiting for every deferred
+#407 operational gate to close. Activation safety and physical listening remain
+separate acceptance requirements; earlier dated entries retain their scope.
+
 ## Offline measurement candidate, 2026-11-12
 
 While #407 real recovery awaits destination coordination, a separate client
