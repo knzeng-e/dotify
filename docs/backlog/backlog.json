@@ -112,7 +112,7 @@
       "priority": "P1",
       "track": "Production spine",
       "phase": "Next",
-      "note": "Reported mobile-host delivery to Web/Desktop guests works. Offline correlated success/failure reporting can progress while the owner defers the real recovery rehearsal. Remaining scope is measured startup latency (about 55 seconds on one owner run), repeated no-retry full-track starts and broader lifecycle acceptance after the publication-latency work; deferred #407 recovery acceptance need not close before independent Room work. Keep access boundaries."
+      "note": "Owner merged #457 and #458; Web/Product 0.1.83 is prepared from tested dev for same-track solo-to-Room continuity, local startup reports and artwork checks. Not deployed. Budget approved and quota reactivated; isolated custody inspection passed and its configuration is restored while stopped. Candidate CI, delivery/readback and normal restart/health remain. Repeated full-track/locked-phone and audible Web/Desktop guest acceptance remain open. Publication latency and deferred recovery retain their separate gates. Canonical checkpoint: docs/backlog/implementation/evidence/product-0.1.83-candidate-2026-11-13.md."
     },
     {
       "id": "listening-controls-and-discovery",
@@ -122,7 +122,7 @@
       "priority": "P1",
       "track": "Production spine",
       "phase": "Next",
-      "note": "Mobile Player account access, Room discovery and the cover with bottom-right Dotify badge are delivered. #448 optional-storage/prepared-PNG corrections are merged in dev; matching native acceptance remains open. A local timing candidate distinguishes image acquisition, decode/composition and system metadata assignment without retaining image or account identity. Remaining: compare matched solo/Room phone reports, rapid changes, disconnect and actual native artwork/navigation after #395. Canonical fields and boundaries: docs/reference/system-artwork-observations.md."
+      "note": "Owner merged #448 and #458: optional public-storage/prepared-PNG fixes, local phase observations and guarded metadata cleanup are implemented. Web/Product 0.1.83 is prepared but not deployed; native delay is not yet diagnosed or accepted as fixed. Repeated solo/Room phone locks, rapid changes, correct attribution, disconnect and actual native controls remain. Canonical checkpoint: docs/backlog/implementation/evidence/product-0.1.83-candidate-2026-11-13.md."
     },
     {
       "id": "room-galaxy-restoration",

@@ -1,5 +1,19 @@
 # Publication, listening reliability and CASH — execution order
 
+## Combined listening delivery candidate, 2026-11-13
+
+The owner has merged #456/#457/#458. [Web/Product 0.1.83 is prepared](evidence/product-0.1.83-candidate-2026-11-13.md)
+from tested dev for the next physical Room/artwork checks. It is not deployed:
+exact candidate CI and independent delivery verification remain. The owner has
+approved the budget and reactivated storage, but custody was found already
+stopped after startup failures. An approved isolated diagnostic found settled publication state and restored
+the original configuration with the writer stopped. Normal restart/health checks
+remain after publication. This client delivery
+activates no compact publication and does not deploy #456's server optimization.
+Resume the existing-track phone/guest checks after delivery; safe bounded CASH
+research may proceed while operational acceptance waits. Keep #407/#395/#388
+open and keep the real second-computer recovery deferred.
+
 ## Room continuity candidate, 2026-11-13
 
 [The same-track handoff](../../adr/0059-preserve-solo-during-room-preparation.md)

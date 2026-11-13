@@ -24,6 +24,14 @@ The #430 compact-layout code and #434 security candidate are not deployment
 records. This checkpoint is not a fresh inspection of hosted state. Before a
 new intervention, compare the actual served identities with the reviewed plan.
 
+The [0.1.83 client candidate](../backlog/implementation/evidence/product-0.1.83-candidate-2026-11-13.md)
+is prepared from merged dev, with server images/compact activation kept separate.
+The initially absent storage authorization has been reactivated and the exact
+delivery approved. Custody was found already stopped after startup failures;
+an approved isolated metadata diagnostic found no active/uncertain work and
+restored its exact configuration while stopped. The prior startup cause and
+normal restart/health still need verification. No delivery is claimed.
+
 Do not infer an active key, remaining publication allowance, available quota or
 permission to reuse an admission from this page. Use the applicable private
 review package and component checks; preserve existing receipts and history.
