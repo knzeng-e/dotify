@@ -99,6 +99,11 @@ The [static Desktop inventory](../backlog/implementation/evidence/cash-tip-deskt
 records only public bundle hashes and versions. No app was launched and no user
 profile was inspected. These are declarations, not successful payment calls.
 
+The separate [software-support candidate](../reference/host-software-support.md)
+prepares an optional `system.info` observation through the pinned client. It
+reports Host-native software labels, not payment availability, negotiated schema
+or durable status; actual named-device collection remains after delivery.
+
 **Next eligible slice:** #85 verifies the published candidate against actual
 non-spending Host identity/capability evidence, wire compatibility, exact balance-unit
 provenance and status persistence. Then decide whether a separately named personal

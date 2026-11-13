@@ -204,3 +204,28 @@ it('includes bounded sanitized artwork observations in the existing explicit rep
   expect(report.artwork).toEqual([{ attempt: 1, phase: 'metadata-published', elapsedMs: 15, timestamp: 123, visibility: 'visible', kind: 'png' }]);
   expect(JSON.stringify(report)).not.toMatch(/private\.example|Private track|secret/);
 });
+
+it('includes only allowlisted Host software labels when About supplies a completed observation', () => {
+  const hostSoftware = {
+    status: 'reported' as const,
+    platform: 'Ios' as const,
+    name: 'Polkadot Mobile',
+    version: '0.10.0 (20)',
+    account: 'PRIVATE-ACCOUNT',
+    payment: 'PRIVATE-PAYMENT'
+  };
+  const snapshot = { streaming: [], host: [], latestMediaPlayingMs: null };
+  const report = JSON.parse(serializeAudioDiagnostics(snapshot, null, hostSoftware));
+  expect(report.hostSoftware).toEqual({ status: 'reported', platform: 'Ios', name: 'Polkadot Mobile', version: '0.10.0 (20)' });
+  expect(JSON.stringify(report)).not.toContain('PRIVATE');
+  expect(report.hostSoftware).not.toHaveProperty('paymentSupported');
+  expect(JSON.parse(serializeAudioDiagnostics(snapshot))).not.toHaveProperty('hostSoftware');
+});
+
+it('keeps pending or unavailable Host observations explicit without leaking extra fields', () => {
+  const snapshot = { streaming: [], host: [], latestMediaPlayingMs: null };
+  const pending = { status: 'pending' as const, source: 'PRIVATE' };
+  expect(JSON.parse(serializeAudioDiagnostics(snapshot, null, pending)).hostSoftware).toEqual({ status: 'pending' });
+  const invalid = { status: 'reported' as const, platform: 'Desktop' as const, name: 'https://PRIVATE.example', version: '1.0' };
+  expect(JSON.parse(serializeAudioDiagnostics(snapshot, null, invalid))).not.toHaveProperty('hostSoftware');
+});

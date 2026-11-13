@@ -99,3 +99,25 @@ test('a codec-3 account denial remains a denial without inventing an account', a
     transport.dispose();
   }
 });
+
+test('software-info read uses only the pinned system method and decodes public Host labels', async () => {
+  const host = wireHost();
+  const transport = createTransport(host.provider);
+  try {
+    const client = createClient(transport);
+    const lookup = Promise.resolve(client.system.info());
+    void lookup.catch(() => {});
+    const request = host.sent[0];
+    // System trait 1, info method 3, Request, V1. No account/payment method.
+    assert.deepEqual(request.slice(-4), [1, 3, 0, 0]);
+    const text = value => [value.length * 4, ...new TextEncoder().encode(value)];
+    // Response, Ok(V1(HostInfo)); Desktop is platform variant 3.
+    host.receive([...request.slice(0, -4), 1, 3, 1, 0, 0, 3, ...text('Polkadot Desktop'), ...text('0.1.4-rc.3')]);
+    const result = await lookup;
+    assert.equal(result.isOk(), true);
+    assert.deepEqual(result.value, { platform: 'Desktop', name: 'Polkadot Desktop', version: '0.1.4-rc.3' });
+    assert.equal(host.sent.length, 1);
+  } finally {
+    transport.dispose();
+  }
+});
