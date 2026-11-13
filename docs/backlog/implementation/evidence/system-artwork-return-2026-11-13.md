@@ -70,3 +70,43 @@ that a hidden OS renders artwork before unlock, and a successfully registered bu
 undisplayed PNG is outside this correction's observable boundary. Real independent
 recovery remains deferred as requested. No musical write, SDK change, payment or
 service maintenance is performed.
+
+## Local integration preview with pending Pause and CASH branches
+
+On 13 November, a private local-only merge combines #459
+`a12d1b48e656d68c7ad54c6e5abb98a40a369795`, this branch's documentation-only
+follow-up `49d457b5`, and #460's documentation-only follow-up `126a4e52`.
+Preview commit `f2ed7708c3858b01db78a5f9726c789b23a490e1` is **local only**, not a
+GitHub/dev merge or release. Its tree is
+`d18faf0f9e2180c4f6921605092ca83573a62955`.
+
+The initial combination exposes four documentation conflicts, without an
+application-code conflict. Removing duplicate candidate summaries from the shared
+manifest/execution index and moving independent ticket/public-page checkpoints
+makes the three branches merge automatically. The ticket, reference and dated
+evidence remain the authoritative homes. No application/test source changes in
+these conflict-avoidance follow-ups. The three Pause files match #459 byte for
+byte; the metadata files match this branch's validated implementation.
+
+With the same locked dependencies and verified Node 22.23.5, the preview passes:
+
+- **1,182 unit tests / 153 files**, plus **14 offline CASH research tests**;
+- Web and frozen Product builds and TypeScript checking;
+- **9 Chromium and 10 WebKit artwork/host-autoplay cases**;
+- **10 focused mobile-host Pause cases** across Chromium/WebKit: native/UI Pause,
+  same-track Room handoff, unsolicited foreground Play and explicit another-track Play;
+- the complete authenticated AAC suite: **103 pass, one designed skip**;
+- offline backlog, 375 local documentation links/anchors and whitespace checks.
+
+The first AAC invocation stops before collecting tests because this isolated
+worktree has no generated fixture. It is not an application failure or a passing
+run. The canonical CI generator then creates the synthetic 24.2-second tone and
+encrypted renditions; the full resumed suite produces the result above. No real
+music or content key is read. The fixture generator source SHA-256 is
+`f1045a688876c5903cb857fd824db13f193b059e35cd977f3ef13c2c49138831`.
+
+This is pre-merge compatibility evidence, not CI or device acceptance of future
+merged dev. The complete mobile-host suite is not rerun: the existing WebKit
+zero-output-RMS concern documented in #459 remains unresolved. No assertion,
+threshold or native capability skip is weakened. Matching actual merged-source
+CI/delivery, iPhone locks/native controls and audible host/guest acceptance remain.
