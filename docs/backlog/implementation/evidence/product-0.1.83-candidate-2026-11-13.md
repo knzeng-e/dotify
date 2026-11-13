@@ -1,8 +1,10 @@
 # Web/Product 0.1.83 candidate — 2026-11-13
 
-The owner merged #456, #457 and #458. A frozen **Web/Product-only candidate** now
-prepares the Room listening and artwork changes for physical acceptance. It is
-not deployed. Server delivery, compact-source activation and the deferred real
+**Historical preparation checkpoint.** [The subsequent delivery](product-0.1.83-rollout-2026-11-13.md) supersedes its rollout status.
+
+At this checkpoint the owner had merged #456, #457 and #458. A frozen
+**Web/Product-only candidate** prepared the Room listening and artwork changes
+for physical acceptance. It was not deployed. Server delivery, compact-source activation and the deferred real
 second-computer rehearsal remain separate. Refs #395, #388 and #407.
 
 ## Source and checks
@@ -25,7 +27,7 @@ local assembly of dev/#456 with the pinned #457/#458 candidates.
 
 Application root: `bafybeietcvulu5opii4pg2ssxe7z2l422sns2nr3aheh7tijnm7k77jqiy`. CAR SHA-256:
 `64b121923712f8b9359e2925212118888dabee15a8ad513ff11178d98c5b4e26`. The prepared ceiling is **20 application operations /
-9,508,017 bytes**, plus at most two DotNS requests. The owner subsequently approved this exact ceiling and temporary custody maintenance. No signer or on-chain write has been used.
+9,508,017 bytes**, plus at most two DotNS requests. The owner subsequently approved this exact ceiling and temporary custody maintenance. No signer or on-chain write had been used at this preparation checkpoint.
 
 ## Compatible delivery boundary
 
@@ -74,8 +76,7 @@ bytes available, expiring at 1831359. These higher quotas do not expand the
 
 The subsequent Fly control found custody **already stopped**, with two recent
 exit-code-1 events, neither requested nor OOM-killed. The image remains the last
-recorded #426 image. The first SSH inspection could not run while the machine was stopped. Recent diagnostic queries yielded no usable
-entries, so the startup cause remains unknown. No application write was signed.
+recorded #426 image. The first SSH inspection could not run while the machine was stopped. Initial diagnostic queries did not identify the startup cause. No application write was signed.
 
 The owner then separately approved an isolated diagnostic. The same image booted
 with only a waiting process; its normal publisher did not run. Compiled metadata

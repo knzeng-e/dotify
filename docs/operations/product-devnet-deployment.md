@@ -1,5 +1,9 @@
 # Deploy Dotify To Product DevNet
 
+The [0.1.83 delivery record](../backlog/implementation/evidence/product-0.1.83-rollout-2026-11-13.md)
+identifies the 2026-11-13 served clients and remaining phone acceptance. Earlier
+dated entries below retain their original scope.
+
 ## Room preparation delivered in 0.1.80, 2026-11-07
 
 [Web and Product 0.1.80](../backlog/implementation/evidence/product-0.1.80-rollout-2026-11-07.md) deliver #404 from frozen `30702580`, based on
@@ -852,6 +856,12 @@ Hosts after publication.
 
 The repository pins the CLI version in the npm deploy command but does not add
 the experimental deploy tool to the application dependency tree.
+
+Before accepting a signer, run the signer-free module/artifact checks with the
+**same Node executable and dependency graph** used for signing. Check available
+space for durable intent journals. A loader failure must be resolved before key
+handoff; a successful check under another local Node is insufficient. Preserve
+failed-attempt evidence and reconcile any signed intent before retrying.
 
 Before loading any signer, verify the package's embedded DevNet profile:
 
