@@ -28,11 +28,11 @@
       "id": "bulletin-published-graph-backup",
       "doc": "docs/backlog/bulletin-published-graph-backup.md",
       "issue": 451,
-      "kind": "work",
+      "kind": "record",
       "priority": "P1",
       "track": "Production spine",
-      "phase": "Now",
-      "note": "Separate bounded published-graph archive after ordinary custody pruning: capture every reachable CID-verified block, including encrypted archive data, and verify offline against a trusted digest. Preserve private history/checkpoints; no recreated queue files, keys, public archive route or writer. #407 retains real data/key recovery and all other activation gates."
+      "phase": "Record",
+      "note": "Completed code scope in #452, merged into dev 40e9e593: bounded published-graph capture and offline integrity verification after custody pruning, with generated source-loss evidence. Record only; real capture/key recovery and operational/pilot gates remain in #407. No live transfer or writer authority."
     },
     {
       "id": "server-node-runtime",
@@ -857,11 +857,11 @@
       "id": "bulletin-published-audio-authentication",
       "doc": "docs/backlog/bulletin-published-audio-authentication.md",
       "issue": 453,
-      "kind": "work",
+      "kind": "record",
       "priority": "P1",
       "track": "Production spine",
-      "phase": "Now",
-      "note": "Separate offline authentication of published graph with trusted reference/scope/digests and separately recovered keys. No real data/key capture or writer authority; parent #407 remains open."
+      "phase": "Record",
+      "note": "Completed code scope in #454, merged into tested dev 93e99042: explicit offline published-audio authentication with separately supplied trusted scope/digests and versioned keys. Generated coverage only; real independent recovery remains in #407. No transfer, deployment or writer authority."
     }
   ]
 }
