@@ -50,6 +50,7 @@ describe('audio startup telemetry', () => {
     expect(getAudioStartupTelemetrySnapshot()).toEqual({
       continuity: { nextLatencyMs: [], playingMs: 0, waitingMs: 0, rebufferRatio: 0 },
       output: [],
+      artwork: [],
       streaming: [streamingMetric],
       host: [hostMetric],
       latestMediaPlayingMs: 820.2
@@ -67,6 +68,7 @@ describe('audio startup telemetry', () => {
     expect(target.__DOTIFY_AUDIO_STARTUP__?.snapshot()).toEqual({
       continuity: { nextLatencyMs: [], playingMs: 0, waitingMs: 0, rebufferRatio: 0 },
       output: [],
+      artwork: [],
       streaming: [streamingMetric],
       host: [hostMetric],
       latestMediaPlayingMs: 820.2
@@ -109,6 +111,7 @@ it('exports support timings without source identifiers or arbitrary transport de
       ],
       host: [{ ...hostMetric, source: 'PRIVATE-SOURCE', attemptId: 'PRIVATE-ATTEMPT' }],
       output: [],
+      artwork: [],
       latestMediaPlayingMs: 0
     },
     'PRIVATE-BUILD-INPUT'
@@ -182,4 +185,22 @@ it('allowlists aggregate counters and rejects injected nonnumeric values in the 
   expect(JSON.stringify(report)).not.toMatch(/PRIVATE|DO-NOT-EXPORT/);
   snapshot.streaming[0].readTimings.readWorkMs = NaN;
   expect(JSON.parse(serializeAudioDiagnostics(snapshot)).streaming[0].readTimings.readWorkMs).toBeUndefined();
+});
+
+it('includes bounded sanitized artwork observations in the existing explicit report', () => {
+  const base = { streaming: [], host: [], latestMediaPlayingMs: null };
+  const event = {
+    attempt: 674,
+    phase: 'metadata-published' as const,
+    elapsedMs: 15,
+    timestamp: 123,
+    visibility: 'visible' as const,
+    kind: 'png' as const,
+    imageRef: 'https://private.example/art',
+    title: 'Private track',
+    contentKey: 'secret'
+  };
+  const report = JSON.parse(serializeAudioDiagnostics({ ...base, artwork: [event] }));
+  expect(report.artwork).toEqual([{ attempt: 1, phase: 'metadata-published', elapsedMs: 15, timestamp: 123, visibility: 'visible', kind: 'png' }]);
+  expect(JSON.stringify(report)).not.toMatch(/private\.example|Private track|secret/);
 });

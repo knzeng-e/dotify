@@ -175,3 +175,18 @@ it('does not retain oversized inline identities or unknown/private cover schemes
   expect(f.preparedSystemArtwork(large)).toBeNull();
   expect(f.preparedSystemArtwork(unknown)).toBeNull();
 });
+
+it('distinguishes immutable image delivery, decode, composition and prepared reuse', async () => {
+  const f = await fixture();
+  const input = { ...track('Observed'), imageRef: 'ipfs://QmQEkYGFqbS7AV58HrTgqfwPpSeQJMh4MeeSY1RwWRtVhu/cover/640.webp' };
+  const observe = vi.fn();
+  const result = f.resolveSystemArtwork(input, new AbortController().signal, observe);
+  await vi.waitFor(() => expect(images).toHaveLength(1));
+  expect(observe.mock.calls.map(call => call[0])).toEqual(['image-load-started', 'image-ready', 'decode-started']);
+  images[0].onload!();
+  await result;
+  expect(observe.mock.calls.map(call => call[0])).toEqual(['image-load-started', 'image-ready', 'decode-started', 'decoded', 'composed']);
+  observe.mockClear();
+  await f.resolveSystemArtwork(input, new AbortController().signal, observe);
+  expect(observe.mock.calls).toEqual([['prepared-hit', 'png']]);
+});

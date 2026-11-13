@@ -1,3 +1,9 @@
+import {
+  clearSystemArtworkObservations,
+  systemArtworkObservations,
+  serializeSystemArtworkObservations,
+  type SystemArtworkObservation
+} from '../player/systemArtworkObservation';
 import { audioOutputObservations, clearAudioOutputObservations, type AudioOutputObservation } from '../player/audioOutputLifecycle';
 import type { StreamingReadTimings } from './streamingReadTimings';
 import { playbackContinuity } from '../player/playbackContinuity';
@@ -56,6 +62,7 @@ export type HostAudioStartupMetric = {
 };
 
 export type AudioStartupTelemetrySnapshot = {
+  artwork?: SystemArtworkObservation[];
   output?: AudioOutputObservation[];
   continuity?: ReturnType<typeof playbackContinuity.snapshot>;
   streaming: StreamingStartupMetric[];
@@ -180,6 +187,7 @@ function pushBounded<T>(items: T[], item: T): T[] {
 export function clearAudioStartupTelemetry(): void {
   playbackContinuity.reset();
   clearAudioOutputObservations();
+  clearSystemArtworkObservations();
   streamingMetrics = [];
   hostMetrics = [];
 }
@@ -208,6 +216,7 @@ export function getAudioStartupTelemetrySnapshot(): AudioStartupTelemetrySnapsho
   const latestMediaPlaying = [...hostMetrics].reverse().find(metric => metric.phase === 'media-playing');
   return {
     continuity: playbackContinuity.snapshot(),
+    artwork: systemArtworkObservations(),
     output: audioOutputObservations(),
     streaming: [...streamingMetrics],
     host: [...hostMetrics],
@@ -247,6 +256,7 @@ export function serializeAudioDiagnostics(snapshot: AudioStartupTelemetrySnapsho
   return JSON.stringify(
     {
       schema: 'dotify.audio-diagnostics.v1',
+      artwork: serializeSystemArtworkObservations(snapshot.artwork ?? []),
       buildSha: /^[a-f0-9]{40}$/i.test(buildSha ?? '') ? buildSha : null,
       observedAt: new Date().toISOString(),
       streaming: streaming.map(

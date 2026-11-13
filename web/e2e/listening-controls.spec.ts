@@ -1,6 +1,15 @@
 import { expect, test, type Page } from '@playwright/test';
 import { installMediaSessionProbe, readMediaSessionHistory, readMediaSessionProbe } from './fixtures/mediaSessionProbe';
 
+type ArtworkEvidence = { attempt: number; phase: string; kind?: string; elapsedMs: number };
+async function readArtworkEvidence(page: Page): Promise<ArtworkEvidence[]> {
+  return page.evaluate(async () => {
+    const path = '/src/features/catalog/audioStartupTelemetry.ts';
+    const telemetry = await import(path);
+    return JSON.parse(telemetry.serializeAudioDiagnostics(telemetry.getAudioStartupTelemetrySnapshot())).artwork;
+  });
+}
+
 async function unlockFixture(page: Page, scenario: string) {
   await installMediaSessionProbe(page);
   await page.route('https://eth-rpc-testnet.polkadot.io/**', async route => {
@@ -28,6 +37,15 @@ for (const width of [320, 390, 430]) {
     await expect.poll(async () => (await readMediaSessionProbe(page)).title).toBe('Deterministic Classic Unlock');
     await expect.poll(async () => (await readMediaSessionProbe(page)).artwork[0]?.src).toMatch(/^data:image\/png;base64,/);
     const png = (await readMediaSessionProbe(page)).artwork[0];
+    const observations = await readArtworkEvidence(page);
+    expect(observations.some(event => event.phase === 'composed')).toBe(true);
+    const publication = observations.filter(event => event.phase === 'metadata-published' && event.kind === 'png').at(-1)!;
+    expect(publication).toBeDefined();
+    const owner = observations.filter(event => event.attempt === publication.attempt);
+    expect(owner.some(event => event.phase === 'decoded' || event.phase === 'prepared-hit')).toBe(true);
+    expect(owner.map(event => event.elapsedMs)).toEqual(owner.map(event => event.elapsedMs).sort((a, b) => a - b));
+    expect(JSON.stringify(observations)).not.toMatch(/Deterministic Classic|data:image|ipfs|0x[0-9a-f]{8}/i);
+
     expect((await readMediaSessionProbe(page)).album).toBe('Dotify');
     await testInfo.attach('solo-system-artwork', { body: Buffer.from(png.src.split(',')[1], 'base64'), contentType: 'image/png' });
     expect(png).toMatchObject({ sizes: '640x640', type: 'image/png' });
@@ -78,6 +96,8 @@ test('a public artwork response arriving after disconnect cannot restore system 
   });
   await unlockFixture(page, 'bulletin-delayed-cover');
   await expect.poll(() => requests).toBeGreaterThan(0);
+  await expect.poll(async () => (await readArtworkEvidence(page)).some(event => event.phase === 'image-load-started')).toBe(true);
+  const pending = (await readArtworkEvidence(page)).filter(event => event.phase === 'image-load-started').at(-1)!.attempt;
   await page.locator('.solo-player-header .player-account-trigger').click();
   await page.getByRole('dialog').getByRole('button', { name: 'Disconnect', exact: true }).click();
   release();
@@ -90,6 +110,9 @@ test('a public artwork response arriving after disconnect cannot restore system 
   }, root);
   expect(await readMediaSessionProbe(page)).toMatchObject({ title: null, artwork: [], actions: [], state: 'none' });
   await expect(page.locator('audio[src]')).toHaveCount(0);
+  const retired = (await readArtworkEvidence(page)).filter(event => event.attempt === pending);
+  expect(retired.at(-1)?.phase).toBe('cancelled');
+  expect(retired.some(event => event.phase === 'composed' || (event.phase === 'metadata-published' && event.kind === 'png'))).toBe(false);
 });
 
 test('a stalled disk write cannot hold back system artwork', async ({ page }) => {
@@ -180,6 +203,10 @@ test('reopening a prepared cover publishes its PNG immediately without composing
   await expect.poll(async () => (await readMediaSessionProbe(page)).title).toBe('Second room track');
   const next = (await readMediaSessionHistory(page)).slice(nextStart).filter(entry => entry.title !== null);
   expect(next[0]).toEqual({ title: 'Second room track', artist: 'Dotify Room Host', preparedPng: true });
+  const observations = await readArtworkEvidence(page);
+  const published = observations.filter(event => event.phase === 'metadata-published' && event.kind === 'png').at(-1)!;
+  expect(observations.filter(event => event.attempt === published.attempt).map(event => event.phase)).toContain('prepared-hit');
+
   expect((await readMediaSessionProbe(page)).artwork[0].src).toBe(prepared);
   expect(await page.evaluate(() => Reflect.get(window, '__systemPngCompositions'))).toBe(compositions);
 });

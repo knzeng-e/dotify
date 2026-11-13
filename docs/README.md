@@ -14,6 +14,7 @@ from physical Product acceptance and publication.
 | I want to…                                        | Start here                                                                |
 | ------------------------------------------------- | ------------------------------------------------------------------------- |
 | Host, join or discover a listening room           | [Listen together](how-to/listen-together.md)                              |
+| Check delayed lock-screen artwork | [Check system artwork](how-to/check-system-artwork.md) |
 | Understand who needs a wallet or listening access | [Access policy](explanation/access-control-model.md)                      |
 | Understand source protection and recording limits | [Content protection](explanation/content-protection.md)                   |
 | Explore the interface                             | [Current captures and their provenance](images/release-preview/README.md) |
