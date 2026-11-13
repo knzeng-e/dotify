@@ -83,3 +83,47 @@ test('About identifies managed AAC selection without exposing account details', 
   await expect(dialog.getByText('Progressive AAC (managed)', { exact: true })).toBeVisible();
   await expect(dialog.getByText('Selected for AAC playback', { exact: true })).toBeVisible();
 });
+
+for (const clipboardAllowed of [true, false]) {
+  test(`successful listening support is opt-in in About, clipboard allowed: ${clipboardAllowed}`, async ({ page }, testInfo) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.addInitScript(allowed => {
+      Object.defineProperty(navigator, 'clipboard', {
+        value: {
+          writeText: async (text: string) => {
+            if (!allowed) throw new Error('Denied');
+            Reflect.set(window, '__supportCopy', text);
+          }
+        }
+      });
+    }, clipboardAllowed);
+    await page.goto('/?e2eRoom=public');
+    await page.evaluate(() =>
+      window.dispatchEvent(
+        new CustomEvent('dotify:host-audio-startup', {
+          detail: {
+            phase: 'media-playing',
+            attemptId: 'private-attempt',
+            source: 'private-source',
+            elapsedMs: 55_000,
+            timestamp: Date.now()
+          }
+        })
+      )
+    );
+    await page.getByRole('button', { name: 'You', exact: true }).click();
+    await page.getByRole('button', { name: 'About Dotify', exact: true }).click();
+    const dialog = page.getByRole('dialog', { name: 'About Dotify', exact: true });
+    await expect(dialog.getByRole('button', { name: 'Copy support report', exact: true })).not.toBeVisible();
+    await dialog.getByText('Listening support', { exact: true }).click();
+    expect(await page.evaluate(() => Reflect.get(window, '__supportCopy'))).toBeUndefined();
+    await dialog.getByRole('button', { name: 'Copy support report', exact: true }).click();
+    const text = clipboardAllowed
+      ? await page.evaluate(() => Reflect.get(window, '__supportCopy'))
+      : await dialog.getByRole('textbox', { name: 'Audio support report', exact: true }).inputValue();
+    expect(JSON.parse(text).host.some((event: { phase: string }) => event.phase === 'media-playing')).toBe(true);
+    expect(text).not.toContain('private-');
+    expect(await dialog.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
+    await page.screenshot({ path: testInfo.outputPath('listening-support.png'), animations: 'disabled' });
+  });
+}
