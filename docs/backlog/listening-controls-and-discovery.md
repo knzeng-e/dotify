@@ -19,7 +19,8 @@ under **Technical details**. The existing local serializer, manual clipboard act
 and selectable fallback remain; no persistence, automatic transmission or playback
 change is introduced. This supports #388 collection, not native artwork acceptance.
 The [device guide](../how-to/check-system-artwork.md) distinguishes current and older
-client navigation. Review and matching delivery remain ahead.
+client navigation; [commit-bound evidence](implementation/evidence/listening-support-clarity-2026-11-13.md)
+records browser and build checks. Review and matching delivery remain ahead.
 
 ## Matched artwork timing candidate — 2026-11-13
 
