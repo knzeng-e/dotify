@@ -5,6 +5,7 @@ import { createBulletinRpcTransport, BULLETIN_RECEIPT_BLOCK_MAX, type BulletinRp
 import { bulletinBytes, bulletinHex, verifyBulletinSubmission } from './bulletinReceipt.js';
 import { fixture, codecs, proof, rpcFixture } from './bulletinTransport.fixture.js';
 import { createBulletinProofCache, BULLETIN_PROOF_CACHE_BYTES, type BulletinProofBlock } from './bulletinProofCache.js';
+import { createBulletinProofLoads, BULLETIN_PROOF_LOADS, BULLETIN_PROOF_WAITERS } from './bulletinProofLoads.js';
 const signal = () => new AbortController().signal;
 
 test('completed block proof reuse still refreshes canonical mapping, retention and each nonce query', async () => {
@@ -52,14 +53,14 @@ test('changed canonical hash and a new transport never inherit a completed block
   assert.equal(f.calls.filter(c => c.method === 'chain_getBlock').length, 4);
 });
 
-test('one cancelled cold body load cannot cancel or poison another caller', { timeout: 5000 }, async () => {
+test('one cancelled cold body load releases its slot without cancelling or poisoning a queued caller', { timeout: 5000 }, async t => {
   const f = rpcFixture();
   const releases: (() => void)[] = [];
   let loads = 0,
-    both!: () => void;
-  const started = new Promise<void>(r => {
-    both = r;
-  });
+    first!: () => void,
+    second!: () => void;
+  const firstStarted = new Promise<void>(r => (first = r));
+  const secondStarted = new Promise<void>(r => (second = r));
   const transport = createBulletinRpcTransport({
     identity: fixture.identity,
     request: async (method, params, s) => {
@@ -76,23 +77,30 @@ test('one cancelled cold body load cannot cancel or poison another caller', { ti
         });
         s.addEventListener('abort', abort, { once: true });
         if (s.aborted) abort();
-        if (loads === 2) both();
+        if (loads === 1) first();
+        if (loads === 2) second();
       });
       return f.request(method, params, s);
     }
   });
   const a = new AbortController(),
     b = new AbortController();
+  t.after(() => {
+    a.abort();
+    b.abort();
+    releases.forEach(release => release());
+  });
   const cancelled = assert.rejects(transport.lookupSubmission(fixture.query, a.signal), /cancel-first/);
+  await firstStarted;
   const surviving = transport.lookupSubmission(fixture.query, b.signal);
-  await started;
-  // Parent execution metadata has independently settled; the body loads remain cold.
+  // Let the parent codec read complete before cancelling the body owner.
   await new Promise<void>(r => setImmediate(r));
   a.abort(new Error('cancel-first'));
   await cancelled;
+  await secondStarted;
   releases[1]();
   assert.deepEqual(await surviving, fixture.receipt);
-  assert.deepEqual(await transport.lookupSubmission(fixture.query, signal()), fixture.receipt);
+  assert.deepEqual(await transport.lookupSubmission(fixture.query, t.signal), fixture.receipt);
   assert.equal(loads, 2, 'Only the surviving verified load is reusable');
 });
 
@@ -483,4 +491,280 @@ test('a fresh finalized head can expire a previously successful CID lookup', asy
   assert.ok(await f.transport.lookup(fixture.query.cid, signal()));
   f.state.head = fixture.receipt.expiresAt;
   assert.equal(await f.transport.lookup(fixture.query.cid, signal()), null);
+});
+
+test('concurrent confirmations load one cold proof while retaining separate canonical and retention reads', { timeout: 5000 }, async t => {
+  const f = rpcFixture();
+  let canonicalReads = 0;
+  let observed!: () => void, release!: () => void;
+  const allCanonical = new Promise<void>(resolve => (observed = resolve));
+  const bodyReleased = new Promise<void>(resolve => (release = resolve));
+  const transport = createBulletinRpcTransport({
+    identity: fixture.identity,
+    request: async (method, params, s) => {
+      if (method === 'chain_getBlockHash' && params[0] === fixture.receipt.block && ++canonicalReads === 4) observed();
+      if (method === 'chain_getBlock') await bodyReleased;
+      return f.request(method, params, s);
+    }
+  });
+  const pending = Array.from({ length: 4 }, () => transport.lookupSubmission(fixture.query, t.signal));
+  try {
+    await allCanonical;
+    // All callers have selected their own canonical mapping; the first body
+    // stays unresolved while the other cold lookups arrive.
+    await new Promise<void>(resolve => setImmediate(resolve));
+  } finally {
+    release();
+  }
+  for (const value of await Promise.all(pending)) assert.deepEqual(value, fixture.receipt);
+  assert.equal(f.calls.filter(c => c.method === 'chain_getBlock').length, 1);
+  const eventsKey = codecs.builder.buildStorage('System', 'Events').keys.enc();
+  assert.equal(f.calls.filter(c => c.method === 'state_getStorage' && c.params[0] === eventsKey).length, 1);
+  assert.equal(canonicalReads, 4);
+  assert.equal(f.calls.filter(c => c.method === 'chain_getFinalizedHead').length, 4);
+  const retentionKey = codecs.builder.buildStorage('TransactionStorage', 'RetentionPeriod').keys.enc();
+  assert.equal(f.calls.filter(c => c.method === 'state_getStorage' && c.params[0] === retentionKey).length, 4);
+});
+
+test('cancelling a queued proof caller starts no payload RPC and leaves the active loader reusable', { timeout: 5000 }, async t => {
+  const f = rpcFixture();
+  let release!: () => void,
+    arrived!: () => void,
+    queued!: () => void,
+    canonical = 0;
+  const body = new Promise<void>(r => (release = r));
+  const started = new Promise<void>(r => (arrived = r));
+  const queueReady = new Promise<void>(r => (queued = r));
+  const transport = createBulletinRpcTransport({
+    identity: fixture.identity,
+    request: async (method, params, s) => {
+      if (method === 'chain_getBlockHash' && params[0] === fixture.receipt.block && ++canonical === 2) queued();
+      if (method === 'chain_getBlock') {
+        arrived();
+        await body;
+      }
+      return f.request(method, params, s);
+    }
+  });
+  t.after(release);
+  const first = transport.lookupSubmission(fixture.query, t.signal);
+  await started;
+  const owner = new AbortController();
+  const cancelled = assert.rejects(transport.lookupSubmission(fixture.query, owner.signal), /cancel-queued/);
+  await queueReady;
+  await new Promise<void>(r => setImmediate(r));
+  owner.abort(new Error('cancel-queued'));
+  await cancelled;
+  release();
+  assert.deepEqual(await first, fixture.receipt);
+  assert.deepEqual(await transport.lookupSubmission(fixture.query, t.signal), fixture.receipt);
+  assert.equal(f.calls.filter(c => c.method === 'chain_getBlock').length, 1);
+});
+
+test('an abort-ignoring cold RPC cannot strand the next loader or populate its cache after cancellation', { timeout: 5000 }, async t => {
+  const f = rpcFixture();
+  let loads = 0,
+    arrived!: () => void,
+    release!: () => void,
+    late!: () => void;
+  let canonical = fixture.blockHash;
+  const secondHash = `0x${'bd'.repeat(32)}`,
+    thirdHash = `0x${'ce'.repeat(32)}`;
+  const started = new Promise<void>(r => (arrived = r));
+  const body = new Promise<void>(r => (release = r));
+  const lateReturned = new Promise<void>(r => (late = r));
+  const transport = createBulletinRpcTransport({
+    identity: fixture.identity,
+    request: async (method, params, s) => {
+      if (method === 'chain_getBlockHash' && params[0] === fixture.receipt.block) return canonical;
+      if (method === 'chain_getBlock' && ++loads === 1) {
+        arrived();
+        await body;
+        // Simulate a provider which ignores the cancelled owner's signal.
+        const value = await f.request(method, params, signal());
+        late();
+        return value;
+      }
+      return f.request(method, params, s);
+    }
+  });
+  t.after(release);
+  const owner = new AbortController();
+  const cancelled = assert.rejects(transport.lookupSubmission(fixture.query, owner.signal), /cancel-unresponsive/);
+  await started;
+  await new Promise<void>(r => setImmediate(r));
+  canonical = secondHash;
+  const next = transport.lookupSubmission(fixture.query, t.signal);
+  owner.abort(new Error('cancel-unresponsive'));
+  await cancelled;
+  assert.deepEqual(await next, fixture.receipt, 'The queued owner completes before the late first response');
+  canonical = thirdHash;
+  assert.deepEqual(await transport.lookupSubmission(fixture.query, t.signal), fixture.receipt);
+  // Two successful newer hashes fill the existing two-entry cache. A late
+  // cancelled first load must not insert its old hash and evict either one.
+  release();
+  await lateReturned;
+  await new Promise<void>(r => setImmediate(r));
+  canonical = secondHash;
+  assert.deepEqual(await transport.lookupSubmission(fixture.query, t.signal), fixture.receipt);
+  assert.equal(loads, 3, 'The cancelled late load cannot evict a newer verified entry');
+});
+
+test('a completed proof bypasses another block hash cold-loader queue', { timeout: 5000 }, async t => {
+  const f = rpcFixture();
+  let canonical = fixture.blockHash,
+    arrived!: () => void,
+    release!: () => void;
+  const other = `0x${'bc'.repeat(32)}`;
+  const started = new Promise<void>(r => (arrived = r));
+  const body = new Promise<void>(r => (release = r));
+  const transport = createBulletinRpcTransport({
+    identity: fixture.identity,
+    request: async (method, params, s) => {
+      if (method === 'chain_getBlockHash' && params[0] === fixture.receipt.block) return canonical;
+      if (method === 'chain_getBlock' && params[0] === other) {
+        arrived();
+        await body;
+      }
+      return f.request(method, params, s);
+    }
+  });
+  t.after(release);
+  assert.deepEqual(await transport.lookupSubmission(fixture.query, t.signal), fixture.receipt);
+  canonical = other;
+  const cold = transport.lookupSubmission(fixture.query, t.signal);
+  await started;
+  canonical = fixture.blockHash;
+  assert.deepEqual(await transport.lookupSubmission(fixture.query, t.signal), fixture.receipt);
+  release();
+  assert.deepEqual(await cold, fixture.receipt);
+  assert.equal(f.calls.filter(c => c.method === 'chain_getBlock').length, 2);
+});
+
+test('an unmatched cold query cannot warm the cache for a later valid nonce', async () => {
+  const f = rpcFixture();
+  assert.equal(await f.transport.lookupSubmission({ ...fixture.query, nonce: fixture.query.nonce + 1 }, signal()), null);
+  assert.deepEqual(await f.transport.lookupSubmission(fixture.query, signal()), fixture.receipt);
+  assert.equal(f.calls.filter(c => c.method === 'chain_getBlock').length, 2);
+  assert.deepEqual(await f.transport.lookupSubmission(fixture.query, signal()), fixture.receipt);
+  assert.equal(f.calls.filter(c => c.method === 'chain_getBlock').length, 2);
+});
+
+test('a failed cold loader releases its slot and does not poison the next query', { timeout: 5000 }, async t => {
+  const f = rpcFixture();
+  let loads = 0,
+    arrived!: () => void,
+    release!: () => void;
+  const started = new Promise<void>(r => (arrived = r));
+  const body = new Promise<void>(r => (release = r));
+  const transport = createBulletinRpcTransport({
+    identity: fixture.identity,
+    request: async (method, params, s) => {
+      if (method === 'chain_getBlock' && ++loads === 1) {
+        arrived();
+        await body;
+        const broken = structuredClone(f.state.body);
+        broken.block.header.extrinsicsRoot = `0x${'ab'.repeat(32)}`;
+        return broken;
+      }
+      return f.request(method, params, s);
+    }
+  });
+  t.after(release);
+  const failed = assert.rejects(transport.lookupSubmission(fixture.query, t.signal), /header differs/);
+  await started;
+  const surviving = transport.lookupSubmission(fixture.query, t.signal);
+  release();
+  await failed;
+  assert.deepEqual(await surviving, fixture.receipt);
+  assert.deepEqual(await transport.lookupSubmission(fixture.query, t.signal), fixture.receipt);
+  assert.equal(loads, 2);
+});
+
+test('different canonical hashes load together while duplicate hash requests wait', { timeout: 5000 }, async t => {
+  const f = rpcFixture();
+  let canonical = fixture.blockHash,
+    first!: () => void,
+    both!: () => void,
+    release!: () => void,
+    bodies = 0;
+  const firstStarted = new Promise<void>(r => (first = r));
+  const bothStarted = new Promise<void>(r => (both = r));
+  const held = new Promise<void>(r => (release = r));
+  const transport = createBulletinRpcTransport({
+    identity: fixture.identity,
+    request: async (method, params, s) => {
+      if (method === 'chain_getBlockHash' && params[0] === fixture.receipt.block) return canonical;
+      if (method === 'chain_getBlock') {
+        if (++bodies === 1) first();
+        if (bodies === 2) both();
+        await held;
+      }
+      return f.request(method, params, s);
+    }
+  });
+  t.after(release);
+  const a = transport.lookupSubmission(fixture.query, t.signal);
+  await firstStarted;
+  const peer = transport.lookupSubmission(fixture.query, t.signal);
+  // Pin the peer to A before changing the synthetic provider's mapping to B.
+  await new Promise<void>(r => setImmediate(r));
+  canonical = `0x${'cd'.repeat(32)}`;
+  const b = transport.lookupSubmission(fixture.query, t.signal);
+  await bothStarted;
+  release();
+  for (const value of await Promise.all([a, peer, b])) assert.deepEqual(value, fixture.receipt);
+  assert.equal(bodies, 2, 'One body per hash; neither a duplicate A load nor a global serial bottleneck');
+});
+
+test('proof work bounds distinct active hashes and queued callers; cancelled waiters run no callback', async () => {
+  const lane = createBulletinProofLoads();
+  const a = `0x${'01'.repeat(32)}`,
+    b = `0x${'02'.repeat(32)}`,
+    c = `0x${'03'.repeat(32)}`;
+  let release!: () => void,
+    active = 0,
+    peak = 0,
+    queuedCallbacks = 0;
+  const held = new Promise<void>(r => (release = r));
+  const read = async () => {
+    peak = Math.max(peak, ++active);
+    try {
+      await held;
+    } finally {
+      active--;
+    }
+  };
+  const first = lane.run(a, signal(), read),
+    second = lane.run(b, signal(), read);
+  const owner = new AbortController();
+  const queued = Array.from({ length: BULLETIN_PROOF_WAITERS }, () =>
+    assert.rejects(
+      lane.run(c, owner.signal, async () => {
+        queuedCallbacks++;
+      }),
+      /cancel-proof-queue/
+    )
+  );
+  try {
+    await assert.rejects(
+      lane.run(c, signal(), async () => {
+        queuedCallbacks++;
+      }),
+      /queue limit/
+    );
+    owner.abort(new Error('cancel-proof-queue'));
+    await Promise.all(queued);
+    assert.equal(peak, BULLETIN_PROOF_LOADS);
+    assert.equal(queuedCallbacks, 0);
+  } finally {
+    owner.abort(new Error('cancel-proof-queue'));
+    release();
+  }
+  await Promise.all([first, second]);
+  assert.equal(active, 0);
+  await lane.run(c, signal(), async () => {
+    queuedCallbacks++;
+  });
+  assert.equal(queuedCallbacks, 1, 'All slots remain usable after cancellation');
 });
