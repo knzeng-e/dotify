@@ -6,3 +6,8 @@ npm-debug.log*
 fly.toml
 .data
 
+.git
+.aws
+.codex
+.agents
+.npmrc

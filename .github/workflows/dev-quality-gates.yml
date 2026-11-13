@@ -248,6 +248,9 @@ jobs:
       - name: Rehearse isolated volume migration and rollback
         run: npm --prefix services/api run storage:rehearse
 
+      - name: Verify generated container context privacy
+        run: node services/api/scripts/rehearse-container-context.mjs
+
   streaming-worker-rehearsal:
     name: W32 / Isolated encoding publication
     runs-on: ubuntu-latest
