@@ -1,5 +1,14 @@
 # Publication, listening reliability and CASH — execution order
 
+## Artwork return recovery candidate, 2026-11-13
+
+The [bounded #388 correction](evidence/system-artwork-return-2026-11-13.md)
+retries unresolved artwork once on foreground return, without changing audio or
+Pause. A controlled decode failure reproduces the previous fallback being stuck;
+it does not identify the actual iPhone failure's cause. The later owner report is
+a healthy cover/sound control. Matching delivery and physical acceptance remain;
+#395 Pause and the selected product/recovery order stay separate.
+
 ## Room continuity candidate, 2026-11-13
 
 [The same-track handoff](../../adr/0059-preserve-solo-during-room-preparation.md)

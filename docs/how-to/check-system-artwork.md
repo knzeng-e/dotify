@@ -23,6 +23,12 @@ registered while native display remains late.
    old system metadata or controls. Reconnect and explicitly choose playback again.
 
 Read the report's [`artwork` observations](../reference/system-artwork-observations.md).
+On a client carrying bounded return recovery, `retry-requested` can appear after
+a failed preparation when the page returns to visible. Record whether the cover
+then appears and whether an explicit Pause remains respected. This does not
+mean that unlocking should start audio or that a missing native image has been
+acknowledged by the OS.
+
 A long image-acquisition interval suggests work before composition. A long decode
 or composition interval suggests browser image processing. A prepared-PNG
 publication before the observed visual delay shifts the investigation toward the

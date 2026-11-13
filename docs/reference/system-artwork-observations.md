@@ -27,8 +27,10 @@ An empty artwork list can mean no enabled metadata owner or unavailable Media
 Session support; it does not prove that a native cover appeared or failed.
 
 Observation does not introduce another metadata, image or playback owner. The
-existing hook still cancels retired work and checks that the same metadata object
-is current before replacing it. Cancelling a shared public-image consumer cannot
+hook delegates its metadata lifecycle to
+[the publisher](../../web/src/features/player/systemArtworkPublication.ts), which
+cancels retired work and checks that the same metadata object is current before
+replacing it. Cancelling a shared public-image consumer cannot
 cancel someone else's image request; a late image must not restore retired metadata.
 If a partial Host rejects metadata registration or clearing, the owner still
 retires and playback/account controls remain available. A failed native clear
@@ -52,6 +54,7 @@ is not reported as a native-display acknowledgement. The [public-artwork cache c
 | `decode-started` → `decoded` | Browser Image loading/decoding; a mutable HTTP candidate can include network time here |
 | `decoded` → `composed` | Canvas composition and PNG encoding with the existing Dotify badge |
 | `fallback` | Preparation failed and the ordinary source-image candidates remain available; this is not a composed PNG |
+| `retry-requested` | A bounded foreground recovery begins for the same metadata owner after an unresolved preparation/assignment; see the [recovery contract](public-artwork-cache.md#recovery-on-foreground-return) |
 | `metadata-published` | Dotify's `MediaSession.metadata` assignment returned; an initial URL/empty publication can precede the prepared PNG |
 | `failed` | This metadata/preparation path failed without interrupting audio; the last preceding phase provides context |
 | `cancelled` | A pending metadata owner was retired; later completion cannot publish into it |

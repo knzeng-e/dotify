@@ -1,5 +1,18 @@
 # Listening controls and room discovery — next iteration
 
+## Bounded artwork return recovery candidate — 2026-11-13
+
+A controlled browser decode failure leaves dev's current metadata owner on URL
+fallback even after a foreground return. The [bounded recovery contract](../reference/public-artwork-cache.md#recovery-on-foreground-return)
+adds one event-driven attempt for that same owner, without Play/Pause, audio
+loading or repeated retry loops. Pending successful PNG work is preserved;
+disconnect and replacement ownership still cancel publication. See
+[the source-bound evidence](implementation/evidence/system-artwork-return-2026-11-13.md).
+This is a demonstrated local failure path, not the diagnosed cause of the owner's
+immediate-lock iPhone report. The later owner-uploaded report is a successful
+cover/sound control. Matching delivery and actual solo/Room locks remain open;
+Pause authority is handled independently in #459. No deployment is performed.
+
 ## Matched artwork timing candidate — 2026-11-13
 
 The #448 cache/prepared-PNG correction is merged into dev, with native acceptance
@@ -81,7 +94,6 @@ by the OS/Host, not a reproducible in-page mini-player. See the
 The candidate is not deployed. Original #388 acceptance is recorded, with these
 new physical checks and native navigation behavior still open.
 
-
 ## Simplified system signature candidate, 2026-11-06
 
 The owner finds room text too small on native thumbnails and requests Dotify
@@ -93,7 +105,6 @@ Dotify label; room count changes do not repaint artwork. Original covers, public
 cache and source/disconnect cancellation stay intact. Matching native appearance
 and command layout remain OS/Host-dependent acceptance, not browser proof.
 
-
 ## Cover-first signature refinement, 2026-11-06
 
 After inspecting the deployed artwork on the phone, the owner requests removal
@@ -104,12 +115,10 @@ cover and use a thin neutral outline for light/dark contrast. Solo and Room use
 the same composition. This is a visual candidate, not another deployment; native
 layout and previous/next command acceptance remain separate #388 gates.
 
-
 ## Listening-session refinement candidate, 2026-11-07
 
 The owner requests all four proposed refinements: an anchored solo-to-Room transition, quieter Room hierarchy, artist-first release discovery and consistent motion/return. The same candidate confirms Room exits, lets the host continue solo, and limits resume/progress to an open paused player. Participant-arrival animation is deferred. Matching physical acceptance remains open.
 See [design and validation](implementation/evidence/listening-session-continuity-2026-11-07.md). No deployment is part of this change.
-
 
 The same candidate incorporates the two November 7 recordings: a stable listening
 footer across Queue, Room queue and release discovery; compact story preview;
@@ -117,7 +126,6 @@ simpler current-track Room setup; and readable conversation with a bounded
 multiline editor while the keyboard is open. Paragraph preservation includes a
 bounded signaling normalization change; matching rollout and real keyboard
 acceptance remain open. See the evidence above for boundaries.
-
 
 ## Matching delivery, 2026-11-07
 
