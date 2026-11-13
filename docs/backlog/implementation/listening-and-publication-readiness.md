@@ -1,5 +1,11 @@
 # Publication, listening reliability and CASH — execution order
 
+The [published-data archive candidate](../../operations/bulletin-published-archive.md)
+now separates immutable graph backup from prunable queue files. The refreshed
+[V4 generated reader is owner-accepted on the second Mac](evidence/second-mac-v4-2026-11-13.md);
+real independent audio/key recovery remains open. #451 is the current #407 data
+backup slice, before writer rollback, hosted capacity and physical acceptance.
+
 A separate [Room-start measurement candidate](../../how-to/measure-room-startup.md)
 can progress offline while #407 independent recovery is coordinated. It adds
 correlated success/failure reports, not a deployed latency fix. The activation

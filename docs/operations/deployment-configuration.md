@@ -110,6 +110,7 @@ an explicit private recovery file and guarded workspace. It introduces no hosted
 secret/setting or automatic key export, rotation, transfer or service activation.
 The planned second-Mac rehearsal still needs reviewed data/key destinations,
 transfer method and stopped-writer scope.
+The [published-graph archive CLI](bulletin-published-archive.md) captures one explicit root with an explicit read-only HTTPS source, then verifies offline. It adds private local artifacts, not hosted settings, credentials, a public archive route or a scheduled backup. Custody checkpoints, recovered keys and canonical-history validation remain distinct.
 Source availability is not a deployment or permission to apply an extension.
 
 The browser harness alone sets `DOTIFY_E2E_LOCAL_FONTS=true` on its local Vite
