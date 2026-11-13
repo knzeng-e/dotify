@@ -19,7 +19,7 @@ local assembly of dev/#456 with the pinned #457/#458 candidates.
   assignment are not evidence of physical sound or lock-screen rendering.
 - [Merged-dev CI](https://github.com/knzeng-e/dotify/actions/runs/43426485188) is green.
 - The exact versioned candidate builds locally with verified Node 22.23.5;
-  [candidate CI](https://github.com/knzeng-e/dotify/actions/runs/43430333634) is in progress.
+  [candidate CI](https://github.com/knzeng-e/dotify/actions/runs/43430333634) is green.
 - Offline artifact verification authenticates 100 CAR blocks, compares 72 files
   byte for byte and verifies all 20 outer application objects.
 
@@ -58,7 +58,7 @@ one operation per exact dependency. To exclude competing writes by the shared
 account, the planned operation retains the existing stopped-custody signing
 guard. The owner approved that temporary maintenance and the new application/DotNS budget. First inspect only filtered pending-work state; active or uncertain work refuses intervention. No real recovery capture or key transfer is resumed.
 
-After green candidate CI, resolved custody state and coordinated delivery/readback,
+After coordinated delivery/readback and normal custody health verification,
 collect repeated actual solo/Room phone locks, audible Web/Desktop guests,
 Pause/handoff and Room-to-solo behavior. Use the
 [Room measurement guide](../../../how-to/measure-room-startup.md) and

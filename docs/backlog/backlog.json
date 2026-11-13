@@ -112,7 +112,7 @@
       "priority": "P1",
       "track": "Production spine",
       "phase": "Next",
-      "note": "Owner merged #457 and #458; Web/Product 0.1.83 is prepared from tested dev for same-track solo-to-Room continuity, local startup reports and artwork checks. Not deployed. Budget approved and quota reactivated; isolated custody inspection passed and its configuration is restored while stopped. Candidate CI, delivery/readback and normal restart/health remain. Repeated full-track/locked-phone and audible Web/Desktop guest acceptance remain open. Publication latency and deferred recovery retain their separate gates. Canonical checkpoint: docs/backlog/implementation/evidence/product-0.1.83-candidate-2026-11-13.md."
+      "note": "Owner merged #457 and #458; Web/Product 0.1.83 is prepared from tested dev for same-track solo-to-Room continuity, local startup reports and artwork checks. Not deployed. Budget approved and quota reactivated; isolated custody inspection passed and its configuration is restored while stopped. Candidate CI is green; signing, delivery/readback and normal restart/health remain. Repeated full-track/locked-phone and audible Web/Desktop guest acceptance remain open. Publication latency and deferred recovery retain their separate gates. Canonical checkpoint: docs/backlog/implementation/evidence/product-0.1.83-candidate-2026-11-13.md."
     },
     {
       "id": "listening-controls-and-discovery",

@@ -4,7 +4,7 @@
 
 The owner has merged #456/#457/#458. [Web/Product 0.1.83 is prepared](evidence/product-0.1.83-candidate-2026-11-13.md)
 from tested dev for the next physical Room/artwork checks. It is not deployed:
-exact candidate CI and independent delivery verification remain. The owner has
+exact candidate CI is green; signing and independent delivery verification remain. The owner has
 approved the budget and reactivated storage, but custody was found already
 stopped after startup failures. An approved isolated diagnostic found settled publication state and restored
 the original configuration with the writer stopped. Normal restart/health checks
