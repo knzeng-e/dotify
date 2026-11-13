@@ -1,6 +1,8 @@
 # CASH work-tip reassessment — 2026-11-13
 
 Base: tested merged dev `0bb52754b14bc366690ac85d1d7ad1dc089d8d28`.
+Implementation tested at `0fc08f09` (full identity in Git history); the following
+evidence-only update changes no test or implementation source.
 Branch: `research/cash-tip-host-feasibility`. Refs #406, #85 and #229;
 #408 remains separate. This is offline research, not an SDK migration or a
 payment/service deployment.
@@ -35,6 +37,9 @@ network/units/amount, missing/partial/failed outcomes and CoinPayment clearing
 that never becomes verified contribution or access. A mixed newer wire/older SDK
 and an optional id remain insufficient. The mock's durable server map is an
 explicit assumption, not evidence of Host persistence.
+
+Formatting and focused ESLint pass; 217 local links/anchors, offline backlog and
+whitespace checks pass.
 
 Run `npm --prefix web run test:cash-tip-feasibility` and
 `npm --prefix web run research:cash-tips`. The CI Web gate runs the focused tests.
