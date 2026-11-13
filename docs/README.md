@@ -45,6 +45,7 @@ including successful starts and physical locked-screen observations.
 
 ## Look something up
 
+- [Bulletin proof read coordination](adr/0058-coordinate-bulletin-proof-loads.md): avoid duplicate block downloads while retaining per-query checks
 - [Server Node runtime and offline reader packaging](reference/server-runtime.md)
 - [Environment variables](reference/environment-variables.md)
 - [Socket events and negotiation limits](reference/socket-events.md)

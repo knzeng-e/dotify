@@ -10,6 +10,7 @@ import { verifyBulletinBlock, type BulletinBlock } from './bulletinGraph.js';
 import { BULLETIN_RPC_READ_MS, BULLETIN_STORE_MS } from './bulletinLimits.js';
 import { bulletinBytes, bulletinHex, createBulletinCodecs, verifyBulletinSubmission, type BulletinCodecs } from './bulletinReceipt.js';
 import { createBulletinProofCache, type BulletinProofBlock } from './bulletinProofCache.js';
+import { createBulletinProofLoads } from './bulletinProofLoads.js';
 import type {
   BulletinMediaTransport,
   BulletinReceipt,
@@ -48,6 +49,9 @@ export function createBulletinRpcTransport(options: {
   const identity = identitySchema.parse(options.identity);
   const codecs = new Map<string, Promise<BulletinCodecs>>();
   const proofs = createBulletinProofCache();
+  // Only cold proof loads queue here. Each loader owns its signal; peers wait
+  // for a completed, query-verified cache entry, never its in-flight promise.
+  const coldProofReads = createBulletinProofLoads();
   const rpc = async (method: string, params: unknown[], signal: AbortSignal) => {
     signal.throwIfAborted();
     return options.request(method, params, signal);
@@ -203,50 +207,60 @@ export function createBulletinRpcTransport(options: {
         // Retention/finality above and this canonical mapping are always fresh.
         // Only completed body/events at the exact immutable hash may be reused.
         const at = hash.parse(await rpc('chain_getBlockHash', [receipt.block], s)).toLowerCase();
-        let proof = proofs.get(at);
-        if (!proof) {
-          const header = headerSchema.parse(await rpc('chain_getHeader', [at], s));
-          assert.equal(blockNumber(header.number), receipt.block, 'Candidate block number mismatch');
-          const [extrinsics, { execution, events }] = await readPair(
-            async () => {
-              const body = z
-                .object({ block: z.object({ header: headerSchema, extrinsics: z.array(z.string()).max(4096) }) })
-                .parse(await rpc('chain_getBlock', [at], s));
-              assert.equal(body.block.header.parentHash, header.parentHash, 'Candidate parent mismatch');
-              assert.equal(blockNumber(body.block.header.number), receipt.block, 'Candidate body number mismatch');
-              assert.deepEqual(body.block.header, header, 'Candidate block header differs from canonical header');
-              assert.ok(
-                body.block.extrinsics.reduce((sum, value) => sum + value.length, 0) <= 2 * BULLETIN_RECEIPT_BLOCK_MAX + 2 * 4096,
-                'Bulletin block exceeds receipt byte bound'
-              );
-              return body.block.extrinsics.map(value => bulletinBytes(value, BULLETIN_RECEIPT_BLOCK_MAX));
-            },
-            async () => {
-              // Extrinsics/events were executed by the parent runtime. This
-              // branch stays anchored to the same candidate header and hash.
-              const execution = await atCodecs(header.parentHash, s);
-              const entry = execution.builder.buildStorage('System', 'Events');
-              const events = bulletinBytes(await rpc('state_getStorage', [entry.keys.enc(), at], s), 2 * 1024 * 1024);
-              return { execution, events };
-            }
-          );
-          // Retain no passthrough RPC/header fields, only the bounded verified
-          // number and owned payloads plus their parent execution codecs.
-          proof = { block: receipt.block, extrinsics, execution, events } satisfies BulletinProofBlock;
-        }
-        s.throwIfAborted();
-        assert.equal(proof.block, receipt.block, 'Candidate block number mismatch');
-        const result = verifyBulletinSubmission({
-          codecs: proof.execution,
-          extrinsics: proof.extrinsics,
-          events: proof.events,
-          query,
-          account: identity.account,
-          receipt
-        });
-        // Never store query-bound results or retain a failed/unmatched load.
-        if (result) proofs.retain(at, proof);
-        return result;
+        const verify = (proof: BulletinProofBlock, guard = s) => {
+          guard.throwIfAborted();
+          assert.equal(proof.block, receipt.block, 'Candidate block number mismatch');
+          const result = verifyBulletinSubmission({
+            codecs: proof.execution,
+            extrinsics: proof.extrinsics,
+            events: proof.events,
+            query,
+            account: identity.account,
+            receipt
+          });
+          // Never store query-bound results or retain a failed/unmatched load.
+          if (result) proofs.retain(at, proof);
+          return result;
+        };
+        const completed = proofs.get(at);
+        if (completed) return verify(completed);
+        return coldProofReads.run(at, s, () =>
+          // Race the owning signal even if an injected RPC ignores abort. A
+          // late response cannot retain bytes or strand the next queued owner.
+          within(s, async readSignal => {
+            const completed = proofs.get(at);
+            if (completed) return verify(completed, readSignal);
+            const header = headerSchema.parse(await rpc('chain_getHeader', [at], readSignal));
+            assert.equal(blockNumber(header.number), receipt.block, 'Candidate block number mismatch');
+            const [extrinsics, { execution, events }] = await readPair(
+              async () => {
+                const body = z
+                  .object({ block: z.object({ header: headerSchema, extrinsics: z.array(z.string()).max(4096) }) })
+                  .parse(await rpc('chain_getBlock', [at], readSignal));
+                assert.equal(body.block.header.parentHash, header.parentHash, 'Candidate parent mismatch');
+                assert.equal(blockNumber(body.block.header.number), receipt.block, 'Candidate body number mismatch');
+                assert.deepEqual(body.block.header, header, 'Candidate block header differs from canonical header');
+                assert.ok(
+                  body.block.extrinsics.reduce((sum, value) => sum + value.length, 0) <= 2 * BULLETIN_RECEIPT_BLOCK_MAX + 2 * 4096,
+                  'Bulletin block exceeds receipt byte bound'
+                );
+                return body.block.extrinsics.map(value => bulletinBytes(value, BULLETIN_RECEIPT_BLOCK_MAX));
+              },
+              async () => {
+                // Extrinsics/events were executed by the parent runtime. This
+                // branch stays anchored to the same candidate header and hash.
+                const execution = await atCodecs(header.parentHash, readSignal);
+                const entry = execution.builder.buildStorage('System', 'Events');
+                const events = bulletinBytes(await rpc('state_getStorage', [entry.keys.enc(), at], readSignal), 2 * 1024 * 1024);
+                return { execution, events };
+              }
+            );
+            // Retain no passthrough RPC/header fields, only the bounded verified
+            // number and owned payloads plus their parent execution codecs.
+            const proof = { block: receipt.block, extrinsics, execution, events } satisfies BulletinProofBlock;
+            return verify(proof, readSignal);
+          })
+        );
       }),
     async store(block, intent, signal) {
       assert.ok(options.submit, 'Bulletin transport is read-only');
