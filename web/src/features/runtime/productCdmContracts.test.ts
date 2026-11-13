@@ -8,7 +8,7 @@ const RUNTIME = '0x00000000000000000000000000000000000000aa' as const;
 
 type Handles = { artistCountSuccess?: boolean; tokenDecimals?: unknown; free?: bigint; frozen?: bigint };
 
-function buildDeps(overrides: Handles = {}, spies: Record<string, ReturnType<typeof vi.fn>> = {}): ProductCdmContractsDeps {
+function buildDeps(overrides: Handles = {}, spies: Record<string, (...args: unknown[]) => unknown> = {}): ProductCdmContractsDeps {
   const artistCountQuery = vi.fn(async () => ({ success: overrides.artistCountSuccess ?? true, value: 3n, gasRequired: {} }));
   const managerContract = { artistCount: { query: artistCountQuery } };
 

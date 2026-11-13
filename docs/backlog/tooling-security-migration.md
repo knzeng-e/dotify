@@ -21,3 +21,19 @@ Sources: [Tinypool](https://github.com/advisories/GHSA-5gmw-xhrv-c9v3),
 [mocker](https://github.com/advisories/GHSA-qxg6-89mg-rqv8),
 [minimatch](https://github.com/advisories/GHSA-g3hv-75wg-m249).
 No service operation, deployment or signing is authorized by this record.
+
+
+## Candidate checkpoint — 2026-11-12
+
+The isolated candidate uses Vitest 5.1.0 and scopes minimatch 11.0.8 to
+`@typescript-eslint/typescript-estree`. ESLint retains its own compatible v3
+matcher; SDK, signer and TrUAPI pins are unchanged. See the
+[toolchain reference](../reference/development-toolchain.md) for the tested
+consumer boundary and required Node version. Unit constructor mocks and signer
+helper types are adapted without removing assertions or changing runtime code.
+The Nearby browser acceptance now measures ordinary captured audio after receiver
+readiness, with a stronger decoded-energy assertion and unchanged deadlines;
+the original intermittent CI observation is retained in the evidence below.
+CI and review remain open; this does not deploy any service.
+
+[Source-bound candidate validation](implementation/evidence/toolchain-security-2026-11-12.md).

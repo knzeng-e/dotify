@@ -1,6 +1,6 @@
 # Develop locally
 
-This guide runs Web, signaling and the API from the repository. Use Node 22,
+This guide runs Web, signaling and the API from the repository. Use Node 22.12+ (within Node 22),
 npm 10+, Git and a supported browser. The configured network is a testnet;
 you do not need to run a local blockchain. Wallet writes still need the
 appropriate test-network account and funds.

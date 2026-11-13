@@ -28,6 +28,11 @@ Do not infer an active key, remaining publication allowance, available quota or
 permission to reuse an admission from this page. Use the applicable private
 review package and component checks; preserve existing receipts and history.
 
+The [development-toolchain candidate](../reference/development-toolchain.md)
+requires Node 22.12+ within major 22 for future Web/Product builds. Verify the
+hosted build runtime against `web/package.json`; the source change does not
+update a Netlify dashboard, server image or deployment.
+
 ## Hosted surfaces
 
 These links describe tracked candidate settings, not a readback of dashboards.
