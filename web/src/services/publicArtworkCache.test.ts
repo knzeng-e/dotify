@@ -103,3 +103,119 @@ it('shares immutable Bulletin relay image paths and excludes release metadata', 
   );
   expect(artworkCacheKey(`https://api.example/api/assets/ipfs/${root}/release.json`)).toBeNull();
 });
+
+it('returns downloaded covers while one optional disk write is stalled, without accumulating writers', async () => {
+  let finishWrite!: () => void;
+  const put = vi.fn(
+    () =>
+      new Promise<void>(resolve => {
+        finishWrite = resolve;
+      })
+  );
+  const keys = vi.fn(async () => []);
+  vi.stubGlobal('caches', { open: vi.fn(async () => ({ match: async () => undefined, put, keys })) });
+  const fetch = vi.fn(async () => new Response(new Uint8Array([1, 2, 3]), { headers: { 'content-type': 'image/png' } }));
+  vi.stubGlobal('fetch', fetch);
+  const urls = [`https://one.example/ipfs/bafy${'h'.repeat(50)}/cover/640.webp`];
+  try {
+    const first = await loadPublicArtwork(urls);
+    expect(first).toMatch(/^blob:/);
+    expect(await loadPublicArtwork(urls)).toBe(first);
+    expect(await loadPublicArtwork([`https://one.example/ipfs/bafy${'i'.repeat(50)}/cover/640.webp`])).toMatch(/^blob:/);
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(put).toHaveBeenCalledTimes(1);
+  } finally {
+    finishWrite?.();
+  }
+  await vi.waitFor(() => expect(keys).toHaveBeenCalledOnce());
+});
+
+it('uses the network when opening the optional disk cache stalls and ignores its late completion', async () => {
+  vi.useFakeTimers();
+  let finishOpen!: (cache: unknown) => void;
+  const match = vi.fn(async () => undefined);
+  vi.stubGlobal('caches', {
+    open: vi.fn(
+      () =>
+        new Promise(resolve => {
+          finishOpen = resolve;
+        })
+    )
+  });
+  const fetch = vi.fn(async () => new Response(new Uint8Array([1]), { headers: { 'content-type': 'image/png' } }));
+  vi.stubGlobal('fetch', fetch);
+  const result = loadPublicArtwork([`https://one.example/ipfs/bafy${'j'.repeat(50)}/cover/640.webp`]);
+  expect(fetch).not.toHaveBeenCalled();
+  await vi.advanceTimersByTimeAsync(500);
+  await expect(result).resolves.toMatch(/^blob:/);
+  finishOpen({ match });
+  await vi.advanceTimersByTimeAsync(0);
+  expect(match).not.toHaveBeenCalled();
+  expect(fetch).toHaveBeenCalledOnce();
+});
+
+it('cancels a stalled cached body before downloading the cover instead of waiting indefinitely', async () => {
+  vi.useFakeTimers();
+  let cancelled = false;
+  const cached = new Response(
+    new ReadableStream({
+      cancel() {
+        cancelled = true;
+        return new Promise<void>(() => {});
+      }
+    }),
+    { headers: { 'content-type': 'image/png' } }
+  );
+  vi.stubGlobal('caches', { open: vi.fn(async () => ({ match: async () => cached })) });
+  const fetch = vi.fn(async () => new Response(new Uint8Array([1]), { headers: { 'content-type': 'image/png' } }));
+  vi.stubGlobal('fetch', fetch);
+  const result = loadPublicArtwork([`https://one.example/ipfs/bafy${'k'.repeat(50)}/cover/640.webp`]);
+  await vi.advanceTimersByTimeAsync(500);
+  await expect(result).resolves.toMatch(/^blob:/);
+  expect(cancelled).toBe(true);
+  expect(fetch).toHaveBeenCalledOnce();
+});
+
+it('keeps a healthy disk hit useful without downloading or rewriting it', async () => {
+  const put = vi.fn();
+  vi.stubGlobal('caches', {
+    open: vi.fn(async () => ({
+      match: async () => new Response(new Uint8Array([1]), { headers: { 'content-type': 'image/png' } }),
+      put
+    }))
+  });
+  const fetch = vi.fn();
+  vi.stubGlobal('fetch', fetch);
+  await expect(loadPublicArtwork([`https://one.example/ipfs/bafy${'l'.repeat(50)}/cover/640.webp`])).resolves.toMatch(/^blob:/);
+  expect(fetch).not.toHaveBeenCalled();
+  expect(put).not.toHaveBeenCalled();
+});
+
+it('retains the memory cover when background persistence rejects for quota', async () => {
+  const put = vi.fn(async () => {
+    throw new DOMException('Full', 'QuotaExceededError');
+  });
+  vi.stubGlobal('caches', { open: vi.fn(async () => ({ match: async () => undefined, put })) });
+  const fetch = vi.fn(async () => new Response(new Uint8Array([1]), { headers: { 'content-type': 'image/png' } }));
+  vi.stubGlobal('fetch', fetch);
+  const urls = [`https://one.example/ipfs/bafy${'m'.repeat(50)}/cover/640.webp`];
+  const first = await loadPublicArtwork(urls);
+  expect(first).toMatch(/^blob:/);
+  expect(await loadPublicArtwork(urls)).toBe(first);
+  expect(fetch).toHaveBeenCalledOnce();
+  expect(put).toHaveBeenCalledOnce();
+});
+
+it('loads public artwork when the Host refuses access to Cache Storage itself', async () => {
+  vi.stubGlobal('caches', undefined);
+  Object.defineProperty(globalThis, 'caches', {
+    configurable: true,
+    get() {
+      throw new DOMException('Unavailable', 'SecurityError');
+    }
+  });
+  const fetch = vi.fn(async () => new Response(new Uint8Array([1]), { headers: { 'content-type': 'image/png' } }));
+  vi.stubGlobal('fetch', fetch);
+  await expect(loadPublicArtwork([`https://one.example/ipfs/bafy${'n'.repeat(50)}/cover/640.webp`])).resolves.toMatch(/^blob:/);
+  expect(fetch).toHaveBeenCalledOnce();
+});

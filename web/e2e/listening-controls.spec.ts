@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { installMediaSessionProbe, readMediaSessionProbe } from './fixtures/mediaSessionProbe';
+import { installMediaSessionProbe, readMediaSessionHistory, readMediaSessionProbe } from './fixtures/mediaSessionProbe';
 
 async function unlockFixture(page: Page, scenario: string) {
   await installMediaSessionProbe(page);
@@ -81,16 +81,44 @@ test('a public artwork response arriving after disconnect cannot restore system 
   await page.locator('.solo-player-header .player-account-trigger').click();
   await page.getByRole('dialog').getByRole('button', { name: 'Disconnect', exact: true }).click();
   release();
-  await expect
-    .poll(() =>
-      page.evaluate(async path => {
-        const cache = await caches.open('dotify-public-artwork-v1');
-        return Boolean(await cache.match(`https://dotify.artwork.invalid/ipfs/${path}/cover/640.webp`));
-      }, root)
-    )
-    .toBe(true);
+  // Public delivery finishes independently of best-effort disk persistence.
+  // Await that same immutable image before checking the retired metadata owner.
+  await page.evaluate(async path => {
+    const modulePath = '/src/services/publicArtworkCache.ts';
+    const { loadPublicArtwork } = await import(modulePath);
+    await loadPublicArtwork([`https://gateway.pinata.cloud/ipfs/${path}/cover/640.webp`]);
+  }, root);
   expect(await readMediaSessionProbe(page)).toMatchObject({ title: null, artwork: [], actions: [], state: 'none' });
   await expect(page.locator('audio[src]')).toHaveCount(0);
+});
+
+test('a stalled disk write cannot hold back system artwork', async ({ page }) => {
+  await page.addInitScript(() => {
+    const put = Cache.prototype.put;
+    Reflect.set(window, '__heldArtworkWrites', 0);
+    Cache.prototype.put = function (request, response) {
+      const url = typeof request === 'string' ? request : request instanceof URL ? request.href : request.url;
+      if (url.startsWith('https://dotify.artwork.invalid/')) {
+        Reflect.set(window, '__heldArtworkWrites', Reflect.get(window, '__heldArtworkWrites') + 1);
+        return new Promise<void>(() => {});
+      }
+      return put.call(this, request, response);
+    };
+  });
+  const root = 'QmQEkYGFqbS7AV58HrTgqfwPpSeQJMh4MeeSY1RwWRtVhu';
+  await page.route(`**/ipfs/${root}/cover/*.webp`, route =>
+    route.fulfill({
+      body: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aX1cAAAAASUVORK5CYII=', 'base64'),
+      contentType: 'image/png',
+      headers: { 'access-control-allow-origin': '*' }
+    })
+  );
+  await unlockFixture(page, 'bulletin-delayed-cover');
+  await expect.poll(() => page.evaluate(() => Reflect.get(window, '__heldArtworkWrites'))).toBe(1);
+  await expect.poll(async () => (await readMediaSessionProbe(page)).artwork[0]?.src).toMatch(/^data:image\/png;base64,/);
+  await expect(page.locator('audio[src]')).toHaveCount(1);
+  // Additional rendered variants share bounded persistence even while put stalls.
+  expect(await page.evaluate(() => Reflect.get(window, '__heldArtworkWrites'))).toBe(1);
 });
 
 test('room system artwork keeps track attribution and a stable Dotify signature without room text', async ({ page }, testInfo) => {
@@ -110,4 +138,48 @@ test('room system artwork keeps track attribution and a stable Dotify signature 
   await page.getByRole('button', { name: 'Close room', exact: true }).click();
   await page.getByRole('button', { name: 'Close room and keep listening', exact: true }).click();
   await expect.poll(async () => (await readMediaSessionProbe(page)).album ?? '').toBe('Dotify');
+});
+
+test('reopening a prepared cover publishes its PNG immediately without composing it again', async ({ page }) => {
+  await installMediaSessionProbe(page);
+  await page.addInitScript(() => {
+    const encode = HTMLCanvasElement.prototype.toDataURL;
+    Reflect.set(window, '__systemPngCompositions', 0);
+    HTMLCanvasElement.prototype.toDataURL = function (...args) {
+      if (this.width === 640 && this.height === 640 && args[0] === 'image/png') {
+        Reflect.set(window, '__systemPngCompositions', Reflect.get(window, '__systemPngCompositions') + 1);
+      }
+      return encode.apply(this, args);
+    };
+  });
+  await page.goto('/?e2eRoom=public&e2eAutoplay=on&e2eSync=on&e2eCatalog=sequence');
+  await page.getByRole('button', { name: 'Open a room', exact: true }).click();
+  await page.getByRole('button', { name: 'Select E2E Public Room Track' }).click();
+  await page.getByLabel('Your name or nickname').fill('Cover host');
+  await page.getByRole('button', { name: 'Open the room', exact: true }).click();
+  await expect.poll(async () => (await readMediaSessionProbe(page)).artwork[0]?.src).toMatch(/^data:image\/png;base64,/);
+  const prepared = (await readMediaSessionProbe(page)).artwork[0].src;
+  await page.getByRole('button', { name: 'Close room', exact: true }).click();
+  await page.getByRole('button', { name: 'Close room and keep listening', exact: true }).click();
+  await page.getByRole('button', { name: 'Close mini-player', exact: true }).click();
+  await expect.poll(async () => (await readMediaSessionProbe(page)).title).toBeNull();
+  const historyStart = (await readMediaSessionHistory(page)).length;
+  const compositions = await page.evaluate(() => Reflect.get(window, '__systemPngCompositions'));
+  await page.getByRole('button', { name: /^Play E2E Public Room Track by/ }).click();
+  await expect.poll(async () => (await readMediaSessionProbe(page)).title).toBe('E2E Public Room Track');
+  const registrations = (await readMediaSessionHistory(page)).slice(historyStart).filter(entry => entry.title !== null);
+  expect(registrations[0]).toEqual({ title: 'E2E Public Room Track', artist: 'Dotify Room Host', preparedPng: true });
+  expect((await readMediaSessionProbe(page)).artwork[0].src).toBe(prepared);
+  expect(await page.evaluate(() => Reflect.get(window, '__systemPngCompositions'))).toBe(compositions);
+  // A second track on the same cover reuses pixels, never the old attribution.
+  await page.getByRole('button', { name: 'Music', exact: true }).click();
+  await page.getByRole('button', { name: 'Close mini-player', exact: true }).click();
+  await expect.poll(async () => (await readMediaSessionProbe(page)).title).toBeNull();
+  const nextStart = (await readMediaSessionHistory(page)).length;
+  await page.getByRole('button', { name: /^Play Second room track by/ }).click();
+  await expect.poll(async () => (await readMediaSessionProbe(page)).title).toBe('Second room track');
+  const next = (await readMediaSessionHistory(page)).slice(nextStart).filter(entry => entry.title !== null);
+  expect(next[0]).toEqual({ title: 'Second room track', artist: 'Dotify Room Host', preparedPng: true });
+  expect((await readMediaSessionProbe(page)).artwork[0].src).toBe(prepared);
+  expect(await page.evaluate(() => Reflect.get(window, '__systemPngCompositions'))).toBe(compositions);
 });
