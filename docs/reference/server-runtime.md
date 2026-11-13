@@ -36,8 +36,9 @@ system version. Exercise HTTP listening and disconnect, key derivation/signature
 state/receipt compatibility, graceful shutdown and the existing generated
 non-root storage/recovery and AAC encoding rehearsals. The encoder must remain
 without API configuration, key services or application dependencies. Ordinary
-API/signaling continue as UID 1000; root remains confined to the explicit
-maintenance target and reviewed fixture provisioning.
+API/signaling continue as UID 1000. Build steps retain package-installation
+privileges; root runtime use is limited to the explicit maintenance target and
+reviewed fixture provisioning.
 
 An empty npm audit covers neither Node itself nor Debian/FFmpeg packages. Update
 the selected runtime against Node’s supported security release line before each
