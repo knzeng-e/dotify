@@ -1,8 +1,9 @@
 # Bulletin publication beyond the synthetic pilot
 
 The [selected sequence defines the bounded recovery slice and its stop rule](implementation/listening-and-publication-readiness.md#bounded-recovery-before-the-public-pilot).
-Complete one real independent release/key recovery, then return to measured
-publication latency. Broader activation and public-pilot gates remain open;
+Resume measured publication latency and the other selected product work; the
+owner has deferred the real independent release/key rehearsal until afterwards.
+Broader activation and public-pilot gates remain open;
 recovery platform expansion is not a prerequisite for ongoing development.
 The dated checkpoints below retain their original scope.
 

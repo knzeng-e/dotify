@@ -82,7 +82,7 @@
       "priority": "P1",
       "track": "Production spine",
       "phase": "Now",
-      "note": "Publication/listening succeed; latest owner Publish-to-wallet report is 7 min 46 s. Compact delivery/admission and recovery code has generated coverage; archive/authentication are merged in tested dev 93e99042. The owner accepts the generated-only second-Mac rehearsal, not real data/key recovery. Complete the selected sequence’s bounded one-release recovery slice, then return to measured publication latency; general backup-platform expansion is outside this slice and safe offline work may continue. Current-history/service rollback, physical listening/background, hosted capacity, conservation/access and value-flow gates remain before activation/public pilot. Live sources remain standard; custody stays #426 and Web/Product/public APIs 0.1.82. No capture, key transfer, deployment, funded trial or renewal is authorized. #407 remains Now/In Progress before #395/#388/CASH. Canonical detail: docs/backlog/implementation/listening-and-publication-readiness.md."
+      "note": "Publication/listening succeed; latest owner Publish-to-wallet report is 7 min 46 s. Compact delivery/admission and recovery code has generated coverage; archive/authentication are merged in tested dev 93e99042. The owner accepts the generated-only second-Mac rehearsal, not real data/key recovery. Owner defers the bounded real recovery rehearsal until after publication latency, Room startup, reliable artwork and bounded CASH research. Resume product engineering now; #407 remains open for measured latency and deferred operational acceptance. General backup-platform expansion is outside this slice. Current-history/service rollback, physical listening/background, hosted capacity, conservation/access and value-flow gates remain before activation/public pilot. Live sources remain standard; custody stays #426 and Web/Product/public APIs 0.1.82. No capture, key transfer, deployment, funded trial or renewal is authorized. #407 remains Now/In Progress before #395/#388/CASH. Canonical detail: docs/backlog/implementation/listening-and-publication-readiness.md."
     },
     {
       "id": "product-cash-tip-feasibility",
@@ -112,7 +112,7 @@
       "priority": "P1",
       "track": "Production spine",
       "phase": "Next",
-      "note": "Reported mobile-host delivery to Web/Desktop guests works. Offline correlated success/failure reporting can progress while #407 independent recovery is coordinated. Remaining scope is measured startup latency (about 55 seconds on one owner run), repeated no-retry full-track starts and broader lifecycle acceptance after #407; keep access boundaries."
+      "note": "Reported mobile-host delivery to Web/Desktop guests works. Offline correlated success/failure reporting can progress while the owner defers the real recovery rehearsal. Remaining scope is measured startup latency (about 55 seconds on one owner run), repeated no-retry full-track starts and broader lifecycle acceptance after the publication-latency work; deferred #407 recovery acceptance need not close before independent Room work. Keep access boundaries."
     },
     {
       "id": "listening-controls-and-discovery",

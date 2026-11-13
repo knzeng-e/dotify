@@ -1,14 +1,29 @@
 # Publication, listening reliability and CASH — execution order
 
+## Product work first
+
+The owner has deferred the real second-computer recovery rehearsal until after
+the other product-readiness work. Resume publication latency, then Room startup,
+reliable solo/Room lock-screen artwork and bounded CASH research in the order
+below. Keep the prepared recovery artifacts; do not continue recovery tooling,
+request its capture/key-transfer approval or run that rehearsal in this phase.
+
+This is an execution order, not a requirement to close every parent issue before
+starting the next independent task. #407 can remain open for deferred operational
+acceptance while safe #395/#388 work progresses. Existing deployment/format
+activation gates remain; defer an affected activation rather than waive its
+safety requirements. Real recovery remains a pre-public-pilot acceptance gate,
+with the bounded scope below, and is not marked complete by this deferral.
+
 ## Bounded recovery before the public pilot
 
 Recovery protects artists from losing access to their music if the source
 computer or storage service fails. It is a public-pilot gate, not a prerequisite
-for every development change. The immediate slice is **one real independent
-recovery**, not a general backup platform. Keep #407 Now / In Progress and
-continue safe offline publication/Room work while coordinating that rehearsal.
+for every development change. The deferred slice is **one real independent
+recovery**, not a general backup platform. #407 stays Now / In Progress for
+publication latency; resume the rehearsal after the product work above.
 
-The slice ends when all of these are evidenced for one existing release:
+When resumed, the slice ends when all of these are evidenced for one existing release:
 
 1. Bind the backup to the selected artist, runtime and registered release
    reference. Record the trusted archive and key-version expectations separately
@@ -22,8 +37,8 @@ The slice ends when all of these are evidenced for one existing release:
    Record the artifact identities, outcome and remaining limits. Do not treat
    cryptographic authentication as an audible listening test or a service restore.
 
-**Stop rule:** after this scenario passes, record its evidence and return to
-publication latency in #407. Add recovery tooling only to execute this scenario
+**Stop rule:** after this scenario passes, record its evidence and end this
+recovery slice. Add recovery tooling only to execute this scenario
 or fix a demonstrated failure/security gap. General backup scheduling, additional
 recipient platforms, exhaustive fault matrices and a backup-management UI are
 outside this slice; they do not become prerequisites through incidental follow-up.
@@ -38,7 +53,7 @@ public-pilot acceptance remains broader than this one recovery result. A
 recoverable copy also does not renew Bulletin retention. No real capture,
 key export, maintenance or funded trial is authorized by this plan.
 
-### Evidence available and next action
+### Evidence available and deferred action
 
 Tested dev `93e99042` includes merged [#452 published-block archives](../../operations/bulletin-published-archive.md)
 and [#454 explicit offline audio authentication](../../operations/bulletin-published-audio-check.md).
@@ -47,10 +62,11 @@ against explicit reference/key inputs without activating a publisher. The
 [V4 generated reader is owner-accepted on the second Mac](evidence/second-mac-v4-2026-11-13.md).
 **Real data/key transfer and second-computer authentication are not yet accepted.**
 
-Finish the concrete one-release encrypted-transfer procedure and its separate
-key-recovery instructions, then obtain the scoped operational agreement and run
-that single rehearsal. Do not repeat accepted generated/device checks unless
-changed artifacts or a failure justify it. A failure must leave existing
+After the product work, finish the concrete one-release encrypted-transfer
+procedure and separate key-recovery instructions, obtain the scoped operational
+agreement and run that single rehearsal. Until then, preserve the prepared
+artifacts without further recovery implementation or capture. Do not repeat
+accepted generated/device checks unless changed artifacts or a failure justify it. A failure must leave existing
 production files, key versions and publication histories intact.
 
 The [compact-delivery reference](../../reference/bulletin-compact-delivery.md),
@@ -209,8 +225,9 @@ implementation branch from current tested dev; use one PR per backlog scope.
   → six waves when packing later segments per quality at 256 KiB, keeping init
   and the first segment separate. Range/decrypt tests pass; live readers and
   root/reference semantics remain unchanged.
-- **Immediate action:** complete the [bounded recovery slice](#bounded-recovery-before-the-public-pilot),
-  then return to publication latency. Current-history/service rollback and the
+- **Immediate action:** resume publication latency and the selected product
+  work; the [bounded recovery slice](#bounded-recovery-before-the-public-pilot)
+  is deferred until afterwards. Current-history/service rollback and the
   existing activation/device/capacity gates remain separate requirements;
   generated tests do not complete them. Cold seeks can overfetch, and modeled
   percentages are not network speedups or ETAs. No deployment, old-identity
@@ -218,7 +235,7 @@ implementation branch from current tested dev; use one PR per backlog scope.
 
 | Order              | Scope / owner ticket                                                            | Remaining deliverable and exit gate                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | ------------------ | ------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1 — Now            | [Publication latency and acceptance #407](../bulletin-publication-admission.md) | Admission, progress and catalogue feedback are delivered. The approximately 50-minute Street scriptures run identifies repeated finality waits. #424 is now activated on custody for one approved new exact source (16 / 4 MiB); publication and listening are now owner-confirmed (about nine minutes reported). #426 dependency-order/proof-reuse is delivered with preserved histories and zero maintenance chain writes. The separately approved “Eskapade à engong” trial now publishes and plays (owner: 7 min 46 s). The offline compact-layout study models fewer stages with startup objects retained. The explicit compact reference, ordinary Web/API/Host dispatch and exact-source admission now have a synthetic real-AAC/sample and loopback gate. Use the bounded recovery slice above, then return to measured latency; review WebKit/native limits and complete current-history/service rollback, physical-device and hosted-memory acceptance before activation, preserving proofs and existing playback. Acceptable latency and hosted memory under new work remain open. Keep the different source sizes and unchanged public-asset tail explicit. |
+| 1 — Now            | [Publication latency and acceptance #407](../bulletin-publication-admission.md) | Admission, progress and catalogue feedback are delivered. The approximately 50-minute Street scriptures run identifies repeated finality waits. #424 is now activated on custody for one approved new exact source (16 / 4 MiB); publication and listening are now owner-confirmed (about nine minutes reported). #426 dependency-order/proof-reuse is delivered with preserved histories and zero maintenance chain writes. The separately approved “Eskapade à engong” trial now publishes and plays (owner: 7 min 46 s). The offline compact-layout study models fewer stages with startup objects retained. The explicit compact reference, ordinary Web/API/Host dispatch and exact-source admission now have a synthetic real-AAC/sample and loopback gate. Resume measured latency work and review WebKit/native limits. Defer the real recovery rehearsal until after the other product work; retain current-history/service rollback, physical-device and hosted-memory activation requirements, preserving proofs and existing playback. Acceptable latency and hosted memory under new work remain open. Keep the different source sizes and unchanged public-asset tail explicit. |
 | 2 — Next           | [Room startup #395](../room-listener-audio.md)                                  | Delivery to guests works on the reported path. Diagnose the roughly 55-second mobile-host start; repeated comparable full-track starts must finish without retry and with audible Web/Desktop guests.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | 3 — Next           | [System artwork #388](../listening-controls-and-discovery.md), with #87         | Account access and discovery are delivered. Diagnose intermittent late lock-screen artwork in solo and Room; verify repeated locks/track changes without delaying audio or restoring stale metadata.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | 4 — Next research  | [CASH tips #406](../product-cash-tip-feasibility.md), with #85/#229             | Shipped-Host/API matrix, honest contribution semantics, durable payment/receipt recovery tests and a go/no-go. Prepare a bounded pilot only if supported.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |

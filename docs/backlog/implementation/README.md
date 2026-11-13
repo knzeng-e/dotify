@@ -2,8 +2,9 @@
 
 Start with the [selected execution sequence](listening-and-publication-readiness.md).
 Its [bounded recovery slice](listening-and-publication-readiness.md#bounded-recovery-before-the-public-pilot)
-ends with one real independently authenticated release/key recovery, then returns
-to publication latency. General backup-platform expansion is outside this slice.
+is deferred by the owner until after publication latency, Room startup, reliable
+lock-screen artwork and bounded CASH research. It ends with one real independently
+authenticated release/key recovery. General backup-platform expansion is outside this slice.
 Merged archive/authentication code and accepted generated rehearsals do not
 complete the real, activation, physical-device or public-pilot gates.
 

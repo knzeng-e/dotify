@@ -1,10 +1,11 @@
 # Dotify Production Backlog
 
 The [selected sequence](implementation/listening-and-publication-readiness.md#bounded-recovery-before-the-public-pilot)
-bounds recovery to one real independent release/key rehearsal before returning
-to publication latency. Archive and offline-authentication code is merged;
-real recovery remains open. General backup-platform expansion is outside this
-slice; activation and public-pilot safety gates remain.
+prioritizes publication latency, Room startup, lock-screen artwork and bounded
+CASH research. The owner has deferred the real independent release/key rehearsal
+until afterwards. Archive/authentication code is merged; real recovery remains
+open before the public pilot. General backup-platform expansion is outside this
+slice; activation safety gates remain.
 
 
 Current execution and code/deployment boundaries are in the
