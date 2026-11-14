@@ -1,0 +1,138 @@
+{
+  "schema": "dotify.product.delivery.v1",
+  "observedAt": "2026-11-14T14:37:34.177264+00:00",
+  "source": "02ae5b31d2abb5e54d58201c4976f9dc4800e8f2",
+  "base": "26e3b5956bd53d56c42ef458fb547de2fef3fb75",
+  "version": "0.1.85",
+  "candidateCi": "https://github.com/knzeng-e/dotify/actions/runs/43600307016",
+  "application": {
+    "cid": "bafybeidqk4zg5dvmvx5vu7rvnlb4gdiyiic2gyegxgzuq4nvpgyzmgyxva",
+    "carSha256": "5dd7753d7bb30e395a3c9eb4a7965059d4394d026ac986c9b23e1b111e685ad8",
+    "verifiedCarBlocks": 100,
+    "filesComparedOffline": 72,
+    "outerObjects": 20,
+    "bytes": 9513792
+  },
+  "operations": {
+    "stores": 12,
+    "oneOffRenewals": 8,
+    "dotnsSignatures": 2,
+    "newMusic": 0
+  },
+  "independentReadback": {
+    "bulletinBlock": 1644858,
+    "allObjectsByteCompared": true,
+    "retentionVerified": true,
+    "minimumExpiryBlock": 1846336,
+    "finalizedDotnsVerified": true,
+    "labVersionPreserved": "0.3.1"
+  },
+  "web": {
+    "url": "https://muzinga.netlify.app/",
+    "entry": "./assets/index-BzIHRJAy.js",
+    "sha256": "f78f50a50b6b961ee0c339c6bff15e48b421574f3d3660284ffc9ef785630529",
+    "filesByteCompared": 20,
+    "totalComparedBytes": 1855135,
+    "exactReconstructionBytes": true,
+    "publishedCleanFlag": "false"
+  },
+  "publicApiObservation": {
+    "observedAt": "2026-11-14T14:25:38.772987+00:00",
+    "url": "https://dotify-api.fly.dev/version",
+    "status": 200,
+    "identity": {
+      "version": "0.1.0",
+      "commitSha": "91f25c77ddb117f97bba4b7808a7ad2fb4b8e244"
+    }
+  },
+  "custody": {
+    "source": "91f25c77ddb117f97bba4b7808a7ad2fb4b8e244",
+    "image": "registry.fly.io/dotify-api@sha256:6c7c9cfefc1cd81d184c1ac1f76aec5628f5235699c478910ff48fa6ec381907",
+    "imageAndConfigUnchanged": true,
+    "protectedMetadataUnchanged": true,
+    "nonceTreeUnchanged": true,
+    "healthChecks": [
+      {
+        "route": "/health",
+        "status": 200
+      },
+      {
+        "route": "/health/ready",
+        "status": 200
+      },
+      {
+        "route": "/health",
+        "status": 200
+      },
+      {
+        "route": "/health/ready",
+        "status": 200
+      }
+    ],
+    "observedAt": "2026-11-14T14:37:02.282187+00:00"
+  },
+  "retainedReserve": {
+    "transactions": 2311,
+    "bytes": 575811391
+  },
+  "signerVariableCleared": true,
+  "physicalAcceptance": {
+    "status": "partial; initial Room startup failed, retry succeeded",
+    "reportedAt": "2026-11-14T15:56:08.367004+00:00",
+    "source": "02ae5b31d2abb5e54d58201c4976f9dc4800e8f2",
+    "requestedJourney": "iPhone / Adang Fobe / Free access without wallet",
+    "hostSoftware": "Polkadot app 0.10.0 (20)",
+    "soloReportedContinuous": true,
+    "firstRoomAttempt": {
+      "outcome": "timeout reported",
+      "approximateSeconds": 60,
+      "displayedPreparationPercent": 99,
+      "message": "Room audio is taking too long"
+    },
+    "secondRoomAttempt": {
+      "outcome": "ready quickly, reported",
+      "durationSeconds": null,
+      "cacheState": "retry after prior preparation; native/upstream cache state unknown"
+    },
+    "pauseRespectedReported": true,
+    "guestAndShortLockAudioReported": true,
+    "guestAndLockScope": "After successful retry; requested Web/Desktop and 15\u201330 s lock, separate durations/results not restated",
+    "supportReport": "received from another listen/session, confirmed by the owner; does not record the reported first failure",
+    "initialNoRetryStartupAccepted": false,
+    "cacheReuseExplanation": "consistent with bounded ciphertext reuse; exact phase/cause not established without the matched report",
+    "broaderRepeatedFullTrackAcceptance": "open",
+    "supportReportSummary": {
+      "buildSha": "02ae5b31d2abb5e54d58201c4976f9dc4800e8f2",
+      "observedAt": "2026-11-14T15:54:53.053Z",
+      "hostSoftware": "Polkadot App iOS 0.10.0 (20)",
+      "roomPreparation": {
+        "attempt": 2,
+        "authorizationMs": 164,
+        "compatibilityDownloadedMs": 2134,
+        "compatibilityReadyMs": 2137,
+        "objectsRead": 51,
+        "objectsDecrypted": 51,
+        "encryptedBytes": 2404018,
+        "cachedObjects": 10,
+        "hostObjects": 28,
+        "httpObjects": 13,
+        "recoveredObjects": 13,
+        "maxCompletedReadMs": 525
+      },
+      "handoff": {
+        "attempt": 3,
+        "authorizationAndPreparedSourceReuseMs": 366
+      },
+      "artworkPngPublishedMs": 53,
+      "timeoutRecorded": false,
+      "reportedFirstFailureMatched": false,
+      "cacheConditions": "Partially cached successful trace; not a cold benchmark",
+      "transportObservation": "28 objects carry the native Bulletin transport label; the trace does not identify the selected release",
+      "sessionAssociation": "owner confirms another listen/session after the reported failure"
+    }
+  },
+  "automaticRenewalActivated": false,
+  "compactPublicationActivated": false,
+  "serverImagesReplaced": false,
+  "realRecoveryStillDeferred": true
+}
