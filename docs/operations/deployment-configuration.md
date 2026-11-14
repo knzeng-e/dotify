@@ -49,8 +49,10 @@ At the later [0.1.85 client checkpoint](../backlog/implementation/evidence/produ
 Web/Product deliver the bounded Free-track buffering/Room-timeout correction from
 `02ae5b31`. Complete artifact/Web/finalized-DotNS readback and same-image custody
 restart/history checks pass; the `91f25c77` server images and settings are retained.
-Matching walletless phone listening/Room acceptance and measured startup remain
-open. No musical policy, key, compact or CASH activation occurs.
+The owner reports continuous solo and successful-retry Pause/guest/short-lock
+sound on Polkadot app 0.10.0 (20), but the first Room opening still times out at
+about one minute / displayed 99%. Initial no-retry startup and measured latency
+remain open. No musical policy, key, compact or CASH activation occurs.
 
 Do not infer an active key, remaining publication allowance, available quota or
 permission to reuse an admission from this page. Use the applicable private

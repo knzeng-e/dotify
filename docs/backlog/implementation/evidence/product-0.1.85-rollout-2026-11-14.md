@@ -1,6 +1,6 @@
 # Web/Product 0.1.85 delivery — 14 November 2026
 
-**Published and independently verified; matching physical acceptance is pending.**
+**Published and independently verified; partial phone acceptance, initial Room startup still fails.**
 Web and `dotify-test01.dot` serve frozen source `02ae5b31d2abb5e54d58201c4976f9dc4800e8f2`, based on tested
 dev `26e3b5956bd53d56c42ef458fb547de2fef3fb75` after #469. The only tracked packaging change is appVersion
 `[0,1,85]`. Refs #395. [Structured public evidence](product-0.1.85-rollout-2026-11-14.json)
@@ -82,18 +82,58 @@ No API/custody/encoder/signaling image, key, admission, musical asset, access
 policy, Host/SDK setting, compact selection or CASH capability changes. No
 recurring renewal or real recovery rehearsal is activated.
 
-## Next device acceptance
+## Owner phone result — 14 November 2026
 
-Use the existing Free **Adang Fobe** without a wallet on iPhone: hear at least
-one minute in solo, open one Room, preserve explicit Pause during preparation,
-then hear explicit Play at updated Web/Desktop guests and during a short lock.
-Copy the local support report before retry/reload, for success as well as failure.
-Record preparation time and distinguish the first session attempt, a warm retry
-and unknown Host/upstream cache state; never label an unmeasured cache as cold.
-The [measurement guide](../../../how-to/measure-room-startup.md) defines the
-comparable reporting and broader repeated/full-track gate.
+Responding to the requested walletless iPhone / Adang Fobe protocol, the owner
+reports **Polkadot app 0.10.0 (20)** and continuous solo listening. The first Room
+attempt shows **“Room audio is taking too long”** after approximately one minute,
+with preparation displayed at **99%**. A second opening of the same track becomes
+ready quickly. After that retry, Pause is respected and guests/phone locking are
+reported OK under the requested Web/Desktop and 15–30-second protocol. Per-guest
+results and actual lock duration are not separately restated.
 
-#395 remains open. Earlier 0.1.84 short checks and the later failed follow-up are
-historical observations, not acceptance of 0.1.85. Artwork #388, publication
-latency #407, access/value-flow and public-pilot gates remain separate; the
-owner-deferred real independent recovery stays deferred.
+This accepts the reported solo and successful-retry continuity, not initial
+no-retry Room startup. The quick second attempt is consistent with the deployed
+bounded in-memory ciphertext cache. It is not proof of a persistent 99% clear-audio
+checkpoint: cancelled collection is discarded, and reuse must still pass access
+checks and authenticate its objects. The first attempt's cache state and network
+conditions are unknown, so it is not a controlled cold benchmark or a measured
+before/after speedup.
+
+The displayed percentage counts collected authenticated media bytes. It does not
+prove that every object, MP4 assembly and native readiness has finished. Without
+a matched failure trace, the 99% observation does not identify a specific slow
+object or prove which final preparation phase missed the deadline.
+
+### Received report: successful preparation, failure association unresolved
+
+The subsequently supplied report identifies the exact `02ae5b31` build and iOS
+Polkadot App 0.10.0 (20), observed at `2026-11-14T15:54:53.053Z`. Its Room
+preparation attempt 2 authorizes access in **164 ms**, finishes collection at
+**2,134 ms** and produces the compatible source at **2,137 ms**, measured from
+that preparation attempt's start. It reads/authenticates 51 objects / 2,404,018
+encrypted bytes: ten cached, 28 through the Host and 13 through HTTP recovery.
+The Host category is specifically the native Bulletin transport label; the
+redacted report does not identify the selected release. The maximum completed
+read is 525 ms. Work totals overlap; they are not additional
+wall time. Handoff attempt 3 reauthorizes/reuses the prepared source in 366 ms.
+The report also records PNG metadata publication at 53 ms and successful native
+playing events; these are not acoustic proof.
+
+There is **no timeout or minute-long Room preparation in this trace**. The owner
+has been asked whether it belongs to the reported failure session or a subsequent
+listen. Keep the directly reported failure open and the successful trace separate:
+this report cannot identify the slow final object, establish the cause of the
+99% failure, or turn a partially cached preparation into cold-start acceptance.
+
+## Remaining gate and next task
+
+Keep #395 open for the first-attempt failure and comparable repeated/full-track
+startup. Inspect the matched first-attempt/retry phases and reduce the remaining
+collection/assembly/native-readiness bottleneck while preserving access checks,
+current deadlines, media limits and explicit Pause. Do not treat a warm retry as
+initial startup acceptance or extend the timeout merely to relabel this failure.
+The [measurement guide](../../../how-to/measure-room-startup.md) defines comparable
+reports. Earlier 0.1.84 results retain their dated scope. Artwork #388, publication
+latency #407 and access/value/public-pilot gates stay separate; real independent
+recovery remains owner-deferred. No new deployment or storage authority is granted.

@@ -14,7 +14,8 @@ keeps current solo audio usable during authenticated mobile Room preparation;
 matching physical-device acceptance remains open.
 
 The [0.1.85 listening delivery](backlog/implementation/evidence/product-0.1.85-rollout-2026-11-14.md)
-records the published Free-track correction and its still-pending phone/guest acceptance.
+records the published Free-track correction: solo/retry listening is reported OK,
+but the first phone Room opening still times out.
 
 ## Use Dotify
 

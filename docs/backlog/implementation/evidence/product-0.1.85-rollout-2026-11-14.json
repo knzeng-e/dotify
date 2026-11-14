@@ -77,8 +77,58 @@
   },
   "signerVariableCleared": true,
   "physicalAcceptance": {
-    "status": "not yet observed on 0.1.85",
-    "priorVersionEvidenceIsNotAcceptance": true
+    "status": "partial; initial Room startup failed, retry succeeded",
+    "reportedAt": "2026-11-14T15:56:08.367004+00:00",
+    "source": "02ae5b31d2abb5e54d58201c4976f9dc4800e8f2",
+    "requestedJourney": "iPhone / Adang Fobe / Free access without wallet",
+    "hostSoftware": "Polkadot app 0.10.0 (20)",
+    "soloReportedContinuous": true,
+    "firstRoomAttempt": {
+      "outcome": "timeout reported",
+      "approximateSeconds": 60,
+      "displayedPreparationPercent": 99,
+      "message": "Room audio is taking too long"
+    },
+    "secondRoomAttempt": {
+      "outcome": "ready quickly, reported",
+      "durationSeconds": null,
+      "cacheState": "retry after prior preparation; native/upstream cache state unknown"
+    },
+    "pauseRespectedReported": true,
+    "guestAndShortLockAudioReported": true,
+    "guestAndLockScope": "After successful retry; requested Web/Desktop and 15\u201330 s lock, separate durations/results not restated",
+    "supportReport": "received; records successful preparation, not the reported one-minute timeout; session association awaiting clarification",
+    "initialNoRetryStartupAccepted": false,
+    "cacheReuseExplanation": "consistent with bounded ciphertext reuse; exact phase/cause not established without the matched report",
+    "broaderRepeatedFullTrackAcceptance": "open",
+    "supportReportSummary": {
+      "buildSha": "02ae5b31d2abb5e54d58201c4976f9dc4800e8f2",
+      "observedAt": "2026-11-14T15:54:53.053Z",
+      "hostSoftware": "Polkadot App iOS 0.10.0 (20)",
+      "roomPreparation": {
+        "attempt": 2,
+        "authorizationMs": 164,
+        "compatibilityDownloadedMs": 2134,
+        "compatibilityReadyMs": 2137,
+        "objectsRead": 51,
+        "objectsDecrypted": 51,
+        "encryptedBytes": 2404018,
+        "cachedObjects": 10,
+        "hostObjects": 28,
+        "httpObjects": 13,
+        "recoveredObjects": 13,
+        "maxCompletedReadMs": 525
+      },
+      "handoff": {
+        "attempt": 3,
+        "authorizationAndPreparedSourceReuseMs": 366
+      },
+      "artworkPngPublishedMs": 53,
+      "timeoutRecorded": false,
+      "reportedFirstFailureMatched": false,
+      "cacheConditions": "Partially cached successful trace; not a cold benchmark",
+      "transportObservation": "28 objects carry the native Bulletin transport label; the trace does not identify the selected release"
+    }
   },
   "automaticRenewalActivated": false,
   "compactPublicationActivated": false,

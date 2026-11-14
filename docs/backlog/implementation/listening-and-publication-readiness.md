@@ -5,10 +5,13 @@
 [Web/Product 0.1.85 is delivered](evidence/product-0.1.85-rollout-2026-11-14.md)
 from frozen `02ae5b31`, based on tested dev `26e3b595` after #469. Independent
 application/Web/retention/DotNS checks and unchanged custody restart/history pass.
-The next action is the matched walletless phone solo/Room and audible guest
-check, retaining first-attempt and warm-retry reports separately. Cold iOS
-complete-rendition startup can still exceed the unchanged deadline; no physical
-latency improvement is claimed. The server delivery remains `91f25c77`; compact,
+The owner reports continuous solo and, after a successful Room retry, respected
+Pause plus audible guests during the requested short lock on Polkadot app
+0.10.0 (20). The first opening still times out at about one minute / displayed
+99%. The received 0.1.85 report shows a successful 2.14-second preparation,
+with no timeout; its session association is being clarified. Next: match the failed
+first attempt before choosing the remaining preparation correction; keep #395 open. Cache/network conditions are unknown, so this is not
+cold-start acceptance or a controlled speedup. The server delivery remains `91f25c77`; compact,
 CASH and the owner-deferred real recovery keep their separate gates. Earlier
 checkpoints below retain their historical scope.
 

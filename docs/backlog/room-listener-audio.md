@@ -6,9 +6,12 @@
 based on tested merged dev `26e3b595`. Exact-source CI, complete byte/retention/
 finalized-DotNS readback and unchanged custody health/history pass. Managed
 read-ahead, solo relay priority, bounded ciphertext reuse and clearer timeout
-reporting are deployed. Matching walletless phone solo/Room, guest and lock
-acceptance remains pending; cold complete-rendition latency is still a limit.
-#395 stays open. Earlier entries retain their dated scope.
+reporting are deployed. On Polkadot app 0.10.0 (20), the owner reports continuous
+solo, but the first Room opening times out after about one minute at displayed
+99%. A quick retry succeeds with Pause and guest/short-lock audio OK. Keep the
+first failure separate from retry continuity. The received report completes in
+2.14 seconds with no timeout; its association with the failed session is unclear.
+Next: identify and reduce the remaining preparation bottleneck. #395 stays open. Earlier entries retain their dated scope.
 
 ## Free-track loading failure, 2026-11-14
 
