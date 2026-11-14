@@ -8,13 +8,14 @@ authenticated release/key recovery. General backup-platform expansion is outside
 Merged archive/authentication code and accepted generated rehearsals do not
 complete the real, activation, physical-device or public-pilot gates.
 
-## Client delivery, 2026-11-13
+## Client delivery, 2026-11-14
 
-[Web/Product 0.1.83 is delivered](evidence/product-0.1.83-rollout-2026-11-13.md).
-Independent delivery and unchanged custody health pass. Matching phone/guest
-continuity and artwork acceptance remain open; publication server/format work
-and owner-deferred real recovery keep their separate gates. Earlier dated
-entries below retain their historical scope.
+[Web/Product 0.1.84 is delivered](evidence/product-0.1.84-rollout-2026-11-14.md). Independent delivery,
+unchanged custody health and preserved histories pass. The owner accepts the
+requested short phone Pause, artwork and guest journeys; broader repeated
+listening, server security/format work and
+owner-deferred real recovery keep their separate gates. Earlier dated entries
+below retain their historical scope.
 
 ## Listening security review, 2026-11-11
 

@@ -112,7 +112,7 @@
       "priority": "P1",
       "track": "Production spine",
       "phase": "Next",
-      "note": "Web/Product 0.1.83 is independently delivered; the owner confirms audible/control use during Room preparation and audible Web/Desktop guests under the requested short phone lock. Pause fails at Room opening and intermittently after native locked-screen Pause. A bounded shared-intent correction is implemented for review, not deployed; its evidence is docs/backlog/implementation/evidence/explicit-pause-authority-2026-11-13.md. Matching native controls, repeated/full-track listening and startup latency remain open; real recovery remains deferred."
+      "note": "Web/Product 0.1.84 is delivered and the owner confirms Pause through preparation/unlock, audible resume at position and guests during the requested short lock on Polkadot app 0.10.0 (20). Measured startup, repeated/full-track continuity and broader native controls remain open. Canonical evidence: docs/backlog/implementation/evidence/product-0.1.84-rollout-2026-11-14.md. Real recovery remains owner-deferred."
     },
     {
       "id": "listening-controls-and-discovery",
@@ -122,7 +122,7 @@
       "priority": "P1",
       "track": "Production spine",
       "phase": "Next",
-      "note": "Web/Product 0.1.83 delivers prepared-PNG reuse and bounded phase observations. The owner reports a blank cover after a requested signature and immediate lock; its timing history was lost on restart. A separate owner-confirmed successful control publishes PNG metadata in 20 ms; it does not explain the failure. Keep matched failed-report, repeated solo/Room locks, attribution, disconnect and native-control acceptance open. Canonical checkpoint: docs/backlog/implementation/evidence/product-0.1.83-rollout-2026-11-13.md."
+      "note": "Web/Product 0.1.84 is delivered; the owner confirms solo/Room covers and Dotify logo on Polkadot app 0.10.0 (20). Repeated locks, rapid changes, attribution/disconnect and the separately unconfirmed signature-trigger case remain open. Canonical evidence: docs/backlog/implementation/evidence/product-0.1.84-rollout-2026-11-14.md."
     },
     {
       "id": "room-galaxy-restoration",
@@ -391,7 +391,7 @@
       "priority": "P1",
       "track": "Product SDK",
       "phase": "Product feasibility",
-      "note": "SDK 0.39/TrUAPI 0.25 pairing merged in #326 and published as Product 0.1.60 (#327), matching inspected Desktop 0.1.4-rc.3. A bounded About-only Host software report is a local candidate, not deployed/device-accepted or a payment capability probe. Physical Desktop/mobile account, signing, media and location acceptance plus shared network profile remain; do not infer mobile wire capability from its version label."
+      "note": "Web/Product 0.1.84 delivers About-only public Host software labels. SDK 0.39.0 / Host SDK 0.28.0 / TrUAPI 0.25.0 pins are unchanged; actual named-Host labels, signing/media/location, wire and payment acceptance remain open. A version label is not capability proof. Canonical delivery: docs/backlog/implementation/evidence/product-0.1.84-rollout-2026-11-14.md."
     },
     {
       "id": "catalog-read-model",

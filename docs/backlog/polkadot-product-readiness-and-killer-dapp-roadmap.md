@@ -1,5 +1,13 @@
 # Polkadot product readiness and killer dapp roadmap
 
+## Client delivery checkpoint — 2026-11-14
+
+[Web/Product 0.1.84](implementation/evidence/product-0.1.84-rollout-2026-11-14.md) delivers the bounded About-only
+Host software report without changing the SDK/Host/TrUAPI pins or adding a
+payment capability probe. Named Desktop/mobile labels, wire compatibility and
+payment acceptance remain separate #85 gates. Earlier candidate entries are
+dated history.
+
 Status: active execution note; the Product DevNet baseline is delivered on
 `dev` and remains tracked through Product compatibility issue #85.
 

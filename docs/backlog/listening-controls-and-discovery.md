@@ -1,5 +1,14 @@
 # Listening controls and room discovery — next iteration
 
+## Matching client delivery, 2026-11-14
+
+[Web/Product 0.1.84](implementation/evidence/product-0.1.84-rollout-2026-11-14.md) delivers bounded artwork return
+recovery, visible support copying and optional About Host labels. Delivery is
+independently verified; the owner confirms covers/logo in solo and Room on
+Polkadot app 0.10.0 (20). Repeated locks, rapid changes and the particular signature-then-immediate-lock
+trigger remain separately unconfirmed. Earlier candidate records retain their
+original scope and do not prove the reported native failure's cause.
+
 ## Immediate-lock observation after 0.1.83 delivery
 
 The owner reports a blank cover after a requested signature and immediate phone

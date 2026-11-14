@@ -1,5 +1,13 @@
 # Mobile-host Room startup and listening continuity
 
+## Matching client delivery, 2026-11-14
+
+[Web/Product 0.1.84](implementation/evidence/product-0.1.84-rollout-2026-11-14.md) delivers the explicit-Pause
+correction with independent artifact/readback and unchanged custody checks.
+The owner confirms Pause through preparation/unlock, audible resume at position
+and guests during the requested short phone lock on Polkadot app 0.10.0 (20).
+Broader continuity and startup latency remain open. Earlier entries retain their dated candidate state.
+
 The owner has deferred the real recovery rehearsal until after the selected
 product-readiness work. Follow [the product-first execution order](implementation/listening-and-publication-readiness.md#product-work-first):
 #395 follows publication-latency engineering, without waiting for every deferred
