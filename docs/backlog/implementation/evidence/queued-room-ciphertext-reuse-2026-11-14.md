@@ -1,10 +1,14 @@
 # Reuse ciphertext completed during relay waiting — 14 November 2026
 
-**Implemented and locally tested; not delivered.** Refs #395. Code commit
+**Code checkpoint: implemented and locally tested, before delivery.** Refs #395. Code commit
 `daea6ae2f858ed327ea9b42068592bb15815adfb`, based on merged dev `0e17f56fba3715a106159b6781d28116ed6e0c00`.
 The [0.1.85 delivery result](product-0.1.85-rollout-2026-11-14.md) still leaves
 initial Room startup open. Its later 2.14-second report belongs to another
 session; this candidate does not establish the cause of the reported 99% timeout.
+
+Delivery follow-up: [Web/Product 0.1.86](product-0.1.86-rollout-2026-11-14.md)
+now publishes this correction with independent readback. Matching phone startup
+acceptance remains open; the local measurements below keep their original scope.
 
 ## Reproduced waste and correction
 

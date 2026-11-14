@@ -1,0 +1,85 @@
+{
+  "schema": "dotify.product.delivery.v1",
+  "observedAt": "2026-11-14T21:08:06.657782+00:00",
+  "source": "61f4a45214b261adcf2696c12ea30c021294ab7e",
+  "base": "fd56e16dae463b31b2ef54eef851e2b2399b51f9",
+  "version": "0.1.86",
+  "candidateCi": "https://github.com/knzeng-e/dotify/actions/runs/43636572546",
+  "application": {
+    "cid": "bafybeicycuewhk7nralp5io3rire75abaug7klkb42f5ueqopoj7ojcp5q",
+    "carSha256": "c502063ea90030484ffb0e815fe817de57ea7f5d993b14e7c31b209e09f63886",
+    "verifiedCarBlocks": 100,
+    "filesComparedOffline": 72,
+    "outerObjects": 20,
+    "bytes": 9513917
+  },
+  "operations": {
+    "stores": 12,
+    "oneOffRenewals": 8,
+    "dotnsSignatures": 2,
+    "newMusic": 0
+  },
+  "independentReadback": {
+    "bulletinBlock": 1648725,
+    "allObjectsByteCompared": true,
+    "retentionVerified": true,
+    "minimumExpiryBlock": 1850186,
+    "finalizedDotnsVerified": true,
+    "labVersionPreserved": "0.3.1"
+  },
+  "web": {
+    "url": "https://muzinga.netlify.app/",
+    "entry": "./assets/index-BDaRjPsG.js",
+    "sha256": "d6f07d7fb9e45525af885973a884644e6889a9839f761b4d2d4f3242692b4284",
+    "filesByteCompared": 20,
+    "totalComparedBytes": 1855260,
+    "exactReconstructionBytes": true,
+    "publishedCleanFlag": "false"
+  },
+  "publicApiObservation": {
+    "observedAt": "2026-11-14T21:07:10.089458+00:00",
+    "endpoint": "https://dotify-api.fly.dev/version",
+    "version": "0.1.0",
+    "commitSha": "91f25c77ddb117f97bba4b7808a7ad2fb4b8e244",
+    "networkWrites": 0
+  },
+  "custody": {
+    "source": "91f25c77ddb117f97bba4b7808a7ad2fb4b8e244",
+    "image": "registry.fly.io/dotify-api@sha256:6c7c9cfefc1cd81d184c1ac1f76aec5628f5235699c478910ff48fa6ec381907",
+    "imageAndConfigUnchanged": true,
+    "protectedMetadataUnchanged": true,
+    "nonceTreeUnchanged": true,
+    "healthChecks": [
+      {
+        "route": "/health",
+        "status": 200
+      },
+      {
+        "route": "/health/ready",
+        "status": 200
+      },
+      {
+        "route": "/health",
+        "status": 200
+      },
+      {
+        "route": "/health/ready",
+        "status": 200
+      }
+    ],
+    "observedAt": "2026-11-14T21:07:51.598417+00:00"
+  },
+  "retainedReserve": {
+    "transactions": 2331,
+    "bytes": 585325308
+  },
+  "signerVariableCleared": true,
+  "physicalAcceptance": {
+    "status": "not yet observed on 0.1.86",
+    "priorVersionEvidenceIsNotAcceptance": true
+  },
+  "automaticRenewalActivated": false,
+  "compactPublicationActivated": false,
+  "serverImagesReplaced": false,
+  "realRecoveryStillDeferred": true
+}

@@ -1,5 +1,15 @@
 # Mobile-host Room startup and listening continuity
 
+## Queued-read correction delivered, 2026-11-14
+
+[Web/Product 0.1.86](implementation/evidence/product-0.1.86-rollout-2026-11-14.md)
+delivers #471 from frozen `61f4a452`, based on tested dev `fd56e16d`.
+Exact-source CI, complete application/Web/retention/DotNS checks and unchanged
+custody restart/history pass. Waiting Room reads can reuse ciphertext completed
+by solo. Matching first-attempt phone startup and audible guest acceptance remain
+open; this is not proof of the cause or resolution of the earlier 99% timeout.
+#395 stays open. Earlier checkpoints retain their historical scope.
+
 ## Queued-read reuse candidate, 2026-11-14
 
 [The bounded client correction](implementation/evidence/queued-room-ciphertext-reuse-2026-11-14.md)
