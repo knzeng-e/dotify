@@ -391,7 +391,7 @@
       "priority": "P1",
       "track": "Product SDK",
       "phase": "Product feasibility",
-      "note": "SDK 0.39/TrUAPI 0.25 pairing merged in #326 and published as Product 0.1.60 (#327), matching inspected Desktop 0.1.4-rc.3. Physical Desktop/mobile account, signing, media and location acceptance plus shared network profile remain; do not infer mobile wire capability from its version label."
+      "note": "SDK 0.39/TrUAPI 0.25 pairing merged in #326 and published as Product 0.1.60 (#327), matching inspected Desktop 0.1.4-rc.3. A bounded About-only Host software report is a local candidate, not deployed/device-accepted or a payment capability probe. Physical Desktop/mobile account, signing, media and location acceptance plus shared network profile remain; do not infer mobile wire capability from its version label."
     },
     {
       "id": "catalog-read-model",

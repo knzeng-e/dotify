@@ -1,8 +1,12 @@
+import { useProductHostInfo } from '../features/productHost/useProductHostInfo';
+import { resolveProductHostConfig } from '../features/productHost/productHost';
 import { streamingMediaSource } from '../features/catalog/streamingMediaSource';
 import { Check, Copy, Info, X } from 'lucide-react';
 import { useState } from 'react';
 import { AudioFailureDiagnostics } from './AudioFailureDiagnostics';
 import { Dialog } from './Dialog';
+
+const hostMode = resolveProductHostConfig(import.meta.env).mode;
 
 function productVersion(): string | null {
   try {
@@ -24,10 +28,18 @@ function audioMode() {
 
 export function AboutDotify() {
   const [open, setOpen] = useState(false);
+  const hostSoftware = useProductHostInfo(open && hostMode !== 'off');
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'failed'>('idle');
   const version = productVersion();
   const build = /^[a-f0-9]{40}$/i.test(import.meta.env.VITE_DOTIFY_BUILD_SHA ?? '') ? import.meta.env.VITE_DOTIFY_BUILD_SHA : 'Unavailable';
   const clean = import.meta.env.VITE_DOTIFY_BUILD_CLEAN === 'true';
+  const hostSoftwareLabel = !hostSoftware
+    ? null
+    : hostSoftware.status === 'reported'
+      ? `${hostSoftware.name} ${hostSoftware.version} (${hostSoftware.platform})`
+      : hostSoftware.status === 'pending'
+        ? 'Checking Host software…'
+        : 'Host software unavailable';
   const details = [
     ['Dotify', version ? `Product ${version}` : 'Web'],
     ['Build', build],
@@ -42,9 +54,10 @@ export function AboutDotify() {
             ? 'Exposed, standard reader preferred'
             : 'Exposed, AAC unavailable'
         : 'Not exposed'
-    ]
+    ],
+    ...(hostSoftwareLabel ? [['Host software', hostSoftwareLabel]] : [])
   ];
-  // Only public build identifiers and media capabilities. Never serialize the
+  // Only public build identifiers, media capabilities and Host software labels. Never serialize the
   // environment, wallet, URL, listening history or diagnostic event buffers.
   const diagnosticText = details.map(([label, value]) => `${label}: ${value}`).join('\n');
 
@@ -93,9 +106,10 @@ export function AboutDotify() {
             <p className='about-dotify-note'>
               Sound or cover not behaving as expected? Copy a report before reloading or closing Dotify: recent listening details disappear when it restarts.
             </p>
-            <AudioFailureDiagnostics prominent />
+            <AudioFailureDiagnostics prominent hostSoftware={hostSoftware} />
             <p className='about-dotify-note'>
-              Only loading and playback timings, with the app build. No account, track name or audio. Nothing is sent automatically.
+              Loading and playback timings, app build and available Host software details. No account, track name or audio. Nothing is sent to support
+              automatically.
             </p>
           </section>
           <details className='about-dotify-details'>
