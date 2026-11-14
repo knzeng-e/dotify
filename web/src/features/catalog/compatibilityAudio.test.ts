@@ -77,7 +77,10 @@ it('keeps authenticated output ordered when reads finish out of order and report
   await vi.waitFor(() => expect(resolutions).toHaveLength(4));
   resolutions[2](Uint8Array.of(2));
   resolutions[1](Uint8Array.of(1));
-  expect(progress).toEqual([0]);
+  // Completed authenticated bytes count immediately, even when an earlier
+  // object still waits. A free worker can collect the next indexed part.
+  await vi.waitFor(() => expect(progress).toEqual([0, 1, 2]));
+  expect(resolutions).toHaveLength(5);
   resolutions[0](Uint8Array.of(0));
   await vi.waitFor(() => expect(resolutions).toHaveLength(5));
   resolutions[4](Uint8Array.of(4));
@@ -113,14 +116,14 @@ it('cancels all in-flight reads when the parent is interrupted and starts no lat
   expect(signals.every(signal => signal.aborted)).toBe(true);
 });
 
-it('propagates an authentication rejection and aborts the other bounded reads', async () => {
+it('propagates a later authentication rejection without waiting for earlier objects', async () => {
   const denied = new Error('Segment authentication failed');
   const signals: AbortSignal[] = [];
   const pending = readCompatibilityAudio(
     objects(12),
     (object, signal) => {
       signals.push(signal);
-      if (object.counter === 0) return Promise.reject(denied);
+      if (object.counter === 2) return Promise.reject(denied);
       return new Promise((_resolve, reject) => signal.addEventListener('abort', () => reject(signal.reason), { once: true }));
     },
     new AbortController().signal
@@ -128,4 +131,29 @@ it('propagates an authentication rejection and aborts the other bounded reads', 
   await expect(pending).rejects.toBe(denied);
   expect(signals).toHaveLength(4);
   expect(signals.every(signal => signal.aborted)).toBe(true);
+});
+
+it('publishes no late progress or subsequent reads when cancelled work completes anyway', async () => {
+  const controller = new AbortController();
+  const resolutions: Array<(bytes: Uint8Array) => void> = [];
+  const progress: number[] = [];
+  const pending = readCompatibilityAudio(
+    objects(12),
+    () => new Promise(resolve => resolutions.push(resolve)),
+    controller.signal,
+    value => progress.push(value.completedBytes)
+  );
+  const result = pending.catch((error: unknown) => error);
+  await vi.waitFor(() => expect(resolutions).toHaveLength(4));
+  controller.abort();
+  for (const resolve of resolutions) resolve(Uint8Array.of(1));
+  expect(await result).toMatchObject({ name: 'AbortError' });
+  expect(resolutions).toHaveLength(4);
+  expect(progress).toEqual([0]);
+});
+
+it('still refuses actual authenticated output exceeding the clear-buffer budget', async () => {
+  const read = vi.fn(async () => new Uint8Array(40 * 1024 * 1024 + 1));
+  await expect(readCompatibilityAudio(objects(1), read, new AbortController().signal)).rejects.toThrow(/budget/);
+  expect(read).toHaveBeenCalledOnce();
 });

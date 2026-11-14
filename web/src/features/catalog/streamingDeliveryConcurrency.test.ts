@@ -15,6 +15,81 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+it('keeps the two-body relay working while an early compatibility object is slow', async () => {
+  vi.useFakeTimers();
+  const { fetchStreamingObject } = await import('./streamingPlayback');
+  let active = 0;
+  let peak = 0;
+  let busy = 0;
+  let finishedAt = -1;
+  const startedAt = Date.now();
+  const fetcher = vi.fn(async (url: string, options: RequestInit) => {
+    expect(url).toMatch(/^https:\/\/relay\.example\/api\/media\//);
+    if (active >= 2) {
+      busy++;
+      return new Response(null, { status: 503 });
+    }
+    active++;
+    peak = Math.max(peak, active);
+    const index = Number(/segment-(\d+)/.exec(url)?.[1] ?? -1) + 1;
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const abort = () => {
+          clearTimeout(timer);
+          reject(options.signal?.reason);
+        };
+        const timer = setTimeout(
+          () => {
+            options.signal?.removeEventListener('abort', abort);
+            resolve();
+          },
+          index === 0 ? 10_000 : 100
+        );
+        options.signal?.addEventListener('abort', abort, { once: true });
+      });
+      return new Response(new Uint8Array(17).fill(index));
+    } finally {
+      active--;
+    }
+  });
+  vi.stubGlobal('fetch', fetcher);
+  const objects: StreamingObject[] = Array.from({ length: 72 }, (_, i) => ({
+    rendition: '96',
+    kind: i ? 'media' : 'init',
+    index: Math.max(0, i - 1),
+    counter: i,
+    plainLength: 1,
+    encryptedLength: 17,
+    path: i ? `96/segment-${String(i - 1).padStart(3, '0')}.bin` : '96/init.bin'
+  }));
+  const controller = new AbortController();
+  const result = readCompatibilityAudio(
+    objects,
+    async (object, signal) => {
+      const bytes = await fetchStreamingObject(cid, object.path, object.encryptedLength, signal);
+      return bytes.slice(0, 1);
+    },
+    controller.signal
+  ).then(parts => {
+    finishedAt = Date.now() - startedAt;
+    return parts;
+  });
+  try {
+    await vi.advanceTimersByTimeAsync(10_000);
+    // All short reads can finish while the first body waits. Its ordering
+    // requirement must not leave a free relay slot idle behind a full window.
+    expect(fetcher).toHaveBeenCalledTimes(72);
+    expect(finishedAt).toBe(10_000);
+    expect((await result).map(bytes => bytes[0])).toEqual(Array.from({ length: 72 }, (_, i) => i));
+    expect(peak).toBe(2);
+    expect(busy).toBe(0);
+  } finally {
+    controller.abort();
+    await result.catch(() => undefined);
+  }
+  expect(active).toBe(0);
+});
+
 it('prepares a full-length rendition through the two-download relay without self-triggered busy fallbacks', async () => {
   vi.useFakeTimers();
   const { fetchStreamingObject } = await import('./streamingPlayback');
