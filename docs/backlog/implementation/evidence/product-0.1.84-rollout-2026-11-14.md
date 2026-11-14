@@ -1,6 +1,6 @@
 # Web/Product 0.1.84 delivery — 2026-11-14
 
-**Published and independently verified; matching phone acceptance remains open.**
+**Published, independently verified, and accepted for the requested short phone checks.**
 Web and `dotify-test01.dot` serve frozen source
 `2f6c5cda299b9abb46c18c049e6bea218b4f0ffa`, based on tested dev
 `91f25c77ddb117f97bba4b7808a7ad2fb4b8e244`. The only tracked packaging difference
@@ -78,15 +78,31 @@ Server-side #431/#432 security delivery remains a separate public-pilot gate.
 No music, cover or musical manifest is republished; no key, admission, compact
 format, automatic renewal or real recovery rehearsal is activated.
 
-## Next acceptance
+## Owner phone acceptance — 2026-11-14
 
-On the matching phone/Host build, check native Pause then unlock, Pause during
-Room preparation, explicit audible resume and Web/Desktop guests during lock.
-Follow the [artwork device guide](../../../how-to/check-system-artwork.md) in solo
-and Room, especially immediate lock after ordinary authorization, and copy the
-report before reload if a defect occurs. Repeated/full-track listening, rapid
-track changes, startup latency, protected denial and the broader pilot gates
-remain distinct. Prior 0.1.83 successful controls do not accept these fixes.
+Responding to the 0.1.84 acceptance request, the owner reports **Polkadot app
+0.10.0 (20)** and confirms:
+
+- native Pause remains respected after unlock; explicit Play is audible at the
+  same position;
+- Pause during Room preparation remains respected when the Room is ready;
+- Web/Desktop guests hear explicit playback during the requested short phone
+  lock (15–30 seconds);
+- the cover and Dotify logo appear in both solo and Room.
+
+This accepts the requested journeys on the reported Host build. OS/runtime
+versions are not restated; no support report or measured startup time is supplied.
+The response does not separately establish whether the signature-then-immediate-
+lock trigger occurred. It does not prove a failure's cause, repeated/full-track
+reliability, rapid track changes or all native-control behavior. Prior 0.1.83
+failures remain dated observations rather than failures on this new build.
+
+## Remaining acceptance
+
+Follow the [artwork device guide](../../../how-to/check-system-artwork.md) for
+repeated locks, rapid changes and ownership/disconnect checks; preserve a report
+before reload if a defect recurs. Startup latency, extended listening, protected
+denial, server security delivery and the broader public-pilot gates remain open.
 
 #395/#388/#85/#158 stay open. The owner-deferred real independent recovery stays
 deferred; CASH research and server/format activation retain their existing gates.

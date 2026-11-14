@@ -6,9 +6,10 @@
 based on merged/tested dev `91f25c77`. Exact-source CI, complete Web/object and
 finalized-DotNS readback pass; custody restarts once with its unchanged #426
 image/configuration and preserved histories. Explicit Pause, bounded artwork
-return recovery and About support/Host labels are delivered, with matching
-phone acceptance still open. Verify Pause through unlock/preparation and collect
-failed artwork reports before reload. Server-side security delivery, compact
+return recovery and About support/Host labels are delivered. The owner confirms
+Pause through unlock/preparation, audible resume at position, guests during the
+requested short lock and solo/Room covers on Polkadot app 0.10.0 (20). Repeated
+full-track/rapid-change acceptance remains open. Server-side security delivery, compact
 activation, startup latency and the owner-deferred real recovery keep their
 separate gates. Earlier dated checkpoints below retain their historical scope.
 

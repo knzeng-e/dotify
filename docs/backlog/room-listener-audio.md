@@ -4,9 +4,9 @@
 
 [Web/Product 0.1.84](implementation/evidence/product-0.1.84-rollout-2026-11-14.md) delivers the explicit-Pause
 correction with independent artifact/readback and unchanged custody checks.
-Native Pause through Room preparation/unlock, audible guests and broader
-continuity still require matching phone acceptance. Startup latency is not
-accepted by this delivery. Earlier entries retain their dated candidate state.
+The owner confirms Pause through preparation/unlock, audible resume at position
+and guests during the requested short phone lock on Polkadot app 0.10.0 (20).
+Broader continuity and startup latency remain open. Earlier entries retain their dated candidate state.
 
 The owner has deferred the real recovery rehearsal until after the selected
 product-readiness work. Follow [the product-first execution order](implementation/listening-and-publication-readiness.md#product-work-first):

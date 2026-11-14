@@ -87,8 +87,26 @@
   },
   "signerVariableCleared": true,
   "physicalAcceptance": {
-    "status": "not yet observed on 0.1.84",
-    "priorVersionEvidenceIsNotAcceptance": true
+    "status": "owner-confirmed scoped phone checks",
+    "reportedOn": "2026-11-14",
+    "reportedForVersion": "0.1.84",
+    "host": {
+      "name": "Polkadot app",
+      "version": "0.10.0",
+      "build": "20",
+      "osVersionRestated": false,
+      "runtimeVersionRestated": false
+    },
+    "nativePauseThenUnlock": "passed; remains paused",
+    "explicitSoloResume": "passed; audible at same position",
+    "pauseDuringRoomPreparation": "passed; remains paused when ready",
+    "webDesktopGuestsDuringRequestedShortLock": "passed; requested 15–30 seconds",
+    "soloAndRoomCoverWithDotifyLogo": "passed",
+    "signatureThenImmediateLockTriggerSeparatelyConfirmed": false,
+    "repeatedFullTrackListening": "not reported",
+    "rapidTrackChanges": "not reported",
+    "startupTiming": "not measured",
+    "supportReportIncluded": false
   },
   "automaticRenewalActivated": false,
   "compactPublicationActivated": false,

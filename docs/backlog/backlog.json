@@ -112,7 +112,7 @@
       "priority": "P1",
       "track": "Production spine",
       "phase": "Next",
-      "note": "Web/Product 0.1.84 delivers explicit Pause through preparation/unlock and listening support, with independent readback and unchanged custody checks. Matching phone Pause, guests, extended locked listening and measured startup remain open. Canonical delivery: docs/backlog/implementation/evidence/product-0.1.84-rollout-2026-11-14.md. Real recovery remains owner-deferred."
+      "note": "Web/Product 0.1.84 is delivered and the owner confirms Pause through preparation/unlock, audible resume at position and guests during the requested short lock on Polkadot app 0.10.0 (20). Measured startup, repeated/full-track continuity and broader native controls remain open. Canonical evidence: docs/backlog/implementation/evidence/product-0.1.84-rollout-2026-11-14.md. Real recovery remains owner-deferred."
     },
     {
       "id": "listening-controls-and-discovery",
@@ -122,7 +122,7 @@
       "priority": "P1",
       "track": "Production spine",
       "phase": "Next",
-      "note": "Web/Product 0.1.84 delivers bounded artwork return recovery and visible support copying; delivery is independently verified, not native-accepted. Immediate/repeated solo/Room locks, rapid changes, attribution and failed-attempt reports remain open. Canonical delivery: docs/backlog/implementation/evidence/product-0.1.84-rollout-2026-11-14.md."
+      "note": "Web/Product 0.1.84 is delivered; the owner confirms solo/Room covers and Dotify logo on Polkadot app 0.10.0 (20). Repeated locks, rapid changes, attribution/disconnect and the separately unconfirmed signature-trigger case remain open. Canonical evidence: docs/backlog/implementation/evidence/product-0.1.84-rollout-2026-11-14.md."
     },
     {
       "id": "room-galaxy-restoration",
