@@ -24,7 +24,7 @@ export type StreamingStartupPhase =
   | 'compatibility-reader'
   | 'error';
 
-export type StreamingStartupErrorKind = 'key-unavailable' | 'authentication' | 'transport';
+export type StreamingStartupErrorKind = 'key-unavailable' | 'authentication' | 'transport' | 'timeout';
 export type HostAudioTerminalReason = 'access-denied' | 'selection-failed' | 'selection-interrupted' | 'autoplay-blocked' | 'media-error' | 'muted-output';
 
 export type StreamingStartupMetric = {
@@ -106,7 +106,7 @@ const streamingPhases = new Set<StreamingStartupPhase>([
   'error'
 ]);
 const hostPhases = new Set<HostAudioStartupMetric['phase']>(['playback-intent', 'source-selected', 'metadata-ready', 'media-playing', 'error']);
-const streamingErrorKinds = new Set<StreamingStartupErrorKind>(['key-unavailable', 'authentication', 'transport']);
+const streamingErrorKinds = new Set<StreamingStartupErrorKind>(['key-unavailable', 'authentication', 'transport', 'timeout']);
 const hostTerminalReasons = new Set<HostAudioTerminalReason>([
   'access-denied',
   'selection-failed',

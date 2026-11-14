@@ -1,5 +1,13 @@
 # Publication, listening reliability and CASH — execution order
 
+## Current listening blocker, 2026-11-14
+
+The post-server-update check fails: Free solo playback buffers repeatedly and
+Room preparation does not finish. [The matched report and candidate](evidence/free-room-loading-2026-11-14.md)
+show prompt authorization and slow audio reads. Prioritize #395 transport
+continuity and a matching cold/warm phone check before advancing acceptance.
+No wallet requirement is added; the real recovery rehearsal remains deferred.
+
 ## Client delivery, 2026-11-14
 
 [Web/Product 0.1.84 is delivered](evidence/product-0.1.84-rollout-2026-11-14.md) from frozen `2f6c5cda`,

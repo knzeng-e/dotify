@@ -104,9 +104,9 @@ export function finalizationProducer(
       await pumpManagedAudio({
         ...input,
         source: observedSource,
-        appendSegment: async (index, requestSignal) => {
+        appendSegment: async (index, bytes) => {
           emit('segment-append-start', index);
-          await input.appendSegment(index, requestSignal);
+          await input.appendSegment(index, bytes);
           emit('segment-append-complete', index);
         }
       });

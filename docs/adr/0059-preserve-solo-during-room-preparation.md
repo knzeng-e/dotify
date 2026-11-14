@@ -63,7 +63,7 @@ silent capture path. A format/capture redesign requires separate evidence.
 
 The local synthetic browser regressions exercise real encrypted AAC, native
 clocks, seek, pause, cancellation and track change. Controlled wall-clock expiry
-makes the existing 30-second ciphertext cache cold; media clocks and playback
+makes the bounded ciphertext cache cold; media clocks and playback
 timers are not fast-forwarded. They do not establish acoustic output on an iPhone.
 After matching Web/Product delivery, measure repeated full-length starts, audible
 host/Web/Desktop guests, cancellation, paused handoff and lock/unlock during the

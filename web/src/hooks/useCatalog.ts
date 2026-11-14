@@ -851,7 +851,11 @@ export function useCatalog(deps: UseCatalogDeps) {
       const controllerSignal = signal ?? new AbortController().signal;
       const startedAt = performance.now();
       const metric = (detail: Omit<StreamingStartupMetric, 'audioRef' | 'cid' | 'elapsedMs' | 'timestamp'>) => {
-        if (!options?.speculative && isCurrent() && !controllerSignal.aborted)
+        if (
+          !options?.speculative &&
+          isCurrent() &&
+          (!controllerSignal.aborted || (detail.phase === 'error' && controllerSignal.reason?.name === 'TimeoutError'))
+        )
           publishStreamingStartupMetric({
             ...detail,
             attemptId: evidence?.attemptId,
@@ -971,7 +975,7 @@ export function useCatalog(deps: UseCatalogDeps) {
             track.accessMode,
             releaseIdentityFromTrack(track),
             owner,
-            () => current() && !owner.aborted,
+            current,
             undefined,
             () => {
               mediaDeadlineMs ??= nowMs() + AUDIO_STARTUP_TIMEOUT_MS;

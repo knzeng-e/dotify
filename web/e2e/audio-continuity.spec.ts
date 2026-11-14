@@ -920,9 +920,9 @@ async function managedSolo(page: Page) {
     Reflect.set(window, '__soloBeforeRoom', document.querySelector('audio'));
     if (!(await import(path)).roomCaptureNeedsCompatibility(true)) throw new Error('Managed-only capability was not installed');
   });
-  // Expire the documented 30-second ciphertext cache so the network gate
+  // Expire the documented five-minute ciphertext cache so the network gate
   // observes an actual new preparation rather than a fully warm replay.
-  await page.clock.setFixedTime(Date.now() + 60_000);
+  await page.clock.setFixedTime(Date.now() + 6 * 60_000);
   return probe;
 }
 

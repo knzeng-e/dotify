@@ -19,9 +19,11 @@ function harness(count = 20) {
   const initialize = vi.fn(async () => {
     source.readyState = 'open';
   });
-  const appendSegment = vi.fn(async (_index: number, signal: AbortSignal) => {
+  const readSegment = vi.fn(async (index: number, signal: AbortSignal) => {
     signal.throwIfAborted();
+    return Uint8Array.of(index);
   });
+  const appendSegment = vi.fn(async (_index: number, _bytes: Uint8Array) => {});
   const run = () =>
     pumpManagedAudio({
       source: source as unknown as ManagedAudioSource,
@@ -32,6 +34,7 @@ function harness(count = 20) {
       signal: controller.signal,
       bufferAheadSeconds: () => 8,
       initialize,
+      readSegment,
       appendSegment,
       demandTimeoutMs: 1000
     });
@@ -40,7 +43,7 @@ function harness(count = 20) {
     source.dispatchEvent(new Event(value ? 'startstreaming' : 'endstreaming'));
   };
   const remove = (from: number, to: number) => buffer.dispatchEvent(Object.assign(new Event('bufferedchange'), { removedRanges: ranges([[from, to]]) }));
-  return { source, buffer, audio, controller, initialize, appendSegment, run, demand, remove };
+  return { source, buffer, audio, controller, initialize, readSegment, appendSegment, run, demand, remove };
 }
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => vi.useRealTimers());
@@ -99,9 +102,9 @@ it('reopens an ended source to refill eviction and supports backwards seeks', as
 it('cancels in-flight network work on demand stop and on owner cancellation', async () => {
   const h = harness();
   let request: AbortSignal | undefined;
-  h.appendSegment.mockImplementation(
+  h.readSegment.mockImplementation(
     async (_index, signal) =>
-      new Promise<void>((_, reject) => {
+      new Promise<Uint8Array>((_, reject) => {
         request = signal;
         signal.addEventListener('abort', () => reject(signal.reason), { once: true });
       })
@@ -121,8 +124,7 @@ it('cancels in-flight network work on demand stop and on owner cancellation', as
 });
 it('keeps a completed append when managed demand stops during the buffer update', async () => {
   const h = harness();
-  h.appendSegment.mockImplementation(async (index, signal) => {
-    signal.throwIfAborted();
+  h.appendSegment.mockImplementation(async index => {
     if (index === 0) {
       // Native endstreaming may precede updateend. The adapter finishes this
       // append under the owner signal even though speculative reads stop.
@@ -143,8 +145,7 @@ it('keeps a completed append when managed demand stops during the buffer update'
 it('retries an evicted append even when demand stopped before its completion', async () => {
   const h = harness();
   let first = true;
-  h.appendSegment.mockImplementation(async (index, signal) => {
-    signal.throwIfAborted();
+  h.appendSegment.mockImplementation(async index => {
     if (index === 0 && first) {
       first = false;
       h.demand(false);
@@ -162,8 +163,7 @@ it('retries an evicted append even when demand stopped before its completion', a
 });
 it('still stops before finalizing if the owner cancels during a completed append', async () => {
   const h = harness(1);
-  h.appendSegment.mockImplementation(async (_index, signal) => {
-    signal.throwIfAborted();
+  h.appendSegment.mockImplementation(async () => {
     h.controller.abort();
   });
   const result = h.run().catch(error => error);
@@ -229,8 +229,7 @@ it('does not confuse replaced frames with evicted data or poll while idle', asyn
 it('does not mark a segment present if it was evicted while its append completed', async () => {
   const h = harness();
   let evicted = false;
-  h.appendSegment.mockImplementation(async (index, signal) => {
-    signal.throwIfAborted();
+  h.appendSegment.mockImplementation(async index => {
     if (index === 0 && !evicted) {
       evicted = true;
       h.remove(0.5, 1);
@@ -242,4 +241,93 @@ it('does not mark a segment present if it was evicted while its append completed
   expect(h.appendSegment.mock.calls.map(c => c[0])).toEqual([0, 0, 1, 2]);
   h.controller.abort();
   await result;
+});
+
+it('overlaps slow segment reads while committing in order and holding at most two', async () => {
+  const h = harness();
+  let active = 0,
+    peak = 0;
+  h.readSegment.mockImplementation(async (index, signal) => {
+    active++;
+    peak = Math.max(peak, active);
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const abort = () => {
+          clearTimeout(timer);
+          reject(signal.reason);
+        };
+        const timer = setTimeout(
+          () => {
+            signal.removeEventListener('abort', abort);
+            resolve();
+          },
+          index === 0 ? 6000 : 5000
+        );
+        signal.addEventListener('abort', abort, { once: true });
+      });
+      return Uint8Array.of(index);
+    } finally {
+      active--;
+    }
+  });
+  const result = h.run().catch(error => error);
+  h.demand(true);
+  await vi.advanceTimersByTimeAsync(5000);
+  expect(h.appendSegment).not.toHaveBeenCalled(); // segment 1 cannot overtake 0
+  await vi.advanceTimersByTimeAsync(1000);
+  expect(h.appendSegment.mock.calls.map(c => c[0])).toEqual([0, 1]);
+  await vi.advanceTimersByTimeAsync(5000);
+  expect(h.appendSegment.mock.calls.map(c => c[0])).toEqual([0, 1, 2]);
+  expect(peak).toBe(2);
+  expect(active).toBe(0);
+  h.controller.abort();
+  await result;
+});
+
+it('cancels both prefetched reads on seek and only appends the new playhead window', async () => {
+  const h = harness();
+  const requests: Array<{ index: number; signal: AbortSignal; resolve: (value: Uint8Array) => void }> = [];
+  h.readSegment.mockImplementation(
+    (index, signal) =>
+      new Promise((resolve, reject) => {
+        requests.push({ index, signal, resolve });
+        signal.addEventListener('abort', () => reject(signal.reason), { once: true });
+      })
+  );
+  const result = h.run().catch(error => error);
+  h.demand(true);
+  await tick();
+  expect(requests.map(r => r.index)).toEqual([0, 1]);
+  h.audio.currentTime = 40;
+  h.audio.dispatchEvent(new Event('seeking'));
+  await tick();
+  expect(requests.slice(0, 2).every(r => r.signal.aborted)).toBe(true);
+  expect(requests.slice(2).map(r => r.index)).toEqual([9, 10]);
+  requests[2].resolve(Uint8Array.of(9));
+  await tick();
+  expect(h.appendSegment.mock.calls.map(c => c[0])).toEqual([9]);
+  h.controller.abort();
+  await result;
+  expect(requests.every(r => r.signal.aborted)).toBe(true);
+});
+
+it('does not fetch again after a prefetched authentication failure and aborts its sibling', async () => {
+  const h = harness();
+  const failure = new Error('Invalid authentication');
+  const signals: AbortSignal[] = [];
+  h.readSegment.mockImplementation(async (index, signal) => {
+    signals.push(signal);
+    if (index === 0) throw failure;
+    return new Promise((_resolve, reject) => signal.addEventListener('abort', () => reject(signal.reason), { once: true }));
+  });
+  const result = h.run().catch(error => error);
+  h.demand(true);
+  await tick();
+  expect(await result).toBe(failure);
+  expect(h.appendSegment).not.toHaveBeenCalled();
+  expect(signals).toHaveLength(2);
+  expect(signals.every(signal => signal.aborted)).toBe(true);
+  h.demand(true);
+  await tick();
+  expect(h.readSegment).toHaveBeenCalledTimes(2);
 });

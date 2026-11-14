@@ -31,7 +31,8 @@ type ReaderMetric = Pick<
 type TransportObservation = Pick<ReaderMetric, 'gatewayUrl' | 'gatewayRecovered' | 'fromCache'>;
 const api = (import.meta.env.VITE_DOTIFY_API_URL as string | undefined)?.replace(/\/$/, '').replace(/\/api$/, '');
 const MIME = STREAMING_AAC_MIME;
-// Small, short-lived ciphertext cache shared by intent and actual playback.
+// Bounded five-minute ciphertext cache shared by solo and Room preparation.
+// 128 entries can retain a 4-minute 96kb/s rendition within the same 4MiB cap.
 // No key, clear audio, archival master or mutable response is retained here.
 const warmObjects = new Map<string, { bytes: Uint8Array; until: number }>();
 let warmBytes = 0;
@@ -39,9 +40,9 @@ function storeWarmObject(key: string, bytes: Uint8Array) {
   const previous = warmObjects.get(key);
   if (previous) warmBytes -= previous.bytes.length;
   warmObjects.delete(key);
-  warmObjects.set(key, { bytes, until: Date.now() + 30_000 });
+  warmObjects.set(key, { bytes, until: Date.now() + 5 * 60_000 });
   warmBytes += bytes.length;
-  while (warmBytes > 4 * 1024 * 1024 || warmObjects.size > 16) {
+  while (warmBytes > 4 * 1024 * 1024 || warmObjects.size > 128) {
     const oldest = warmObjects.keys().next().value!;
     warmBytes -= warmObjects.get(oldest)!.bytes.length;
     warmObjects.delete(oldest);
@@ -50,6 +51,7 @@ function storeWarmObject(key: string, bytes: Uint8Array) {
 
 export type StreamingTransportOptions = {
   layout: StreamingLayout;
+  priority?: 'playback' | 'preparation';
   compactRead?: (path: string, maxBytes: number, signal: AbortSignal) => Promise<Uint8Array | null>;
 };
 export async function fetchStreamingObject(
@@ -113,7 +115,7 @@ export async function fetchStreamingObject(
   for (let attempt = 0; attempt < (bulletin ? 1 : 2); attempt++)
     for (const [index, url] of urls.entries()) {
       signal.throwIfAborted();
-      const releaseRelay = api && url.startsWith(`${api}/api/media/`) ? await acquireMediaRelaySlot(signal) : undefined;
+      const releaseRelay = api && url.startsWith(`${api}/api/media/`) ? await acquireMediaRelaySlot(signal, transport.priority) : undefined;
       const controller = new AbortController();
       const deadline = setTimeout(() => controller.abort(), !bulletin && import.meta.env.VITE_DOTIFY_MEDIA_EDGE_URL && index === 0 ? 3000 : 12_000);
       try {
@@ -206,16 +208,20 @@ export async function createStreamingPlayback(input: {
   const reference = input.audioRef ? streamingReference(input.audioRef) : undefined;
   if (input.audioRef && (!reference || reference.root !== input.cid || reference.keyVersion !== input.scope.keyVersion))
     throw new Error('Streaming reference identity mismatch');
-  const transport: StreamingTransportOptions = { layout: reference?.layout ?? 'unixfs-files-v1' };
+  const transport: StreamingTransportOptions = { layout: reference?.layout ?? 'unixfs-files-v1', priority: input.forRoomCapture ? 'preparation' : 'playback' };
   const timings = createStreamingReadTimings();
   const emit = (metric: ReaderMetric) => {
-    if (!input.signal.aborted) input.onMetric?.(metric);
+    if (!input.signal.aborted || (metric.phase === 'error' && input.signal.reason?.name === 'TimeoutError')) input.onMetric?.(metric);
   };
   const reportedErrors = new Set<unknown>();
   const failure = (error: unknown, authentication = false) => {
     if (reportedErrors.has(error)) return;
     reportedErrors.add(error);
-    emit({ phase: 'error', errorKind: authentication ? 'authentication' : 'transport', readTimings: timings.snapshot() });
+    emit({
+      phase: 'error',
+      errorKind: input.signal.reason?.name === 'TimeoutError' ? 'timeout' : authentication ? 'authentication' : 'transport',
+      readTimings: timings.snapshot()
+    });
   };
   const get = async (cid: string, path: string, maxBytes: number, signal: AbortSignal, observe?: (metric: TransportObservation) => void) => {
     let observation: TransportObservation = {};
@@ -331,9 +337,8 @@ export async function createStreamingPlayback(input: {
             signal.throwIfAborted();
             await append(buffer, init, input.signal);
           },
-          appendSegment: async (index, signal) => {
-            const bytes = await read(rendition.segments[index], signal);
-            signal.throwIfAborted();
+          readSegment: (index, signal) => read(rendition.segments[index], signal),
+          appendSegment: async (index, bytes) => {
             emit({ phase: 'rendition-selected', bitrateKbps: 96, segmentIndex: index });
             // A seek/demand change may cancel downloads, never interrupt an
             // already-started SourceBuffer update and race the next append.

@@ -4,7 +4,7 @@ const SEGMENT_SECONDS = 4; // W32's fixed nominal AAC fragment interval.
 
 /** One demand-driven producer for a managed source. A monotonic download cursor
  * cannot recover browser-evicted media or a backwards seek. Keep only segment
- * presence, never a clear-media cache, and invalidate on native removed ranges.
+ * presence and at most two transient authenticated segments; invalidate on native removed ranges.
  * The caller authenticates every read and serializes every append.
  */
 export async function pumpManagedAudio(input: {
@@ -18,7 +18,8 @@ export async function pumpManagedAudio(input: {
   initialize: (signal: AbortSignal) => Promise<void>;
   // Resolve after the authenticated append commits. Demand can cancel its read,
   // but an already-started buffer update must finish under the owner signal.
-  appendSegment: (index: number, signal: AbortSignal) => Promise<void>;
+  readSegment: (index: number, signal: AbortSignal) => Promise<Uint8Array>;
+  appendSegment: (index: number, bytes: Uint8Array) => Promise<void>;
   demandTimeoutMs?: number;
 }) {
   const { source, buffer, audio, signal } = input;
@@ -30,12 +31,15 @@ export async function pumpManagedAudio(input: {
   let revision = 0;
   let closed = false;
   let readController: AbortController | null = null;
+  type Prepared = { ok: true; bytes: Uint8Array } | { ok: false; error: unknown };
+  const prepared = new Map<number, Promise<Prepared>>();
   const notify = () => {
     revision++;
     wake?.();
   };
   const pauseRead = () => {
     readController?.abort();
+    prepared.clear();
     notify();
   };
   const sourceClosed = () => {
@@ -121,7 +125,9 @@ export async function pumpManagedAudio(input: {
         await wait(seen);
         continue;
       }
-      readController = new AbortController();
+      // An eviction can move the next required index behind the small window.
+      if (!prepared.has(next) && prepared.size) pauseRead();
+      if (!readController || readController.signal.aborted) readController = new AbortController();
       const requestSignal = AbortSignal.any([signal, readController.signal]);
       try {
         // Re-appending verified init reopens an ended source after eviction or a
@@ -138,12 +144,34 @@ export async function pumpManagedAudio(input: {
           await wait(seen);
           continue;
         }
+        // Fetch the next segment while the current one downloads/appends. A
+        // serial reader cannot sustain 4s fragments over a 5–7s object latency.
+        // Never start outside native demand/the playhead window, or hold more
+        // than two segments. All promises handle rejection immediately.
+        for (let index = next; index <= last && prepared.size < 2; index++) {
+          if (present.has(index) || prepared.has(index)) continue;
+          prepared.set(
+            index,
+            Promise.resolve()
+              .then(() => {
+                requestSignal.throwIfAborted();
+                return input.readSegment(index, requestSignal);
+              })
+              .then<Prepared>(bytes => ({ ok: true, bytes }))
+              .catch<Prepared>(error => ({ ok: false, error }))
+          );
+        }
         const now = performance.now();
         const recent = refills.get(next);
         const count = recent && now - recent.start < 15_000 ? recent.count + 1 : 1;
         if (count > 4) throw new Error('The audio player could not retain its buffer. Please try again.');
         const eviction = evictions.get(next) ?? 0;
-        await input.appendSegment(next, requestSignal);
+        const outcome = await prepared.get(next);
+        requestSignal.throwIfAborted();
+        if (!outcome) throw new Error('The audio segment was not prepared.');
+        if (!outcome.ok) throw outcome.error;
+        await input.appendSegment(next, outcome.bytes);
+        prepared.delete(next);
         // A successful append has committed under the owner's signal. Native
         // endstreaming can cancel speculative reads before updateend without
         // undoing that append; forgetting it would append the same frames again
@@ -158,13 +186,12 @@ export async function pumpManagedAudio(input: {
         // Demand stop/seek cancels speculative work; authentication/transport
         // errors are terminal and must not become a Blob or different-key retry.
         if (!readController.signal.aborted) throw error;
-      } finally {
-        readController = null;
       }
     }
     signal.throwIfAborted();
   } finally {
     readController?.abort();
+    prepared.clear();
     wake?.();
     for (const [target, event, listener] of listeners) target.removeEventListener(event, listener);
   }

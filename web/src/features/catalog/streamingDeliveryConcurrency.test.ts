@@ -152,3 +152,46 @@ it('releases an active cancelled body so a later selection can use the relay', a
   await expect(next).resolves.toEqual(Uint8Array.of(1, 2, 3));
   expect(fetcher).toHaveBeenCalledTimes(3);
 });
+
+it('reuses the ciphertext of a short rendition after a Room retry without raising the byte budget', async () => {
+  vi.useFakeTimers();
+  const { fetchStreamingObject } = await import('./streamingPlayback');
+  const fetcher = vi.fn(async () => new Response(new Uint8Array(48_000)));
+  vi.stubGlobal('fetch', fetcher);
+  const read = (index: number) => fetchStreamingObject(cid, `96/segment-${String(index).padStart(3, '0')}.bin`, 48_000, new AbortController().signal);
+  for (let i = 0; i < 72; i++) await read(i);
+  await vi.advanceTimersByTimeAsync(61_000);
+  for (let i = 0; i < 72; i++) await read(i);
+  expect(fetcher).toHaveBeenCalledTimes(72);
+  // The existing 4MiB limit wins even though the entry allowance is larger.
+  for (let i = 72; i < 90; i++) await read(i);
+  await read(0);
+  expect(fetcher).toHaveBeenCalledTimes(91);
+  await vi.advanceTimersByTimeAsync(5 * 60_000);
+  await read(89);
+  expect(fetcher).toHaveBeenCalledTimes(92);
+});
+
+it('serves waiting solo reads before Room read-ahead without interrupting active bodies', async () => {
+  const { acquireMediaRelaySlot } = await import('./mediaRelaySlots');
+  const signal = new AbortController().signal;
+  const first = await acquireMediaRelaySlot(signal, 'preparation');
+  const second = await acquireMediaRelaySlot(signal, 'preparation');
+  const order: string[] = [];
+  const background = acquireMediaRelaySlot(signal, 'preparation').then(release => {
+    order.push('room');
+    return release;
+  });
+  const foreground = acquireMediaRelaySlot(signal, 'playback').then(release => {
+    order.push('solo');
+    return release;
+  });
+  first();
+  const foregroundRelease = await foreground;
+  expect(order).toEqual(['solo']);
+  foregroundRelease();
+  const backgroundRelease = await background;
+  expect(order).toEqual(['solo', 'room']);
+  backgroundRelease();
+  second();
+});

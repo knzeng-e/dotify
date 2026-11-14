@@ -2,18 +2,19 @@
 // client's read-ahead/prefetch work from exhausting it by itself. A slot covers
 // the complete response body, not just its headers; queued work is cancellable.
 const MAX_ACTIVE_RELAY_READS = 2;
-const waiting: Array<() => void> = [];
+type Priority = 'playback' | 'preparation';
+const waiting: Array<{ start: () => void; priority: Priority }> = [];
 let active = 0;
 
 function drain() {
-  while (active < MAX_ACTIVE_RELAY_READS && waiting.length) waiting.shift()!();
+  while (active < MAX_ACTIVE_RELAY_READS && waiting.length) waiting.shift()!.start();
 }
 
-export function acquireMediaRelaySlot(signal: AbortSignal): Promise<() => void> {
+export function acquireMediaRelaySlot(signal: AbortSignal, priority: Priority = 'playback'): Promise<() => void> {
   signal.throwIfAborted();
   return new Promise((resolve, reject) => {
     const abort = () => {
-      const index = waiting.indexOf(start);
+      const index = waiting.findIndex(item => item.start === start);
       if (index >= 0) waiting.splice(index, 1);
       reject(signal.reason);
     };
@@ -32,7 +33,11 @@ export function acquireMediaRelaySlot(signal: AbortSignal): Promise<() => void> 
         drain();
       });
     };
-    waiting.push(start);
+    // Audible playback must not queue behind a full-file Room preparation.
+    // Active bodies still finish normally; priority never increases capacity.
+    const background = waiting.findIndex(item => item.priority === 'preparation');
+    if (priority === 'playback' && background >= 0) waiting.splice(background, 0, { start, priority });
+    else waiting.push({ start, priority });
     signal.addEventListener('abort', abort, { once: true });
     drain();
   });

@@ -1,3 +1,4 @@
+import { roomPreparationFailureCopy } from '../features/player/roomPreparationFailure';
 import { isManagedAudioUrl } from '../features/catalog/streamingMediaSource';
 import { useRoomDiscovery } from '../features/rooms/useRoomDiscovery';
 import { useRoomViewport } from '../features/rooms/useRoomViewport';
@@ -208,8 +209,7 @@ export function ListenerShell() {
         if (!creationSignal.aborted && !(error instanceof Error && error.name === 'AbortError'))
           pushNotice({
             tone: 'info',
-            title: 'Room audio is not ready',
-            message: 'The room was not opened. Check your listening access or try again when the connection is ready.'
+            ...roomPreparationFailureCopy(error)
           });
         if (!creationSignal.aborted) session.cancelRoomCreation();
         return;
