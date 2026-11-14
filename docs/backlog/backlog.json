@@ -551,7 +551,7 @@
       "priority": "P0",
       "track": "Production spine",
       "phase": "Next",
-      "note": "Supporting acceptance after the selected #407 → #395 → #388 sequence; delivered code is retained and the issue stays open. Activated implementation sequence for the reversible pilot release package, Product/Web evidence gate, and consented first-community evaluation record."
+      "note": "Public-pilot acceptance after the selected publication/Room/artwork/CASH sequence. The selected execution plan owns current delivery and observed gaps; earlier W13 version checkpoints are historical. Real independent recovery remains owner-deferred before the public pilot; delivered code does not close access, value-flow, conservation, rollback or consented evaluation gates."
     },
     {
       "id": "W14",

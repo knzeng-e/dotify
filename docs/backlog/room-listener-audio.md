@@ -41,6 +41,16 @@ deployment or physical background acceptance is claimed. #407 remains the releas
 gate; #395 stays Next / In Progress pending comparable real-device reports and
 a measured correction. See the [commit-bound local evidence](implementation/evidence/room-startup-diagnostics-2026-11-12.md).
 
+## Native capture test correction, 2026-11-13
+
+The [test-only follow-up](implementation/evidence/native-capture-fixture-2026-11-13.md)
+aligns the synthetic capture tone with the encoder's 48-kHz sample rate and awaits
+autoplay before the setup Pause. Independent loopback controls narrow the earlier
+WebKit zero-RMS concern to a local fixture/interoperability limitation. Playback
+code, output thresholds and frequency assertions stay unchanged. This does not
+diagnose physical phone silence or artwork failures; matching delivery and actual
+native/background listening remain acceptance gates.
+
 ## Current remaining scope, 2026-11-09
 
 Guest sound is restored on the owner-tested path. #395 remains Next for
