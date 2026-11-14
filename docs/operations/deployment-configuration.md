@@ -57,8 +57,9 @@ remain open. No musical policy, key, compact or CASH activation occurs.
 At the [0.1.86 client checkpoint](../backlog/implementation/evidence/product-0.1.86-rollout-2026-11-14.md),
 Web/Product deliver queued Room ciphertext reuse from `61f4a452`. Complete
 artifact/Web/finalized-DotNS readback and same-image custody restart/history checks
-pass; server images/settings stay `91f25c77`. Matching phone startup acceptance
-remains open. No musical allowance, key, compact or CASH activation changes.
+pass; server images/settings stay `91f25c77`. One matching phone first-opening/
+Pause/guest/short-lock check passes; slow/repeated startup remains open.
+No musical allowance, key, compact or CASH activation changes.
 
 Do not infer an active key, remaining publication allowance, available quota or
 permission to reuse an admission from this page. Use the applicable private

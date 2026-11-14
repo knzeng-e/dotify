@@ -81,5 +81,69 @@
   "automaticRenewalActivated": false,
   "compactPublicationActivated": false,
   "serverImagesReplaced": false,
-  "realRecoveryStillDeferred": true
+  "realRecoveryStillDeferred": true,
+  "physicalAcceptanceFollowup": {
+    "schema": "dotify.phone-listening-observation.v1",
+    "source": "61f4a45214b261adcf2696c12ea30c021294ab7e",
+    "reportObservedAt": "2026-11-14T22:31:51.505Z",
+    "hostSoftware": {
+      "platform": "Ios",
+      "name": "Polkadot App",
+      "version": "0.10.0 (20)"
+    },
+    "provenance": "Owner feedback and pasted matching support report in the same reply to the one-opening protocol. Track/wallet context comes from that protocol, not from redacted diagnostics.",
+    "ownerReported": {
+      "roomReadyApproxSeconds": 29,
+      "pauseRespected": true,
+      "guestAudioAndShortLockOk": true,
+      "requestedProtocol": "Existing Adang Fobe, no connected wallet, one Room opening, explicit Play at updated Web/Desktop guests."
+    },
+    "streaming": {
+      "roomPreparationAttempt": 2,
+      "readAttempt": 1,
+      "authorizationMs": 169,
+      "manifestReadyMs": 170,
+      "compatibilityDownloadedMs": 33142,
+      "compatibilityReadyMs": 33153,
+      "localAssemblyMs": 11,
+      "readTimings": {
+        "objectsRead": 73,
+        "objectsDecrypted": 73,
+        "encryptedBytes": 3580693,
+        "cachedObjects": 16,
+        "hostObjects": 0,
+        "httpObjects": 57,
+        "recoveredObjects": 0,
+        "readWorkMs": 100431,
+        "decryptWorkMs": 39,
+        "maxReadMs": 11547
+      },
+      "handoffSelectionAttempt": 3,
+      "preparedSourceReuseWithReauthorizationMs": 176,
+      "nativeMetadataAfterSourceMs": 159
+    },
+    "pauseEvidence": {
+      "replacementReadyPaused": true,
+      "heldUntilSubsequentExplicitPlaybackIntent": true
+    },
+    "shortLockEvidence": {
+      "visibilityHiddenMs": 34950,
+      "mediaClockAdvanceSeconds": 34.9506822154016,
+      "audibilitySource": "Owner feedback; output clocks alone are not acoustic proof."
+    },
+    "artwork": {
+      "composedMs": 23,
+      "metadataPublishedMs": 27,
+      "nativeLockScreenAppearance": "not established by this feedback; metadata timing only"
+    },
+    "limitations": [
+      "One successful first Room opening is not repeated/full-track acceptance.",
+      "Human approximate timer and instrumented preparation have different boundaries; preserve both.",
+      "Already cached manifest/init/14 segments; Host/upstream/network cache state otherwise unknown. Not a cold benchmark.",
+      "readWorkMs is overlapping aggregate work and cannot be added to wall time. maxReadMs includes admission, retry/body waiting and does not isolate network latency.",
+      "Attempt 3 is the authorized prepared-source handoff, not a second Room download or user retry.",
+      "No controlled before/after speedup or cause of the earlier 99% failure is established."
+    ],
+    "nextScope": "Reduce remaining complete-rendition read/transport/scheduling latency; preserve access, bounded concurrency/cache, media limits and deadlines. Collect comparable repeated starts before promotion."
+  }
 }

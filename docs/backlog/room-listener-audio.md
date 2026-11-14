@@ -6,8 +6,10 @@
 delivers #471 from frozen `61f4a452`, based on tested dev `fd56e16d`.
 Exact-source CI, complete application/Web/retention/DotNS checks and unchanged
 custody restart/history pass. Waiting Room reads can reuse ciphertext completed
-by solo. Matching first-attempt phone startup and audible guest acceptance remain
-open; this is not proof of the cause or resolution of the earlier 99% timeout.
+by solo. The owner confirms one first opening (~29 s), respected Pause and audible
+guests/short-lock behavior on iPhone 0.10.0 (20). The matching trace measures
+33.153 s, with 16 cached / 57 HTTP objects; read work dominates. Repeated startup
+and latency acceptance remain open; the earlier 99% failure is not diagnosed.
 #395 stays open. Earlier checkpoints retain their historical scope.
 
 ## Queued-read reuse candidate, 2026-11-14

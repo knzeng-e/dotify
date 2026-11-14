@@ -4,9 +4,12 @@
 
 [Web/Product 0.1.86 is delivered](evidence/product-0.1.86-rollout-2026-11-14.md)
 from frozen `61f4a452`, based on tested dev `fd56e16d` after #471. Independent
-delivery and same-image custody/history checks pass. Next is the matching
-first-attempt iPhone Room check with its own report and audible Web/Desktop guests;
-the earlier timeout's cause and physical latency improvement remain unproven.
+delivery and same-image custody/history checks pass. The owner confirms a first
+Room opening (~29 s), Pause and guest/short-lock sound. Its matching trace measures
+33.153 s with 16 cached / 57 HTTP objects: complete media reads dominate, not
+authorization or assembly. Next: reduce remaining bounded read-path latency and
+collect comparable starts. This single partly cached result is not a controlled
+speedup or a diagnosis of the earlier timeout.
 Servers stay `91f25c77`; compact/CASH and owner-deferred real recovery keep their
 separate gates. Older checkpoints below describe their original state.
 

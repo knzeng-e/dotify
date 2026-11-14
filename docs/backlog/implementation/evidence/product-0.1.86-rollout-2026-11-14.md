@@ -1,6 +1,6 @@
 # Web/Product 0.1.86 delivery — 14 November 2026
 
-**Published and independently verified; matching phone startup acceptance remains open.**
+**Published and independently verified; one matching phone check passes, startup latency remains open.**
 Web and `dotify-test01.dot` serve frozen `61f4a45214b261adcf2696c12ea30c021294ab7e`, based on tested dev
 `fd56e16dae463b31b2ef54eef851e2b2399b51f9` after #471. The only tracked packaging change is appVersion
 `[0,1,86]`. Refs #395. [Structured public evidence](product-0.1.86-rollout-2026-11-14.json)
@@ -82,16 +82,58 @@ No server image, key, admission, musical budget, access policy or Host/SDK setti
 changes. Compact/CASH activation, automatic renewal and the owner's deferred real
 independent recovery remain outside this delivery. Existing artist assets stay in place.
 
-## Next acceptance
+## Matching phone follow-up
 
-On the iPhone, use an existing Free track without a wallet, hear solo playback,
-then open one Room and record preparation time, explicit Pause and audible guests
-through a short phone lock. Copy the corresponding local support report before
-retry or reload, whether successful or failed. A later session's report cannot
-explain an earlier failure. Preserve first-attempt and warm-retry distinctions;
-native/upstream cache state may be unknown and must not be labeled cold by assumption.
+The owner reports a first Room opening ready in approximately **29 seconds**, with
+Pause respected and audible guests during the requested short phone lock, on
+Polkadot app **0.10.0 (20)**. The accompanying report identifies this exact
+`61f4a452` build and was observed at `2026-11-14T22:31:51.505Z`. The requested
+context is existing **Adang Fobe** without a connected wallet; those contextual
+names come from the protocol/feedback, not from redacted diagnostic identities.
 
-#395 remains open for comparable starts without retry and audible continuity.
-The [measurement guide](../../../how-to/measure-room-startup.md) defines the broader
-repeated/full-track gate. Artwork, publication latency, access/value-flow and
-public-pilot gates stay separate; real independent recovery remains owner-deferred.
+The matching trace records one Room preparation (attempt 2, read attempt 1):
+
+| Observation                                 | Value and scope                                           |
+| ------------------------------------------- | --------------------------------------------------------- |
+| Owner's approximate opening time            | 29 s; keep separate from instrumentation                  |
+| Authorization                               | 169 ms                                                    |
+| Authenticated manifest ready                | 170 ms                                                    |
+| Complete rendition downloaded/authenticated | 33,142 ms                                                 |
+| Prepared compatibility source ready         | 33,153 ms; local assembly adds 11 ms                      |
+| Objects / encrypted bytes                   | 73 authenticated objects / 3,580,693 bytes                |
+| Read sources                                | 16 cached, 57 HTTP, zero native Host or recovered objects |
+| Completed read work                         | 100,431 ms aggregate, overlapping work; not wall time     |
+| Longest completed read                      | 11,547 ms, including admission/retry/body waiting         |
+| Authentication work                         | 39 ms aggregate                                           |
+
+The human timer and instrumented preparation boundaries differ; neither replaces
+the other. Complete object reading dominates this captured preparation, while
+access and local assembly are short. The trace cannot isolate pure network
+latency from relay scheduling or internal retry/body waits. It does not establish
+the exact cause of each slow read.
+
+Attempt 3 reauthorizes and reuses that completed source in 176 ms; this is the
+normal handoff, not another Room opening or a user retry. Native metadata follows
+source selection by 159 ms. The replacement stays paused at the existing position
+until the subsequent playback intent, consistent with the owner's Pause result.
+A hidden-to-visible interval lasts 34.95 s with approximately the same media-clock
+advance. The owner confirms audible guest/lock behavior; clocks alone are not
+acoustic proof. Artwork metadata is published as composed PNG in 27 ms, which
+does not establish native lock-screen image rendering in this feedback.
+
+This is one successful matched first opening, **not a cold benchmark or a
+controlled before/after speedup**. Manifest, init and the first fourteen segments
+are already cached; other Host/upstream/network conditions are unknown. It neither
+explains the earlier 0.1.85 99% failure nor proves repeated/full-track readiness.
+The original delivery-time `physicalAcceptance` JSON snapshot stays unchanged;
+`physicalAcceptanceFollowup` records this later observation separately.
+
+## Remaining work
+
+#395 stays open. Reduce complete-rendition read/transport/scheduling latency next,
+while preserving the existing access, memory/concurrency/cache and deadline
+boundaries. Collect comparable repeated starts, including failures, before
+promoting latency acceptance; the [measurement guide](../../../how-to/measure-room-startup.md)
+defines that gate. Do not lengthen the timeout to relabel a slow start as fixed.
+Artwork, publication latency, access/value-flow and public-pilot gates remain
+separate; real independent recovery stays owner-deferred.

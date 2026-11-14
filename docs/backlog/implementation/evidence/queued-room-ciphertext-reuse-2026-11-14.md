@@ -7,8 +7,9 @@ initial Room startup open. Its later 2.14-second report belongs to another
 session; this candidate does not establish the cause of the reported 99% timeout.
 
 Delivery follow-up: [Web/Product 0.1.86](product-0.1.86-rollout-2026-11-14.md)
-now publishes this correction with independent readback. Matching phone startup
-acceptance remains open; the local measurements below keep their original scope.
+now publishes this correction with independent readback and one matched phone
+opening/Pause/guest/short-lock check. Slow/repeated startup remains open; the local
+measurements below keep their original scope.
 
 ## Reproduced waste and correction
 
