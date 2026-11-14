@@ -97,7 +97,7 @@
     "pauseRespectedReported": true,
     "guestAndShortLockAudioReported": true,
     "guestAndLockScope": "After successful retry; requested Web/Desktop and 15\u201330 s lock, separate durations/results not restated",
-    "supportReport": "received; records successful preparation, not the reported one-minute timeout; session association awaiting clarification",
+    "supportReport": "received from another listen/session, confirmed by the owner; does not record the reported first failure",
     "initialNoRetryStartupAccepted": false,
     "cacheReuseExplanation": "consistent with bounded ciphertext reuse; exact phase/cause not established without the matched report",
     "broaderRepeatedFullTrackAcceptance": "open",
@@ -127,7 +127,8 @@
       "timeoutRecorded": false,
       "reportedFirstFailureMatched": false,
       "cacheConditions": "Partially cached successful trace; not a cold benchmark",
-      "transportObservation": "28 objects carry the native Bulletin transport label; the trace does not identify the selected release"
+      "transportObservation": "28 objects carry the native Bulletin transport label; the trace does not identify the selected release",
+      "sessionAssociation": "owner confirms another listen/session after the reported failure"
     }
   },
   "automaticRenewalActivated": false,

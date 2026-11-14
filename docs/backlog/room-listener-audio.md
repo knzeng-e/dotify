@@ -10,7 +10,8 @@ reporting are deployed. On Polkadot app 0.10.0 (20), the owner reports continuou
 solo, but the first Room opening times out after about one minute at displayed
 99%. A quick retry succeeds with Pause and guest/short-lock audio OK. Keep the
 first failure separate from retry continuity. The received report completes in
-2.14 seconds with no timeout; its association with the failed session is unclear.
+2.14 seconds with no timeout; the owner confirms it is from another listen/session,
+so it does not explain the first failure or measure its immediate retry.
 Next: identify and reduce the remaining preparation bottleneck. #395 stays open. Earlier entries retain their dated scope.
 
 ## Free-track loading failure, 2026-11-14

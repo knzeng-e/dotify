@@ -9,8 +9,10 @@ The owner reports continuous solo and, after a successful Room retry, respected
 Pause plus audible guests during the requested short lock on Polkadot app
 0.10.0 (20). The first opening still times out at about one minute / displayed
 99%. The received 0.1.85 report shows a successful 2.14-second preparation,
-with no timeout; its session association is being clarified. Next: match the failed
-first attempt before choosing the remaining preparation correction; keep #395 open. Cache/network conditions are unknown, so this is not
+with no timeout; the owner confirms it comes from another listen/session. It does
+not measure the failed attempt or its immediate retry. Keep #395 open and capture
+a failure report before retry/reload if it recurs, without requesting a repeat
+just to replace this missing trace. Cache/network conditions are unknown, so this is not
 cold-start acceptance or a controlled speedup. The server delivery remains `91f25c77`; compact,
 CASH and the owner-deferred real recovery keep their separate gates. Earlier
 checkpoints below retain their historical scope.

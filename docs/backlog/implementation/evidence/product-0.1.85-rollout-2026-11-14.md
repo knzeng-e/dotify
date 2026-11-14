@@ -105,7 +105,7 @@ prove that every object, MP4 assembly and native readiness has finished. Without
 a matched failure trace, the 99% observation does not identify a specific slow
 object or prove which final preparation phase missed the deadline.
 
-### Received report: successful preparation, failure association unresolved
+### Received report: successful preparation from another session
 
 The subsequently supplied report identifies the exact `02ae5b31` build and iOS
 Polkadot App 0.10.0 (20), observed at `2026-11-14T15:54:53.053Z`. Its Room
@@ -121,10 +121,13 @@ The report also records PNG metadata publication at 53 ms and successful native
 playing events; these are not acoustic proof.
 
 There is **no timeout or minute-long Room preparation in this trace**. The owner
-has been asked whether it belongs to the reported failure session or a subsequent
-listen. Keep the directly reported failure open and the successful trace separate:
-this report cannot identify the slow final object, establish the cause of the
-99% failure, or turn a partially cached preparation into cold-start acceptance.
+confirms it comes from **another listen/session afterwards**. It therefore does
+not measure the first failed attempt or its immediate retry. Keep the directly
+reported failure open and this successful trace separate: it cannot identify
+the slow final object, establish the cause of the 99% failure, or turn a partially
+cached preparation into cold-start acceptance. No reproduction is requested just
+to replace the missing trace; if the failure recurs, copy its report before retry
+or reload.
 
 ## Remaining gate and next task
 
