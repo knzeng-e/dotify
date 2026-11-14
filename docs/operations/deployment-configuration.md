@@ -38,6 +38,13 @@ checks on Polkadot app 0.10.0 (20); extended listening, server-side security fix
 and compact activation remain separate gates. No image, key or musical policy
 changes in this application-only delivery.
 
+At the later [server checkpoint on 14 November](../backlog/implementation/evidence/service-security-rollout-2026-11-14.md),
+the API pair, custody, encoder and signaling run the reviewed source `91f25c77`
+on Node 22.23.5. Registry/image, health and retained-state checks pass. Existing
+settings and keys are preserved; Web/Product remain 0.1.84. Listening/Room
+acceptance after this server change remains open. No compact/CASH activation,
+musical upload or chain operation was performed.
+
 Do not infer an active key, remaining publication allowance, available quota or
 permission to reuse an admission from this page. Use the applicable private
 review package and component checks; preserve existing receipts and history.
@@ -80,10 +87,10 @@ a secret override can shadow a non-secret setting.
 
 The [HTTP request limits](../reference/request-limits.md) and
 [Room negotiation limits](../reference/socket-events.md#negotiation-limits)
-are references for the security candidate. Their presence in source does not
-mean the running service has that build. The [#432 validator candidate](../reference/api-schema-compatibility.md)
-requires historical-state compatibility and the existing shared-state/publication
-checks before delivery; no journal reset or admission change is part of it.
+are implemented by the server build recorded above. Source alone is not proof
+of any later hosted state. The [#432 validator reference](../reference/api-schema-compatibility.md)
+requires coherent retained state and shared-state/publication checks for future
+deliveries; no journal reset or admission change is implied.
 Development-tool advisories
 are tracked in [#433](../backlog/tooling-security-migration.md).
 

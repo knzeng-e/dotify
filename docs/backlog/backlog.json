@@ -42,7 +42,7 @@
       "priority": "P1",
       "track": "Production spine",
       "phase": "Next",
-      "note": "Same-major Node22 security refresh for API, isolated encoder and signaling; pin the reviewed Bookworm image, validate crypto/HTTP/AAC/non-root recovery, and keep real-key capture and service delivery separate. Complements #432/#433; no live inspection, maintenance, key export or chain operation is authorized. #407 remains Now/In Progress."
+      "note": "Node 22.23.5 server refresh delivered on 2026-11-14 from source 91f25c77 after exact-image API/signaling/AAC checks. Five hosted machines pass identity/health checks; keys, configuration and protected state are preserved. Post-delivery physical listening and hosted load remain open. No compact activation or recovery rehearsal; #407 retains its gates."
     },
     {
       "id": "tooling-security-migration",
@@ -62,7 +62,7 @@
       "priority": "P1",
       "track": "Production spine",
       "phase": "Next",
-      "note": "Migrate API schemas from affected Zod3 to patched v4.6.6+ with canonical profile/admission/journal and route error compatibility. The #431 raw JSON budget mitigates the demonstrated network amplification path but does not remove the advisory. No force update, signer downgrade, state/key migration or service rollout is authorized by this record; public-pilot security gate."
+      "note": "Real Zod 4.6.7 validators delivered with the combined server image on 2026-11-14; exact-image tests and retained metadata/nonce/archive comparisons pass. No state/key migration, journal reset or admission change. Physical listening after the server update remains open; see dated service-security evidence."
     },
     {
       "id": "listening-security-hardening",
@@ -72,7 +72,7 @@
       "priority": "P1",
       "track": "Production spine",
       "phase": "Now",
-      "note": "Bounded owner-requested security review candidate: close key/session cancellation and stale-verdict races; reject malformed HTTP/socket input before Room mutation; bound per-socket negotiation and browser pending ICE. Preserve artist-controlled access, free listening and anonymous guests without keys. Separate from #407 compact-format work; no deployment, key/admission/budget change or production operation. Physical Host/load/deployment acceptance remains separate."
+      "note": "Session/grant and Room-input hardening delivered in the combined server update on 2026-11-14. Existing artist access, free listening and anonymous guests remain unchanged. No keys/admissions/budgets changed or chain operations performed. Post-delivery physical Host and sustained-load acceptance remain open."
     },
     {
       "id": "bulletin-publication-admission",
