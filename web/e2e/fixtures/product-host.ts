@@ -8,6 +8,10 @@ declare global {
   interface Window {
     identityFixture: {
       requests: number;
+      accountRequests: number;
+      hostInfoRequests: number;
+      setHostInfoDelay: (delayed: boolean) => void;
+      resolveHostInfo: () => void;
       locationRequests: number;
       locationGranted: boolean;
       setProfile: (name: string, key?: number, delayed?: boolean, denied?: boolean) => void;
@@ -29,8 +33,16 @@ Object.assign(window, {
   }
 });
 let finishName = () => {};
+let delayHostInfo = false;
+let finishHostInfo = () => {};
 window.identityFixture = {
   requests: 0,
+  accountRequests: 0,
+  hostInfoRequests: 0,
+  setHostInfoDelay: delayed => {
+    delayHostInfo = delayed;
+  },
+  resolveHostInfo: () => finishHostInfo(),
   locationRequests: 0,
   locationGranted: new URLSearchParams(location.search).get('location') !== 'denied',
   setProfile(name, key = 17, delayed = false, denied = false) {
@@ -39,6 +51,21 @@ window.identityFixture = {
       if (permission !== 'Location') throw new Error('Unexpected device permission in fixture');
       window.identityFixture.locationRequests++;
       return ResultAsync.fromSafePromise(Promise.resolve({ granted: window.identityFixture.locationGranted }));
+    };
+    host.client.system.info = () => {
+      window.identityFixture.hostInfoRequests++;
+      const data = { platform: 'Desktop' as const, name: 'Polkadot Desktop Dev', version: '0.1.4-rc.3', account: 'PRIVATE-UNRELATED-FIELD' };
+      const wait = delayHostInfo
+        ? new Promise<void>(resolve => {
+            finishHostInfo = resolve;
+          })
+        : Promise.resolve();
+      return ResultAsync.fromSafePromise(wait.then(() => data));
+    };
+    const originalAccount = host.client.account.getAccount.bind(host.client.account);
+    host.client.account.getAccount = request => {
+      window.identityFixture.accountRequests++;
+      return originalAccount(request);
     };
     const original = host.client.account.getUserId.bind(host.client.account);
     host.client.account.getUserId = () => {

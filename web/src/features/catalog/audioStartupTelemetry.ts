@@ -1,3 +1,4 @@
+import { sanitizeHostSoftwareObservation, type HostSoftwareObservation } from '../productHost/productHostInfo';
 import {
   clearSystemArtworkObservations,
   systemArtworkObservations,
@@ -225,7 +226,7 @@ export function getAudioStartupTelemetrySnapshot(): AudioStartupTelemetrySnapsho
 }
 
 /** Explicit support export: never serialize source URLs, CIDs or arbitrary error detail. */
-export function serializeAudioDiagnostics(snapshot: AudioStartupTelemetrySnapshot, buildSha?: string | null): string {
+export function serializeAudioDiagnostics(snapshot: AudioStartupTelemetrySnapshot, buildSha?: string | null, hostSoftware?: HostSoftwareObservation): string {
   // Correlate within this export only; never disclose internal selection/source IDs.
   const attempts = new Map<string, number>();
   const attemptNumber = (id?: string) => {
@@ -256,6 +257,7 @@ export function serializeAudioDiagnostics(snapshot: AudioStartupTelemetrySnapsho
   return JSON.stringify(
     {
       schema: 'dotify.audio-diagnostics.v1',
+      hostSoftware: sanitizeHostSoftwareObservation(hostSoftware),
       artwork: serializeSystemArtworkObservations(snapshot.artwork ?? []),
       buildSha: /^[a-f0-9]{40}$/i.test(buildSha ?? '') ? buildSha : null,
       observedAt: new Date().toISOString(),
