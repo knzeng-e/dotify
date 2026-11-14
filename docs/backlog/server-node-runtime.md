@@ -6,13 +6,15 @@
 
 ## Problem and scope
 
-API, isolated encoder and signaling images still select Node 22.13.1. This is
+The images selected Node 22.13.1 before this refresh. This is
 outside npm audit’s dependency graph. The official Node 22.23.5 security release
 and Bookworm-slim image provide a same-major update without changing artist
 access, keys, publication formats or Room behavior. No exploitable Dotify incident
 is asserted. See [the runtime reference](../reference/server-runtime.md).
 
-This is a local code/image candidate alongside #432/#433, not a live rollout.
+The [14 November server delivery](implementation/evidence/service-security-rollout-2026-11-14.md)
+installs the combined candidate on all five existing machines. Identity, health
+and preserved-state checks pass; post-delivery physical listening remains open.
 Keep #407 publication/recovery, #395 startup, #388 artwork and CASH in their
 selected delivery order. Retain older runtime observations as dated evidence.
 
@@ -35,9 +37,10 @@ selected delivery order. Retain older runtime observations as dated evidence.
 
 ## Operational boundary
 
-No live read, key export, deployment, restart, chain write, budget change or new
-release is part of this candidate. A later rollout needs compatible image, UID,
-configuration and state readback under separately reviewed maintenance. Do not
+The source change alone authorized no live operation. The separately approved
+14 November maintenance is recorded above and does not authorize future work.
+A subsequent rollout needs compatible image, UID, configuration and state readback.
+Do not
 reactivate a writer from a data-only reconstruction or infer secret custody from
-a generated authentication result. The separately reviewed #432/#433 fixes are
-now included through dev; validate the final combined image before delivery.
+a generated authentication result. The separately reviewed #432/#433 fixes
+included through dev were validated together in the delivered image.

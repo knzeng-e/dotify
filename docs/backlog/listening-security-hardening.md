@@ -1,7 +1,8 @@
 # Listening authorization and Room signaling hardening
 
 GitHub: #431. Priority: P1. Track: Production spine. Phase: Now. Type: Work.
-Status: code candidate; production remains unchanged.
+Status: server fixes [deployed on 14 November](implementation/evidence/service-security-rollout-2026-11-14.md);
+post-delivery physical Host and sustained-load acceptance remain open.
 
 ## Outcome and philosophical boundary
 
@@ -59,7 +60,7 @@ SDK, signer and TrUAPI versions are unchanged.
 
 [Development toolchain follow-up #433](tooling-security-migration.md) tracks
 remaining Vitest/Tinypool and lint/parser majors; no claim of a clean full-dev audit.
-Final `npm audit --omit=dev` reports zero Web findings and one API high advisory
+The original review’s `npm audit --omit=dev` reported zero Web findings and one API high advisory
 (Zod 3). [#432](api-schema-security-migration.md) records the real Zod 4 migration.
 The [HTTP reference](../reference/request-limits.md) defines structural and byte
 limits, the 413 response and the raw proxy exemption. Private schemas and
@@ -76,6 +77,6 @@ anonymous joining and real WebRTC tests must remain green.
 [Review and validation record](implementation/evidence/listening-security-review-2026-11-11.md).
 The review is bounded to key-delivery/session and Room signaling/audio lifecycle
 paths. It includes a production-dependency advisory scan, but is not a contract-economics
-or cryptography certification or an exhaustive repository audit. Deployment, physical Host and sustained load
-acceptance remain separate from local tests. No production inspection, service
-maintenance, image upload, real media publication or signing is performed here.
+or cryptography certification or an exhaustive repository audit. The separate
+server delivery is linked above; physical Host and sustained-load acceptance
+remain distinct from local tests and service health.

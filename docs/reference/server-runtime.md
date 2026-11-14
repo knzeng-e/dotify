@@ -3,7 +3,9 @@
 This reference is for contributors building Dotify’s API, isolated encoder,
 signaling and offline reader. It owns the candidate runtime policy;
 [dated evidence](../backlog/implementation/evidence/node-runtime-security-2026-11-13.md)
-records what was built or tested. It does not describe a live deployment.
+records what was built or tested. The separate
+[14 November delivery](../backlog/implementation/evidence/service-security-rollout-2026-11-14.md)
+records hosted identities and remaining acceptance gates.
 
 ## Candidate selection
 

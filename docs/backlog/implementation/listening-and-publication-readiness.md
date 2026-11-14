@@ -1,5 +1,13 @@
 # Publication, listening reliability and CASH — execution order
 
+## Server delivery, 2026-11-14
+
+[The merged server security/runtime fixes are delivered](evidence/service-security-rollout-2026-11-14.md)
+on the five existing machines. Image/health checks and protected-state comparisons
+pass; Web/Product remain 0.1.84. Confirm existing-track listening and a Room after
+this update, then resume the sequence below. No musical allowance, compact/CASH
+activation or real recovery was added. Earlier checkpoints retain their dated scope.
+
 ## Client delivery, 2026-11-14
 
 [Web/Product 0.1.84 is delivered](evidence/product-0.1.84-rollout-2026-11-14.md) from frozen `2f6c5cda`,
