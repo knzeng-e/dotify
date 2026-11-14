@@ -1,5 +1,18 @@
 # Publication, listening reliability and CASH — execution order
 
+## Queued-read client delivery, 2026-11-14
+
+[Web/Product 0.1.86 is delivered](evidence/product-0.1.86-rollout-2026-11-14.md)
+from frozen `61f4a452`, based on tested dev `fd56e16d` after #471. Independent
+delivery and same-image custody/history checks pass. The owner confirms a first
+Room opening (~29 s), Pause and guest/short-lock sound. Its matching trace measures
+33.153 s with 16 cached / 57 HTTP objects: complete media reads dominate, not
+authorization or assembly. Next: reduce remaining bounded read-path latency and
+collect comparable starts. This single partly cached result is not a controlled
+speedup or a diagnosis of the earlier timeout.
+Servers stay `91f25c77`; compact/CASH and owner-deferred real recovery keep their
+separate gates. Older checkpoints below describe their original state.
+
 ## Queued Room read candidate, 2026-11-14
 
 [The next #395 slice](evidence/queued-room-ciphertext-reuse-2026-11-14.md) avoids

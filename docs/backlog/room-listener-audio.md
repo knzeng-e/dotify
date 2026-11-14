@@ -1,5 +1,17 @@
 # Mobile-host Room startup and listening continuity
 
+## Queued-read correction delivered, 2026-11-14
+
+[Web/Product 0.1.86](implementation/evidence/product-0.1.86-rollout-2026-11-14.md)
+delivers #471 from frozen `61f4a452`, based on tested dev `fd56e16d`.
+Exact-source CI, complete application/Web/retention/DotNS checks and unchanged
+custody restart/history pass. Waiting Room reads can reuse ciphertext completed
+by solo. The owner confirms one first opening (~29 s), respected Pause and audible
+guests/short-lock behavior on iPhone 0.10.0 (20). The matching trace measures
+33.153 s, with 16 cached / 57 HTTP objects; read work dominates. Repeated startup
+and latency acceptance remain open; the earlier 99% failure is not diagnosed.
+#395 stays open. Earlier checkpoints retain their historical scope.
+
 ## Queued-read reuse candidate, 2026-11-14
 
 [The bounded client correction](implementation/evidence/queued-room-ciphertext-reuse-2026-11-14.md)

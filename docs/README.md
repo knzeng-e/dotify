@@ -1,5 +1,10 @@
 # Dotify documentation
 
+The [0.1.86 client delivery](backlog/implementation/evidence/product-0.1.86-rollout-2026-11-14.md)
+records deployed queued Room read reuse and one owner-confirmed phone opening
+with Pause/guest/short-lock sound. The matching preparation takes 33.153 s;
+repeated startup and latency acceptance remain open.
+
 Start with the task you want to complete. Dotify is a shared-listening hub with
 artist-owned runtimes; its [project overview](../README.md) explains the purpose
 and shows the current interface.
