@@ -1,5 +1,15 @@
 # Mobile-host Room startup and listening continuity
 
+## Queued-read reuse candidate, 2026-11-14
+
+[The bounded client correction](implementation/evidence/queued-room-ciphertext-reuse-2026-11-14.md)
+reproduces a Room request downloading ciphertext that solo completed while the
+request waited for a relay slot. Rechecking the existing cache after admission
+removes that duplicate without changing access, media deadlines, memory or
+concurrency limits. Local unit, real synthetic AAC/browser and Web/Product build
+checks pass. This is a request-count improvement, not a diagnosis of the missing
+99% failure trace or physical startup acceptance. Matching delivery remains ahead.
+
 ## Free-track correction delivered, 2026-11-14
 
 [Web/Product 0.1.85](implementation/evidence/product-0.1.85-rollout-2026-11-14.md) delivers #469 from frozen `02ae5b31`,
