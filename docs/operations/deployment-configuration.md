@@ -45,6 +45,13 @@ settings and keys are preserved; Web/Product remain 0.1.84. Listening/Room
 acceptance after this server change remains open. No compact/CASH activation,
 musical upload or chain operation was performed.
 
+At the later [0.1.85 client checkpoint](../backlog/implementation/evidence/product-0.1.85-rollout-2026-11-14.md),
+Web/Product deliver the bounded Free-track buffering/Room-timeout correction from
+`02ae5b31`. Complete artifact/Web/finalized-DotNS readback and same-image custody
+restart/history checks pass; the `91f25c77` server images and settings are retained.
+Matching walletless phone listening/Room acceptance and measured startup remain
+open. No musical policy, key, compact or CASH activation occurs.
+
 Do not infer an active key, remaining publication allowance, available quota or
 permission to reuse an admission from this page. Use the applicable private
 review package and component checks; preserve existing receipts and history.

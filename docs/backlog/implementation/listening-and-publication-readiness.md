@@ -1,5 +1,17 @@
 # Publication, listening reliability and CASH — execution order
 
+## Free-track client delivery, 2026-11-14
+
+[Web/Product 0.1.85 is delivered](evidence/product-0.1.85-rollout-2026-11-14.md)
+from frozen `02ae5b31`, based on tested dev `26e3b595` after #469. Independent
+application/Web/retention/DotNS checks and unchanged custody restart/history pass.
+The next action is the matched walletless phone solo/Room and audible guest
+check, retaining first-attempt and warm-retry reports separately. Cold iOS
+complete-rendition startup can still exceed the unchanged deadline; no physical
+latency improvement is claimed. The server delivery remains `91f25c77`; compact,
+CASH and the owner-deferred real recovery keep their separate gates. Earlier
+checkpoints below retain their historical scope.
+
 ## Current listening blocker, 2026-11-14
 
 The post-server-update check fails: Free solo playback buffers repeatedly and

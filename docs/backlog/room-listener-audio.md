@@ -1,5 +1,15 @@
 # Mobile-host Room startup and listening continuity
 
+## Free-track correction delivered, 2026-11-14
+
+[Web/Product 0.1.85](implementation/evidence/product-0.1.85-rollout-2026-11-14.md) delivers #469 from frozen `02ae5b31`,
+based on tested merged dev `26e3b595`. Exact-source CI, complete byte/retention/
+finalized-DotNS readback and unchanged custody health/history pass. Managed
+read-ahead, solo relay priority, bounded ciphertext reuse and clearer timeout
+reporting are deployed. Matching walletless phone solo/Room, guest and lock
+acceptance remains pending; cold complete-rendition latency is still a limit.
+#395 stays open. Earlier entries retain their dated scope.
+
 ## Free-track loading failure, 2026-11-14
 
 The owner reports repeated solo stalls and unsuccessful Room preparation on
