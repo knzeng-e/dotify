@@ -1,5 +1,14 @@
 # Publication, listening reliability and CASH — execution order
 
+## Queued Room read candidate, 2026-11-14
+
+[The next #395 slice](evidence/queued-room-ciphertext-reuse-2026-11-14.md) avoids
+re-downloading ciphertext completed by solo during relay waiting. A controlled
+three-request case now needs two, preserving the same cache, access and resource
+bounds. This candidate is locally tested, not deployed or a measured phone
+startup fix. Review and matching delivery/first-attempt acceptance remain next;
+Web/Product stay 0.1.85 and the real recovery rehearsal stays owner-deferred.
+
 ## Free-track client delivery, 2026-11-14
 
 [Web/Product 0.1.85 is delivered](evidence/product-0.1.85-rollout-2026-11-14.md)

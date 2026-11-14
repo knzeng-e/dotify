@@ -130,6 +130,12 @@ without repeatedly downloading its beginning. It contains no keys or clear audio
 each reader still authorizes its purpose and authenticates every object. API
 reads remain limited to two complete response bodies per client. Waiting solo
 reads take precedence over Room preparation, without preempting active bodies.
+After acquiring a queued relay slot, the reader rechecks the same ciphertext
+cache before starting HTTP. Solo may have completed the object during that wait.
+The recheck enforces the same expiry and authenticated-size constraints, reports
+a cache hit rather than network throughput, and releases the slot even when no
+HTTP request is needed. It does not coalesce downloads already in flight.
+
 A very slow cold full-file download can still exceed the unchanged 60-second Room
 budget: these bounds improve reuse and continuity, not network availability.
 
