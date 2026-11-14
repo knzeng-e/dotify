@@ -4,8 +4,9 @@
 
 The existing public API pair, private custody writer, isolated encoder and Room
 signaling service now run the reviewed server images. Web/Product remain 0.1.84.
-Server health, image identity and protected-state checks pass. Physical listening
-and Room acceptance after this server update remain pending; the earlier client
+Server health, image identity and protected-state checks pass. The first physical
+check after this update fails: the owner reports repeated solo buffering and
+unavailable Room preparation on an existing Free track. The earlier client
 acceptance belongs to the preceding server deployment.
 
 The owner authorized these registry uploads, a custody snapshot, filtered private
@@ -97,7 +98,19 @@ Image rollback remains possible only with a compatible state/configuration check
 it may reintroduce the corrected races. A volume snapshot must never be restored
 blindly over later receipts or nonce history.
 
-Next acceptance: play one existing release and host/join one Room on refreshed
-clients, without a new publication or purchase. Then resume the
-[selected product sequence](../listening-and-publication-readiness.md), keeping
-physical listening, publication latency and deferred recovery distinct.
+## Failed physical follow-up
+
+The owner reports solo sound interrupted by repeated Loading audio states and
+Room creation failing on Adang Fobe without a connected wallet. The supplied
+report identifies client 0.1.84 `2f6c5cda`, iOS Polkadot App 0.10.0 (20), and
+successful Room key authorization in 179–305 ms. Solo waiting occurs at AAC
+segment boundaries while the output context remains running. Room reads continue
+for about a minute without compatibility-ready. This points to media delivery,
+not a requirement to connect a wallet for a Free track.
+
+Server availability is verified; this listening journey is **not accepted**.
+The report does not establish which upstream hop is slow or prove the server
+update caused the fault. Prioritize #395 diagnosis and correction before the next
+matching cold/warm device check. No additional publication or purchase is needed.
+Keep physical listening, publication latency and deferred recovery distinct in
+the [selected product sequence](../listening-and-publication-readiness.md).
