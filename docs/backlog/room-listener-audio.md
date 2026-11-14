@@ -1,5 +1,14 @@
 # Mobile-host Room startup and listening continuity
 
+## Free-track loading failure, 2026-11-14
+
+The owner reports repeated solo stalls and unsuccessful Room preparation on
+0.1.84 after the server update. The matched report shows successful free access
+and slow segment delivery, not a wallet requirement. The
+[diagnosis and client correction candidate](implementation/evidence/free-room-loading-2026-11-14.md)
+keep the media deadline and authorization boundaries. Matching reviewed delivery
+and cold/warm physical acceptance remain required; #395 stays open.
+
 ## Matching client delivery, 2026-11-14
 
 [Web/Product 0.1.84](implementation/evidence/product-0.1.84-rollout-2026-11-14.md) delivers the explicit-Pause

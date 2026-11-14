@@ -117,6 +117,28 @@ and requires eight seconds of buffer and two segments between upgrades.
 Data-saving mode stays at 96. Active read-ahead is about 30 seconds; the existing
 bounded ciphertext cache is shared with intent preparation.
 
+The managed producer downloads at most two authenticated segments ahead while
+appending them in order, only inside native streaming demand and its playhead
+window. Seek, demand stop, source close and owner cancellation abort pending
+reads. A buffer append already started finishes under the owner signal; a native
+demand stop cannot make the producer forget committed frames. Evicted segments
+can be fetched again without keeping a permanent clear-audio cache.
+
+The shared in-memory ciphertext cache keeps at most 4 MiB / 128 objects for five
+minutes. This lets a short low-bitrate rendition survive a Room preparation retry
+without repeatedly downloading its beginning. It contains no keys or clear audio;
+each reader still authorizes its purpose and authenticates every object. API
+reads remain limited to two complete response bodies per client. Waiting solo
+reads take precedence over Room preparation, without preempting active bodies.
+A very slow cold full-file download can still exceed the unchanged 60-second Room
+budget: these bounds improve reuse and continuity, not network availability.
+
+The support report records a terminal `timeout` and aggregate read/decryption
+work when that Room deadline expires. Normal dismissal/selection cancellation is
+not reported as a failure. The Room notice distinguishes an authorized download
+timeout from an access refusal; it does not suggest connecting a wallet to fix
+free-track transport.
+
 Rendition changes append the authenticated initialization segment before its
 media, keeping the AAC codec and W32 segment timeline. Inconsistent rendition
 segment counts disable switching. Authentication failure is terminal: there is

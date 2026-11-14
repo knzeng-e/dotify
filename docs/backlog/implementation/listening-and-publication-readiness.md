@@ -1,11 +1,19 @@
 # Publication, listening reliability and CASH — execution order
 
+## Current listening blocker, 2026-11-14
+
+The post-server-update check fails: Free solo playback buffers repeatedly and
+Room preparation does not finish. [The matched report and candidate](evidence/free-room-loading-2026-11-14.md)
+show prompt authorization and slow audio reads. Prioritize #395 transport
+continuity and a matching cold/warm phone check before advancing acceptance.
+No wallet requirement is added; the real recovery rehearsal remains deferred.
+
 ## Server delivery, 2026-11-14
 
 [The merged server security/runtime fixes are delivered](evidence/service-security-rollout-2026-11-14.md)
 on the five existing machines. Image/health checks and protected-state comparisons
-pass; Web/Product remain 0.1.84. Confirm existing-track listening and a Room after
-this update, then resume the sequence below. No musical allowance, compact/CASH
+pass; Web/Product remain 0.1.84. The failed physical follow-up is described above
+and takes priority over advancing acceptance. No musical allowance, compact/CASH
 activation or real recovery was added. Earlier checkpoints retain their dated scope.
 
 ## Client delivery, 2026-11-14

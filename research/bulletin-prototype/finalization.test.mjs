@@ -39,6 +39,7 @@ function harness(policy = 'after-final-append', observer) {
     duration: 64,
     bufferAheadSeconds: () => 30,
     initialize: async () => source.reopen(),
+    readSegment: async index => Uint8Array.of(index),
     appendSegment: async index => {
       appends.push(index);
       buffer.buffered = ranges([[0, Math.max((index + 1) * 4, buffer.buffered.length ? buffer.buffered.end(0) : 0)]]);
