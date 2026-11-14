@@ -70,3 +70,5 @@ Scope: [Product compatibility #85](../backlog/polkadot-product-readiness-and-kil
 This candidate performs no deployment, funded trial or independent recovery.
 
 Validation: [dated local evidence](../backlog/implementation/evidence/host-software-support-2026-11-13.md).
+
+Integration with merged #465: [14 November checks](../backlog/implementation/evidence/host-software-support-merge-2026-11-14.md).
