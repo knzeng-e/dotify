@@ -1,5 +1,15 @@
 # Publication, listening reliability and CASH — execution order
 
+## Complete-read scheduling candidate, 2026-11-15
+
+[The next #395 correction](evidence/room-preparation-read-scheduling-2026-11-15.md)
+removes an ordered-window wait from complete Room preparation. A slow early
+fragment no longer prevents spare transport capacity from collecting later
+parts; final assembly retains order and access checks stay authoritative. Local checks pass,
+without new capacity or deadline. Review/merge and matching delivery precede
+physical latency acceptance. Web/Product remain 0.1.86; compact/CASH and the
+owner-deferred recovery keep their separate gates.
+
 ## Queued-read client delivery, 2026-11-14
 
 [Web/Product 0.1.86 is delivered](evidence/product-0.1.86-rollout-2026-11-14.md)

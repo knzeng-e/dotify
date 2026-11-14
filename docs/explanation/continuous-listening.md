@@ -136,6 +136,22 @@ The recheck enforces the same expiry and authenticated-size constraints, reports
 a cache hit rather than network throughput, and releases the slot even when no
 HTTP request is needed. It does not coalesce downloads already in flight.
 
+Complete compatibility preparation collects the lowest authenticated rendition
+with at most four reader workers and the existing 40-MiB rendition cap
+(`web/src/features/catalog/compatibilityAudio.ts`). When any read finishes, its
+worker can take the next object; a slow early object does not prevent spare
+transport capacity from collecting later parts. Each part keeps its original
+array position, so final MP4 assembly remains ordered. This is distinct from
+progressive SourceBuffer appends, which still need the ordered read-ahead window.
+
+Progress counts completed authenticated bytes, including out-of-order parts,
+rather than only a contiguous prefix. A complete source is returned only after
+every read succeeds. Parent cancellation or a read/authentication failure aborts
+the shared preparation; late results cannot add parts or progress after abort.
+The collector discards partial output on failure. Its four workers still pass
+through the same two-body API relay and solo priority; no extra network capacity,
+access privilege, key reuse or longer startup deadline is introduced.
+
 A very slow cold full-file download can still exceed the unchanged 60-second Room
 budget: these bounds improve reuse and continuity, not network availability.
 

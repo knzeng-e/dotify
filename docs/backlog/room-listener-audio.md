@@ -1,5 +1,14 @@
 # Mobile-host Room startup and listening continuity
 
+## Complete-read scheduling candidate, 2026-11-15
+
+[The bounded collector correction](implementation/evidence/room-preparation-read-scheduling-2026-11-15.md)
+lets completed reads free a worker while an earlier fragment waits, then assembles
+all authenticated parts in order. Controlled relay and real synthetic AAC checks
+pass without more concurrency or a longer deadline. This is not deployed or a
+measured phone speedup. Review and matching delivery/latency acceptance remain;
+Web/Product stay 0.1.86 and #395 stays open.
+
 ## Queued-read correction delivered, 2026-11-14
 
 [Web/Product 0.1.86](implementation/evidence/product-0.1.86-rollout-2026-11-14.md)
