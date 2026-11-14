@@ -195,3 +195,98 @@ it('serves waiting solo reads before Room read-ahead without interrupting active
   backgroundRelease();
   second();
 });
+
+it('reuses solo ciphertext completed while an identical Room read waits for a relay slot', async () => {
+  const { fetchStreamingObject } = await import('./streamingPlayback');
+  const bodies: ReadableStreamDefaultController<Uint8Array>[] = [];
+  const fetcher = vi.fn(
+    async () =>
+      new Response(
+        new ReadableStream<Uint8Array>({
+          start(controller) {
+            bodies.push(controller);
+          }
+        })
+      )
+  );
+  vi.stubGlobal('fetch', fetcher);
+  const solo = new AbortController(),
+    room = new AbortController();
+  const first = fetchStreamingObject(cid, '96/segment-000.bin', 3, solo.signal);
+  const second = fetchStreamingObject(cid, '96/segment-001.bin', 3, solo.signal);
+  const observations: unknown[] = [];
+  let waiting: Promise<Uint8Array> | undefined;
+  let following: Promise<Uint8Array[]> | undefined;
+  try {
+    await vi.waitFor(() => expect(bodies).toHaveLength(2));
+    waiting = fetchStreamingObject(cid, '96/segment-000.bin', 3, room.signal, observation => observations.push(observation), true, {
+      layout: 'unixfs-files-v1',
+      priority: 'preparation'
+    });
+    void waiting.catch(() => undefined);
+    bodies[0].enqueue(Uint8Array.of(1, 2, 3));
+    bodies[0].close();
+    await expect(first).resolves.toEqual(Uint8Array.of(1, 2, 3));
+    await new Promise(resolve => setTimeout(resolve, 0));
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    await expect(waiting).resolves.toEqual(Uint8Array.of(1, 2, 3));
+    expect(observations).toEqual([{ fromCache: true }]);
+    bodies[1].enqueue(Uint8Array.of(4, 5, 6));
+    bodies[1].close();
+    await expect(second).resolves.toEqual(Uint8Array.of(4, 5, 6));
+    // A cache hit must release its relay slot, rather than starving later work.
+    following = Promise.all([fetchStreamingObject(cid, '96/segment-002.bin', 3, solo.signal), fetchStreamingObject(cid, '96/segment-003.bin', 3, solo.signal)]);
+    void following.catch(() => undefined);
+    await vi.waitFor(() => expect(bodies).toHaveLength(4));
+    for (const body of bodies.slice(2)) {
+      body.enqueue(Uint8Array.of(7, 8, 9));
+      body.close();
+    }
+    await expect(following).resolves.toEqual([Uint8Array.of(7, 8, 9), Uint8Array.of(7, 8, 9)]);
+  } finally {
+    const settled = Promise.allSettled([first, second, ...(waiting ? [waiting] : []), ...(following ? [following] : [])]);
+    solo.abort();
+    room.abort();
+    await settled;
+  }
+});
+
+it('does not reuse a newly cached body when the queued reader requires a different authenticated length', async () => {
+  const { fetchStreamingObject } = await import('./streamingPlayback');
+  const bodies: ReadableStreamDefaultController<Uint8Array>[] = [];
+  const fetcher = vi.fn(
+    async () =>
+      new Response(
+        new ReadableStream<Uint8Array>({
+          start(controller) {
+            bodies.push(controller);
+          }
+        })
+      )
+  );
+  vi.stubGlobal('fetch', fetcher);
+  const owner = new AbortController();
+  const first = fetchStreamingObject(cid, '160/segment-000.bin', 3, owner.signal);
+  const second = fetchStreamingObject(cid, '160/segment-001.bin', 3, owner.signal);
+  let waiting: Promise<Uint8Array> | undefined;
+  try {
+    await vi.waitFor(() => expect(bodies).toHaveLength(2));
+    waiting = fetchStreamingObject(cid, '160/segment-000.bin', 4, owner.signal, undefined, true, { layout: 'unixfs-files-v1', priority: 'preparation' });
+    void waiting.catch(() => undefined);
+    bodies[0].enqueue(Uint8Array.of(1, 2, 3));
+    bodies[0].close();
+    await expect(first).resolves.toHaveLength(3);
+    await vi.waitFor(() => expect(bodies).toHaveLength(3));
+    bodies[2].enqueue(Uint8Array.of(4, 5, 6, 7));
+    bodies[2].close();
+    await expect(waiting).resolves.toEqual(Uint8Array.of(4, 5, 6, 7));
+    bodies[1].enqueue(Uint8Array.of(1, 2, 3));
+    bodies[1].close();
+    await expect(second).resolves.toHaveLength(3);
+    expect(fetcher).toHaveBeenCalledTimes(3);
+  } finally {
+    const settled = Promise.allSettled([first, second, ...(waiting ? [waiting] : [])]);
+    owner.abort();
+    await settled;
+  }
+});

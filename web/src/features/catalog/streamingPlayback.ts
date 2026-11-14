@@ -49,6 +49,16 @@ function storeWarmObject(key: string, bytes: Uint8Array) {
   }
 }
 
+function readWarmObject(cacheKey: string, path: string, maxBytes: number, exactLength: boolean): Uint8Array | undefined {
+  const cached = warmObjects.get(cacheKey);
+  if (!cached) return undefined;
+  if (cached.until > Date.now() && cached.bytes.length <= maxBytes && (!exactLength || path === 'manifest.json' || cached.bytes.length === maxBytes))
+    return cached.bytes;
+  warmBytes -= cached.bytes.length;
+  warmObjects.delete(cacheKey);
+  return undefined;
+}
+
 export type StreamingTransportOptions = {
   layout: StreamingLayout;
   priority?: 'playback' | 'preparation';
@@ -68,15 +78,11 @@ export async function fetchStreamingObject(
   if (transport.layout !== 'unixfs-files-v1' && transport.layout !== 'rendition-pack-v1') throw new Error('Unsupported streaming layout');
   if (transport.layout === 'rendition-pack-v1' && !isBulletinMediaRoot(cid)) throw new Error('Invalid compact Bulletin root');
   const cacheKey = `${transport.layout}:${cid}/${path}`;
-  const cached = warmObjects.get(cacheKey);
   signal.throwIfAborted();
+  const cached = readWarmObject(cacheKey, path, maxBytes, exactLength);
   if (cached) {
-    if (cached.until > Date.now() && cached.bytes.length <= maxBytes && (!exactLength || path === 'manifest.json' || cached.bytes.length === maxBytes)) {
-      observe?.({ fromCache: true });
-      return cached.bytes;
-    }
-    warmBytes -= cached.bytes.length;
-    warmObjects.delete(cacheKey);
+    observe?.({ fromCache: true });
+    return cached;
   }
   const bulletin = isBulletinMediaRoot(cid);
   let nativeAttempted = false;
@@ -120,6 +126,14 @@ export async function fetchStreamingObject(
       const deadline = setTimeout(() => controller.abort(), !bulletin && import.meta.env.VITE_DOTIFY_MEDIA_EDGE_URL && index === 0 ? 3000 : 12_000);
       try {
         signal.throwIfAborted();
+        // Solo may have completed this ciphertext while Room work waited for
+        // the shared relay. Recheck its age/size before spending another body.
+        // The finally block still releases the acquired slot on a cache hit.
+        const ready = releaseRelay ? readWarmObject(cacheKey, path, maxBytes, exactLength) : undefined;
+        if (ready) {
+          observe?.({ fromCache: true });
+          return ready;
+        }
         const response = await fetch(url, { signal: AbortSignal.any([signal, controller.signal]), credentials: 'omit' });
         if (response.status !== 200) {
           await response.body?.cancel();
