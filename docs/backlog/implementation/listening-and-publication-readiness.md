@@ -1,5 +1,17 @@
 # Publication, listening reliability and CASH — execution order
 
+## Client delivery, 2026-11-14
+
+[Web/Product 0.1.84 is delivered](evidence/product-0.1.84-rollout-2026-11-14.md) from frozen `2f6c5cda`,
+based on merged/tested dev `91f25c77`. Exact-source CI, complete Web/object and
+finalized-DotNS readback pass; custody restarts once with its unchanged #426
+image/configuration and preserved histories. Explicit Pause, bounded artwork
+return recovery and About support/Host labels are delivered, with matching
+phone acceptance still open. Verify Pause through unlock/preparation and collect
+failed artwork reports before reload. Server-side security delivery, compact
+activation, startup latency and the owner-deferred real recovery keep their
+separate gates. Earlier dated checkpoints below retain their historical scope.
+
 ## Combined listening delivery, 2026-11-13
 
 [Web/Product 0.1.83 is delivered](evidence/product-0.1.83-rollout-2026-11-13.md)

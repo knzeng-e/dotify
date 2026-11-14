@@ -30,6 +30,13 @@ custody restarts once with its unchanged #426 image/configuration, protected
 state and two health/readiness passes. This client operation replaces no server
 image or key and activates no compact publication. Phone acceptance remains open.
 
+At the [2026-11-14 delivery checkpoint](../backlog/implementation/evidence/product-0.1.84-rollout-2026-11-14.md),
+Web/Product serve 0.1.84. Complete byte/record readback and unchanged custody
+health/history pass after one same-image restart. The public API still identifies
+the 0.1.82 source; server-side security fixes, compact activation and native
+Pause/artwork acceptance remain separate gates. No image, key or musical policy
+changes in this application-only delivery.
+
 Do not infer an active key, remaining publication allowance, available quota or
 permission to reuse an admission from this page. Use the applicable private
 review package and component checks; preserve existing receipts and history.
