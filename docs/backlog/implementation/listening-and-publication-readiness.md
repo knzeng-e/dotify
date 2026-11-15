@@ -1,5 +1,15 @@
 # Publication, listening reliability and CASH — execution order
 
+## Complete-read client delivery, 2026-11-15
+
+[Web/Product 0.1.87 is delivered](evidence/product-0.1.87-rollout-2026-11-15.md)
+from frozen `1d3ce028`, based on tested dev `54beb926` after #473. Complete
+artifact/Web/retention/DotNS checks and unchanged custody restart/history pass.
+Next: matching first-attempt iPhone startup timing and support report, Pause,
+and audible Web/Desktop guests through phone lock. A device speedup is not yet
+established. Server images remain `91f25c77`; compact/CASH and owner-deferred real
+recovery keep their separate gates. Older checkpoints retain their dated scope.
+
 ## Complete-read scheduling candidate, 2026-11-15
 
 [The next #395 correction](evidence/room-preparation-read-scheduling-2026-11-15.md)

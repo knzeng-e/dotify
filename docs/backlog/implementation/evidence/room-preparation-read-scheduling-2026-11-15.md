@@ -1,6 +1,6 @@
 # Complete Room preparation can collect past a slow fragment — 15 November 2026
 
-**Implemented and locally tested; not deployed or physically accepted.** Refs
+**Code checkpoint: implemented and locally tested, before delivery.** Refs
 #395. Code commit `3fafe4d6d5b4ab1cbfd702e3ddad0350b3079942`, based on merged
 dev `16e0881c2b59a52033088c30969561aea5efebeb`. That base has the identical tree
 to #472's fully tested `1e4120f0` ([CI](https://github.com/knzeng-e/dotify/actions/runs/43649181389));
@@ -12,6 +12,10 @@ behavior, but complete preparation still takes 33.153 seconds (owner timer:
 approximately 29 seconds). Authorization and assembly are short; aggregate read
 work includes scheduling, transport and body waits. It does not isolate which
 part of each read caused the delay or establish a cold benchmark.
+
+Delivery follow-up: [Web/Product 0.1.87](product-0.1.87-rollout-2026-11-15.md)
+publishes this correction with independent readback. Matching physical latency
+acceptance remains open; the measurements below keep their original scope.
 
 ## Reproduced scheduling gap
 

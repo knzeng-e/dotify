@@ -1,5 +1,9 @@
 # Dotify documentation
 
+The [0.1.87 client delivery](backlog/implementation/evidence/product-0.1.87-rollout-2026-11-15.md)
+records Room preparation that collects past a slow fragment, with complete
+delivery verification. Matching phone latency and audible guest acceptance remain open.
+
 The [0.1.86 client delivery](backlog/implementation/evidence/product-0.1.86-rollout-2026-11-14.md)
 records deployed queued Room read reuse and one owner-confirmed phone opening
 with Pause/guest/short-lock sound. The matching preparation takes 33.153 s;
