@@ -824,6 +824,23 @@ test('complete authenticated preparation respects the relay capacity without tri
   await expect(page.getByTestId('state')).toHaveAttribute('data-preparation-failed', 'false');
 });
 
+test('complete AAC preparation keeps collecting later objects while an early segment waits', async ({ page }) => {
+  const probe = await setup(page, 'held-startup', true);
+  const rendition = Object.keys(fixture.files).filter(path => path.startsWith('96/'));
+  expect(rendition.length).toBeGreaterThan(4);
+  try {
+    // segment-000 remains held. The complete-file collector can fill the other
+    // indexed parts without waiting for that segment's eventual assembly turn.
+    await expect.poll(() => rendition.every(path => probe.requests.includes(`a:${path}`)), { timeout: 5000 }).toBe(true);
+    probe.release();
+    await playing(page);
+    expect(probe.keyRequests()).toBe(1);
+    await expect(page.getByTestId('state')).toHaveAttribute('data-preparation-failed', 'false');
+  } finally {
+    probe.release();
+  }
+});
+
 for (const clipboardWorks of [true, false]) {
   test(`audio failure support export ${clipboardWorks ? 'copies a sanitized report' : 'offers a readable fallback when the Host blocks copying'}`, async ({
     page
