@@ -161,6 +161,15 @@ it('allowlists aggregate counters and rejects injected nonnumeric values in the 
           readWorkMs: 500,
           decryptWorkMs: 8,
           maxReadMs: 130,
+          relayWaitMs: 50,
+          nativeReadMs: 300,
+          httpHeadersMs: 140,
+          httpBodyMs: 10,
+          nativeReadAttempts: 2,
+          nativeReadFailures: 1,
+          httpRequests: 9,
+          httpBodyReads: 8,
+          httpFailures: 1,
           privateKey: 'DO-NOT-EXPORT',
           gatewayUrl: 'PRIVATE-URL'
         }
@@ -180,11 +189,24 @@ it('allowlists aggregate counters and rejects injected nonnumeric values in the 
     recoveredObjects: 1,
     readWorkMs: 500,
     decryptWorkMs: 8,
-    maxReadMs: 130
+    maxReadMs: 130,
+    relayWaitMs: 50,
+    nativeReadMs: 300,
+    httpHeadersMs: 140,
+    httpBodyMs: 10,
+    nativeReadAttempts: 2,
+    nativeReadFailures: 1,
+    httpRequests: 9,
+    httpBodyReads: 8,
+    httpFailures: 1
   });
   expect(JSON.stringify(report)).not.toMatch(/PRIVATE|DO-NOT-EXPORT/);
   snapshot.streaming[0].readTimings.readWorkMs = NaN;
+  snapshot.streaming[0].readTimings.relayWaitMs = -1;
+  snapshot.streaming[0].readTimings.httpBodyMs = Infinity;
   expect(JSON.parse(serializeAudioDiagnostics(snapshot)).streaming[0].readTimings.readWorkMs).toBeUndefined();
+  expect(JSON.parse(serializeAudioDiagnostics(snapshot)).streaming[0].readTimings.relayWaitMs).toBeUndefined();
+  expect(JSON.parse(serializeAudioDiagnostics(snapshot)).streaming[0].readTimings.httpBodyMs).toBeUndefined();
 });
 
 it('includes bounded sanitized artwork observations in the existing explicit report', () => {

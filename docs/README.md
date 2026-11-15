@@ -1,5 +1,10 @@
 # Dotify documentation
 
+The [local read-phase diagnostic candidate](backlog/implementation/evidence/room-read-phase-timings-2026-11-15.md)
+helps distinguish relay, native, HTTP-header and body waits. It is locally tested,
+not deployed or a measured speedup; the [measurement guide](how-to/measure-room-startup.md#distinguish-transport-phases)
+defines its fields and limits.
+
 The [0.1.87 client delivery](backlog/implementation/evidence/product-0.1.87-rollout-2026-11-15.md)
 records verified delivery and one matching phone opening with Pause and guest/
 short-lock sound. Preparation still takes 36.955 s and the lock-screen cover is

@@ -69,6 +69,12 @@ short-lock sound check passes, but preparation takes 36.955 s and the lock-scree
 cover is absent. Latency and artwork acceptance remain open. No musical
 allowance, key, compact or CASH activation changes.
 
+The [read-phase diagnostic candidate](../backlog/implementation/evidence/room-read-phase-timings-2026-11-15.md)
+changes no deployment settings. Its optional local support counters require a
+matching reviewed client delivery before phone interpretation; deployed 0.1.87
+reports do not contain them. Follow the [measurement guide](../how-to/measure-room-startup.md#distinguish-transport-phases).
+No live read, maintenance, signer or write allowance is implied.
+
 Do not infer an active key, remaining publication allowance, available quota or
 permission to reuse an admission from this page. Use the applicable private
 review package and component checks; preserve existing receipts and history.

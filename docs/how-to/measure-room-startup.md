@@ -83,6 +83,35 @@ snapshot for that reader try:
   including relay admission, internal retry/body wait and failed completed calls.
 - `decryptWorkMs`: cumulative completed authentication/decryption work duration.
 
+### Distinguish transport phases
+
+The read-phase diagnostic candidate adds the optional numeric fields below to
+the same `readTimings` snapshot. Older deployed reports, including 0.1.87, do not
+contain them. A missing field is unknown, not zero; a custom reader must emit
+phase observations to provide coverage. Ordinary instrumented readers initialize
+these counters to zero and retain only settled phases, including rejection and
+cancellation. A warm cache hit needs no transport phase; a queued cache recheck
+can contribute relay wait without another HTTP request.
+
+| Field | Observed boundary |
+| --- | --- |
+| `relayWaitMs` | Sum of waits to acquire the existing two-body API relay slot, including cancelled waits; excludes time holding the slot |
+| `nativeReadMs` | Sum of native-path probes, including module loading, Host availability, traversal, validation and failure; does not isolate an SDK/network operation |
+| `httpHeadersMs` | Sum of Fetch invocation → response headers/rejection; includes browser scheduling, connection, server work and network wait, not pure RTT |
+| `httpBodyMs` | Sum of accepted-response body consumption and expected-length validation, including failed/incomplete bodies |
+| `nativeReadAttempts`, `nativeReadFailures` | Settled native-path probes and their rejections; an unavailable-Host `null` result is a probe without a rejection |
+| `httpRequests`, `httpBodyReads` | Settled Fetch calls and accepted-response body reads; failed calls count, cache hits do not |
+| `httpFailures` | Non-200 responses, rejected Fetch calls or failed body/length checks, counted once per request; includes abort/timeout failures without exporting their raw reason |
+
+Compare these work totals to identify where time accumulates. A long header
+phase cannot distinguish server processing from connection/network wait. Extra
+HTTP requests can include existing fallback attempts; they are not extra logical
+objects. Timings omit response cleanup and unfinished phases, so their sum is
+not an exact decomposition of `readWorkMs` or wall time. Observation adds no
+requests, timers, persistence, automatic export or retry; its errors are isolated
+from playback. [Source-bound candidate evidence](../backlog/implementation/evidence/room-read-phase-timings-2026-11-15.md)
+records validation and the separate delivery gate.
+
 **Parallel work durations overlap. Never add them to wall time.** A failure
 snapshot can precede completion/cancellation of sibling reads. Parent cancellation
 suppresses late reader events; the host terminal event remains authoritative for

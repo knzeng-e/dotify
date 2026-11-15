@@ -1,5 +1,15 @@
 # Publication, listening reliability and CASH — execution order
 
+## Distinguish transport waits before retuning, 2026-11-15
+
+[The client diagnostic candidate](evidence/room-read-phase-timings-2026-11-15.md)
+separates relay/native/header/body work and settled failures in the existing
+explicit support report, following the matched 36.955-second phone result.
+Local checks pass without additional requests, persistence or changed resource/
+access limits. Review and authorized matching delivery precede measurement;
+there is no latency gain or native-artwork fix claimed. Clients remain 0.1.87;
+#395/#388, compact/CASH and owner-deferred recovery keep their separate gates.
+
 ## Complete-read client delivery, 2026-11-15
 
 [Web/Product 0.1.87 is delivered](evidence/product-0.1.87-rollout-2026-11-15.md)
