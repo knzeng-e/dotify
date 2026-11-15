@@ -1,5 +1,14 @@
 # Mobile-host Room startup and listening continuity
 
+## Local transport-phase diagnostic candidate, 2026-11-15
+
+[The read-phase diagnostic](implementation/evidence/room-read-phase-timings-2026-11-15.md)
+separates settled relay, native, HTTP-header and body work in the existing local
+support report. Unit, synthetic AAC/browser and build checks pass; transport
+limits, access and playback behavior remain. This is not a speedup or deployment.
+Web/Product stay 0.1.87. Review and matching delivery precede a phone phase
+observation; #395 latency and #388 missing artwork remain open.
+
 ## Complete-read scheduling delivered, 2026-11-15
 
 [Web/Product 0.1.87](implementation/evidence/product-0.1.87-rollout-2026-11-15.md)
