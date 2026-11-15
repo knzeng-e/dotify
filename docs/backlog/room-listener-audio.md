@@ -1,5 +1,17 @@
 # Mobile-host Room startup and listening continuity
 
+## Transport-phase diagnostic delivered, 2026-11-15
+
+[Web/Product 0.1.88](implementation/evidence/product-0.1.88-rollout-2026-11-15.md)
+delivers #475 from frozen `4cbdb4f4`, based on tested dev `bbfaae56`. Complete
+artifact/Web/retention/finalized-DotNS and unchanged custody/history checks pass.
+The owner confirms one matching Wi-Fi opening (~34 s; trace 34.857 s), Pause,
+guest/lock sound and artwork. Relay admission and pre-response HTTP work dominate;
+no HTTP failure is observed. Network/server causes remain unseparated. A separate
+27-s opening closes after inactivity before the protocol finishes and has no
+matched report. No speedup or artwork correction is claimed; #395/#388 stay open
+for latency/repeated listening and reliable artwork.
+
 ## Local transport-phase diagnostic candidate, 2026-11-15
 
 [The read-phase diagnostic](implementation/evidence/room-read-phase-timings-2026-11-15.md)

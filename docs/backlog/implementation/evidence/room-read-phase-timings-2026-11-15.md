@@ -1,6 +1,9 @@
 # Separate local audio transport waits — 15 November 2026
 
-**Implemented and locally tested; not deployed or a latency improvement.** Refs
+**Implementation checkpoint: locally tested before delivery; no latency improvement claimed.**
+The subsequent [0.1.88 delivery](product-0.1.88-rollout-2026-11-15.md) binds the
+served artifact and remaining phone measurement gate. The checkpoint below
+retains its original pre-delivery scope. Refs
 #395. Code commit `51a3a4164526d9f2fd1162c300d418b0655d9788` is based on merged dev
 `16edd876f4f3b211faff73d9b91a7428a87b7522`, whose tree matches fully tested #474
 head `90543216703bbeb3bb99313983903cedeaf68e2a`

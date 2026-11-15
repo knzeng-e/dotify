@@ -1,0 +1,172 @@
+{
+  "schema": "dotify.product.delivery.v1",
+  "observedAt": "2026-11-15T19:12:50.182261+00:00",
+  "source": "4cbdb4f4206f91470eb6097ade8f23093f4aa840",
+  "base": "bbfaae560292979ea0cad1b54810e8b52f7a7d39",
+  "version": "0.1.88",
+  "candidateCi": "https://github.com/knzeng-e/dotify/actions/runs/43703054048",
+  "application": {
+    "cid": "bafybeielip24ywdkjeu6bvi47oqg4gevb5uoms4f3rapbjg2tnqx4gjop4",
+    "carSha256": "606de066998e1518e2e98a40d2e68c75e994f16ec5713635ad85040eb709f3e1",
+    "verifiedCarBlocks": 100,
+    "filesComparedOffline": 72,
+    "outerObjects": 20,
+    "bytes": 9515357
+  },
+  "operations": {
+    "stores": 12,
+    "oneOffRenewals": 8,
+    "dotnsSignatures": 2,
+    "newMusic": 0
+  },
+  "independentReadback": {
+    "bulletinBlock": 1661868,
+    "allObjectsByteCompared": true,
+    "retentionVerified": true,
+    "minimumExpiryBlock": 1863354,
+    "finalizedDotnsVerified": true,
+    "labVersionPreserved": "0.3.1"
+  },
+  "web": {
+    "url": "https://muzinga.netlify.app/",
+    "entry": "./assets/index-BCrPfLAb.js",
+    "sha256": "0f34f969e9074bbfa3dfe50fc5d8841ea8683442776b46a201ba8fae0bac06cc",
+    "filesByteCompared": 20,
+    "totalComparedBytes": 1856700,
+    "exactReconstructionBytes": true,
+    "publishedCleanFlag": "false"
+  },
+  "publicApiObservation": {
+    "observedAt": "2026-11-15T19:12:50.132515+00:00",
+    "endpoint": "https://dotify-api.fly.dev/version",
+    "version": "0.1.0",
+    "commitSha": "91f25c77ddb117f97bba4b7808a7ad2fb4b8e244",
+    "networkWrites": 0
+  },
+  "custody": {
+    "source": "91f25c77ddb117f97bba4b7808a7ad2fb4b8e244",
+    "image": "registry.fly.io/dotify-api@sha256:6c7c9cfefc1cd81d184c1ac1f76aec5628f5235699c478910ff48fa6ec381907",
+    "imageAndConfigUnchanged": true,
+    "protectedMetadataUnchanged": true,
+    "nonceTreeUnchanged": true,
+    "healthChecks": [
+      {
+        "route": "/health",
+        "status": 200
+      },
+      {
+        "route": "/health/ready",
+        "status": 200
+      },
+      {
+        "route": "/health",
+        "status": 200
+      },
+      {
+        "route": "/health/ready",
+        "status": 200
+      }
+    ],
+    "observedAt": "2026-11-15T19:12:44.824476+00:00"
+  },
+  "retainedReserve": {
+    "transactions": 2371,
+    "bytes": 604354885
+  },
+  "signerVariableCleared": true,
+  "physicalAcceptance": {
+    "status": "not yet observed on 0.1.88",
+    "priorVersionEvidenceIsNotAcceptance": true
+  },
+  "automaticRenewalActivated": false,
+  "compactPublicationActivated": false,
+  "serverImagesReplaced": false,
+  "realRecoveryStillDeferred": true,
+  "physicalAcceptanceFollowup": {
+    "source": "4cbdb4f4206f91470eb6097ade8f23093f4aa840",
+    "reportSchema": "dotify.audio-diagnostics.v1",
+    "reportObservedAt": "2026-11-15T20:23:37.353Z",
+    "hostSoftware": {
+      "platform": "Ios",
+      "name": "Polkadot App",
+      "version": "0.10.0 (20)"
+    },
+    "ownerObservation": {
+      "network": "Wi-Fi",
+      "roomReadyApproxSeconds": 34,
+      "pauseRespected": true,
+      "guestsAudibleDuringRequestedLock": true,
+      "lockScreenArtworkVisible": true,
+      "protocol": "existing Adang Fobe, no connected wallet, solo then one Room opening in this report; requested 15–30-second phone lock",
+      "actualLockDurationSeconds": null,
+      "earlierSeparateRun": {
+        "roomReadyApproxSeconds": 27,
+        "closedAfterProlongedInactivity": true,
+        "completedGuestProtocol": false,
+        "matchedReportAvailable": false
+      }
+    },
+    "roomPreparation": {
+      "attempt": 2,
+      "readAttempt": 1,
+      "authorizationMs": 196,
+      "manifestReadyMs": 199,
+      "downloadedMs": 34846,
+      "readyMs": 34857,
+      "assemblyMs": 11,
+      "objectsRead": 73,
+      "objectsDecrypted": 73,
+      "encryptedBytes": 3580693,
+      "cachedObjects": 10,
+      "hostObjects": 0,
+      "httpObjects": 63,
+      "recoveredObjects": 0,
+      "readWorkMs": 130429,
+      "decryptWorkMs": 65,
+      "maxReadMs": 10860,
+      "relayWaitMs": 66944,
+      "nativeReadMs": 0,
+      "httpHeadersMs": 63111,
+      "httpBodyMs": 313,
+      "nativeReadAttempts": 0,
+      "nativeReadFailures": 0,
+      "httpRequests": 63,
+      "httpBodyReads": 63,
+      "httpFailures": 0
+    },
+    "handoff": {
+      "attempt": 3,
+      "preparedSourceReusedMs": 245,
+      "metadataReadyAfterSourceMs": 164,
+      "pausedPositionSeconds": 11.669695912,
+      "explicitPlayAfterSourceMs": 22262,
+      "isAnotherRoomRetry": false
+    },
+    "output": {
+      "generation": 2,
+      "hiddenAt": 1794774138671,
+      "visibleAt": 1794774197618,
+      "hiddenToVisibleMs": 58947,
+      "contextAdvanceSeconds": 58.94933333333333,
+      "mediaAdvanceSeconds": 58.94844193050574,
+      "audibilityEvidence": "owner observation, not media/context clocks alone"
+    },
+    "artwork": {
+      "attempt": 1,
+      "decodedMs": 2,
+      "composedMs": 22,
+      "pngMetadataPublishedMs": 25,
+      "nativeDisplayAcknowledgedByTelemetry": false,
+      "ownerSawLockScreenArtwork": true,
+      "reliableAcrossRepeatedRunsEstablished": false
+    },
+    "traceLimits": [
+      "Settled work durations overlap; relay and HTTP totals cannot be added to wall time.",
+      "The API buffers an object before sending its body; header wait can include upstream object retrieval as well as connection, network and server work.",
+      "Zero native attempts means no native-path probe is observed, not a failed native path.",
+      "This session follows a separate 27-second run; local cache is partial and upstream cache/network conditions are unknown. No controlled speed gain is established.",
+      "One positive artwork result does not resolve the prior 0.1.87 absence or establish repeated native reliability."
+    ],
+    "newNetworkWrites": 0
+  }
+}

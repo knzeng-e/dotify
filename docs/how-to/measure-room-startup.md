@@ -85,9 +85,10 @@ snapshot for that reader try:
 
 ### Distinguish transport phases
 
-The read-phase diagnostic candidate adds the optional numeric fields below to
-the same `readTimings` snapshot. Older deployed reports, including 0.1.87, do not
-contain them. A missing field is unknown, not zero; a custom reader must emit
+[Web/Product 0.1.88](../backlog/implementation/evidence/product-0.1.88-rollout-2026-11-15.md)
+delivers the optional numeric fields below in the same `readTimings` snapshot.
+Older deployed reports, including 0.1.87, do not contain them. A missing field is
+unknown, not zero; a custom reader must emit
 phase observations to provide coverage. Ordinary instrumented readers initialize
 these counters to zero and retain only settled phases, including rejection and
 cancellation. A warm cache hit needs no transport phase; a queued cache recheck
@@ -109,8 +110,9 @@ HTTP requests can include existing fallback attempts; they are not extra logical
 objects. Timings omit response cleanup and unfinished phases, so their sum is
 not an exact decomposition of `readWorkMs` or wall time. Observation adds no
 requests, timers, persistence, automatic export or retry; its errors are isolated
-from playback. [Source-bound candidate evidence](../backlog/implementation/evidence/room-read-phase-timings-2026-11-15.md)
-records validation and the separate delivery gate.
+from playback. [Source-bound implementation evidence](../backlog/implementation/evidence/room-read-phase-timings-2026-11-15.md)
+records code validation; the delivery record above binds the served artifact.
+Matching physical phase measurements remain separate.
 
 **Parallel work durations overlap. Never add them to wall time.** A failure
 snapshot can precede completion/cancellation of sibling reads. Parent cancellation
