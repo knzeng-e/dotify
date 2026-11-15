@@ -1,6 +1,7 @@
 # Web/Product 0.1.87 delivery — 15 November 2026
 
-**Published and independently verified; matching phone latency acceptance remains open.**
+**Published and independently verified; one matching phone sound/Pause check passes,
+but preparation remains slow and lock-screen artwork is absent.**
 Web and `dotify-test01.dot` serve frozen `1d3ce02820983614c2e14da888883520f2e60586`, based on tested dev
 `54beb9263964e208c557bef0ba5dd2f2a5660af8` after #473. The only tracked packaging change is appVersion
 `[0,1,87]`. Refs #395. The [structured public evidence](product-0.1.87-rollout-2026-11-15.json)
@@ -90,14 +91,64 @@ No server image, key, admission, musical budget, access policy or Host/SDK setti
 changes. Compact/CASH activation, automatic renewal and the owner's deferred real
 independent recovery remain outside this delivery. Existing artist assets remain.
 
+## Matching phone follow-up
+
+The owner reports one Room opening ready in approximately **36 seconds**, with
+Pause respected and audible guests during phone lock, but **no lock-screen
+cover artwork**. The matching report identifies this exact `1d3ce028`
+build and Polkadot app **0.10.0 (20)**, observed at `2026-11-15T01:55:44.404Z`.
+The requested context is existing **Adang Fobe**, without a connected wallet,
+one Room opening and a 15–30-second lock; actual lock duration is not restated.
+Track and protocol context come from owner feedback, not diagnostic identifiers.
+
+The trace records one complete preparation (attempt 2, read attempt 1):
+
+| Observation | Value and scope |
+| --- | --- |
+| Owner's approximate opening time | 36 s; separate from instrumentation |
+| Authorization / authenticated manifest ready | 156 ms / 159 ms |
+| Complete download / prepared source ready | 36,943 ms / 36,955 ms |
+| Local assembly after download | 12 ms |
+| Authenticated objects / encrypted bytes | 73 / 3,580,693 bytes |
+| Cache / native Host / HTTP / recovered | 10 / 0 / 63 / 0 objects |
+| Overlapping read work / decryption work | 126,773 ms / 44 ms; not additive wall time |
+| Longest observed read | 12,467 ms, including admission/transport/retry/body waits |
+
+Later fragments finish while an earlier one waits: segment 014 is ready at
+523 ms, while segment 008 finishes at 7,270 ms; segment 050 finishes at 9,333 ms,
+before segment 028 at 11,988 ms. The final segment 068 arrives at 36,942 ms,
+after segments 069/070 at 30,305/30,367 ms. These events show collection past
+slow fragments, but do not isolate the cause of each delay. Read work dominates
+this preparation; authorization, decryption and assembly are short.
+
+The normal prepared-source handoff is attempt 3, with reauthorization and reuse
+in 193 ms; it is not another user Room retry. Output remains paused at
+19.289600833 s through replacement readiness, until a later explicit Play
+intent. The exported output trace ends after that Play, without hidden/visible
+events: audible short-lock acceptance comes from the owner's observation, not
+from inferred media clocks.
+
+Artwork is decoded at 10 ms, composed at 54 ms and registered as PNG metadata
+at **59 ms**, before Room preparation. The owner still sees no cover at lock.
+These timings prove page preparation and metadata assignment returned, not that
+iOS fetched or displayed the image. They do not establish a native failure cause,
+a bad image, or an authorization problem. See the
+[observation boundary](../../../reference/system-artwork-observations.md#platform-boundary).
+This run fails the artwork check in #388 despite the earlier bounded 0.1.84
+positive result; neither result replaces the other.
+
+Compared with the 0.1.86 report, this run uses 10 cached / 63 HTTP objects rather
+than 16 / 57. Unknown network/upstream cache conditions and different cache
+counts prevent treating 36.955 versus 33.153 seconds as a controlled speedup or
+regression. No phone latency gain is established.
+
 ## Next acceptance
 
-On the iPhone, verify 0.1.87 and use an existing Free track without a wallet.
-Open one Room, record preparation time and Pause during the wait, then explicitly
-play with audible Web/Desktop guests through a short phone lock. Copy that
-attempt's support report before retry or reload, whether it succeeds or fails.
-Keep first attempts distinct from warm retries and record unknown cache state
-honestly. A report from another session cannot explain a failed attempt.
+Reduce the remaining bounded read-path latency and investigate missing native
+artwork independently of successful audio. Preserve the matched first-opening
+result, without requesting another attempt just to replace this evidence.
+For future success or failure, copy that attempt's report before retry/reload;
+keep first attempts distinct from warm retries and record unknown cache state.
 
 #395 remains open for comparable starts without retry and audible continuity;
 the [measurement guide](../../../how-to/measure-room-startup.md) defines the

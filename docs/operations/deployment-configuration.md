@@ -64,8 +64,10 @@ No musical allowance, key, compact or CASH activation changes.
 At the [0.1.87 client checkpoint](../backlog/implementation/evidence/product-0.1.87-rollout-2026-11-15.md),
 Web/Product deliver complete-read Room scheduling from `1d3ce028`. Independent
 artifact/Web/finalized-DotNS readback and unchanged custody restart/history pass;
-server images/settings remain `91f25c77`. Matching phone latency acceptance is
-open. No musical allowance, key, compact or CASH activation changes.
+server images/settings remain `91f25c77`. One matching phone opening/Pause/guest/
+short-lock sound check passes, but preparation takes 36.955 s and the lock-screen
+cover is absent. Latency and artwork acceptance remain open. No musical
+allowance, key, compact or CASH activation changes.
 
 Do not infer an active key, remaining publication allowance, available quota or
 permission to reuse an admission from this page. Use the applicable private

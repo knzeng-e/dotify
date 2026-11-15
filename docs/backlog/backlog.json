@@ -112,7 +112,7 @@
       "priority": "P1",
       "track": "Production spine",
       "phase": "Next",
-      "note": "Web/Product 0.1.84 is delivered and the owner confirms Pause through preparation/unlock, audible resume at position and guests during the requested short lock on Polkadot app 0.10.0 (20). Measured startup, repeated/full-track continuity and broader native controls remain open. Canonical evidence: docs/backlog/implementation/evidence/product-0.1.84-rollout-2026-11-14.md. Real recovery remains owner-deferred."
+      "note": "Web/Product 0.1.87 is delivered. One matching phone opening succeeds (~36 s owner timer / 36.955 s trace), with Pause and guest/short-lock sound confirmed on Polkadot app 0.10.0 (20). Preparation remains slow: 10 cached / 63 HTTP objects; differing cache state from 0.1.86 precludes a speedup/regression claim. Repeated/full-track continuity and latency acceptance remain open. Lock-screen artwork is absent in this run and stays open under #388. Canonical evidence: docs/backlog/implementation/evidence/product-0.1.87-rollout-2026-11-15.md#matching-phone-follow-up. Real recovery remains owner-deferred."
     },
     {
       "id": "listening-controls-and-discovery",
@@ -122,7 +122,7 @@
       "priority": "P1",
       "track": "Production spine",
       "phase": "Next",
-      "note": "Web/Product 0.1.84 is delivered; the owner confirms solo/Room covers and Dotify logo on Polkadot app 0.10.0 (20). Repeated locks, rapid changes, attribution/disconnect and the separately unconfirmed signature-trigger case remain open. Canonical evidence: docs/backlog/implementation/evidence/product-0.1.84-rollout-2026-11-14.md."
+      "note": "The owner confirmed covers/logo on the 0.1.84 short solo/Room check, but matching 0.1.87 feedback reports absent lock-screen artwork with audible guest/lock sound. The trace prepares and registers PNG metadata in 59 ms; this does not acknowledge native display or establish the failure cause. Artwork reliability, repeated locks, rapid changes, attribution/disconnect and the signature-trigger case remain open. Canonical evidence: docs/backlog/implementation/evidence/product-0.1.87-rollout-2026-11-15.md#matching-phone-follow-up."
     },
     {
       "id": "room-galaxy-restoration",

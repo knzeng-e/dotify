@@ -81,5 +81,65 @@
   "automaticRenewalActivated": false,
   "compactPublicationActivated": false,
   "serverImagesReplaced": false,
-  "realRecoveryStillDeferred": true
+  "realRecoveryStillDeferred": true,
+  "physicalAcceptanceFollowup": {
+    "source": "1d3ce02820983614c2e14da888883520f2e60586",
+    "reportSchema": "dotify.audio-diagnostics.v1",
+    "reportObservedAt": "2026-11-15T01:55:44.404Z",
+    "hostSoftware": {
+      "platform": "Ios",
+      "name": "Polkadot App",
+      "version": "0.10.0 (20)"
+    },
+    "ownerObservation": {
+      "roomReadyApproxSeconds": 36,
+      "pauseRespected": true,
+      "guestsAudibleDuringRequestedLock": true,
+      "lockScreenArtworkVisible": false,
+      "protocol": "existing Adang Fobe, no connected wallet, one Room opening; requested 15\u201330-second phone lock",
+      "actualLockDurationSeconds": null
+    },
+    "roomPreparation": {
+      "attempt": 2,
+      "readAttempt": 1,
+      "authorizationMs": 156,
+      "manifestReadyMs": 159,
+      "downloadedMs": 36943,
+      "readyMs": 36955,
+      "assemblyMs": 12,
+      "objectsRead": 73,
+      "objectsDecrypted": 73,
+      "encryptedBytes": 3580693,
+      "cachedObjects": 10,
+      "hostObjects": 0,
+      "httpObjects": 63,
+      "recoveredObjects": 0,
+      "readWorkMs": 126773,
+      "decryptWorkMs": 44,
+      "maxReadMs": 12467
+    },
+    "handoff": {
+      "attempt": 3,
+      "preparedSourceReusedMs": 193,
+      "metadataReadyAfterSourceMs": 153,
+      "pausedPositionSeconds": 19.289600833,
+      "explicitPlayAfterSourceSeconds": 68.865,
+      "isAnotherRoomRetry": false
+    },
+    "artwork": {
+      "attempt": 1,
+      "urlMetadataPublishedMs": 1,
+      "decodedMs": 10,
+      "composedMs": 54,
+      "pngMetadataPublishedMs": 59,
+      "nativeDisplayAcknowledged": false,
+      "failureCause": "not established"
+    },
+    "traceLimits": [
+      "No hidden/visible events occur in this exported output trace; physical short-lock sound is owner evidence, not inferred from clock events.",
+      "Read work overlaps and includes admission, transport and retry/body waits; it is not pure network latency or wall time.",
+      "The previous 0.1.86 observation has 16 cached / 57 HTTP objects; different cache counts and unknown upstream conditions do not establish a speedup or regression."
+    ],
+    "newNetworkWrites": 0
+  }
 }
