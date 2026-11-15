@@ -1,5 +1,10 @@
 # Dotify documentation
 
+The [0.1.87 client delivery](backlog/implementation/evidence/product-0.1.87-rollout-2026-11-15.md)
+records verified delivery and one matching phone opening with Pause and guest/
+short-lock sound. Preparation still takes 36.955 s and the lock-screen cover is
+absent; latency and artwork reliability remain open.
+
 The [0.1.86 client delivery](backlog/implementation/evidence/product-0.1.86-rollout-2026-11-14.md)
 records deployed queued Room read reuse and one owner-confirmed phone opening
 with Pause/guest/short-lock sound. The matching preparation takes 33.153 s;

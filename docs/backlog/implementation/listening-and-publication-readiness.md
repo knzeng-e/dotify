@@ -1,5 +1,18 @@
 # Publication, listening reliability and CASH — execution order
 
+## Complete-read client delivery, 2026-11-15
+
+[Web/Product 0.1.87 is delivered](evidence/product-0.1.87-rollout-2026-11-15.md)
+from frozen `1d3ce028`, based on tested dev `54beb926` after #473. Complete
+artifact/Web/retention/DotNS checks and unchanged custody restart/history pass.
+The owner confirms one first opening (~36 s; matching trace 36.955 s), Pause and
+audible guests through phone lock, but no lock-screen cover. Read work dominates;
+different cache counts from 0.1.86 do not establish a speedup or regression.
+Next: remaining bounded read-path latency and the #388 native-artwork failure;
+repeated/full-track acceptance stays open. Server images remain `91f25c77`;
+compact/CASH and owner-deferred real
+recovery keep their separate gates. Older checkpoints retain their dated scope.
+
 ## Complete-read scheduling candidate, 2026-11-15
 
 [The next #395 correction](evidence/room-preparation-read-scheduling-2026-11-15.md)

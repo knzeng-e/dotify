@@ -1,5 +1,18 @@
 # Mobile-host Room startup and listening continuity
 
+## Complete-read scheduling delivered, 2026-11-15
+
+[Web/Product 0.1.87](implementation/evidence/product-0.1.87-rollout-2026-11-15.md)
+delivers #473 from frozen `1d3ce028`, based on tested dev `54beb926`. Completed
+reads free workers while earlier fragments wait; final assembly stays ordered
+with unchanged access, concurrency and media limits. Independent delivery and
+unchanged custody/history checks pass. The owner confirms one first opening
+(~36 s; matching trace 36.955 s), respected Pause and audible guests through
+phone lock. Preparation remains slow; different cache counts from 0.1.86 do not
+establish a speedup or regression. The lock-screen cover is absent in this run
+and stays open under #388. #395 stays open for latency/repeated listening.
+Earlier checkpoints retain their historical scope.
+
 ## Complete-read scheduling candidate, 2026-11-15
 
 [The bounded collector correction](implementation/evidence/room-preparation-read-scheduling-2026-11-15.md)

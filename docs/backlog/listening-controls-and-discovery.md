@@ -1,5 +1,16 @@
 # Listening controls and room discovery — next iteration
 
+## Matching missing-cover observation, 2026-11-15
+
+The [0.1.87 phone follow-up](implementation/evidence/product-0.1.87-rollout-2026-11-15.md#matching-phone-follow-up)
+confirms one first Room opening, Pause and audible guests during phone lock, but
+the owner reports no lock-screen cover on Polkadot app 0.10.0 (20). The matching
+trace prepares and registers PNG metadata in 59 ms, before Room preparation.
+This is not a native-display acknowledgement and does not establish the failure
+cause. It keeps #388 open despite the earlier bounded 0.1.84 positive check;
+audio continuity and artwork acceptance remain separate. The existing report
+is sufficient for this observation; no repeat or new signature is requested.
+
 ## Matching client delivery, 2026-11-14
 
 [Web/Product 0.1.84](implementation/evidence/product-0.1.84-rollout-2026-11-14.md) delivers bounded artwork return
