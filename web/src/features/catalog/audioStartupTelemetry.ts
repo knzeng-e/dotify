@@ -251,7 +251,16 @@ export function serializeAudioDiagnostics(snapshot: AudioStartupTelemetrySnapsho
         'recoveredObjects',
         'readWorkMs',
         'decryptWorkMs',
-        'maxReadMs'
+        'maxReadMs',
+        'relayWaitMs',
+        'nativeReadMs',
+        'httpHeadersMs',
+        'httpBodyMs',
+        'nativeReadAttempts',
+        'nativeReadFailures',
+        'httpRequests',
+        'httpBodyReads',
+        'httpFailures'
       ].map(key => [key, safeNumber(value[key as keyof StreamingReadTimings])])
     );
   return JSON.stringify(

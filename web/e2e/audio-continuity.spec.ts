@@ -897,6 +897,14 @@ test('successful complete preparation keeps correlated reader and host timing ev
   expect(ready.readTimings.objectsRead).toBeGreaterThan(2);
   expect(ready.readTimings.objectsDecrypted).toBe(ready.readTimings.objectsRead);
   expect(ready.readTimings.encryptedBytes).toBeGreaterThan(0);
+  expect(ready.readTimings.httpRequests).toBe(ready.readTimings.objectsRead);
+  expect(ready.readTimings.httpBodyReads).toBe(ready.readTimings.objectsRead);
+  expect(ready.readTimings.httpFailures).toBe(0);
+  expect(ready.readTimings.nativeReadAttempts).toBe(0);
+  for (const field of ['relayWaitMs', 'nativeReadMs', 'httpHeadersMs', 'httpBodyMs']) {
+    expect(Number.isFinite(ready.readTimings[field])).toBe(true);
+    expect(ready.readTimings[field]).toBeGreaterThanOrEqual(0);
+  }
   const downloaded = report.streaming.find((event: { phase: string }) => event.phase === 'compatibility-downloaded');
   expect(ready.elapsedMs).toBeGreaterThanOrEqual(downloaded.elapsedMs);
   expect(ready.selectionElapsedMs).toBeGreaterThanOrEqual(ready.elapsedMs);

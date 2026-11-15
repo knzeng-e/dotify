@@ -11,7 +11,7 @@ import { readCompatibilityAudio, type CompatibilityAudioProgress } from './compa
 import { compatibilityMp4 } from './compatibilityMp4';
 import { acquireMediaRelaySlot } from './mediaRelaySlots';
 import { isBulletinMediaRoot, streamingObjectUrls } from './streamingTransport';
-import { createStreamingReadTimings } from './streamingReadTimings';
+import { createStreamingReadTimings, measureStreamingTransport, type StreamingTransportMetric } from './streamingReadTimings';
 import type { StreamingStartupMetric } from './audioStartupTelemetry';
 type ReaderMetric = Pick<
   StreamingStartupMetric,
@@ -63,6 +63,7 @@ export type StreamingTransportOptions = {
   layout: StreamingLayout;
   priority?: 'playback' | 'preparation';
   compactRead?: (path: string, maxBytes: number, signal: AbortSignal) => Promise<Uint8Array | null>;
+  onReadPhase?: (metric: StreamingTransportMetric) => void;
 };
 export async function fetchStreamingObject(
   cid: string,
@@ -88,16 +89,24 @@ export async function fetchStreamingObject(
   let nativeAttempted = false;
   if (bulletin && ['auto', 'required'].includes(import.meta.env.VITE_DOTIFY_HOST_MODE ?? 'off')) {
     try {
-      const { readHostBulletinMedia } = await import('./bulletinHostMedia');
-      signal.throwIfAborted();
-      nativeAttempted = true;
-      const bytes =
-        transport.layout === 'rendition-pack-v1' && path !== 'manifest.json'
-          ? await transport.compactRead?.(path, maxBytes, signal)
-          : await readHostBulletinMedia(cid, path, maxBytes, signal);
+      const bytes = await measureStreamingTransport(
+        'native-read',
+        async () => {
+          const { readHostBulletinMedia } = await import('./bulletinHostMedia');
+          signal.throwIfAborted();
+          nativeAttempted = true;
+          const result =
+            transport.layout === 'rendition-pack-v1' && path !== 'manifest.json'
+              ? await transport.compactRead?.(path, maxBytes, signal)
+              : await readHostBulletinMedia(cid, path, maxBytes, signal);
+          signal.throwIfAborted();
+          if (result && exactLength && path !== 'manifest.json' && result.length !== maxBytes) throw new Error('Incomplete streaming object');
+          return result;
+        },
+        transport.onReadPhase
+      );
       signal.throwIfAborted();
       if (bytes) {
-        if (exactLength && path !== 'manifest.json' && bytes.length !== maxBytes) throw new Error('Incomplete streaming object');
         storeWarmObject(cacheKey, bytes);
         observe?.({ gatewayUrl: 'polkadot:bulletin', gatewayRecovered: false, fromCache: false });
         return bytes;
@@ -121,7 +130,10 @@ export async function fetchStreamingObject(
   for (let attempt = 0; attempt < (bulletin ? 1 : 2); attempt++)
     for (const [index, url] of urls.entries()) {
       signal.throwIfAborted();
-      const releaseRelay = api && url.startsWith(`${api}/api/media/`) ? await acquireMediaRelaySlot(signal, transport.priority) : undefined;
+      const releaseRelay =
+        api && url.startsWith(`${api}/api/media/`)
+          ? await measureStreamingTransport('relay-wait', () => acquireMediaRelaySlot(signal, transport.priority), transport.onReadPhase)
+          : undefined;
       const controller = new AbortController();
       const deadline = setTimeout(() => controller.abort(), !bulletin && import.meta.env.VITE_DOTIFY_MEDIA_EDGE_URL && index === 0 ? 3000 : 12_000);
       try {
@@ -134,13 +146,25 @@ export async function fetchStreamingObject(
           observe?.({ fromCache: true });
           return ready;
         }
-        const response = await fetch(url, { signal: AbortSignal.any([signal, controller.signal]), credentials: 'omit' });
+        const response = await measureStreamingTransport(
+          'http-headers',
+          () => fetch(url, { signal: AbortSignal.any([signal, controller.signal]), credentials: 'omit' }),
+          transport.onReadPhase,
+          response => response.status !== 200
+        );
         if (response.status !== 200) {
           await response.body?.cancel();
           continue;
         }
-        const bytes = await readAudioBody(response, AbortSignal.any([signal, controller.signal]), 12_000, maxBytes);
-        if (exactLength && path !== 'manifest.json' && bytes.length !== maxBytes) throw new Error('Incomplete streaming object');
+        const bytes = await measureStreamingTransport(
+          'http-body',
+          async () => {
+            const result = await readAudioBody(response, AbortSignal.any([signal, controller.signal]), 12_000, maxBytes);
+            if (exactLength && path !== 'manifest.json' && result.length !== maxBytes) throw new Error('Incomplete streaming object');
+            return result;
+          },
+          transport.onReadPhase
+        );
         storeWarmObject(cacheKey, bytes);
         observe?.({ gatewayUrl: url, gatewayRecovered: nativeAttempted || attempt > 0 || index > 0, fromCache: false });
         return bytes;
@@ -222,8 +246,12 @@ export async function createStreamingPlayback(input: {
   const reference = input.audioRef ? streamingReference(input.audioRef) : undefined;
   if (input.audioRef && (!reference || reference.root !== input.cid || reference.keyVersion !== input.scope.keyVersion))
     throw new Error('Streaming reference identity mismatch');
-  const transport: StreamingTransportOptions = { layout: reference?.layout ?? 'unixfs-files-v1', priority: input.forRoomCapture ? 'preparation' : 'playback' };
   const timings = createStreamingReadTimings();
+  const transport: StreamingTransportOptions = {
+    layout: reference?.layout ?? 'unixfs-files-v1',
+    priority: input.forRoomCapture ? 'preparation' : 'playback',
+    onReadPhase: timings.observeTransport
+  };
   const emit = (metric: ReaderMetric) => {
     if (!input.signal.aborted || (metric.phase === 'error' && input.signal.reason?.name === 'TimeoutError')) input.onMetric?.(metric);
   };
