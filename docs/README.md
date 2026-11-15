@@ -2,7 +2,9 @@
 
 The [0.1.88 client delivery](backlog/implementation/evidence/product-0.1.88-rollout-2026-11-15.md)
 adds local relay/native/HTTP-header/body measurements. Independent delivery and
-unchanged custody checks pass; matching phone phase measurements remain open.
+unchanged custody checks pass. One matching Wi-Fi phone check confirms Pause,
+guest/lock sound and artwork, but preparation takes 34.857 s; the report locates
+work in relay admission and pre-response HTTP waits without isolating a cause.
 The [measurement guide](how-to/measure-room-startup.md#distinguish-transport-phases)
 defines the fields and limits. No speedup or native-artwork correction is claimed.
 

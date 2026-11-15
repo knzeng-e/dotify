@@ -4,9 +4,11 @@
 
 [Web/Product 0.1.88 is delivered](evidence/product-0.1.88-rollout-2026-11-15.md)
 from frozen `4cbdb4f4`, based on tested dev `bbfaae56` after #475. Independent
-artifact/Web/retention/DotNS and unchanged custody checks pass. Match the new
-local transport fields to one first phone opening before choosing a latency
-correction; no speedup or artwork fix is claimed. #395/#388 stay open. Server
+artifact/Web/retention/DotNS and unchanged custody checks pass. One matching Wi-Fi
+phone opening/Pause/guest-lock/artwork check passes, with 34.857-s preparation.
+Relay admission and pre-response HTTP work dominate; their upstream/network cause
+remains unknown. Investigate that bounded path before a latency correction; no
+speedup or artwork fix is claimed. #395/#388 stay open. Server
 images remain `91f25c77`; compact/CASH and owner-deferred recovery retain their
 gates. Older checkpoints retain their dated scope.
 

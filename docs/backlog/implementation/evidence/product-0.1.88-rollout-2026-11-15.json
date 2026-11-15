@@ -81,5 +81,92 @@
   "automaticRenewalActivated": false,
   "compactPublicationActivated": false,
   "serverImagesReplaced": false,
-  "realRecoveryStillDeferred": true
+  "realRecoveryStillDeferred": true,
+  "physicalAcceptanceFollowup": {
+    "source": "4cbdb4f4206f91470eb6097ade8f23093f4aa840",
+    "reportSchema": "dotify.audio-diagnostics.v1",
+    "reportObservedAt": "2026-11-15T20:23:37.353Z",
+    "hostSoftware": {
+      "platform": "Ios",
+      "name": "Polkadot App",
+      "version": "0.10.0 (20)"
+    },
+    "ownerObservation": {
+      "network": "Wi-Fi",
+      "roomReadyApproxSeconds": 34,
+      "pauseRespected": true,
+      "guestsAudibleDuringRequestedLock": true,
+      "lockScreenArtworkVisible": true,
+      "protocol": "existing Adang Fobe, no connected wallet, solo then one Room opening in this report; requested 15–30-second phone lock",
+      "actualLockDurationSeconds": null,
+      "earlierSeparateRun": {
+        "roomReadyApproxSeconds": 27,
+        "closedAfterProlongedInactivity": true,
+        "completedGuestProtocol": false,
+        "matchedReportAvailable": false
+      }
+    },
+    "roomPreparation": {
+      "attempt": 2,
+      "readAttempt": 1,
+      "authorizationMs": 196,
+      "manifestReadyMs": 199,
+      "downloadedMs": 34846,
+      "readyMs": 34857,
+      "assemblyMs": 11,
+      "objectsRead": 73,
+      "objectsDecrypted": 73,
+      "encryptedBytes": 3580693,
+      "cachedObjects": 10,
+      "hostObjects": 0,
+      "httpObjects": 63,
+      "recoveredObjects": 0,
+      "readWorkMs": 130429,
+      "decryptWorkMs": 65,
+      "maxReadMs": 10860,
+      "relayWaitMs": 66944,
+      "nativeReadMs": 0,
+      "httpHeadersMs": 63111,
+      "httpBodyMs": 313,
+      "nativeReadAttempts": 0,
+      "nativeReadFailures": 0,
+      "httpRequests": 63,
+      "httpBodyReads": 63,
+      "httpFailures": 0
+    },
+    "handoff": {
+      "attempt": 3,
+      "preparedSourceReusedMs": 245,
+      "metadataReadyAfterSourceMs": 164,
+      "pausedPositionSeconds": 11.669695912,
+      "explicitPlayAfterSourceMs": 22262,
+      "isAnotherRoomRetry": false
+    },
+    "output": {
+      "generation": 2,
+      "hiddenAt": 1794774138671,
+      "visibleAt": 1794774197618,
+      "hiddenToVisibleMs": 58947,
+      "contextAdvanceSeconds": 58.94933333333333,
+      "mediaAdvanceSeconds": 58.94844193050574,
+      "audibilityEvidence": "owner observation, not media/context clocks alone"
+    },
+    "artwork": {
+      "attempt": 1,
+      "decodedMs": 2,
+      "composedMs": 22,
+      "pngMetadataPublishedMs": 25,
+      "nativeDisplayAcknowledgedByTelemetry": false,
+      "ownerSawLockScreenArtwork": true,
+      "reliableAcrossRepeatedRunsEstablished": false
+    },
+    "traceLimits": [
+      "Settled work durations overlap; relay and HTTP totals cannot be added to wall time.",
+      "The API buffers an object before sending its body; header wait can include upstream object retrieval as well as connection, network and server work.",
+      "Zero native attempts means no native-path probe is observed, not a failed native path.",
+      "This session follows a separate 27-second run; local cache is partial and upstream cache/network conditions are unknown. No controlled speed gain is established.",
+      "One positive artwork result does not resolve the prior 0.1.87 absence or establish repeated native reliability."
+    ],
+    "newNetworkWrites": 0
+  }
 }

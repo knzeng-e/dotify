@@ -1,6 +1,6 @@
 # Web/Product 0.1.88 delivery — 15 November 2026
 
-**Published and independently verified; matching phone phase measurements remain open.**
+**Published and independently verified; one matching Wi-Fi phone check passes, with preparation still slow.**
 Web and `dotify-test01.dot` serve frozen `4cbdb4f4206f91470eb6097ade8f23093f4aa840`, based on tested dev
 `bbfaae560292979ea0cad1b54810e8b52f7a7d39` after #475. The only tracked packaging change is appVersion
 `[0,1,88]`. Refs #395. The [structured public evidence](product-0.1.88-rollout-2026-11-15.json)
@@ -101,17 +101,76 @@ budget, access policy or Host/SDK setting changes. Compact/CASH activation,
 automatic renewal and the owner-deferred real independent recovery remain
 outside this delivery; existing artist assets remain.
 
+## Matching phone follow-up
+
+The owner reports **34 s**, respected Pause, audible guests during phone lock and
+visible lock-screen artwork on **Wi-Fi**, Polkadot app **0.10.0 (20)**. The matching
+report identifies this exact `4cbdb4f4` build, observed at
+`2026-11-15T20:23:37.353Z`. Requested context is existing **Adang Fobe**, without a
+connected wallet, solo then one Room opening. The owner also describes an earlier
+separate opening in about **27 s**, whose Room closes after prolonged inactivity
+before the protocol finishes. That earlier run has no matching supplied report;
+it is neither a demonstrated preparation timeout nor a cold-start benchmark.
+This report captures the later successful opening, not that prior run.
+
+| Observation | Value and scope |
+| --- | --- |
+| Owner's approximate opening time | 34 s; separate from instrumentation |
+| Authorization / authenticated manifest ready | 196 ms / 199 ms |
+| Complete download / prepared source ready | 34,846 ms / 34,857 ms |
+| Local assembly after download | 11 ms |
+| Authenticated objects / encrypted bytes | 73 / 3,580,693 bytes |
+| Cache / native Host / HTTP / recovered | 10 / 0 / 63 / 0 objects |
+| Overlapping read / decrypt work | 130,429 ms / 65 ms |
+| Relay-slot waiting work | 66,944 ms; cumulative, overlapping waits |
+| HTTP headers / body work | 63,111 ms / 313 ms; cumulative settled phases |
+| Native probes / HTTP requests / body reads / HTTP failures | 0 / 63 / 63 / 0 |
+| Longest complete object read | 10,860 ms, including admission/transport |
+
+Read work concentrates in relay admission and pre-response HTTP waiting; body
+consumption, authentication and assembly are short. These totals overlap and
+cannot be added to the 34.857-second wall time. The existing API route waits for
+the complete ciphertext object before sending it, so client header wait can
+include upstream retrieval, server processing, browser scheduling, connection and
+network delay. It is not pure network round-trip time or proof of one server
+bottleneck. No HTTP failure/fallback is observed in this complete preparation.
+Zero native probes means the native path is not used in this try, not that it
+fails. The [measurement contract](../../../how-to/measure-room-startup.md#distinguish-transport-phases)
+defines these boundaries and incomplete-coverage limits.
+
+The normal prepared-source handoff is attempt 3: reauthorization/reuse takes
+245 ms and element metadata readiness another 164 ms from source selection. It
+is not another user Room retry. Output stays paused at **11.669695912 s** through
+source replacement until the later explicit Play intent. Generation 2 then has
+hidden→visible observations **58.947 s** apart, with about 58.949 s of context and
+58.948 s of media advancement. Those clocks accompany, but do not prove, the
+owner's audible lock result; actual lock duration is not separately restated.
+
+Artwork is decoded in 2 ms, composed in 22 ms and assigned as PNG metadata at
+25 ms. The owner sees the lock-screen cover this time. This is a positive bounded
+device check; metadata assignment still does not acknowledge native display.
+The prior [0.1.87 absence](product-0.1.87-rollout-2026-11-15.md#matching-phone-follow-up)
+remains evidence, and this diagnostic release changes no artwork behavior.
+Do not close #388 on one successful appearance or claim a rendering correction.
+
+The 0.1.87 report has the same 10 cached / 63 HTTP counts, but different upstream
+cache/network conditions and the earlier separate run are uncontrolled. Neither
+34.857 versus 36.955 seconds nor the untraced 27-second opening establishes a
+speed gain. Keep the successful protocol distinct from repeated/full-track and
+latency acceptance.
+
 ## Next acceptance
 
-Measure one first Room opening on this exact 0.1.88 build with existing
-**Adang Fobe**, without a connected wallet, and copy the matching support report
-before any retry/reload. Record preparation time, Pause during preparation,
-explicit Play, audible Web/Desktop guests and short phone lock. Check artwork
-separately: metadata assignment alone does not prove native display.
+Investigate the bounded pre-response path and its effect on the existing relay
+queue before changing capacity or deadlines. Source inspection identifies the
+catalog refresh/admission hook, server ciphertext reader/cache and upstream
+retrieval as distinct possible contributors; this report does not select a cause
+among them. A controlled reproduction or finer server-side phase evidence must
+precede a claimed correction. No live service inspection, configuration change,
+maintenance, signer or musical operation occurs in recording this feedback.
 
-The [0.1.87 phone result](product-0.1.87-rollout-2026-11-15.md#matching-phone-follow-up)
-remains historical: one successful opening and Pause/guest/lock sound, 36.955-s
-preparation, missing lock-screen cover. It cannot establish 0.1.88 acceptance or
-provide the new transport fields. #395 remains open for acceptable comparable
-startup and repeated/full-track continuity; #388 remains open for reliable
-native artwork. Public-pilot access/value-flow and recovery gates remain separate.
+#395 remains open for acceptable comparable startup and repeated/full-track
+audible continuity. #388 remains open for reliable native artwork, while this
+successful appearance and earlier absence are both preserved. Public-pilot
+access/value-flow and owner-deferred recovery gates remain separate. No repeat
+is requested solely to replace this valid observation.
