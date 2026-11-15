@@ -69,11 +69,14 @@ short-lock sound check passes, but preparation takes 36.955 s and the lock-scree
 cover is absent. Latency and artwork acceptance remain open. No musical
 allowance, key, compact or CASH activation changes.
 
-The [read-phase diagnostic candidate](../backlog/implementation/evidence/room-read-phase-timings-2026-11-15.md)
-changes no deployment settings. Its optional local support counters require a
-matching reviewed client delivery before phone interpretation; deployed 0.1.87
-reports do not contain them. Follow the [measurement guide](../how-to/measure-room-startup.md#distinguish-transport-phases).
-No live read, maintenance, signer or write allowance is implied.
+At the [0.1.88 client checkpoint](../backlog/implementation/evidence/product-0.1.88-rollout-2026-11-15.md),
+Web/Product deliver optional local transport-phase counters from `4cbdb4f4`.
+Independent artifact/Web/retention/finalized-DotNS and unchanged custody restart/
+history checks pass; server images/settings remain `91f25c77`. Matching phone
+measurements remain open; no latency gain or native-artwork fix is claimed.
+Older 0.1.87 reports cannot provide these new fields retrospectively. Follow the
+[measurement guide](../how-to/measure-room-startup.md#distinguish-transport-phases).
+No setting, musical allowance, key, compact/CASH or automatic renewal changes.
 
 Do not infer an active key, remaining publication allowance, available quota or
 permission to reuse an admission from this page. Use the applicable private

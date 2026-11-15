@@ -1,6 +1,6 @@
 # Deploy Dotify To Product DevNet
 
-The [0.1.87 delivery record](../backlog/implementation/evidence/product-0.1.87-rollout-2026-11-15.md)
+The [0.1.88 delivery record](../backlog/implementation/evidence/product-0.1.88-rollout-2026-11-15.md)
 identifies the 2026-11-15 served clients and remaining phone acceptance. Earlier
 dated entries below retain their original scope.
 

@@ -1,5 +1,14 @@
 # Mobile-host Room startup and listening continuity
 
+## Transport-phase diagnostic delivered, 2026-11-15
+
+[Web/Product 0.1.88](implementation/evidence/product-0.1.88-rollout-2026-11-15.md)
+delivers #475 from frozen `4cbdb4f4`, based on tested dev `bbfaae56`. Complete
+artifact/Web/retention/finalized-DotNS and unchanged custody/history checks pass.
+Next: a matching first-opening report with the new phase counters, then a bounded
+latency correction. No speedup or native-artwork fix is claimed. #395/#388 stay
+open; previous phone observations retain their named build and scope.
+
 ## Local transport-phase diagnostic candidate, 2026-11-15
 
 [The read-phase diagnostic](implementation/evidence/room-read-phase-timings-2026-11-15.md)

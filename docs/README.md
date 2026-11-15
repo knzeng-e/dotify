@@ -1,9 +1,10 @@
 # Dotify documentation
 
-The [local read-phase diagnostic candidate](backlog/implementation/evidence/room-read-phase-timings-2026-11-15.md)
-helps distinguish relay, native, HTTP-header and body waits. It is locally tested,
-not deployed or a measured speedup; the [measurement guide](how-to/measure-room-startup.md#distinguish-transport-phases)
-defines its fields and limits.
+The [0.1.88 client delivery](backlog/implementation/evidence/product-0.1.88-rollout-2026-11-15.md)
+adds local relay/native/HTTP-header/body measurements. Independent delivery and
+unchanged custody checks pass; matching phone phase measurements remain open.
+The [measurement guide](how-to/measure-room-startup.md#distinguish-transport-phases)
+defines the fields and limits. No speedup or native-artwork correction is claimed.
 
 The [0.1.87 client delivery](backlog/implementation/evidence/product-0.1.87-rollout-2026-11-15.md)
 records verified delivery and one matching phone opening with Pause and guest/
