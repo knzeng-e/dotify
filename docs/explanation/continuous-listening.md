@@ -136,6 +136,23 @@ The recheck enforces the same expiry and authenticated-size constraints, reports
 a cache hit rather than network throughput, and releases the slot even when no
 HTTP request is needed. It does not coalesce downloads already in flight.
 
+The ordinary IPFS API relay has a separate process-local ciphertext cache:
+16 MiB of payload and at most 128 objects, evicting the least recently used
+entries when either bound is exceeded. A short 73-object rendition can survive
+a second pass without evicting its own beginning. Larger or competing working
+sets can still miss; another replica or a restarted process has its own cache.
+The [cache correction evidence](../backlog/implementation/evidence/ipfs-rendition-cache-replay-2026-11-16.md)
+separates the controlled reuse result from hosted and phone acceptance.
+
+This cache holds neither keys nor clear audio. The catalog-gated
+[media route](../../services/api/src/routes/media.ts) checks current active,
+encrypted release eligibility before consulting the
+[reader](../../services/api/src/services/encryptedMedia.ts), even for a warm
+object. Client purpose authorization and authentication remain separate. Two
+cold reads, gateway/redirect policy and no-store HTTP responses remain; this is
+not a browser cache, an unrestricted gateway or the separate Bulletin reader.
+Keeping more small objects helps repeated reads, not an empty-cache first pass.
+
 Complete compatibility preparation collects the lowest authenticated rendition
 with at most four reader workers and the existing 40-MiB rendition cap
 (`web/src/features/catalog/compatibilityAudio.ts`). When any read finishes, its

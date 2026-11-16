@@ -3,7 +3,9 @@ import { parseStreamingReference } from './streamingReference.js';
 export const streamingMediaReference = (ref: string) => parseStreamingReference(ref, value => CID.parse(value));
 // Bounded ciphertext delivery for fixed objects of registered streaming releases.
 const MAX_CACHE_BYTES = 16 * 1024 * 1024;
-const MAX_ENTRIES = 64;
+// Keep a short rendition (manifest/init plus >64 small segments) reusable on
+// replay. The same byte cap still evicts larger or competing working sets.
+const MAX_ENTRIES = 128;
 const GATEWAYS = ['https://gateway.pinata.cloud', 'https://ipfs.io', 'https://dweb.link'];
 function safeGatewayRedirect(url: URL, dedicated?: string): boolean {
   return (

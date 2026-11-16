@@ -1,5 +1,17 @@
 # Mobile-host Room startup and listening continuity
 
+## IPFS rendition-cache correction candidate, 2026-11-16
+
+[The bounded server cache correction](implementation/evidence/ipfs-rendition-cache-replay-2026-11-16.md)
+keeps a 73-object small rendition reusable within the existing 16-MiB payload
+cap by allowing 128 entries instead of 64. A controlled replay goes from 73
+additional upstream reads to zero; cold first-pass work is unchanged. Current
+catalogue admission, ciphertext/key boundaries and two-cold-read limit remain.
+The public catalogue confirms Adang Fobe uses this reader, but does not identify
+the phone's server cache state or establish a measured speedup. Review, full CI
+and matching API delivery/hosted acceptance remain; clients stay 0.1.88 and
+#395/#388 stay open.
+
 ## Transport-phase diagnostic delivered, 2026-11-15
 
 [Web/Product 0.1.88](implementation/evidence/product-0.1.88-rollout-2026-11-15.md)
