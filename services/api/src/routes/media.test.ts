@@ -46,6 +46,70 @@ it('coalesces complete ciphertext objects and keeps an independent subscriber al
   assert.deepEqual([...(await reader.read(object)).bytes], [1, 2, 3]);
   assert.equal(calls, 1);
 });
+it('retains a 73-object rendition for a second pass within the ciphertext byte budget', async () => {
+  const objects = [
+    `${cid}/manifest.json`,
+    `${cid}/96/init.bin`,
+    ...Array.from({ length: 71 }, (_, i) => `${cid}/96/segment-${String(i).padStart(3, '0')}.bin`)
+  ];
+  let calls = 0;
+  const reader = createEncryptedMediaReader(async url => {
+    calls++;
+    const index = objects.indexOf(new URL(String(url)).pathname.slice('/ipfs/'.length));
+    assert(index >= 0);
+    return new Response(new Uint8Array(48 * 1024).fill(index));
+  });
+  try {
+    for (let pass = 0; pass < 2; pass++) {
+      for (const [index, path] of objects.entries()) {
+        const result = await reader.read(path);
+        assert.equal(result.bytes.length, 48 * 1024);
+        assert.equal(result.bytes[0], index);
+      }
+      assert.equal(calls, objects.length, 'A second pass must not evict its own still-budgeted rendition');
+    }
+  } finally {
+    reader.clear();
+  }
+});
+it('bounds ciphertext entries at 128 and evicts the least recently used object', async () => {
+  const path = (i: number) => `${cid}/96/segment-${String(i).padStart(3, '0')}.bin`;
+  let calls = 0;
+  const reader = createEncryptedMediaReader(async () => {
+    calls++;
+    return bytes();
+  });
+  try {
+    for (let i = 0; i < 128; i++) await reader.read(path(i));
+    await reader.read(path(0)); // Keep the oldest insertion hot before admitting another entry.
+    assert.equal(calls, 128);
+    await reader.read(path(128));
+    await reader.read(path(0));
+    assert.equal(calls, 129);
+    await reader.read(path(1));
+    assert.equal(calls, 130, 'The untouched oldest entry must have been evicted');
+  } finally {
+    reader.clear();
+  }
+});
+it('keeps the 16-MiB ciphertext byte cap even when fewer than 128 entries are cached', async () => {
+  const path = (i: number) => `${cid}/96/segment-${String(i).padStart(3, '0')}.bin`;
+  let calls = 0;
+  const reader = createEncryptedMediaReader(async () => {
+    calls++;
+    return new Response(new Uint8Array(1024 * 1024));
+  });
+  try {
+    for (let i = 0; i < 17; i++) await reader.read(path(i));
+    assert.equal(calls, 17);
+    await reader.read(path(16));
+    assert.equal(calls, 17, 'The newest object must still be cached');
+    await reader.read(path(0));
+    assert.equal(calls, 18, 'Bytes above 16 MiB must evict old objects despite spare entry capacity');
+  } finally {
+    reader.clear();
+  }
+});
 it('aborts transport when its last subscriber leaves, without caching abandoned data', async () => {
   const started = deferred<void>();
   let calls = 0,
