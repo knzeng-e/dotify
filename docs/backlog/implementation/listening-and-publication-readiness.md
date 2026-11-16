@@ -1,5 +1,16 @@
 # Publication, listening reliability and CASH — execution order
 
+## Bounded IPFS replay correction, 2026-11-16
+
+[The server cache candidate](evidence/ipfs-rendition-cache-replay-2026-11-16.md)
+removes reproduced 73-object replay churn with the same 16-MiB ciphertext payload
+bound and 128 fixed entries. The existing Adang Fobe public reference uses this
+reader; actual phone cache state remains unknown. Review/CI and an API-only
+matching delivery precede hosted reuse acceptance. Cold pre-response latency and
+#395 repeated listening remain open; no phone speed gain or artwork correction
+is claimed. Web/Product stay 0.1.88; compact/CASH and deferred recovery retain
+their separate gates.
+
 ## Transport-phase client delivery, 2026-11-15
 
 [Web/Product 0.1.88 is delivered](evidence/product-0.1.88-rollout-2026-11-15.md)

@@ -1,5 +1,10 @@
 # Dotify documentation
 
+The [IPFS rendition-cache candidate](backlog/implementation/evidence/ipfs-rendition-cache-replay-2026-11-16.md)
+prevents a small rendition evicting itself during replay, within the same 16-MiB
+payload bound. Local request-count evidence is separate from hosted delivery
+and phone latency acceptance.
+
 The [0.1.88 client delivery](backlog/implementation/evidence/product-0.1.88-rollout-2026-11-15.md)
 adds local relay/native/HTTP-header/body measurements. Independent delivery and
 unchanged custody checks pass. One matching Wi-Fi phone check confirms Pause,
