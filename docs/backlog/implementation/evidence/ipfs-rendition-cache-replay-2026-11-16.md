@@ -1,6 +1,9 @@
 # Keep short IPFS renditions reusable — 16 November 2026
 
-**Implemented and locally tested; not deployed or a measured phone speedup.**
+**Implementation checkpoint: locally tested before delivery; no phone speedup claimed.**
+The subsequent [API-only delivery](api-cache-rollout-2026-11-16.md) binds the served
+image and remaining hosted/listening acceptance. The checkpoint below retains
+its original pre-delivery scope.
 Refs #395. Code `2ad0f84218d53d506e6fb38a64157e0f817fa2e0` starts from tested merged dev
 `181765c11ef3811de57ba28d422b34e180469e1a`
 ([green CI](https://github.com/knzeng-e/dotify/actions/runs/43766033429)).

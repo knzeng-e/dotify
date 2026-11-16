@@ -79,11 +79,13 @@ Older 0.1.87 reports cannot provide these new fields retrospectively. Follow the
 [measurement guide](../how-to/measure-room-startup.md#distinguish-transport-phases).
 No setting, musical allowance, key, compact/CASH or automatic renewal changes.
 
-The [IPFS ciphertext-cache candidate](../backlog/implementation/evidence/ipfs-rendition-cache-replay-2026-11-16.md)
-changes an internal reader bound to 128 entries with the same 16-MiB payload
-cap. It introduces no environment/dashboard/storage setting. It is not deployed;
-a separately reviewed API image rollout and hosted cache/memory/listening checks
-remain. Web/Product stay 0.1.88 and server images stay `91f25c77` at this checkpoint.
+At the [2026-11-16 API cache checkpoint](../backlog/implementation/evidence/api-cache-rollout-2026-11-16.md),
+both public API replicas serve `72e28eba` with the 128-entry / 16-MiB IPFS cache.
+Exact image/source, preserved stable/launch configuration and health/readiness
+checks pass after sequential replacements. Only the image and public source
+marker change. Custody, encoder and signaling are not targeted; Web/Product
+stay 0.1.88. Matching hosted cache/memory and listening acceptance remain open;
+no cold-start speedup is claimed.
 
 Do not infer an active key, remaining publication allowance, available quota or
 permission to reuse an admission from this page. Use the applicable private

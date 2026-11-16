@@ -1,5 +1,10 @@
 # Activate shared API state (W36)
 
+The [2026-11-16 API cache delivery](../backlog/implementation/evidence/api-cache-rollout-2026-11-16.md)
+updates only the two public replicas to `72e28eba`, preserving settings and
+shared-state schema. Custody and the earlier topology/import remain outside that
+intervention; matching listening and hosted-memory acceptance are separate.
+
 The October 28 [activation record](../backlog/implementation/evidence/product-0.1.63-rollout-2026-10-28.md)
 records the deployed topology, approvals, complete transfer, backup/restore and
 remaining device checks. This is the reusable procedure; implementation alone

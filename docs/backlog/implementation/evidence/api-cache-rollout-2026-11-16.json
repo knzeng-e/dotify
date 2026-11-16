@@ -1,0 +1,104 @@
+{
+  "schema": "dotify.api.delivery.v1",
+  "source": "72e28eba7b57ab41a58766f935a3be438ef38dcc",
+  "previousServerSource": "91f25c77ddb117f97bba4b7808a7ad2fb4b8e244",
+  "completedAt": "2026-11-16T03:21:22.971780+00:00",
+  "application": "dotify-api",
+  "replicaCount": 2,
+  "image": "registry.fly.io/dotify-api@sha256:820605c48dccfa0046c70724474767c0bc9e7dee2c151943fb2d0df64b372a69",
+  "imageConfigDigest": "sha256:d79554a633b7a3862656936b62585c6ae4c2bc072d5db503ccb3da489fd53b58",
+  "previousImage": "registry.fly.io/dotify-api@sha256:6c7c9cfefc1cd81d184c1ac1f76aec5628f5235699c478910ff48fa6ec381907",
+  "registryManifestConfigVerified": true,
+  "rollbackRegistryManifestVerified": true,
+  "normalImageUpdates": 2,
+  "rollbackUpdates": 0,
+  "stableConfigurationsPreserved": true,
+  "launchConfigurationsPreserved": true,
+  "finalHealth": [
+    [
+      [
+        {
+          "path": "/health",
+          "status": 200
+        },
+        {
+          "path": "/health/ready",
+          "status": 200
+        }
+      ],
+      [
+        {
+          "path": "/health",
+          "status": 200
+        },
+        {
+          "path": "/health/ready",
+          "status": 200
+        }
+      ]
+    ],
+    [
+      [
+        {
+          "path": "/health",
+          "status": 200
+        },
+        {
+          "path": "/health/ready",
+          "status": 200
+        }
+      ],
+      [
+        {
+          "path": "/health",
+          "status": 200
+        },
+        {
+          "path": "/health/ready",
+          "status": 200
+        }
+      ]
+    ]
+  ],
+  "runtime": {
+    "node": "22.23.5",
+    "openssl": "3.5.9",
+    "uid": 1000,
+    "arch": "x64",
+    "platform": "linux"
+  },
+  "publicVersion": {
+    "version": "0.1.0",
+    "commitSha": "72e28eba7b57ab41a58766f935a3be438ef38dcc"
+  },
+  "ci": {
+    "conclusion": "success",
+    "headSha": "72e28eba7b57ab41a58766f935a3be438ef38dcc",
+    "status": "completed",
+    "url": "https://github.com/knzeng-e/dotify/actions/runs/43794765162"
+  },
+  "localValidation": {
+    "fullApiCodeTests": 656,
+    "compiledImageTests": 196,
+    "compiledImageTestFiles": 11,
+    "operatorGuardTests": 11,
+    "containerCpuLimit": 1,
+    "containerMemoryLimitBytes": 1073741824,
+    "containerMemoryPeakBytes": 179118080,
+    "productionMemoryAcceptance": false,
+    "sigtermExitCode": 0,
+    "stopMilliseconds": 105
+  },
+  "webProductVersionPreserved": "0.1.88",
+  "otherServicesTargeted": [],
+  "privateDatabaseAudioKeyExport": false,
+  "schemaMigration": false,
+  "bulletinOperations": 0,
+  "dotnsSignatures": 0,
+  "newMusic": 0,
+  "authorityConsumed": true,
+  "physicalAcceptance": "not yet observed after API cache rollout",
+  "automaticRenewalActivated": false,
+  "compactCashActivated": false,
+  "realRecoveryDeferred": true
+}
