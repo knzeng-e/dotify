@@ -130,12 +130,18 @@ identity; it is not an identity-preserving migration. Such a migration needs a
 separately designed artist-controlled reference update and authenticated
 Bulletin publication, rather than an upload retry or a catalogue cache edit.
 
-Select the existing reversible deactivation for the owner's requested cleanup.
-The inspected Desktop session belongs to another artist account, so the
-original artist's normal wallet action remains pending. No deactivation,
-republication, contract upgrade or storage deletion is claimed. Verify the
-finalized state and public catalogue after that signature. New readiness work
-uses the four already published Bulletin releases independently of this cleanup.
+The owner then reports completing the normal artist-wallet deactivation.
+Public readback at `2026-11-17T00:35:49.127532Z` shows **four active releases**,
+all Bulletin-backed, with Adang Fobe absent. A separate `includeInactive=true`
+read at `2026-11-17T00:36:06.062405Z` retains exactly one matching record with
+`active=false`, source block **15,845,311**, and fresh indexing through block
+15,845,330 (reported head 15,845,332). The hash, artist, token, audio/cover/
+metadata references, access policy and royalty splits match the earlier read;
+runtime/ID spelling is normalized to lowercase. The read model verifies the
+retirement; no direct transaction receipt/hash was supplied or independently
+retrieved. The operator performs no transaction. No republication, contract
+upgrade or distributed-storage deletion occurs. New readiness work uses the
+four already published Bulletin releases.
 
 ## Matching phone follow-up — 17 November 2026
 

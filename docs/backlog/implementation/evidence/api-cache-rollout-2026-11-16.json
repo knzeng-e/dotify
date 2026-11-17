@@ -311,13 +311,40 @@
     "localOriginalHashMatches": true,
     "coverAvailableLocally": true,
     "catalogueActiveAtRead": true,
-    "selectedAction": "Existing artist-signed reversible deactivation; original artist wallet action pending.",
+    "selectedAction": "Existing reversible artist-signed deactivation, completed by the owner and verified in public catalogue readback.",
     "sameFileRepublication": "Rejected by registered content hash even after deactivation.",
     "identityPreservingMigration": "No audioRef update in current registry/metadata APIs; separate contract and authenticated Bulletin publication work required.",
     "remoteAudioOrKeysFetched": false,
-    "deactivationExecuted": false,
+    "deactivationExecuted": true,
     "bulletinWrites": 0,
     "contractUpgrades": 0,
-    "storageDeletes": 0
+    "storageDeletes": 0,
+    "deactivationActor": "owner via normal artist wallet; operator transactions 0",
+    "publicReadback": {
+      "activeListObservedAt": "2026-11-17T00:35:49.127532Z",
+      "activeReleaseCount": 4,
+      "activeAdangMatches": 0,
+      "allActiveReleasesBulletinBacked": true,
+      "inactiveRecordObservedAt": "2026-11-17T00:36:06.062405Z",
+      "inactiveListEndpoint": "https://dotify-api.fly.dev/api/catalog?limit=100&includeInactive=true",
+      "matchingInactiveRecords": 1,
+      "active": false,
+      "sourceBlock": 15845311,
+      "lastIndexedBlock": 15845330,
+      "reportedChainHeadBlock": 15845332,
+      "catalogueState": "fresh",
+      "preserved": [
+        "contentHash",
+        "artist",
+        "tokenId",
+        "audioRef",
+        "imageRef",
+        "metadataRef",
+        "accessPolicy",
+        "royaltySplits"
+      ],
+      "runtimeAndIdCaseNormalized": true,
+      "directTransactionReceiptVerified": false
+    }
   }
 }

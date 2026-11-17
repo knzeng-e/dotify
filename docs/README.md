@@ -1,7 +1,8 @@
 # Dotify documentation
 
 Active listening acceptance is now [Bulletin-only](backlog/implementation/listening-and-publication-readiness.md#bulletin-only-readiness-scope-2026-11-17).
-Adang Fobe's older IPFS path is excluded; artist-signed retirement is pending.
+Adang Fobe's older IPFS path is excluded and its artist-signed retirement is
+verified in the public catalogue; all four active releases use Bulletin.
 
 The [public API cache delivery](backlog/implementation/evidence/api-cache-rollout-2026-11-16.md)
 serves #477 on both replicas from `72e28eba`, with exact image/source, preserved

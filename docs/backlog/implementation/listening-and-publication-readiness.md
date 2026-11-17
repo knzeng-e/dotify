@@ -6,10 +6,11 @@ The owner has excluded the older ordinary IPFS path from active acceptance and
 further optimization. Use an existing accessible Bulletin release for Room,
 continuity and artwork checks; Adang Fobe's IPFS traces remain historical evidence,
 not Bulletin gates. Its [retirement assessment](evidence/api-cache-rollout-2026-11-16.md#adang-fobe-retirement-assessment)
-selects the existing artist-signed deactivation, pending the original wallet.
+records the owner-signed deactivation and public readback: Adang Fobe is inactive;
+all four active releases use Bulletin.
 A same-file re-upload is rejected by the registry; identity-preserving migration
-would need a separate contract/publication change. No release has yet been
-deactivated or migrated by this assessment. The product-work order below and
+would need a separate contract/publication change. No republication or storage
+deletion occurs. The product-work order below and
 deferred real recovery remain unchanged.
 
 ## Public API cache delivery, 2026-11-16
