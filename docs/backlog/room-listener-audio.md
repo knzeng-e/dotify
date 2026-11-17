@@ -1,5 +1,25 @@
 # Mobile-host Room startup and listening continuity
 
+The [17 November owner decision](implementation/listening-and-publication-readiness.md#bulletin-only-readiness-scope-2026-11-17)
+limits active readiness work to Bulletin-backed releases. Ordinary IPFS startup
+is excluded; the dated Adang Fobe reports below remain historical evidence.
+
+## IPFS API cache delivered, 2026-11-16
+
+[Both public API replicas](implementation/evidence/api-cache-rollout-2026-11-16.md)
+now serve frozen `72e28eba` after #477. Exact registry/image/source, preserved
+configuration and final health/readiness checks pass after sequential updates;
+no rollback or other service change occurs. Clients stay 0.1.88. The subsequent
+phone reports preserve a 60.178-s initial timeout, a 41.562-s same-context retry
+and a later 29.114-s success. The retry reuses 60 client-side objects, which do
+not prove API cache hits. Owner Pause/guest checks are OK; pre-response waits and
+reliable first starts remain unresolved. Hosted memory and repeated/full-track
+acceptance remain open under #395;
+artwork stays separate under #388. The current catalogue confirms Adang Fobe is
+the older IPFS path while the four other active releases use Bulletin. Next
+measure an existing accessible Bulletin release; #477 and the Adang reports do
+not establish Bulletin performance. Earlier entries retain their dated scope.
+
 ## IPFS rendition-cache correction candidate, 2026-11-16
 
 [The bounded server cache correction](implementation/evidence/ipfs-rendition-cache-replay-2026-11-16.md)

@@ -1,9 +1,17 @@
 # Dotify documentation
 
-The [IPFS rendition-cache candidate](backlog/implementation/evidence/ipfs-rendition-cache-replay-2026-11-16.md)
-prevents a small rendition evicting itself during replay, within the same 16-MiB
-payload bound. Local request-count evidence is separate from hosted delivery
-and phone latency acceptance.
+Active listening acceptance is now [Bulletin-only](backlog/implementation/listening-and-publication-readiness.md#bulletin-only-readiness-scope-2026-11-17).
+Adang Fobe's older IPFS path is excluded and its artist-signed retirement is
+verified in the public catalogue; all four active releases use Bulletin.
+
+The [public API cache delivery](backlog/implementation/evidence/api-cache-rollout-2026-11-16.md)
+serves #477 on both replicas from `72e28eba`, with exact image/source, preserved
+configuration and health/readiness checks passing. Web/Product stay 0.1.88.
+The subsequent phone reports retain an initial 60-second timeout, a 41.562-s
+retry and a later 29.114-s opening; Pause and guest sound are reported OK.
+Reliable initial startup and hosted cache/memory acceptance remain open. Those
+Adang Fobe observations concern the older IPFS path; next measure an existing
+Bulletin-backed release, whose reader is separate.
 
 The [0.1.88 client delivery](backlog/implementation/evidence/product-0.1.88-rollout-2026-11-15.md)
 adds local relay/native/HTTP-header/body measurements. Independent delivery and

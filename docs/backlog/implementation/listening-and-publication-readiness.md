@@ -1,5 +1,31 @@
 # Publication, listening reliability and CASH — execution order
 
+## Bulletin-only readiness scope, 2026-11-17
+
+The owner has excluded the older ordinary IPFS path from active acceptance and
+further optimization. Use an existing accessible Bulletin release for Room,
+continuity and artwork checks; Adang Fobe's IPFS traces remain historical evidence,
+not Bulletin gates. Its [retirement assessment](evidence/api-cache-rollout-2026-11-16.md#adang-fobe-retirement-assessment)
+records the owner-signed deactivation and public readback: Adang Fobe is inactive;
+all four active releases use Bulletin.
+A same-file re-upload is rejected by the registry; identity-preserving migration
+would need a separate contract/publication change. No republication or storage
+deletion occurs. The product-work order below and
+deferred real recovery remain unchanged.
+
+## Public API cache delivery, 2026-11-16
+
+[The API-only delivery](evidence/api-cache-rollout-2026-11-16.md) installs #477
+from frozen `72e28eba` on both public replicas. Registry/source, preserved
+configuration and health/readiness checks pass; no rollback or other service
+change occurs. Web/Product remain 0.1.88. Subsequent reports retain a 60.178-s
+initial timeout, a 41.562-s retry using client cache, then a 29.114-s success;
+owner Pause/guest checks pass. Adang Fobe still uses the older IPFS path, while
+the four other active catalogue releases select Bulletin. Next measure an
+existing accessible Bulletin release; these IPFS observations do not validate
+that path. Cold latency, hosted memory and #395/#388 acceptance stay open;
+compact/CASH and deferred recovery keep their separate gates.
+
 ## Bounded IPFS replay correction, 2026-11-16
 
 [The server cache candidate](evidence/ipfs-rendition-cache-replay-2026-11-16.md)
