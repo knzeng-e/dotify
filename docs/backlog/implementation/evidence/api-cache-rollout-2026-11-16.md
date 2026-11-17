@@ -80,6 +80,63 @@ stop, database migration/reset, Bulletin operation, DotNS signature, musical
 upload, automatic renewal, compact/CASH activation or real recovery. Existing
 Web/Product publication is retained without a new client rollout.
 
+## Storage scope clarification — 17 November 2026
+
+A fresh bounded read of the public catalogue identifies **Adang Fobe as the only
+ordinary IPFS-gateway release among its five active items**. Eskapade à engong,
+Alumangoman VI, Street scriptures and Black panther anthem select the Bulletin
+reader. CID parsing and the existing
+[API dispatch](../../../../services/api/src/services/mediaDelivery.ts) establish
+that routing; the lookup retrieves metadata only, without audio or keys.
+
+The standard v3 wire grammar still spells `ipfs://` for both ordinary IPFS and
+Bulletin UnixFS references. That spelling alone does not identify the storage
+backend. The reader uses the registered CID convention; Bulletin roots take
+the Bulletin reader and skip the unrelated IPFS gateway fallback. Encryption
+key version and physical layout are separate concepts.
+
+Consequently, #477 and the Adang Fobe traces below concern the **older ordinary
+IPFS path**. They do not validate Bulletin startup or imply that Bulletin audio
+is retrieved through Pinata/public IPFS gateways. This scope should have been
+restated before requesting the repeated Adang Fobe tests. Preserve their valid
+failure evidence as historical observations. The owner's subsequent direction
+excludes the ordinary IPFS path from active readiness acceptance and further
+optimization. The next measurement uses an **existing, normally accessible
+Bulletin release**; historical IPFS failures are not Bulletin acceptance gates.
+
+### Adang Fobe retirement assessment
+
+A second metadata-only catalogue read still shows Adang Fobe active under
+runtime `0xdcF6b75E4185E99a830878D044dC76372c556819`, original artist
+`0xC3571714248588C6E19cDECe2778B75341b2c288`, token `1`, Free access and
+100% royalties to that artist. The owner's local 6,149,652-byte MP3 has the
+registered BLAKE2b-256 hash
+`0xda00c99152af2b9f057e92ae90a11741a0bd2ed29807806d25ccd833199f1eb3`.
+The source and cover are available locally; no audio or key was fetched remotely.
+
+The existing [registry](../../../../contracts/evm/contracts/pallets/MusicRegistryPallet.sol)
+supports artist-only deactivation and reactivation, preserving the record,
+ownership and payment history. The console exposes this through
+[Rights → Deactivate](../../../../web/src/views/artist/ReleasesTab.tsx), using
+the normal wallet writer. This is catalogue retirement, not physical deletion
+of distributed blocks or erasure of on-chain history.
+
+Simple republication of the same MP3 in the same runtime is rejected even after
+deactivation: registration requires a previously unseen content hash. The
+[metadata correction facet](../../../../contracts/evm/contracts/pallets/MusicMetadataPallet.sol)
+changes title, story and metadata reference, but cannot replace `audioRef` or
+`imageRef`. Re-encoding solely to evade duplicate detection would create a new
+identity; it is not an identity-preserving migration. Such a migration needs a
+separately designed artist-controlled reference update and authenticated
+Bulletin publication, rather than an upload retry or a catalogue cache edit.
+
+Select the existing reversible deactivation for the owner's requested cleanup.
+The inspected Desktop session belongs to another artist account, so the
+original artist's normal wallet action remains pending. No deactivation,
+republication, contract upgrade or storage deletion is claimed. Verify the
+finalized state and public catalogue after that signature. New readiness work
+uses the four already published Bulletin releases independently of this cleanup.
+
 ## Matching phone follow-up — 17 November 2026
 
 The two supplied reports identify client `4cbdb4f4` / 0.1.88 and Polkadot app
@@ -166,10 +223,13 @@ attribute the timeout to that change. Cache state, serving replica, upstream
 retrieval and network conditions are not controlled. A controlled phone speed
 gain is not established, including against the earlier 34.857-second result.
 
-Next isolate API catalogue/reader work and upstream retrieval from the client's
-pre-response wait, using bounded evidence before choosing another change. Keep
-the 60-second media budget, current capacity and access checks. Do not extend the
-timeout or infer a gateway/replica cause from these aggregate counters alone.
+The old IPFS trace leaves API/upstream versus network waiting unresolved; the
+owner has removed this path from active readiness scope. The next action measures an existing accessible
+Bulletin release: bind its registered reference and client build, then preserve
+a first Room-opening report and audible guest/Pause observations. Establish
+that path before selecting another latency change. Keep the 60-second media
+budget, current capacity and access checks; do not infer a Bulletin, gateway or
+replica cause from the Adang Fobe aggregates.
 No new private inspection, service mutation, deployment, key operation or funded
 trial occurs in recording this feedback; the prior maintenance authority remains
 consumed.

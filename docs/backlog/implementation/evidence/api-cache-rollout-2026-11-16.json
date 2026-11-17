@@ -278,5 +278,46 @@
     },
     "newOperatorServiceActions": 0,
     "newOperatorNetworkWrites": 0
+  },
+  "storageScopeClarification": {
+    "observedAt": "2026-11-17T00:23:59.418273+00:00",
+    "publicCatalogEndpoint": "https://dotify-api.fly.dev/api/catalog?limit=100",
+    "catalogueCompletePage": true,
+    "releaseGroups": {
+      "Bulletin": [
+        "Eskapade à engong",
+        "Alumangoman VI",
+        "Street scriptures",
+        "Black panther anthem"
+      ],
+      "IPFS gateways": [
+        "Adang Fobe"
+      ]
+    },
+    "routingSource": "services/api/src/services/mediaDelivery.ts; existing CID-based dispatch",
+    "wireReferenceNote": "The standard v3 ipfs:// grammar is reused for Bulletin UnixFS references; scheme alone is not a storage-backend assertion.",
+    "result": "The #477 ordinary IPFS cache change and Adang Fobe reports do not validate Bulletin performance.",
+    "nextPriority": "Bulletin-only active readiness using existing accessible releases. Ordinary IPFS is excluded from active acceptance and further optimization; retain historical receipts.",
+    "audioOrKeysDownloaded": false,
+    "serviceOrRegistryMutations": 0,
+    "newPublicationOrMigration": false
+  },
+  "adangRetirementAssessment": {
+    "observedAt": "2026-11-17T00:34:05.077072+00:00",
+    "runtimeAddress": "0xdcF6b75E4185E99a830878D044dC76372c556819",
+    "artistAddress": "0xC3571714248588C6E19cDECe2778B75341b2c288",
+    "contentHash": "0xda00c99152af2b9f057e92ae90a11741a0bd2ed29807806d25ccd833199f1eb3",
+    "localOriginalBytes": 6149652,
+    "localOriginalHashMatches": true,
+    "coverAvailableLocally": true,
+    "catalogueActiveAtRead": true,
+    "selectedAction": "Existing artist-signed reversible deactivation; original artist wallet action pending.",
+    "sameFileRepublication": "Rejected by registered content hash even after deactivation.",
+    "identityPreservingMigration": "No audioRef update in current registry/metadata APIs; separate contract and authenticated Bulletin publication work required.",
+    "remoteAudioOrKeysFetched": false,
+    "deactivationExecuted": false,
+    "bulletinWrites": 0,
+    "contractUpgrades": 0,
+    "storageDeletes": 0
   }
 }
