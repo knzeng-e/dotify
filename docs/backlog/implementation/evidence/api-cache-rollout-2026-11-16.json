@@ -100,5 +100,183 @@
   "physicalAcceptance": "not yet observed after API cache rollout",
   "automaticRenewalActivated": false,
   "compactCashActivated": false,
-  "realRecoveryDeferred": true
+  "realRecoveryDeferred": true,
+  "physicalAcceptanceFollowup": {
+    "status": "initial preparation timed out; same-context retry and later opening succeeded; comparable latency acceptance not established",
+    "protocolContext": {
+      "requestedTrack": "existing Adang Fobe",
+      "requestedNetwork": "Wi-Fi",
+      "actualNetworkNotSeparatelyRestated": true,
+      "requestedNoConnectedWallet": true,
+      "clientRelaunchBetweenReportsRequested": true,
+      "relaunchNotIndependentlyProvedByExport": true,
+      "reportsResetAttemptNumbering": true
+    },
+    "ownerObservation": {
+      "firstOpening": "too long; retry resumed progress and opened",
+      "firstRetryApproxSeconds": 29,
+      "secondOpeningApproxSeconds": 15,
+      "pauseRespected": true,
+      "guestAudible": true,
+      "guestResultNotAssignedPerRun": true,
+      "lockOrArtworkResultNotSupplied": true
+    },
+    "reports": [
+      {
+        "source": "4cbdb4f4206f91470eb6097ade8f23093f4aa840",
+        "reportSchema": "dotify.audio-diagnostics.v1",
+        "hostSoftware": {
+          "platform": "Ios",
+          "name": "Polkadot App",
+          "version": "0.10.0 (20)"
+        },
+        "reportObservedAt": "2026-11-17T00:01:19.873Z",
+        "preparations": [
+          {
+            "attempt": 2,
+            "readAttempt": 1,
+            "phase": "error",
+            "errorKind": "timeout",
+            "authorizationMs": 168,
+            "manifestReadyMs": 172,
+            "terminalMs": 60178,
+            "objectsRead": 60,
+            "objectsDecrypted": 60,
+            "encryptedBytes": 2945461,
+            "cachedObjects": 10,
+            "hostObjects": 0,
+            "httpObjects": 50,
+            "recoveredObjects": 0,
+            "readWorkMs": 225355,
+            "decryptWorkMs": 54,
+            "maxReadMs": 10811,
+            "relayWaitMs": 119906,
+            "nativeReadMs": 0,
+            "httpHeadersMs": 115236,
+            "httpBodyMs": 418,
+            "nativeReadAttempts": 0,
+            "nativeReadFailures": 0,
+            "httpRequests": 50,
+            "httpBodyReads": 50,
+            "httpFailures": 0
+          },
+          {
+            "attempt": 3,
+            "readAttempt": 1,
+            "phase": "compatibility-ready",
+            "authorizationMs": 174,
+            "manifestReadyMs": 177,
+            "downloadedMs": 41549,
+            "readyMs": 41562,
+            "assemblyMs": 13,
+            "objectsRead": 73,
+            "objectsDecrypted": 73,
+            "encryptedBytes": 3580693,
+            "cachedObjects": 60,
+            "hostObjects": 0,
+            "httpObjects": 13,
+            "recoveredObjects": 1,
+            "readWorkMs": 144928,
+            "decryptWorkMs": 54,
+            "maxReadMs": 22623,
+            "relayWaitMs": 61073,
+            "nativeReadMs": 0,
+            "httpHeadersMs": 83802,
+            "httpBodyMs": 46,
+            "nativeReadAttempts": 0,
+            "nativeReadFailures": 0,
+            "httpRequests": 14,
+            "httpBodyReads": 13,
+            "httpFailures": 1
+          }
+        ],
+        "retryDelayAfterTimeoutMs": 21580,
+        "handoff": {
+          "attempt": 4,
+          "preparedSourceReusedMs": 202,
+          "metadataReadyAfterSourceMs": 156,
+          "pausedPositionSeconds": 0.939130083,
+          "pauseIssuedBeforePreparationMs": 21445,
+          "explicitPlayAfterSourceMs": 5352
+        },
+        "artwork": {
+          "decodedMs": 6,
+          "composedMs": 31,
+          "pngMetadataPublishedMs": 35,
+          "nativeDisplayNotReported": true
+        },
+        "streamingStartTruncated": true
+      },
+      {
+        "source": "4cbdb4f4206f91470eb6097ade8f23093f4aa840",
+        "reportSchema": "dotify.audio-diagnostics.v1",
+        "hostSoftware": {
+          "platform": "Ios",
+          "name": "Polkadot App",
+          "version": "0.10.0 (20)"
+        },
+        "reportObservedAt": "2026-11-17T00:04:46.795Z",
+        "preparations": [
+          {
+            "attempt": 2,
+            "readAttempt": 1,
+            "phase": "compatibility-ready",
+            "authorizationMs": 184,
+            "manifestReadyMs": 187,
+            "downloadedMs": 29102,
+            "readyMs": 29114,
+            "assemblyMs": 12,
+            "objectsRead": 73,
+            "objectsDecrypted": 73,
+            "encryptedBytes": 3580693,
+            "cachedObjects": 10,
+            "hostObjects": 0,
+            "httpObjects": 63,
+            "recoveredObjects": 0,
+            "readWorkMs": 105247,
+            "decryptWorkMs": 45,
+            "maxReadMs": 8283,
+            "relayWaitMs": 50109,
+            "nativeReadMs": 0,
+            "httpHeadersMs": 54810,
+            "httpBodyMs": 284,
+            "nativeReadAttempts": 0,
+            "nativeReadFailures": 0,
+            "httpRequests": 63,
+            "httpBodyReads": 63,
+            "httpFailures": 0
+          }
+        ],
+        "handoff": {
+          "attempt": 3,
+          "preparedSourceReusedMs": 165,
+          "metadataReadyAfterSourceMs": 150,
+          "pausedPositionSeconds": 0.286621792,
+          "pauseIssuedBeforePreparationMs": 8805,
+          "explicitPlayAfterSourceMs": 7455
+        },
+        "artwork": {
+          "decodedMs": 3,
+          "composedMs": 19,
+          "pngMetadataPublishedMs": 23,
+          "nativeDisplayNotReported": true
+        }
+      }
+    ],
+    "limits": [
+      "The first report contains a timeout and retry within retained client memory, not two independent fresh-client trials.",
+      "cachedObjects are client-side ciphertext cache hits, not server-cache hits.",
+      "Instrumented preparation boundaries differ from owner approximate times; the difference is not resolved or overwritten.",
+      "HTTP request/origin/status and serving API replica are not exported; a faster run does not prove an API cache hit.",
+      "Settled phase work overlaps and an error snapshot can precede outer-read/sibling completion. Zero recorded HTTP failures at timeout does not prove pending requests succeeded.",
+      "Pause was already set before Room preparation in both exported traces; they prove preservation through handoff, not a fresh Pause during preparation.",
+      "Neither export has hidden/visible output events; no new lock/background acceptance is inferred."
+    ],
+    "deploymentContext": {
+      "recordedApiSource": "72e28eba7b57ab41a58766f935a3be438ef38dcc",
+      "reportsDoNotExportApiSourceOrReplica": true
+    },
+    "newOperatorServiceActions": 0,
+    "newOperatorNetworkWrites": 0
+  }
 }

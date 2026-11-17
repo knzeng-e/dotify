@@ -5,9 +5,10 @@
 [The API-only delivery](evidence/api-cache-rollout-2026-11-16.md) installs #477
 from frozen `72e28eba` on both public replicas. Registry/source, preserved
 configuration and health/readiness checks pass; no rollback or other service
-change occurs. Web/Product remain 0.1.88. Next: matched first/repeated Room
-reports with a client relaunch between them, preserving unknown server-cache
-conditions. Cold latency, hosted memory and #395/#388 acceptance stay open;
+change occurs. Web/Product remain 0.1.88. Subsequent reports retain a 60.178-s
+initial timeout, a 41.562-s retry using client cache, then a 29.114-s success;
+owner Pause/guest checks pass. Next isolate API/upstream versus client
+pre-response work. Cold latency, hosted memory and #395/#388 acceptance stay open;
 compact/CASH and deferred recovery keep their separate gates.
 
 ## Bounded IPFS replay correction, 2026-11-16

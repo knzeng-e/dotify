@@ -84,8 +84,10 @@ both public API replicas serve `72e28eba` with the 128-entry / 16-MiB IPFS cache
 Exact image/source, preserved stable/launch configuration and health/readiness
 checks pass after sequential replacements. Only the image and public source
 marker change. Custody, encoder and signaling are not targeted; Web/Product
-stay 0.1.88. Matching hosted cache/memory and listening acceptance remain open;
-no cold-start speedup is claimed.
+stay 0.1.88. Later phone feedback has an initial timeout followed by successful
+retry/later opening; Pause and guest sound are reported OK. Reliable initial
+startup and hosted cache/memory acceptance remain open; no controlled speedup
+is claimed.
 
 Do not infer an active key, remaining publication allowance, available quota or
 permission to reuse an admission from this page. Use the applicable private

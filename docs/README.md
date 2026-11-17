@@ -3,8 +3,9 @@
 The [public API cache delivery](backlog/implementation/evidence/api-cache-rollout-2026-11-16.md)
 serves #477 on both replicas from `72e28eba`, with exact image/source, preserved
 configuration and health/readiness checks passing. Web/Product stay 0.1.88.
-Matching cache/listening and hosted-memory acceptance remain open; no phone
-speed gain is established.
+The subsequent phone reports retain an initial 60-second timeout, a 41.562-s
+retry and a later 29.114-s opening; Pause and guest sound are reported OK.
+Reliable initial startup and hosted cache/memory acceptance remain open.
 
 The [0.1.88 client delivery](backlog/implementation/evidence/product-0.1.88-rollout-2026-11-15.md)
 adds local relay/native/HTTP-header/body measurements. Independent delivery and

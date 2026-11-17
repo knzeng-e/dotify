@@ -5,10 +5,12 @@
 [Both public API replicas](implementation/evidence/api-cache-rollout-2026-11-16.md)
 now serve frozen `72e28eba` after #477. Exact registry/image/source, preserved
 configuration and final health/readiness checks pass after sequential updates;
-no rollback or other service change occurs. Clients stay 0.1.88. Compare two
-openings with a client relaunch between reports to limit local-memory reuse;
-server cache/replica state still needs careful interpretation. Actual latency,
-hosted memory and repeated/full-track acceptance remain open under #395;
+no rollback or other service change occurs. Clients stay 0.1.88. The subsequent
+phone reports preserve a 60.178-s initial timeout, a 41.562-s same-context retry
+and a later 29.114-s success. The retry reuses 60 client-side objects, which do
+not prove API cache hits. Owner Pause/guest checks are OK; pre-response waits and
+reliable first starts remain unresolved. Hosted memory and repeated/full-track
+acceptance remain open under #395;
 artwork stays separate under #388. Earlier entries retain their dated scope.
 
 ## IPFS rendition-cache correction candidate, 2026-11-16
