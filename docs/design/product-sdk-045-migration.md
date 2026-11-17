@@ -47,6 +47,12 @@ before testing/building. Remove the workaround only with an upstream fix and the
 same legacy/modern/error regressions passing. The separate research laboratory
 continues to test unmodified published codecs; its earlier failure remains valid.
 
+The signaling image is exempt: it copies only package manifests followed by
+server/shared JavaScript, so its production install disables lifecycle scripts.
+It has no frontend codec consumer. CI builds and boots the actual image as the
+non-root user, catching missing install-hook inputs as well as missing runtime
+files. This exemption does not alter ordinary frontend install behavior.
+
 A compiler-only upgrade would also miss `createTransaction` moving from V1 to
 V2. The legacy fixtures reject the new discriminant even though their handshake
 still says codec 3. This candidate **does not translate or retry a signing

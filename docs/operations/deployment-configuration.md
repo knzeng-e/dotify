@@ -232,6 +232,13 @@ an uncertain publication result.
 
 ### Fly signaling
 
+The signaling image installs only production dependencies with
+`npm ci --omit=dev --ignore-scripts`. Its server/shared JavaScript runtime has
+no frontend Host-codec consumer or installation-hook requirement; it does not
+copy or run the frontend patch. Ordinary frontend installs still apply the
+patch. The signaling CI gate now builds this image and verifies isolated
+non-root startup/health before a delivery is eligible. No hosted setting changes.
+
 Check the API/runtime bindings and frontend protocol compatibility before
 updating signaling. Rooms and chat use process memory. Follow the reviewed
 maintenance conditions and check active Rooms before a restart. An empty Room
