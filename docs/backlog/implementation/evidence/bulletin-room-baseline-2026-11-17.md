@@ -135,6 +135,13 @@ observation on the same release, without a track-change or signature/immediate-l
 trigger. Selected transcription and arithmetic are in the structured record's
 `repeatFollowup` section.
 
+## Subsequent track-change check
+
+The [later #388 artwork exercise](bulletin-track-change-artwork-2026-11-17.md)
+confirms solo changes, Room change and guest sound, with roughly 30 s of Room
+background boundary observations. It completes the selected bounded next check
+below; unobserved native triggers and broader #395/pilot criteria remain open.
+
 ## Decision and remaining checks
 
 The bounded same-release repeatability check now passes: **1.807 s then 0.842 s**

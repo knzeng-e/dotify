@@ -1,16 +1,21 @@
 # Listening controls and room discovery — next iteration
 
-## Bulletin artwork repeat and next trigger, 2026-11-17
+## Bounded Bulletin track-change artwork accepted, 2026-11-17
 
-The owner confirms visible artwork and guest/lock sound on two Eskapade journeys
-in delivered 0.1.88 / iOS Host 0.10.0 (20). The
-[baseline and repeat](implementation/evidence/bulletin-room-baseline-2026-11-17.md)
-keep local PNG registration (27 ms / 23 ms) separate from visible-cover confirmation;
-the second export includes about 79 s of background boundary observations.
-Active validation now targets **rapid track changes and correct cover/title/
-artist in solo and Room**, using existing Free Bulletin releases with distinct
-cover references. The specific signature/immediate-lock trigger and other native
-controls remain unaccepted. No artwork patch is selected before that observation.
+The owner confirms **solo changes OK, Room change OK, guest sound OK** on
+0.1.88 / iOS Host 0.10.0 (20). The
+[matching two overlapping exports](implementation/evidence/bulletin-track-change-artwork-2026-11-17.md)
+record PNG publication in 63 / 18 ms, then prepared reuse in 8 / 9 ms. The later
+Room output includes about 30 s of background boundary observations. Native
+appearance comes from owner confirmation, not the registration timing alone.
+This check follows the two positive same-release Room/lock/artwork journeys.
+
+The bounded change-and-return check passes; no new artwork patch is selected.
+#388 stays open for the native previous/next/queue and other unobserved triggers,
+including the signature/immediate-lock case. The selected sequence permits #406
+CASH-tip research while these physical gates remain; no activation follows from
+this listening evidence. Exact final Room track identity is not exported, so the
+record does not infer it from the requested titles or manifest sizes.
 
 ## Matching missing-cover observation, 2026-11-15
 

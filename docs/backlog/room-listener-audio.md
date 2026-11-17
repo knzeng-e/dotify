@@ -7,11 +7,12 @@ complete media preparation in 1.807 s then 0.842 s on delivered 0.1.88 / iOS Hos
 0.10.0 (20). Already-set Pause survives both handoffs; the owner confirms guest/
 lock sound and visible artwork on both. The first journey includes owner-confirmed
 track-end listening; the second report covers about 79 s of background boundary
-observations. The bounded same-release reopening check passes. Active device
-validation moves to #388 track-change artwork, with broader #395/pilot criteria
-still open. No extra unchanged-track repetition or latency patch is selected
-from these positive results; cold/Host-cache state and all-network reliability
-are not established.
+observations. The bounded same-release reopening check passes. The
+[subsequent #388 solo/Room change check](implementation/evidence/bulletin-track-change-artwork-2026-11-17.md)
+also passes, with owner-confirmed guest sound and about 30 s of Room background
+boundary observations. Broader #395/pilot criteria stay open. No extra unchanged
+exercise or latency patch is selected from these positive results; cold/Host-cache
+state and all-network reliability are not established.
 
 The [17 November owner decision](implementation/listening-and-publication-readiness.md#bulletin-only-readiness-scope-2026-11-17)
 limits active readiness work to Bulletin-backed releases. Ordinary IPFS startup

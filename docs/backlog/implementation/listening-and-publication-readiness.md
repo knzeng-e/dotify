@@ -1,16 +1,22 @@
 # Publication, listening reliability and CASH — execution order
 
-## Bulletin repeatability check, 2026-11-17
+## Bounded Bulletin listening and artwork checkpoints, 2026-11-17
 
 [The Eskapade baseline and reopening](evidence/bulletin-room-baseline-2026-11-17.md)
 complete in 1.807 s and 0.842 s of media preparation on delivered 0.1.88. Owner
 Pause/guest/lock/artwork checks pass on both, with first-journey end-of-track
-confirmation and about 79 s of background observations on the second. The
-bounded same-release repeat check passes; move active device validation to
-**#388 track changes and artwork stability**. Broader #395/pilot criteria remain
-open. These partly cached reads do not establish cold starts or a controlled
-speed gain; no speculative latency patch is selected. Publication/CASH order,
-compact activation and deferred real recovery retain their separate gates.
+confirmation and about 79 s of background observations on the second.
+[The subsequent solo/Room track-change check](evidence/bulletin-track-change-artwork-2026-11-17.md)
+also passes with owner-confirmed correct presentation and guest sound, plus
+about 30 s of Room background boundary observations. Both bounded checks pass;
+no extra unchanged exercise or speculative latency/artwork patch is selected.
+
+Next advance **#406 bounded CASH-tip feasibility research**, as permitted while
+remaining physical acceptance waits. #388 native controls and unobserved triggers,
+broader #395/pilot criteria, #407 publication latency, compact activation and
+owner-deferred real recovery retain their separate gates. These partly cached
+observations do not establish cold starts, a controlled speed gain or universal
+native reliability, and do not activate CASH or another funded trial.
 
 ## Bulletin-only readiness scope, 2026-11-17
 

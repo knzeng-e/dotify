@@ -225,7 +225,8 @@
   "combinedCheckpoint": {
     "boundedSameReleaseReopenings": "two positive preparations: 1807 ms and 842 ms",
     "ownerGuestLockAndArtwork": "positive on both; full-track end confirmed on first",
-    "nextSelectedValidation": "#388 track-change artwork stability in solo and Room",
-    "scopeLimits": "Not a cold-start benchmark, all-network reliability guarantee, or acceptance of every #395/#388 criterion; broader pilot gates remain."
+    "nextSelectedValidation": "Bounded #388 solo/Room changes accepted in the linked follow-up; next selected research is #406 CASH-tip feasibility, with other native/pilot gates retained.",
+    "scopeLimits": "Not a cold-start benchmark, all-network reliability guarantee, or acceptance of every #395/#388 criterion; broader pilot gates remain.",
+    "trackChangeFollowupRecord": "bulletin-track-change-artwork-2026-11-17.json"
   }
 }
