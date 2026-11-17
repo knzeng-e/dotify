@@ -1,5 +1,16 @@
 # Publication, listening reliability and CASH — execution order
 
+## First selected Bulletin Room baseline, 2026-11-17
+
+[Eskapade à engong succeeds on iPhone](evidence/bulletin-room-baseline-2026-11-17.md)
+with 1.807-s media preparation on delivered 0.1.88, preserved Pause and owner-confirmed
+guest/lock/end-of-track sound plus artwork. The 31-object read uses client cache,
+native Bulletin and successful Bulletin API recovery. This is one positive
+journey, not a cold-start or controlled speed claim. Next check a comparable
+relaunch/opening on this same release; no speculative latency patch is selected.
+#395 repeated-start and #388 broader artwork acceptance remain open. The
+publication/listening/CASH order and deferred recovery below are unchanged.
+
 ## Bulletin-only readiness scope, 2026-11-17
 
 The owner has excluded the older ordinary IPFS path from active acceptance and
