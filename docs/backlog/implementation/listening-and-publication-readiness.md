@@ -1,15 +1,22 @@
 # Publication, listening reliability and CASH — execution order
 
-## First selected Bulletin Room baseline, 2026-11-17
+## Bounded Bulletin listening and artwork checkpoints, 2026-11-17
 
-[Eskapade à engong succeeds on iPhone](evidence/bulletin-room-baseline-2026-11-17.md)
-with 1.807-s media preparation on delivered 0.1.88, preserved Pause and owner-confirmed
-guest/lock/end-of-track sound plus artwork. The 31-object read uses client cache,
-native Bulletin and successful Bulletin API recovery. This is one positive
-journey, not a cold-start or controlled speed claim. Next check a comparable
-relaunch/opening on this same release; no speculative latency patch is selected.
-#395 repeated-start and #388 broader artwork acceptance remain open. The
-publication/listening/CASH order and deferred recovery below are unchanged.
+[The Eskapade baseline and reopening](evidence/bulletin-room-baseline-2026-11-17.md)
+complete in 1.807 s and 0.842 s of media preparation on delivered 0.1.88. Owner
+Pause/guest/lock/artwork checks pass on both, with first-journey end-of-track
+confirmation and about 79 s of background observations on the second.
+[The subsequent solo/Room track-change check](evidence/bulletin-track-change-artwork-2026-11-17.md)
+also passes with owner-confirmed correct presentation and guest sound, plus
+about 30 s of Room background boundary observations. Both bounded checks pass;
+no extra unchanged exercise or speculative latency/artwork patch is selected.
+
+Next advance **#406 bounded CASH-tip feasibility research**, as permitted while
+remaining physical acceptance waits. #388 native controls and unobserved triggers,
+broader #395/pilot criteria, #407 publication latency, compact activation and
+owner-deferred real recovery retain their separate gates. These partly cached
+observations do not establish cold starts, a controlled speed gain or universal
+native reliability, and do not activate CASH or another funded trial.
 
 ## Bulletin-only readiness scope, 2026-11-17
 

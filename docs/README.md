@@ -1,9 +1,13 @@
 # Dotify documentation
 
-[The first selected Bulletin Room baseline](backlog/implementation/evidence/bulletin-room-baseline-2026-11-17.md)
-succeeds on Eskapade à engong with 1.807-s media preparation and owner-confirmed
-guest/lock/end-of-track sound plus artwork. Repeatability remains the next check;
-one partly cached journey is not a cold-start or controlled speed claim.
+[The Bulletin Room baseline and repeat](backlog/implementation/evidence/bulletin-room-baseline-2026-11-17.md)
+succeed on Eskapade à engong with 1.807-s and 0.842-s media preparation. Owner
+Pause/guest/lock/artwork checks pass on both; the first includes end-of-track
+confirmation, the second about 79 s of background observations.
+[The subsequent solo/Room track-change artwork check](backlog/implementation/evidence/bulletin-track-change-artwork-2026-11-17.md)
+also passes with owner-confirmed guest sound. Next is bounded #406 CASH-tip
+research while other native/pilot gates remain. These observations are not a
+cold-start benchmark or controlled speed claim.
 
 Active listening acceptance is now [Bulletin-only](backlog/implementation/listening-and-publication-readiness.md#bulletin-only-readiness-scope-2026-11-17).
 Adang Fobe's older IPFS path is excluded and its artist-signed retirement is
