@@ -53,3 +53,25 @@ named compatible Host and actual same-account signing, native PAS receipts and
 protected Bulletin/Room/lock/artwork acceptance. No deployment, Host installation,
 pairing change, funded payment, entitlement, key transfer or service change occurs.
 CASH remains disabled and #85/#406 remain open.
+
+## Signaling install-hook review correction — 17 November
+
+[Review finding](https://github.com/knzeng-e/dotify/pull/483#discussion_r4604089474):
+`Dockerfile.signal` copied only package manifests before `npm ci --omit=dev`,
+which now invoked a frontend `postinstall` whose script/helper were absent.
+Source correction: `f034a228a2d4176218b6dbbf47a12d164d977feb`.
+
+An isolated manifest/server/shared package reproduced `MODULE_NOT_FOUND` for
+`patch-truapi-info.mjs`. The corrected production-only install uses
+`--ignore-scripts`; 627 packages install offline, and signaling boots with
+passing health, Nearby enabled and zero Rooms without frontend patch files.
+All 131 signaling tests pass; the new image-check script passes lint/format.
+The frontend retains its ordinary postinstall and previously accepted codec tests.
+
+The local Docker build could not reach any Dockerfile instruction because its
+BuildKit `containerdmeta.db` is on a read-only filesystem. No Docker reset or
+system-state repair was attempted. The signaling CI gate now builds the actual
+production Dockerfile and checks UID 1000/startup/health in a disposable container
+without external networking, published ports or mounted state. That image result
+is a separate remote gate; the isolated Node check is not an image-build claim.
+No service deployment, environment setting or physical Host requirement changes.
