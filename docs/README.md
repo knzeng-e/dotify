@@ -1,5 +1,10 @@
 # Dotify documentation
 
+[The first selected Bulletin Room baseline](backlog/implementation/evidence/bulletin-room-baseline-2026-11-17.md)
+succeeds on Eskapade à engong with 1.807-s media preparation and owner-confirmed
+guest/lock/end-of-track sound plus artwork. Repeatability remains the next check;
+one partly cached journey is not a cold-start or controlled speed claim.
+
 Active listening acceptance is now [Bulletin-only](backlog/implementation/listening-and-publication-readiness.md#bulletin-only-readiness-scope-2026-11-17).
 Adang Fobe's older IPFS path is excluded and its artist-signed retirement is
 verified in the public catalogue; all four active releases use Bulletin.

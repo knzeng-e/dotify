@@ -1,5 +1,15 @@
 # Listening controls and room discovery — next iteration
 
+## Bulletin artwork and lock observation, 2026-11-17
+
+The owner confirms visible artwork and guest sound through lock and the end of
+Eskapade à engong on delivered 0.1.88 / iOS Host 0.10.0 (20). The
+[matching baseline](implementation/evidence/bulletin-room-baseline-2026-11-17.md)
+distinguishes PNG registration in 27 ms from the owner's visual confirmation;
+the supplied short export does not itself include the later lock. This is one
+positive Bulletin observation. Repeated locks, rapid changes and the particular
+signature/immediate-lock trigger remain open under #388.
+
 ## Matching missing-cover observation, 2026-11-15
 
 The [0.1.87 phone follow-up](implementation/evidence/product-0.1.87-rollout-2026-11-15.md#matching-phone-follow-up)

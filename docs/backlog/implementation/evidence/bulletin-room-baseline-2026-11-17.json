@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "kind": "selected transcription of owner support report and explicit audible observations; not a full raw-report archive",
+  "reportSchema": "dotify.audio-diagnostics.v1",
+  "observedAt": "2026-11-17T01:45:20.784Z",
+  "clientBuildSha": "4cbdb4f4206f91470eb6097ade8f23093f4aa840",
+  "clientVersion": "0.1.88",
+  "hostSoftware": {
+    "platform": "Ios",
+    "name": "Polkadot App",
+    "version": "0.10.0 (20)"
+  },
+  "release": {
+    "title": "Eskapade à engong",
+    "hash": "0x5dc8ab81bc96061d988b603d431b8e493d622c78db979c4c99201b7fb6b631bb",
+    "runtimeAddress": "0xdcF6b75E4185E99a830878D044dC76372c556819",
+    "audioRef": "dotify:enc:v3:key-v3:ipfs://bafykbzaceccdgweiu3bj25zvaxdxjfw3i54fi3x5j4glivg2m4nn5esn7npza",
+    "accessMode": "free"
+  },
+  "identityBinding": "Owner replied to the specifically selected Eskapade journey. Public metadata read at 2026-11-17T01:37:46.185031+00:00 verifies the reference; support export intentionally omits track identity.",
+  "environment": {
+    "requestedNetwork": "Wi-Fi",
+    "requestedWalletState": "disconnected",
+    "networkAndWalletIndependentlyVerified": false,
+    "requestedClientRelaunch": true,
+    "cacheState": "10 client-memory objects reused from solo; not a wholly cold media read; native and API caches unknown"
+  },
+  "roomPreparation": {
+    "attempt": 2,
+    "readAttempt": 1,
+    "forRoomCapture": true,
+    "startTimestamp": 1794879891210,
+    "keyAuthorizedMs": 209,
+    "manifestReadyMs": 210,
+    "downloadedMs": 1800,
+    "readyMs": 1807,
+    "selectionReadyMs": 1808,
+    "assemblyMs": 7,
+    "errorEvents": 0,
+    "readTimings": {
+      "objectsRead": 31,
+      "objectsDecrypted": 31,
+      "encryptedBytes": 1464541,
+      "cachedObjects": 10,
+      "hostObjects": 14,
+      "httpObjects": 7,
+      "recoveredObjects": 7,
+      "readWorkMs": 5788,
+      "decryptWorkMs": 40,
+      "maxReadMs": 1117,
+      "relayWaitMs": 0,
+      "nativeReadMs": 2783,
+      "httpHeadersMs": 2615,
+      "httpBodyMs": 383,
+      "nativeReadAttempts": 21,
+      "nativeReadFailures": 7,
+      "httpRequests": 7,
+      "httpBodyReads": 7,
+      "httpFailures": 0
+    }
+  },
+  "handoff": {
+    "attempt": 3,
+    "keyAuthorizedAndPreparedSourceReusedMs": 147,
+    "sourceSelectedTimestamp": 1794879893180,
+    "metadataReadyMs": 117,
+    "isSecondRoomPreparation": false
+  },
+  "pause": {
+    "pauseTimestamp": 1794879881992,
+    "roomPreparationStartTimestamp": 1794879891210,
+    "pausePrecedesPreparationMs": 9218,
+    "mediaPositionSeconds": 0.401065792,
+    "preservedThroughSourceReplacement": true,
+    "explicitPlayTimestamp": 1794879902082,
+    "playToPlayingMs": 46,
+    "reportEndsWithPauseTimestamp": 1794879903224,
+    "finalMediaPositionSeconds": 0.9353503255129023,
+    "pauseDuringPreparationNotDemonstrated": true
+  },
+  "artwork": {
+    "decodedMs": 2,
+    "composedMs": 23,
+    "pngMetadataPublishedMs": 27,
+    "nativeDisplayAcknowledgedByTelemetry": false,
+    "ownerReportsVisible": true
+  },
+  "ownerObservation": {
+    "verbatim": "invité : OK; verrouillage : OK ; fin : OK ; pochette : OK",
+    "guestAudible": true,
+    "phoneLockAudible": true,
+    "throughTrackEndAudible": true,
+    "artworkVisible": true,
+    "lockDurationMeasured": false,
+    "userStopwatchSeconds": null
+  },
+  "exportCoverage": {
+    "hiddenOrVisibleTransitions": 0,
+    "endedEvent": false,
+    "extendedPlaybackTraceProvided": false,
+    "meaning": "Owner confirms later audible lock/full-track journey. Supplied export itself covers foreground preparation and short explicit playback, not those later events."
+  },
+  "acceptance": {
+    "singleSelectedBulletinJourney": "positive",
+    "repeatedStartupReliability": "pending",
+    "strictlyColdStart": "not established",
+    "controlledSpeedGain": "not established; different release size and transports from historic IPFS",
+    "nativeFallbackCause": "unknown; seven rejected native probes recovered by the catalog-gated Bulletin API with zero HTTP failures",
+    "artworkReliability": "one positive owner observation, not all triggers"
+  },
+  "operatorActions": {
+    "audioOrKeysFetched": false,
+    "bulletinWrites": 0,
+    "dotnsSignatures": 0,
+    "serviceChanges": 0,
+    "newPublications": 0
+  }
+}

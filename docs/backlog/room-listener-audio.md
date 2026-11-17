@@ -1,5 +1,17 @@
 # Mobile-host Room startup and listening continuity
 
+## First selected Bulletin journey accepted, 2026-11-17
+
+[The Eskapade baseline](implementation/evidence/bulletin-room-baseline-2026-11-17.md)
+records 1.807-s media preparation in one complete preparation try on delivered
+0.1.88 / iOS Host
+0.10.0 (20). Pause already set before preparation survives handoff; the owner
+confirms guest sound through phone lock and the end of the track, plus visible
+artwork. Cache/native/API counts and the limits of the short supplied trace are
+recorded separately from those audible observations. Next check repeatability
+on this same existing Bulletin release; #395 remains open. No application or
+service change is selected from this successful observation.
+
 The [17 November owner decision](implementation/listening-and-publication-readiness.md#bulletin-only-readiness-scope-2026-11-17)
 limits active readiness work to Bulletin-backed releases. Ordinary IPFS startup
 is excluded; the dated Adang Fobe reports below remain historical evidence.
