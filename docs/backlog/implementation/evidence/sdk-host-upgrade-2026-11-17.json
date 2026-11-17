@@ -1,0 +1,140 @@
+{
+  "observedAt": "2026-11-17T15:33:40.605325+00:00",
+  "sourceBase": "510e72a1cc24e1750ff3658d08b1fb9530fe4686",
+  "published": [
+    {
+      "name": "@parity/product-sdk",
+      "version": "0.45.0",
+      "metadataUrl": "https://registry.npmjs.org/@parity%2fproduct-sdk/latest",
+      "gitHead": null,
+      "integrity": "sha512-ocC3A1AE2ame9uE+Uw5SpBtwIxnnEch9PP2Bwuh5YHYsG0rZk1t18zzMmYjuofGli2zy8x/CgVWLSxj5KZjwcQ==",
+      "tarball": "https://registry.npmjs.org/@parity/product-sdk/-/product-sdk-0.45.0.tgz"
+    },
+    {
+      "name": "@parity/product-sdk-host",
+      "version": "0.34.0",
+      "metadataUrl": "https://registry.npmjs.org/@parity%2fproduct-sdk-host/latest",
+      "gitHead": null,
+      "integrity": "sha512-kT1pQed9P6CL3hAMgYx/JBbVSiS9Zn0vIR+EIkuYFeROeizrRs0D3HEgS1nFA5//AnkiM1sHNvQp8/Cgei9xkg==",
+      "tarball": "https://registry.npmjs.org/@parity/product-sdk-host/-/product-sdk-host-0.34.0.tgz"
+    },
+    {
+      "name": "@parity/truapi",
+      "version": "0.31.0",
+      "metadataUrl": "https://registry.npmjs.org/@parity%2ftruapi/latest",
+      "gitHead": null,
+      "integrity": "sha512-i/pYGj13WZvP49XCtFNwJUnRaOXO/tbFhA2KKnV4lMxsdDVq0+PGyLe10IJgD9qjxoQ+3ItH/YLsQEJEaCqaUA==",
+      "tarball": "https://registry.npmjs.org/@parity/truapi/-/truapi-0.31.0.tgz"
+    }
+  ],
+  "installedDesktopLabels": {
+    "stable": "1.0.0-rc.1",
+    "dev": "0.1.4-rc.3",
+    "method": "static public Info.plist only"
+  },
+  "iphone": {
+    "runtimeVersion": "0.26.0",
+    "source": "owner reads About in Polkadot app, 17 November 2026",
+    "applicationVersionFromEarlierMatchedReports": "0.10.0 (20)",
+    "paymentOrWireRuntimeAcceptance": false
+  },
+  "desktopArchive": {
+    "archive": "Polkadot.Desktop-0.9.4-arm64.zip",
+    "releaseUrl": "https://github.com/paritytech/polkadot-desktop-community/releases/tag/v0.9.4",
+    "sha512VerifiedAgainstUpdateManifest": true,
+    "wrapper": {
+      "CFBundleIdentifier": "io.parity.polkadotdesktop.develop",
+      "CFBundleShortVersionString": "0.9.4",
+      "CFBundleVersion": "0.9.4"
+    },
+    "asarEntry": "Polkadot Desktop.app/Contents/Resources/app.asar",
+    "asarFiles": 44459,
+    "packageVersions": {
+      "@novasamatech/host-api": "0.12.0",
+      "@parity/truapi": "0.29.0",
+      "@parity/truapi-host": "0.29.0",
+      "polkadotdesktop": "0.9.4"
+    },
+    "selectedFiles": {
+      "node_modules/@novasamatech/host-api/package.json": {
+        "bytes": 777,
+        "sha256": "c2e0a162fb03828953d1925db36e94ca2ef3f55075f4e5e01056006c0044494a"
+      },
+      "node_modules/@parity/truapi/package.json": {
+        "bytes": 2332,
+        "sha256": "7f6348a34d2c2d16d3cc5d79b4ae66acea20dbdaeb302f91728aec3381c068b5"
+      },
+      "node_modules/@parity/truapi-host/package.json": {
+        "bytes": 2882,
+        "sha256": "d67e29acd0c24f1a4e5bf657575c82f36d452ce437c6dd9e2f45437bfea2609f"
+      },
+      "package.json": {
+        "bytes": 446,
+        "sha256": "f5c40dc0b38c5e51301deb68e63027ac1c34272b8cf94e2d37c7170afa1886d3"
+      }
+    },
+    "candidateProtocolPaths": [
+      "node_modules/@parity/truapi/package.json",
+      "node_modules/@parity/truapi-host/dist/wasm/testing/package.json",
+      "node_modules/@parity/truapi-host/dist/wasm/testing/truapi_server_bg.wasm",
+      "node_modules/@parity/truapi-host/dist/wasm/testing/truapi_verifiable_bg.wasm",
+      "node_modules/@parity/truapi-host/dist/wasm/web/package.json",
+      "node_modules/@parity/truapi-host/dist/wasm/web/truapi_server_bg.wasm",
+      "node_modules/@parity/truapi-host/dist/wasm/web/truapi_verifiable_bg.wasm",
+      "node_modules/@parity/truapi-host/package.json",
+      "node_modules/@parity/truapi-provider/dist/truapi_provider_bg.wasm",
+      "node_modules/@parity/truapi-provider/package.json",
+      "assets/truapi_provider_bg-6q0tKMIi.wasm",
+      "assets/truapi_server_bg-Djf7i1oy.wasm",
+      "assets/truapi_verifiable_bg-6gaGMJRD.wasm"
+    ],
+    "scope": "static public archive inspection; no launch, profile access, payment or runtime capability call",
+    "bytes": 256585119,
+    "verifiedSha512Base64": "DddqSBURL/NsXammk32yKw2HPWtXvE39F5c2MzaiMkFiFEtPAOef8Frvf1RWCTO4OJvAwMJ9pwNWK9Kd/Ju57Q=="
+  },
+  "candidateExploration": {
+    "testedSource": "510e72a1cc24e1750ff3658d08b1fb9530fe4686",
+    "sdk": "0.45.0",
+    "hostSdk": "0.34.0",
+    "truapi": "0.31.0",
+    "webBuild": "passed",
+    "frozenProductBuild": "passed",
+    "unitFiles": 158,
+    "unitTestsPassed": 1223,
+    "baselineWireTests": {
+      "passed": 4,
+      "failed": 2,
+      "failures": [
+        "expected schema 3c45e49b26c1ab97; actual cebcc89a5e45bbd3",
+        "legacy system.info response fails decoding: missing trailing truapiVersion"
+      ]
+    },
+    "publishedOrActivated": false,
+    "candidateDependencyFilesRetainedLocally": true,
+    "productionPinsRestored": true,
+    "paymentsSubmitted": 0,
+    "candidatePackagejsonSha256": "a086dc634a6cdb7250bb0116c030329885d3dd3d8c73a9984c9f5eeb298ea95a",
+    "candidatePackagelockjsonSha256": "40dd172fd874d606399f5bc0d9a36c614715de126471e1149462fe4edcda5b09"
+  },
+  "decision": {
+    "productionSdkPin": "unchanged 0.39.0 / Host SDK 0.28.0 / TrUAPI 0.25.0",
+    "defaultLatest045Promotion": "hold pending target-specific protocol/Host decision",
+    "cashWorkTip": "no-go pending actual support, units, durable status and artist split/Room settlement",
+    "latestInfoOn026": "fails published-codec fixture decoding; runtime Version label alone is not whole-API fingerprint proof",
+    "latestInfoOn029": "decodes fixture despite different whole-API fingerprints; other methods/payment support not established",
+    "hostInstallOrLaunch": false,
+    "remoteAudioOrKeysRead": false,
+    "paymentsSubmitted": 0,
+    "servicesChanged": 0
+  },
+  "offlineValidation": {
+    "protocolMatrixChecksPassed": 14,
+    "restoredPinnedWireChecksPassed": 6,
+    "existingCashRecoveryChecksPassed": 14,
+    "appDependencyDiff": "empty",
+    "researchCleanInstall": "npm ci --offline --ignore-scripts passed",
+    "changedDocumentationLocalLinksChecked": 267,
+    "brokenLocalLinksOrAnchors": 0,
+    "backlogManifestOfflineCheck": "passed"
+  }
+}

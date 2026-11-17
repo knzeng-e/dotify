@@ -1,5 +1,14 @@
 # Publication, listening reliability and CASH — execution order
 
+## SDK/Host research checkpoint, 2026-11-17
+
+The [SDK/Host upgrade investigation](../../design/product-sdk-host-upgrade-decision-2026-11-17.md)
+reproduces protocol limits with published codecs and records the owner's iPhone
+Runtime 0.26 plus the verified Desktop 0.9.4 archive. Hold the default SDK 0.45
+upgrade; #85 next selects and validates a distribution-specific candidate.
+#406 CASH tips still await actual Host, amount-unit and artist-policy settlement
+evidence. Production pins and deployed clients remain unchanged.
+
 ## Bounded Bulletin listening and artwork checkpoints, 2026-11-17
 
 [The Eskapade baseline and reopening](evidence/bulletin-room-baseline-2026-11-17.md)

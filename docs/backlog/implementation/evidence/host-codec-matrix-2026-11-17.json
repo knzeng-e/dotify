@@ -1,0 +1,292 @@
+{
+  "schema": "dotify.offline-host-compatibility.v1",
+  "evidence": "real-published-codecs-with-in-memory-fixture-hosts; not device acceptance",
+  "protocols": [
+    {
+      "version": "0.25.0",
+      "codec": 3,
+      "schema": "3c45e49b26c1ab97"
+    },
+    {
+      "version": "0.26.0",
+      "codec": 3,
+      "schema": "5f68beddf80f7b9a"
+    },
+    {
+      "version": "0.29.0",
+      "codec": 3,
+      "schema": "22e6584ca33f86cd"
+    },
+    {
+      "version": "0.31.0",
+      "codec": 3,
+      "schema": "cebcc89a5e45bbd3"
+    }
+  ],
+  "cells": [
+    {
+      "client": "0.25.0",
+      "fixtureHost": "0.25.0",
+      "sameCodec": true,
+      "sameSchema": true,
+      "cashEnabled": false,
+      "paymentMethodsCalled": 0,
+      "info": {
+        "decoded": true,
+        "fields": [
+          "name",
+          "platform",
+          "version"
+        ],
+        "method": "system.info"
+      }
+    },
+    {
+      "client": "0.25.0",
+      "fixtureHost": "0.26.0",
+      "sameCodec": true,
+      "sameSchema": false,
+      "cashEnabled": false,
+      "paymentMethodsCalled": 0,
+      "info": {
+        "decoded": true,
+        "fields": [
+          "name",
+          "platform",
+          "version"
+        ],
+        "method": "system.info"
+      }
+    },
+    {
+      "client": "0.25.0",
+      "fixtureHost": "0.29.0",
+      "sameCodec": true,
+      "sameSchema": false,
+      "cashEnabled": false,
+      "paymentMethodsCalled": 0,
+      "info": {
+        "decoded": true,
+        "fields": [
+          "name",
+          "platform",
+          "version"
+        ],
+        "method": "system.info"
+      }
+    },
+    {
+      "client": "0.25.0",
+      "fixtureHost": "0.31.0",
+      "sameCodec": true,
+      "sameSchema": false,
+      "cashEnabled": false,
+      "paymentMethodsCalled": 0,
+      "info": {
+        "decoded": true,
+        "fields": [
+          "name",
+          "platform",
+          "version"
+        ],
+        "method": "system.info"
+      }
+    },
+    {
+      "client": "0.26.0",
+      "fixtureHost": "0.25.0",
+      "sameCodec": true,
+      "sameSchema": false,
+      "cashEnabled": false,
+      "paymentMethodsCalled": 0,
+      "info": {
+        "decoded": true,
+        "fields": [
+          "name",
+          "platform",
+          "version"
+        ],
+        "method": "system.info"
+      }
+    },
+    {
+      "client": "0.26.0",
+      "fixtureHost": "0.26.0",
+      "sameCodec": true,
+      "sameSchema": true,
+      "cashEnabled": false,
+      "paymentMethodsCalled": 0,
+      "info": {
+        "decoded": true,
+        "fields": [
+          "name",
+          "platform",
+          "version"
+        ],
+        "method": "system.info"
+      }
+    },
+    {
+      "client": "0.26.0",
+      "fixtureHost": "0.29.0",
+      "sameCodec": true,
+      "sameSchema": false,
+      "cashEnabled": false,
+      "paymentMethodsCalled": 0,
+      "info": {
+        "decoded": true,
+        "fields": [
+          "name",
+          "platform",
+          "version"
+        ],
+        "method": "system.info"
+      }
+    },
+    {
+      "client": "0.26.0",
+      "fixtureHost": "0.31.0",
+      "sameCodec": true,
+      "sameSchema": false,
+      "cashEnabled": false,
+      "paymentMethodsCalled": 0,
+      "info": {
+        "decoded": true,
+        "fields": [
+          "name",
+          "platform",
+          "version"
+        ],
+        "method": "system.info"
+      }
+    },
+    {
+      "client": "0.29.0",
+      "fixtureHost": "0.25.0",
+      "sameCodec": true,
+      "sameSchema": false,
+      "cashEnabled": false,
+      "paymentMethodsCalled": 0,
+      "info": {
+        "decoded": false,
+        "failure": "decode-or-response-error",
+        "method": "system.info"
+      }
+    },
+    {
+      "client": "0.29.0",
+      "fixtureHost": "0.26.0",
+      "sameCodec": true,
+      "sameSchema": false,
+      "cashEnabled": false,
+      "paymentMethodsCalled": 0,
+      "info": {
+        "decoded": false,
+        "failure": "decode-or-response-error",
+        "method": "system.info"
+      }
+    },
+    {
+      "client": "0.29.0",
+      "fixtureHost": "0.29.0",
+      "sameCodec": true,
+      "sameSchema": true,
+      "cashEnabled": false,
+      "paymentMethodsCalled": 0,
+      "info": {
+        "decoded": true,
+        "fields": [
+          "name",
+          "platform",
+          "truapiVersion",
+          "version"
+        ],
+        "method": "system.info"
+      }
+    },
+    {
+      "client": "0.29.0",
+      "fixtureHost": "0.31.0",
+      "sameCodec": true,
+      "sameSchema": false,
+      "cashEnabled": false,
+      "paymentMethodsCalled": 0,
+      "info": {
+        "decoded": true,
+        "fields": [
+          "name",
+          "platform",
+          "truapiVersion",
+          "version"
+        ],
+        "method": "system.info"
+      }
+    },
+    {
+      "client": "0.31.0",
+      "fixtureHost": "0.25.0",
+      "sameCodec": true,
+      "sameSchema": false,
+      "cashEnabled": false,
+      "paymentMethodsCalled": 0,
+      "info": {
+        "decoded": false,
+        "failure": "decode-or-response-error",
+        "method": "system.info"
+      }
+    },
+    {
+      "client": "0.31.0",
+      "fixtureHost": "0.26.0",
+      "sameCodec": true,
+      "sameSchema": false,
+      "cashEnabled": false,
+      "paymentMethodsCalled": 0,
+      "info": {
+        "decoded": false,
+        "failure": "decode-or-response-error",
+        "method": "system.info"
+      }
+    },
+    {
+      "client": "0.31.0",
+      "fixtureHost": "0.29.0",
+      "sameCodec": true,
+      "sameSchema": false,
+      "cashEnabled": false,
+      "paymentMethodsCalled": 0,
+      "info": {
+        "decoded": true,
+        "fields": [
+          "name",
+          "platform",
+          "truapiVersion",
+          "version"
+        ],
+        "method": "system.info"
+      }
+    },
+    {
+      "client": "0.31.0",
+      "fixtureHost": "0.31.0",
+      "sameCodec": true,
+      "sameSchema": true,
+      "cashEnabled": false,
+      "paymentMethodsCalled": 0,
+      "info": {
+        "decoded": true,
+        "fields": [
+          "name",
+          "platform",
+          "truapiVersion",
+          "version"
+        ],
+        "method": "system.info"
+      }
+    }
+  ],
+  "liveHostMethodsCalled": 0,
+  "networkCalls": 0,
+  "paymentsSubmitted": 0,
+  "cashEnabled": false
+}

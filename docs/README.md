@@ -1,5 +1,10 @@
 # Dotify documentation
 
+The [SDK/Host update decision](design/product-sdk-host-upgrade-decision-2026-11-17.md)
+holds the default SDK 0.45 upgrade after an offline codec comparison against the
+phone/Desktop protocol observations. App pins stay unchanged; CASH awaits actual
+Host, amount-unit and settlement evidence.
+
 [The Bulletin Room baseline and repeat](backlog/implementation/evidence/bulletin-room-baseline-2026-11-17.md)
 succeed on Eskapade à engong with 1.807-s and 0.842-s media preparation. Owner
 Pause/guest/lock/artwork checks pass on both; the first includes end-of-track

@@ -1,0 +1,19 @@
+{
+  "name": "dotify-product-host-compatibility",
+  "private": true,
+  "type": "module",
+  "version": "0.0.0",
+  "engines": {
+    "node": ">=22.12 <23"
+  },
+  "scripts": {
+    "test": "node --test compatibility.test.mjs",
+    "report": "node report.mjs"
+  },
+  "dependencies": {
+    "truapi-v0250": "npm:@parity/truapi@0.25.0",
+    "truapi-v0260": "npm:@parity/truapi@0.26.0",
+    "truapi-v0290": "npm:@parity/truapi@0.29.0",
+    "truapi-v0310": "npm:@parity/truapi@0.31.0"
+  }
+}
