@@ -1,5 +1,13 @@
 # Publication, listening reliability and CASH — execution order
 
+## Coordinated SDK 0.45 candidate, 2026-11-17
+
+The owner selects a [single current-family migration](../../design/product-sdk-045-migration.md)
+with legacy info correction and explicit transaction V2 compatibility checks.
+The candidate requires a named 0.31.x Host before transaction/promotion acceptance;
+known phone 0.26 and Desktop 0.29 cannot supply that gate. Deployed versions,
+CASH, compact activation and deferred recovery keep their existing boundaries.
+
 ## SDK/Host research checkpoint, 2026-11-17
 
 The [SDK/Host upgrade investigation](../../design/product-sdk-host-upgrade-decision-2026-11-17.md)

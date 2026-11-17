@@ -1,9 +1,9 @@
 # Dotify documentation
 
-The [SDK/Host update decision](design/product-sdk-host-upgrade-decision-2026-11-17.md)
-holds the default SDK 0.45 upgrade after an offline codec comparison against the
-phone/Desktop protocol observations. App pins stay unchanged; CASH awaits actual
-Host, amount-unit and settlement evidence.
+The [coordinated SDK 0.45 candidate](design/product-sdk-045-migration.md) upgrades
+the Product family together and corrects legacy public-info decoding. Transaction
+signers require a verified 0.31.x Runtime; named-Host acceptance remains before
+deployment. Deployed clients retain their prior pins; CASH stays disabled.
 
 [The Bulletin Room baseline and repeat](backlog/implementation/evidence/bulletin-room-baseline-2026-11-17.md)
 succeed on Eskapade à engong with 1.807-s and 0.842-s media preparation. Owner

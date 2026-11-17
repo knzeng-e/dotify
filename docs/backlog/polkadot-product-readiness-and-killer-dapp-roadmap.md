@@ -1,5 +1,13 @@
 # Polkadot product readiness and killer dapp roadmap
 
+## Coordinated SDK migration candidate — 2026-11-17
+
+The owner selects a direct current-family migration. The [SDK 0.45 candidate](../design/product-sdk-045-migration.md)
+corrects legacy public-info decoding and adds per-method codec fixtures.
+Transaction V2 is incompatible with known older Hosts, so it refuses before
+signer creation unless Runtime 0.31.x is reported. This is implemented source,
+not deployment or device acceptance; #85 retains signing/listening/promotion gates.
+
 ## SDK/Host update checkpoint — 2026-11-17
 
 The [dated upgrade decision](../design/product-sdk-host-upgrade-decision-2026-11-17.md)

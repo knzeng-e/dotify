@@ -6,6 +6,11 @@ owner's phone and the latest inspected Desktop archive. A real codec experiment
 reproduces an older-response decoding failure. This #85/#406 investigation
 prepares target-specific migration, not an application or Host installation.
 
+A subsequent owner-selected [coordinated migration candidate](product-sdk-045-migration.md)
+now corrects the info decode failure and makes transaction V2's Host requirement
+explicit. This record preserves the original unmodified-codec investigation;
+it is not a statement that no later candidate exists.
+
 ## Versions that must not be conflated
 
 | Surface | Observed identity | Evidence and limit |

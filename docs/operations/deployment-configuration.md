@@ -204,6 +204,14 @@ a device check.
 
 ### Product DevNet frontend
 
+The [SDK 0.45 migration candidate](../design/product-sdk-045-migration.md) is not
+promoted. Its install-time public-info workaround requires normal npm lifecycle
+scripts (or its explicit manual patch command). Run `npm run test:product-sdk-compat`
+after a clean install. Transaction validation requires a named Runtime 0.31.x
+Host; a passing build on an older phone/Desktop is insufficient. Record native
+PAS approval/receipt recovery and protected listening before promotion. This
+candidate changes no hosted variable, network, storage or service setting.
+
 Follow [Product publication](product-devnet-deployment.md) for package identity,
 retention checks, budget, signer handling, readback and rollback. Record the
 commit, app version and executable CID. A completed upload alone is not proof
