@@ -4,10 +4,13 @@ import { assertNativeAccessPayment, type ExecutableTrackAccessPaymentIntent, typ
 import type { PaymentLock } from './paymentJournal';
 import { readRuntimeAccessPayment, verifyRuntimeAccessPayment, type RuntimeAccessPaymentVerificationResult } from './paymentReadback';
 
-// This error is only for failures before a writer has attempted submission.
+// This error requires proof that no payment transaction was submitted.
 export class SupportNotSubmittedError extends Error {
   readonly cause: unknown;
-  constructor(cause: unknown) {
+  constructor(
+    cause: unknown,
+    readonly failureKind?: 'approval-expired'
+  ) {
     super(cause instanceof Error ? cause.message : 'The payment could not be prepared.');
     this.cause = cause;
     this.name = 'SupportNotSubmittedError';
@@ -37,7 +40,7 @@ type Attempt = { version: 1; amountPlanck: string; symbol: string; txHash?: Hash
 export type SupportProgress = 'checking' | 'approval' | 'confirming' | 'processing' | 'finalized' | 'verifying';
 export type SupportResult = {
   status: 'verified' | 'existing-access' | 'unverified' | 'uncertain' | 'canceled' | 'failed';
-  failureKind?: 'funding-required';
+  failureKind?: 'funding-required' | 'approval-expired';
   txHash?: Hash;
   message?: string;
   errorDetail?: string;
@@ -208,6 +211,7 @@ export function createSupportPaymentFlow(
       if (!sending && !attempt) memory.delete(key);
       const canceled = !submitted && sending && supportWasCanceled(error);
       const safeToRetry = !submitted && sending && (canceled || error instanceof SupportNotSubmittedError);
+      const approvalExpired = safeToRetry && error instanceof SupportNotSubmittedError && error.failureKind === 'approval-expired';
       const fundingRequired = safeToRetry && error instanceof SupportNotSubmittedError && supportNeedsFunding(error);
       if (safeToRetry) {
         memory.delete(key);
@@ -223,19 +227,21 @@ export function createSupportPaymentFlow(
           : error instanceof PaymentLockUnavailableError || journalReadFailed || (!safeToRetry && (sending || attempt))
             ? 'uncertain'
             : 'failed',
-        failureKind: fundingRequired ? 'funding-required' : undefined,
+        failureKind: fundingRequired ? 'funding-required' : approvalExpired ? 'approval-expired' : undefined,
         txHash: attempt?.txHash ?? memory.get(key)?.txHash,
         accountState,
         errorDetail: paymentErrorDetail(error),
         message: canceled
           ? 'No payment was sent. You can try again when you are ready.'
-          : fundingRequired
-            ? `This payment account could not cover the access price and network fee. Add ${input.intent.asset.symbol} to the paying account, then try again. No payment was sent.`
-            : journalReadFailed
-              ? 'The saved payment reference could not be read. Check your account activity before paying again. No new payment was sent.'
-              : !safeToRetry && (sending || attempt)
-                ? 'Payment confirmation was interrupted. Check access and account activity before paying again.'
-                : 'Payment could not be prepared. Check your account connection and try again. No payment was sent.'
+          : approvalExpired
+            ? 'No payment was sent. Open Polkadot App, then try again when you are ready.'
+            : fundingRequired
+              ? `This payment account could not cover the access price and network fee. Add ${input.intent.asset.symbol} to the paying account, then try again. No payment was sent.`
+              : journalReadFailed
+                ? 'The saved payment reference could not be read. Check your account activity before paying again. No new payment was sent.'
+                : !safeToRetry && (sending || attempt)
+                  ? 'Payment confirmation was interrupted. Check access and account activity before paying again.'
+                  : 'Payment could not be prepared. Check your account connection and try again. No payment was sent.'
       };
     }
   }

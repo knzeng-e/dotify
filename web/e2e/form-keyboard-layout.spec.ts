@@ -56,7 +56,7 @@ for (const layout of layouts) {
     });
     await page.screenshot({ path: info.outputPath('room-sheet.png'), animations: 'disabled' });
     await dialog.getByLabel('Your name or nickname', { exact: true }).fill('Nia');
-    await dialog.locator('.room-profile-optional > summary').click();
+    await dialog.locator('.room-profile-invitation > summary').click();
     const name = dialog.getByLabel('Room name', { exact: false });
     const invitation = dialog.getByLabel('A short invitation', { exact: false });
     await name.fill('Escale à Libreville');

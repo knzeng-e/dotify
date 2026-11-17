@@ -11,7 +11,7 @@ function track(overrides: Partial<CatalogTrack> = {}): CatalogTrack {
     zone: 'Registry',
     title: 'CALL',
     artist: 'Lord Ekomy',
-    audioRef: 'dotify:enc:v2:ipfs://audio',
+    audioRef: 'dotify:enc:v3:key-v2:ipfs://Qm8ThP7gtvJxE6sZqcZ6wT3bHeqcTpzyHQZTfarocQeEUJ',
     imageRef: 'ipfs://cover',
     priceDot: '0',
     hash,

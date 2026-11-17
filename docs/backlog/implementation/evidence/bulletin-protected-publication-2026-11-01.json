@@ -1,0 +1,33 @@
+{
+  "schema": "dotify.bulletin.protected-observation.v1",
+  "digest": "c1dbb79cec39fd5e7aaac812de493439c4931aa2d5b28a6a100db73f603cf440",
+  "command": "publish",
+  "artifactImplementation": "e1ea30f340e10d6204846c865c5a21fb9a420af0",
+  "executionApproval": "3e301b19a94f8e2d2ae0843d9785b36233058210",
+  "observedAt": "2026-11-01T02:26:00.705Z",
+  "root": "bafykbzacec2bpys6cfd23kbnvg4p7fidf6laimhd5afshs32sgilt74gkybhw",
+  "ready": true,
+  "partial": false,
+  "pending": 0,
+  "receipts": 16,
+  "attemptedStores": 16,
+  "attemptedBytes": 713229,
+  "sessionStores": 14,
+  "elapsedMs": 360717,
+  "maxRssKiB": 171664,
+  "before": {
+    "head": 1452328,
+    "finalizedNonce": 1032,
+    "authorization": {
+      "expiresAt": 1621405,
+      "remainingTransactions": 48,
+      "remainingBytes": "47767052",
+      "remainingRenewBytes": "41072542"
+    },
+    "activeJob": "stream-09958498-7d0e-41c3-aacf-ff759bf8aa53",
+    "pending": 0
+  },
+  "physicalPlaybackTested": false,
+  "productionAccessTested": false,
+  "renewalsSubmitted": 0
+}

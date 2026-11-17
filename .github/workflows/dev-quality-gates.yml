@@ -77,7 +77,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 22.12.0
           cache: npm
           cache-dependency-path: web/package-lock.json
 
@@ -101,6 +101,9 @@ jobs:
 
       - name: Celerity paired capture tests
         run: npm run test:celerity-capture
+
+      - name: CASH work-tip feasibility tests (offline)
+        run: npm run test:cash-tip-feasibility
 
       - name: Product deployment guard tests (offline)
         run: npm run test:product-deploy-environment
@@ -134,15 +137,67 @@ jobs:
       - name: Run signaling tests
         run: npm run test:signal
 
+  shared-api-state:
+    name: W36 / Shared API state and recovery
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: dotify_test
+          POSTGRES_PASSWORD: local-ci-fixture
+          POSTGRES_DB: dotify_w36_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U dotify_test -d dotify_w36_test"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    defaults:
+      run:
+        working-directory: services/api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: services/api/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Use matching PostgreSQL 16 backup tools
+        run: |
+          tool_dir="$RUNNER_TEMP/dotify-pg-tools"
+          mkdir -p "$tool_dir" "$RUNNER_TEMP/dotify-w36"
+          for tool in pg_dump pg_restore; do
+            cat > "$tool_dir/$tool" <<'SCRIPT'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          exec docker run --rm --network host --user "$(id -u):$(id -g)"             --volume "$RUNNER_TEMP/dotify-w36:$RUNNER_TEMP/dotify-w36"             postgres:16 "$(basename "$0")" "$@"
+          SCRIPT
+            chmod +x "$tool_dir/$tool"
+          done
+          echo "$tool_dir" >> "$GITHUB_PATH"
+      - name: Two API processes, outages, migration and backup restore
+        env:
+          TEST_DATABASE_URL: postgresql://dotify_test:local-ci-fixture@127.0.0.1:5432/dotify_w36_test
+          TMPDIR: ${{ runner.temp }}/dotify-w36
+        run: npm run test:shared-state
+
   api:
     name: W01 / API tests and typecheck
-    runs-on: ubuntu-latest
+    # Keep codec-fixture tooling reproducible across ubuntu-latest migrations.
+    # The 26.04 image stalled for 10+ minutes downloading ffmpeg from Azure.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: services/api
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Configure signed Ubuntu package mirror
+        run: bash ../../scripts/ci/use-ubuntu-mirror.sh
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -159,6 +214,59 @@ jobs:
 
       - name: Run tests
         run: npm test
+
+      - name: Ensure FFmpeg for real AAC fixtures
+        timeout-minutes: 5
+        run: bash ../../scripts/ci/ensure-ffmpeg.sh
+
+      - name: Streaming codec and nonce round-trip
+        run: DOTIFY_TEST_FFMPEG="$(command -v ffmpeg)" npm run test:streaming
+
+      - name: Generate synthetic encrypted browser fixture
+        run: DOTIFY_TEST_FFMPEG="$(command -v ffmpeg)" node --import tsx src/scripts/streamingFixture.test.ts "${GITHUB_WORKSPACE}/web/.data/streaming-fixture.json" "${GITHUB_WORKSPACE}/web/.data/compact-streaming-fixture.json"
+
+      - name: Retain synthetic codec fixture
+        uses: actions/upload-artifact@v4
+        with:
+          name: synthetic-streaming-fixture
+          path: |
+            web/.data/streaming-fixture.json
+            web/.data/compact-streaming-fixture.json
+          include-hidden-files: true
+          retention-days: 3
+
+  api-storage-rehearsal:
+    name: W30 / Non-root storage rehearsal
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Rehearse isolated volume migration and rollback
+        run: npm --prefix services/api run storage:rehearse
+
+      - name: Verify generated container context privacy
+        run: node services/api/scripts/rehearse-container-context.mjs
+
+  streaming-worker-rehearsal:
+    name: W32 / Isolated encoding publication
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify isolated encoder, custody and publication
+        run: npm --prefix services/api run streaming:rehearse
 
   evm-contracts:
     name: W01 / EVM contracts and ABI drift
@@ -195,10 +303,10 @@ jobs:
       - name: Fail on ABI drift
         working-directory: .
         run: |
-          drift="$(git status --porcelain -- web/src/generated/contracts)"
+          drift="$(git status --porcelain -- web/src/generated/contracts services/api/src/generated)"
           if [ -n "${drift}" ]; then
             printf '%s\n' "${drift}"
-            git diff -- web/src/generated/contracts
+            git diff -- web/src/generated/contracts services/api/src/generated
             exit 1
           fi
 
@@ -259,13 +367,18 @@ jobs:
 
   playwright:
     name: W01 / Playwright core flows
-    runs-on: ubuntu-latest
+    # Match the stable codec runner for browser system dependency installation.
+    runs-on: ubuntu-24.04
+    needs: api
     defaults:
       run:
         working-directory: web
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Configure signed Ubuntu package mirror
+        run: bash ../scripts/ci/use-ubuntu-mirror.sh
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -278,7 +391,26 @@ jobs:
         run: npm ci
 
       - name: Install Playwright browser
-        run: npx playwright install --with-deps chromium
+        timeout-minutes: 7
+        run: npx playwright install --with-deps chromium webkit firefox
+
+      # Nearby verifies decoded WebRTC energy through a real AudioContext, just
+      # like the three-engine streaming gate. Give both jobs an audio clock.
+      - name: Start a real audio service with a headless output
+        timeout-minutes: 7
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y pulseaudio
+          pulseaudio --start --exit-idle-time=-1
+          pactl load-module module-null-sink sink_name=dotify_ci_audio
+          pactl set-default-sink dotify_ci_audio
+          pactl info
+
+      - name: Fetch synthetic codec fixture from this commit
+        uses: actions/download-artifact@v4
+        with:
+          name: synthetic-streaming-fixture
+          path: web/.data
 
       - name: Run deterministic core flows
         run: npm run test:e2e
@@ -292,6 +424,10 @@ jobs:
       - name: Verify encrypted audio continuity
         run: npm run test:audio-continuity -- --project chromium
 
+      - name: Verify WebKit listening controls and artwork
+        working-directory: web
+        run: npx playwright test --config playwright.listening-webkit.config.ts
+
       - name: Verify Product host identity
         working-directory: web
         run: npx playwright test --config playwright.product-identity.config.ts --project=chromium --workers=2
@@ -299,3 +435,84 @@ jobs:
       - name: Verify incomplete sign-out recovery
         working-directory: web
         run: npx playwright test --config playwright.session-logout.config.ts --project=chromium --workers=2
+
+      - name: Preserve browser failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-failures-${{ github.run_attempt }}
+          path: web/test-results/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  streaming-browser:
+    name: W35 / Adaptive streaming in three engines
+    runs-on: ubuntu-24.04
+    needs: api
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure signed Ubuntu package mirror
+        run: bash ../scripts/ci/use-ubuntu-mirror.sh
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install three browser engines
+        timeout-minutes: 7
+        run: npx playwright install --with-deps chromium webkit firefox
+
+      - name: Start a real audio service with a headless output
+        timeout-minutes: 7
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y pulseaudio
+          pulseaudio --start --exit-idle-time=-1
+          pactl load-module module-null-sink sink_name=dotify_ci_audio
+          pactl set-default-sink dotify_ci_audio
+          pactl info
+
+      - name: Fetch synthetic codec fixture from this commit
+        uses: actions/download-artifact@v4
+        with:
+          name: synthetic-streaming-fixture
+          path: web/.data
+
+      - name: Verify authenticated streaming and rendition changes
+        run: npx playwright test --config playwright.streaming.config.ts
+
+      - name: Verify Room-to-solo output and fresh source reopening
+        run: npx playwright test --config playwright.mobile-host.config.ts --grep 'closing a room preserves|re-preparing a playing' --workers=2
+
+      - name: Install loopback media fixture dependencies
+        run: npm ci --prefix ../services/api
+
+      - name: Typecheck compact codec acceptance harness
+        run: npx tsc --noEmit -p tsconfig.compact.json
+
+      - name: Verify compact AAC decoding, mixed layouts and loopback Room output
+        run: npx playwright test --config playwright.compact.config.ts
+
+      - name: Preserve streaming failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: streaming-browser-failures-${{ github.run_attempt }}
+          path: |
+            web/.data/streaming-results/
+            web/.data/compact-audio-results/
+            web/test-results/
+          include-hidden-files: true
+          if-no-files-found: ignore
+          retention-days: 7

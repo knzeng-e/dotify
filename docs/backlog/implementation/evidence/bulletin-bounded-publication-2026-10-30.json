@@ -1,0 +1,186 @@
+{
+  "schema": "dotify.bulletin.pipeline-evidence.v1",
+  "base": "5b6ddec51ba4dfdc2383d7afbaf17996dfdda1a6",
+  "model": {
+    "observedAt": "2026-10-30T13:41:26.694Z",
+    "synthetic": true,
+    "networkWrites": 0,
+    "physicalHostTested": false,
+    "audibleStartupMeasured": false,
+    "livePublicationSpeedMeasured": false,
+    "graph": {
+      "blocks": 19,
+      "bytes": 870498
+    },
+    "model": "all blocks take one equal-duration stage; no network or time prediction",
+    "schedules": [
+      {
+        "concurrency": 1,
+        "maxInFlightBytes": 524288,
+        "modeledFinalityWaves": 19,
+        "peakWaveBytes": 262144
+      },
+      {
+        "concurrency": 2,
+        "maxInFlightBytes": 524288,
+        "modeledFinalityWaves": 11,
+        "peakWaveBytes": 286736
+      },
+      {
+        "concurrency": 4,
+        "maxInFlightBytes": 524288,
+        "modeledFinalityWaves": 7,
+        "peakWaveBytes": 456845
+      }
+    ]
+  },
+  "capabilities": {
+    "observedAt": "2026-10-30T13:41:52.116Z",
+    "endpoint": "wss://bulletin-paseo.tservices.es:8443",
+    "genesis": "0xe101f0fa4627d29a257645e02be86d80378fea1a2bf8fa6a918d150ebc760a59",
+    "finalized": {
+      "hash": "0x18ca330dcf81c4a795cbcb14438d3964b2672f87bd7bbd8456ea05e2775b8d27",
+      "number": 1430571,
+      "parent": "0x1618bf4f760d40dbc9b06c9735923fabf82b61de0b33ff77e3f444880f3df903",
+      "hasNewRuntime": false
+    },
+    "finalizedAccountNonce": 944,
+    "utilityCalls": [
+      "batch",
+      "as_derivative",
+      "batch_all",
+      "dispatch_as",
+      "force_batch",
+      "with_weight",
+      "if_else",
+      "dispatch_as_fallible"
+    ],
+    "utilityBatchCallPresent": true,
+    "metadataOnly": true,
+    "storageBatchCompatibility": "not proven; inspected upstream storage validation rejects nested store calls",
+    "networkWrites": 0
+  },
+  "upstreamSource": "e0190de902b41b820844ec530ec21f5af04d1f11",
+  "networkWrites": 0,
+  "signerUsed": false,
+  "productionChanged": false,
+  "verification": {
+    "existingTests": 27,
+    "pipelineTests": 19,
+    "livePublicationSpeedMeasured": false,
+    "mobileTested": false
+  },
+  "testedPipelineSource": "4dd555014eb2424ea6ca3f392166aeaea939cf76",
+  "compatibilityOverlay": {
+    "readerSource": "7b6d4d224f3a317bbd493b556bca604aca321194",
+    "pipelineSource": "4dd555014eb2424ea6ca3f392166aeaea939cf76",
+    "overlay": true,
+    "networkWrites": 0,
+    "keyLoaded": false,
+    "blocks": 16,
+    "bytes": 713229,
+    "result": {
+      "root": "bafykbzacecbgxu5coifnfzajpkwzuaxv36snvjfd4zqsbvpgfk4mx7mhzhtj4",
+      "storedBlocks": 16,
+      "reusedBlocks": 0,
+      "reservedRenewalTransactions": 16,
+      "concurrency": 2,
+      "maxInFlightBytes": 524288,
+      "peakInFlight": 2,
+      "peakInFlightBytes": 304461
+    },
+    "plan": {
+      "schema": "dotify.bulletin.pipeline-plan.v1",
+      "root": "bafykbzacecbgxu5coifnfzajpkwzuaxv36snvjfd4zqsbvpgfk4mx7mhzhtj4",
+      "blocks": 16,
+      "bytes": 713229,
+      "concurrency": 2,
+      "maxInFlightBytes": 524288,
+      "serialFinalityWaves": 16,
+      "modeledFinalityWaves": 9,
+      "waves": [
+        {
+          "cids": [
+            "bafk2bzacebvogx72ouutwhmwl4unnz2eslp6cwr5vgartcow6gvufxdvlquva",
+            "bafk2bzacebpd6ny4na3yhf6h47ihzfgduhq4wjz6ag3bezhle7ijjgpmkp7gw"
+          ],
+          "bytes": 80988
+        },
+        {
+          "cids": [
+            "bafk2bzaceargbep2z6ogreshi6irm2mbemghyinvpzk6od4qx2zhde5b3t7tu",
+            "bafk2bzacedj56gy5dfohhc3o7dftweyvnzbixbfdn3kcmcz3gnbmaky4dws6c"
+          ],
+          "bytes": 81920
+        },
+        {
+          "cids": [
+            "bafykbzacedazw652ftokwskn4dl6aw4clq2lsj4cnszzvohdvydbiughvxmfc",
+            "bafk2bzaceajpkymbzny3gemzdwcdciqfqmwde4clixnpsb6mzcugn7ktxylrk"
+          ],
+          "bytes": 97103
+        },
+        {
+          "cids": [
+            "bafk2bzaceb2iebc43v2r4vanqh7zriwt2hckfxvl5fvxcww3agu4fkp2hqkyy",
+            "bafk2bzaceaq6qzkz3bk3w66rhnwcathlmvllaioff6276lbjl44qh33nkj3fk"
+          ],
+          "bytes": 97694
+        },
+        {
+          "cids": [
+            "bafykbzacebhbqaxfr6gz6mtknngps7kwcy4yihiyi7jth3c5twbbccdspr6dc",
+            "bafk2bzaceabx4deg2xjygwxrtsnuvy72pv62pxwzj6fw62ehmwvmot34phzlm"
+          ],
+          "bytes": 48555
+        },
+        {
+          "cids": [
+            "bafk2bzacecoq4m7e35hpcg3xhry2hfhmkluzflbsn2l263wtcquxvjf2423ps",
+            "bafk2bzacebybumvaphjpmqklrop3t5ypgtn34nbfkn6ro5zu73xuyjrcoib2s"
+          ],
+          "bytes": 304461
+        },
+        {
+          "cids": [
+            "bafykbzaced7bpqf2f4bwkxpnwvyswdid3t5urqdkybvsezke3fguqalaxhces",
+            "bafykbzacebe6i64545pjwmay342hjsdiofla2h3lpueq5zhc4x77f4qeieses"
+          ],
+          "bytes": 247
+        },
+        {
+          "cids": [
+            "bafk2bzaced7xt7u2trvyvdmnnt4p5p6ikudesmb43l3y3w753s64yp4bja44c"
+          ],
+          "bytes": 1990
+        },
+        {
+          "cids": [
+            "bafykbzacecbgxu5coifnfzajpkwzuaxv36snvjfd4zqsbvpgfk4mx7mhzhtj4"
+          ],
+          "bytes": 271
+        }
+      ],
+      "model": "all blocks take one equal-duration stage; no network or time prediction",
+      "networkWrites": 0
+    },
+    "tests": {
+      "readerExistingTests": 38,
+      "pipelineTests": 19,
+      "passed": 57
+    }
+  },
+  "reviewCorrection": {
+    "integratedDev": "c8adf64e",
+    "reviewComment": 4424968167,
+    "pipelineTests": 22,
+    "readerCodecTests": 38,
+    "hostHarnessTests": 6,
+    "journalRaceFailedBeforeFix": true,
+    "parentStatusRaceCovered": true,
+    "networkWrites": 0,
+    "signerUsed": false,
+    "productionChanged": false,
+    "physicalHostTested": false
+  }
+}

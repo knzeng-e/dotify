@@ -1,14 +1,68 @@
 # Dotify documentation
 
+[The Bulletin Room baseline and repeat](backlog/implementation/evidence/bulletin-room-baseline-2026-11-17.md)
+succeed on Eskapade à engong with 1.807-s and 0.842-s media preparation. Owner
+Pause/guest/lock/artwork checks pass on both; the first includes end-of-track
+confirmation, the second about 79 s of background observations.
+[The subsequent solo/Room track-change artwork check](backlog/implementation/evidence/bulletin-track-change-artwork-2026-11-17.md)
+also passes with owner-confirmed guest sound. Next is bounded #406 CASH-tip
+research while other native/pilot gates remain. These observations are not a
+cold-start benchmark or controlled speed claim.
+
+Active listening acceptance is now [Bulletin-only](backlog/implementation/listening-and-publication-readiness.md#bulletin-only-readiness-scope-2026-11-17).
+Adang Fobe's older IPFS path is excluded and its artist-signed retirement is
+verified in the public catalogue; all four active releases use Bulletin.
+
+The [public API cache delivery](backlog/implementation/evidence/api-cache-rollout-2026-11-16.md)
+serves #477 on both replicas from `72e28eba`, with exact image/source, preserved
+configuration and health/readiness checks passing. Web/Product stay 0.1.88.
+The subsequent phone reports retain an initial 60-second timeout, a 41.562-s
+retry and a later 29.114-s opening; Pause and guest sound are reported OK.
+Reliable initial startup and hosted cache/memory acceptance remain open. Those
+Adang Fobe observations concern the older IPFS path; next measure an existing
+Bulletin-backed release, whose reader is separate.
+
+The [0.1.88 client delivery](backlog/implementation/evidence/product-0.1.88-rollout-2026-11-15.md)
+adds local relay/native/HTTP-header/body measurements. Independent delivery and
+unchanged custody checks pass. One matching Wi-Fi phone check confirms Pause,
+guest/lock sound and artwork, but preparation takes 34.857 s; the report locates
+work in relay admission and pre-response HTTP waits without isolating a cause.
+The [measurement guide](how-to/measure-room-startup.md#distinguish-transport-phases)
+defines the fields and limits. No speedup or native-artwork correction is claimed.
+
+The [0.1.87 client delivery](backlog/implementation/evidence/product-0.1.87-rollout-2026-11-15.md)
+records verified delivery and one matching phone opening with Pause and guest/
+short-lock sound. Preparation still takes 36.955 s and the lock-screen cover is
+absent; latency and artwork reliability remain open.
+
+The [0.1.86 client delivery](backlog/implementation/evidence/product-0.1.86-rollout-2026-11-14.md)
+records deployed queued Room read reuse and one owner-confirmed phone opening
+with Pause/guest/short-lock sound. The matching preparation takes 33.153 s;
+repeated startup and latency acceptance remain open.
+
 Start with the task you want to complete. Dotify is a shared-listening hub with
 artist-owned runtimes; its [project overview](../README.md) explains the purpose
 and shows the current interface.
+
+Continuous listening implementation: [adaptive delivery, prepared transitions,
+system controls and local resume](explanation/continuous-listening.md). Its
+[W35 evidence](backlog/implementation/evidence/W35.md) separates browser checks
+from physical Product acceptance and publication.
+
+The [solo-to-Room continuity candidate](adr/0059-preserve-solo-during-room-preparation.md)
+keeps current solo audio usable during authenticated mobile Room preparation;
+matching physical-device acceptance remains open.
+
+The [0.1.85 listening delivery](backlog/implementation/evidence/product-0.1.85-rollout-2026-11-14.md)
+records the published Free-track correction: solo/retry listening is reported OK,
+but the first phone Room opening still times out.
 
 ## Use Dotify
 
 | I want to…                                        | Start here                                                                |
 | ------------------------------------------------- | ------------------------------------------------------------------------- |
 | Host, join or discover a listening room           | [Listen together](how-to/listen-together.md)                              |
+| Check delayed lock-screen artwork | [Check system artwork](how-to/check-system-artwork.md) |
 | Understand who needs a wallet or listening access | [Access policy](explanation/access-control-model.md)                      |
 | Understand source protection and recording limits | [Content protection](explanation/content-protection.md)                   |
 | Explore the interface                             | [Current captures and their provenance](images/release-preview/README.md) |
@@ -28,21 +82,45 @@ For an uncertain gift, tip or Classic purchase, use
 | Understand Product integration             | [Product architecture](explanation/product-devnet-architecture.md)                                              |
 | Make a focused contribution                | [AGENTS.md](../AGENTS.md), [PR guide](explanation/pull-requests-as-knowledge-sharing.md)                        |
 
+For documentation changes, follow [Document a change](how-to/document-a-change.md):
+choose the reader, give each rule one home and keep evidence tied to its artifact.
+
+For slow Room startup, [collect comparable listening reports](how-to/measure-room-startup.md),
+including successful starts and physical locked-screen observations.
+
 ## Look something up
 
+- [Bulletin proof read coordination](adr/0058-coordinate-bulletin-proof-loads.md): avoid duplicate block downloads while retaining per-query checks
+- [Server Node runtime and offline reader packaging](reference/server-runtime.md)
 - [Environment variables](reference/environment-variables.md)
-- [Socket events](reference/socket-events.md)
+- [Socket events and negotiation limits](reference/socket-events.md)
+- [Development toolchain security](reference/development-toolchain.md)
+- [HTTP request limits](reference/request-limits.md)
+- [Host software support fields](reference/host-software-support.md): bounded optional software labels, without account/payment probes
+- [Public artwork cache](reference/public-artwork-cache.md): bounded delivery independent of optional browser storage
+- [API schema compatibility](reference/api-schema-compatibility.md)
+- [Compact Bulletin delivery and admission](reference/bulletin-compact-delivery.md): explicit format, encrypted delivery and immutable source selection
+- [Compact Bulletin object readers](reference/bulletin-compact-reader.md): authentication, bounds and cancellation
 - [DAV2 encrypted audio](reference/audio-v2-container.md)
 - [Contract reference](reference/contracts-api.md) and [generated bindings](../web/src/generated/contracts/)
 - [Shared TypeScript source](../web/src/shared/types.ts)
 - [Access and key-delivery threat model](security/content-key-delivery-threat-model.md)
+- [CASH work-tip feasibility](design/product-cash-tip-decision-2026-11-13.md): dated API/recovery decision and remaining Host/settlement gates
 - [Native contributions](design/native-contributions.md) and [royalty settlement](explanation/royalty-settlement.md)
 
 ## Operate and prepare a release
 
-- [Deployment configuration](operations/deployment-configuration.md): Web/API/signaling settings, persistent state and checks.
+- [Verify deployment configuration](operations/deployment-configuration.md): identify affected components, compare settings and validate delivery.
+- [Deployment history](operations/deployment-configuration-history.md): preserved dated checkpoints, outside the operating procedure.
 - [Product publication](operations/product-devnet-deployment.md): package identity, signer boundary, publish and rollback.
 - [Quality gates](operations/dev-quality-gates.md): automated verification.
+- [Generated Bulletin resource envelope](operations/bulletin-resource-envelope.md): real encoding and standard/compact readback inside bounded local containers; hosted capacity remains separate.
+- [Data-only custody checkpoint](operations/bulletin-custody-checkpoint.md): inspect a settled store, copy an exact plan and verify private data without keys or writer activation; operational use remains separate.
+- [Isolated Bulletin reconstruction](operations/bulletin-isolated-restore.md): recover original data/history into a guarded review workspace after source loss; no service activation or key recovery.
+- [Published Bulletin graph archive](operations/bulletin-published-archive.md): preserve reachable published blocks independently of pruned custody files and verify offline; no keys, history repair or writer activation.
+- [Published Bulletin audio authentication](operations/bulletin-published-audio-check.md): check a published backup against separate trusted release/key inputs, without exporting plaintext or activating custody.
+- [Recovered Bulletin key check](operations/bulletin-recovered-key-check.md): authenticate retained encrypted audio using explicitly recovered versions, without service activation; real transfer remains separate.
+- [Generated Bulletin restore rehearsal](operations/bulletin-generated-restore-rehearsal.md): independent-runner fixture transfer, source loss, compiled historical compatibility and refusal checks; operational recovery remains separate.
 - [Pilot release plan](operations/pilot-release-plan.md): device journeys, evidence and the release decision.
 - [Dated implementation and rollout evidence](backlog/implementation/evidence/).
 

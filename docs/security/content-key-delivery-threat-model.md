@@ -18,23 +18,23 @@ Dotify should be honest: this is protected distribution access, not absolute DRM
 
 ## Actors
 
-| Actor | Description |
-| --- | --- |
-| Artist | Publishes protected tracks and defines access policy. |
-| Listener | Requests individual playback or joins a room. |
-| Host | Streams audio into a room. |
-| Room guest | Receives WebRTC stream from host. |
-| Backend | Validates signatures, checks runtime access, delivers keys. |
-| Attacker | Attempts to obtain source files, keys, or replay access. |
+| Actor      | Description                                                 |
+| ---------- | ----------------------------------------------------------- |
+| Artist     | Publishes protected tracks and defines access policy.       |
+| Listener   | Requests individual playback or joins a room.               |
+| Host       | Streams audio into a room.                                  |
+| Room guest | Receives WebRTC stream from host.                           |
+| Backend    | Validates signatures, checks runtime access, delivers keys. |
+| Attacker   | Attempts to obtain source files, keys, or replay access.    |
 
 ## Trust boundaries
 
 ```mermaid
 flowchart LR
-  Browser[Browser / Frontend] -->|signed request| API[Dotify Backend]
+  Browser[Browser / Frontend] -->|signed identity or session| API[Dotify Backend]
   API -->|read access policy| Runtime[Artist SmartRuntime]
-  API -->|fetch/pin refs| IPFS[IPFS / Pinata]
-  API -->|temporary key only when allowed| Browser
+  API -->|resolve encrypted references| Storage[Encrypted media storage]
+  API -->|key only when allowed| Browser
   Host[Host Browser] -->|WebRTC media stream| Guest[Room Guest]
 ```
 
@@ -54,36 +54,45 @@ flowchart LR
 
 ## Individual playback threat model
 
+The current frontend signs in once, then uses a bearer session as described in
+[session authentication](#session-auth-sign-once-listen-freely-ticket-24-p2).
+Free tracks use the wallet-free route. The older per-track signed route remains
+accepted for older clients. All paths resolve the canonical release and its
+current access policy before deriving a key.
+
 ```mermaid
 sequenceDiagram
   participant U as Listener
   participant B as Browser
-  participant API as Backend
-  participant RT as SmartRuntime
+  participant API as Dotify API
+  participant RT as Artist runtime
 
-  U->>B: Request full individual playback
-  B->>API: Nonce request
-  API-->>B: Nonce + expiry
-  U->>B: Sign challenge
-  B->>API: Signature + purpose=individual
-  API->>API: Verify signature + nonce
-  API->>RT: Check access
-  alt allowed
-    API-->>B: Temporary content key
-  else denied or ambiguous
-    API-->>B: Preview-only response
+  U->>B: Connect for protected listening
+  B->>API: Request sign-in nonce
+  API-->>B: Nonce and expiry
+  U->>B: Sign the identity challenge
+  B->>API: Exchange signature for session
+  API-->>B: Bearer session token
+  B->>API: Key request with session and release identity
+  API->>API: Verify session and resolve canonical release
+  API->>RT: Check current access
+  API->>API: Recheck session and verdict freshness
+  alt allowed and still valid
+    API-->>B: Release-scoped content key
+  else denied, expired or ambiguous
+    API-->>B: Refusal without a key
   end
 ```
 
 ### Threats
 
-| Threat | Mitigation |
-| --- | --- |
-| User extracts frontend bundle | No production key material in bundle. |
-| Replay old signature | Nonce and expiry, one-time use. |
-| User lies about access | Backend ignores frontend access booleans and reads runtime. |
-| RPC unavailable | Fail closed for key release. |
-| Leaked temporary key | Keep key scoped to track/release; remember that rotation cannot retract a key already learned by a client. |
+| Threat                        | Mitigation                                                                                                 |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| User extracts frontend bundle | No production key material in bundle.                                                                      |
+| Replay old signature          | Nonce and expiry, one-time use.                                                                            |
+| User lies about access        | Backend ignores frontend access booleans and reads runtime.                                                |
+| RPC unavailable               | Fail closed for key release.                                                                               |
+| Leaked content key            | Keep key scoped to track/release; remember that rotation cannot retract a key already learned by a client. |
 
 ## Room playback threat model
 
@@ -94,10 +103,11 @@ sequenceDiagram
   participant RT as SmartRuntime
   participant G as Guest
 
-  H->>API: Signed key request purpose=room_host
+  H->>API: Session key request purpose=room_host
   API->>RT: Check host access
-  alt host allowed
-    API-->>H: Temporary content key
+  API->>API: Recheck session and verdict freshness
+  alt host allowed and still valid
+    API-->>H: Release-scoped content key
     H-->>G: WebRTC full stream
   else host denied
     API-->>H: Denied response, no key
@@ -113,13 +123,13 @@ Room guests do not receive a key. They receive only the WebRTC media stream.
 
 ### Threats
 
-| Threat | Mitigation / boundary |
-| --- | --- |
-| Guest tries to fetch source file | Guest has no content key and no key request path. |
-| Guest records WebRTC stream | Not prevented. This is outside Dotify's distribution-access protection. |
-| Unauthorized host tries protected track | Backend returns a denial response, no key, and the host streams no protected audio. |
-| Host shares decrypted audio outside Dotify | Not fully preventable once host is authorized. Document boundary. |
-| Malicious client claims purpose=room_host for guest | Signature requester is checked; room listeners are not given key-delivery UI/path. |
+| Threat                                              | Mitigation / boundary                                                               |
+| --------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| Guest tries to fetch source file                    | Guest has no content key and no key request path.                                   |
+| Guest records WebRTC stream                         | Not prevented. This is outside Dotify's distribution-access protection.             |
+| Unauthorized host tries protected track             | Backend returns a denial response, no key, and the host streams no protected audio. |
+| Host shares decrypted audio outside Dotify          | Not fully preventable once host is authorized. Document boundary.                   |
+| Malicious client claims purpose=room_host for guest | Signature requester is checked; room listeners are not given key-delivery UI/path.  |
 
 ## Non-DRM statement
 
@@ -136,9 +146,10 @@ Access model v2 (ticket 24) gives every track an artist-chosen mode:
 - `free`: the key service releases the content key with no authentication
   (POST /free-key). The backend still verifies the mode on-chain first
   (musicAccCanAccess probed with the zero address), so a track flipped back to
-  a gated mode stops being served immediately. Encryption of free tracks is a
-  policy hinge, not secrecy: the artist can change the door later without
-  re-uploading, and IPFS never holds clear audio.
+  a gated mode blocks subsequent Dotify key requests once the backend verifies
+  the changed policy. Encryption is an access-policy mechanism, not revocation
+  of keys already learned: an earlier recipient can retain a key and ciphertext.
+  See [access policy limits](../explanation/access-control-model.md).
 - `classic` (paid) and `human-free` (Proof of Personhood): wallet-signed key
   requests with the on-chain check, unchanged.
 
@@ -173,25 +184,32 @@ Operational rules:
 ## Session auth: sign once, listen freely (ticket 24 P2)
 
 One SIWE-style SIGN_IN signature (nonce + expiry + replay protection, same
-fail-closed order as key requests) exchanges for a bearer session token
-(~24h). Later key requests carry the token instead of a fresh signature.
+fail-closed order as key requests) establishes a signed-in identity. Bearer
+tokens last **two hours** and can renew within the original **24-hour** wallet
+sign-in window. Renewal does not move that original deadline. Later key
+requests carry the token instead of a fresh signature. The defining constants
+and verification paths are in
+[sessionTokens.ts](../../services/api/src/services/sessionTokens.ts).
 
 Properties and boundaries:
 
 - The token proves identity only. Every key request still runs the on-chain
   access check for its own track against the token's address - a token never
   grants access by itself.
-- Tokens are HMAC-SHA256 over a strict two-claim-shape payload; the HMAC key
-  is HKDF-derived from the active content-key version secret with a dedicated
-  info label, so token keys and content keys never share bytes and no new
-  secret exists. Active-version rotation may require clients to sign in again.
+- Tokens are HMAC-SHA256 over validated claims. The signing key is HKDF-derived
+  from the dedicated server-side `SESSION_SECRET`, not the content-key master.
+  A previous session secret can be retained during an explicit bounded rotation.
+  Use [shared-state configuration](../operations/shared-api-state.md#topology-and-configuration)
+  for secret ownership and rotation inputs; never publish their values.
 - A stolen token is bounded by TTL, server-side revocation (logout, also
   triggered by wallet disconnect in the app), and the fact that it can only
   fetch keys the address could already obtain.
-- Revocation uses an in-memory jti blocklist and a durable single-writer
-  snapshot when a stable `SESSION_EPOCH` is configured. A failed snapshot write
-  returns 503 rather than acknowledging logout; the in-memory denial alone
-  cannot survive a restart. Scale-out still needs a shared store first.
+- In shared mode, PostgreSQL is authoritative for session renewal and
+  revocation across public API replicas. Local single-node mode retains the
+  file-backed revocation implementation. Logout must not acknowledge success
+  before durable storage accepts it; a failed write returns an error. Preserve
+  the namespace, signing inputs and stable epoch during replacement. See
+  [shared API state](../operations/shared-api-state.md).
 - The frontend caches identity tokens by API URL, account, chain, and signing
   identity. Memory remains authoritative when persistent browser/Host storage
   cannot be written. The 60-second refresh margin and server expiry remain in
@@ -234,6 +252,29 @@ Properties and boundaries:
   disconnect/reconnect clears an in-memory interruption latch. The API still
   accepts its legacy signed route for older clients; the current frontend never
   uses it. Requests have a 15-second HTTP budget, excluding wallet approval.
+
+### In-flight requests and expiry
+
+An access read can finish after the listener disconnects or its verdict expires.
+The [key routes](../../services/api/src/routes/keys.ts) therefore recheck the
+session after asynchronous access reads and check an access verdict's
+`validUntil` immediately before derivation. An expired verdict returns a
+temporary denial without deriving a key. In a batch, waiting for another track
+cannot extend an earlier result's validity.
+
+The [client key service](../../web/src/services/keyService.ts) checks both the
+identity generation and the exact cached token before prepared-key cache use,
+after HTTP/error parsing and before renewal or state changes. A delayed 401 for
+an old request must not restart a disconnected identity or clear a replacement
+session, including one written by another tab. These checks cancel pending
+work; they cannot retract a key that an authorized client already learned.
+Free listening remains wallet-free, and Room guests still receive no source key.
+
+The [network JSON guard](../reference/request-limits.md) bounds validation work
+before route schemas. It mitigates the demonstrated collection-amplification
+path; the remaining Zod advisory is tracked in
+[#432](../backlog/api-schema-security-migration.md). This is not evidence that
+every dependency or attack path is safe.
 
 ## Logging rules
 
@@ -290,4 +331,6 @@ Before merging key-delivery changes, verify:
 - missing key-version secrets fail closed and never fall back silently;
 - legacy encrypted refs remain readable when their retained version secret is configured;
 - docs do not claim absolute DRM;
-- tests cover denied, allowed, replay, and RPC failure paths.
+- tests cover denied, allowed, replay, and RPC failure paths;
+- logout/expiry during access reads and stale batch verdicts derive no key;
+- delayed responses and cross-tab replacement cannot revive an old identity.

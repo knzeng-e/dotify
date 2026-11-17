@@ -1,0 +1,196 @@
+{
+  "kind": "selected transcription of two supplied overlapping support exports, not a full raw-report archive",
+  "reportSchema": "dotify.audio-diagnostics.v1",
+  "clientVersion": "0.1.88",
+  "clientBuildSha": "4cbdb4f4206f91470eb6097ade8f23093f4aa840",
+  "hostSoftware": {
+    "platform": "Ios",
+    "name": "Polkadot App",
+    "version": "0.10.0 (20)"
+  },
+  "reports": {
+    "soloObservedAt": "2026-11-17T05:17:14.802Z",
+    "extendedRoomObservedAt": "2026-11-17T05:21:25.113Z",
+    "relationship": "Second report repeats the same first three selections and extends the same in-memory context with Room preparation/change; not independent trials."
+  },
+  "identityBinding": "Owner response to requested existing Free Bulletin Eskapade/Black panther exercise. Reports intentionally omit title/CID; final Room reference is not independently identifiable.",
+  "ownerObservation": {
+    "verbatim": "Solo/changements : OK ; Room/changement : OK ; son invité : OK",
+    "soloTrackChange": true,
+    "roomTrackChange": true,
+    "guestSound": true,
+    "visualAndMetadataMeaning": "OK supplied in response to correct title/artist/cover and no old-cover-return check",
+    "measuredNativeAppearanceDelay": null
+  },
+  "artwork": [
+    {
+      "attempt": 1,
+      "requestedTimestamp": 1794892568966,
+      "decodedMs": 6,
+      "composedMs": 58,
+      "pngPublishedMs": 63,
+      "retiredTimestamp": 1794892576078
+    },
+    {
+      "attempt": 2,
+      "requestedTimestamp": 1794892576079,
+      "decodedMs": 3,
+      "composedMs": 17,
+      "pngPublishedMs": 18,
+      "retiredTimestamp": 1794892580891
+    },
+    {
+      "attempt": 3,
+      "requestedTimestamp": 1794892580892,
+      "preparedHitMs": 0,
+      "pngPublishedMs": 8,
+      "retiredTimestampInExtendedReport": 1794892827819
+    },
+    {
+      "attempt": 4,
+      "requestedTimestamp": 1794892827819,
+      "preparedHitMs": 0,
+      "pngPublishedMs": 9
+    }
+  ],
+  "solo": {
+    "selectionStarts": [
+      1794892568943,
+      1794892576071,
+      1794892580874
+    ],
+    "intervalsBetweenSelectionStartsMs": [
+      7128,
+      4803
+    ],
+    "metadataReadyMs": [
+      340,
+      72,
+      63
+    ],
+    "mediaPlayingMs": [
+      388,
+      129,
+      98
+    ],
+    "allForRoomCapture": false,
+    "visibilityHiddenTimestamp": 1794892593045,
+    "pauseWhileHiddenTimestamp": 1794892619478,
+    "visibilityVisibleTimestamp": 1794892622279,
+    "backgroundWallMs": 29234,
+    "playingBeforeHiddenPauseMs": 26433,
+    "mediaHiddenSeconds": 8.310779083,
+    "mediaAtPauseAndReturnSeconds": 34.675902041,
+    "pauseOrigin": "not exported; no user-visible failure reported",
+    "laterPausedHiddenIntervalMs": 120754,
+    "laterPausedMediaSeconds": 34.675902041,
+    "longGapBeforeSegment8": "Solo segment completion at ~26 s selection age is not Room loading duration; no matching late-stall failure reported."
+  },
+  "roomPreparation": {
+    "attempt": 5,
+    "readAttempt": 1,
+    "keyAuthorizedMs": 374,
+    "manifestReadyMs": 384,
+    "downloadedMs": 1054,
+    "readyMs": 1056,
+    "assemblyMs": 2,
+    "readTimings": {
+      "objectsRead": 31,
+      "objectsDecrypted": 31,
+      "encryptedBytes": 1464541,
+      "cachedObjects": 16,
+      "hostObjects": 13,
+      "httpObjects": 2,
+      "recoveredObjects": 2,
+      "readWorkMs": 1452,
+      "decryptWorkMs": 65,
+      "maxReadMs": 658,
+      "relayWaitMs": 0,
+      "nativeReadMs": 165,
+      "httpHeadersMs": 1227,
+      "httpBodyMs": 58,
+      "nativeReadAttempts": 15,
+      "nativeReadFailures": 2,
+      "httpRequests": 2,
+      "httpBodyReads": 2,
+      "httpFailures": 0
+    },
+    "handoffAttempt": 6,
+    "preparedSourceReusedMs": 129,
+    "metadataReadyMs": 210,
+    "inheritedPausedMediaSeconds": 34.675902041
+  },
+  "roomChange": {
+    "attempt": 8,
+    "readAttempt": 1,
+    "forRoomCapture": true,
+    "keyAuthorizedMs": 186,
+    "manifestReadyMs": 191,
+    "manifestEncryptedBytes": 10290,
+    "soloMiddleManifestEncryptedBytes": 20637,
+    "exactFinalTrackNotIdentified": true,
+    "downloadedMs": 1195,
+    "readyMs": 1198,
+    "assemblyMs": 3,
+    "readTimings": {
+      "objectsRead": 25,
+      "objectsDecrypted": 25,
+      "encryptedBytes": 1150652,
+      "cachedObjects": 2,
+      "hostObjects": 21,
+      "httpObjects": 2,
+      "recoveredObjects": 2,
+      "readWorkMs": 2372,
+      "decryptWorkMs": 29,
+      "maxReadMs": 934,
+      "relayWaitMs": 0,
+      "nativeReadMs": 1094,
+      "httpHeadersMs": 1258,
+      "httpBodyMs": 19,
+      "nativeReadAttempts": 23,
+      "nativeReadFailures": 2,
+      "httpRequests": 2,
+      "httpBodyReads": 2,
+      "httpFailures": 0
+    },
+    "sourceSelectedTwice": true,
+    "finalSourceMetadataReadyMs": 108,
+    "finalSourceMediaPlayingMs": 130,
+    "previousAttemptTerminalReason": "selection-interrupted",
+    "previousAttemptTerminalTimestamp": 1794892827807,
+    "interpretation": "Previous selection interruption accompanies the requested track change; not evidence of an unrequested playback error."
+  },
+  "roomBackground": {
+    "generation": 5,
+    "hiddenTimestamp": 1794892844830,
+    "visibleTimestamp": 1794892875206,
+    "wallMs": 30376,
+    "contextHiddenSeconds": 15.776,
+    "contextVisibleSeconds": 46.12266666666667,
+    "mediaHiddenSeconds": 15.159781000818533,
+    "mediaVisibleSeconds": 45.519863209014545,
+    "mediaAdvanceSeconds": 30.360082208196012,
+    "contextStateAtBoundaries": "running",
+    "pausedAtBoundaries": false,
+    "readyStateAtBoundaries": 4,
+    "endedEvent": false,
+    "laterPauseMediaSeconds": 47.38765025167493,
+    "audibleOutcomeSource": "owner confirmation; boundaries are not continuous acoustic sampling"
+  },
+  "acceptance": {
+    "boundedSoloTrackChangeAndReturn": "positive",
+    "boundedRoomTrackChangeAndGuest": "positive",
+    "nativeAppearanceFromRegistrationAlone": false,
+    "interruptionRaceBeforeFirstCoverReady": "not exercised; selections about 7.128 s and 4.803 s apart, after prior PNG ready",
+    "signatureThenImmediateLock": "not exercised",
+    "nativePreviousNextLayoutAndQueueAuthority": "not reported",
+    "allArtworkOrRoomCriteriaClosed": false,
+    "latencyOrArtworkPatchSelected": false
+  },
+  "operatorActions": {
+    "audioOrKeysFetched": false,
+    "bulletinWrites": 0,
+    "dotnsSignatures": 0,
+    "serviceChanges": 0
+  }
+}

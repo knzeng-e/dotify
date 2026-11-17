@@ -1,0 +1,74 @@
+{
+  "schema": "dotify.product.delivery.v1",
+  "observedAt": "2026-11-13T14:27:11.486Z",
+  "source": "929abe9306d0cc83fee4a74eb2f94b5416bdb8a5",
+  "base": "0bb52754b14bc366690ac85d1d7ad1dc089d8d28",
+  "candidateCi": "https://github.com/knzeng-e/dotify/actions/runs/43430333634",
+  "application": {
+    "cid": "bafybeietcvulu5opii4pg2ssxe7z2l422sns2nr3aheh7tijnm7k77jqiy",
+    "carSha256": "64b121923712f8b9359e2925212118888dabee15a8ad513ff11178d98c5b4e26",
+    "verifiedCarBlocks": 100,
+    "filesComparedOffline": 72,
+    "outerObjects": 20,
+    "bytes": 9508017
+  },
+  "operations": {
+    "stores": 12,
+    "oneOffRenewals": 8,
+    "dotnsSignatures": 2,
+    "newMusic": 0
+  },
+  "independentReadback": {
+    "bulletinBlock": 1630435,
+    "allObjectsByteCompared": true,
+    "retentionVerified": true,
+    "minimumExpiryBlock": 1831903,
+    "finalizedDotnsVerified": true,
+    "labVersionPreserved": "0.3.1"
+  },
+  "web": {
+    "url": "https://muzinga.netlify.app/",
+    "entry": "./assets/index-6f37BoIX.js",
+    "sha256": "1012818615fbba331b9e5e6bd5096ff720ed8310ec82cc3970bd0c602b90d46f",
+    "filesByteCompared": 20,
+    "totalComparedBytes": 1849781,
+    "exactReconstructionBytes": true,
+    "publishedCleanFlag": "false"
+  },
+  "custody": {
+    "source": "8d0706548416fe5e17711a5d480def7499776c1a",
+    "image": "registry.fly.io/dotify-api@sha256:51714fcf022d38a45eae71ddd7a5c11f6557c1048bc8b37fd98cf99722e3009e",
+    "imageAndConfigUnchanged": true,
+    "protectedMetadataUnchanged": true,
+    "nonceTreeUnchanged": true,
+    "healthChecks": [
+      {
+        "route": "/health",
+        "status": 200
+      },
+      {
+        "route": "/health/ready",
+        "status": 200
+      },
+      {
+        "route": "/health",
+        "status": 200
+      },
+      {
+        "route": "/health/ready",
+        "status": 200
+      }
+    ],
+    "observedAt": "2026-11-13T14:31:38.653168+00:00"
+  },
+  "physicalAcceptance": {
+    "status": "partial; Pause failure remains",
+    "ownerConfirmsSoloPreparationContinuity": true,
+    "ownerConfirmsGuestsDuringRequestedShortLock": true,
+    "pauseDuringRoomPreparation": "failed",
+    "nativePauseThenUnlock": "intermittent automatic resume reported",
+    "artwork": "intermittent missing cover reported; separate successful control",
+    "hostVersionRestated": false
+  },
+  "automaticRenewalActivated": false
+}

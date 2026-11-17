@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { config } from '../config.js';
-import { pinFilesToPinata } from './pinata.js';
+import { PinataError, pinFilesToPinata } from './pinata.js';
 
 test('directory transport retains cover paths below Pinata’s returned folder root', async t => {
   const previous = config.PINATA_JWT;
@@ -34,4 +34,21 @@ test('directory transport retains cover paths below Pinata’s returned folder r
   );
   await assert.rejects(pinFilesToPinata([{ path: '../640.webp', bytes: new Uint8Array() }], 'bad'), /Invalid relative/);
   assert.equal(calls, 1);
+});
+
+test('storage refusal preserves only the provider status, never its response body', async t => {
+  const previous = config.PINATA_JWT;
+  config.PINATA_JWT = 'test-only-not-a-credential';
+  t.after(() => {
+    config.PINATA_JWT = previous;
+  });
+  t.mock.method(globalThis, 'fetch', async () => Response.json({ error: { details: 'synthetic private body' } }, { status: 403 }));
+  await assert.rejects(pinFilesToPinata([{ path: 'manifest.json', bytes: Buffer.from('{}') }], 'audio'), error => {
+    assert(error instanceof PinataError);
+    assert.equal(error.providerStatus, 403);
+    assert.equal(error.httpStatus, 502);
+    assert(!JSON.stringify(error).includes('private body'));
+    assert(!error.message.includes('private body'));
+    return true;
+  });
 });

@@ -1,9 +1,13 @@
+import { useListeningCoverTransition } from '../features/player/useListeningCoverTransition';
+import { animatePlayerNavigation } from '../features/player/playerMotion';
 import { PlayerTransport } from '../components/PlayerTransport';
-import { HostLineup } from '../components/HostLineup';
+import { RoomViewSwitcher } from '../components/RoomViewSwitcher';
+import { RoomQueueDialog } from '../components/RoomQueueDialog';
 import { PlayerQueueDialog } from '../components/PlayerQueueDialog';
 import { RoomShareDialog } from '../components/RoomShareDialog';
 import { NearbyControls } from '../components/NearbyControls';
 import { ReleaseDetailsDialog } from '../components/ReleaseDetailsDialog';
+import { PlayerAccountButton } from '../components/PlayerAccountButton';
 import { ArtistDonationButton } from '../components/ArtistDonationButton';
 import { HostContributions } from '../components/HostContributions';
 import {
@@ -13,16 +17,16 @@ import {
   Check,
   ExternalLink,
   Headphones,
+  Info,
   KeyRound,
   Library,
   LogOut,
-  ListMusic,
-  MessageCircle,
+  Pause,
+  Play,
   Radio,
   RefreshCw,
   Share2,
   ShieldCheck,
-  Users,
   X
 } from 'lucide-react';
 import { PanelTitle } from '../shared/ui/PanelTitle';
@@ -32,16 +36,16 @@ import { Avatar, AvatarStack } from '../components/Presence';
 import { AccessGateOverlay } from '../components/AccessGateOverlay';
 import { RoomChat } from '../components/RoomChat';
 import { RoomReactions } from '../components/RoomReactions';
-import { RoomRequests } from '../components/RoomRequests';
 import { RoomQrCode } from '../components/RoomQrCode';
 import { Dialog } from '../components/Dialog';
 import { isPolicyManagedTrack, trackHasAccess } from '../features/access/accessPolicy';
 import { isChosenDisplayName } from '../features/identity/walletIdentity';
 import { roomHostDisplayName, roomListenerSyncLabel, roomPresenceCount, roomPresencePreview } from '../features/rooms/roomState';
-import { playbackTrack, playbackTrackDetails } from '../features/player/playbackPresentation';
+import { playbackTrack, playbackTrackDetails, roomReleaseDetails } from '../features/player/playbackPresentation';
 import { playbackStatusLabel } from '../features/player/playbackStatus';
 import { nativeRuntimeAmountLabel } from '../features/payments/paymentModel';
 import { protectedPlaybackFailureCopy } from '../features/catalog/protectedPlaybackFailure';
+import { AudioFailureDiagnostics } from '../components/AudioFailureDiagnostics';
 import { resolvePlaybackContributionTrack, resolveRoomContributionTrack } from '../features/donations/roomContributionTrack';
 import { useCatalogContext, useSessionContext, usePlaybackContext, useUiFeedback, useNavigation, useReleaseForm } from '../app/providers';
 import type { CatalogTrack } from '../shared/types';
@@ -57,9 +61,9 @@ type PlayerViewProps = {
 export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewProps) {
   const catalog = useCatalogContext();
   const session = useSessionContext();
-  const { playback, openTrack } = usePlaybackContext();
+  const { requestRoomExit, playback, openTrack } = usePlaybackContext();
   const { openWalletModal } = useUiFeedback();
-  const { navigateToView, setPublicArtistName } = useNavigation();
+  const { navigateToView, openArtistProfile } = useNavigation();
   const { title, artistName, accessMode, priceDot } = useReleaseForm();
 
   const trackInfo = catalog.trackInfo;
@@ -105,11 +109,13 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
             ? 'This playback does not match the verified release. Tips stay unavailable.'
             : 'This track has no verified contribution route.';
   const currentTrack = playbackTrack(mode, trackInfo, selectedTrack);
+  const coverRef = useRef<HTMLDivElement>(null);
+  useListeningCoverTransition(coverRef, roomId, currentTrack?.hash ?? '');
   const streamTitle = currentTrack?.title || (mode === 'listener' ? 'Waiting for the host’s track' : title);
   const streamArtist = currentTrack?.artist || (mode === 'listener' ? '' : artistName);
   const selectedTrackHasAccess = selectedTrack ? trackHasAccess(selectedTrack, catalog.catalogAccessByTrackId) : false;
 
-  const onLeaveSession = session.leaveSession;
+  const onLeaveSession = () => requestRoomExit();
   const onSetDisplayName = session.setDisplayName;
   const onUpdateDisplayName = session.updateDisplayName;
   const onRetryRoomAudio = session.requestRoomAudio;
@@ -119,10 +125,14 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
     void catalog.payForTrackAccess(track, session.socketEmit, session.setLocalStreamReady, session.closeHostPeers);
   };
   const onShowSupportWalletModal = () => openWalletModal('support');
-  const onNavigateToListen = () => navigateToView('listen');
+  const onNavigateToListen = () => {
+    // Cancelling an uncompleted join/create stays immediate; presentation must
+    // not give a late room acknowledgement time to win that navigation.
+    if (!roomId && sessionAction !== 'idle') navigateToView('listen');
+    else animatePlayerNavigation('close', () => navigateToView('listen'));
+  };
   const onOpenArtist = (name: string) => {
-    setPublicArtistName(name);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    openArtistProfile(name);
   };
 
   const trackDetails = playbackTrackDetails(mode, trackInfo, selectedTrack, { accessMode, priceDot });
@@ -134,15 +144,26 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
   const [isQrProjectorOpen, setIsQrProjectorOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [detailsTrack, setDetailsTrack] = useState<CatalogTrack | null>(null);
+  const [roomDetailsOpen, setRoomDetailsOpen] = useState(false);
+  const roomDetailsTrack = roomId ? roomReleaseDetails(trackInfo, catalog.catalogTracks) : null;
   const [queueOpen, setQueueOpen] = useState(false);
-  const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
-  const [roomPanel, setRoomPanel] = useState<'chat' | 'queue' | 'people'>('chat');
+  const accessGateOpen = Boolean(catalog.accessGate);
+  useEffect(() => {
+    if (!accessGateOpen) return;
+    setQueueOpen(false);
+    setDetailsTrack(null);
+    setRoomDetailsOpen(false);
+    setShareOpen(false);
+    setIsQrProjectorOpen(false);
+  }, [accessGateOpen]);
+  const [roomPanel, setRoomPanel] = useState<'chat' | 'people'>('chat');
   const [chatUnread, setChatUnread] = useState(0);
   const [chatMentions, setChatMentions] = useState(0);
   useEffect(() => {
     setRoomPanel('chat');
+    setQueueOpen(false);
     setShareOpen(false);
-    setConfirmCloseOpen(false);
+    setRoomDetailsOpen(false);
     setChatUnread(0);
     setChatMentions(0);
   }, [roomId]);
@@ -174,7 +195,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
     : selectedTrackInactive
       ? 'Release unavailable'
       : needsTrackAccess
-        ? 'Locked'
+        ? 'Access needed to play'
         : effectiveAccessMode === 'classic'
           ? 'Full track opened'
           : 'Ready to listen';
@@ -200,6 +221,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
   const showManualAudioStart = Boolean(
     mode === 'listener' && roomId && remoteReady && (status === 'autoplay-blocked' || /manual|tap play/i.test(sessionStatus))
   );
+  const showHostOutputInterruption = mode === 'host' && (status === 'output-interrupted' || status === 'autoplay-blocked');
   const showAudioRetry = Boolean(mode === 'listener' && roomId && !productHostWebRtcUnavailable && (!remoteReady || status === 'no-audio'));
   // Authorized, but no sound: name the cause and retry in place. Guests never
   // request a key, so this only concerns the solo listener or the room host.
@@ -219,11 +241,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
     if (tab && tab.getClientRects().length > 0) setRoomPanel('people');
     else document.getElementById('room-panel-people')?.scrollIntoView({ block: 'nearest' });
   };
-  // Closing ends the room for everyone, so a host with guests confirms first.
-  const onExitRoom = () => {
-    if (mode === 'host' && activeListeners.length > 0) setConfirmCloseOpen(true);
-    else onLeaveSession();
-  };
+  const onExitRoom = onLeaveSession;
   const passiveSignalFailure = !roomId && sessionAction === 'idle' && sessionStatus === 'Ready' && session.socketStatus !== 'online';
   const soloRoomRecoveryIsJoin = mode === 'listener' || /room closed|expired|host left/i.test(`${sessionStatus} ${error ?? ''}`);
 
@@ -275,6 +293,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
   return (
     <section
       className={'content-grid player-view-grid' + (roomId ? ' player-room-mode' : '')}
+      data-room-preparing={(!roomId && sessionAction === 'creating') || undefined}
       data-room-panel={roomPanel}
       aria-label={roomId ? 'Shared listening room' : 'Player'}
     >
@@ -284,7 +303,27 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
             <ChevronDown size={24} />
           </button>
           <span>Now playing</span>
+          <PlayerAccountButton />
         </header>
+      )}
+      {!roomId && sessionAction === 'creating' && (
+        <div className='room-preparation-note' role='status' aria-live='polite'>
+          <Radio size={20} aria-hidden='true' />
+          <div>
+            <strong>Making space to listen together</strong>
+            <span>{catalog.audioStartupStatus || (catalog.trackSelectionPending ? 'Preparing this track for your room…' : 'Opening your room…')}</span>
+          </div>
+          <button
+            className='text-action'
+            type='button'
+            onClick={() => {
+              session.cancelRoomCreation();
+              catalog.cancelPlaybackPreparation();
+            }}
+          >
+            Cancel
+          </button>
+        </div>
       )}
       {roomId && (
         <div className='room-header'>
@@ -372,20 +411,27 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
               </span>
             )}
           </button>
+          <PlayerAccountButton />
         </div>
       )}
       {roomId &&
         (session.socketStatus !== 'online' ||
           showManualAudioStart ||
+          showHostOutputInterruption ||
           showAudioRetry ||
           productHostWebRtcUnavailable ||
           error ||
           playbackFailure ||
           /reconnecting/i.test(sessionStatus)) && (
-          <div className='room-connection-note' role='status' data-testid={playbackFailure && !error ? 'playback-failure' : undefined}>
+          <div
+            className={'room-connection-note' + (playbackFailure && !error ? ' has-support-report' : '')}
+            role='status'
+            data-testid={playbackFailure && !error ? 'playback-failure' : undefined}
+          >
             <span>
               {error ||
                 (playbackFailure ? `${playbackFailure.title}. ${playbackFailure.message}` : '') ||
+                (showHostOutputInterruption ? playbackStatusLabel(status, mode) : '') ||
                 (/reconnecting/i.test(sessionStatus) ? 'Reconnecting to the listening moment.' : '') ||
                 (session.socketStatus !== 'online'
                   ? 'Reconnecting to the room. Your draft stays here.'
@@ -403,6 +449,10 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
               <button type='button' onClick={onRetryPlayback}>
                 {playbackFailure.action}
               </button>
+            ) : showHostOutputInterruption ? (
+              <button type='button' onClick={() => playback.setPlaying(true)}>
+                Resume audio
+              </button>
             ) : (
               (showManualAudioStart || showAudioRetry) && (
                 <button type='button' onClick={() => (showManualAudioStart ? void playback.togglePlay() : onRetryRoomAudio())}>
@@ -410,77 +460,20 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
                 </button>
               )
             )}
+            {playbackFailure && !error && <AudioFailureDiagnostics />}
           </div>
         )}
       {roomId && (
-        <div className='room-panel-switch' role='tablist' aria-label='Room views'>
-          {(['chat', 'queue', 'people'] as const).map(panel => (
-            <button
-              key={panel}
-              type='button'
-              role='tab'
-              id={`room-tab-${panel}`}
-              aria-controls={`room-panel-${panel}`}
-              aria-selected={roomPanel === panel}
-              title={panel === 'chat' ? 'Chat' : panel === 'queue' ? 'Up next & suggestions' : 'People'}
-              tabIndex={roomPanel === panel ? 0 : -1}
-              onClick={() => setRoomPanel(panel)}
-              onKeyDown={event => {
-                const tabs = Array.from(event.currentTarget.parentElement!.querySelectorAll<HTMLButtonElement>('[role="tab"]')).filter(
-                  tab => tab.getClientRects().length > 0
-                );
-                const index = tabs.indexOf(event.currentTarget);
-                const next =
-                  event.key === 'ArrowRight'
-                    ? (index + 1) % tabs.length
-                    : event.key === 'ArrowLeft'
-                      ? (index + tabs.length - 1) % tabs.length
-                      : event.key === 'Home'
-                        ? 0
-                        : event.key === 'End'
-                          ? tabs.length - 1
-                          : -1;
-                if (next < 0) return;
-                event.preventDefault();
-                tabs[next].click();
-                tabs[next].focus();
-              }}
-            >
-              {panel === 'chat' ? (
-                <>
-                  <MessageCircle size={21} aria-hidden='true' />
-                  <span className='sr-only'>Chat</span>
-                </>
-              ) : panel === 'queue' ? (
-                <>
-                  <ListMusic size={21} aria-hidden='true' />
-                  <span className='sr-only'>Queue</span>
-                </>
-              ) : (
-                <>
-                  <Users size={18} aria-hidden='true' />
-                  <span className='sr-only'>{session.socketStatus === 'online' ? 'People · ' : 'People'}</span>
-                  {session.socketStatus === 'online' && <span className='room-people-count'>{presenceCount}</span>}
-                </>
-              )}
-              {panel === 'chat' && chatUnread > 0 && (
-                <span className='room-request-count' aria-label={`${chatUnread} unread messages`}>
-                  {chatUnread > 99 ? '99+' : chatUnread}
-                </span>
-              )}
-              {panel === 'chat' && chatMentions > 0 && (
-                <span className='room-mention-count' aria-label={`${chatMentions} unread mentions`}>
-                  @{chatMentions}
-                </span>
-              )}
-              {panel === 'queue' && session.requestQueue.length > 0 && (
-                <span className='room-request-count' aria-label={`${session.requestQueue.length} requests`}>
-                  {session.requestQueue.length}
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
+        <RoomViewSwitcher
+          active={roomPanel}
+          onSelect={setRoomPanel}
+          onOpenQueue={() => setQueueOpen(true)}
+          unread={chatUnread}
+          mentions={chatMentions}
+          requests={session.requestQueue.length}
+          online={session.socketStatus === 'online'}
+          people={presenceCount}
+        />
       )}
       <div className='player-stage'>
         <div className='player-cover-column'>
@@ -516,7 +509,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
                 </button>
               )}
             </div>
-            <div className='cover' data-live={localStreamReady || remoteReady} data-playing={transport.playing}>
+            <div className='cover' ref={coverRef} data-live={localStreamReady || remoteReady} data-playing={transport.playing}>
               <CoverImage
                 src={currentTrack?.imageRef ?? (mode === 'host' ? coverSource : undefined)}
                 alt=''
@@ -538,7 +531,25 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
 
         <div className='player-main-column'>
           <div className='track-copy'>
-            <h2>{streamTitle}</h2>
+            <div className='player-track-heading'>
+              <h2>{streamTitle}</h2>
+              {roomId && roomDetailsTrack && (
+                <button
+                  className='room-release-details-trigger'
+                  type='button'
+                  aria-label='About this release'
+                  title='About this release'
+                  onClick={() => {
+                    // Auto-joined invitations can retain the Rooms history entry.
+                    // Closing the sheet must return to the visible room player.
+                    navigateToView('player', { replace: true });
+                    setRoomDetailsOpen(true);
+                  }}
+                >
+                  <Info size={18} aria-hidden='true' />
+                </button>
+              )}
+            </div>
             <div className='track-attribution'>
               {streamArtist && (
                 <button className='player-artist-link' type='button' onClick={() => onOpenArtist(streamArtist)} title={`View ${streamArtist}`}>
@@ -622,6 +633,17 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
             />
           )}
         </div>
+        {roomId && (
+          <button
+            type='button'
+            className='room-composer-play'
+            disabled={!playback.canUseTransport}
+            onClick={() => void playback.togglePlay()}
+            aria-label={isRoomGuest ? (transport.playing ? 'Pause for me' : 'Resume room audio') : transport.playing ? 'Pause' : 'Play'}
+          >
+            {transport.playing ? <Pause size={22} /> : <Play size={22} />}
+          </button>
+        )}
         <PlayerTransport
           playback={playback}
           duration={transportDuration}
@@ -642,9 +664,18 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
         )}
       </div>
 
-      {!roomId && releaseDescription && <p className='solo-release-note'>{releaseDescription}</p>}
+      {!roomId && releaseDescription && (
+        <div className='solo-story-preview'>
+          <p className='solo-release-note'>{releaseDescription}</p>
+          {selectedTrack && (
+            <button type='button' className='text-action' onClick={() => setDetailsTrack(selectedTrack)}>
+              Behind this track <Info size={16} />
+            </button>
+          )}
+        </div>
+      )}
 
-      {!roomId && canHostSelectedTrack && (
+      {!roomId && canHostSelectedTrack && sessionAction === 'idle' && (
         <div className='solo-room-invite'>
           <div>
             <strong>Make this track a shared room.</strong>
@@ -665,6 +696,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
             <RefreshCw size={16} />
             {playbackFailure.action}
           </button>
+          <AudioFailureDiagnostics />
         </div>
       )}
 
@@ -867,17 +899,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
         {roomId && (
           <div className='room-social-column'>
             <div id='room-panel-chat' className='room-conversation-pane' role='tabpanel' aria-labelledby='room-tab-chat' hidden={roomPanel !== 'chat'}>
-              <RoomChat key={roomId} active={roomPanel === 'chat'} onUnreadChange={setChatUnread} onMentionChange={setChatMentions} />
-            </div>
-            <div
-              id='room-panel-queue'
-              className='room-conversation-pane room-queue-pane'
-              role='tabpanel'
-              aria-labelledby='room-tab-queue'
-              hidden={roomPanel !== 'queue'}
-            >
-              <HostLineup key={`lineup:${roomId}`} />
-              <RoomRequests key={`requests:${roomId}`} />
+              <RoomChat key={roomId} active={!queueOpen && roomPanel === 'chat'} onUnreadChange={setChatUnread} onMentionChange={setChatMentions} />
             </div>
           </div>
         )}
@@ -886,7 +908,7 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
           <PanelTitle
             icon={Library}
             title='Current track'
-            meta={isRoomGuest ? (remoteReady ? 'Room stream' : 'Waiting for host') : needsTrackAccess ? 'Locked' : 'Ready to play'}
+            meta={isRoomGuest ? (remoteReady ? 'Room stream' : 'Waiting for host') : needsTrackAccess ? 'Access needed to play' : 'Ready to play'}
           />
           <div className='stack-list'>
             <EndpointRow label='Artist' value={streamArtist} />
@@ -912,11 +934,28 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
         </div>
       </div>
 
-      {qrProjectorDialog}
-      {detailsTrack && !roomId && (
-        <ReleaseDetailsDialog track={detailsTrack} nativePaymentSymbol={nativePaymentAsset.symbol} onClose={() => setDetailsTrack(null)} />
+      {!accessGateOpen && qrProjectorDialog}
+      {!accessGateOpen && detailsTrack && !roomId && (
+        <ReleaseDetailsDialog
+          track={detailsTrack}
+          nativePaymentSymbol={nativePaymentAsset.symbol}
+          onClose={() => setDetailsTrack(null)}
+          onOpenArtist={() => onOpenArtist(detailsTrack.artist)}
+        />
       )}
-      {shareOpen && roomId && sessionLink && (
+      {!accessGateOpen && roomDetailsOpen && roomDetailsTrack && roomId && (
+        <ReleaseDetailsDialog
+          track={roomDetailsTrack}
+          roomContext
+          nativePaymentSymbol={nativePaymentAsset.symbol}
+          onClose={() => setRoomDetailsOpen(false)}
+          onOpenArtist={() => {
+            setRoomDetailsOpen(false);
+            onOpenArtist(roomDetailsTrack.artist);
+          }}
+        />
+      )}
+      {!accessGateOpen && shareOpen && roomId && sessionLink && (
         <RoomShareDialog
           roomId={roomId}
           link={sessionLink}
@@ -934,38 +973,8 @@ export function PlayerView({ onShowCreateModal, onShowJoinModal }: PlayerViewPro
           onClose={() => setShareOpen(false)}
         />
       )}
-      {queueOpen && !roomId && <PlayerQueueDialog onClose={() => setQueueOpen(false)} />}
-      {confirmCloseOpen && roomId && mode === 'host' && (
-        <Dialog
-          className='room-close-dialog'
-          size='compact'
-          labelledBy='room-close-title'
-          describedBy='room-close-copy'
-          onClose={() => setConfirmCloseOpen(false)}
-        >
-          <div className='modal-copy'>
-            <h2 id='room-close-title'>Close this room?</h2>
-            <p id='room-close-copy'>
-              {activeListeners.length === 1 ? '1 person is' : `${activeListeners.length} people are`} listening with you. Closing ends the room for everyone.
-            </p>
-          </div>
-          <div className='modal-actions'>
-            <button
-              className='primary-action'
-              type='button'
-              onClick={() => {
-                setConfirmCloseOpen(false);
-                onLeaveSession();
-              }}
-            >
-              Close for everyone
-            </button>
-            <button className='secondary-action' type='button' onClick={() => setConfirmCloseOpen(false)}>
-              Keep listening
-            </button>
-          </div>
-        </Dialog>
-      )}
+      {!accessGateOpen && queueOpen && !roomId && <PlayerQueueDialog onClose={() => setQueueOpen(false)} />}
+      {roomId && <RoomQueueDialog key={roomId} open={queueOpen && !accessGateOpen} onClose={() => setQueueOpen(false)} />}
     </section>
   );
 }

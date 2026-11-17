@@ -1,0 +1,283 @@
+{
+  "schema": "dotify.bulletin.continuity-observation.v1",
+  "provenance": "Owner-supplied bundled control report and subjective observation; derived without report UUID, exact start timestamp or raw user agent.",
+  "source": "0da3a52827b1266675fb612119e9cd3ded4e7a91",
+  "sourceDirty": false,
+  "root": "bafykbzacecj2qvfpqevlm6pqkm24fjcmszi6qd5r3ywikxfxx5yhjqsyorot4",
+  "environment": {
+    "device": "iPhone",
+    "os": "iOS 18.7, derived from supplied user agent",
+    "hostVersion": null,
+    "hostVersionNote": "Not reconfirmed for this pair.",
+    "network": "Same phone/Wi-Fi control requested; no contrary condition reported by owner. Network is not measured by the embedded control.",
+    "reader": "managed",
+    "transport": "bundled-decoder-control",
+    "hostCache": "unknown; not cleared",
+    "pageCache": "empty per attempt"
+  },
+  "result": {
+    "fixtureDurationSeconds": 64,
+    "progressive": true,
+    "outcome": "ended",
+    "firstPlayingEventMs": 94,
+    "endedEventMs": 64422,
+    "operatorHeardAudio": true,
+    "ownerReportedAudibleCuts": 1,
+    "audibleCutLocationSeconds": 46,
+    "audibleCutLocationPrecision": "Approximate, owner-reported. Owner also places the previous native cut near this position.",
+    "audibleFirstSoundMeasured": false,
+    "productionAccessTested": false,
+    "uninterruptedContinuityAccepted": false
+  },
+  "events": {
+    "initialWaitingMs": 53,
+    "playingMs": 94,
+    "postStartWaitingCount": 0,
+    "stalledCount": 0,
+    "errorCount": 0,
+    "terminalPause": {
+      "elapsedMs": 64421,
+      "mediaSeconds": 64
+    },
+    "ended": {
+      "elapsedMs": 64422,
+      "mediaSeconds": 64
+    }
+  },
+  "progress": {
+    "columns": [
+      "elapsedMs",
+      "mediaSeconds",
+      "bufferedUntilMediaSeconds"
+    ],
+    "samples": [
+      [
+        334,
+        0.241833625,
+        32.064
+      ],
+      [
+        4350,
+        4.25753997,
+        32.064
+      ],
+      [
+        8365,
+        8.27282446,
+        32.064
+      ],
+      [
+        12379,
+        12.286443411,
+        32.064
+      ],
+      [
+        16394,
+        16.301674276,
+        32.064
+      ],
+      [
+        20407,
+        20.314996969,
+        32.064
+      ],
+      [
+        24421,
+        24.328648628,
+        56.128
+      ],
+      [
+        28437,
+        28.344561705,
+        56.128
+      ],
+      [
+        32450,
+        32.358268514,
+        56.128
+      ],
+      [
+        36469,
+        36.377148112,
+        56.128
+      ],
+      [
+        40484,
+        40.392220668,
+        56.128
+      ],
+      [
+        44497,
+        44.405277751,
+        56.128
+      ],
+      [
+        48764,
+        48.406314743,
+        64
+      ],
+      [
+        52780,
+        52.422296758,
+        64
+      ],
+      [
+        56794,
+        56.436282993,
+        64
+      ],
+      [
+        60809,
+        60.451525136,
+        64
+      ]
+    ]
+  },
+  "reads": {
+    "count": 20,
+    "totalBytes": 778922,
+    "source": "Embedded block reads, not Bulletin or HTTP measurements.",
+    "columns": [
+      "bytes",
+      "elapsedMs",
+      "attemptElapsedMs",
+      "mediaSeconds"
+    ],
+    "samples": [
+      [
+        271,
+        36,
+        38,
+        0
+      ],
+      [
+        7485,
+        1,
+        39,
+        0
+      ],
+      [
+        1067,
+        1,
+        62,
+        0
+      ],
+      [
+        780,
+        0,
+        62,
+        0
+      ],
+      [
+        48370,
+        1,
+        78,
+        0
+      ],
+      [
+        48379,
+        1,
+        96,
+        0.0034675
+      ],
+      [
+        48538,
+        1,
+        106,
+        0.013495459
+      ],
+      [
+        48132,
+        3,
+        118,
+        0.025534417
+      ],
+      [
+        48288,
+        1,
+        121,
+        0.028424417
+      ],
+      [
+        48164,
+        0,
+        123,
+        0.030614792
+      ],
+      [
+        47991,
+        1,
+        126,
+        0.033216833
+      ],
+      [
+        48377,
+        1,
+        130,
+        0.037500125
+      ],
+      [
+        48123,
+        2,
+        22429,
+        22.336697967
+      ],
+      [
+        48164,
+        2,
+        22437,
+        22.344853626
+      ],
+      [
+        48335,
+        1,
+        22446,
+        22.353572901
+      ],
+      [
+        47983,
+        1,
+        22452,
+        22.359968798
+      ],
+      [
+        48220,
+        1,
+        22458,
+        22.365741329
+      ],
+      [
+        48024,
+        0,
+        22464,
+        22.372438553
+      ],
+      [
+        48103,
+        2,
+        46522,
+        46.430783985
+      ],
+      [
+        46128,
+        2,
+        46533,
+        46.441130358
+      ]
+    ]
+  },
+  "interpretation": [
+    "The heard cut also occurs with embedded bytes and the same managed reader; a native Bulletin fetch is not necessary to reproduce it.",
+    "This pair points toward the shared media path, not a proven native-transport bottleneck; it does not establish a specific iOS or application defect.",
+    "Final embedded block reads finish at media 46.441 s with earlier buffered coverage through 56.128 s. The current producer calls endOfStream after the final append; its actual call time and native lifecycle are absent from this report.",
+    "The next controlled experiment should record final append, endOfStream, source/buffer state and duration changes before varying finalization timing. Neither production behavior nor a network write is authorized by this observation alone."
+  ],
+  "pairedClockObservation": {
+    "sampleWindow": "Progress samples bracketing approximately media 44 to 48 seconds",
+    "wallMinusMediaAdvanceMs": {
+      "native": 266.208,
+      "bundled": 265.963
+    },
+    "interpretation": "Both sampled media clocks advance about 266 ms less than wall time in this window. This is a correlation; sparse/coalesced events do not measure the audible cut duration or prove endOfStream causation."
+  }
+}

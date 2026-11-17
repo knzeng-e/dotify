@@ -32,7 +32,7 @@ const optionalContentKeyVersion = z.preprocess(
   value => (typeof value === 'string' && value.trim() === '' ? undefined : value),
   z
     .string()
-    .regex(/^dotify-content-key-v[1-9][0-9]*$/, 'CONTENT_KEY_ACTIVE_VERSION must look like dotify-content-key-vN')
+    .regex(/^dotify-content-key-v(?:[2-9]|[1-9][0-9]+)$/, 'CONTENT_KEY_ACTIVE_VERSION must be release-bound version 2 or later')
     .optional()
 );
 
@@ -71,6 +71,101 @@ const optionalTurnUrlList = z.preprocess(
 );
 
 const envSchema = z.object({
+  BULLETIN_MEDIA_RPC_URL: z.preprocess(
+    value => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+    z
+      .string()
+      .refine(value => {
+        try {
+          const url = new URL(value);
+          return (
+            url.protocol === 'https:' &&
+            !url.username &&
+            !url.password &&
+            !url.search &&
+            !url.hash &&
+            url.pathname === '/' &&
+            url.hostname !== 'localhost' &&
+            !url.hostname.endsWith('.localhost') &&
+            !url.hostname.endsWith('.local') &&
+            !/^[\d.]+$/.test(url.hostname) &&
+            !url.hostname.includes(':')
+          );
+        } catch {
+          return false;
+        }
+      }, 'BULLETIN_MEDIA_RPC_URL must be a public credential-free HTTPS RPC origin')
+      .optional()
+  ),
+  MEDIA_EDGE_URL: z.preprocess(
+    value => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+    z
+      .string()
+      .url()
+      .refine(value => {
+        try {
+          const url = new URL(value);
+          return (
+            url.protocol === 'https:' &&
+            !url.username &&
+            !url.password &&
+            !url.port &&
+            !url.search &&
+            !url.hash &&
+            url.pathname === '/' &&
+            url.hostname !== 'localhost' &&
+            !url.hostname.endsWith('.local') &&
+            !/^[\d.]+$/.test(url.hostname) &&
+            !url.hostname.includes(':')
+          );
+        } catch {
+          return false;
+        }
+      }, 'MEDIA_EDGE_URL must be a public HTTPS origin without credentials or a path')
+      .optional()
+  ),
+  MEDIA_IPFS_GATEWAY: z.preprocess(
+    value => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+    z
+      .string()
+      .url()
+      .refine(value => {
+        try {
+          const url = new URL(value);
+          return (
+            url.protocol === 'https:' &&
+            url.hostname.endsWith('.mypinata.cloud') &&
+            !url.username &&
+            !url.password &&
+            !url.port &&
+            !url.search &&
+            !url.hash &&
+            url.pathname === '/'
+          );
+        } catch {
+          return false;
+        }
+      }, 'MEDIA_IPFS_GATEWAY must be a dedicated HTTPS mypinata.cloud origin')
+      .optional()
+  ),
+  STATE_STORE: z.enum(['local', 'postgres']).default('local'),
+  DATABASE_URL: optionalNonEmptyString,
+  STATE_NAMESPACE: z
+    .string()
+    .regex(/^[a-z0-9_-]{3,64}$/)
+    .default('dotify'),
+  API_ROLE: z.enum(['combined', 'edge', 'custody']).default('combined'),
+  CUSTODY_SERVICE_URL: z.string().url().optional(),
+  CUSTODY_SERVICE_TOKEN: z.string().min(32).max(256).optional(),
+  SESSION_SECRET: z
+    .string()
+    .regex(/^[0-9a-fA-F]{64}$/, 'SESSION_SECRET must contain 32 random bytes encoded as hex')
+    .optional(),
+  SESSION_PREVIOUS_SECRET: z
+    .string()
+    .regex(/^(0x)?(?:[0-9a-fA-F]{2}){32,}$/, 'SESSION_PREVIOUS_SECRET must contain 32+ bytes encoded as hex')
+    .optional(),
+  SESSION_PREVIOUS_SECRET_UNTIL: z.string().datetime().optional(),
   API_PORT: z.coerce.number().int().min(1).max(65535).default(8790),
   API_ORIGIN: z.string().url().default('http://localhost:5273'),
   API_ORIGINS: optionalOriginList,
@@ -93,6 +188,13 @@ const envSchema = z.object({
     z.string().min(32).max(256).optional()
   ),
   NATIVE_CONTRIBUTION_SNAPSHOT_PATH: z.string().default('.data/native-contributions.json'),
+  STREAMING_WORKER_URL: z.string().url().optional(),
+  STREAMING_WORKER_TOKEN: z.string().min(32).optional(),
+  STREAMING_AUDIO_STORAGE: z.enum(['pinata', 'bulletin']).default('pinata'),
+  BULLETIN_PUBLICATION_PROFILE: optionalNonEmptyString,
+  PUBLIC_ASSET_STORAGE: z.enum(['pinata', 'bulletin']).default('pinata'),
+  BULLETIN_PUBLIC_ASSET_POLICY: optionalNonEmptyString,
+  STREAMING_STATE_PATH: z.string().default('.data/streaming'),
   CATALOG_SNAPSHOT_PATH: z.string().default('.data/catalog.json'),
   // A stable epoch keeps sessions valid across redeploys; rotating it signs
   // everyone out. Unset keeps the per-process random epoch.
@@ -101,6 +203,9 @@ const envSchema = z.object({
     z.string().min(16, 'SESSION_EPOCH must contain at least 16 characters').max(128).optional()
   ),
   SESSION_REVOCATIONS_PATH: z.string().default('.data/session-revocations.json'),
+  CATALOG_READ_CONCURRENCY: z.coerce.number().int().min(1).max(32).default(8),
+  CATALOG_LOG_BLOCK_RANGE: z.coerce.number().int().min(1).max(10_000).default(1000),
+  CATALOG_LOG_ADDRESS_BATCH: z.coerce.number().int().min(1).max(1000).default(100),
   CATALOG_POLL_INTERVAL_MS: z.coerce.number().int().min(1_000).default(10_000),
   CATALOG_RECONCILE_INTERVAL_MS: z.coerce.number().int().min(10_000).default(300_000),
   CATALOG_STALE_AFTER_MS: z.coerce.number().int().min(1_000).default(60_000),
@@ -117,15 +222,15 @@ const envSchema = z.object({
       .optional()
   ),
   // Optional JSON object mapping explicit content-key versions to 32+ byte hex
-  // secrets. CONTENT_KEY_MASTER_SECRET remains the legacy v1/v2 compatibility
-  // source when this map omits those versions.
+  // secrets. CONTENT_KEY_MASTER_SECRET supplies release-bound v2 when the map
+  // omits that version. No hash-only version is supported.
   CONTENT_KEY_MASTER_SECRETS: optionalNonEmptyString,
   CONTENT_KEY_ACTIVE_VERSION: optionalContentKeyVersion,
   // Pinata JWT — must stay server-side only. Never expose in frontend env.
   PINATA_JWT: optionalNonEmptyString,
   // Upload authorizations are short-lived, single-use capabilities. Byte
-  // quotas are rolling, in-memory counters for the enforced single API
-  // instance; a process restart invalidates every outstanding capability.
+  // quotas are rolling counters shared by PostgreSQL in shared mode.
+  // Local mode remains single-instance and loses capabilities on restart.
   UPLOAD_AUTH_TTL_SECONDS: z.coerce
     .number()
     .int()

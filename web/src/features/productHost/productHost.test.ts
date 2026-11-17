@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { deriveH160 } from '@parity/product-sdk/address';
 import {
   connectProductHostIdentity,
   readProductHostDisplayName,
@@ -109,6 +110,15 @@ describe('Product host live-room navigation', () => {
 });
 
 describe('connectProductHostIdentity', () => {
+  it.each([
+    [17, '0x484de3fc9343f31600ae1f3e13d633cb48cbf816'],
+    [34, '0xc0b30c2acc9fbdd52dc5e0d76917de4034ebdf59'],
+    [255, '0xab758a3376d22aedc6a55823d1b3ecbee81b8fb9']
+  ] as const)('keeps SDK address derivation compatible with the pre-upgrade key vector %s', (byte, expected) => {
+    // Recorded with the prior SDK as well as the codec-3 candidate. No private key.
+    expect(deriveH160(new Uint8Array(32).fill(byte))).toBe(expected);
+  });
+
   it('exposes the Product account identity and message signer', async () => {
     const publicKey = new Uint8Array(32).fill(0x22);
     const signature = new Uint8Array(64).fill(0x33);

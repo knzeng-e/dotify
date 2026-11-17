@@ -1,0 +1,115 @@
+{
+  "schema": "dotify.product.delivery.v1",
+  "observedAt": "2026-11-14T03:42:32.246842+00:00",
+  "source": "2f6c5cda299b9abb46c18c049e6bea218b4f0ffa",
+  "base": "91f25c77ddb117f97bba4b7808a7ad2fb4b8e244",
+  "version": "0.1.84",
+  "candidateCi": "https://github.com/knzeng-e/dotify/actions/runs/43537276722",
+  "application": {
+    "cid": "bafybeibshqhzeju7ezllonjudpcwlihbsu6n4nhexiffpc4hf6gflk2xq4",
+    "carSha256": "5a2d8757c69a2aad62edc79f409e453ccb4711c03200d9d9f2c8a572051ff355",
+    "verifiedCarBlocks": 100,
+    "filesComparedOffline": 72,
+    "outerObjects": 20,
+    "bytes": 9512503
+  },
+  "operations": {
+    "stores": 13,
+    "oneOffRenewals": 7,
+    "dotnsSignatures": 2,
+    "newMusic": 0
+  },
+  "independentReadback": {
+    "bulletinBlock": 1638359,
+    "allObjectsByteCompared": true,
+    "retentionVerified": true,
+    "minimumExpiryBlock": 1839837,
+    "finalizedDotnsVerified": true,
+    "labVersionPreserved": "0.3.1"
+  },
+  "web": {
+    "url": "https://muzinga.netlify.app/",
+    "entry": "./assets/index-BE0c5N9E.js",
+    "sha256": "1fc6a98b96ca4844815178c184b39bd8ffe21ba722ec182c29b054ce847555dc",
+    "filesByteCompared": 20,
+    "totalComparedBytes": 1853846,
+    "exactReconstructionBytes": true,
+    "publishedCleanFlag": "false"
+  },
+  "publicApiObservation": {
+    "observedAt": "2026-11-14T03:38:54.349465+00:00",
+    "networkWrites": 0,
+    "privateInspection": false,
+    "observations": [
+      {
+        "url": "https://dotify-api.fly.dev/health",
+        "httpStatus": 200,
+        "status": "ok",
+        "version": "0.1.0"
+      },
+      {
+        "url": "https://dotify-api.fly.dev/version",
+        "httpStatus": 200,
+        "version": "0.1.0",
+        "commitSha": "26430e566cf7bd70995007cd266152a562cd35b7"
+      }
+    ]
+  },
+  "custody": {
+    "source": "8d0706548416fe5e17711a5d480def7499776c1a",
+    "image": "registry.fly.io/dotify-api@sha256:51714fcf022d38a45eae71ddd7a5c11f6557c1048bc8b37fd98cf99722e3009e",
+    "imageAndConfigUnchanged": true,
+    "protectedMetadataUnchanged": true,
+    "nonceTreeUnchanged": true,
+    "healthChecks": [
+      {
+        "route": "/health",
+        "status": 200
+      },
+      {
+        "route": "/health/ready",
+        "status": 200
+      },
+      {
+        "route": "/health",
+        "status": 200
+      },
+      {
+        "route": "/health/ready",
+        "status": 200
+      }
+    ],
+    "observedAt": "2026-11-14T03:42:10.959163+00:00"
+  },
+  "retainedReserve": {
+    "transactions": 2291,
+    "bytes": 566297599
+  },
+  "signerVariableCleared": true,
+  "physicalAcceptance": {
+    "status": "owner-confirmed scoped phone checks",
+    "reportedOn": "2026-11-14",
+    "reportedForVersion": "0.1.84",
+    "host": {
+      "name": "Polkadot app",
+      "version": "0.10.0",
+      "build": "20",
+      "osVersionRestated": false,
+      "runtimeVersionRestated": false
+    },
+    "nativePauseThenUnlock": "passed; remains paused",
+    "explicitSoloResume": "passed; audible at same position",
+    "pauseDuringRoomPreparation": "passed; remains paused when ready",
+    "webDesktopGuestsDuringRequestedShortLock": "passed; requested 15–30 seconds",
+    "soloAndRoomCoverWithDotifyLogo": "passed",
+    "signatureThenImmediateLockTriggerSeparatelyConfirmed": false,
+    "repeatedFullTrackListening": "not reported",
+    "rapidTrackChanges": "not reported",
+    "startupTiming": "not measured",
+    "supportReportIncluded": false
+  },
+  "automaticRenewalActivated": false,
+  "compactPublicationActivated": false,
+  "serverImagesReplaced": false,
+  "realRecoveryStillDeferred": true
+}

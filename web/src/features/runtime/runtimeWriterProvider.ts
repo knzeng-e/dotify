@@ -153,6 +153,7 @@ async function createProductCdmWriter(config: RuntimeAdapterConfig, productAccou
     return createProductCdmRuntimeWriter({
       contracts: resolver,
       nativeTokenDecimals,
+      getPaymentSigner: () => signerManager.getSigner(),
       ...(address && readAvailableBalance ? { readAvailableBalance: () => readAvailableBalance(address) } : {})
     });
   } catch (error) {

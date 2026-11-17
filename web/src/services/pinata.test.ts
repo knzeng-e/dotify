@@ -87,13 +87,6 @@ describe('getGatewayUrlsForAssetRef', () => {
 });
 
 describe('getAudioGatewayUrls', () => {
-  it('uses the API ciphertext relay first and keeps independent direct readers as fallback', async () => {
-    const { getAudioGatewayUrls, getAudioFallbackGatewayUrls } = await loadPinataService({ VITE_DOTIFY_API_URL: 'https://api.example/api' });
-    expect(getAudioGatewayUrls('QmAudioCid')).toEqual(['https://api.example/api/media/QmAudioCid', 'https://gateway.pinata.cloud/ipfs/QmAudioCid']);
-    expect(getAudioFallbackGatewayUrls('QmAudioCid')[0]).toBe('https://api.example/api/media/QmAudioCid');
-    expect(getAudioFallbackGatewayUrls('QmAudioCid')).toContain('https://ipfs.io/ipfs/QmAudioCid');
-    expect(getAudioGatewayUrls('cid/../../other')).not.toContain('https://api.example/api/media/cid/../../other');
-  });
   it('uses the Pinata gateway for browser audio byte reads by default', async () => {
     const { getAudioGatewayUrls } = await loadPinataService();
 
@@ -107,19 +100,6 @@ describe('getAudioGatewayUrls', () => {
     });
 
     expect(getAudioGatewayUrls('QmAudioCid')).toEqual(['https://artist-space.mypinata.cloud/ipfs/QmAudioCid', 'https://gateway.pinata.cloud/ipfs/QmAudioCid']);
-  });
-
-  it('keeps independent gateways available for the full-file audio fallback', async () => {
-    const { getAudioFallbackGatewayUrls } = await loadPinataService({
-      VITE_IPFS_READ_GATEWAYS: 'https://ipfs.io,https://dweb.link'
-    });
-
-    expect(getAudioFallbackGatewayUrls('QmAudioCid')).toEqual([
-      'https://gateway.pinata.cloud/ipfs/QmAudioCid',
-      'https://ipfs.io/ipfs/QmAudioCid',
-      'https://dweb.link/ipfs/QmAudioCid',
-      'https://devnet-ipfs.api.polkadotcommunity.foundation/ipfs/QmAudioCid'
-    ]);
   });
 });
 
@@ -149,63 +129,6 @@ describe('fetchAssetRef', () => {
 
     await expect(responsePromise).rejects.toMatchObject({ name: 'AbortError' });
     expect(fetchMock).toHaveBeenCalledTimes(1);
-  });
-
-  it('recovers a full encrypted audio read through an independent gateway', async () => {
-    const { fetchAudioIpfsCid } = await loadPinataService({
-      VITE_IPFS_READ_GATEWAYS: 'https://ipfs.io,https://dweb.link'
-    });
-    const fetchMock = vi.spyOn(globalThis, 'fetch').mockRejectedValueOnce(new TypeError('Failed to fetch')).mockResolvedValueOnce(new Response('audio'));
-
-    await expect(fetchAudioIpfsCid('QmAudioCid').then(response => response.text())).resolves.toBe('audio');
-    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual(['https://gateway.pinata.cloud/ipfs/QmAudioCid', 'https://ipfs.io/ipfs/QmAudioCid']);
-  });
-
-  it('keeps an independent reader available after primary audio headers arrive but its body stalls', async () => {
-    vi.useFakeTimers();
-    const { fetchAudioIpfsCid } = await loadPinataService();
-    const cancel = vi.fn();
-    const fetchMock = vi
-      .spyOn(globalThis, 'fetch')
-      .mockResolvedValueOnce(new Response(new ReadableStream({ cancel })))
-      .mockResolvedValueOnce(new Response('complete audio'));
-    const pending = fetchAudioIpfsCid('QmAudioCid');
-    await vi.advanceTimersByTimeAsync(8_000);
-    await expect(pending.then(response => response.text())).resolves.toBe('complete audio');
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(cancel).toHaveBeenCalledOnce();
-    expect(vi.getTimerCount()).toBe(0);
-  });
-
-  it('tries another gateway when a complete audio download fails after headers', async () => {
-    const { fetchAudioIpfsCid } = await loadPinataService();
-    const fetchMock = vi
-      .spyOn(globalThis, 'fetch')
-      .mockResolvedValueOnce(
-        new Response(
-          new ReadableStream({
-            start(controller) {
-              controller.error(new Error('Connection closed during body'));
-            }
-          })
-        )
-      )
-      .mockResolvedValueOnce(new Response('complete audio'));
-    await expect(fetchAudioIpfsCid('QmAudioCid').then(response => response.text())).resolves.toBe('complete audio');
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-  });
-
-  it('cancels a complete-body recovery without launching new readers after track selection changes', async () => {
-    const { fetchAudioIpfsCid } = await loadPinataService();
-    const controller = new AbortController();
-    const cancel = vi.fn();
-    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(new ReadableStream({ cancel })));
-    const pending = fetchAudioIpfsCid('QmAudioCid', { signal: controller.signal });
-    await Promise.resolve();
-    controller.abort();
-    await expect(pending).rejects.toMatchObject({ name: 'AbortError' });
-    expect(fetchMock).toHaveBeenCalledOnce();
-    expect(cancel).toHaveBeenCalledOnce();
   });
 });
 
@@ -290,22 +213,22 @@ describe('protected audio upload metadata', () => {
   it('reports release-bound key versions from backend audio refs', async () => {
     const { protectedAudioUploadToKeyVersion } = await loadPinataService();
 
-    expect(protectedAudioUploadToKeyVersion('dotify:enc:v2:key-v2:ipfs://release-cid')).toBe('dotify-content-key-v2');
-    expect(protectedAudioUploadToKeyVersion('dotify:enc:v2:key-v3:ipfs://release-cid')).toBe('dotify-content-key-v3');
-    expect(protectedAudioUploadToKeyVersion('dotify:enc:v2:ipfs://legacy-dav2')).toBe('dotify-content-key-v1');
+    expect(protectedAudioUploadToKeyVersion('dotify:enc:v3:key-v2:ipfs://QmEsos715F9xLtMdKNJ3thCD4skf5ZR4bKjS3RnhP3VNTf')).toBe('dotify-content-key-v2');
+    expect(protectedAudioUploadToKeyVersion('dotify:enc:v3:key-v3:ipfs://QmEsos715F9xLtMdKNJ3thCD4skf5ZR4bKjS3RnhP3VNTf')).toBe('dotify-content-key-v3');
+    expect(() => protectedAudioUploadToKeyVersion('dotify:enc:v1:ipfs://old')).toThrow();
   });
 
   it('retains backend runtime metadata on protected audio upload results', async () => {
     const { protectedAudioUploadToCID, protectedAudioUploadToKeyVersion, protectedAudioUploadToRef, protectedAudioUploadToRuntimeAddress } =
       await loadPinataService();
     const upload = {
-      ref: 'dotify:enc:v2:key-v2:ipfs://release-cid',
+      ref: 'dotify:enc:v3:key-v2:ipfs://QmEsos715F9xLtMdKNJ3thCD4skf5ZR4bKjS3RnhP3VNTf',
       runtimeAddress: '0x2222222222222222222222222222222222222222' as const,
       keyVersion: 'dotify-content-key-v2'
     };
 
     expect(protectedAudioUploadToRef(upload)).toBe(upload.ref);
-    expect(protectedAudioUploadToCID(upload)).toBe('release-cid');
+    expect(protectedAudioUploadToCID(upload)).toBe(upload.ref.split('ipfs://')[1]);
     expect(protectedAudioUploadToKeyVersion(upload)).toBe('dotify-content-key-v2');
     expect(protectedAudioUploadToRuntimeAddress(upload)).toBe(upload.runtimeAddress);
     expect(protectedAudioUploadToRuntimeAddress(upload.ref)).toBeNull();
@@ -328,7 +251,11 @@ describe('backend upload authorization', () => {
       .mockResolvedValueOnce(new Response(JSON.stringify({ ref: 'ipfs://cover-cid' }), { status: 200 }));
     const file = new File([new Uint8Array([1, 2, 3])], 'cover.png', { type: 'image/png' });
 
-    await expect(uploadCoverToBackend(file, { chainId: 420420417, signer })).resolves.toBe('cover-cid');
+    const contentHash = `0x${'34'.repeat(32)}`;
+    await expect(uploadCoverToBackend(file, { chainId: 420420417, signer, contentHash })).resolves.toBe('cover-cid');
+    const form = fetchMock.mock.calls[1][1]?.body as FormData;
+    expect(form.get('contentHash')).toBe(contentHash);
+    expect((form.get('cover') as File).name).toBe('cover.png');
 
     expect(sessionMocks.ensureDotifySessionForSigner).toHaveBeenCalledWith(signer, 420420417);
     expect(fetchMock).toHaveBeenNthCalledWith(
@@ -369,12 +296,16 @@ describe('backend upload authorization', () => {
       .mockResolvedValueOnce(
         new Response(
           JSON.stringify({
-            ref: 'dotify:enc:v2:key-v2:ipfs://audio-cid',
-            runtimeAddress,
-            contentHash,
-            keyVersion: 'dotify-content-key-v2'
+            id: '11111111-1111-4111-8111-111111111111',
+            state: 'ready',
+            result: {
+              ref: 'dotify:enc:v3:key-v2:ipfs://Qm9pe721AGhy1HnzTKFfRSF6ojKtWutEC5MEkeYWAhQh1Y',
+              runtimeAddress,
+              contentHash,
+              keyVersion: 'dotify-content-key-v2'
+            }
           }),
-          { status: 200 }
+          { status: 202 }
         )
       );
 
@@ -384,7 +315,7 @@ describe('backend upload authorization', () => {
     });
 
     expect(upload).toMatchObject({
-      ref: 'dotify:enc:v2:key-v2:ipfs://audio-cid',
+      ref: 'dotify:enc:v3:key-v2:ipfs://Qm9pe721AGhy1HnzTKFfRSF6ojKtWutEC5MEkeYWAhQh1Y',
       runtimeAddress,
       contentHash,
       keyVersion: 'dotify-content-key-v2'
@@ -403,7 +334,16 @@ describe('backend upload authorization', () => {
     sessionMocks.ensureDotifySessionForSigner.mockResolvedValue('artist-session');
     vi.spyOn(globalThis, 'fetch')
       .mockResolvedValueOnce(new Response(JSON.stringify({ uploadAuthorization: 'audio-capability' }), { status: 200 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({ ref: 'dotify:enc:v2:key-v2:ipfs://audio-cid' }), { status: 200 }));
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            id: '11111111-1111-4111-8111-111111111111',
+            state: 'ready',
+            result: { ref: 'dotify:enc:v3:key-v2:ipfs://Qm9pe721AGhy1HnzTKFfRSF6ojKtWutEC5MEkeYWAhQh1Y' }
+          }),
+          { status: 202 }
+        )
+      );
 
     await expect(
       uploadProtectedAudio({ bytes: new Uint8Array([1, 2, 3]), name: 'track.mp3', mime: 'audio/mpeg' }, `0x${'ab'.repeat(32)}`, {
@@ -436,4 +376,63 @@ describe('backend upload authorization', () => {
       expect.objectContaining({ headers: expect.objectContaining({ Authorization: 'Bearer fresh-session' }) })
     );
   });
+});
+
+it('ends a stalled audio upload with a recoverable message instead of waiting forever', async () => {
+  const { uploadProtectedAudio } = await loadPinataService({ VITE_DOTIFY_API_URL: 'https://api.test/' });
+  sessionMocks.ensureDotifySessionForSigner.mockResolvedValue('artist-session');
+  const deadline = new AbortController();
+  const timeout = vi.spyOn(AbortSignal, 'timeout').mockReturnValue(deadline.signal);
+  const send = vi
+    .spyOn(globalThis, 'fetch')
+    .mockResolvedValueOnce(Response.json({ uploadAuthorization: 'audio-capability' }))
+    .mockImplementationOnce(async (_url, init) => {
+      expect(init?.signal).toBe(deadline.signal);
+      return new Promise<Response>((_resolve, reject) => {
+        init!.signal!.addEventListener('abort', () => reject(deadline.signal.reason), { once: true });
+        queueMicrotask(() => deadline.abort(new DOMException('synthetic stalled connection', 'TimeoutError')));
+      });
+    });
+  await expect(
+    uploadProtectedAudio({ bytes: new Uint8Array([1, 2, 3]), name: 'track.mp3', mime: 'audio/mpeg' }, `0x${'ab'.repeat(32)}`, {
+      chainId: 420420417,
+      signer: { address: `0x${'11'.repeat(20)}`, signMessage: vi.fn() }
+    })
+  ).rejects.toThrow('Your draft is safe');
+  expect(timeout).toHaveBeenCalledWith(5 * 60_000);
+  expect(send).toHaveBeenCalledTimes(2);
+});
+
+it('routes Bulletin artwork and metadata through the API without Pinata or gateway fallback', async () => {
+  const { CID } = await import('multiformats/cid');
+  const { create } = await import('multiformats/hashes/digest');
+  const root = CID.createV1(0x70, create(0xb220, new Uint8Array(32))).toString();
+  const service = await loadPinataService({ VITE_DOTIFY_API_URL: 'https://api.example' });
+  expect(service.getGatewayUrlsForAssetRef(`ipfs://${root}/cover/640.webp`)).toEqual([`https://api.example/api/assets/ipfs/${root}/cover/640.webp`]);
+  expect(service.getGatewayUrlsForAssetRef(`https://arbitrary.example/ipfs/${root}/release.json`)).toEqual([
+    `https://api.example/api/assets/ipfs/${root}/release.json`
+  ]);
+  expect(service.getGatewayUrlsForAssetRef(`ipfs://${root}/archive/master.bin`)).toEqual([]);
+});
+
+it('exposes a typed prepared-release offer on 409 without retrying or accepting a mismatched audio snapshot', async () => {
+  const { preparedReleaseFixture: fixture } = await import('../features/artist-studio/preparedReleaseRecovery.fixture');
+  const { uploadMetadataToBackend } = await loadPinataService({ VITE_DOTIFY_API_URL: 'https://api.test' });
+  sessionMocks.ensureDotifySessionForSigner.mockResolvedValue('artist-session');
+  const owner = fixture.owner as `0x${string}`;
+  const fetchMock = vi.spyOn(globalThis, 'fetch');
+  for (const valid of [true, false]) {
+    const candidate = structuredClone(fixture);
+    if (!valid) candidate.manifest.assets.audioCID = 'another-audio';
+    fetchMock
+      .mockResolvedValueOnce(Response.json({ uploadAuthorization: 'metadata-capability' }))
+      .mockResolvedValueOnce(
+        Response.json({ code: 'UPLOAD_PREPARED_RELEASE_CONFLICT', error: 'Review saved title and cover', preparedRelease: candidate }, { status: 409 })
+      );
+    await expect(
+      uploadMetadataToBackend(fixture.manifest, { chainId: fixture.chainId, signer: { address: owner, signMessage: vi.fn() } })
+    ).rejects.toMatchObject({ name: valid ? 'PreparedReleaseRecoveryError' : 'Error', message: 'Review saved title and cover' });
+  }
+  expect(fetchMock).toHaveBeenCalledTimes(4);
+  expect(fetchMock.mock.calls.filter(([url]) => String(url).endsWith('/metadata'))).toHaveLength(2);
 });

@@ -1,3 +1,15 @@
+import { PreparedReleaseConflictError } from './services/bulletinMetadataRepair.js';
+import { checkUnregisteredRelease } from './services/unregisteredRelease.js';
+import { PublicAssetStorageError } from './services/bulletinPublicAssets.js';
+import { createPublicAssetRoutes } from './routes/publicAssets.js';
+import { sharedState, assertSharedState } from './services/sharedState/index.js';
+import { SharedStateUnavailableError } from './services/sharedState/postgres.js';
+import { custodyTokenMatches, registerCustodyProxy } from './services/sharedState/custodyProxy.js';
+import { createStreamingPublicationStore } from './services/streamingPublicationStore.js';
+import { StreamingJobs } from './services/streamingJobs.js';
+import { createStreamingWorkerClient } from './services/streamingWorkerClient.js';
+import { deriveContentKeyBytes } from './services/keyVault.js';
+import { checkArtistAuthority } from './services/chainAccess.js';
 // Fastify app assembly, extracted from index.ts so tests can build the full
 // app (request IDs, error envelope, route registration) without listening.
 
@@ -8,19 +20,20 @@ import rateLimit from '@fastify/rate-limit';
 import { randomUUID } from 'node:crypto';
 import type { IncomingMessage } from 'node:http';
 import { config } from './config.js';
+import { assertBoundedJsonRequest } from './services/jsonBodyBudget.js';
 import { fastifyLoggerOptions } from './logger.js';
 import { authRoutes } from './routes/auth.js';
 import { healthRoutes } from './routes/health.js';
 import { keyRoutes } from './routes/keys.js';
 import { turnRoutes } from './routes/turn.js';
-import { uploadRoutes } from './routes/uploads.js';
+import { createUploadRoutes } from './routes/uploads.js';
 import { createCatalogRoutes } from './routes/catalog.js';
 import { createMediaRoutes } from './routes/media.js';
 import { NativeContributionLedger } from './services/nativeContributionLedger.js';
 import { createContributionHistoryRoutes } from './routes/contributionHistory.js';
 import { createNativeReceiptRoutes } from './routes/nativeReceipts.js';
 import { createNativeReceiptService } from './services/nativeReceipts.js';
-import { catalogReadModel as defaultCatalogReadModel } from './services/catalog/index.js';
+import { catalogReadModel as defaultCatalogReadModel, mediaPrewarmer } from './services/catalog/index.js';
 import type { CatalogReadModel } from './services/catalog/readModel.js';
 
 // Every response carries a correlation ID (echoed from a well-formed incoming
@@ -58,6 +71,9 @@ export function rateLimitKey(request: Pick<FastifyRequest, 'headers' | 'ip'>, tr
 
 export type BuildAppOptions = {
   trustProxy?: 'off' | 'fly';
+  // The process entrypoint marks a lost writer lease as failure for its supervisor.
+  // Embedded app instances retain control of their own process lifecycle.
+  onCustodyLeaseLost?: () => void;
   // Test sink observes the exact bounded fields sent to the production logger.
   identityDiagnostic?: (fields: { event: string; source: string; clientMatchesPeer: boolean }) => void;
   // Tests disable logging; production always logs.
@@ -67,11 +83,27 @@ export type BuildAppOptions = {
 };
 
 export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyInstance> {
+  if (config.STREAMING_AUDIO_STORAGE === 'bulletin') {
+    if (config.API_ROLE === 'edge' || (config.NODE_ENV === 'production' && config.API_ROLE !== 'custody'))
+      throw new Error('Bulletin publication belongs to the private custody role');
+    if (!config.STREAMING_WORKER_URL || !config.STREAMING_WORKER_TOKEN || !config.BULLETIN_PUBLICATION_PROFILE)
+      throw new Error('Bulletin publication requires an explicit profile and isolated worker');
+  } else if (config.BULLETIN_PUBLICATION_PROFILE) throw new Error('Select Bulletin audio storage explicitly before configuring its profile');
+  if (config.PUBLIC_ASSET_STORAGE === 'bulletin' && config.STREAMING_AUDIO_STORAGE !== 'bulletin')
+    throw new Error('Bulletin public assets require the same private audio publisher and an explicit asset policy');
+  if (config.PUBLIC_ASSET_STORAGE !== 'bulletin' && config.BULLETIN_PUBLIC_ASSET_POLICY) throw new Error('Select Bulletin public assets explicitly');
+  await assertSharedState();
   const serverOptions: FastifyServerOptions = {
+    bodyLimit: 1024 * 1024,
     logger: options.logging === false ? false : fastifyLoggerOptions,
     genReqId
   };
   const app = Fastify(serverOptions);
+  app.addHook('preValidation', async request => {
+    assertBoundedJsonRequest(request.headers['content-type'], request.body);
+  });
+  let streaming: StreamingJobs | undefined;
+  let publicAssets: Parameters<typeof createUploadRoutes>[2];
   // Five trusted-header samples per process, with no IP, token, wallet, room
   // or location attached. Use the same resolver as rate limiting, not a second
   // interpretation of the proxy headers. Direct/health probes consume no samples.
@@ -94,7 +126,9 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   });
 
   // Multipart — required by upload routes. Register before routes.
-  await app.register(multipart);
+  // Edge proxy scopes must receive the raw multipart stream. Inheriting the
+  // specific multipart parser would consume it before the proxy's '*' parser.
+  if (config.API_ROLE !== 'edge') await app.register(multipart);
 
   // Rate limiting per client. Behind Fly every connection comes from the
   // proxy, so without API_TRUST_PROXY=fly all users would share one budget.
@@ -103,6 +137,20 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     timeWindow: '1 minute',
     keyGenerator: request => rateLimitKey(request, options.trustProxy ?? config.API_TRUST_PROXY)
   });
+
+  if (sharedState) {
+    if (!config.CUSTODY_SERVICE_TOKEN || (config.API_ROLE === 'edge' && !config.CUSTODY_SERVICE_URL))
+      throw new Error('Shared mode requires a private authenticated custody service');
+    if (config.API_ROLE === 'edge' && (config.STREAMING_WORKER_URL || config.STREAMING_WORKER_TOKEN))
+      throw new Error('Only the custody role may run the streaming queue');
+    app.addHook('onRequest', async (request, reply) => {
+      const pathname = request.url.split('?')[0];
+      const custodyRoute = pathname.startsWith('/api/uploads') || pathname.startsWith('/api/contributions');
+      if (config.API_ROLE === 'custody' && custodyRoute && !custodyTokenMatches(request.headers['x-dotify-custody'], config.CUSTODY_SERVICE_TOKEN!))
+        return reply.code(403).send({ code: 'PRIVATE_SERVICE', error: 'Use the Dotify application to continue.' });
+      if (custodyRoute || pathname.startsWith('/api/tracks') || pathname.startsWith('/api/auth') || pathname === '/health/ready') await assertSharedState();
+    });
+  }
 
   app.addHook('onSend', async (request, reply) => {
     reply.header('x-request-id', request.id);
@@ -117,6 +165,13 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   });
 
   app.setErrorHandler((error: FastifyError, request, reply) => {
+    if (error instanceof SharedStateUnavailableError) {
+      request.log.warn({ code: error.code }, 'Shared state unavailable');
+      return reply
+        .code(503)
+        .header('Retry-After', '3')
+        .send({ code: error.code, error: error.message, requestId: String(request.id) });
+    }
     // Respect framework errors that carry a status (rate limit 429, malformed
     // body 400, payload too large 413); everything else is a 500 with the
     // internals kept out of the response body.
@@ -136,30 +191,125 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
 
   // Routes.
   await app.register(healthRoutes);
-  const nativeReceipts = createNativeReceiptService({ rpcUrl: config.PASEO_ASSET_HUB_NATIVE_RPC, chainId: config.DOTIFY_CHAIN_ID });
-  const contributionLedger = new NativeContributionLedger(config.NATIVE_CONTRIBUTION_SNAPSHOT_PATH);
-  await app.register(
-    createNativeReceiptRoutes({
-      serviceToken: config.NATIVE_RECEIPT_SERVICE_TOKEN,
-      read: async input => {
-        const receipt = await nativeReceipts.read(input);
-        await contributionLedger.record(receipt);
-        return receipt;
+  if (config.API_ROLE === 'edge') {
+    await registerCustodyProxy(app, {
+      origin: config.CUSTODY_SERVICE_URL!,
+      token: config.CUSTODY_SERVICE_TOKEN!,
+      production: config.NODE_ENV === 'production',
+      clientIp: request => clientIdentity(request, options.trustProxy ?? config.API_TRUST_PROXY).key
+    });
+  } else {
+    const nativeReceipts = createNativeReceiptService({ rpcUrl: config.PASEO_ASSET_HUB_NATIVE_RPC, chainId: config.DOTIFY_CHAIN_ID });
+    const contributionLedger = new NativeContributionLedger(config.NATIVE_CONTRIBUTION_SNAPSHOT_PATH);
+    await app.register(
+      createNativeReceiptRoutes({
+        serviceToken: config.NATIVE_RECEIPT_SERVICE_TOKEN,
+        read: async input => {
+          const receipt = await nativeReceipts.read(input);
+          await contributionLedger.record(receipt);
+          return receipt;
+        }
+      })
+    );
+    await app.register(createContributionHistoryRoutes(contributionLedger, Boolean(config.PASEO_ASSET_HUB_NATIVE_RPC) && config.DOTIFY_CHAIN_ID === 420420417));
+  }
+  if (config.API_ROLE !== 'custody') {
+    await app.register(authRoutes, { prefix: '/api/auth' });
+    await app.register(turnRoutes, { prefix: '/api/turn' });
+    await app.register(keyRoutes, { prefix: '/api/tracks' });
+  }
+  if (config.API_ROLE !== 'edge') {
+    if (sharedState) {
+      const release = await sharedState.holdExclusive('custody-owner', () => {
+        app.log.error({ code: 'CUSTODY_LEASE_LOST' }, 'Custody store connection lost; closing admission and encoder');
+        options.onCustodyLeaseLost?.();
+        void streaming?.stop();
+        void app.close();
+      });
+      app.addHook('onClose', release);
+    }
+    if (Boolean(config.STREAMING_WORKER_URL) !== Boolean(config.STREAMING_WORKER_TOKEN))
+      throw new Error('Configure both the isolated streaming worker URL and token');
+    if (config.STREAMING_WORKER_URL && config.STREAMING_WORKER_TOKEN) {
+      if (config.NODE_ENV === 'production' && process.getuid?.() !== 1000)
+        throw new Error('Streaming activation requires the reviewed non-root UID 1000 API image');
+      if (config.UPLOAD_GLOBAL_CONCURRENCY > 2) throw new Error('Streaming publication requires UPLOAD_GLOBAL_CONCURRENCY at most 2');
+      // Validate pure worker configuration before acquiring durable publication
+      // ownership or opening a signer; a bad URL must not strand its lock.
+      const transcode = createStreamingWorkerClient(config.STREAMING_WORKER_URL, config.STREAMING_WORKER_TOKEN);
+      const publication = await createStreamingPublicationStore({
+        provider: config.STREAMING_AUDIO_STORAGE,
+        queue: config.STREAMING_STATE_PATH,
+        profileFile: config.BULLETIN_PUBLICATION_PROFILE,
+        assetPolicyFile: config.BULLETIN_PUBLIC_ASSET_POLICY,
+        releaseAssets: config.PUBLIC_ASSET_STORAGE === 'bulletin',
+        onTiming: report => app.log.info({ code: 'BULLETIN_PUBLICATION_TIMING', ...report }, 'Bulletin publisher attempt timings'),
+        metadataRepairAuthority: (owner, contentHash) =>
+          checkUnregisteredRelease({
+            owner: owner.address.toLowerCase(),
+            scope: { chainId: owner.chainId, runtimeAddress: owner.runtimeAddress.toLowerCase(), contentHash }
+          }),
+        assetAuthority: async owner => {
+          if (owner.chainId !== config.DOTIFY_CHAIN_ID) return false;
+          const result = await checkArtistAuthority(owner.address);
+          return result.allowed && result.runtime.toLowerCase() === owner.runtimeAddress.toLowerCase();
+        }
+      });
+      if (config.PUBLIC_ASSET_STORAGE === 'bulletin') {
+        if (!publication.pinAsset) {
+          await publication.close();
+          throw new Error('Public asset publisher unavailable');
+        }
+        publicAssets = async (files, kind, owner, signal) => {
+          try {
+            return await publication.pinAsset!(files, kind, owner, signal);
+          } catch (error) {
+            if (error instanceof PreparedReleaseConflictError) throw error;
+            throw new PublicAssetStorageError();
+          }
+        };
       }
-    })
-  );
-  await app.register(createContributionHistoryRoutes(contributionLedger, Boolean(config.PASEO_ASSET_HUB_NATIVE_RPC) && config.DOTIFY_CHAIN_ID === 420420417));
-  await app.register(authRoutes, { prefix: '/api/auth' });
-  await app.register(turnRoutes, { prefix: '/api/turn' });
-  await app.register(keyRoutes, { prefix: '/api/tracks' });
-  await app.register(uploadRoutes, { prefix: '/api/uploads' });
-  const catalog = options.catalog ?? defaultCatalogReadModel;
-  await catalog.start();
-  app.addHook('onClose', async () => {
-    catalog.stop();
-  });
-  await app.register(createCatalogRoutes({ catalog }));
-  await app.register(createMediaRoutes({ catalog }));
-
+      streaming = new StreamingJobs({
+        directory: config.STREAMING_STATE_PATH,
+        deriveKey: deriveContentKeyBytes,
+        authority: async (owner, runtime, chainId) => {
+          if (chainId !== config.DOTIFY_CHAIN_ID) return false;
+          const result = await checkArtistAuthority(owner);
+          return result.allowed && result.runtime.toLowerCase() === runtime;
+        },
+        transcode,
+        assertCanPrepare: publication.assertCanPrepare,
+        admitPreparation: publication.admitPreparation,
+        pin: publication.pin,
+        audioReference: publication.audioReference,
+        publicationTimeoutMs: publication.publicationTimeoutMs,
+        canDiscard: publication.canDiscard,
+        onFailure: failure => app.log.warn({ code: 'STREAMING_PREPARATION_FAILED', ...failure }, 'Audio preparation needs attention')
+      });
+      try {
+        await streaming.start();
+      } catch (error) {
+        await streaming.stop();
+        await publication.close();
+        throw error;
+      }
+      app.addHook('onClose', async () => {
+        await streaming!.stop();
+        await publication.close();
+      });
+    }
+    await app.register(createUploadRoutes(undefined, streaming, publicAssets), { prefix: '/api/uploads' });
+  }
+  if (config.API_ROLE !== 'custody') {
+    const catalog = options.catalog ?? defaultCatalogReadModel;
+    await catalog.start();
+    app.addHook('onClose', async () => {
+      catalog.stop();
+      if (catalog === defaultCatalogReadModel) mediaPrewarmer?.close();
+    });
+    await app.register(createCatalogRoutes({ catalog }));
+    await app.register(createMediaRoutes({ catalog }));
+    await app.register(createPublicAssetRoutes());
+  }
   return app;
 }

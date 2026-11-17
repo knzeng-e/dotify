@@ -1,0 +1,30 @@
+{
+  "schema": "dotify.bulletin.application-http-readback.v1",
+  "observedAt": "2026-11-01T02:41:04.702Z",
+  "root": "bafykbzacec2bpys6cfd23kbnvg4p7fidf6laimhd5afshs32sgilt74gkybhw",
+  "reads": [
+    {
+      "path": "manifest.json",
+      "bytes": 1990,
+      "sha256": "2d6837f2ee56d8ec5dfa43be4f72af24203c6224c376ddae6c05adf7c37e0cb2",
+      "elapsedMs": 383
+    },
+    {
+      "path": "160/init.bin",
+      "bytes": 780,
+      "sha256": "40fd71d0094e9c6a0faca0f8a0b740581a9cd57ea20d1d9b664271e5e8f11827",
+      "elapsedMs": 153
+    },
+    {
+      "path": "160/segment-000.bin",
+      "bytes": 80208,
+      "sha256": "df1acf8092831a304e0df5d8d58fcab8de98cd48856075d290f2aab73c937594",
+      "elapsedMs": 564
+    }
+  ],
+  "signerUsed": false,
+  "stores": 0,
+  "contentKeyUsed": false,
+  "catalogRouteTested": false,
+  "physicalPlaybackTested": false
+}

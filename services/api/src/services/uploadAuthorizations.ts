@@ -1,4 +1,6 @@
 import { createHmac, hkdfSync, randomUUID, timingSafeEqual } from 'node:crypto';
+import { sharedState } from './sharedState/index.js';
+import { PostgresUploadAuthorizations } from './sharedState/uploads.js';
 import { config } from '../config.js';
 import { getActiveContentKeyMasterSecret } from './keyVault.js';
 import { checkDotifyChainId } from './chainDomain.js';
@@ -52,18 +54,19 @@ export type IssuedUploadAuthorization =
 
 export type UploadLease = {
   payload: UploadAuthorizationPayload;
-  complete: (actualBytes: number) => boolean;
-  abort: () => void;
+  complete: (actualBytes: number) => boolean | Promise<boolean>;
+  abort: () => void | Promise<void>;
 };
 
 export type UploadLeaseResult = { ok: true; lease: UploadLease } | UploadAuthorizationFailure;
 
-type Reservation = {
+export type Reservation = {
   payload: UploadAuthorizationPayload;
   state: 'reserved' | 'active';
+  leaseUntil?: number;
 };
 
-type Usage = {
+export type Usage = {
   address: string;
   bytes: number;
   expiresAt: number;
@@ -71,9 +74,11 @@ type Usage = {
 
 export type UploadAuthorizationServiceOptions = {
   epoch?: string;
+  state?: { reservations: Map<string, Reservation>; usage: Usage[] };
   now?: () => number;
   randomId?: () => string;
   masterSecret?: () => string | undefined;
+  previousSecret?: () => string | undefined;
   authorizationTtlMs?: number;
   quotaWindowMs?: number;
   principalByteLimit?: number;
@@ -82,9 +87,21 @@ export type UploadAuthorizationServiceOptions = {
   globalConcurrencyLimit?: number;
 };
 
-export type UploadAuthorizationService = {
-  issue: (input: { address: `0x${string}`; runtimeAddress: `0x${string}`; chainId: number; purpose: UploadPurpose; maxBytes: number }) => IssuedUploadAuthorization;
+export type SyncUploadAuthorizationService = {
+  issue: (input: {
+    address: `0x${string}`;
+    runtimeAddress: `0x${string}`;
+    chainId: number;
+    purpose: UploadPurpose;
+    maxBytes: number;
+  }) => IssuedUploadAuthorization;
   begin: (token: string, purpose: UploadPurpose) => UploadLeaseResult;
+  settleActive: (jti: string, actualBytes?: number) => boolean;
+};
+
+export type UploadAuthorizationService = {
+  issue: (...args: Parameters<SyncUploadAuthorizationService['issue']>) => IssuedUploadAuthorization | Promise<IssuedUploadAuthorization>;
+  begin: (token: string, purpose: UploadPurpose) => UploadLeaseResult | Promise<UploadLeaseResult>;
 };
 
 function deriveHmacKey(secretValue: string | undefined): Buffer | null {
@@ -104,7 +121,7 @@ function fail(code: UploadAuthorizationErrorCode, reason: string): UploadAuthori
   return { ok: false, code, reason };
 }
 
-export function createUploadAuthorizationService(options: UploadAuthorizationServiceOptions = {}): UploadAuthorizationService {
+export function createUploadAuthorizationService(options: UploadAuthorizationServiceOptions = {}): SyncUploadAuthorizationService {
   const epoch = options.epoch ?? randomUUID();
   const now = options.now ?? Date.now;
   const randomId = options.randomId ?? randomUUID;
@@ -115,12 +132,17 @@ export function createUploadAuthorizationService(options: UploadAuthorizationSer
   const globalByteLimit = options.globalByteLimit ?? config.UPLOAD_GLOBAL_BYTES_PER_WINDOW;
   const principalConcurrencyLimit = options.principalConcurrencyLimit ?? config.UPLOAD_PRINCIPAL_CONCURRENCY;
   const globalConcurrencyLimit = options.globalConcurrencyLimit ?? config.UPLOAD_GLOBAL_CONCURRENCY;
-  const reservations = new Map<string, Reservation>();
-  const usage: Usage[] = [];
+  const reservations = options.state?.reservations ?? new Map<string, Reservation>();
+  const usage: Usage[] = options.state?.usage ?? [];
 
   function sweep(currentTime: number): void {
     for (const [jti, reservation] of reservations) {
       if (reservation.state === 'reserved' && reservation.payload.exp <= currentTime) reservations.delete(jti);
+      if (reservation.state === 'active' && (reservation.leaseUntil ?? 0) <= currentTime) {
+        // A crashed uploader cannot release its byte budget by losing its lease.
+        usage.push({ address: reservation.payload.address, bytes: reservation.payload.maxBytes, expiresAt: currentTime + quotaWindowMs });
+        reservations.delete(jti);
+      }
     }
     let writeIndex = 0;
     for (const record of usage) {
@@ -168,9 +190,14 @@ export function createUploadAuthorizationService(options: UploadAuthorizationSer
     const parts = token.split('.');
     if (parts.length !== 2 || !parts[0] || !parts[1]) return fail('UPLOAD_AUTH_INVALID', 'Malformed upload authorization.');
 
-    const expected = Buffer.from(sign(parts[0], key), 'utf8');
     const provided = Buffer.from(parts[1], 'utf8');
-    if (expected.length !== provided.length || !timingSafeEqual(expected, provided)) {
+    if (
+      ![key, deriveHmacKey(options.previousSecret?.())].some(candidate => {
+        if (!candidate) return false;
+        const expected = Buffer.from(sign(parts[0], candidate), 'utf8');
+        return expected.length === provided.length && timingSafeEqual(expected, provided);
+      })
+    ) {
       return fail('UPLOAD_AUTH_INVALID', 'Upload authorization signature does not verify.');
     }
 
@@ -205,7 +232,18 @@ export function createUploadAuthorizationService(options: UploadAuthorizationSer
     return payload;
   }
 
+  function settleActive(jti: string, actualBytes?: number): boolean {
+    sweep(now());
+    const reservation = reservations.get(jti);
+    if (!reservation || reservation.state !== 'active') return false;
+    reservations.delete(jti);
+    if (actualBytes === undefined) return true;
+    if (!Number.isSafeInteger(actualBytes) || actualBytes < 0 || actualBytes > reservation.payload.maxBytes) return false;
+    usage.push({ address: reservation.payload.address, bytes: actualBytes, expiresAt: now() + quotaWindowMs });
+    return true;
+  }
   return {
+    settleActive,
     issue(input) {
       const currentTime = now();
       sweep(currentTime);
@@ -271,29 +309,14 @@ export function createUploadAuthorizationService(options: UploadAuthorizationSer
       }
 
       reservation.state = 'active';
-      let settled = false;
-      const release = () => {
-        if (settled) return false;
-        settled = true;
-        reservations.delete(verified.jti);
-        return true;
-      };
-
+      reservation.leaseUntil = currentTime + 15 * 60_000;
       return {
         ok: true,
         lease: {
           payload: verified,
-          complete(actualBytes) {
-            if (!Number.isSafeInteger(actualBytes) || actualBytes < 0 || actualBytes > verified.maxBytes) {
-              release();
-              return false;
-            }
-            if (!release()) return false;
-            usage.push({ address: verified.address, bytes: actualBytes, expiresAt: now() + quotaWindowMs });
-            return true;
-          },
-          abort() {
-            release();
+          complete: actualBytes => settleActive(verified.jti, actualBytes),
+          abort: () => {
+            settleActive(verified.jti);
           }
         }
       };
@@ -301,4 +324,11 @@ export function createUploadAuthorizationService(options: UploadAuthorizationSer
   };
 }
 
-export const uploadAuthorizationService = createUploadAuthorizationService();
+export const uploadAuthorizationService: UploadAuthorizationService = sharedState
+  ? new PostgresUploadAuthorizations(sharedState, {
+      epoch: config.SESSION_EPOCH,
+      masterSecret: () => config.SESSION_SECRET,
+      previousSecret: () =>
+        config.SESSION_PREVIOUS_SECRET_UNTIL && Date.now() < Date.parse(config.SESSION_PREVIOUS_SECRET_UNTIL) ? config.SESSION_PREVIOUS_SECRET : undefined
+    })
+  : createUploadAuthorizationService();

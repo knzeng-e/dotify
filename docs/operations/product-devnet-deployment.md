@@ -1,5 +1,215 @@
 # Deploy Dotify To Product DevNet
 
+The [0.1.88 delivery record](../backlog/implementation/evidence/product-0.1.88-rollout-2026-11-15.md)
+identifies the 2026-11-15 served clients and remaining phone acceptance. Earlier
+dated entries below retain their original scope.
+
+## Room preparation delivered in 0.1.80, 2026-11-07
+
+[Web and Product 0.1.80](../backlog/implementation/evidence/product-0.1.80-rollout-2026-11-07.md) deliver #404 from frozen `30702580`, based on
+merged/tested dev `e7614b4d`. Both CIs and independent Web/CAR/finalized-retention/
+DotNS checks pass; the signer is removed. Client relay reads respect the existing
+two-download API capacity and failures expose an explicit local support report.
+The owner confirms one phone Room start without retry in about 55 seconds and audible Web/Desktop guests. Startup remains too slow; #395 stays open for latency and broader lifecycle.
+The owner confirms 0.1.79 connection/short playback on iPhone 0.10.0 (20), Runtime
+0.26.0; scoped wire comparison supports the unchanged SDK's used domains, not a
+blanket protocol/payment upgrade. Approved writes: 13 stores / 4,425,117 bytes,
+7 one-off renewals / 5,061,961 bytes, two DotNS signatures. Preserve 431 future
+renewals / 150,484,205 bytes. API/custody/signaling and musical assets are unchanged;
+no restart or recurring conservation is activated.
+
+## Listening continuity delivered in 0.1.79, 2026-11-07
+
+[Web, Product and signaling 0.1.79](../backlog/implementation/evidence/product-0.1.79-rollout-2026-11-07.md) deliver merged #401/#402 from frozen
+`c656992c`. Both CIs and independent Web/CAR/retention/DotNS/signaling checks pass;
+the signer is removed. Closed playback starts fresh, Room exits confirm with a
+host solo-continuation choice, discovery panels retain listening controls, and
+matched signaling preserves chat paragraphs. Solo/Room system covers use the
+larger bottom-right Dotify badge without outer petals. Matching physical checks
+remain open in #395/#388. The approved operation uses 13 stores / 4,423,600 bytes,
+7 one-off renewals / 5,061,961 bytes and two DotNS signatures. Preserve 411 future
+renewals / 140,997,127 bytes. Signaling restarted only after a zero-Room check;
+API/custody and music are unchanged. No recurring conservation is activated.
+
+## Room lifecycle delivered in 0.1.78, 2026-11-06
+
+[Web and Product 0.1.78](../backlog/implementation/evidence/product-0.1.78-rollout-2026-11-06.md) publish merged #400 from frozen source
+`6898863d`. Both CIs and independent Web/CAR/finalized-retention/DotNS readback pass;
+the signer is removed. Failed preparation cannot create a silent Room; observed
+output interruption pauses at position with visible explicit recovery. Solo and
+Room share rounded Dotify petal artwork without tiny room text. The owner confirms
+startup without retry and host/guest sound during the requested short phone lock.
+Broader lifecycle/recovery and artwork checks remain open in #395/#388.
+This bounded application-only operation uses 14 stores / 5,259,623 bytes and
+6 immediate renewals / 4,214,282 bytes, one operation per dependency.
+Preserve 391 future renewals / 131,511,566 bytes. No automatic renewal, musical
+write, API/custody change or service restart. Older checkpoints remain dated facts.
+
+## Full-length Room correction delivered in 0.1.77, 2026-11-06
+
+[Web and Product 0.1.77](../backlog/implementation/evidence/product-0.1.77-rollout-2026-11-06.md) publish merged #399 from frozen source
+`0587442d`. CI and independent Web/block/CAR/DotNS checks pass; the local signer
+is removed. Complete mobile Room preparation uses at most four authenticated
+reads and a complete local AAC index, preserving payloads, access checks,
+existing deadlines and the 40 MiB cap; solo remains progressive.
+The owner confirms eventual full-length phone-host sound at Web/Desktop guests,
+but startup still has delays/errors/retries and locking the phone silences both
+host and guests until unlock. Reliable startup, background and lifecycle checks
+remain open in #395; the eight-second 0.1.76 result stays separate.
+Reserve 371 future renewals / 122,037,661 bytes; no renewal/scheduler is activated.
+API/custody, musical assets and policies are unchanged; no service restart occurs.
+Older dated checkpoints retain their state at that time.
+
+## Mobile room capture delivered in 0.1.76, 2026-11-05
+
+[Web and Product 0.1.76](../backlog/implementation/evidence/product-0.1.76-rollout-2026-11-05.md) publish merged #397/#398 from frozen source
+`e195e3ab`. CI and independent Web/CAR/Bulletin/DotNS checks pass;
+the local signer is removed. Managed-only room hosts use authenticated complete
+96 kb/s AAC with the existing buffer cap, while solo stays progressive. Room
+queue/suggestions/details share listening-sheet motion and access-gate ownership.
+The owner confirms foreground mobile-host sound at Web/Desktop guests on the
+eight-second release; full-length Room preparation still fails (#395).
+Physical lifecycle/background checks (#395) and matching panel acceptance (#396)
+remain open. Reserve 351 renewals /
+112,567,204 bytes; no renewal or conservation activation occurs.
+API/custody source/media/policies are unchanged. An already-stopped custody
+instance was restored during preparation after database-lock loss; the code-0
+exit/supervisor defect remains a separate reliability follow-up.
+
+## Continuous listening published in 0.1.75, 2026-11-05
+
+[Web and Product 0.1.75](../backlog/implementation/evidence/product-0.1.75-rollout-2026-11-05.md) deliver merged #391/#393 from frozen source
+`e095f427`. Exact-source CI and independent Web/block/CAR/DotNS readback
+pass; the local signer is removed. Player/Queue motion, title-adjacent room
+discovery and room-branded system context are delivered. API/custody, media and
+policies are unchanged; no restart or renewal occurs. Reserve
+331 renewals / 103,099,297 bytes. Matching
+physical #392/#388 acceptance remains open. W33 retains protected denial and
+conservation/recovery gates; the merged read-only conservation CLI is not
+activated/deployed by this client rollout.
+
+## Product 0.1.73 published with protected account lifetime, 2026-11-05
+
+Exact tested source `560e7332f2fabe7b849ba829fb0543688a7447b1` publishes executable
+`[0,1,73]` at root/app CID
+`bafybeihwap3ymedmpxkcyqhadyicu3ixkdmzzkv47mrq63yhqz32xpe2cm`.
+Finalized records, all 20 outer dependencies, reconstructed 99-block CAR and Web
+entry bytes verify. The local signer is removed. No service/media/key change or
+renewal is included. Reopen Product and confirm **You → About Dotify → 0.1.73**
+before the [denial/interruption comparison](bulletin-protected-playback-acceptance.md)
+on the existing eight-second release. See the
+[rollout evidence](../backlog/implementation/evidence/product-0.1.73-rollout-2026-11-05.md) for write caps,
+retention obligations and acceptance limits. Preserve all newer receipts and
+nonce state during any rollback; 0.1.72 predates this account-lifetime correction.
+
+## Product 0.1.67 publication recovery, 2026-10-29
+
+Published clean packaging `89c2595788c96350df40a128aa7bb2a63d20226c` at root/app
+CID `bafybeihiyvg3rce23zdort7fwyvpqtdzo5vvaourwagcdtejwlb72ma4oy`, executable
+`[0,1,67]`. Finalized DotNS/version, all 127 public CAR blocks and exact client
+bytes verify; the local signer is removed. Web serves merged #351, API/custody
+are on releases 36/5. Current contracts, catalog, security state and native
+permissions remain unchanged. Reopen **You → About Dotify → 0.1.67** before
+testing publication recovery. See [identities, checks and compatible rollback](../backlog/implementation/evidence/product-0.1.67-rollout-2026-10-29.md).
+
+## Product 0.1.66 published with fresh W38 contracts, 2026-10-29
+
+Clean packaging `777be5940fc94c741bb0ca5737277be41f7d23f3` publishes executable
+`[0,1,66]` at root/app CID
+`bafybeigrozkluvbcngpgqnsetv4ksgma6qjcx6q3o5rgyrmceer6742puq`.
+Web and Product now use the new factory/directory and finalized CDM versions 3;
+the internal catalog is intentionally empty. API release 35, custody release 4
+and signaling release 38 are deployed. The guarded PostgreSQL directory update
+preserves session/security state and custody data. No new paid service is added.
+
+Finalized DotNS/version and all 127 public CAR block hashes verify; the signer
+is removed. Reopen Product and check **You → About Dotify → 0.1.66**, then create
+a new artist space and publish again. Old contracts and pins remain untouched.
+Rollback requires the matching service, database identity and client generation,
+not a client-only downgrade. See the [rollout record](../backlog/implementation/evidence/product-0.1.66-rollout-2026-10-29.md).
+
+## Product 0.1.65 published with managed mobile AAC, 2026-10-28
+
+Clean packaging `a553cc6a65a2f506ebcfaac2d66ce97451291d10`, based on merged `dev` `bd813f7e`
+(#344/#345), publishes executable `[0,1,65]` at root/app CID
+`bafybeicv4u5od4iqqhwoq5abhm3w3taof3di5euj3qvjo7ftkrldxnqu6y`. Independent finalized DotNS/version and all
+136 public CAR hashes pass; index, entry and graphics bytes match the clean
+build. The local signer is removed. Supporting mobile engines can stream early
+AAC segments; About exposes the installed build/reader. Physical mobile listening
+and cold-start measurements remain open. No service restart, migration or new
+infrastructure was needed; Product 0.1.64 is the compatible client rollback.
+See the [0.1.65 rollout](../backlog/implementation/evidence/product-0.1.65-rollout-2026-10-28.md).
+
+## Product 0.1.64 published with mobile audio startup correction, 2026-10-28
+
+Clean packaging `982d3da4b6fb92af706641dc2ff10589b6f5a73f`, based on merged
+`dev` `dd8e9cb56651d3cbb3c09d778491e442256fc395` (#342), publishes executable
+`[0,1,64]` at root/app CID
+`bafybeiaxw3ntf7ifsleeipvysih7qotm5lv6nl7ppiijca2bhzhqtzgpau`.
+Finalized DotNS/version, all 136 public CAR block hashes and exact index,
+entry and graphics bytes pass. The local signer is removed. The current
+Product/CDM profile, permissions and running services are retained; no server
+restart or migration was performed. Product 0.1.63 is the compatible client
+rollback. See the [0.1.64 rollout](../backlog/implementation/evidence/product-0.1.64-rollout-2026-10-28.md)
+for exact identities and the physical mobile playback checks still required.
+
+## Product 0.1.63 published with shared API state, 2026-10-28
+
+Clean packaging `5de94989f2e36e6ee8e9e871471233e07d9381f1` publishes W35 and
+#335-#337, alongside W36/W37 API activation. Root/app CID is
+`bafybeigxlqyghdtxrxvyce6e5axi3milqscwx2vvvgmfnh5ktuyp5juyy4`, executable
+`[0,1,63]`. Finalized DotNS/version and all 136 public CAR blocks match; the
+local signer is removed. Product 0.1.62 is the client rollback; the API must
+retain shared state. See the [0.1.63 rollout](../backlog/implementation/evidence/product-0.1.63-rollout-2026-10-28.md) for exact
+identities, the publication hold and physical acceptance still to capture.
+
+The first upload attempt found pool account 0 unauthorized. Before loading a
+DotNS signer, read the public Bulletin pool status and verify the selected
+account has unexpired authorization and sufficient bytes/transactions. Account
+1 was verified and selected with `BULLETIN_POOL_ACCOUNT_INDEX=1` for this
+publication. This is a per-release selection, not a guarantee that account 1
+remains authorized. Never try guessed authorizers or reuse the DotNS owner as
+an implicit storage fallback.
+
+## Product 0.1.62 published with API/Web W34, 2026-10-25
+
+Clean packaging `781f1c598885714288bdec02df488fd03d7f2602`, based on tested
+merged dev `c71947a` (#333), advances the executable to `[0,1,62]` while retaining
+the current native profile and permissions. Local guards/build and exact-SHA
+signer-free candidate CI pass. API release 32 and Web already serve W34.
+Root/app CID is `bafybeiaxgf3x4s6c6cwmxd3wm4gsllwl6gxuedqrejb3gmepo62ux2dto4`.
+Independent finalized version readback, all 135 public CAR hashes and exact
+entry/graphics bytes pass. The local signer is removed; installed Host refresh
+and physical-device listening/signing remain acceptance checks. Product 0.1.61
+is the compatible client rollback. See the [rollout record](../backlog/implementation/evidence/product-0.1.62-rollout-2026-10-25.md).
+
+## Product 0.1.61 scoped 3D published, 2026-10-24
+
+Published from clean packaging `c294e21651ab007725d7fafa18be5c6de8e03419`, based on
+merged `dev` `620f7c6` (#330), at root/app CID
+`bafybeiavq23ghgrkkrq5frcwzy3zcnnq7tvp5umgixdz3exmllfxrd3wbi`.
+Executable `[0,1,61]` retains the existing native profile and permissions. The
+room view picker offers Radar / 3D / List; Radar stays initial and graphics
+failure falls back to it. Do not restart services or change artist runtimes.
+Web deployment belongs to the owner. Finalized DotNS/version, all 135 public CAR
+blocks and exact entry/graphics bytes pass; the local signer is removed. See the
+[0.1.61 rollout](../backlog/implementation/evidence/product-0.1.61-rollout-2026-10-24.md)
+for identities and the compatible 0.1.60 rollback. Physical Host graphics and
+native location remain separate acceptance checks.
+
+## Host compatibility baseline, 2026-10-23
+
+Desktop Dev 0.1.4-rc.3 embeds TrUAPI 0.25.0 / codec 3, schema
+`3c45e49b26c1ab97`. The historical 0.1.59 codec-1 bundle is incompatible.
+Product 0.1.60 and 0.1.61 pin SDK 0.39.0 / host 0.28.0 / TrUAPI 0.25.0;
+SDK 0.40.0 targets a different 0.26 schema and is not a compatible shortcut.
+Preserve the existing Dotify product
+identifier, account index zero, CDM snapshots and factory/deposit safeguards.
+After publication, verify the same account, native
+signing and room permissions on Desktop and the owner's mobile 0.10.0 (18).
+Mobile's embedded protocol and real-device behavior are still unverified.
+See [evidence and rollout boundary](../backlog/implementation/evidence/product-host-0.1.4-2026-10-23.md).
+
 ## Nearby in the default Product build
 
 Nearby is included by default, matching Web. Build-only validation uses
@@ -23,6 +233,58 @@ or timed-out request; Dotify cannot undo the Host's permission decision.
 Operational rollback uses `VITE_DOTIFY_NEARBY=off` and/or `SIGNAL_NEARBY=off`;
 there is no Product-specific feature gate. Old snapshots expire within 90 seconds.
 
+## Product 0.1.59 published bootstrap correction
+
+Published from clean packaging `627b4fa2399ab84ac5081aa8c6a7210761381a57`, including merged
+dev `9ba2008` (#323), at root/app CID
+`bafybeia7d6qbsqq7tj32tgvzc3z3vr3x6cxhtlyve6fc3k52zqeqmjhhum`. Finalized manifest `[0,1,59]`,
+all 124 public CAR hashes and exact index/entry bytes pass. Source and packaging
+CI pass; the local signer is removed. This Product-only update retains the
+0.1.58 directory, frozen empty catalog, permissions and running services.
+
+Reload Dotify in Product, then let the artist retry the existing pending setup
+through normal Host approvals. Do not create another runtime or approve it as
+operator. The [0.1.59 record](../backlog/implementation/evidence/product-0.1.59-rollout-2026-10-22.md)
+distinguishes verified publication from the remaining native registration gate.
+
+## Product 0.1.58 published streaming reset
+
+Published from clean packaging `113aa9c568966f3ec271f0ee0af3526f1bcaea68`,
+based on tested dev `142fc63`. Executable `[0,1,58]` retains product-cdm/devnet
+and existing permissions at root/app CID
+`bafybeiguwd2uaz7qv3l66rxpviw5aajmu6xka74vzqgd2regl2vnbh7x7y`.
+API 29/signaling 37/encoder 1 and Web use the fresh directory with an empty
+catalog. The local signer is removed. Finalized DotNS, all 124 public CAR
+block hashes, exact index/entry and private three-rendition encoding pass.
+
+See the [rollout record](../backlog/implementation/evidence/product-0.1.58-rollout-2026-10-22.md)
+for migration, identities and remaining real-publication/physical-device gates.
+Pre-reset Product 0.1.57 is historical, not a compatible standalone rollback;
+recovery must preserve the latest nonce/key/revocation custody.
+
+The following release sections are historical evidence.
+
+## Product 0.1.57 published release follow-up
+
+Published from clean green packaging commit
+`a789d8ecb63287013a46a4e268827184c2e67ca4`, based on tested dev `615ad44`
+whose full tree equals final GitHub 1.4.0 source `9788ec0`. Executable
+`[0,1,57]` retains `product-cdm` / `devnet`, frozen catalog and permissions at CID
+`bafybeifba24wrvu2ywkurapvsjmeub3llviu2tybc3hkzljobww3ordqqm`.
+It includes the durable-logout correction missing from 0.1.56. API 28 and
+signaling 36 remain healthy and were not restarted; Web independently serves
+the tested source. Finalized DotNS and all 125 public CAR block hashes pass,
+with exact signed index/entry bytes. The local signer was removed.
+
+Current client rollback: **0.1.56**, prior fallback **0.1.55**. See the
+[dated rollout record](../backlog/implementation/evidence/product-0.1.57-rollout-2026-10-20.md)
+for identities, resumable but initially slow public retrieval, Web/mobile-form
+checks and bounded installed Desktop rendering. Native location still falls
+back to Web; physical-device audio/payment/location and pilot acceptance remain
+open. GitHub 1.4.0 is a testnet prerelease, not a passed public pilot.
+
+The following sections preserve historical rollout and rollback evidence.
+
 ## Product 0.1.56 published mobile-form release
 
 Published from clean green packaging commit
@@ -39,7 +301,7 @@ The local signer is removed. See the [rollout record](../backlog/implementation/
 for Web form checks and the bounded installed Desktop 0.1.3 smoke. The owner
 confirmed expected mobile keyboard behavior on 2026-10-20; full device-matrix,
 rotation and prolonged audio acceptance remains open.
-Current client rollback: **0.1.55**, with the same API/signaling versions.
+Client rollback at that rollout: **0.1.55**, with the same API/signaling versions.
 
 The following release sections preserve historical rollout and rollback evidence.
 
@@ -139,7 +401,7 @@ for service images, tests, restart incident and remaining physical checks.
 
 The following release sections retain their original deployment and rollback history.
 The historical release/rollback pair in this section was 0.1.52 / 0.1.51. The
-current pair is 0.1.56 / 0.1.55 above.
+current pair is 0.1.57 / 0.1.56 above.
 
 ## Product 0.1.50 published radar and audio release
 
@@ -199,7 +461,7 @@ room-tip and release-editor follow-up in #269/#270. Build from the tested
 release commit and preserve `product-cdm` on `devnet`. Deploy matching API and
 signaling services, with the shared server-only native-receipt token configured,
 before publishing the ordinary Web and Product bundles. See the
-[configuration runbook](deployment-configuration.md#publication-and-room-follow-up-269).
+[configuration runbook](deployment-configuration-history.md#publication-and-room-follow-up-269).
 
 Published source: `fc7faf5a49e6d5b3392285bab2ee957d325b4cb6`; executable CID:
 `bafybeicqj4ekyiz7pmbt7ry2ixpwvpa24v5liialmhe3zwonjslt47wvna`. Independent DotNS and public
@@ -580,12 +842,12 @@ gates pass, and the live CASH path remains blocked on a Product-confirmed
 CASH-to-runtime entitlement mechanism. A `fail` means the local boundary or an
 operator-supplied evidence file is unsafe and must block the release.
 
-Product releases 0.1.46 through 0.1.56 explicitly use `product-cdm` on `devnet` so
+Product releases 0.1.46 through 0.1.57 explicitly use `product-cdm` on `devnet` so
 Product account holders retain native tips and access payments. The Product
 build refuses an EVM-only profile; ordinary web still uses viem. Product SDK
 descriptors increase the bundle and Bulletin storage demand. The 0.1.45 viem
 publication regressed native tips by requesting an EVM wallet; it is historical
-evidence of that limitation. The current rollback artifact is 0.1.55, retaining
+evidence of that limitation. The current rollback artifact is 0.1.56, retaining
 the native Product profile. Validate native
 approval, exact account mapping and finalized receipt recovery on the installed
 Hosts after publication.
@@ -594,6 +856,12 @@ Hosts after publication.
 
 The repository pins the CLI version in the npm deploy command but does not add
 the experimental deploy tool to the application dependency tree.
+
+Before accepting a signer, run the signer-free module/artifact checks with the
+**same Node executable and dependency graph** used for signing. Check available
+space for durable intent journals. A loader failure must be resolved before key
+handoff; a successful check under another local Node is insufficient. Preserve
+failed-attempt evidence and reconcile any signed intent before retrying.
 
 Before loading any signer, verify the package's embedded DevNet profile:
 

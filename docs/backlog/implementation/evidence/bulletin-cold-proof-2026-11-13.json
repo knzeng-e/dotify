@@ -1,0 +1,31 @@
+{
+  "schema": "dotify.bulletin.cold-proof-public-counter.v1",
+  "node": "v22.23.5",
+  "baseCommit": "93e990427f12acdb1588871ad4cfa6cd198ea007",
+  "baselineModuleSha256": "5307564b5aa53e90695ec9057e8bd5a99689c89af95ce8451a34a1a99ce8f6b9",
+  "candidateModuleSha256": "fc36ff0f410451c244c1cedb6dd92ae6c5a60687f804319646d6296f6affc557",
+  "before": {
+    "confirmations": 4,
+    "bodyFetches": 4,
+    "eventFetches": 4,
+    "canonicalMappings": 4,
+    "finalizedHeadReads": 4,
+    "retentionReads": 4,
+    "totalRpcCalls": 50
+  },
+  "after": {
+    "confirmations": 4,
+    "bodyFetches": 1,
+    "eventFetches": 1,
+    "canonicalMappings": 4,
+    "finalizedHeadReads": 4,
+    "retentionReads": 4,
+    "totalRpcCalls": 38
+  },
+  "capturedPublicReceiptFixture": true,
+  "realTransactionsSubmitted": 0,
+  "networkUsed": false,
+  "artistDataOrKeyRead": false,
+  "liveLatencyAccepted": false,
+  "candidateProofLoadsSha256": "899914239e569840d3fdf44273853dcc65faf494e9752289934fd00553197533"
+}

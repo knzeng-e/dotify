@@ -1,5 +1,21 @@
 import { expect, test } from '@playwright/test';
 
+// These fixture cards use Paseo prices. Keep the chain identity deterministic,
+// so live-RPC latency cannot leave the initial UNIT fallback under a PAS check.
+test.beforeEach(async ({ page }) => {
+  await page.route('https://eth-rpc-testnet.polkadot.io/**', async route => {
+    const headers = {
+      'access-control-allow-origin': '*',
+      'access-control-allow-methods': 'POST, OPTIONS',
+      'access-control-allow-headers': 'content-type'
+    };
+    if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 204, headers });
+    const input = route.request().postDataJSON();
+    if (input?.method !== 'eth_chainId') return route.continue();
+    await route.fulfill({ json: { jsonrpc: '2.0', id: input.id, result: `0x${(420420417).toString(16)}` }, headers });
+  });
+});
+
 for (const width of [390, 1440]) {
   test.describe(`clear interface ${width}px`, () => {
     test.use({ viewport: { width, height: width === 390 ? 844 : 1000 }, hasTouch: width === 390 });
@@ -193,6 +209,7 @@ test('clear interface restores individual playback after leaving a room', async 
     await guest.locator('.player-dock-art').click();
     await guest.getByRole('tab', { name: /People/ }).click();
     await guest.getByRole('button', { name: 'Leave', exact: true }).click();
+    await guest.getByRole('button', { name: 'Leave room', exact: true }).click();
     await expect(guest.locator('audio.native-player-source').last()).toHaveJSProperty('srcObject', null);
     await expect(guest.locator('audio.native-player-source').first()).toHaveJSProperty('paused', true);
     await guest.getByRole('button', { name: 'Music', exact: true }).click();
@@ -254,6 +271,13 @@ test('clear interface lets guests inspect releases without changing their listen
     await expect(dialog).toBeVisible();
     expect(await guest.locator('audio.native-player-source').first().getAttribute('src')).toBe(originalSource);
     await dialog.getByRole('button', { name: 'Leave and open release', exact: true }).click();
+    const exit = guest.getByRole('dialog', { name: 'Leave this room?', exact: true });
+    await exit.getByRole('button', { name: 'Stay in room', exact: true }).click();
+    await expect(guest.getByRole('button', { name: /^Return to room/ })).toBeVisible();
+    expect(await guest.evaluate(() => window.__DOTIFY_E2E_ROOM_JOIN__?.keyRequests)).toBe(keyRequests);
+    await protectedAction.click();
+    await dialog.getByRole('button', { name: 'Leave and open release', exact: true }).click();
+    await exit.getByRole('button', { name: 'Leave room', exact: true }).click();
     await expect(dialog).toHaveCount(0);
     await expect(guest.getByTestId('room-code')).toHaveCount(0);
     await expect(guest.getByTestId('access-warning')).toHaveCount(0);

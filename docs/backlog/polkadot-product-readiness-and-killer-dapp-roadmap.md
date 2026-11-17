@@ -1,7 +1,44 @@
 # Polkadot product readiness and killer dapp roadmap
 
+## Client delivery checkpoint — 2026-11-14
+
+[Web/Product 0.1.84](implementation/evidence/product-0.1.84-rollout-2026-11-14.md) delivers the bounded About-only
+Host software report without changing the SDK/Host/TrUAPI pins or adding a
+payment capability probe. Named Desktop/mobile labels, wire compatibility and
+payment acceptance remain separate #85 gates. Earlier candidate entries are
+dated history.
+
 Status: active execution note; the Product DevNet baseline is delivered on
 `dev` and remains tracked through Product compatibility issue #85.
+
+## Compatibility checkpoint — 2026-11-13
+
+Use the [selected execution sequence](implementation/listening-and-publication-readiness.md)
+for scheduling; the October Nearby/SDK-0.36 sections below are historical.
+Dotify pins SDK 0.39.0 / Host SDK 0.28.0 / TrUAPI 0.25.0. The owner reports
+connection and existing audio on iPhone 0.10.0 (20) / Runtime 0.26.0; that scoped
+observation is not payment or wire-negotiation acceptance for a newer client.
+
+The [bounded CASH decision](../design/product-cash-tip-decision-2026-11-13.md)
+identifies a coherent published SDK 0.40.0 / Host SDK 0.29.0 / TrUAPI 0.26.0
+candidate. Static Desktop archives also contain different payment declarations;
+no active payment backend is established. Next: non-spending runtime/capability
+and wire-schema evidence on named distributions before any coordinated SDK
+migration. Preserve the standalone path, explicit failures and artist policies.
+No package upgrade, Host call, funded rehearsal or deployed payment follows.
+
+## Bounded Host software observation candidate
+
+The [software-support candidate](../reference/host-software-support.md) reads the
+pinned `system.info` method only when About is open, then allowlists optional
+Host platform/name/version in the manual support report. No account, permission,
+balance or payment query is introduced. The 1,500-ms deadline, one outstanding
+request and cancellation keep optional diagnostics independent of listening.
+This prepares named-Host collection without upgrading the SDK or establishing
+wire/payment compatibility. Matching delivery and actual Desktop/mobile labels
+remain open; the current listening-repair rollout is independent of this slice.
+
+## Historical Host incident — 2026-10-10
 
 Host incident update: 2026-10-10. The 0.1.44 rollout timed out on owner-reported
 Desktop 0.1.3 and mobile 0.10.0. Recovery candidate 0.1.45 restores SDK 0.27.0,

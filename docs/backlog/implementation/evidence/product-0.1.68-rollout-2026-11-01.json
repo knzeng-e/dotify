@@ -1,0 +1,87 @@
+{
+  "schema": "dotify.deployment.bulletin-pilot.v1",
+  "observedAt": "2026-11-01T15:09:33.073278+00:00",
+  "source": "a74c5242d2fc983b2bd64c3585aea24659516bea",
+  "ci": "https://github.com/knzeng-e/dotify/actions/runs/41314728872",
+  "product": {
+    "version": [
+      0,
+      1,
+      68
+    ],
+    "cid": "bafybeigmmzrwr25ybm3cf3kko5hbgd62rbxq72pjgwv4rgoaafpijh63va",
+    "gateway": {
+      "status": 200,
+      "bytes": 12857032,
+      "sha256": "1fbc4d68df8d5782539481e850e16c8a84956d36a2b262538ee05cfa0756a96f"
+    },
+    "verifiedOuterBlocks": 18,
+    "newStores": 11,
+    "newBytes": 7831827,
+    "reusedBlocks": 7,
+    "dotnsSignatures": 2,
+    "finalizedAssetHubBlock": "15191958",
+    "labUnchanged": true,
+    "minimumProductExpiryBlock": 1477259,
+    "bulletinHeadAtCompletion": 1459868
+  },
+  "machineIdentities": {
+    "dotify-api": [
+      {
+        "id": "890e31c60749e8",
+        "state": "started",
+        "source": "a74c5242d2fc983b2bd64c3585aea24659516bea",
+        "role": "edge",
+        "reader": "https://bulletin-paseo.tservices.es:8443",
+        "profileConfigured": false,
+        "mountCount": 0
+      },
+      {
+        "id": "801939c6315568",
+        "state": "started",
+        "source": "a74c5242d2fc983b2bd64c3585aea24659516bea",
+        "role": "edge",
+        "reader": "https://bulletin-paseo.tservices.es:8443",
+        "profileConfigured": false,
+        "mountCount": 0
+      }
+    ],
+    "dotify-custody": [
+      {
+        "id": "e82d13d0c61238",
+        "state": "started",
+        "source": "a74c5242d2fc983b2bd64c3585aea24659516bea",
+        "role": "custody",
+        "reader": null,
+        "profileConfigured": true,
+        "mountCount": 1
+      }
+    ]
+  },
+  "privatePilot": {
+    "source": "a74c5242d2fc983b2bd64c3585aea24659516bea",
+    "provider": "bulletin",
+    "pilotJobs": 0,
+    "ownedJobs": 0,
+    "writerLockAlive": true,
+    "ready": true,
+    "pinataReady": true
+  },
+  "publicReadiness": {
+    "httpStatus": 200,
+    "ready": true,
+    "status": "degraded",
+    "pinataCheckFalseOnEdge": true
+  },
+  "webSourceVerified": true,
+  "uncataloguedMediaStatus": 404,
+  "cors": {
+    "httpStatus": 204,
+    "allowOrigin": "https://muzinga.netlify.app"
+  },
+  "localSignerRemoved": true,
+  "audioStoresByRollout": 0,
+  "renewals": 0,
+  "remainingTransactionsAfterProduct": 314,
+  "protectedRuntimeAcceptance": false
+}

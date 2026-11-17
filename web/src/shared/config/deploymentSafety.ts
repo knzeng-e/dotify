@@ -2,18 +2,18 @@ import { deployments } from './deployments';
 
 export const registryOwnerGuardAttestation = {
   chainId: 420420417,
-  factory: '0x835a626a9a6965b197d079ae56b1ec94033c2699',
-  directory: '0x4e883827d61e573094c7b777bae323070ea9f954',
-  auditedBlock: 13103348,
-  auditedBlockHash: '0x83c877e77638f9c087af420ef2770526f9233ccc3c17dafbbb15e2984fe94dbd',
+  factory: '0x61dd19a0d4f6bd21c6ffa4a7a9d9e771af95bb13',
+  directory: '0x79b21cad3848a3019edee17b089142282f4a13a3',
+  auditedBlock: 15040310,
+  auditedBlockHash: '0xc392855f9388a607a139d12ac489e04a03a4bd773a003173cf609de7a3f39f7b',
   factoryDirectoryPairingVerified: true,
   existingRuntimeCoverage: { protected: 0, total: 0 },
   existingTrackAudit: { ownerMatched: 0, total: 0 },
   pendingRuntimeDiscoveryComplete: true,
   pendingRuntimeCount: 0,
   futureFactoryUsesOwnerGuard: true,
-  correctedRegistryCodeHash: '0x8ade82431086a7c3fa03c39dd602e7abee4e4b588b9246adeb36537cafff6b57',
-  futureFactoryRegistryCodeHash: '0x8ade82431086a7c3fa03c39dd602e7abee4e4b588b9246adeb36537cafff6b57',
+  correctedRegistryCodeHash: '0x5c1185f92f443499a94143221e45db2f3c13e5490bc61a5b668b2204f7f7b9f4',
+  futureFactoryRegistryCodeHash: '0x5c1185f92f443499a94143221e45db2f3c13e5490bc61a5b668b2204f7f7b9f4',
   catalogCutoverReady: true
 } as const;
 
@@ -312,6 +312,17 @@ export function validateProductionEnvironment(env: EnvironmentLike): ProductionE
   validateUrl(env, 'VITE_SIGNAL_URL', { required: true, protocols: ['https:', 'wss:'], errors });
   validateUrl(env, 'VITE_DOTIFY_API_URL', { required: true, protocols: ['https:'], errors });
   validateUrl(env, 'VITE_PINATA_GATEWAY', { required: true, protocols: ['https:'], errors });
+  const edge = env.VITE_DOTIFY_MEDIA_EDGE_URL;
+  if (typeof edge === 'string' && edge.trim()) {
+    validateUrl(env, 'VITE_DOTIFY_MEDIA_EDGE_URL', { protocols: ['https:'], errors });
+    try {
+      const url = new URL(edge);
+      if (url.username || url.password || url.port || url.search || url.hash || url.pathname !== '/')
+        errors.push('VITE_DOTIFY_MEDIA_EDGE_URL must be an HTTPS origin without credentials, a port, path, query or fragment.');
+    } catch {
+      /* validateUrl reports malformed URLs */
+    }
+  }
   validateUrlList(env, 'VITE_IPFS_READ_GATEWAYS', { required: true, protocols: ['https:'], errors });
   validateUrl(env, 'VITE_ETH_RPC_URL', { protocols: ['https:'], errors });
   validateUrl(env, 'VITE_WS_URL', { protocols: ['wss:'], errors });

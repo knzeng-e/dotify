@@ -14,6 +14,7 @@ import {
 import { privateKeyToAccount } from 'viem/accounts';
 
 const abi = parseAbi([
+  'function musicGiftPolicy(bytes32) view returns ((uint64 version,uint64 startsAt,uint64 endsAt,uint16 hostBps,address roomAttestor,bytes32 campaign,string description,address[] recipients,uint16[] shares))',
   'function runtimeOf(address) view returns (address)',
   'function musicRegGetTrack(bytes32) view returns ((address artist,uint256 tokenId,string title,string artistName,string description,string imageRef,string audioRef,string metadataRef,string artistContractRef,uint16 royaltyBps,uint8 accessMode,uint128 pricePlanck,uint8 requiredPersonhood,uint64 registeredAtBlock,bool active) track,address tokenOwner)',
   'event ContributionReceived(bytes32 indexed id,bytes32 indexed contentHash,address indexed sender,uint256 amount,address host,bytes32 room,bytes32 campaign,bytes32 policy,uint64 timestamp)'
@@ -152,6 +153,10 @@ export function createRoomContributions(config, dependencies = {}) {
   }
 
   return {
+    configuration: () => ({
+      chainId: config.chainId,
+      attestor: signer?.address ?? null
+    }),
     recoverTrack,
     publicTrack,
     publicTrackStatus,
@@ -204,6 +209,23 @@ export function createRoomContributions(config, dependencies = {}) {
       const originalAccount = room.tipHost;
       const originalTrack = room.track;
       await knownTrack(input.runtime, input.contentHash);
+      let shared = false;
+      if (originalAccount) {
+        const rpc = await chain();
+        const [policy, fallback, block] = await Promise.all([
+          rpc.readContract({ address: input.runtime, abi, functionName: 'musicGiftPolicy', args: [input.contentHash] }),
+          rpc.readContract({ address: input.runtime, abi, functionName: 'musicGiftPolicy', args: [zeroHash] }),
+          rpc.getBlock()
+        ]);
+        shared = policy.hostBps > 0 && block.timestamp >= policy.startsAt && (!policy.endsAt || block.timestamp < policy.endsAt);
+        if (shared) {
+          const authority = policy.roomAttestor !== zeroAddress ? policy.roomAttestor : fallback.roomAttestor;
+          if (authority === zeroAddress)
+            throw new Error('The artist needs to enable room verification in their contribution settings before sharing tips with hosts.');
+          if (!signer || authority.toLowerCase() !== signer.address.toLowerCase())
+            throw new Error("This room cannot verify the artist's host share. The artist can review room verification in their contribution settings.");
+        }
+      }
       if (
         !room.hostId ||
         room.hostId !== originalHost ||
@@ -213,8 +235,7 @@ export function createRoomContributions(config, dependencies = {}) {
         room.track?.runtimeAddress?.toLowerCase() !== input.runtime.toLowerCase()
       )
         throw new Error('The room changed. Review the current track.');
-      if (room.tipHost && !signer) throw new Error('Room tip verification is unavailable. Try again shortly.');
-      const bound = Boolean(room.tipHost);
+      const bound = Boolean(room.tipHost) && shared;
       room.tipScope ??= `0x${randomBytes(32).toString('hex')}`;
       const context = {
         contentHash: input.contentHash,
@@ -230,8 +251,8 @@ export function createRoomContributions(config, dependencies = {}) {
         )
       );
       const proof = bound ? await signer.signMessage({ message: { raw: digest } }) : '0x';
-      // Old runtimes cannot accept room context without a recipient. Retain a
-      // bounded server-side link to the unshared tip intent for chat verification.
+      // No active host allocation: use a direct tip without requiring a room
+      // authority, and retain a bounded intent link for verified chat receipts.
       if (!bound) {
         room.tipIntents ??= new Map();
         for (const [id, intent] of room.tipIntents) if (intent.expiresAt < Date.now()) room.tipIntents.delete(id);

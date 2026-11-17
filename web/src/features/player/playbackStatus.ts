@@ -10,6 +10,7 @@ export type AudioStatus =
   | 'preparing' //       source set, decoding / loading metadata
   | 'buffering' //       play intent retained while waiting for media
   | 'recovering' //      reconnecting a source at the same position
+  | 'output-interrupted' // Device suspended the shared output; explicit recovery only.
   | 'autoplay-blocked' // play() was rejected; a tap is needed
   | 'syncing' // waiting for fresh host clock
   | 'host-paused'
@@ -39,6 +40,8 @@ export function playbackStatusLabel(status: AudioStatus, mode: Mode, preparingDe
       return 'Loading audio';
     case 'recovering':
       return 'Reconnecting audio';
+    case 'output-interrupted':
+      return 'Audio interrupted · tap Play to resume';
     case 'autoplay-blocked':
       return 'Tap play to start';
     case 'joining':

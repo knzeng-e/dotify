@@ -1,5 +1,13 @@
 # W35 - Make listening continuous: gapless, adaptive, and system-integrated
 
+## Delivered sequence — reconciled 2026-11-08
+
+Issue #290 is closed and Project 5 is Done. This file retains its dated
+implementation prompt as a record; do not launch it again. See
+[evidence](evidence/W35.md) and the
+[current execution order](listening-and-publication-readiness.md) for remaining
+production/device follow-ups.
+
 Copy this entire file into an agent working in the Dotify repository, or use the launcher in README.md.
 
 ## Agent assignment
@@ -34,3 +42,25 @@ No offline downloads (separate decision; it must not be presented as DRM). No ch
 ## Handoff
 
 Write `docs/backlog/implementation/evidence/W35.md` using `evidence-template.md`.
+
+## Implementation checkpoint, 2026-10-27
+
+The [continuous-listening design](../../explanation/continuous-listening.md)
+uses one silent authorized successor and adopts that exact native element.
+It does not concatenate distinct track timelines or alter room transport.
+Encrypted standby requires AAC MSE; the compatibility reader remains available
+for explicit playback. Native event handoff latency is measured separately from
+sample-accurate audible continuity, which still requires physical listening.
+
+The implementation also covers measured rendition selection, Media Session,
+account/network-scoped local position/queue resume and identifier-free continuity
+aggregates in first-sound exports. See [evidence and remaining gates](evidence/W35.md).
+This checkpoint is not a deployment or a physical Host background claim.
+
+## Owner follow-up, 2026-11-05
+
+[#388](../listening-controls-and-discovery.md) records the next listening UX
+iteration after the owner confirmed 0.1.73 disconnect/recovery on all three
+clients. Track mobile Player account access, room current-track discovery and
+physical lock-screen artwork/previous-next behavior in that new item; do not
+replay delivered W28/W35 scope or infer native support from action registration.

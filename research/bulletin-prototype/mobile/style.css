@@ -1,0 +1,242 @@
+:root {
+  font-family: 'Avenir Next', Avenir, 'Segoe UI', sans-serif;
+  color: #e9f3fa;
+  background: #07131f;
+  color-scheme: dark;
+  font-synthesis: none;
+  --muted: #a5bdc9;
+  --cyan: #69e3d5;
+  --line: #28414f;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background: radial-gradient(ellipse at 95% 0, #163c40 0, transparent 45%);
+}
+main {
+  max-width: 720px;
+  margin: auto;
+  padding: max(24px, env(safe-area-inset-top)) 24px max(28px, env(safe-area-inset-bottom));
+}
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+.brand {
+  font-weight: 750;
+  font-size: 1.3rem;
+  letter-spacing: -0.05em;
+  text-decoration: none;
+  color: inherit;
+}
+.brand span {
+  color: #ef1684;
+  margin: 0 0.3rem;
+}
+.tag {
+  color: var(--muted);
+  font-size: 0.72rem;
+  border: 1px solid var(--line);
+  padding: 8px 10px;
+  border-radius: 30px;
+}
+.intro {
+  padding: 56px 0 30px;
+}
+.eyebrow {
+  font-size: 0.67rem;
+  letter-spacing: 0.15em;
+  color: var(--cyan);
+  font-weight: 700;
+}
+h1 {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(4.6rem, 17vw, 7.2rem);
+  letter-spacing: -0.065em;
+  line-height: 0.86;
+  margin: 26px 0;
+}
+h1 em {
+  font-weight: 400;
+  color: var(--cyan);
+}
+p {
+  font-size: 0.95rem;
+  line-height: 1.65;
+  color: var(--muted);
+}
+h2 {
+  font-size: 1.2rem;
+  letter-spacing: -0.035em;
+  margin: 0;
+}
+.player {
+  border: 1px solid var(--line);
+  background: #0d2030;
+  border-radius: 24px;
+  padding: 24px;
+}
+.player-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.player-heading > span:last-child {
+  margin-left: auto;
+  color: var(--cyan);
+  font-variant-numeric: tabular-nums;
+}
+.dot {
+  width: 8px;
+  height: 8px;
+  background: var(--cyan);
+  border-radius: 50%;
+  box-shadow: 0 0 15px #69e3d560;
+}
+label {
+  display: block;
+  font-size: 0.8rem;
+  color: #c4d7e0;
+  margin: 18px 0;
+}
+select,
+input[type='text'],
+textarea {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  font: inherit;
+  font-size: 16px;
+  background: #091825;
+  color: #e9f3fa;
+  border: 1px solid #365564;
+  border-radius: 11px;
+  padding: 12px;
+  min-height: 48px;
+}
+textarea {
+  font-family: monospace;
+  font-size: 0.75rem;
+  line-height: 1.6;
+  resize: vertical;
+  overflow-wrap: anywhere;
+}
+button {
+  font: inherit;
+  font-weight: 650;
+  border: 1px solid #365564;
+  color: inherit;
+  background: transparent;
+  border-radius: 12px;
+  padding: 13px 16px;
+  min-height: 48px;
+  cursor: pointer;
+}
+button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 4px;
+}
+.actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 24px;
+}
+#play {
+  flex: 1;
+  background: var(--cyan);
+  color: #07202b;
+  border-color: var(--cyan);
+  display: flex;
+  justify-content: space-between;
+}
+audio {
+  width: 100%;
+  margin: 20px 0 0;
+}
+#status {
+  color: var(--cyan);
+  min-height: 3em;
+}
+.check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.85rem;
+}
+.check input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--cyan);
+  flex-shrink: 0;
+}
+.note {
+  font-size: 0.75rem;
+}
+details {
+  border-top: 1px solid var(--line);
+  padding: 16px 0 0;
+  margin-top: 18px;
+}
+summary {
+  cursor: pointer;
+  color: #c4d7e0;
+  font-size: 0.85rem;
+}
+.evidence {
+  padding: 36px 0 16px;
+}
+.evidence h2 {
+  font-size: 1.7rem;
+}
+.secondary-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+#clear-reports {
+  color: var(--muted);
+}
+pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 0.75rem;
+}
+footer {
+  border-top: 1px solid var(--line);
+  padding-top: 18px;
+}
+footer p {
+  font-size: 0.72rem;
+}
+code {
+  color: #c4d7e0;
+}
+@media (min-width: 650px) {
+  .intro {
+    padding-top: 70px;
+  }
+  .player {
+    padding: 30px;
+  }
+  .evidence {
+    padding-top: 45px;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  button {
+    transition:
+      background 0.15s,
+      border-color 0.15s;
+  }
+  button:hover:not(:disabled) {
+    border-color: var(--cyan);
+  }
+}

@@ -31,6 +31,7 @@
 // productHost.ts loads the host SDK.
 
 import type { Address } from 'viem';
+import { withProductPeakStorageDeposit } from './productCdmStorageDeposit';
 import cdmManifest from '../../generated/contracts/cdm.json';
 import { SMART_RUNTIME_LIBRARY, smartRuntimeAbi } from '../../generated/contracts/smartRuntime';
 import {
@@ -148,7 +149,7 @@ export async function createProductCdmContracts(
     throw new ProductCdmRuntimeError(`Product CDM could not verify the connected chain's native token precision. Cause: ${describe(error)}`);
   }
 
-  const runtime = contracts.createContractRuntimeFromClient(client.raw.assetHub, descriptor);
+  const runtime = withProductPeakStorageDeposit(contracts.createContractRuntimeFromClient(client.raw.assetHub, descriptor));
   const manager = new contracts.ContractManager(cdmManifest as never, runtime, {
     signerManager: options.signerManager as never
   });

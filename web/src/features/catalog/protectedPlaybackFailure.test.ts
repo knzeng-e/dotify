@@ -35,7 +35,7 @@ describe('protected playback failure', () => {
   it('separates a refused key from a missing account and a slow audio file', () => {
     expect(classifyProtectedPlaybackFailure(new KeyServiceError('denied', 'LISTENER_ACCESS_REQUIRED'))).toBe('access-not-confirmed');
     expect(classifyProtectedPlaybackFailure(new KeyServiceError('connect', 'WALLET_REQUIRED'))).toBe('account-required');
-    expect(classifyProtectedPlaybackFailure(new Error('Unable to fetch DAV2 audio (504)'))).toBe('audio-unavailable');
+    expect(classifyProtectedPlaybackFailure(new Error('Unable to fetch audio (504)'))).toBe('audio-unavailable');
     expect(classifyProtectedPlaybackFailure(new ProtectedPlaybackError('access-not-confirmed', 'not allowed'))).toBe('access-not-confirmed');
   });
 
@@ -44,6 +44,7 @@ describe('protected playback failure', () => {
     expect(isTransientProtectedPlaybackFailure('unknown')).toBe(false);
     expect(classifyProtectedPlaybackFailure(new KeyServiceError('bad signature', 'SIGNATURE_INVALID'))).toBe('unknown');
     expect(isTransientProtectedPlaybackFailure('account-required')).toBe(false);
+    expect(isTransientProtectedPlaybackFailure('account-changed')).toBe(false);
   });
 
   it('gives every kind plain copy without infrastructure vocabulary', () => {
@@ -53,6 +54,7 @@ describe('protected playback failure', () => {
       'access-not-confirmed',
       'audio-unavailable',
       'account-required',
+      'account-changed',
       'session-interrupted',
       'unknown'
     ];

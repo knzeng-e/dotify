@@ -1,0 +1,416 @@
+// The application's storage choice. There is no retry across providers.
+import assert from 'node:assert/strict';
+import { BULLETIN_PUBLICATION_MS, type BulletinPublicationProgress } from './bulletinLimits.js';
+import { assertFreshContentKey } from './freshContentKey.js';
+import type { ContentKeyVaultConfigInput } from './keyVault.js';
+import {
+  preservePublicMetadata,
+  readPublicAssetPolicy,
+  assertPublicAssetOwner,
+  buildPublicAssetGraph,
+  publicAssetJob,
+  publicAssetGeneration,
+  isPublicAssetGeneration,
+  type PublicAssetKind,
+  type PublicAssetOwner
+} from './bulletinPublicAssets.js';
+import { CID } from 'multiformats/cid';
+import { formatStreamingReference } from './streamingReference.js';
+import { buildBulletinCompactMediaGraph } from './bulletinCompactGraph.js';
+import { join } from 'node:path';
+import { readMetadataRepair, repairedMetadataFiles, assertRepairInventories } from './bulletinMetadataRepair.js';
+import { acquireBulletinPublisherLock } from './bulletinPublisherLock.js';
+export { acquireBulletinPublisherLock } from './bulletinPublisherLock.js';
+import { createBulletinMediaStore, type BulletinMediaTransport } from './bulletinMedia.js';
+import { jobSchema, load, ownerSchema, privateDirectory, bulletinInventoryLayout } from './bulletinMediaState.js';
+import { assertStandardBulletinLayout } from './bulletinStorageLayout.js';
+import { assertPublicationBinding, readBulletinPublisherProfile, type BulletinPublisherProfile } from './bulletinPublisherProfile.js';
+import { pinFilesToPinata, type PinataFile } from './pinata.js';
+import { parseStreamingManifest } from './streamingFormat.js';
+import type { StreamingScope } from './streamingFormat.js';
+import { PublicationAdmissionError } from './publicationAdmission.js';
+import { releaseJob as releaseJobForReference } from './bulletinReleaseAdmission.js';
+import { createReleasePublication, verifyReleaseDependencies } from './bulletinReleasePublication.js';
+import { buildBulletinMediaGraph } from './bulletinGraph.js';
+import type { BulletinSigner } from './bulletinPapiTransport.js';
+import { createPublicationTimings, type PublicationTimings, type PublicationTimingReport } from './bulletinTiming.js';
+type Reserve = { transactions: number; bytes: number };
+export type PublicationStore = {
+  /** Read-only preflight; the authoritative check still runs immediately before storage. */
+  assertCanPrepare?: (scope: StreamingScope, name?: string, owner?: string) => Promise<void>;
+  admitPreparation?: (scope: StreamingScope, owner: string) => Promise<string>;
+  publicationTimeoutMs?: number;
+  audioReference?: (scope: StreamingScope, root: string) => Promise<string>;
+  pin(files: PinataFile[], name: string, signal: AbortSignal, onProgress?: (progress: BulletinPublicationProgress) => void): Promise<string>;
+  pinAsset?: (files: PinataFile[], kind: PublicAssetKind, owner: PublicAssetOwner, signal: AbortSignal) => Promise<string>;
+  canDiscard(name: string): Promise<boolean>;
+  close(): Promise<void>;
+};
+export type PublisherDependencies = {
+  loadSigner(profile: BulletinPublisherProfile): Promise<BulletinSigner>;
+  openSession(
+    profile: BulletinPublisherProfile,
+    signer: BulletinSigner | null,
+    reserve: Reserve,
+    timings?: PublicationTimings
+  ): {
+    transport: BulletinMediaTransport;
+    close(): void;
+  };
+};
+async function inventories(profile: BulletinPublisherProfile) {
+  const owner = ownerSchema.parse(await load(join(profile.directory, 'owner.json')));
+  assert.equal(owner.account, profile.account);
+  assert.equal(owner.genesis, profile.genesis);
+  assert.equal(new Set(owner.jobs).size, owner.jobs.length, 'Duplicate publication inventory');
+  assert.ok(!owner.activeJob || owner.jobs.includes(owner.activeJob), 'Missing active inventory');
+  const jobs = [];
+  for (const name of owner.jobs) {
+    const job = jobSchema.parse(await load(join(profile.directory, `${name}.json`)));
+    if (!profile.releasePolicy || isPublicAssetGeneration(job.generation)) assertStandardBulletinLayout(bulletinInventoryLayout(job));
+    assert.equal(job.job, name);
+    assert.equal(job.account, profile.account);
+    assert.equal(job.genesis, profile.genesis);
+    jobs.push(job);
+  }
+  return { owner, jobs };
+}
+export async function retainedPublicationReserve(profile: BulletinPublisherProfile, current?: string): Promise<Reserve> {
+  const { jobs } = await inventories(profile);
+  const reserve = { ...profile.priorRenewalReserve };
+  for (const job of jobs) {
+    if (job.job === current || (!job.ready && !job.attemptedStores && !Object.keys(job.pending).length && !Object.keys(job.receipts).length)) continue;
+    reserve.transactions += job.blocks.length;
+    reserve.bytes += job.blocks.reduce((total, block) => total + block.bytes, 0);
+  }
+  assert.ok(Number.isSafeInteger(reserve.transactions) && Number.isSafeInteger(reserve.bytes), 'Invalid accumulated renewal reserve');
+  return reserve;
+}
+
+export async function createStreamingPublicationStore(
+  options: {
+    provider: 'pinata' | 'bulletin';
+    queue: string;
+    profileFile?: string;
+    assetPolicyFile?: string;
+    releaseAssets?: boolean;
+    /** Trusted server configuration override for deterministic tests/composition. */
+    contentKeyVault?: ContentKeyVaultConfigInput;
+    assetAuthority?: (owner: PublicAssetOwner) => Promise<boolean>;
+    metadataRepairAuthority?: (owner: PublicAssetOwner, contentHash: string) => Promise<boolean>;
+    /** Trusted operator composition: authenticate a saved recovery plan while
+     * holding the publisher lease, before the private signer is loaded. */
+    validateBeforeSigner?: () => Promise<void>;
+    /** One private, allowlisted summary per attempt; never changes durable state. */
+    onTiming?: (report: PublicationTimingReport & { kind: 'audio' | PublicAssetKind; jobId?: string }) => void | Promise<void>;
+  },
+  deps?: PublisherDependencies
+): Promise<PublicationStore> {
+  if (options.provider === 'pinata') {
+    assert.ok(!options.assetPolicyFile, 'Public Bulletin assets require the Bulletin publisher');
+    assert.ok(!options.profileFile, 'A Bulletin profile requires explicit Bulletin audio storage');
+    await assertPublicationBinding(options.queue);
+    return {
+      pin: (files, name, signal) => pinFilesToPinata(files, name, { app: 'dotify', type: 'streaming-audio' }, signal),
+      canDiscard: async () => true,
+      close: async () => undefined
+    };
+  }
+  assert.ok(options.profileFile, 'Explicit Bulletin publication profile required');
+  const profile = await readBulletinPublisherProfile(options.profileFile);
+  assertFreshContentKey(profile.freshContentKey, options.contentKeyVault);
+  assert.ok(
+    !profile.releasePolicy || (options.releaseAssets === true && !options.assetPolicyFile),
+    'Multi-release admission requires explicit Bulletin public assets without a pilot asset policy'
+  );
+  const assetPolicy = options.assetPolicyFile ? await readPublicAssetPolicy(options.assetPolicyFile, profile) : undefined;
+  assert.ok(!options.releaseAssets || profile.releasePolicy || assetPolicy, 'Explicit public asset policy required');
+  assert.ok(!(assetPolicy || profile.releasePolicy) || options.assetAuthority, 'Canonical artist authority check required for public assets');
+  const sessionModule = deps ? undefined : await import('./bulletinPublicationSession.js');
+  const selected: PublisherDependencies = deps ?? { loadSigner: sessionModule!.loadBulletinSigner, openSession: sessionModule!.openBulletinPublicationSession };
+  await privateDirectory(profile.directory);
+  await assertPublicationBinding(options.queue, profile);
+  let signer: BulletinSigner | undefined;
+  let admittedRepair: Awaited<ReturnType<typeof readMetadataRepair>> = null;
+  let closed = false;
+  let activeSession: ReturnType<PublisherDependencies['openSession']> | undefined;
+  const idleInventories = async () => {
+    // A live local writer saves owner/job files in separate durable steps.
+    // Admission can use its atomic allowance ledger while those files change;
+    // final publication validates the complete history under the writer tail.
+    if (activeSession) return undefined;
+    try {
+      return await inventories(profile);
+    } catch (error) {
+      if (activeSession && (error as NodeJS.ErrnoException).code === 'ENOENT') return undefined;
+      throw error;
+    }
+  };
+  const releases = profile.releasePolicy ? createReleasePublication(profile, async () => (await idleInventories())?.jobs ?? []) : undefined;
+  const unlock = await acquireBulletinPublisherLock(profile);
+  const release = async () => {
+    signer?.dispose();
+    await unlock();
+  };
+  try {
+    await releases?.validate();
+    if (assetPolicy) {
+      admittedRepair = await readMetadataRepair(profile, assetPolicy, AbortSignal.timeout(30_000));
+      const { jobs } = await inventories(profile);
+      if (admittedRepair) {
+        assert.ok(options.metadataRepairAuthority, 'Canonical unregistered-release check required for metadata repair');
+        assertRepairInventories(admittedRepair, jobs);
+      } else {
+        assert.ok(jobs.filter(job => job.generation === publicAssetGeneration('metadata')).length <= 1, 'Metadata repair permit missing');
+      }
+    }
+    // Read-only preflight before opening the private key. Startup never signs.
+    const reserve = await retainedPublicationReserve(profile);
+    const preflight = selected.openSession(profile, null, reserve);
+    try {
+      const state = await preflight.transport.status(AbortSignal.timeout(30_000));
+      assert.ok(preflight.transport.genesis === profile.genesis && preflight.transport.account === profile.account, 'Publication transport identity changed');
+      assert.ok(state.authorization.expiresAt > state.head + profile.budget.minimumLifetimeBlocks, 'Bulletin authorization is expiring');
+    } finally {
+      preflight.close();
+    }
+    await options.validateBeforeSigner?.();
+    signer = await selected.loadSigner(profile);
+    assert.equal(signer.account, profile.account, 'Publication signer identity changed');
+  } catch (error) {
+    await release();
+    throw error;
+  }
+  // All admitted work uses one publisher and account cursor. The upload service
+  // permits two requests, so a cover may wait behind the single audio job.
+  let waiting = 0;
+  let tail: Promise<unknown> = Promise.resolve();
+  const assertAudioAdmission = (scope: StreamingScope, jobs: Awaited<ReturnType<typeof inventories>>['jobs'], name?: string) => {
+    if (!profile.pilotScope) return;
+    const audioJobs = jobs.filter(job => !isPublicAssetGeneration(job.generation));
+    if (
+      (audioJobs.length > 0 && !(audioJobs.length === 1 && audioJobs[0].job === name)) ||
+      (['chainId', 'runtimeAddress', 'contentHash', 'keyVersion'] as const).some(field => scope[field] !== profile.pilotScope![field])
+    )
+      throw new PublicationAdmissionError();
+  };
+  const publish = (
+    files: PinataFile[],
+    name: string,
+    signal: AbortSignal,
+    asset?: { kind: PublicAssetKind; owner: PublicAssetOwner },
+    onProgress?: (progress: BulletinPublicationProgress) => void
+  ): Promise<string> => {
+    assert.ok(!closed && waiting < 3, 'Publisher is closed or busy');
+    waiting++;
+    const timings = options.onTiming ? createPublicationTimings() : undefined;
+    const finishQueue = timings?.start('queue');
+    let finishPrepare: ReturnType<PublicationTimings['start']> | undefined;
+    let outcome: PublicationTimingReport['outcome'] = 'failed';
+    const task = tail.then(async () => {
+      finishQueue?.();
+      finishPrepare = timings?.start('prepare');
+      assert.ok(!closed, 'Publisher is closed');
+      signal.throwIfAborted();
+      await assertPublicationBinding(options.queue, profile);
+      assertFreshContentKey(profile.freshContentKey, options.contentKeyVault);
+      const { owner, jobs } = await inventories(profile);
+      if (releases) {
+        assert.ok(!owner.activeJob || owner.activeJob === name || asset, 'Previous publication requires reconciliation');
+        let graph: Awaited<ReturnType<typeof buildPublicAssetGraph>> | undefined;
+        let dependencies: Awaited<ReturnType<typeof inventories>>['jobs'] = [];
+        let budget = profile.budget;
+        if (asset) {
+          assert.ok(await options.assetAuthority!(asset.owner), 'Artist authority changed before public asset storage');
+          const prepared = await releases.asset(files, asset.kind, asset.owner, signal, owner.activeJob);
+          ({ files, name, graph, budget, dependencies } = prepared);
+        } else {
+          const manifest = files.find(f => f.path === 'manifest.json');
+          assert.ok(manifest, 'Release manifest required');
+          const { chainId, runtimeAddress, contentHash, keyVersion } = parseStreamingManifest(manifest.bytes);
+          await releases.audio({ chainId, runtimeAddress, contentHash, keyVersion }, name);
+          graph = await (
+            (await releases.audioLayout({ chainId, runtimeAddress, contentHash, keyVersion })) === 'rendition-pack-v1'
+              ? buildBulletinCompactMediaGraph
+              : buildBulletinMediaGraph
+          )(files, signal);
+          if (graph.bytes > budget.maxBytes || graph.blocks.length > budget.maxTransactions) throw new PublicationAdmissionError();
+        }
+        assert.ok(!owner.activeJob || owner.activeJob === name, 'Previous publication requires reconciliation');
+        const reserve = await retainedPublicationReserve(profile, name);
+        const pipeline = await releases.pipeline(graph!.scope);
+        finishPrepare?.();
+        finishPrepare = undefined;
+        const session = selected.openSession({ ...profile, budget }, signer!, reserve, timings);
+        activeSession = session;
+        try {
+          await verifyReleaseDependencies(session.transport, dependencies, signal);
+          return await createBulletinMediaStore({
+            directory: profile.directory,
+            identity: { genesis: profile.genesis, account: profile.account },
+            transport: session.transport,
+            budget,
+            pipeline,
+            publicationTimeoutMs: BULLETIN_PUBLICATION_MS,
+            onProgress,
+            ...(graph ? { buildGraph: async () => graph! } : {})
+          }).pin(files, name, signal);
+        } finally {
+          session.close();
+          activeSession = undefined;
+        }
+      }
+      let effectiveAssetPolicy = assetPolicy;
+      if (asset) {
+        assert.ok(assetPolicy, 'Public assets are not activated');
+        await readPublicAssetPolicy(options.assetPolicyFile!, profile);
+        assert.deepEqual(
+          await readMetadataRepair(profile, assetPolicy, signal),
+          admittedRepair,
+          'Metadata repair permit changed; restart after reviewed maintenance'
+        );
+        assertPublicAssetOwner(assetPolicy, asset.owner);
+        assert.ok(await options.assetAuthority!(asset.owner), 'Artist authority changed before public asset storage');
+        assert.ok(
+          !owner.activeJob || jobs.some(job => job.job === owner.activeJob && job.generation === publicAssetGeneration(asset.kind)),
+          'Previous publication requires reconciliation'
+        );
+        if (asset.kind === 'metadata') {
+          if (admittedRepair) {
+            assertRepairInventories(admittedRepair, jobs);
+            assert.ok(await options.metadataRepairAuthority!(asset.owner, assetPolicy.scope.contentHash), 'Metadata repair requires an unregistered release');
+            files = repairedMetadataFiles(admittedRepair, files);
+            effectiveAssetPolicy = { ...assetPolicy, metadata: admittedRepair.budget };
+          } else {
+            await buildPublicAssetGraph(files, asset.kind, assetPolicy, signal);
+            files = await preservePublicMetadata(profile.directory, files);
+          }
+        }
+        const graph = await buildPublicAssetGraph(files, asset.kind, effectiveAssetPolicy!, signal);
+        name = publicAssetJob(asset.kind, graph.root);
+        const sameKind = jobs.filter(job => job.generation === publicAssetGeneration(asset.kind));
+        if (asset.kind === 'metadata' && admittedRepair) {
+          assert.equal(graph.root, admittedRepair.newRoot, 'Repaired metadata root changed');
+        } else {
+          assert.ok(!sameKind.length || (sameKind.length === 1 && sameKind[0].job === name), 'Public asset pilot already owns this asset');
+        }
+      }
+      assert.ok(!owner.activeJob || owner.activeJob === name, 'Previous publication requires reconciliation');
+      if (!asset && profile.pilotScope) {
+        const bytes = files.find(file => file.path === 'manifest.json')?.bytes;
+        assert.ok(bytes, 'Bulletin pilot manifest required');
+        const { chainId, runtimeAddress, contentHash, keyVersion } = parseStreamingManifest(bytes);
+        assertAudioAdmission({ chainId, runtimeAddress, contentHash, keyVersion }, jobs, name);
+      }
+      const selectedProfile = asset ? { ...profile, budget: effectiveAssetPolicy![asset.kind] } : profile;
+      const reserved = await retainedPublicationReserve(profile, name);
+      finishPrepare?.();
+      finishPrepare = undefined;
+      const session = selected.openSession(selectedProfile, signer!, reserved, timings);
+      activeSession = session;
+      try {
+        return await createBulletinMediaStore({
+          directory: profile.directory,
+          identity: { genesis: profile.genesis, account: profile.account },
+          transport: session.transport,
+          budget: selectedProfile.budget,
+          pipeline: profile.pipeline,
+          ...(asset
+            ? { buildGraph: (input: PinataFile[], bounded: AbortSignal) => buildPublicAssetGraph(input, asset.kind, effectiveAssetPolicy!, bounded) }
+            : {})
+        }).pin(files, name, signal);
+      } finally {
+        session.close();
+        activeSession = undefined;
+      }
+    });
+    tail = task.catch(() => undefined);
+    return task
+      .then(result => {
+        outcome = 'succeeded';
+        return result;
+      })
+      .finally(() => {
+        waiting--;
+        finishPrepare?.(false);
+        if (timings) {
+          // A diagnostic sink cannot convert a settled transaction into a failure.
+          try {
+            void Promise.resolve(
+              options.onTiming!({
+                ...timings.snapshot(outcome),
+                kind: asset?.kind ?? 'audio',
+                ...(/^stream-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(name) ? { jobId: name.slice(7) } : {})
+              })
+            ).catch(() => undefined);
+          } catch {}
+        }
+      });
+  };
+  return {
+    async assertCanPrepare(scope, name, owner) {
+      assert.ok(!closed, 'Publisher is closed');
+      await assertPublicationBinding(options.queue, profile);
+      assertFreshContentKey(profile.freshContentKey, options.contentKeyVault);
+      if (releases) {
+        const state = await idleInventories();
+        if (state?.owner.activeJob && state.owner.activeJob !== name && !activeSession) throw new PublicationAdmissionError();
+        return releases.check(scope, name, owner);
+      }
+      assertAudioAdmission(scope, (await inventories(profile)).jobs, name);
+    },
+    ...(releases
+      ? {
+          async admitPreparation(scope: StreamingScope, owner: string) {
+            assert.ok(!closed, 'Publisher is closed');
+            await assertPublicationBinding(options.queue, profile);
+            assertFreshContentKey(profile.freshContentKey, options.contentKeyVault);
+            if ((await idleInventories())?.owner.activeJob && !activeSession) throw new PublicationAdmissionError();
+            return releases.admit(scope, owner);
+          }
+        }
+      : {}),
+    ...(releases ? { publicationTimeoutMs: BULLETIN_PUBLICATION_MS } : {}),
+    ...(releases
+      ? {
+          async audioReference(scope: StreamingScope, root: string) {
+            assert.ok(!closed, 'Publisher is closed');
+            const jobs = await releases.validate();
+            const job = jobs.find(j => j.job === releaseJobForReference(scope, 'audio'));
+            assert.ok(job && job.ready && !Object.keys(job.pending).length && job.root === root, 'Ready reference lacks its admitted inventory');
+            return formatStreamingReference(root, scope.keyVersion, bulletinInventoryLayout(job), value => CID.parse(value));
+          }
+        }
+      : {}),
+    pin: (files, name, signal, onProgress) => publish(files, name, signal, undefined, onProgress),
+    ...(assetPolicy || releases
+      ? {
+          pinAsset: async (files: PinataFile[], kind: PublicAssetKind, owner: PublicAssetOwner, signal: AbortSignal) => {
+            if (assetPolicy) assertPublicAssetOwner(assetPolicy, owner);
+            return publish(files, '', signal, { kind, owner });
+          }
+        }
+      : {}),
+    async canDiscard(name) {
+      assert.ok(!closed, 'Publisher is closed');
+      const { owner, jobs } = await inventories(profile);
+      const job = jobs.find(job => job.job === name);
+      return (
+        owner.activeJob !== name &&
+        (!job ||
+          (!Object.keys(job.pending).length &&
+            ((job.ready && job.blocks.every(block => job.receipts[block.cid]?.cid === block.cid && job.receipts[block.cid]?.bytes === block.bytes)) ||
+              (!job.attemptedStores && !Object.keys(job.receipts).length))))
+      );
+    },
+    async close() {
+      if (closed) return;
+      closed = true;
+      // The app stops/awaits StreamingJobs first. Closing an in-flight client
+      // stops observation only; its nonce barrier remains on disk for recovery.
+      activeSession?.close();
+      await tail;
+      await release();
+    }
+  };
+}

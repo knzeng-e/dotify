@@ -124,7 +124,17 @@ export function PlayerTransport({
         {!listener && shuffle}
         {!listener && repeat}
         {onOpenQueue && (
-          <button type='button' onClick={onOpenQueue} aria-label='Queue' title='Queue'>
+          <button
+            type='button'
+            onClick={event => {
+              // Safari pointer activation need not focus buttons. Give the
+              // sheet's existing focus restoration an explicit return target.
+              event.currentTarget.focus({ preventScroll: true });
+              onOpenQueue();
+            }}
+            aria-label='Queue'
+            title='Queue'
+          >
             <ListMusic size={18} />
           </button>
         )}

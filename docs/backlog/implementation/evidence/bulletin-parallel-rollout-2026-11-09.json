@@ -1,0 +1,86 @@
+{
+  "schema": "dotify.custody.parallel-rollout.v1",
+  "completedAt": "2026-11-09T21:32:45.848138+00:00",
+  "source": "ec8e82ae295d7f40eab781123a5ea31259b04abb",
+  "image": "registry.fly.io/dotify-api@sha256:b6ea3405a5c4da964673353f0867f716a480ef78b95e35807f4d5d01c00a4217",
+  "snapshot": {
+    "id": "vs_BOq7aY76BQJte62yLyoy",
+    "status": "created",
+    "created_at": "2026-11-09T21:26:30Z",
+    "retention_days": 14
+  },
+  "ci": {
+    "run": 42698175386,
+    "conclusion": "success"
+  },
+  "checks": [
+    {
+      "observedAt": "2026-11-09T21:29:58.451Z",
+      "source": "ec8e82ae295d7f40eab781123a5ea31259b04abb",
+      "role": "custody",
+      "uid": 1000,
+      "health": 200,
+      "readiness": 200,
+      "activeVersion": "dotify-content-key-v3",
+      "configuredVersions": [
+        "dotify-content-key-v2",
+        "dotify-content-key-v3"
+      ],
+      "filesHashed": 9,
+      "inventoryCount": 5,
+      "queueCount": 2,
+      "nextNonce": 1642,
+      "pending": 0,
+      "journalsByteUnchanged": true,
+      "networkWrites": 0
+    },
+    {
+      "observedAt": "2026-11-09T21:30:49.300Z",
+      "source": "ec8e82ae295d7f40eab781123a5ea31259b04abb",
+      "role": "custody",
+      "uid": 1000,
+      "health": 200,
+      "readiness": 200,
+      "activeVersion": "dotify-content-key-v3",
+      "configuredVersions": [
+        "dotify-content-key-v2",
+        "dotify-content-key-v3"
+      ],
+      "filesHashed": 9,
+      "inventoryCount": 5,
+      "queueCount": 2,
+      "nextNonce": 1642,
+      "pending": 0,
+      "journalsByteUnchanged": true,
+      "networkWrites": 0
+    }
+  ],
+  "publicApiReplicasUnchanged": 2,
+  "webProductVersion": "0.1.82",
+  "operatorBulletinOperations": 0,
+  "dotnsSignatures": 0,
+  "newMusicalAllowance": 0,
+  "newSecretTransfers": 0,
+  "fullPublicationLatencyVerified": false,
+  "declaredReleaseSlots": {
+    "limit": 2,
+    "claimed": 2,
+    "remaining": 0
+  },
+  "publicApiHealth": [
+    {
+      "observedAt": "2026-11-09T21:33:40.690Z",
+      "source": "26430e566cf7bd70995007cd266152a562cd35b7",
+      "role": "edge",
+      "health": 200,
+      "readiness": 200
+    },
+    {
+      "observedAt": "2026-11-09T21:33:45.306Z",
+      "source": "26430e566cf7bd70995007cd266152a562cd35b7",
+      "role": "edge",
+      "health": 200,
+      "readiness": 200
+    }
+  ]
+}

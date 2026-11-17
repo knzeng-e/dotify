@@ -1,3 +1,9 @@
+import { RoomAudioPreparation } from '../features/player/roomAudioPreparation';
+import { roomCaptureNeedsCompatibility, streamingMediaSource } from '../features/catalog/streamingMediaSource';
+import { StandbyAudio } from '../features/player/standbyAudio';
+import { publishStreamingStartupMetric, type StreamingStartupMetric } from '../features/catalog/audioStartupTelemetry';
+import { createStreamingPlayback } from '../features/catalog/streamingPlayback';
+import { registerAudioGain, forgetAudioGain } from '../features/player/audioNormalization';
 import { resolveDonationArtist } from '../features/donations/donationModel';
 import type { RoomTrackEmitter } from '../features/rooms/roomRealtimePort';
 import { retireHostAudio } from '../features/player/hostAudioOutput';
@@ -7,36 +13,24 @@ import { createSupportPaymentFlow } from '../features/payments/supportPayment';
 import { browserPaymentLock, persistentPaymentJournal } from '../features/payments/paymentJournal';
 import type { PaymentAccountState } from '../features/payments/paymentModel';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { fetchAssetRef, fetchAudioIpfsCid, getGatewayUrl, type ProtectedAudioUpload } from '../services/pinata';
-import { getPublicClient, resolveEvmChain } from '../shared/config/contracts';
-import { decryptAudio, hexToBytes } from '../shared/utils/crypto';
+import { getGatewayUrl, type ProtectedAudioUpload } from '../services/pinata';
+import { resolveEvmChain } from '../shared/config/contracts';
+import { hexToBytes } from '../shared/utils/crypto';
 import { formatWeiAsDot, normalizeDisplayText, shorten, shortenAddress } from '../shared/utils/format';
 import {
-  LEGACY_CONTENT_KEY_VERSION,
   isKeyServiceConfigured,
   requestContentKey,
+  prepareContentKeys,
+  readPreparedContentKey,
   requestFreeContentKey,
   type ContentKeyReleaseIdentity,
   type KeyRequestPurpose
 } from '../services/keyService';
-import { contentKeyVersionForAudioRef, decryptTrackAudio, encryptedRefToCID, isEncryptedAudioRef, isEncryptedAudioV2Ref } from '../shared/utils/protectedAudio';
-import {
-  AudioV2HeaderIncompleteError,
-  audioV2ChunkBodyOffset,
-  canStreamAudioV2WithMse,
-  initialAudioV2HeaderRangeEnd,
-  parseAudioV2Container,
-  parseAudioV2HeaderPrefix,
-  type ParsedAudioV2
-} from '../shared/utils/audioV2';
+import { contentKeyVersionForAudioRef, encryptedRefToCID, isEncryptedAudioRef, isEncryptedAudioV3Ref } from '../shared/utils/protectedAudio';
 import { isPolicyManagedTrack } from '../features/access/accessPolicy';
 import { buildAccessGate, buildClassicAccessVerifiedFeedback, buildClassicSupportFacts } from '../features/access/accessPromise';
 import { catalogApiStatus, catalogLoadFailureStatus } from '../features/catalog/catalogStatus';
-import { fetchAudioV2RangeThroughGateways, type AudioV2GatewayPhase, type AudioV2RangeResult } from '../features/catalog/audioV2Gateway';
-import { pumpAudioV2ReadAhead } from '../features/catalog/audioV2Pipeline';
-import { AudioV2DecryptAuthenticationError, createAudioV2ChunkDecryptor } from '../features/catalog/audioV2Decryptor';
-import { AudioV2ChunkAuthenticationError, routeAudioV2MseFailure } from '../features/catalog/audioV2Recovery';
-import { cancelAudioV2TrackIntentPrefetch, prefetchAudioV2TrackIntent } from '../features/catalog/audioV2IntentPrefetch';
+import { prefetchStreamingAudio } from '../features/catalog/streamingPrefetch';
 import { runtimeAddressFromTrackId } from '../features/catalog/trackModel';
 import {
   DOTIFY_FALLBACK_NATIVE_RUNTIME_ASSET,
@@ -54,12 +48,7 @@ import type { RuntimeReadPort, RuntimeTrackSnapshot } from '../features/runtime/
 import { resolveProductHostConfig } from '../features/productHost/productHost';
 import { publishProductCdmPaymentSmokeMetric, type ProductCdmPaymentSmokeMetric } from '../features/productHost/productCdmHostSmokeEvidence';
 import { captureProductAccessReadback } from '../features/productHost/productAccessReadback';
-import {
-  audioV2StartupPhaseLabel,
-  publishHostAudioStartupMetric,
-  type AudioV2StartupMetric,
-  type HostAudioTerminalReason
-} from '../features/catalog/audioStartupTelemetry';
+import { publishHostAudioStartupMetric, type HostAudioTerminalReason } from '../features/catalog/audioStartupTelemetry';
 import {
   PROTECTED_PLAYBACK_RETRY_DELAYS_MS,
   ProtectedPlaybackError,
@@ -82,9 +71,10 @@ import {
   E2E_CLASSIC_HASH,
   E2E_CLASSIC_TRACK,
   classicSupportE2ePorts,
-  getClassicUnlockE2eState,
+  classicUnlockE2eHasAccess,
+  classicUnlockE2eHasPaid,
   isClassicUnlockE2e,
-  recordClassicUnlockFullKeyRequest
+  requestClassicUnlockE2eKey
 } from '../e2e/classicUnlockMock';
 import { getArtistPublishE2eTracks, isArtistPublishE2e, isArtistPublishE2eTrack } from '../e2e/artistPublishMock';
 import {
@@ -113,19 +103,12 @@ import type {
 import type { ConnectedWallet } from './useWallet';
 
 const zeroAddress = '0x0000000000000000000000000000000000000000' as const;
-
-type AudioV2StartupContext = {
-  audioRef: string;
-  cid: string;
-  startedAt: number;
-  signal: AbortSignal;
-  isCurrent: () => boolean;
-  onMetric?: (metric: AudioV2StartupMetric) => void;
-};
+const AUDIO_STARTUP_TIMEOUT_MS = 60_000;
 
 export type TrackSelectionResult = {
   playbackMode: RoomPlaybackMode;
   audioSource: string | null;
+  preparationFailed?: boolean;
 };
 
 type ActiveTrackSelection = {
@@ -135,16 +118,14 @@ type ActiveTrackSelection = {
   source: string;
   startedAt: number;
   pending: boolean;
+  requiresAccount: boolean;
   terminalReported: boolean;
+  startupDeadline?: ReturnType<typeof setTimeout>;
+  mediaDeadlineMs?: number;
 };
 
 function nowMs(): number {
   return typeof performance !== 'undefined' ? performance.now() : Date.now();
-}
-
-function errorMessage(error: unknown): string {
-  if (error instanceof Error) return error.message;
-  return String(error);
 }
 
 function createAbortError(message = 'Audio selection cancelled'): Error {
@@ -160,27 +141,6 @@ function isAbortError(error: unknown): boolean {
 
 function throwIfAborted(signal?: AbortSignal): void {
   if (signal?.aborted) throw createAbortError();
-}
-
-function isAudioV2ContextActive(context: AudioV2StartupContext): boolean {
-  return !context.signal.aborted && context.isCurrent();
-}
-
-function publishAudioV2StartupMetric(context: AudioV2StartupContext, metric: Omit<AudioV2StartupMetric, 'audioRef' | 'cid' | 'elapsedMs' | 'timestamp'>): void {
-  if (typeof window === 'undefined') return;
-  if (!isAudioV2ContextActive(context)) return;
-  const detail: AudioV2StartupMetric = {
-    audioRef: context.audioRef,
-    cid: context.cid,
-    elapsedMs: Number((nowMs() - context.startedAt).toFixed(1)),
-    timestamp: Date.now(),
-    ...metric
-  };
-  window.dispatchEvent(new CustomEvent('dotify:dav2-startup', { detail }));
-  context.onMetric?.(detail);
-  if (import.meta.env.DEV) {
-    console.info('[dotify.dav2.startup]', detail);
-  }
 }
 
 function buildProductCdmPaymentSmokeMetric(input: {
@@ -202,7 +162,7 @@ function buildProductCdmPaymentSmokeMetric(input: {
     attempts: input.verification.attempts,
     ok: input.verification.ok,
     error: input.verification.error,
-    timestamp: Date.now()
+    timestamp: wallTimestamp()
   };
 }
 
@@ -315,12 +275,6 @@ function releaseIdentityFromTrack(track: CatalogTrack): ContentKeyReleaseIdentit
   };
 }
 
-export function contentKeyCacheKey(contentHash: `0x${string}`, release?: ContentKeyReleaseIdentity): string {
-  const normalizedHash = contentHash.toLowerCase();
-  if (!release || release.keyVersion === LEGACY_CONTENT_KEY_VERSION) return normalizedHash;
-  return [release.keyVersion, release.runtimeAddress.toLowerCase(), release.releaseId.toLowerCase(), normalizedHash, release.audioRef].join(':');
-}
-
 export type UseCatalogDeps = {
   ethRpcUrl: string;
   listenerEvmAddress: `0x${string}` | null;
@@ -331,7 +285,6 @@ export type UseCatalogDeps = {
   activeView: View;
   navigateToView: (view: 'listen' | 'player' | 'rooms') => void;
   getActiveWalletClient: () => Promise<Awaited<ReturnType<typeof import('../shared/config/contracts').getWalletClient>>>;
-  setBulletinManifestRef: (ref: string) => void;
   setAccessMode: (mode: AccessMode) => void;
   setPriceDot: (price: string) => void;
   setPersonhoodLevel: (level: PersonhoodLevel) => void;
@@ -339,6 +292,14 @@ export type UseCatalogDeps = {
   setDescription: (desc: string) => void;
   setTitle: (title: string) => void;
 };
+
+// Imperative event clocks/IDs, never evaluated by the render path.
+function wallTimestamp() {
+  return Date.now();
+}
+function newOperationId() {
+  return typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
+}
 
 export function useCatalog(deps: UseCatalogDeps) {
   const {
@@ -352,7 +313,6 @@ export function useCatalog(deps: UseCatalogDeps) {
     activeView,
     navigateToView,
     getActiveWalletClient,
-    setBulletinManifestRef,
     setAccessMode,
     setPriceDot,
     setPersonhoodLevel,
@@ -414,12 +374,14 @@ export function useCatalog(deps: UseCatalogDeps) {
   const [nativeRuntimePaymentAsset, setNativeRuntimePaymentAsset] = useState(() =>
     runtimeAdapterConfig.kind === 'product-cdm' ? DOTIFY_PRODUCT_DEVNET_NATIVE_RUNTIME_ASSET : DOTIFY_FALLBACK_NATIVE_RUNTIME_ASSET
   );
+  const [standbyAudio] = useState(() => new StandbyAudio());
   const [audioSource, setAudioSource] = useState<string | null>(null);
   const [audioSourceGeneration, setAudioSourceGeneration] = useState(0);
   const [audioContinuation, setAudioContinuation] = useState<AudioContinuation | null>(null);
   const [audioRecovery, setAudioRecovery] = useState<'recovering' | 'failed' | null>(null);
   const [audioStartupAttemptId, setAudioStartupAttemptId] = useState<string | null>(null);
   const [trackSelectionPending, setTrackSelectionPending] = useState(false);
+  const [audioSourcePending, setAudioSourcePending] = useState(false);
   const [trackInfo, setTrackInfo] = useState<TrackInfo | null>(null);
   const [playerState, setPlayerState] = useState<PlayerState | null>(null);
   const [accessGate, setAccessGate] = useState<AccessGate | null>(null);
@@ -436,7 +398,6 @@ export function useCatalog(deps: UseCatalogDeps) {
   const mseObjectUrlsRef = useRef<Set<string>>(new Set());
   const audioSourceRef = useRef<string | null>(null);
   const pendingTrackMediaSourceRef = useRef<string | null>(null);
-  const audioV2FallbacksRef = useRef<Set<string>>(new Set());
   const audioUploadRef = useRef<Promise<ProtectedAudioUpload> | null>(null);
   const coverUploadRef = useRef<Promise<string> | null>(null);
   const localAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -444,12 +405,11 @@ export function useCatalog(deps: UseCatalogDeps) {
   const activeViewRef = useRef(activeView);
   const activeTrackSelectionRef = useRef<ActiveTrackSelection | null>(null);
   const nextTrackSelectionIdRef = useRef(0);
-  const e2eClassicAccessGrantedRef = useRef(false);
-  // Session cache of backend-delivered content keys: one wallet signature per
-  // track per session, instead of one per playback (signature-fatigue rule).
-  const contentKeysRef = useRef<Map<string, Uint8Array>>(new Map());
   // 'room_host' when the selected track streams into a room; room listeners
   // never request keys at all (they only receive the WebRTC stream).
+  const roomCaptureRef = useRef(false);
+  const [roomAudioPreparation] = useState(() => new RoomAudioPreparation());
+  const roomPreparationAttemptRef = useRef('');
   const keyRequestPurposeRef = useRef<KeyRequestPurpose>('individual');
 
   useEffect(() => {
@@ -505,7 +465,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     setAudioSourceGeneration(value => value + 1);
   }
 
-  function retireAudioV2MseObjectUrl(audioRef: string, objectUrl: string) {
+  function retireStreamingObjectUrl(audioRef: string, objectUrl: string) {
     mseObjectUrlsRef.current.delete(objectUrl);
     if (resolvedAudioSourcesRef.current.get(audioRef) === objectUrl) {
       resolvedAudioSourcesRef.current.delete(audioRef);
@@ -524,16 +484,18 @@ export function useCatalog(deps: UseCatalogDeps) {
         attemptId: activeSelection.attemptId,
         source: activeSelection.source,
         elapsedMs: Number((nowMs() - activeSelection.startedAt).toFixed(1)),
-        timestamp: Date.now(),
+        timestamp: wallTimestamp(),
         terminalReason: 'selection-interrupted'
       });
     }
+    clearTimeout(activeSelection?.startupDeadline);
     activeSelection?.controller.abort();
     activeTrackSelectionRef.current = null;
     pendingTrackMediaSourceRef.current = null;
   }
 
-  function beginTrackSelection(source: string, startedAt: number) {
+  function beginTrackSelection(source: string, startedAt: number, requiresAccount: boolean, mediaDeadlineMs?: number) {
+    roomAudioPreparation.cancel();
     // A new choice ends the previous in-flight attempt. Publish its terminal
     // event before the next playback intent so evidence correlation does not
     // strand an interrupted attempt in "Timing active".
@@ -541,6 +503,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     setAudioRecovery(null);
     setAudioContinuation(null);
     setTrackSelectionPending(true);
+    setAudioSourcePending(true);
     const id = (nextTrackSelectionIdRef.current += 1);
     const selection: ActiveTrackSelection = {
       id,
@@ -549,6 +512,8 @@ export function useCatalog(deps: UseCatalogDeps) {
       source,
       startedAt,
       pending: true,
+      requiresAccount,
+      mediaDeadlineMs,
       terminalReported: false
     };
     activeTrackSelectionRef.current = selection;
@@ -556,13 +521,65 @@ export function useCatalog(deps: UseCatalogDeps) {
     return selection;
   }
 
+  function armAudioStartupDeadline(selection: ActiveTrackSelection) {
+    if (!isTrackSelectionCurrent(selection) || selection.startupDeadline !== undefined) return;
+    // Start after authorization, so waiting for a wallet signature consumes no
+    // media budget. Bound retries, compatibility downloads and native readiness
+    // together; a transport that keeps dribbling bytes must not trap the UI.
+    selection.startupDeadline = setTimeout(
+      () => {
+        if (!isTrackSelectionCurrent(selection) || !selection.pending) return;
+        selection.terminalReported = true;
+        publishHostAudioStartupMetric({
+          phase: 'error',
+          attemptId: selection.attemptId,
+          source: selection.source,
+          elapsedMs: Number((nowMs() - selection.startedAt).toFixed(1)),
+          timestamp: wallTimestamp(),
+          terminalReason: 'selection-failed'
+        });
+        retireActiveTrackSelection(false);
+        if (localAudioRef.current) retireHostAudio(localAudioRef.current);
+        setResolvedAudioSource(null);
+        setAudioSourcePending(false);
+        setTrackSelectionPending(false);
+        setAudioRecovery(null);
+        setAudioStartupStatus(null);
+        setPlaybackFailure({ trackId: selection.source, kind: 'audio-unavailable' });
+      },
+      Math.max(0, Math.min(AUDIO_STARTUP_TIMEOUT_MS, (selection.mediaDeadlineMs ?? nowMs() + AUDIO_STARTUP_TIMEOUT_MS) - nowMs()))
+    );
+  }
+
   function isTrackSelectionCurrent(selection: ActiveTrackSelection): boolean {
     return activeTrackSelectionRef.current?.id === selection.id && !selection.controller.signal.aborted;
   }
 
   function abortActiveTrackSelection() {
+    roomAudioPreparation.cancel();
     retireActiveTrackSelection(true);
+    setAudioSourcePending(false);
     setTrackSelectionPending(false);
+  }
+
+  function clearPlayback() {
+    standbyAudio.clear();
+    abortActiveTrackSelection();
+    if (localAudioRef.current) retireHostAudio(localAudioRef.current);
+    setResolvedAudioSource(null);
+    setAudioRecovery(null);
+    setAudioStartupStatus(null);
+    setPlaybackFailure(null);
+  }
+
+  function cancelPlaybackPreparation() {
+    roomAudioPreparation.cancel();
+    if (!activeTrackSelectionRef.current?.pending || (localAudioRef.current?.readyState ?? 0) >= 3) return;
+    abortActiveTrackSelection();
+    setResolvedAudioSource(null);
+    setAudioRecovery(null);
+    setAudioStartupStatus(null);
+    setPlaybackFailure(null);
   }
 
   function settleTrackSelectionMedia(source: string | null, terminal = false, attemptId: string | null = null) {
@@ -575,6 +592,7 @@ export function useCatalog(deps: UseCatalogDeps) {
       activeTrackSelectionRef.current.pending = false;
     }
     if (pendingTrackMediaSourceRef.current !== source) return;
+    clearTimeout(activeTrackSelectionRef.current?.startupDeadline);
     pendingTrackMediaSourceRef.current = null;
     setTrackSelectionPending(false);
   }
@@ -592,7 +610,7 @@ export function useCatalog(deps: UseCatalogDeps) {
 
   async function checkTrackAccess(track: CatalogTrack, listenerAddress: `0x${string}` | null): Promise<boolean> {
     if (isClassicUnlockE2e && track.id === E2E_CLASSIC_TRACK.id) {
-      return e2eClassicAccessGrantedRef.current;
+      return track.accessMode === 'free' || classicUnlockE2eHasAccess(listenerAddress);
     }
     if (isArtistPublishE2eTrack(track)) {
       return Boolean(listenerAddress && track.artistAddress?.toLowerCase() === listenerAddress.toLowerCase());
@@ -618,7 +636,7 @@ export function useCatalog(deps: UseCatalogDeps) {
 
   async function checkTrackPaidAccess(track: CatalogTrack, listenerAddress: `0x${string}` | null): Promise<boolean> {
     if (isClassicUnlockE2e && track.id === E2E_CLASSIC_TRACK.id) {
-      return getClassicUnlockE2eState().paid;
+      return classicUnlockE2eHasPaid(listenerAddress);
     }
     if (isArtistPublishE2eTrack(track)) {
       return false;
@@ -736,15 +754,17 @@ export function useCatalog(deps: UseCatalogDeps) {
 
   /**
    * Obtain the per-track content key from the backend key service.
-   * Returns null only for the local/demo path without a configured service.
+   * Returns null only when the backend key service is not configured.
    * Configured-service failures travel with their invocation as thrown errors;
    * concurrent requests never share mutable failure state.
    */
-  async function resolveServerContentKey(contentHash: `0x${string}`, release?: ContentKeyReleaseIdentity): Promise<Uint8Array | null> {
+  async function resolveServerContentKey(
+    contentHash: `0x${string}`,
+    release?: ContentKeyReleaseIdentity,
+    purpose = keyRequestPurposeRef.current
+  ): Promise<Uint8Array | null> {
     if (isClassicUnlockE2e && contentHash.toLowerCase() === E2E_CLASSIC_HASH.toLowerCase()) {
-      const authorized = e2eClassicAccessGrantedRef.current;
-      recordClassicUnlockFullKeyRequest(authorized);
-      return authorized ? new Uint8Array(32).fill(7) : null;
+      return requestClassicUnlockE2eKey(E2E_CLASSIC_TRACK.accessMode === 'free' || classicUnlockE2eHasAccess(listenerEvmAddress));
     }
 
     // Room-join e2e: only the host ever reaches this path for the protected
@@ -755,19 +775,16 @@ export function useCatalog(deps: UseCatalogDeps) {
       return authorized ? new Uint8Array(32).fill(9) : null;
     }
 
-    const cacheKey = contentKeyCacheKey(contentHash, release);
-    const cached = contentKeysRef.current.get(cacheKey);
-    if (cached) return cached;
     if (!isKeyServiceConfigured()) return null;
     if (!connectedWallet || (!connectedWallet.createEvmClient && !connectedWallet.keyRequestSigner)) {
       throw new ProtectedPlaybackError('account-required', 'No connected account can request protected playback.');
     }
 
     const walletClient = connectedWallet.keyRequestSigner ? null : await getActiveWalletClient();
-    const chainId = walletClient?.chain?.id ?? (await getPublicClient(ethRpcUrl).getChainId());
+    const chainId = walletClient?.chain?.id ?? PRODUCT_DEVNET_EVM_CHAIN_ID;
     const response = await requestContentKey({
       contentHash,
-      purpose: keyRequestPurposeRef.current,
+      purpose,
       ...(connectedWallet.keyRequestSigner ? { signer: connectedWallet.keyRequestSigner } : { walletClient: walletClient! }),
       chainId,
       release
@@ -776,7 +793,6 @@ export function useCatalog(deps: UseCatalogDeps) {
       throw new ProtectedPlaybackError('access-not-confirmed', response.message);
     }
     const keyBytes = hexToBytes(response.contentKey);
-    contentKeysRef.current.set(cacheKey, keyBytes);
     return keyBytes;
   }
 
@@ -785,480 +801,203 @@ export function useCatalog(deps: UseCatalogDeps) {
    * backend re-verifies the mode on-chain before releasing anything, so this
    * cannot open a paid or human-gated track.
    */
-  async function resolveFreeContentKey(contentHash: `0x${string}`, release?: ContentKeyReleaseIdentity): Promise<Uint8Array | null> {
-    const cacheKey = contentKeyCacheKey(contentHash, release);
-    const cached = contentKeysRef.current.get(cacheKey);
-    if (cached) return cached;
+  async function resolveFreeContentKey(
+    contentHash: `0x${string}`,
+    release?: ContentKeyReleaseIdentity,
+    purpose = keyRequestPurposeRef.current
+  ): Promise<Uint8Array | null> {
     if (!isKeyServiceConfigured()) return null;
 
-    const response = await requestFreeContentKey(contentHash, release);
+    const response = await requestFreeContentKey(contentHash, release, purpose);
     if (response.access !== 'allowed') {
       throw new ProtectedPlaybackError('access-not-confirmed', response.message);
     }
     const keyBytes = hexToBytes(response.contentKey);
-    contentKeysRef.current.set(cacheKey, keyBytes);
     return keyBytes;
   }
 
-  async function fetchAudioV2Range(
-    context: AudioV2StartupContext,
-    start: number,
-    end: number,
-    phase: AudioV2GatewayPhase,
-    signal: AbortSignal = context.signal
-  ): Promise<AudioV2RangeResult> {
-    throwIfAborted(signal);
-    return fetchAudioV2RangeThroughGateways(context.cid, start, end, { phase, signal });
-  }
-
-  async function fetchAudioV2Header(context: AudioV2StartupContext): Promise<ParsedAudioV2> {
-    let rangeEnd = initialAudioV2HeaderRangeEnd();
-    for (let attempt = 0; attempt < 3; attempt += 1) {
-      const range = await fetchAudioV2Range(context, 0, rangeEnd, 'header');
-      publishAudioV2StartupMetric(context, {
-        phase: 'gateway-selected',
-        gatewayUrl: range.gatewayUrl,
-        rangeStart: 0,
-        rangeEnd,
-        hedged: range.hedged,
-        gatewayRecovered: range.recovered,
-        fromCache: range.fromCache,
-        intentPrefetched: range.intentPrefetched
-      });
-      try {
-        const parsed = parseAudioV2HeaderPrefix(range.bytes);
-        publishAudioV2StartupMetric(context, {
-          phase: 'header-ready',
-          gatewayUrl: range.gatewayUrl,
-          rangeStart: 0,
-          rangeEnd,
-          hedged: range.hedged,
-          gatewayRecovered: range.recovered,
-          fromCache: range.fromCache,
-          intentPrefetched: range.intentPrefetched
-        });
-        return parsed;
-      } catch (error) {
-        if (error instanceof AudioV2HeaderIncompleteError && error.neededBytes - 1 > rangeEnd) {
-          rangeEnd = error.neededBytes - 1;
-          continue;
-        }
-        throw error;
-      }
-    }
-    throw new Error('Unable to read DAV2 header');
-  }
-
-  function waitForMediaSourceOpen(mediaSource: MediaSource, signal?: AbortSignal): Promise<void> {
-    if (mediaSource.readyState === 'open') return Promise.resolve();
-    throwIfAborted(signal);
-    return new Promise((resolve, reject) => {
-      const cleanup = () => {
-        mediaSource.removeEventListener('sourceopen', handleOpen);
-        mediaSource.removeEventListener('sourceended', handleEnded);
-        mediaSource.removeEventListener('sourceclose', handleEnded);
-        signal?.removeEventListener('abort', handleAbort);
-      };
-      const handleOpen = () => {
-        cleanup();
-        resolve();
-      };
-      const handleEnded = () => {
-        cleanup();
-        reject(new Error('MediaSource closed before opening'));
-      };
-      const handleAbort = () => {
-        cleanup();
-        reject(createAbortError());
-      };
-      mediaSource.addEventListener('sourceopen', handleOpen, { once: true });
-      mediaSource.addEventListener('sourceended', handleEnded, { once: true });
-      mediaSource.addEventListener('sourceclose', handleEnded, { once: true });
-      signal?.addEventListener('abort', handleAbort, { once: true });
-    });
-  }
-
-  function appendSourceBuffer(sourceBuffer: SourceBuffer, bytes: Uint8Array, signal?: AbortSignal): Promise<void> {
-    throwIfAborted(signal);
-    return new Promise((resolve, reject) => {
-      const cleanup = () => {
-        sourceBuffer.removeEventListener('updateend', handleDone);
-        sourceBuffer.removeEventListener('error', handleError);
-        sourceBuffer.removeEventListener('abort', handleError);
-        signal?.removeEventListener('abort', handleAbort);
-      };
-      const handleDone = () => {
-        cleanup();
-        resolve();
-      };
-      const handleError = () => {
-        cleanup();
-        reject(new Error('Unable to append DAV2 audio chunk'));
-      };
-      const handleAbort = () => {
-        cleanup();
-        reject(createAbortError());
-      };
-      sourceBuffer.addEventListener('updateend', handleDone, { once: true });
-      sourceBuffer.addEventListener('error', handleError, { once: true });
-      sourceBuffer.addEventListener('abort', handleError, { once: true });
-      signal?.addEventListener('abort', handleAbort, { once: true });
-      try {
-        sourceBuffer.appendBuffer(bytes);
-      } catch {
-        cleanup();
-        reject(new Error('Unable to append DAV2 audio chunk'));
-      }
-    });
-  }
-
-  async function pumpAudioV2ToMediaSource(
-    mediaSource: MediaSource,
-    sourceBuffer: SourceBuffer,
-    context: AudioV2StartupContext,
-    parsed: ParsedAudioV2,
-    key: Uint8Array
-  ): Promise<void> {
-    const decryptorPromise = createAudioV2ChunkDecryptor({ header: parsed.header, key, signal: context.signal }).catch(error => {
-      if (isAbortError(error)) throw error;
-      throw new AudioV2ChunkAuthenticationError(error);
-    });
-
-    try {
-      await pumpAudioV2ReadAhead({
-        chunks: parsed.header.chunks,
-        signal: context.signal,
-        prepareChunk: async (chunk, signal) => {
-          throwIfAborted(signal);
-          const chunkStart = parsed.bodyOffset + audioV2ChunkBodyOffset(parsed.header, chunk.index);
-          const chunkEnd = chunkStart + chunk.encryptedLength - 1;
-          const range = await fetchAudioV2Range(context, chunkStart, chunkEnd, chunk.index === 0 ? 'first-chunk' : 'chunk', signal);
-          if (chunk.index === 0) {
-            publishAudioV2StartupMetric(context, {
-              phase: 'first-range-ready',
-              gatewayUrl: range.gatewayUrl,
-              rangeStart: chunkStart,
-              rangeEnd: chunkEnd,
-              chunkIndex: chunk.index,
-              hedged: range.hedged,
-              gatewayRecovered: range.recovered,
-              fromCache: range.fromCache,
-              intentPrefetched: range.intentPrefetched
-            });
-          }
-
-          const decryptor = await decryptorPromise;
-          let clear: Uint8Array;
-          try {
-            clear = await decryptor.decrypt(chunk.index, range.bytes, signal);
-          } catch (error) {
-            if (isAbortError(error)) throw error;
-            if (error instanceof AudioV2DecryptAuthenticationError) throw new AudioV2ChunkAuthenticationError(error);
-            throw error;
-          }
-          throwIfAborted(signal);
-          if (chunk.index === 0) {
-            publishAudioV2StartupMetric(context, {
-              phase: 'first-chunk-decrypted',
-              gatewayUrl: range.gatewayUrl,
-              rangeStart: chunkStart,
-              rangeEnd: chunkEnd,
-              chunkIndex: chunk.index,
-              hedged: range.hedged,
-              gatewayRecovered: range.recovered,
-              fromCache: range.fromCache,
-              intentPrefetched: range.intentPrefetched,
-              decryptor: decryptor.execution
-            });
-          }
-          return { clear, range, chunkStart, chunkEnd };
-        },
-        appendChunk: async (chunk, prepared, signal) => {
-          await appendSourceBuffer(sourceBuffer, prepared.clear, signal);
-          if (chunk.index === 0) {
-            publishAudioV2StartupMetric(context, {
-              phase: 'first-chunk-appended',
-              gatewayUrl: prepared.range.gatewayUrl,
-              rangeStart: prepared.chunkStart,
-              rangeEnd: prepared.chunkEnd,
-              chunkIndex: chunk.index,
-              hedged: prepared.range.hedged,
-              gatewayRecovered: prepared.range.recovered,
-              fromCache: prepared.range.fromCache,
-              intentPrefetched: prepared.range.intentPrefetched
-            });
-          }
-        }
-      });
-    } finally {
-      void decryptorPromise.then(decryptor => decryptor.close()).catch(() => undefined);
-    }
-    if (mediaSource.readyState === 'open') mediaSource.endOfStream();
-  }
-
-  async function fetchAndDecryptAudioV2Blob(cid: string, key: Uint8Array, signal?: AbortSignal): Promise<string> {
-    throwIfAborted(signal);
-    const response = await fetchAudioIpfsCid(cid, { signal, format: 'dav2' });
-    if (!response.ok) throw new Error(`Unable to fetch DAV2 audio (${response.status})`);
-    throwIfAborted(signal);
-    // The gateway race returns a complete, validated in-memory body. Do not
-    // run another chunk accumulator over it before decryption.
-    const container = new Uint8Array(await response.arrayBuffer());
-    throwIfAborted(signal);
-    const parsed = parseAudioV2Container(container);
-    const decryptor = await createAudioV2ChunkDecryptor({ header: parsed.header, key, signal });
-    const bytes = new Uint8Array(parsed.header.plaintextLength);
-    let encryptedOffset = parsed.bodyOffset;
-    let clearOffset = 0;
-    try {
-      for (const chunk of parsed.header.chunks) {
-        throwIfAborted(signal);
-        const encrypted = container.subarray(encryptedOffset, encryptedOffset + chunk.encryptedLength);
-        const clear = await decryptor.decrypt(chunk.index, encrypted, signal);
-        bytes.set(clear, clearOffset);
-        encryptedOffset += chunk.encryptedLength;
-        clearOffset += clear.length;
-      }
-    } finally {
-      decryptor.close();
-    }
-    throwIfAborted(signal);
-    const blob = new Blob([bytes], { type: parsed.header.mediaMime });
-    return URL.createObjectURL(blob);
-  }
-
-  async function recoverAudioV2MseFailure(context: AudioV2StartupContext, key: Uint8Array, failedObjectUrl: string, error: unknown) {
-    const { audioRef, cid } = context;
-    if (!isAudioV2ContextActive(context) || isAbortError(error)) {
-      retireAudioV2MseObjectUrl(audioRef, failedObjectUrl);
-      return;
-    }
-    if (audioV2FallbacksRef.current.has(failedObjectUrl)) return;
-    if (audioSourceRef.current !== failedObjectUrl) return;
-
-    audioV2FallbacksRef.current.add(failedObjectUrl);
-    setAudioRecovery('recovering');
-    try {
-      console.warn('DAV2 streaming failed, falling back to full decrypt', error);
-      publishAudioV2StartupMetric(context, {
-        phase: 'fallback',
-        detail: errorMessage(error)
-      });
-      const fallbackUrl = await fetchAndDecryptAudioV2Blob(cid, key, context.signal);
-      if (!isAudioV2ContextActive(context) || audioSourceRef.current !== failedObjectUrl) {
-        URL.revokeObjectURL(fallbackUrl);
-        return;
-      }
-      objectUrlsRef.current.add(fallbackUrl);
-      resolvedAudioSourcesRef.current.set(audioRef, fallbackUrl);
-
-      if (audioSourceRef.current === failedObjectUrl) {
-        if (pendingTrackMediaSourceRef.current === failedObjectUrl) {
-          pendingTrackMediaSourceRef.current = fallbackUrl;
-        }
-        // Read the clock only at the swap: buffered audio may have kept playing,
-        // or the listener may have paused/seeked while the download completed.
-        setResolvedAudioSource(fallbackUrl, true);
-      }
-
-      retireAudioV2MseObjectUrl(audioRef, failedObjectUrl);
-    } catch (fallbackError) {
-      if (!isAbortError(fallbackError)) {
-        console.warn('DAV2 full decrypt fallback failed', fallbackError);
-      }
-      if (isAudioV2ContextActive(context) && audioSourceRef.current === failedObjectUrl) {
-        publishAudioV2StartupMetric(context, { phase: 'error', detail: errorMessage(fallbackError) });
-        const selection = activeTrackSelectionRef.current;
-        if (selection?.pending && !selection.terminalReported) {
-          selection.terminalReported = true;
-          publishHostAudioStartupMetric({
-            phase: 'error',
-            attemptId: selection.attemptId,
-            source: selection.source,
-            elapsedMs: Number((nowMs() - selection.startedAt).toFixed(1)),
-            timestamp: Date.now(),
-            terminalReason: 'media-error'
-          });
-        }
-        if (localAudioRef.current) retireHostAudio(localAudioRef.current);
-        settleTrackSelectionMedia(failedObjectUrl, true, activeTrackSelectionRef.current?.attemptId);
-        setResolvedAudioSource(null);
-        setAudioRecovery('failed');
-        setTransactionFeedback({
-          tone: 'error',
-          title: 'Audio interrupted',
-          message: 'The audio download could not finish. Check your connection, then select this track to try again.',
-          technicalFacts: [{ label: 'Recovery', value: errorMessage(fallbackError) }]
-        });
-      }
-      retireAudioV2MseObjectUrl(audioRef, failedObjectUrl);
-    } finally {
-      audioV2FallbacksRef.current.delete(failedObjectUrl);
-      if (isAudioV2ContextActive(context)) setAudioRecovery(previous => (previous === 'failed' ? previous : null));
-    }
-  }
-
-  function createAudioV2MseSource(context: AudioV2StartupContext, parsed: ParsedAudioV2, key: Uint8Array): string {
-    if (!canStreamAudioV2WithMse(parsed.header)) throw new Error('DAV2 MSE streaming unsupported for this media type');
-
-    const mediaSource = new MediaSource();
-    const objectUrl = URL.createObjectURL(mediaSource);
-    mseObjectUrlsRef.current.add(objectUrl);
-    objectUrlsRef.current.add(objectUrl);
-    context.signal.addEventListener('abort', () => retireAudioV2MseObjectUrl(context.audioRef, objectUrl), { once: true });
-
-    void waitForMediaSourceOpen(mediaSource, context.signal)
-      .then(() => {
-        throwIfAborted(context.signal);
-        const sourceBuffer = mediaSource.addSourceBuffer(parsed.header.mediaMime);
-        return pumpAudioV2ToMediaSource(mediaSource, sourceBuffer, context, parsed, key);
-      })
-      .catch(error => {
-        routeAudioV2MseFailure({
-          error,
-          contextActive: isAudioV2ContextActive(context),
-          retire: () => retireAudioV2MseObjectUrl(context.audioRef, objectUrl),
-          recover: recoverableError => {
-            void recoverAudioV2MseFailure(context, key, objectUrl, recoverableError);
-          },
-          reportAuthenticationFailure: authenticationError => {
-            console.warn('DAV2 chunk authentication failed', authenticationError);
-            publishAudioV2StartupMetric(context, {
-              phase: 'error',
-              errorKind: 'authentication',
-              detail: errorMessage(authenticationError)
-            });
-          }
-        });
-        // Transport recovery may still use the buffered media. A decode error
-        // here would poison the element and reset its intent before the swap.
-        if (error instanceof AudioV2ChunkAuthenticationError && mediaSource.readyState === 'open') {
-          try {
-            mediaSource.endOfStream('decode');
-          } catch {
-            // The media element will surface the playback error.
-          }
-        }
-      });
-
-    return objectUrl;
-  }
-
-  async function fetchAndDecryptAudioV2(context: AudioV2StartupContext, key: Uint8Array): Promise<string> {
-    try {
-      const parsed = await fetchAudioV2Header(context);
-      if (!canStreamAudioV2WithMse(parsed.header)) {
-        // Complete-file playback is the normal compatibility path for this
-        // container/browser, not a streaming error requiring user intervention.
-        publishAudioV2StartupMetric(context, { phase: 'fallback', detail: 'Complete-file playback for this media type.' });
-        return fetchAndDecryptAudioV2Blob(context.cid, key, context.signal);
-      }
-      return createAudioV2MseSource(context, parsed, key);
-    } catch (streamError) {
-      if (isAbortError(streamError) || !isAudioV2ContextActive(context)) {
-        throw streamError;
-      }
-      console.warn('DAV2 streaming unavailable, falling back to full decrypt', streamError);
-      publishAudioV2StartupMetric(context, {
-        phase: 'fallback',
-        detail: errorMessage(streamError)
-      });
-    }
-
-    return fetchAndDecryptAudioV2Blob(context.cid, key, context.signal);
-  }
-
-  async function fetchAndDecryptAudio(
+  async function prepareStreamingAudio(
     audioRef: string,
-    gatewayUrl: string,
     contentHash: `0x${string}`,
     accessMode: AccessMode,
     release: ContentKeyReleaseIdentity | undefined,
     signal?: AbortSignal,
-    isCurrent: () => boolean = () => true
+    isCurrent: () => boolean = () => true,
+    options?: { key: Uint8Array; audio: () => HTMLAudioElement; speculative: true },
+    onAuthorized?: () => void,
+    evidence?: { attemptId: string; readAttempt: number; startedAt: number },
+    intent?: { forRoomCapture: boolean; purpose: KeyRequestPurpose }
   ): Promise<string> {
+    const forRoomCapture = intent?.forRoomCapture ?? roomCaptureRef.current;
+    const purpose = intent?.purpose ?? keyRequestPurposeRef.current;
     throwIfAborted(signal);
     if (isClassicUnlockE2e && contentHash.toLowerCase() === E2E_CLASSIC_HASH.toLowerCase()) {
-      const serverKey = await resolveServerContentKey(contentHash, release);
+      const serverKey = await resolveServerContentKey(contentHash, release, purpose);
       throwIfAborted(signal);
       if (!serverKey) throw new Error('E2E full key request denied before payment.');
       return E2E_CLASSIC_AUDIO_URL;
     }
 
     if (isRoomJoinE2eProtectedHash(contentHash)) {
-      const serverKey = await resolveServerContentKey(contentHash, release);
+      const serverKey = await resolveServerContentKey(contentHash, release, purpose);
       throwIfAborted(signal);
       if (!serverKey) throw new Error('E2E room host is not authorized for full playback.');
       return E2E_ROOM_PROTECTED_AUDIO_URL;
     }
 
     const cacheKey = audioRef;
-    const cached = resolvedAudioSourcesRef.current.get(cacheKey);
-    if (cached) {
-      setAudioStartupStatus(isEncryptedAudioV2Ref(audioRef) ? 'Starting audio' : null);
-      return cached;
-    }
-
-    if (isEncryptedAudioV2Ref(audioRef)) {
-      const context: AudioV2StartupContext = {
-        audioRef,
-        cid: encryptedRefToCID(audioRef),
-        startedAt: nowMs(),
-        signal: signal ?? new AbortController().signal,
-        isCurrent,
-        onMetric: metric => {
-          setAudioStartupStatus(audioV2StartupPhaseLabel(metric));
-        }
+    if (isEncryptedAudioV3Ref(audioRef)) {
+      if (!release) throw new Error('The release identity is required for streaming playback.');
+      const controllerSignal = signal ?? new AbortController().signal;
+      const startedAt = performance.now();
+      const metric = (detail: Omit<StreamingStartupMetric, 'audioRef' | 'cid' | 'elapsedMs' | 'timestamp'>) => {
+        if (
+          !options?.speculative &&
+          isCurrent() &&
+          (!controllerSignal.aborted || (detail.phase === 'error' && controllerSignal.reason?.name === 'TimeoutError'))
+        )
+          publishStreamingStartupMetric({
+            ...detail,
+            attemptId: evidence?.attemptId,
+            readAttempt: evidence?.readAttempt,
+            selectionElapsedMs: evidence ? nowMs() - evidence.startedAt : undefined,
+            forRoomCapture,
+            audioRef,
+            cid: encryptedRefToCID(audioRef),
+            elapsedMs: performance.now() - startedAt,
+            timestamp: wallTimestamp()
+          });
       };
-      let serverKey: Uint8Array | null;
+      metric({ phase: 'preparation-started' });
+      let key: Uint8Array | null;
       try {
-        serverKey = accessMode === 'free' ? await resolveFreeContentKey(contentHash, release) : await resolveServerContentKey(contentHash, release);
+        key =
+          options?.key ??
+          (accessMode === 'free' ? await resolveFreeContentKey(contentHash, release, purpose) : await resolveServerContentKey(contentHash, release, purpose));
+        controllerSignal.throwIfAborted();
+        if (!key) throw new Error('The audio access check could not be completed.');
       } catch (error) {
-        throwIfAborted(context.signal);
-        publishAudioV2StartupMetric(context, {
-          phase: 'error',
-          errorKind: 'key-unavailable',
-          detail: `DAV2 content key unavailable (${classifyProtectedPlaybackFailure(error)}).`
-        });
+        metric({ phase: 'error', errorKind: 'key-unavailable' });
         throw error;
       }
-      throwIfAborted(context.signal);
-      if (!serverKey) {
-        publishAudioV2StartupMetric(context, {
-          phase: 'error',
-          errorKind: 'key-unavailable',
-          detail: 'DAV2 content key unavailable.'
-        });
-        throw new Error('DAV2 content key unavailable.');
+      onAuthorized?.();
+      metric({ phase: 'key-authorized' });
+      // A decoded Blob is reusable media, not an authorization grant. Recheck
+      // access (or use a still-valid prepared grant) before exposing it again.
+      const cached = resolvedAudioSourcesRef.current.get(cacheKey);
+      if (cached) {
+        metric({ phase: 'prepared-source-reused' });
+        if (!options?.speculative) setAudioStartupStatus('Starting audio');
+        return cached;
       }
-      publishAudioV2StartupMetric(context, { phase: 'key-authorized' });
-      const objectUrl = await fetchAndDecryptAudioV2(context, serverKey);
-      throwIfAborted(context.signal);
-      objectUrlsRef.current.add(objectUrl);
-      if (!mseObjectUrlsRef.current.has(objectUrl)) resolvedAudioSourcesRef.current.set(cacheKey, objectUrl);
-      return objectUrl;
+      if (!options?.speculative) setAudioStartupStatus('Preparing audio');
+      const prepared = await createStreamingPlayback({
+        audioRef,
+        cid: encryptedRefToCID(audioRef),
+        key,
+        scope: {
+          chainId: runtimeAdapterConfig.kind === 'product-cdm' ? PRODUCT_DEVNET_EVM_CHAIN_ID : (await resolveEvmChain(ethRpcUrl)).id,
+          runtimeAddress: release.runtimeAddress.toLowerCase(),
+          contentHash: contentHash.toLowerCase(),
+          keyVersion: release.keyVersion
+        },
+        signal: controllerSignal,
+        onMetric: metric,
+        audio: options?.audio ?? (() => localAudioRef.current),
+        forRoomCapture,
+        onPreparationProgress: progress => {
+          if (!options?.speculative && isCurrent() && !controllerSignal.aborted && progress.totalBytes > 0) {
+            const percent = Math.min(100, Math.floor((100 * progress.completedBytes) / progress.totalBytes));
+            setAudioStartupStatus(`${forRoomCapture ? 'Preparing room audio' : 'Preparing audio'} · ${percent}%`);
+          }
+        },
+        bufferAheadSeconds: options ? () => (options.audio().isConnected ? 30 : 4) : undefined,
+        onError: () => {
+          if (!intent && (!options?.speculative || options.audio().isConnected) && isCurrent()) {
+            setAudioRecovery('failed');
+            setAudioStartupStatus('Audio connection interrupted');
+          }
+        }
+      });
+      if (controllerSignal.aborted || !isCurrent()) {
+        URL.revokeObjectURL(prepared.url);
+        controllerSignal.throwIfAborted();
+        throw new Error('Track selection changed');
+      }
+      registerAudioGain(prepared.url, prepared.gainDb);
+      objectUrlsRef.current.add(prepared.url);
+      if (prepared.progressive) mseObjectUrlsRef.current.add(prepared.url);
+      else resolvedAudioSourcesRef.current.set(cacheKey, prepared.url);
+      controllerSignal.addEventListener(
+        'abort',
+        () => {
+          if (prepared.progressive) {
+            forgetAudioGain(prepared.url);
+            retireStreamingObjectUrl(audioRef, prepared.url);
+          }
+        },
+        { once: true }
+      );
+      return prepared.url;
     }
 
-    const serverKey = accessMode === 'free' ? await resolveFreeContentKey(contentHash, release) : await resolveServerContentKey(contentHash, release);
-    throwIfAborted(signal);
-    const response = isEncryptedAudioRef(audioRef)
-      ? await fetchAudioIpfsCid(encryptedRefToCID(audioRef), { signal })
-      : await fetchAssetRef(audioRef || gatewayUrl, { signal });
-    if (!response.ok) throw new Error(`Unable to fetch audio (${response.status})`);
-    throwIfAborted(signal);
+    throw new Error('This audio format is no longer supported. Publish this track again from your artist space.');
+  }
 
-    const encryptedBytes = new Uint8Array(await response.arrayBuffer());
-    // Free tracks fetch their key without a wallet or signature; everything
-    // else goes through the signed request. Both fall back to the demo
-    // bundle-derived key, which only decrypts demo-published tracks.
-    const clearBytes = serverKey ? await decryptAudio(encryptedBytes, serverKey) : await decryptTrackAudio(encryptedBytes, contentHash);
-    throwIfAborted(signal);
-
-    const blob = new Blob([clearBytes]);
-    const objectUrl = URL.createObjectURL(blob);
-    objectUrlsRef.current.add(objectUrl);
-    resolvedAudioSourcesRef.current.set(cacheKey, objectUrl);
-    return objectUrl;
+  /** Keep the current solo source alive while its authenticated Room Blob loads. */
+  async function prepareCurrentTrackForRoom(track: CatalogTrack, signal: AbortSignal) {
+    const outgoing = activeTrackSelectionRef.current;
+    const source = audioSourceRef.current;
+    const lifetime = preparationLifetime.current;
+    const identity = preparationIdentityRef.current;
+    const current = () =>
+      selectedTrackIdRef.current === track.id &&
+      audioSourceRef.current === source &&
+      activeTrackSelectionRef.current === outgoing &&
+      preparationIdentityRef.current === identity;
+    if (!source || !outgoing || !current() || !isEncryptedAudioV3Ref(track.audioRef) || !roomCaptureNeedsCompatibility(true)) return;
+    // This is explicit hosting intent, not speculative individual listening.
+    // Do not mutate the solo purpose or transfer the audible producer's lifetime.
+    const startedAt = nowMs();
+    let mediaDeadlineMs: number | undefined;
+    const attemptId = `room-preparation:${++nextTrackSelectionIdRef.current}`;
+    roomPreparationAttemptRef.current = attemptId;
+    setAudioStartupStatus('Preparing room audio');
+    try {
+      await roomAudioPreparation.run({
+        signals: [signal, lifetime.signal, outgoing.controller.signal],
+        isCurrent: current,
+        timeoutMs: AUDIO_STARTUP_TIMEOUT_MS,
+        prepare: (owner, authorized) =>
+          prepareStreamingAudio(
+            track.audioRef,
+            track.hash,
+            track.accessMode,
+            releaseIdentityFromTrack(track),
+            owner,
+            current,
+            undefined,
+            () => {
+              mediaDeadlineMs ??= nowMs() + AUDIO_STARTUP_TIMEOUT_MS;
+              authorized();
+            },
+            { attemptId, readAttempt: 1, startedAt },
+            { forRoomCapture: true, purpose: 'room_host' }
+          )
+      });
+      return mediaDeadlineMs;
+    } catch (error) {
+      if (current() && classifyProtectedPlaybackFailure(error) === 'access-not-confirmed') {
+        // A current denial is authoritative, unlike a failed download. Never
+        // preserve an audible decoder after learning access is no longer valid.
+        clearPlayback();
+        setCatalogAccessByTrackId(previous => ({ ...previous, [track.id]: false }));
+        setAccessGate(buildAccessGateInfo(track));
+      }
+      throw error;
+    } finally {
+      if (current() && roomPreparationAttemptRef.current === attemptId) setAudioStartupStatus(null);
+    }
   }
 
   async function selectTrack(
@@ -1266,22 +1005,51 @@ export function useCatalog(deps: UseCatalogDeps) {
     socketEmit?: RoomTrackEmitter,
     setLocalStreamReady?: (ready: boolean) => void,
     closeHostPeers?: () => void,
-    showAccessGateOnDenied = false
+    showAccessGateOnDenied = false,
+    playbackOptions: { forRoomCapture?: boolean; preserveCurrentPosition?: boolean; mediaDeadlineMs?: number } = {}
   ): Promise<TrackSelectionResult> {
+    const continuation =
+      playbackOptions.preserveCurrentPosition && selectedTrackIdRef.current === track.id ? captureAudioContinuation(localAudioRef.current, '') : null;
     const selectionStartedAt = nowMs();
-    const selection = beginTrackSelection(track.id, selectionStartedAt);
-    // Fetch only public ciphertext in parallel with access verification. This
-    // promotes an in-flight neighbor before playback pauses/cancels its batch.
-    // All existing key and access checks still precede decryption and playback.
-    if (track.encrypted && isEncryptedAudioV2Ref(track.audioRef)) void prefetchAudioV2TrackIntent(track.audioRef).catch(() => undefined);
-    else cancelAudioV2TrackIntentPrefetch();
+    const selection = beginTrackSelection(
+      track.id,
+      selectionStartedAt,
+      isPolicyManagedTrack(track) && track.accessMode !== 'free',
+      playbackOptions.mediaDeadlineMs
+    );
+    // Resolve the destination purpose before comparing a prepared identity.
+    // A solo candidate cannot be adopted for a room-host request (or vice versa).
+    roomCaptureRef.current = playbackOptions.forRoomCapture === true;
+    keyRequestPurposeRef.current = playbackOptions.forRoomCapture || socketEmit ? 'room_host' : 'individual';
+    // Transfer ownership before pausing the outgoing element triggers speculative
+    // cancellation. A protected candidate still requires a live W34 grant.
+    const canAdopt =
+      track.active !== false &&
+      (!isPolicyManagedTrack(track) ||
+        (track.encrypted &&
+          (track.accessMode === 'free' ||
+            readPreparedContentKey(track.hash, releaseIdentityFromTrack(track), keyRequestPurposeRef.current)?.access === 'allowed')));
+    const warmSource = canAdopt ? standbyAudio.take(standbyIdentity(track), selection.controller.signal) : null;
+    if (!canAdopt) standbyAudio.clear();
     publishHostAudioStartupMetric({
       phase: 'playback-intent',
+      forRoomCapture: roomCaptureRef.current,
       attemptId: selection.attemptId,
       source: track.id,
       elapsedMs: 0,
-      timestamp: Date.now()
+      timestamp: wallTimestamp()
     });
+    if (warmSource && isEncryptedAudioV3Ref(track.audioRef))
+      publishStreamingStartupMetric({
+        phase: 'prepared-source-adopted',
+        attemptId: selection.attemptId,
+        forRoomCapture: roomCaptureRef.current,
+        selectionElapsedMs: nowMs() - selection.startedAt,
+        audioRef: track.audioRef,
+        cid: encryptedRefToCID(track.audioRef),
+        elapsedMs: 0,
+        timestamp: wallTimestamp()
+      });
     let selectionFailureReported = false;
     const reportSelectionFailure = (terminalReason: HostAudioTerminalReason) => {
       if (selectionFailureReported || !isTrackSelectionCurrent(selection)) return;
@@ -1292,7 +1060,7 @@ export function useCatalog(deps: UseCatalogDeps) {
         attemptId: selection.attemptId,
         source: track.id,
         elapsedMs: Number((nowMs() - selectionStartedAt).toFixed(1)),
-        timestamp: Date.now(),
+        timestamp: wallTimestamp(),
         terminalReason
       });
     };
@@ -1314,7 +1082,6 @@ export function useCatalog(deps: UseCatalogDeps) {
       setArtistName(track.artist);
       setDescription(track.description);
       setCoverSource(track.imageRef);
-      setBulletinManifestRef(track.metadataRef);
       internalSetFileHash(track.hash);
       setAccessMode(track.accessMode);
       setPriceDot(track.priceDot);
@@ -1324,19 +1091,25 @@ export function useCatalog(deps: UseCatalogDeps) {
       setAccessGate(null);
       setPlaybackFailure(null);
       setAudioStartupStatus(track.encrypted ? 'Checking your access…' : null);
-      // A socketEmit callback means this selection streams into a room: the
-      // signer is the host, and only the host needs to satisfy the policy.
-      keyRequestPurposeRef.current = socketEmit ? 'room_host' : 'individual';
-
       // Access model v2: access is binary. An authorized listener plays the full
       // track; an unauthorized one gets the access gate and no audio at all. The
       // 42% preview is retired.
       let audioUrl: string | null = null;
       let hasAccess = true;
 
-      if (isPolicyManagedTrack(track)) {
+      // The Free-key service checks the canonical release and current on-chain
+      // policy itself. A preliminary Host query adds no authorization and can
+      // stall before the bounded key request even starts.
+      const freeKeyChecksAccess = Boolean(
+        track.encrypted && track.accessMode === 'free' && isEncryptedAudioV3Ref(track.audioRef) && releaseIdentityFromTrack(track) && isKeyServiceConfigured()
+      );
+      if (freeKeyChecksAccess) setCatalogAccessByTrackId(previous => ({ ...previous, [track.id]: false }));
+      const preparedGrant = track.encrypted ? readPreparedContentKey(track.hash, releaseIdentityFromTrack(track), keyRequestPurposeRef.current) : null;
+      // Readiness is not authorization. Non-encrypted policy-managed sources
+      // have no key grant and must always take the ordinary runtime check.
+      if (!freeKeyChecksAccess && isPolicyManagedTrack(track) && (!track.encrypted || (!preparedGrant && !warmSource))) {
         hasAccess = await checkTrackAccess(track, listenerEvmAddress);
-        if (!isTrackSelectionCurrent(selection)) return { playbackMode: 'full', audioSource: audioSourceRef.current };
+        if (!isTrackSelectionCurrent(selection)) return { playbackMode: 'full', audioSource: audioSourceRef.current, preparationFailed: true };
         const smokeRuntime = runtimeAddressFromTrackId(track);
         if (
           runtimeAdapterConfig.kind === 'product-cdm' &&
@@ -1357,7 +1130,7 @@ export function useCatalog(deps: UseCatalogDeps) {
             isCurrent: () => isTrackSelectionCurrent(selection) && supportAccountRef.current === accountAtRead
           });
           if (!isTrackSelectionCurrent(selection) || supportAccountRef.current !== accountAtRead)
-            return { playbackMode: 'full', audioSource: audioSourceRef.current };
+            return { playbackMode: 'full', audioSource: audioSourceRef.current, preparationFailed: true };
         }
         setCatalogAccessByTrackId(previous => ({ ...previous, [track.id]: hasAccess }));
         if (!hasAccess) {
@@ -1369,23 +1142,36 @@ export function useCatalog(deps: UseCatalogDeps) {
         }
       }
 
-      if (hasAccess && track.localUrl) {
+      // Encrypted references are resolved by the authenticated streaming reader.
+      // Bulletin roots deliberately have no direct public-asset gateway URL.
+      if (hasAccess && (track.encrypted || track.localUrl)) {
         let failureKind: ProtectedPlaybackFailureKind | null = null;
-        if (track.encrypted) {
-          const localUrl = track.localUrl;
+        // A confirmed key grant is access evidence; an unfinished media download
+        // must not turn the UI hint back into a denial. This hint grants no key.
+        let freeKeyAccessConfirmed = Boolean(warmSource);
+        if (warmSource) audioUrl = warmSource;
+        else if (track.encrypted) {
           // Transient failures (service out of reach, access not propagated
           // yet, slow gateway) retry quietly. Failed key requests repeat
           // authorization; transport retries reuse an already authorized key.
           for (let attempt = 0; ; attempt += 1) {
             try {
-              audioUrl = await fetchAndDecryptAudio(
+              audioUrl = await prepareStreamingAudio(
                 track.audioRef,
-                localUrl,
                 track.hash,
                 track.accessMode,
                 releaseIdentityFromTrack(track),
                 selection.controller.signal,
-                () => isTrackSelectionCurrent(selection)
+                () => isTrackSelectionCurrent(selection),
+                undefined,
+                () => {
+                  armAudioStartupDeadline(selection);
+                  if (freeKeyChecksAccess && isTrackSelectionCurrent(selection)) {
+                    freeKeyAccessConfirmed = true;
+                    setCatalogAccessByTrackId(previous => ({ ...previous, [track.id]: true }));
+                  }
+                },
+                { attemptId: selection.attemptId, readAttempt: attempt + 1, startedAt: selection.startedAt }
               );
               failureKind = null;
               break;
@@ -1400,9 +1186,12 @@ export function useCatalog(deps: UseCatalogDeps) {
             }
           }
         } else {
-          audioUrl = track.localUrl;
+          audioUrl = track.localUrl ?? null;
         }
-        if (!isTrackSelectionCurrent(selection)) return { playbackMode: 'full', audioSource: audioSourceRef.current };
+        if (!isTrackSelectionCurrent(selection)) return { playbackMode: 'full', audioSource: audioSourceRef.current, preparationFailed: true };
+
+        if (freeKeyChecksAccess)
+          setCatalogAccessByTrackId(previous => ({ ...previous, [track.id]: freeKeyAccessConfirmed && failureKind !== 'access-not-confirmed' }));
 
         if (!audioUrl && track.encrypted) {
           // Access is granted but the key, the audio, or decryption failed. The
@@ -1412,7 +1201,7 @@ export function useCatalog(deps: UseCatalogDeps) {
         }
       }
 
-      if (!isTrackSelectionCurrent(selection)) return { playbackMode: 'full', audioSource: audioSourceRef.current };
+      if (!isTrackSelectionCurrent(selection)) return { playbackMode: 'full', audioSource: audioSourceRef.current, preparationFailed: true };
       if (!audioUrl) reportSelectionFailure(hasAccess ? 'selection-failed' : 'access-denied');
       const sourceAlreadyReady = Boolean(
         audioUrl && audioSourceRef.current === audioUrl && localAudioRef.current && localAudioRef.current.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA
@@ -1420,7 +1209,10 @@ export function useCatalog(deps: UseCatalogDeps) {
       pendingTrackMediaSourceRef.current = sourceAlreadyReady ? null : audioUrl;
       waitsForMediaReadiness = Boolean(audioUrl && !sourceAlreadyReady);
       setResolvedAudioSource(audioUrl);
-      if (!audioUrl || !isEncryptedAudioV2Ref(track.audioRef)) setAudioStartupStatus(null);
+      if (audioUrl && continuation) setAudioContinuation({ ...continuation, source: audioUrl });
+      setAudioSourcePending(false);
+      if (audioUrl) armAudioStartupDeadline(selection);
+      if (!audioUrl) setAudioStartupStatus(null);
 
       if (!audioUrl) {
         if (setLocalStreamReady) setLocalStreamReady(false);
@@ -1433,12 +1225,14 @@ export function useCatalog(deps: UseCatalogDeps) {
         // streams nothing (kept on the wire for protocol compatibility).
         socketEmit('room:playback-mode', { playbackMode: 'full' });
       }
-      return { playbackMode: 'full', audioSource: audioUrl };
+      return { playbackMode: 'full', audioSource: audioUrl, preparationFailed: hasAccess && !audioUrl };
     } catch (error) {
       reportSelectionFailure('selection-failed');
       throw error;
     } finally {
+      if (isTrackSelectionCurrent(selection)) setAudioSourcePending(false);
       if (isTrackSelectionCurrent(selection) && !waitsForMediaReadiness) {
+        clearTimeout(selection.startupDeadline);
         selection.pending = false;
         pendingTrackMediaSourceRef.current = null;
         setTrackSelectionPending(false);
@@ -1451,15 +1245,16 @@ export function useCatalog(deps: UseCatalogDeps) {
     socketEmit?: RoomTrackEmitter,
     setLocalStreamReady?: (ready: boolean) => void,
     closeHostPeers?: () => void,
-    showAccessGateOnDenied = false
+    showAccessGateOnDenied = false,
+    playbackOptions: { forRoomCapture?: boolean; preserveCurrentPosition?: boolean; mediaDeadlineMs?: number } = {}
   ) {
     navigateToView('player');
-    return selectTrack(track, socketEmit, setLocalStreamReady, closeHostPeers, showAccessGateOnDenied);
+    return selectTrack(track, socketEmit, setLocalStreamReady, closeHostPeers, showAccessGateOnDenied, playbackOptions);
   }
 
   const prefetchTrackAudio = useCallback((track: CatalogTrack): void => {
-    if (!track.encrypted || !isEncryptedAudioV2Ref(track.audioRef)) return;
-    void prefetchAudioV2TrackIntent(track.audioRef).catch(() => undefined);
+    if (!track.encrypted) return;
+    void prefetchStreamingAudio(track.audioRef).catch(() => undefined);
   }, []);
 
   function explainRuntimeWriteWalletRequirement(): string | null {
@@ -1495,7 +1290,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     closeHostPeers?: () => void,
     readOnly = false
   ) {
-    const operationId = typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
+    const operationId = newOperationId();
     const showPaymentFeedback = (feedback: TransactionFeedback) => setTransactionFeedback({ ...feedback, operationId });
     const unlockStartedTrackId = track.id;
     const unlockStartedView = activeViewRef.current;
@@ -1629,7 +1424,6 @@ export function useCatalog(deps: UseCatalogDeps) {
       setCatalogPaidAccessByTrackId(previous => ({ ...previous, [track.id]: true }));
     }
     if (result.status === 'verified' || result.status === 'existing-access') {
-      if (isClassicUnlockE2e && track.id === E2E_CLASSIC_TRACK.id) e2eClassicAccessGrantedRef.current = true;
       setCatalogAccessByTrackId(previous => ({ ...previous, [track.id]: true }));
       showPaymentFeedback(
         result.status === 'verified'
@@ -1644,7 +1438,7 @@ export function useCatalog(deps: UseCatalogDeps) {
       if (shouldRestoreUnlockedTrack()) {
         navigateToView('player');
         try {
-          await selectTrack(track, socketEmit, setLocalStreamReady, closeHostPeers);
+          await selectTrack(track, socketEmit, setLocalStreamReady, closeHostPeers, false, { forRoomCapture: roomCaptureRef.current });
         } catch {
           showPaymentFeedback({
             tone: 'error',
@@ -1658,18 +1452,21 @@ export function useCatalog(deps: UseCatalogDeps) {
       return;
     }
     const recoverable = result.status === 'unverified' || result.status === 'uncertain';
+    const retryApproval = result.failureKind === 'approval-expired';
     showPaymentFeedback({
       tone: 'error',
       title:
         result.status === 'canceled'
           ? 'Access payment canceled'
-          : result.failureKind === 'funding-required'
-            ? `Add ${receiptAsset.symbol} to continue`
-            : result.status === 'unverified'
-              ? 'Listening access not verified'
-              : result.status === 'uncertain'
-                ? 'Payment status needs checking'
-                : 'Access payment could not start',
+          : retryApproval
+            ? 'Confirmation request expired'
+            : result.failureKind === 'funding-required'
+              ? `Add ${receiptAsset.symbol} to continue`
+              : result.status === 'unverified'
+                ? 'Listening access not verified'
+                : result.status === 'uncertain'
+                  ? 'Payment status needs checking'
+                  : 'Access payment could not start',
       message:
         result.status === 'uncertain'
           ? 'Confirmation was interrupted. Your payment may still complete. Check access here and your account activity in Polkadot App or your wallet before paying again.'
@@ -1681,22 +1478,23 @@ export function useCatalog(deps: UseCatalogDeps) {
         ...buildSupportTechnicalFacts(receiptTrack, receiptAsset, recoverable ? 'included-unverified' : result.status === 'canceled' ? 'canceled' : 'failed'),
         ...(result.errorDetail ? [{ label: 'Payment error', value: result.errorDetail }] : [])
       ],
-      recoveryAction: recoverable
-        ? {
-            label: 'Check access again',
-            run: () => {
-              if (!currentAccount()) {
-                setTransactionFeedback({
-                  tone: 'error',
-                  title: 'Account changed',
-                  message: 'Reconnect the account used for this payment before checking its access.'
-                });
-                return;
+      recoveryAction:
+        recoverable || retryApproval
+          ? {
+              label: retryApproval ? 'Try payment again' : 'Check access again',
+              run: () => {
+                if (!currentAccount()) {
+                  setTransactionFeedback({
+                    tone: 'error',
+                    title: 'Account changed',
+                    message: 'Reconnect the account used for this payment before checking its access.'
+                  });
+                  return;
+                }
+                void payForTrackAccess(track, socketEmit, setLocalStreamReady, closeHostPeers, !retryApproval);
               }
-              void payForTrackAccess(track, socketEmit, setLocalStreamReady, closeHostPeers, true);
             }
-          }
-        : undefined
+          : undefined
     });
   }
 
@@ -1773,13 +1571,13 @@ export function useCatalog(deps: UseCatalogDeps) {
           nextCatalog.map(track => [
             track.id,
             track.id === E2E_CLASSIC_TRACK.id
-              ? e2eClassicAccessGrantedRef.current
+              ? classicUnlockE2eHasAccess(listenerEvmAddress)
               : Boolean(listenerEvmAddress && track.artistAddress?.toLowerCase() === listenerEvmAddress.toLowerCase())
           ])
         )
       );
       setCatalogPaidAccessByTrackId(
-        Object.fromEntries(nextCatalog.map(track => [track.id, track.id === E2E_CLASSIC_TRACK.id && getClassicUnlockE2eState().paid]))
+        Object.fromEntries(nextCatalog.map(track => [track.id, track.id === E2E_CLASSIC_TRACK.id && classicUnlockE2eHasPaid(listenerEvmAddress)]))
       );
       setCatalogStatus(
         nextCatalog.length > 0 ? `Loaded ${nextCatalog.length} deterministic e2e track${nextCatalog.length === 1 ? '' : 's'}` : 'No e2e tracks registered yet'
@@ -1880,9 +1678,126 @@ export function useCatalog(deps: UseCatalogDeps) {
     }
   }
 
+  const preparationSigner = connectedWallet?.keyRequestSigner;
+  const preparationIdentity = `${connectedWallet?.method}:${listenerEvmAddress?.toLowerCase()}:${connectedWallet?.chainId}:${ethRpcUrl}:${preparationSigner?.signatureScheme}:${preparationSigner?.signatureScheme === 'product-sr25519-v1' ? preparationSigner.productPublicKey : ''}`;
+  const preparationLifetime = useRef(new AbortController());
+  const preparationIdentityRef = useRef(preparationIdentity);
+  useLayoutEffect(() => {
+    const identityChanged = preparationIdentityRef.current !== preparationIdentity;
+    preparationIdentityRef.current = preparationIdentity;
+    standbyAudio.clear();
+    if (identityChanged) {
+      // Prepared grants are cleared by WalletProvider. A URL/decoder already
+      // opened by the old account must end too, before a late key can attach.
+      const selection = activeTrackSelectionRef.current;
+      if (selection?.requiresAccount && (selection.pending || audioSourceRef.current)) {
+        if (localAudioRef.current) retireHostAudio(localAudioRef.current);
+        clearObjectUrls(); // Aborts the producer, retires decoded URLs and standby.
+        setResolvedAudioSource(null);
+        setAudioRecovery(null);
+        setAudioStartupStatus(null);
+        setAccessGate(null);
+        setCatalogAccessByTrackId({});
+        setCatalogPaidAccessByTrackId({});
+        setPlaybackFailure({ trackId: selection.source, kind: listenerEvmAddress ? 'account-changed' : 'account-required' });
+      } else if (listenerEvmAddress) {
+        setPlaybackFailure(previous => (previous?.kind === 'account-required' ? { ...previous, kind: 'account-changed' } : previous));
+      }
+    }
+    const lifetime = new AbortController();
+    preparationLifetime.current = lifetime;
+    return () => {
+      lifetime.abort();
+      roomAudioPreparation.cancel();
+      standbyAudio.clear();
+    };
+    // Identity primitives own this lifetime; profile labels and render closures do not.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preparationIdentity, standbyAudio, roomAudioPreparation]);
+
+  async function prepareQueuedContentKeys(tracks: CatalogTrack[], signal: AbortSignal) {
+    if (
+      !connectedWallet ||
+      (!connectedWallet.keyRequestSigner && !connectedWallet.createEvmClient) ||
+      signal.aborted ||
+      preparationIdentityRef.current !== preparationIdentity
+    )
+      return;
+    const lifetime = preparationLifetime.current;
+    const candidates = tracks
+      .filter(track => track.active !== false)
+      .flatMap(track => {
+        const release = releaseIdentityFromTrack(track);
+        return release ? [{ contentHash: track.hash, release }] : [];
+      })
+      .slice(0, 5);
+    if (!candidates.length) return;
+    const walletClient = connectedWallet.keyRequestSigner ? undefined : await getActiveWalletClient();
+    if (signal.aborted || lifetime.signal.aborted) return;
+    await prepareContentKeys({
+      ...(connectedWallet.keyRequestSigner ? { signer: connectedWallet.keyRequestSigner } : { walletClient }),
+      chainId: walletClient?.chain?.id ?? PRODUCT_DEVNET_EVM_CHAIN_ID,
+      purpose: keyRequestPurposeRef.current,
+      tracks: candidates,
+      signal: AbortSignal.any([signal, lifetime.signal])
+    });
+  }
+
+  function standbyIdentity(track: CatalogTrack) {
+    return JSON.stringify([
+      preparationIdentityRef.current,
+      keyRequestPurposeRef.current,
+      roomCaptureRef.current,
+      track.source,
+      track.encrypted,
+      track.id,
+      track.hash,
+      track.artistAddress?.toLowerCase(),
+      track.audioRef,
+      track.localUrl,
+      track.accessMode
+    ]);
+  }
+
+  async function prepareNextPlayback(track: CatalogTrack, signal: AbortSignal) {
+    const identity = standbyIdentity(track);
+    const current = () => !signal.aborted && standbyIdentity(track) === identity;
+    if (!current() || track.active === false || (!track.encrypted && !track.localUrl)) return;
+    // Do not expose even a paused media URL before its runtime policy passes.
+    // These sources use the authoritative check on explicit selection instead.
+    if (!track.encrypted && isPolicyManagedTrack(track)) return;
+    if (track.encrypted && !streamingMediaSource()) return;
+    const expires = Date.now() + 30_000;
+    let key: Uint8Array | null = null;
+    if (track.encrypted) {
+      if (track.accessMode === 'free') key = await resolveFreeContentKey(track.hash, releaseIdentityFromTrack(track));
+      else {
+        await prepareQueuedContentKeys([track], signal);
+        const grant = readPreparedContentKey(track.hash, releaseIdentityFromTrack(track), keyRequestPurposeRef.current);
+        if (grant?.access === 'allowed') key = hexToBytes(grant.contentKey);
+      }
+      if (!key || !current()) return;
+    }
+    await standbyAudio.prepare(identity, expires, signal, (owner, audio) =>
+      track.encrypted
+        ? prepareStreamingAudio(
+            track.audioRef,
+            track.hash,
+            track.accessMode,
+            releaseIdentityFromTrack(track),
+            owner,
+            () => !owner.aborted && standbyIdentity(track) === identity,
+            { key: key!, audio: () => audio, speculative: true }
+          )
+        : Promise.resolve(track.localUrl!)
+    );
+  }
+
   function clearObjectUrls() {
+    standbyAudio.clear();
     abortActiveTrackSelection();
     for (const url of objectUrlsRef.current.values()) {
+      forgetAudioGain(url);
       URL.revokeObjectURL(url);
     }
     objectUrlsRef.current.clear();
@@ -1895,6 +1810,11 @@ export function useCatalog(deps: UseCatalogDeps) {
       isClassicUnlockE2e && track.id === E2E_CLASSIC_TRACK.id
         ? Promise.resolve({ name: track.artist, recipient: E2E_CLASSIC_TRACK.artistAddress!, releaseTitle: track.title })
         : resolveDonationArtist(track, runtimeReader),
+    prepareQueuedContentKeys,
+    prepareCurrentTrackForRoom,
+    prepareNextPlayback,
+    cancelNextPlayback: () => standbyAudio.clear(),
+    adoptPreparedAudio: (url: string | null) => standbyAudio.adopt(url),
     // State
     catalogTracks,
     allCatalogTracks,
@@ -1914,6 +1834,7 @@ export function useCatalog(deps: UseCatalogDeps) {
     audioRecovery,
     audioStartupAttemptId,
     trackSelectionPending,
+    audioSourcePending,
     settleTrackSelectionMedia,
     setAudioSource: (source: string | null) => setResolvedAudioSource(source, true),
     audioStartupStatus,
@@ -1946,9 +1867,11 @@ export function useCatalog(deps: UseCatalogDeps) {
     checkTrackPaidAccess,
     buildAccessGateInfo,
     payForTrackAccess,
-    fetchAndDecryptAudio,
+    prepareStreamingAudio,
     refreshCatalogFromRegistry,
     fetchRuntimeCatalog,
-    clearObjectUrls
+    clearObjectUrls,
+    cancelPlaybackPreparation,
+    clearPlayback
   };
 }

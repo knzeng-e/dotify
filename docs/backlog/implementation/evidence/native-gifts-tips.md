@@ -96,7 +96,7 @@ Publication was authorized on 2026-10-01. Implementation is tracked in
 `dev`. GitHub checks are separate from the local evidence above; deployment
 and funded Product acceptance remain operational follow-ups.
 
-Operational instructions: [deployment configuration](../../../operations/deployment-configuration.md#native-contributions-activation-2026-10-01).
+Operational instructions: [deployment configuration](../../../operations/deployment-configuration-history.md#native-contributions-activation-2026-10-01).
 Design and limitations: [native contributions](../../../design/native-contributions.md).
 
 ## Earnings layout follow-up (2026-10-01)
@@ -277,4 +277,4 @@ and isolated cryptographic checks do not prove them. Product remains 0.1.42,
 and API storage and existing contributions were not changed by this rollout.
 
 Full configuration and rollback boundary:
-[deployment runbook](../../../operations/deployment-configuration.md#room-contribution-activation-2026-10-08).
+[deployment runbook](../../../operations/deployment-configuration-history.md#room-contribution-activation-2026-10-08).

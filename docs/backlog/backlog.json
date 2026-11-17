@@ -25,6 +25,136 @@
   },
   "items": [
     {
+      "id": "bulletin-published-graph-backup",
+      "doc": "docs/backlog/bulletin-published-graph-backup.md",
+      "issue": 451,
+      "kind": "record",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Record",
+      "note": "Completed code scope in #452, merged into dev 40e9e593: bounded published-graph capture and offline integrity verification after custody pruning, with generated source-loss evidence. Record only; real capture/key recovery and operational/pilot gates remain in #407. No live transfer or writer authority."
+    },
+    {
+      "id": "server-node-runtime",
+      "doc": "docs/backlog/server-node-runtime.md",
+      "issue": 449,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Next",
+      "note": "Node 22.23.5 server refresh delivered on 2026-11-14 from source 91f25c77 after exact-image API/signaling/AAC checks. Five hosted machines pass identity/health checks; keys, configuration and protected state are preserved. Post-delivery physical listening and hosted load remain open. No compact activation or recovery rehearsal; #407 retains its gates."
+    },
+    {
+      "id": "tooling-security-migration",
+      "doc": "docs/backlog/tooling-security-migration.md",
+      "issue": 433,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Next",
+      "note": "Migrate Vitest/mocker/Tinypool and lint/estree/minimatch past remaining dev/CI advisories with full unit/lint/Web/Product and CLI compatibility, preserving Node22 and current SDK/signers. Production Web audit is clean after #431, but that does not remove dev criticals. No suppressions, test exclusions, global major overrides or deployment implied; separate from #432 API Zod."
+    },
+    {
+      "id": "api-schema-security-migration",
+      "doc": "docs/backlog/api-schema-security-migration.md",
+      "issue": 432,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Next",
+      "note": "Real Zod 4.6.7 validators delivered with the combined server image on 2026-11-14; exact-image tests and retained metadata/nonce/archive comparisons pass. No state/key migration, journal reset or admission change. Physical listening after the server update remains open; see dated service-security evidence."
+    },
+    {
+      "id": "listening-security-hardening",
+      "doc": "docs/backlog/listening-security-hardening.md",
+      "issue": 431,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Now",
+      "note": "Session/grant and Room-input hardening delivered in the combined server update on 2026-11-14. Existing artist access, free listening and anonymous guests remain unchanged. No keys/admissions/budgets changed or chain operations performed. Post-delivery physical Host and sustained-load acceptance remain open."
+    },
+    {
+      "id": "bulletin-publication-admission",
+      "doc": "docs/backlog/bulletin-publication-admission.md",
+      "issue": 407,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Now",
+      "note": "Publication/listening succeed; latest owner Publish-to-wallet report is 7 min 46 s. Compact delivery/admission and recovery code has generated coverage; archive/authentication are merged in tested dev 93e99042. The owner accepts the generated-only second-Mac rehearsal, not real data/key recovery. Owner defers the bounded real recovery rehearsal until after publication latency, Room startup, reliable artwork and bounded CASH research. Resume product engineering now; #407 remains open for measured latency and deferred operational acceptance. General backup-platform expansion is outside this slice. Current-history/service rollback, physical listening/background, hosted capacity, conservation/access and value-flow gates remain before activation/public pilot. Live musical sources remain standard; custody stays #426 and public APIs 0.1.82. The separate Web/Product 0.1.83 client delivery is verified; it activates no compact format or server optimization. No real recovery capture, key transfer, funded musical trial or further renewal is authorized by this ticket. #407 remains Now/In Progress before #395/#388/CASH. Canonical detail: docs/backlog/implementation/listening-and-publication-readiness.md."
+    },
+    {
+      "id": "product-cash-tip-feasibility",
+      "doc": "docs/backlog/product-cash-tip-feasibility.md",
+      "issue": 406,
+      "kind": "research",
+      "priority": "P2",
+      "track": "Product SDK",
+      "phase": "Next",
+      "note": "Bounded reassessment candidate identifies caller-id/partial status in published TrUAPI 0.26.0, absent from pinned Host SDK 0.28.0/TrUAPI 0.25.0. Offline fault tests and dated no-go keep work tips unavailable pending matched shipped Host, exact units, durable recovery and artist-policy split/Room receipts. #85 compatibility is the next gate; no SDK upgrade, funded action or access grant. Canonical decision: docs/design/product-cash-tip-decision-2026-11-13.md."
+    },
+    {
+      "id": "product-cash-access-settlement",
+      "doc": "docs/backlog/product-cash-access-settlement.md",
+      "issue": 408,
+      "kind": "research",
+      "priority": "P2",
+      "track": "Product SDK",
+      "phase": "Later",
+      "note": "Separate CASH payment-to-entitlement/royalty feasibility after #406 and #85; callback alone never grants access. Preserve dated W16 and native PAS behavior."
+    },
+    {
+      "id": "room-listener-audio",
+      "doc": "docs/backlog/room-listener-audio.md",
+      "issue": 395,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Next",
+      "note": "Web/Product 0.1.87 is delivered. One matching phone opening succeeds (~36 s owner timer / 36.955 s trace), with Pause and guest/short-lock sound confirmed on Polkadot app 0.10.0 (20). Preparation remains slow: 10 cached / 63 HTTP objects; differing cache state from 0.1.86 precludes a speedup/regression claim. Repeated/full-track continuity and latency acceptance remain open. Lock-screen artwork is absent in this run and stays open under #388. Canonical evidence: docs/backlog/implementation/evidence/product-0.1.87-rollout-2026-11-15.md#matching-phone-follow-up. Real recovery remains owner-deferred."
+    },
+    {
+      "id": "listening-controls-and-discovery",
+      "doc": "docs/backlog/listening-controls-and-discovery.md",
+      "issue": 388,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Next",
+      "note": "The owner confirmed covers/logo on the 0.1.84 short solo/Room check, but matching 0.1.87 feedback reports absent lock-screen artwork with audible guest/lock sound. The trace prepares and registers PNG metadata in 59 ms; this does not acknowledge native display or establish the failure cause. Artwork reliability, repeated locks, rapid changes, attribution/disconnect and the signature-trigger case remain open. Canonical evidence: docs/backlog/implementation/evidence/product-0.1.87-rollout-2026-11-15.md#matching-phone-follow-up."
+    },
+    {
+      "id": "room-galaxy-restoration",
+      "doc": "docs/backlog/room-galaxy-restoration.md",
+      "issue": 329,
+      "kind": "record",
+      "priority": "P1",
+      "track": "Room reliability",
+      "phase": "Record",
+      "note": "Delivered by #330 and published in Product 0.1.61 (#331); owner confirmed installed behavior. Physical Host graphics/location/media acceptance remains #274/#85/#89/#158."
+    },
+    {
+      "id": "streaming-only-reset",
+      "doc": "docs/backlog/streaming-only-reset.md",
+      "issue": 320,
+      "kind": "record",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Record",
+      "note": "Delivered by merged #321; the 0.1.58 coordinated rollout activates the streaming-only path. Retired catalogs need no migration. Real/native streaming acceptance remains #287/#317/#158."
+    },
+    {
+      "id": "fresh-testnet-streaming-cutover",
+      "doc": "docs/backlog/fresh-testnet-streaming-cutover.md",
+      "issue": 317,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Next",
+      "note": "Supporting acceptance after the selected #407 → #395 → #388 sequence; delivered code is retained and the issue stays open. Fresh contracts/CDM v2 and coordinated API/signaling/encoder/Web/Product cutover deployed on 2026-10-22. #323 fixes native bootstrap; #326 and published Product 0.1.60 (#327) update Host compatibility. Owner reports successful artist setup/publication; candidate-bound audio/access/value-flow evidence remains open. Preserve later custody and nonce history."
+    },
+    {
       "id": "mobile-form-continuity",
       "doc": "docs/backlog/mobile-form-continuity.md",
       "issue": 306,
@@ -48,10 +178,11 @@
       "id": "room-life",
       "doc": "docs/backlog/room-life-and-artist-visits.md",
       "issue": 257,
-      "kind": "work",
+      "kind": "record",
       "priority": "P1",
       "track": "Room reliability",
-      "phase": "Next"
+      "phase": "Record",
+      "note": "Delivered by #258 (stacked into #256), #261/#263 and #300/#304. Chat presence, verified artist visits and private-safe aggregates are implemented; physical native/social/audio acceptance remains #85/#89/#158."
     },
     {
       "id": "01",
@@ -260,7 +391,7 @@
       "priority": "P1",
       "track": "Product SDK",
       "phase": "Product feasibility",
-      "note": "Owns exact SDK/Host compatibility assessment, coordinated SDK 0.36 migration and shared versioned network profile. Stablecoin/Coinage follow-up is Later by owner decision 2026-10-14; W16 remains dated delivered evidence. Nearby browser/manual-area prototyping is independent."
+      "note": "Web/Product 0.1.84 delivers About-only public Host software labels. SDK 0.39.0 / Host SDK 0.28.0 / TrUAPI 0.25.0 pins are unchanged; actual named-Host labels, signing/media/location, wire and payment acceptance remain open. A version label is not capability proof. Canonical delivery: docs/backlog/implementation/evidence/product-0.1.84-rollout-2026-11-14.md."
     },
     {
       "id": "catalog-read-model",
@@ -280,7 +411,7 @@
       "priority": "P1",
       "track": "Production spine",
       "phase": "Next",
-      "note": "Responsive variants are delivered by #198. Keep active for live upload, mobile transfer and paint, gateway timeout, cache-edge, and legacy-backfill evidence."
+      "note": "Responsive variants are delivered by #198. Keep live current-publication cover/mobile/gateway/cache evidence; the internal reset retires legacy-cover backfill. W33 edge activation is separate."
     },
     {
       "id": "release-room-followup",
@@ -289,7 +420,8 @@
       "kind": "work",
       "priority": "P1",
       "track": "Production spine",
-      "phase": "Now"
+      "phase": "Next",
+      "note": "Supporting acceptance after the selected #407 → #395 → #388 sequence; delivered code is retained and the issue stays open. #270 and 0.1.48 delivered the follow-up code/rollout. The reset retired the three old runtimes, so their missing-selector upgrade is no longer an active task. Verify metadata capability/correction on the actual new runtime and #324 coordinated room-tip/receipt activation; native/artwork/room acceptance remains explicit."
     },
     {
       "id": "dav2-startup",
@@ -299,7 +431,7 @@
       "priority": "P0",
       "track": "Production spine",
       "phase": "Next",
-      "note": "DAV2 pipelining, worker decryption, warm intent, bounded first range, and evidence tooling are delivered. Keep active for candidate-bound physical browser, device, and gateway measurements."
+      "note": "Historical id retained; DAV1/DAV2 readers and old first-sound exports are retired by #321/ADR 0033. Measure current authenticated v3 AAC startup with schema-6 evidence on exact Web/Product builds. The 2026-10-28 mobile-first-sound audit records a redundant Free access wait, cached-media reauthorization and About build identification; A managed AAC reader now supports early-segment startup, native demand and eviction recovery without new infrastructure. Product 0.1.65 is published with independently verified finalized version and public bytes. Physical Product playback and cold-start latency remain open. Coordinate W32/W33/W13 without restoring legacy range/worker paths."
     },
     {
       "id": "turn-sfu-resilience",
@@ -418,8 +550,8 @@
       "kind": "work",
       "priority": "P0",
       "track": "Production spine",
-      "phase": "Now",
-      "note": "Activated implementation sequence for the reversible pilot release package, Product/Web evidence gate, and consented first-community evaluation record."
+      "phase": "Next",
+      "note": "Public-pilot acceptance after the selected publication/Room/artwork/CASH sequence. The selected execution plan owns current delivery and observed gaps; earlier W13 version checkpoints are historical. Real independent recovery remains owner-deferred before the public pilot; delivered code does not close access, value-flow, conservation, rollback or consented evaluation gates."
     },
     {
       "id": "W14",
@@ -525,31 +657,31 @@
       "id": "W29",
       "doc": "docs/backlog/implementation/W29-ux-clarity-pass.md",
       "issue": 250,
-      "kind": "work",
+      "kind": "record",
       "priority": "P1",
       "track": "Design record",
-      "phase": "Next",
-      "note": "Owner-requested clarity slice from the 2026-10-08 audit, implemented by PR #249: one word per gesture, room-first home, named payment recipients, named and retried protected playback failures, room exit in the header, sign-in chained to a purposeful connect. Reverses the W21/W28 choice to keep prices off catalog cards. Evidence: docs/backlog/implementation/evidence/W29.md. Project 5 owns workflow status."
+      "phase": "Record",
+      "note": "Delivered by merged #249 and later recovery work. Real-wallet chained sign-in and protected failure recovery remain #85/#158 acceptance, not another W29 implementation."
     },
     {
       "id": "W30",
       "doc": "docs/backlog/implementation/W30-pilot-hardening.md",
       "issue": 285,
-      "kind": "work",
+      "kind": "record",
       "priority": "P0",
       "track": "Production spine",
-      "phase": "Now",
-      "note": "#296 is merged; 0.1.52 records deployment and proxy identity, single signaling worker and TURN checks. Remaining #285 scope: API non-root execution with safe volume ownership and migration/rollback evidence. See evidence/backlog-reconciliation-2026-10-20.md; do not repeat delivered hardening."
+      "phase": "Record",
+      "note": "Delivered by #296/#316; 2026-10-22 rollout records same-volume backup, preserved hashes, UID/GID 1000, unchanged custody/session epoch and live active/revoked-session continuity. Pilot network/load acceptance remains #89/#158."
     },
     {
       "id": "W31",
       "doc": "docs/backlog/implementation/W31-discovery-follow-ups.md",
       "issue": 286,
-      "kind": "work",
+      "kind": "record",
       "priority": "P1",
       "track": "Room reliability",
-      "phase": "Now",
-      "note": "#297 is merged and deployed from 0.1.52; discovery controls, recovery and lazy ArtistShell are delivered. Remaining implementation verification: dedicated Worldwide-report E2E missing from W31 evidence. Native reliability remains separate device/pilot acceptance."
+      "phase": "Record",
+      "note": "Delivered by #297 plus merged #332 Worldwide Report verification on Web and Product Host fixtures. Physical location/media/pilot acceptance remains #274/#85/#89/#158."
     },
     {
       "id": "W32",
@@ -559,7 +691,7 @@
       "priority": "P1",
       "track": "Production spine",
       "phase": "Next",
-      "note": "Refs #88. AAC fMP4 renditions with segment-level encryption under the existing release key scope, loudness gain, preserved master, DAV2 compatibility."
+      "note": "#312/#318/#321 are merged; durable owned jobs, private encoder, authenticated playback and streaming custody were deployed in the 0.1.58 reset. No catalog migration remains. Keep real current-publication/pinning, native playback/host-guest, prolonged listening and load acceptance open with #317/#158."
     },
     {
       "id": "W33",
@@ -569,27 +701,27 @@
       "priority": "P1",
       "track": "Production spine",
       "phase": "Next",
-      "note": "Refs #88 backend read-through decision. Immutable edge cache for encrypted content-addressed media; IPFS remains the source of truth."
+      "note": "Read-only conservation candidate checks explicit app/media dependencies, account expiry and renewal quota at one finalized block. No renewal or monitoring activation; complete historical inventory, payload availability, bounded renewal, off-volume recovery and protected acceptance remain gates."
     },
     {
       "id": "W34",
       "doc": "docs/backlog/implementation/W34-fast-access-path.md",
       "issue": 289,
-      "kind": "work",
+      "kind": "record",
       "priority": "P1",
       "track": "Production spine",
-      "phase": "Next",
-      "note": "Batched access reads, short fail-closed verdict cache, queue key preparation for signed-in listeners, in-memory client keys."
+      "phase": "Record",
+      "note": "Delivered by #333 and API/Web/Product 0.1.62 rollout #334. Parallel block-bound reads, bounded verdicts, session preparation and memory-only keys are verified. Physical first sound remains #88/#287/#317/#158."
     },
     {
       "id": "W35",
       "doc": "docs/backlog/implementation/W35-continuous-player.md",
       "issue": 290,
-      "kind": "work",
+      "kind": "record",
       "priority": "P1",
       "track": "Production spine",
-      "phase": "Next",
-      "note": "Gapless, adaptive bitrate, next-track preparation, Media Session, local resume, background playback evidence, playback metrics."
+      "phase": "Record",
+      "note": "Delivered by #338 and Product 0.1.63; issue #290 is closed and Project 5 Done. Preserve W35 dated evidence; current startup, artwork and physical lifecycle follow-ups remain #395/#388/#85/#158."
     },
     {
       "id": "W36",
@@ -599,17 +731,17 @@
       "priority": "P1",
       "track": "Production spine",
       "phase": "Next",
-      "note": "Shared nonces, revocations, quotas and catalog; dedicated session secret; two API instances."
+      "note": "W36 implementation: PostgreSQL atomic nonces, family revocations, quota/capability accounting and elected catalog; dedicated 2h sessions with bounded renewal. Public edges forward publication/history to one private custody volume. Local multi-process/restore evidence is separate from pending migration and live two-instance acceptance; see evidence/W36.md."
     },
     {
       "id": "W37",
       "doc": "docs/backlog/implementation/W37-scalable-catalog-indexer.md",
       "issue": 292,
-      "kind": "work",
+      "kind": "record",
       "priority": "P2",
       "track": "Production spine",
-      "phase": "Next",
-      "note": "Bounded concurrency, chunked getLogs, memoized revision, write-on-change snapshots, lookup indexes."
+      "phase": "Record",
+      "note": "Delivered by #340 and the combined Product 0.1.63 rollout; issue #292 is closed and Project 5 Done. Preserve W37 evidence; contract bounds and broader pilot acceptance remain #293/#158."
     },
     {
       "id": "W38",
@@ -649,7 +781,7 @@
       "priority": "P1",
       "track": "Design record",
       "phase": "Record",
-      "note": "Owner-requested 2026-10-14 backlog reprioritization delivered by PR #277. This record activates #274/W19 as the next product implementation; it does not claim Nearby is implemented."
+      "note": "Decision record delivered by #277 and extended by #295. Nearby implementation subsequently shipped; retain this dated priority decision as history rather than active work."
     },
     {
       "id": "W19",
@@ -658,8 +790,8 @@
       "kind": "work",
       "priority": "P1",
       "track": "Room reliability",
-      "phase": "Now",
-      "note": "Next product expansion: separate host/listener opt-ins and approximate km radii. W09/W10/W18 plus radius review for implementation; W13 and privacy/device/room evidence for public enablement."
+      "phase": "Next",
+      "note": "Supporting acceptance after the selected #407 → #395 → #388 sequence; delivered code is retained and the issue stays open. Nearby/Worldwide galaxy and controls are delivered through #278/#279/#283/#298/#300/#304. Remaining scope is exact-Host native location/permission, lifecycle and two-client discovery-to-audio acceptance. Automatic scans, 5–42 km controls and removal of city exploration supersede the original prompt."
     },
     {
       "id": "artist-runtime-features",
@@ -680,6 +812,56 @@
       "track": "Production spine",
       "phase": "Next",
       "note": "After first Nearby slice: per-artist export and second-operator synthetic recovery. W07 stays a delivered record; real key migration separately approved."
+    },
+    {
+      "id": "pr-review-quality",
+      "doc": "docs/backlog/pr-review-quality.md",
+      "issue": 240,
+      "kind": "record",
+      "priority": "P2",
+      "track": "Design record",
+      "phase": "Record",
+      "note": "Delivered by merged #241; concise four-section PR template and review-writing guide. Added to the manifest during the 2026-10-23 audit to match Project 5."
+    },
+    {
+      "id": "native-gifts-tips",
+      "doc": "docs/backlog/native-gifts-tips.md",
+      "issue": 229,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Cultural propagation",
+      "phase": "Next",
+      "note": "Supporting acceptance after the selected #407 → #395 → #388 sequence; delivered code is retained and the issue stays open. Native gifts/tips and recovery are implemented. #324 adds reviewed room policy/authority handling; server/facet activation and real native receipt/chat/policy acceptance remain. No operator-funded test or artist policy write is implied."
+    },
+    {
+      "id": "listening-overlay-motion",
+      "doc": "docs/backlog/listening-overlay-motion.md",
+      "issue": 396,
+      "kind": "work",
+      "priority": "P2",
+      "track": "Production spine",
+      "phase": "Next",
+      "note": "Share listening-sheet presentation across Room queue/suggestions and release details, preserving drafts, history/focus, keyboard geometry and persistent audio. Physical acceptance follows matching rollout."
+    },
+    {
+      "id": "listening-motion",
+      "doc": "docs/backlog/listening-motion.md",
+      "issue": 392,
+      "kind": "work",
+      "priority": "P2",
+      "track": "Production spine",
+      "phase": "Next",
+      "note": "Owner-requested bounded mobile motion: explicit dock/player transitions and Queue sheet, preserving audio, access, history/focus and reduced motion. Candidate only; physical Host feel follows matching rollout."
+    },
+    {
+      "id": "bulletin-published-audio-authentication",
+      "doc": "docs/backlog/bulletin-published-audio-authentication.md",
+      "issue": 453,
+      "kind": "record",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Record",
+      "note": "Completed code scope in #454, merged into tested dev 93e99042: explicit offline published-audio authentication with separately supplied trusted scope/digests and versioned keys. Generated coverage only; real independent recovery remains in #407. No transfer, deployment or writer authority."
     }
   ]
 }

@@ -1,13 +1,435 @@
 # Dotify implementation playbook
 
+Start with the [selected execution sequence](listening-and-publication-readiness.md).
+Its [bounded recovery slice](listening-and-publication-readiness.md#bounded-recovery-before-the-public-pilot)
+is deferred by the owner until after publication latency, Room startup, reliable
+lock-screen artwork and bounded CASH research. It ends with one real independently
+authenticated release/key recovery. General backup-platform expansion is outside this slice.
+Merged archive/authentication code and accepted generated rehearsals do not
+complete the real, activation, physical-device or public-pilot gates.
+
+## Client delivery, 2026-11-14
+
+[Web/Product 0.1.84 is delivered](evidence/product-0.1.84-rollout-2026-11-14.md). Independent delivery,
+unchanged custody health and preserved histories pass. The owner accepts the
+requested short phone Pause, artwork and guest journeys; broader repeated
+listening, server security/format work and
+owner-deferred real recovery keep their separate gates. Earlier dated entries
+below retain their historical scope.
+
+## Listening security review, 2026-11-11
+
+[The bounded #431 correction](../listening-security-hardening.md) keeps disconnect and grant expiry
+authoritative at key delivery, rejects malformed Room input before mutation and
+bounds negotiation work per socket. Shared listening, anonymous guests and free
+access retain their existing policies. This is a code candidate alongside #407,
+without deployment or new publication authority; physical Host/load acceptance
+remains separate. Earlier dated entries retain their historical scope.
+
+## Compact graph and durable layout binding, 2026-11-11
+
+[The next #407 implementation](../../adr/0052-bulletin-layout-inventory-binding.md) adds a fixed 256-KiB compact graph constructor
+and binds its layout to a distinct journal version before any storage intent.
+Current jobs and publications keep their existing format; composition and
+prepared recovery refuse compact inventories before producing an unsupported
+reference. Restart/lost-acknowledgement tests preserve the same graph, generation,
+nonce and attempts. Versioned references, reviewed per-identity admission,
+API/Host range readers and real-media acceptance remain next; no compact switch,
+service delivery or new trial is enabled. Custody stays on #426 and Web/Product/
+public APIs on 0.1.82. #407 remains Now/In Progress before Room/artwork/CASH.
+
+## Offline compact-layout study, 2026-11-11
+
+[The reproducible #407 study](evidence/bulletin-compact-layout-2026-11-11.md) compares
+unchanged standard paths with experimental per-quality segment packs. Retaining
+init and the first segment separately models 108 → 60 blocks and nine → six
+waves with 256-KiB chunks. The prototype preserves ciphertext/HMAC/GCM and
+bounds range reads, but existing API/Host paths cannot read later packed segments.
+Cold seeks can fetch extra chunks. Next: review explicit layout/reference and
+per-identity persistence, then implement/test API/Host integration and real
+first sound. 429 API tests pass; this checkout-only experiment changes no
+production reader/writer, format, key, budget or service. No write/maintenance
+is authorized. #407 stays Now/In Progress; Room/artwork/CASH keep their order.
+
+## Post-optimization publication and listening confirmed, 2026-11-11
+
+[The approved exact trial](evidence/bulletin-eskapade-activation-2026-11-11.md) now publishes and plays, confirmed
+by the owner with approximately **7 min 46 s before the wallet prompt**. Captured
+scoped reports show successful audio/cover/metadata work, 110 store calls and
+cover reuse, without collection failures. Publisher clocks have different
+boundaries from the owner's time; overlapping phases are not additive and this
+is not a same-file speed comparison. Submit/finalize averages about 32 s per call.
+#407 stays Now/In Progress: investigate fewer storage/dependency stages and
+format/resolver compatibility offline, preserving proof/retention/nonce gates.
+The same #426 image and Web/Product/public APIs 0.1.82 remain; no further trial,
+maintenance, allowance or renewal is authorized by this acceptance. Earlier
+entries describe their dated checkpoints.
+
+## Publication round-trip optimization delivered, 2026-11-10
+
+[The approved custody-only delivery](evidence/bulletin-round-trips-rollout-2026-11-10.md) installs #426 from tested
+`8d070654`, with the same tree as merged dev `bdd6eab0`. Green merged CI, a
+completed provider snapshot, compiled compatibility inspection, unchanged
+protected histories and two health/readiness passes are verified. Zero Bulletin
+operations, renewals, DotNS signatures or new admissions occur. Web/Product and
+public APIs stay 0.1.82. Actual publication latency and hosted memory under new
+work remain unmeasured; existing ready releases must not be reset for a benchmark.
+#407 remains Now/In Progress, before #395, #388 and CASH research. The separate
+next-source selection and exact trial budget remain ahead; the maintenance
+approval is consumed. Earlier entries below are dated checkpoints.
+
+## Publication round-trip candidate, 2026-11-10
+
+[The next #407 slice](evidence/bulletin-round-trips-2026-11-10.md) orders remaining dependency work only when the local
+wave model improves, and reuses bounded completed block-proof data while
+refreshing eligibility and canonical mapping. Synthetic audio stages fall
+9→8 / 13→12; cover/metadata stay 3 / 2. Graph bytes/CIDs, journal order, nonce
+ownership and proof/retention gates remain. 415 API tests, typecheck and build
+pass. Review, matched custody rollout and actual latency acceptance remain;
+this candidate adds no live admission or musical write. Custody stays `59244da5`,
+Web/Product/public APIs 0.1.82; the selected sequence is unchanged.
+
+## Exact write-window trial activated, 2026-11-10
+
+[The approved custody-only activation](evidence/bulletin-window-activation-2026-11-10.md) delivers #424 from
+`59244da5`, identical to tested merged dev `3afd2b58`. A completed provider
+snapshot, one stopped-writer apply, preserved prior state/nonces and two
+health/readiness checks are verified. One owner-selected new source has a
+16-store / 4-MiB write window; proof reads and previous grants remain unchanged.
+The maintenance performs zero Bulletin/DotNS operations. Web/Product/public
+APIs stay on 0.1.82. The owner now confirms the new release publishes and plays,
+reporting about nine minutes before the wallet prompt. Scoped readback confirms
+the selected window and ready assets; this different, lighter source is not a
+controlled speed comparison. Acceptable latency remains open in #407 before
+#395, #388 and CASH research; earlier entries are dated history.
+
+## Exact release allowance candidate, 2026-11-10
+
+[The next #407 slice](evidence/bulletin-admission-extension-2026-11-10.md) prepares an exact-source capacity extension,
+without rotating the content key or replacing the queue. Existing slots, part
+caps and permanent history remain; offline activation requires a bound checkpoint
+and exclusive publisher lease. The owner supplied a new source/cover and selected
+the existing artist. Local graph sizing is 151 audio + 10 cover blocks; actual
+publisher/full-publication latency is still unmeasured. No live capacity, service
+change or musical spending follows from this candidate.
+
+## Timing analysis candidate, 2026-11-09
+
+[The next #407 slice](evidence/bulletin-timing-report-2026-11-09.md) adds an offline allowlisted timing reader and
+a restart-reuse regression. One existing release has ready audio/cover and no
+metadata claim; its remaining authority is distinct from a new full-release slot.
+Read-only canonical checks find that source registered under the other artist,
+not this owner/runtime; a second registration would create another release of
+the same audio. No duplicate is proposed merely to collect timings. No writing
+sample, deployment or admission change occurs; full-publication latency remains
+unverified.
+
+## Parallel verification delivered to custody, 2026-11-09
+
+[The custody-only delivery](evidence/bulletin-parallel-rollout-2026-11-09.md) installs #418 from frozen `ec8e82ae` after green
+exact-source CI, a completed snapshot and stopped-writer inspection. Two
+post-start health/readiness checks and all nine selected journal hashes pass;
+v3/v2, five inventories, two jobs and cursor are preserved. Public API replicas
+and Web/Product remain 0.1.82. Zero operator Bulletin/DotNS operations, new musical
+allowance or key transfer. Full-publication latency remains unmeasured; the two
+existing release slots are already claimed, so a new writing measurement needs
+separately reviewed admission/budget without resetting state. #407 stays open.
+
+## Custody diagnostics delivered, 2026-11-09
+
+[The server-only delivery](evidence/custody-diagnostics-rollout-2026-11-09.md) installs merged #415/#416 on private custody
+after both CIs, a completed volume snapshot and stopped-writer inspection.
+Health/readiness and all nine selected journal hashes pass; v3/v2, five ready
+inventories and two prepared jobs are retained. Web/Product and public APIs
+remain 0.1.82. No Bulletin/DotNS operation, new musical allowance or key transfer
+occurs. Private timing logs are active, but live per-store latency and faster
+publication remain unverified; #407 stays open.
+
+## Publisher latency diagnosis candidate, 2026-11-09
+
+[The next #407 slice](evidence/bulletin-publication-timings-2026-11-09.md) measures publisher queue/setup,
+existing RPC/proof reads and the original create/submit/finalize interval, with
+first observed PAPI lifecycle milestones. Reports are bounded private logs with
+no key/raw error/CID payload, not new custody state or an ETA. Overlapping phase
+totals are not wall time. A three-sample read-only root probe is not a store or
+throughput benchmark. API/custody rollout and live timing acceptance remain
+open; no new publication, maintenance, policy or deadline is activated.
+
+## Publication reliability delivered in 0.1.82, 2026-11-09
+
+[Web/Product/API and custody 0.1.82](evidence/product-0.1.82-rollout-2026-11-09.md) deliver merged #413
+from frozen `26430e56`, based on tested dev `bccb20d5`. Both CIs and independent
+Web/dependency/DotNS/service checks pass; the signer is removed. Effective Node
+deadlines, confirmed progress and read-only approval/visibility feedback are live.
+All nine private tracking files, keys, admissions and cursor survive unchanged.
+Custody was idle/stopped during app account writes and is healthy again. Actual
+writes: 12 stores / 3,590,405 bytes, eight one-off renewals / 5,899,777 bytes and
+two DotNS signatures. Preserve **1,183 / 320,588,055** future retention reserve,
+including full earlier musical allowances. No new musical allowance, key, mount,
+origin or recurring renewal. The owner confirms existing-release artist-area
+visibility and audible playback on Web and Desktop. Publication/indexing speed
+and further long-preparation acceptance keep #407 open; a fresh catalogue read
+alone remains non-auditory evidence.
+
+## Selected execution order, reconciled 2026-11-09
+
+[Publication, listening reliability and CASH](listening-and-publication-readiness.md)
+is the owner-requested sequence: #407 measured publication latency, then #395
+Room startup, #388 artwork, #406 CASH-tip research and #408 CASH-access research.
+Admission/progress/catalogue feedback and #418 custody rollout are delivered;
+whole-release speed remains open. Supporting cutover, contributions, Nearby and pilot acceptance
+stay open in Next. Older prompts are historical, not parallel work assignments.
+See the [alignment audit](evidence/backlog-alignment-2026-11-09.md).
+
+## Room preparation delivered in 0.1.80, 2026-11-07
+
+[Web and Product 0.1.80](evidence/product-0.1.80-rollout-2026-11-07.md) deliver #404 from frozen `30702580`, based on
+merged/tested dev `e7614b4d`. Both CIs and independent Web/CAR/finalized-retention/
+DotNS checks pass; the signer is removed. Client relay reads respect the existing
+two-download API capacity and failures expose an explicit local support report.
+The owner confirms one phone Room start without retry in about 55 seconds and audible Web/Desktop guests. Startup remains too slow; #395 stays open for latency and broader lifecycle.
+The owner confirms 0.1.79 connection/short playback on iPhone 0.10.0 (20), Runtime
+0.26.0; scoped wire comparison supports the unchanged SDK's used domains, not a
+blanket protocol/payment upgrade. Approved writes: 13 stores / 4,425,117 bytes,
+7 one-off renewals / 5,061,961 bytes, two DotNS signatures. Preserve 431 future
+renewals / 150,484,205 bytes. API/custody/signaling and musical assets are unchanged;
+no restart or recurring conservation is activated.
+
+## Listening continuity delivered in 0.1.79, 2026-11-07
+
+[Web, Product and signaling 0.1.79](evidence/product-0.1.79-rollout-2026-11-07.md) deliver merged #401/#402 from frozen
+`c656992c`. Both CIs and independent Web/CAR/retention/DotNS/signaling checks pass;
+the signer is removed. Closed playback starts fresh, Room exits confirm with a
+host solo-continuation choice, discovery panels retain listening controls, and
+matched signaling preserves chat paragraphs. Solo/Room system covers use the
+larger bottom-right Dotify badge without outer petals. Matching physical checks
+remain open in #395/#388. The approved operation uses 13 stores / 4,423,600 bytes,
+7 one-off renewals / 5,061,961 bytes and two DotNS signatures. Preserve 411 future
+renewals / 140,997,127 bytes. Signaling restarted only after a zero-Room check;
+API/custody and music are unchanged. No recurring conservation is activated.
+
+## Room lifecycle delivered in 0.1.78, 2026-11-06
+
+[Web and Product 0.1.78](evidence/product-0.1.78-rollout-2026-11-06.md) publish merged #400 from frozen source
+`6898863d`. Both CIs and independent Web/CAR/finalized-retention/DotNS readback pass;
+the signer is removed. Failed preparation cannot create a silent Room; observed
+output interruption pauses at position with visible explicit recovery. Solo and
+Room share rounded Dotify petal artwork without tiny room text. The owner confirms
+startup without retry and host/guest sound during the requested short phone lock.
+Broader lifecycle/recovery and artwork checks remain open in #395/#388.
+This bounded application-only operation uses 14 stores / 5,259,623 bytes and
+6 immediate renewals / 4,214,282 bytes, one operation per dependency.
+Preserve 391 future renewals / 131,511,566 bytes. No automatic renewal, musical
+write, API/custody change or service restart. Older checkpoints remain dated facts.
+
+## Full-length Room correction delivered in 0.1.77, 2026-11-06
+
+[Web and Product 0.1.77](evidence/product-0.1.77-rollout-2026-11-06.md) publish merged #399 from frozen source
+`0587442d`. CI and independent Web/block/CAR/DotNS checks pass; the local signer
+is removed. Complete mobile Room preparation uses at most four authenticated
+reads and a complete local AAC index, preserving payloads, access checks,
+existing deadlines and the 40 MiB cap; solo remains progressive.
+The owner confirms eventual full-length phone-host sound at Web/Desktop guests,
+but startup still has delays/errors/retries and locking the phone silences both
+host and guests until unlock. Reliable startup, background and lifecycle checks
+remain open in #395; the eight-second 0.1.76 result stays separate.
+Reserve 371 future renewals / 122,037,661 bytes; no renewal/scheduler is activated.
+API/custody, musical assets and policies are unchanged; no service restart occurs.
+Older dated checkpoints retain their state at that time.
+
+## Mobile room capture delivered in 0.1.76, 2026-11-05
+
+[Web and Product 0.1.76](evidence/product-0.1.76-rollout-2026-11-05.md) publish merged #397/#398 from frozen source
+`e195e3ab`. CI and independent Web/CAR/Bulletin/DotNS checks pass;
+the local signer is removed. Managed-only room hosts use authenticated complete
+96 kb/s AAC with the existing buffer cap, while solo stays progressive. Room
+queue/suggestions/details share listening-sheet motion and access-gate ownership.
+The owner confirms foreground mobile-host sound at Web/Desktop guests on the
+eight-second release; full-length Room preparation still fails (#395).
+Physical lifecycle/background checks (#395) and matching panel acceptance (#396)
+remain open. Reserve 351 renewals /
+112,567,204 bytes; no renewal or conservation activation occurs.
+API/custody source/media/policies are unchanged. An already-stopped custody
+instance was restored during preparation after database-lock loss; the code-0
+exit/supervisor defect remains a separate reliability follow-up.
+
+## Continuous listening published in 0.1.75, 2026-11-05
+
+[Web and Product 0.1.75](evidence/product-0.1.75-rollout-2026-11-05.md) deliver merged #391/#393 from frozen source
+`e095f427`. Exact-source CI and independent Web/block/CAR/DotNS readback
+pass; the local signer is removed. Player/Queue motion, title-adjacent room
+discovery and room-branded system context are delivered. API/custody, media and
+policies are unchanged; no restart or renewal occurs. Reserve
+331 renewals / 103,099,297 bytes. Matching
+physical #392/#388 acceptance remains open. W33 retains protected denial and
+conservation/recovery gates; the merged read-only conservation CLI is not
+activated/deployed by this client rollout.
+
+## Listening controls published in 0.1.74, 2026-11-05
+
+[Web and Product 0.1.74](evidence/product-0.1.74-rollout-2026-11-05.md) deliver merged #389 from frozen source `e8d3be90`.
+Independent Web/block/CAR/DotNS readback and exact-source CI pass; the signer is
+removed. Mobile-player account access, live room release/artist discovery and
+corrected system artwork/actions are delivered. API/custody, music, access policy
+and the independent lab are unchanged; no renewal or restart occurs. Reserve
+311 renewals / 93,634,213 bytes. Physical native #388 acceptance remains open;
+W33 retains signed denial, account switching, room-guest silence, conservation
+and coherent off-volume recovery. The read-only conservation implementation in
+this PR is a separate candidate, not part of the deployed client/API source.
+
+## Conservation assessment candidate, 2026-11-05
+
+The [first read-only conservation slice](../../operations/bulletin-conservation.md)
+checks declared dependencies, account expiry and renewal quota at one finalized
+block, preserving prior obligations. No renewal or monitoring job is activated.
+Next: reconcile all retained app/lab/media graphs, verify live metadata/payloads,
+then bounded renewal/alerts and coherent off-volume restoration. W33/#288 stays
+open; broad editable publication and public pilot acceptance are later gates.
+
+## Cross-client acceptance and next listening iteration, 2026-11-05
+
+The owner confirms audible stop on disconnect and explicit recovery in 0.1.73 on
+Web, Polkadot app Desktop and mobile. [#388](../listening-controls-and-discovery.md) tracks the next requested
+iteration: account/disconnect access inside the mobile player, current release/
+artist discovery inside the room, and lock-screen cover plus previous/next
+controls. The [client candidate](evidence/listening-controls-and-discovery-2026-11-05.md) is implemented and locally tested against
+current tested dev, preserving account/access/room boundaries. It awaits review,
+matching delivery and physical native acceptance; deployed clients remain
+0.1.73. Signed denial, account switching, room-guest silence, conservation and
+coherent off-volume recovery remain separate W33 gates.
+
+## Protected account interruption candidate, 2026-11-05
+
+The [account-lifetime correction](evidence/bulletin-protected-account-lifetime-2026-11-05.md) stops an account-bound local source and
+its pending preparation when the listener or network identity changes. Reopening
+requires normal access checks and an explicit action; Free listening and profile
+updates retain their source. Controlled tests distinguish runtime/key refusal
+from successful artist listening. This candidate is not deployed; physical
+acceptance and conservation remain W33 gates.
+
+## Registered Bulletin playback published, 2026-11-04
+
+[Web and Product 0.1.72](evidence/product-0.1.72-rollout-2026-11-04.md) publish merged #385 from exact tested source
+`018011d4`. Independent block/CAR/DotNS/Web readback passes; 12 app stores /
+3,557,283 bytes, eight reused blocks and two signing requests stay within the
+owner-approved cap. The local signer is removed. The fresh eight-second release
+is already registered as **Thot Nzeng**, at block 15,321,680 / 1.42 PAS; this
+client-only rollout preserves its audio, metadata and access checks. API/custody
+remain source `e2dd6148`, with no restart or policy change. The owner confirms hearing all eight seconds on Web, Desktop and mobile.
+Next: protected denial/interruption, dependency conservation and coherent
+off-volume recovery. W33/#288 remains open.
+Older dated checkpoints below describe their state at that time.
+
+## Prepared-release recovery published, 2026-11-04
+
+[Product 0.1.71 rollout](evidence/product-0.1.71-rollout-2026-11-04.md) verifies
+matching API/custody, Web and Product delivery, with preserved ready audio,
+original inventories and the exact name-only permit. Explicit form restoration
+precedes a separate ordinary Publish and wallet action. Artist registration,
+protected Web/physical Host acceptance, dependency conservation and off-volume
+recovery remain W33/#288 gates; no renewal is performed by this rollout.
+
+## Product 0.1.70 and exact repair admission, 2026-11-03
+
+The [verified rollout](evidence/product-0.1.70-rollout-2026-11-03.md) deploys the required artist-name checks and admits
+one exact **Thot Nzeng** metadata repair for the preserved synthetic pilot.
+Audio, cover, old metadata, receipts and original allowances remain intact;
+no re-encoding or attempt reset occurs. The permit itself sends no metadata and
+registers no release. Next: resume the saved draft through normal artist upload
+and wallet approval, then verify protected Web/physical Host allowed and denied
+listening. Conservation/renewals and off-volume restore remain W33 gates.
+Older dated checkpoints below retain their historical meaning.
+
+## Product 0.1.69 deployment, 2026-11-02
+
+The [verified rollout](evidence/product-0.1.69-rollout-2026-11-02.md) updates Web, Product and the existing API/custody
+services, and activates one bounded Bulletin cover/metadata policy without Pinata
+fallback. The artist no longer chooses an optional archive. At this rollout, the
+synthetic audio job still needed controlled recovery with its three attempts
+preserved. [The subsequent recovery record](https://github.com/knzeng-e/dotify/pull/380)
+confirms ready audio; merged #382 prepares the remaining name-only metadata repair,
+without activating it. Registration and protected physical-device acceptance remain
+open. No allowance/counter reset, new service or key installation occurred.
+Conservation monitoring/renewal and off-volume restore remain open; Capacity stays
+deferred research. Older checkpoints below retain their dated meaning.
+
+## Bulletin publication UX, 2026-11-02
+
+The [publication cleanup](evidence/bulletin-publication-ux-2026-11-02.md) removes the obsolete optional client archive
+and development-signer choice. The upload service remains authoritative for
+storage routing; artist approval, access checks and bounded publication allowances
+are unchanged. The server-side public-asset path is merged in #376; this cleanup
+does not activate it. The owner selected Bulletin stabilization first; Capacity
+remains deferred research. Next: reviewed public-asset activation and pilot
+recovery, then conservation inventory, bounded renewal and off-volume restore.
+
 Agent-ready work sequences for shipping a trustworthy musical commons on Product DevNet and ordinary web, then expanding discovery. Written 2026-09-05 against dev `bb3e2557215ee8628f4c0e107de6d1e984baaccf` and extended with W27 on 2026-09-22; agents must refresh the source before acting. This is a plan, not a claim that these features or branches already exist.
+
+## Owner priority: stabilize Bulletin, 2026-11-01
+
+Bulletin remains the active storage direction. [Capacity stays deferred research](../../research/capacity-storage-evaluation-2026-11-01.md), with no integration, provider switch or live canary in the current delivery scope.
+
+The next bounded work is to finish the public-asset path in #376, then retire the old optional client-side Bulletin archival checkbox so artists do not select infrastructure or trigger a duplicate signer-dependent write. Conservation follows: account authorization and per-block retention are separate clocks; implement verified renewal scheduling/alerts for every dependency, plus coherent off-volume encrypted-data/key recovery and an honest artist-facing availability commitment. Reserved quota alone does not renew data. Preserve existing jobs, attempts, account cursors and immutable budgets; real writes and rollout retain their explicit reviewed bounds. Physical protected Web/Host publication/listening remains acceptance, not inferred from code or a healthy endpoint.
+
+## Current delivery correction, 2026-10-23
+
+Use the [current audit](evidence/backlog-reconciliation-2026-10-23.md) before
+acting on historical sequence prompts below. W29 and room-life implementation
+are delivered. W30's same-volume non-root cutover completed in the 0.1.58 reset;
+W32/current-format jobs, encoder and playback are deployed, with native/live
+acceptance retained in #287/#317/#158. W33 code is merged but gateway access and
+measured activation remain blocked. W19's remaining scope is exact-Host location
+and lifecycle validation; do not restore manual scans/city exploration. W31's
+specific Worldwide-report verification subsequently merged through #332.
+The [October 26 reconciliation](evidence/backlog-reconciliation-2026-10-26.md)
+records W31/#286 and W34/#289 as delivered. The scoped 3D/#329 implementation
+was delivered historically; the owner retired that view on 2026-10-28 in favor
+of Radar/List. See [the presentation update](evidence/room-radar-simplification-2026-10-28.md). W34 merged through
+#333 and is deployed with API/Web and Product 0.1.62 (#334). Payment recovery
+#335 and publication return #336 are merged but not yet published; navigation
+and mini-player exits #337 are merged, alongside W35/#338; W13/device/first-sound gates remain open.
+October 27: #337 and W35/#338 are merged on `dev`; the owner requested
+one combined test deployment. [W35 evidence](evidence/W35.md) retains physical
+background/audible-continuity acceptance. W36/#291 merged through #339:
+PostgreSQL trust/catalog state, bounded session renewal and separate private
+publication custody. See [W36 evidence](evidence/W36.md) and the
+[activation runbook](../../operations/shared-api-state.md). The [0.1.63 rollout](evidence/product-0.1.63-rollout-2026-10-28.md)
+now records approved Fly infrastructure, migration, two-edge session/restart
+evidence and the private-custody boundary. Physical acceptance remains open. [W37/#292 evidence](evidence/W37.md)
+records bounded, resumable catalog indexing and synthetic load verification.
+On October 28, the owner selected W38 and confirmed that internal runtimes will
+be redeployed from scratch. [W38 evidence](evidence/W38.md) records the implemented
+bounds and paged readers, ready for review. Activation requires a coordinated
+fresh contract/API/Web/Product generation; no retired-runtime fallback is kept.
+
+## Bulletin application readers, 2026-11-01
+
+The authorized private canary is complete: **16 stores / 713,229 bytes**, with
+independent sender/nonce readback and authenticated AAC decoding. The actual
+player now selects native Host reads or the existing Web/API relay for the same
+Bulletin ciphertext, with unchanged key authority. See [application evidence](evidence/bulletin-application-readers-2026-11-01.md)
+and [ADR 0042](../../adr/0042-bulletin-application-readers.md). The
+[artist publication composition](../../adr/0043-bulletin-artist-publication.md)
+now connects that read path to an explicit private-custody writer, with retained
+renewal floors and non-destructive recovery. Review/activation, a fresh real-runtime
+scope, physical protected Web/Host acceptance and recurring retention remain next. The deployed app is unchanged; the target
+is a fresh internal Bulletin catalogue, not retired-runtime compatibility.
+
+## W39 isolated feasibility, 2026-10-29
+
+The owner requested the next backlog implementation while testing new releases.
+[W39](W39-horizontal-rooms.md) now has an isolated runnable two-process room
+prototype and a 25-guest SFU experiment, documented in [ADR 0037](../../adr/0037-room-scaling-and-sfu.md)
+and [W39 evidence](evidence/W39.md). This research does not activate horizontal
+signaling, add paid infrastructure or change the deployed guest cap. Its explicit
+production follow-ups depend on native room and regional evidence in #89/#158.
 
 ## Owner priority update: trusted pilot and streaming track, 2026-10-16
 
 The [2026-10-20 reconciliation](evidence/backlog-reconciliation-2026-10-20.md)
-supersedes the delivery assumptions in this dated scheduling snapshot. W30/W31
-are merged and deployed; API non-root/volume migration and the dedicated
-Worldwide-report E2E remain explicit remainders. Mobile forms #306 are delivered
+records an earlier checkpoint, superseded by the 2026-10-23 correction above.
+Its API non-root remainder subsequently completed; the dedicated Worldwide-report
+E2E remains open. W30/W31 implementation is merged and deployed. Mobile forms #306 are delivered
 in Product 0.1.56. W32 is selected for implementation, with its release gates
 unchanged. Do not reimplement delivered scopes from the older list below.
 
@@ -51,12 +473,12 @@ This historical snapshot is superseded by dated owner updates above and below.
 The sequences are recipes; they are not a second workflow board. GitHub Project
 5 owns live status, and each evidence file records the delivered boundary.
 
-| State                            | Sequences                    | Meaning                                                                                                                                                                                                                           |
-| -------------------------------- | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Delivered implementation records | W01-W12, W14, W18, W21-W25   | Their acceptance scope is merged into `dev`. Broader live-device evidence belongs to W13 or to #87, #88, and #89.                                                                                                                 |
-| Delivered feasibility record     | W16                          | Product CASH cannot currently authorize Asset Hub access with the evidence exposed by the Product APIs; PAS remains the executable pilot rail.                                                                                    |
+| State                            | Sequences                    | Meaning                                                                                                                                                                                                                                                                                                                                                   |
+| -------------------------------- | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Delivered implementation records | W01-W12, W14, W18, W21-W25   | Their acceptance scope is merged into `dev`. Broader live-device evidence belongs to W13 or to #87, #88, and #89.                                                                                                                                                                                                                                         |
+| Delivered feasibility record     | W16                          | Product CASH cannot currently authorize Asset Hub access with the evidence exposed by the Product APIs; PAS remains the executable pilot rail.                                                                                                                                                                                                            |
 | Active release gate              | W13                          | Product CDM validation app `[0, 1, 27]` remains the last host-observed candidate. The `[0, 1, 29]` debug upload used the transient `pad` 0.16.2 DotNS generation and is not Product-host evidence; republish it through the verified 0.16.7 profile before payment/access, room, physical-device, rollback, release-profile, and aggregate pilot capture. |
-| Not activated                    | W15, W17, W19, W20, W26, W27 | Do not start before their dependency and pilot gates are satisfied.                                                                                                                                                               |
+| Not activated                    | W15, W17, W19, W20, W26, W27 | Do not start before their dependency and pilot gates are satisfied.                                                                                                                                                                                                                                                                                       |
 
 W14 is complete as an optional implementation with a full 2D/list fallback;
 that does not authorize making 3D the default. W18 is complete as a privacy
@@ -163,7 +585,7 @@ does not displace W13 release evidence gates.
 | [W16](W16-product-cash-settlement.md)   | Prove a real Product CASH settlement path                   | `feat/product-cash-settlement`   | W05, W11                                                   |
 | [W17](W17-human-free-evidence.md)       | Bind Human free access to real private personhood           | `feat/human-free-evidence`       | W03, W11                                                   |
 | [W18](W18-nearby-privacy-design.md)     | Design nearby discovery with explicit privacy boundaries    | `docs/nearby-privacy-design`     | W09, W10                                                   |
-| [W19](W19-nearby-rooms.md)              | Find/open nearby rooms with approximate km radii             | `feat/nearby-rooms`              | W09, W10, W18; W13 for release                              |
+| [W19](W19-nearby-rooms.md)              | Find/open nearby rooms with approximate km radii            | `feat/nearby-rooms`              | W09, W10, W18; W13 for release                             |
 | [W20](W20-community-sovereignty.md)     | Choose the next community and sovereignty increment         | `docs/community-sovereignty`     | W13                                                        |
 | [W21](W21-first-listening-screen.md)    | Make the first listening screen trustworthy                 | `fix/first-listening-screen`     | W08, W10                                                   |
 | [W22](W22-room-hosting-clarity.md)      | Make hosting and joining a room unmistakable                | `fix/room-hosting-clarity`       | W09, W10                                                   |
@@ -198,3 +620,40 @@ The playbook preparation itself has a separate backlog item. Future sequence bra
 The pilot must show real first sound, successful guest joins, recovery, successful support and understood value flows. Record device/host versions, sample counts, failures, and exact builds. W08/W13/W14 define proposed performance targets, which are goals rather than current measured claims. Mocked contract calls and synthetic audio cannot stand in for real settlement or real-device playback.
 
 Keep the first feedback loop small. When a measured result contradicts the plan, fix the observed problem and update the next prompt. The roadmap should serve the room, not become another room people get trapped in.
+
+## Real-runtime pilot preparation, 2026-11-01
+
+The [scoped pilot candidate](evidence/bulletin-runtime-pilot-preparation-2026-11-01.md)
+bounds private custody to one generated release and one durable job, including
+across restart. [Product 0.1.68, Web and the private pilot are now deployed](evidence/product-0.1.68-rollout-2026-11-01.md)
+from merged #373, with an explicit one-job budget and no new service. Next: register
+the generated protected release through the normal artist wallet, then verify
+access denial, entitled Web/physical Host listening and interruption recovery.
+Measured costs, off-volume recovery and recurring retention remain gates; W33
+stays open and broader artist publication is not enabled by this pilot.
+
+## Public Bulletin assets, 2026-11-01
+
+The owner selected completing [covers and metadata on Bulletin](evidence/bulletin-public-assets-2026-11-01.md) after confirming the Pinata free-plan file limit. The implementation reuses custody and its account nonce journal, with separate bounded asset allowances and native Host/existing API reads. It is not deployed. The admission correction #375 is merged; preserve/recover the failed audio job, review a new exact asset-write budget, then verify protected Web/Host publication and listening. No prior audio allowance or state is reset.
+
+## Prepared Bulletin recovery, 2026-11-02
+
+The [prepared-job recovery](evidence/bulletin-prepared-job-recovery-2026-11-02.md) adds a maintenance-only inspection and exact-plan continuation
+of an exhausted existing pilot. It authenticates saved output and reuses the
+original inventory/cumulative allowance without resetting three preparation
+attempts. This is implemented locally, not deployed or executed. Next: reviewed
+live recovery, artist registration and protected Web/physical Host listening,
+then conservation/renewals and off-volume restore. W33/#288 remains open;
+Capacity stays deferred research.
+
+## Completed prepared-pilot recovery, 2026-11-02 21:49 UTC
+
+The [approved custody intervention](evidence/bulletin-prepared-recovery-rollout-2026-11-02.md)
+recovered the original synthetic job: 16 stores / 712,737 bytes, exact canonical
+receipts and authenticated readback, attempts still three, zero pending. Private
+and public readiness are restored. The later registration attempt exposed the
+stored artist-name defect; merged #381/#382 prepare its client guard and bounded
+metadata repair, still awaiting rollout and separate activation/write approval.
+Then verify artist wallet registration and protected Web/physical Host acceptance,
+followed by conservation/renewal and off-volume recovery.
+W33/#288 stays open; Product/Web remain 0.1.69.

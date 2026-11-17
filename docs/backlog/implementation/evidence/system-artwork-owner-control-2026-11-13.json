@@ -1,0 +1,70 @@
+{
+  "schema": "dotify.artwork.owner-control.v1",
+  "observation": "owner explicitly confirms cover and sound present; successful control, not failed-attempt timings",
+  "source": "929abe9306d0cc83fee4a74eb2f94b5416bdb8a5",
+  "reportedAt": "2026-11-13T15:00:09.102Z",
+  "inputSha256": "ecd5125f176ff23d4d4073c727255429f5f1245d66fad75a085aacaeca360996",
+  "artwork": [
+    {
+      "attempt": 1,
+      "phase": "requested",
+      "elapsedMs": 0,
+      "timestamp": 1794581990857,
+      "visibility": "visible"
+    },
+    {
+      "attempt": 1,
+      "phase": "metadata-published",
+      "elapsedMs": 1,
+      "timestamp": 1794581990857,
+      "visibility": "visible",
+      "kind": "url"
+    },
+    {
+      "attempt": 1,
+      "phase": "image-load-started",
+      "elapsedMs": 1,
+      "timestamp": 1794581990858,
+      "visibility": "visible"
+    },
+    {
+      "attempt": 1,
+      "phase": "image-ready",
+      "elapsedMs": 1,
+      "timestamp": 1794581990858,
+      "visibility": "visible"
+    },
+    {
+      "attempt": 1,
+      "phase": "decode-started",
+      "elapsedMs": 1,
+      "timestamp": 1794581990858,
+      "visibility": "visible"
+    },
+    {
+      "attempt": 1,
+      "phase": "decoded",
+      "elapsedMs": 4,
+      "timestamp": 1794581990860,
+      "visibility": "visible"
+    },
+    {
+      "attempt": 1,
+      "phase": "composed",
+      "elapsedMs": 19,
+      "timestamp": 1794581990876,
+      "visibility": "visible",
+      "kind": "png"
+    },
+    {
+      "attempt": 1,
+      "phase": "metadata-published",
+      "elapsedMs": 20,
+      "timestamp": 1794581990877,
+      "visibility": "visible",
+      "kind": "png"
+    }
+  ],
+  "nativeDisplayLatencyMeasured": false,
+  "failureCauseEstablished": false
+}

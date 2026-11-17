@@ -60,7 +60,7 @@ export function AccessGateOverlay({
             ))}
             <div>
               <dt>Network fee</dt>
-              <dd>Shown before you approve</dd>
+              <dd>Additional, shown before you approve</dd>
             </div>
           </dl>
           <details className='access-gate-details'>

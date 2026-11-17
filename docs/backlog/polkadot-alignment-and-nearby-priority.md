@@ -1,5 +1,13 @@
 # Product priorities after the Polkadot alignment audit
 
+## Scheduling superseded, 2026-11-09
+
+This October decision remains architecture/history context. The
+[November publication/listening/CASH sequence](implementation/listening-and-publication-readiness.md)
+now governs scheduling: #407 → #395 → #388 → #406 → #408. Nearby #274 is delivered
+with remaining acceptance in Next; CASH research is explicitly reopened by
+#406/#408. Do not apply the older Nearby-first/CASH-deferred order below.
+
 Planning issue: [#273](https://github.com/knzeng-e/dotify/issues/273).
 
 Decision date: 2026-10-14. Owner-requested revision based on release 0.1.48

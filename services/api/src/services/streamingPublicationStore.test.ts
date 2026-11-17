@@ -1,0 +1,437 @@
+import assert from 'node:assert/strict';
+import { PublicationAdmissionError } from './publicationAdmission.js';
+import { it, type TestContext } from 'node:test';
+import { mkdtemp, mkdir, chmod, readFile, writeFile, rm, access } from 'node:fs/promises';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
+import { getTxCreator } from 'polkadot-api/tx-creator';
+import { AccountId } from '@polkadot-api/substrate-bindings';
+import { getPublicKey, secretFromSeed } from '@scure/sr25519';
+import { initializeBulletinPublisher, publicationBinding, publisherProfileSchema, type BulletinPublisherProfile } from './bulletinPublisherProfile.js';
+import { createStreamingPublicationStore, retainedPublicationReserve, type PublisherDependencies } from './streamingPublicationStore.js';
+import { loadBulletinSigner } from './bulletinPublicationSession.js';
+import { BULLETIN_MEDIA_GENESIS } from './bulletinHttpReader.js';
+import { jobSchema, save } from './bulletinMediaState.js';
+import { initializeStreamingJobs, StreamingJobs } from './streamingJobs.js';
+import type { BulletinMediaTransport, BulletinSubmissionReceipt } from './bulletinMedia.js';
+import { blake2b } from '@noble/hashes/blake2';
+import { encodeStreamingRelease } from './streamingEncoder.js';
+import { StreamingNonceLedger } from './streamingNonces.js';
+
+async function setup(t: TestContext, pilotScope?: BulletinPublisherProfile['pilotScope']) {
+  const root = await mkdtemp(join(tmpdir(), 'dotify-publication-test-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const seed = Buffer.alloc(32, 47); // Only a generated, non-live test identity.
+  const secret = secretFromSeed(seed);
+  const account = AccountId(42).dec(getPublicKey(secret));
+  secret.fill(0);
+  const queue = join(root, 'queue');
+  const profile: BulletinPublisherProfile = {
+    schema: 'dotify.bulletin.publisher.v1',
+    genesis: BULLETIN_MEDIA_GENESIS,
+    endpoint: 'wss://bulletin.example:8443',
+    account,
+    directory: join(root, 'inventories'),
+    seedFile: join(root, 'keys', 'storage.seed'),
+    budget: { maxBytes: 1024 * 1024, maxTransactions: 64, minimumLifetimeBlocks: 100 },
+    pipeline: { concurrency: 2, maxInFlightBytes: 512 * 1024 },
+    priorRenewalReserve: { transactions: 107, bytes: 20 * 1024 * 1024 },
+    ...(pilotScope ? { pilotScope } : {})
+  };
+  const file = join(root, 'profile.json');
+  await mkdir(join(root, 'keys'), { mode: 0o700 });
+  await writeFile(profile.seedFile, seed, { mode: 0o600 });
+  await writeFile(file, JSON.stringify(profile), { mode: 0o600 });
+  await initializeBulletinPublisher(queue, profile);
+  const events: string[] = [],
+    reserves: { transactions: number; bytes: number }[] = [];
+  let disposed = 0,
+    closed = 0;
+  const transport: BulletinMediaTransport = {
+    genesis: profile.genesis,
+    account,
+    writable: true,
+    async status() {
+      events.push('status');
+      return { head: 1000, authorization: { expiresAt: 2000, remainingBytes: 100_000_000, remainingTransactions: 1000, remainingRenewBytes: 100_000_000 } };
+    },
+    async nextNonce() {
+      return { nonce: 10, head: 1000 };
+    },
+    async lookup() {
+      return null;
+    },
+    async lookupSubmission() {
+      return null;
+    },
+    async readBlock() {
+      throw new Error('No simulated stored block');
+    },
+    async store() {
+      throw new Error('No writes authorized in this unit test');
+    }
+  };
+  const deps: PublisherDependencies = {
+    async loadSigner() {
+      events.push('signer');
+      return {
+        account,
+        createTransaction: getTxCreator(new Uint8Array(32), 'Sr25519', () => {
+          throw new Error('No unit-test signatures');
+        }),
+        dispose() {
+          disposed++;
+        }
+      };
+    },
+    openSession(_profile, signer, reserve) {
+      events.push(signer ? 'write-session' : 'readonly-session');
+      reserves.push(reserve);
+      return {
+        transport,
+        close() {
+          closed++;
+          events.push('closed');
+        }
+      };
+    }
+  };
+  const options = { provider: 'bulletin' as const, queue, profileFile: file };
+  return {
+    root,
+    queue,
+    file,
+    profile,
+    options,
+    transport,
+    deps,
+    events,
+    reserves,
+    get disposed() {
+      return disposed;
+    },
+    get closed() {
+      return closed;
+    }
+  };
+}
+it('actual publisher preflights without a signer, binds its provider, holds a lifetime lease and disposes on close', async t => {
+  const c = await setup(t);
+  const store = await createStreamingPublicationStore(c.options, c.deps);
+  assert.deepEqual(c.events, ['readonly-session', 'status', 'closed', 'signer']);
+  assert.deepEqual(c.reserves, [c.profile.priorRenewalReserve]);
+  await assert.rejects(createStreamingPublicationStore(c.options, c.deps), /EEXIST/);
+  await assert.rejects(createStreamingPublicationStore({ provider: 'pinata', queue: c.queue }), /cannot be opened/);
+  await store.close();
+  await store.close();
+  assert.equal(c.disposed, 1);
+  await assert.rejects(access(join(c.profile.directory, 'publisher.lock')));
+  const restarted = await createStreamingPublicationStore(c.options, c.deps);
+  await restarted.close();
+});
+it('no missing journal, changed profile, or wrong transport identity can load a signer', async t => {
+  const c = await setup(t);
+  const changed = { ...c.profile, budget: { ...c.profile.budget, maxTransactions: 65 } };
+  await writeFile(c.file, JSON.stringify(changed), { mode: 0o600 });
+  await assert.rejects(createStreamingPublicationStore(c.options, c.deps), /profile changed/);
+  await writeFile(c.file, JSON.stringify(c.profile));
+  c.transport.genesis = `0x${'ab'.repeat(32)}`;
+  await assert.rejects(createStreamingPublicationStore(c.options, c.deps), /identity changed/);
+  assert(!c.events.includes('signer'));
+  await assert.rejects(access(join(c.profile.directory, 'publisher.lock')));
+  await rm(join(c.profile.directory, 'owner.json'));
+  await assert.rejects(createStreamingPublicationStore(c.options, c.deps), /ENOENT/);
+  assert(!c.events.includes('signer'));
+});
+it('refuses an invalid profile, symlink or public key file; key identity is checked and its disposed creator cannot sign', async t => {
+  const c = await setup(t);
+  for (const endpoint of [
+    'ws://bulletin.example',
+    'wss://user:pass@bulletin.example',
+    'wss://localhost',
+    'wss://bulletin.example/private',
+    'wss://bulletin.example?key=x'
+  ]) {
+    assert(!publisherProfileSchema.safeParse({ ...c.profile, endpoint }).success);
+  }
+  assert(!publisherProfileSchema.safeParse({ ...c.profile, genesis: `0x${'11'.repeat(32)}` }).success);
+  await chmod(c.profile.seedFile, 0o644);
+  await assert.rejects(loadBulletinSigner(c.profile), /Invalid private/);
+  await chmod(c.profile.seedFile, 0o600);
+  await assert.rejects(loadBulletinSigner({ ...c.profile, account: 'other' }), /does not match/);
+  const signer = await loadBulletinSigner(c.profile);
+  assert.equal(signer.account, c.profile.account);
+  signer.dispose();
+  await assert.rejects(signer.createTransaction.signBytes(new Uint8Array([1])), /disposed/);
+  assert.equal((await readFile(c.profile.seedFile)).length, 32);
+  const { symlink } = await import('node:fs/promises');
+  const link = join(c.root, 'keys', 'alias.seed');
+  await symlink(c.profile.seedFile, link);
+  await assert.rejects(loadBulletinSigner({ ...c.profile, seedFile: link }));
+});
+it('cross-release renewal obligations include partial stores, exclude unattempted drafts, and survive discarded queue entries', async t => {
+  const c = await setup(t);
+  const name = `stream-${'1'.repeat(8)}-${'1'.repeat(4)}-${'1'.repeat(4)}-${'1'.repeat(4)}-${'1'.repeat(12)}`;
+  const job = jobSchema.parse({
+    schema: 'dotify.bulletin.media-job.v2',
+    genesis: c.profile.genesis,
+    account: c.profile.account,
+    job: name,
+    root: 'cid',
+    scope: { chainId: 1, runtimeAddress: 'runtime', contentHash: 'hash', keyVersion: 'version' },
+    generation: 'generation',
+    blocks: [{ cid: 'cid', bytes: 100 }],
+    budget: c.profile.budget,
+    pipeline: c.profile.pipeline,
+    attemptedBytes: 100,
+    attemptedStores: 1,
+    receipts: {},
+    pending: { cid: { nonce: 10, afterBlock: 1000 } },
+    nextNonce: 11,
+    ready: false
+  });
+  await save(c.profile.directory, 'owner.json', {
+    schema: 'dotify.bulletin.media-owner.v2',
+    genesis: c.profile.genesis,
+    account: c.profile.account,
+    jobs: [name],
+    activeJob: name,
+    nextNonce: 11
+  });
+  await save(c.profile.directory, `${name}.json`, job);
+  assert.deepEqual(await retainedPublicationReserve(c.profile), { transactions: 108, bytes: c.profile.priorRenewalReserve.bytes + 100 });
+  assert.deepEqual(await retainedPublicationReserve(c.profile, name), c.profile.priorRenewalReserve);
+  const store = await createStreamingPublicationStore(c.options, c.deps);
+  assert.equal(await store.canDiscard(name), false);
+  await assert.rejects(store.pin([], name.replace(/^stream-1/, 'stream-2'), new AbortController().signal), /requires reconciliation/);
+  assert(!c.events.includes('write-session'));
+  await save(c.profile.directory, 'owner.json', {
+    schema: 'dotify.bulletin.media-owner.v2',
+    genesis: c.profile.genesis,
+    account: c.profile.account,
+    jobs: [name],
+    activeJob: null,
+    nextNonce: 11
+  });
+  await save(c.profile.directory, `${name}.json`, { ...job, attemptedBytes: 0, attemptedStores: 0, pending: {} });
+  assert.deepEqual(await retainedPublicationReserve(c.profile), c.profile.priorRenewalReserve);
+  assert.equal(await store.canDiscard(name), true);
+  await store.close();
+});
+it('failed publication files cannot be discarded or pruned while recovery is required', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'dotify-prune-test-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const directory = join(root, 'queue');
+  await initializeStreamingJobs(directory);
+  const owner = `0x${'12'.repeat(20)}`,
+    id = '11111111-1111-4111-8111-111111111111';
+  const job = {
+    id,
+    owner,
+    scope: { chainId: 1, runtimeAddress: owner, contentHash: `0x${'12'.repeat(32)}`, keyVersion: 'dotify-content-key-v2' },
+    state: 'failed',
+    attempts: 1,
+    createdAt: 1,
+    updatedAt: 1,
+    sourceBytes: 1,
+    sourceGeneration: '1234567890123456'
+  };
+  await mkdir(join(directory, 'jobs', id), { mode: 0o700 });
+  await writeFile(join(directory, 'jobs', id, 'source.bin'), 'ciphertext-17byte');
+  await writeFile(join(directory, 'jobs.json'), JSON.stringify({ schema: 'dotify.streaming.jobs.v1', jobs: [job] }));
+  const jobs = new StreamingJobs({
+    directory,
+    deriveKey: () => null,
+    authority: async () => true,
+    transcode: async () => {
+      throw new Error('unused');
+    },
+    pin: async () => {
+      throw new Error('unused');
+    },
+    canDiscard: async () => false,
+    now: () => 10 * 24 * 60 * 60_000
+  });
+  await jobs.start(false);
+  await assert.rejects(jobs.discard(id, owner, 1), { code: 'STREAMING_RECOVERY_REQUIRED' });
+  await jobs.runNext();
+  assert.equal(jobs.get(id, owner, 1)?.state, 'failed');
+  assert.equal(await readFile(join(directory, 'jobs', id, 'source.bin'), 'utf8'), 'ciphertext-17byte');
+  await jobs.stop();
+});
+
+it('a scoped pilot rejects other identities and new jobs before a write session; its original job remains retryable after restart', async t => {
+  const master = Buffer.from('generated test data only');
+  const scope = {
+    chainId: 420420417,
+    runtimeAddress: `0x${'22'.repeat(20)}`,
+    contentHash: `0x${Buffer.from(blake2b(master, { dkLen: 32 })).toString('hex')}`,
+    keyVersion: 'dotify-content-key-v2'
+  };
+  const c = await setup(t, scope);
+  const key = Buffer.alloc(32, 29);
+  const encoded = await encodeStreamingRelease({
+    master,
+    key,
+    scope,
+    ledger: new StreamingNonceLedger(join(c.queue, 'nonces')),
+    transcode: async () => ({
+      durationSeconds: 8,
+      integratedLufs: -18,
+      gainDb: 2,
+      renditions: ([96, 160, 320] as const).map(bitrateKbps => ({
+        bitrateKbps,
+        init: Buffer.from('structural fixture'),
+        segments: [Buffer.alloc(48, 1), Buffer.alloc(48, 2)]
+      }))
+    })
+  });
+  key.fill(0);
+  const files = encoded.files.map(f => ({ path: f.name, bytes: f.bytes }));
+  const original = 'stream-11111111-1111-4111-8111-111111111111';
+  const other = 'stream-22222222-2222-4222-8222-222222222222';
+  let store = await createStreamingPublicationStore(c.options, c.deps);
+  for (const patch of [
+    { chainId: 1 },
+    { runtimeAddress: `0x${'33'.repeat(20)}` },
+    { contentHash: `0x${'33'.repeat(32)}` },
+    { keyVersion: 'dotify-content-key-v3' }
+  ]) {
+    const changed = files.map(f => (f.path === 'manifest.json' ? { ...f, bytes: Buffer.from(JSON.stringify({ ...encoded.manifest, ...patch })) } : f));
+    await assert.rejects(store.assertCanPrepare!({ ...scope, ...patch }, original), PublicationAdmissionError);
+    await assert.rejects(store.pin(changed, original, new AbortController().signal), PublicationAdmissionError);
+  }
+  assert(!c.events.includes('write-session'));
+  const stored = new Map<string, { bytes: Uint8Array; receipt: BulletinSubmissionReceipt }>();
+  let head = 1000;
+  c.transport.status = async () => ({
+    head,
+    authorization: { expiresAt: 2000, remainingBytes: 100_000_000, remainingTransactions: 1000, remainingRenewBytes: 100_000_000 }
+  });
+  c.transport.nextNonce = async () => ({ nonce: 10 + stored.size, head });
+  c.transport.store = async (block, intent) => {
+    assert(!stored.has(block.cid), 'A completed pilot retry must not store again');
+    const receipt: BulletinSubmissionReceipt = {
+      cid: block.cid,
+      bytes: block.bytes.length,
+      account: c.profile.account,
+      nonce: intent.nonce,
+      block: ++head,
+      index: stored.size,
+      expiresAt: 2000,
+      finalized: true
+    };
+    stored.set(block.cid, { bytes: block.bytes, receipt });
+    return receipt;
+  };
+  c.transport.lookup = async cid => {
+    const receipt = stored.get(cid)?.receipt;
+    if (!receipt) return null;
+    const { account: _account, nonce: _nonce, ...retained } = receipt;
+    return retained;
+  };
+  c.transport.lookupSubmission = async intent => stored.get(intent.cid)?.receipt ?? null;
+  c.transport.readBlock = async cid => {
+    const value = stored.get(cid);
+    assert(value);
+    return value.bytes;
+  };
+  const root = await store.pin(files, original, new AbortController().signal);
+  const writes = stored.size;
+  assert(writes > 0);
+  await store.close();
+  const timingReports: { outcome: string; jobId?: string }[] = [];
+  store = await createStreamingPublicationStore(
+    {
+      ...c.options,
+      onTiming: report => {
+        timingReports.push(report);
+        return Promise.reject(Error('Async diagnostic sink unavailable'));
+      }
+    },
+    c.deps
+  );
+  c.events.length = 0;
+  await assert.rejects(store.assertCanPrepare!(scope), PublicationAdmissionError);
+  await assert.rejects(store.assertCanPrepare!(scope, other), PublicationAdmissionError);
+  await store.assertCanPrepare!(scope, original);
+  await assert.rejects(store.pin(files, other, new AbortController().signal), PublicationAdmissionError);
+  assert(!c.events.includes('write-session'));
+  assert.equal(await store.pin(files, original, new AbortController().signal), root);
+  assert.equal(stored.size, writes);
+  assert.deepEqual(
+    timingReports.map(report => report.outcome),
+    ['failed', 'succeeded']
+  );
+  assert.equal(timingReports[1].jobId, original.slice(7));
+  await store.close();
+  await writeFile(c.file, JSON.stringify({ ...c.profile, pilotScope: undefined }));
+  await assert.rejects(createStreamingPublicationStore(c.options, c.deps), /profile changed/);
+});
+
+it('one sanitized failed-attempt summary cannot replace the original error or change custody state', async t => {
+  const c = await setup(t);
+  const reports: unknown[] = [];
+  const store = await createStreamingPublicationStore(
+    {
+      ...c.options,
+      onTiming: report => {
+        reports.push(report);
+        throw Error('Diagnostic sink unavailable');
+      }
+    },
+    c.deps
+  );
+  const before = await readFile(join(c.profile.directory, 'owner.json'), 'utf8');
+  const abort = new AbortController();
+  const reason = new Error('PRIVATE_ABORT_VALUE');
+  abort.abort(reason);
+  await assert.rejects(store.pin([], 'not-a-job-PRIVATE_NAME', abort.signal), error => error === reason);
+  assert.equal(reports.length, 1);
+  const report = reports[0] as { outcome: string; kind: string; phases: { queue: unknown; prepare: { failures: number } }; jobId?: string };
+  assert.equal(report.outcome, 'failed');
+  assert.equal(report.kind, 'audio');
+  assert.equal(report.phases.prepare.failures, 1);
+  assert.equal(report.jobId, undefined);
+  assert(!JSON.stringify(report).includes('PRIVATE'));
+  assert.equal(await readFile(join(c.profile.directory, 'owner.json'), 'utf8'), before);
+  await store.close();
+});
+
+it('current publication startup refuses a compact inventory before loading any signer or transport', async t => {
+  const c = await setup(t);
+  const name = 'stream-11111111-1111-4111-8111-111111111111';
+  const job = jobSchema.parse({
+    schema: 'dotify.bulletin.media-job.v3',
+    layout: 'rendition-pack-v1',
+    genesis: c.profile.genesis,
+    account: c.profile.account,
+    job: name,
+    root: 'cid',
+    scope: { chainId: 1, runtimeAddress: 'runtime', contentHash: 'hash', keyVersion: 'version' },
+    generation: 'generation',
+    blocks: [{ cid: 'cid', bytes: 100 }],
+    budget: c.profile.budget,
+    pipeline: c.profile.pipeline,
+    attemptedBytes: 0,
+    attemptedStores: 0,
+    receipts: {},
+    pending: {},
+    nextNonce: null,
+    ready: false
+  });
+  await save(c.profile.directory, 'owner.json', {
+    schema: 'dotify.bulletin.media-owner.v2',
+    genesis: c.profile.genesis,
+    account: c.profile.account,
+    jobs: [name],
+    activeJob: null,
+    nextNonce: null
+  });
+  await save(c.profile.directory, name + '.json', job);
+  const before = await readFile(join(c.profile.directory, name + '.json'));
+  await assert.rejects(createStreamingPublicationStore(c.options, c.deps), /not enabled/);
+  assert.deepEqual(c.events, []);
+  assert.deepEqual(await readFile(join(c.profile.directory, name + '.json')), before);
+  await assert.rejects(access(join(c.profile.directory, 'publisher.lock')));
+});

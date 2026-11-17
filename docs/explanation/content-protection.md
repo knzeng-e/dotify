@@ -2,6 +2,13 @@
 
 > **Reading level:** Plain-language explanation first, then technical mechanics.
 
+Current streaming-only reset note: new publications use authenticated v3 AAC
+renditions, and retired DAV1/DAV2 audio is no longer playable. W34 adds
+[short-lived, session-bound access preparation](fast-access-preparation.md).
+The older container/decryption diagrams below describe historical formats;
+use that design note and [ADR 0033](../adr/0033-streaming-only-internal-reset.md)
+for current key delivery and reset boundaries.
+
 ---
 
 ## What content protection means for artists
@@ -60,8 +67,8 @@ is used as:
 - the `contentHash` argument in `musicRegRegister()`;
 - the key in access checks on the artist runtime;
 - the key-derivation input;
-- the canonical identifier for IPFS metadata, Bulletin archival, and room
-  metadata.
+- the content identifier carried in the release manifest and room metadata,
+  independently of the configured storage provider.
 
 If the content changes, the hash changes. You cannot substitute a different
 audio file for a registered track without creating a different content hash.

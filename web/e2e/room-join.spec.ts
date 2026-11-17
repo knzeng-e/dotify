@@ -1,4 +1,6 @@
+import { writeFile } from 'node:fs/promises';
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
+import { installMediaSessionProbe, readMediaSessionProbe } from './fixtures/mediaSessionProbe';
 
 // Room-join and host-access playback e2e (Sprint 1, Ticket 07).
 //
@@ -45,6 +47,65 @@ declare global {
 const PROTECTED_TITLE = 'E2E Protected Room Track';
 const PUBLIC_TITLE = 'E2E Public Room Track';
 
+test('room release discovery follows the live track without leaving or requesting a guest key', async ({ browser }, testInfo) => {
+  const hostContext = await browser.newContext();
+  const guestContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  try {
+    const host = await hostContext.newPage();
+    await installMediaSessionProbe(host);
+    await installMediaSessionProbe(guestContext);
+    const roomId = await openHostRoom(host, 'public', PUBLIC_TITLE, { catalogSequence: true, captureMode: 'web-audio', autoplay: true, sync: true });
+    const guest = await joinAsListener(guestContext, roomId, { storedDisplayName: 'Discoverer' });
+    await expectRemoteAudioPlaying(guest);
+    await expect.poll(async () => (await readMediaSessionProbe(guest)).album).toBe('Dotify');
+    await expect.poll(async () => (await readMediaSessionProbe(guest)).artwork[0]?.src).toMatch(/^data:image\/png;base64,/);
+    expect((await readMediaSessionProbe(guest)).artist).toBe('Dotify Room Host');
+    const roomArtwork = (await readMediaSessionProbe(guest)).artwork[0];
+    const artworkBytes = Buffer.from(roomArtwork.src.split(',')[1], 'base64');
+    await writeFile(testInfo.outputPath('room-system-artwork.png'), artworkBytes);
+    await testInfo.attach('room-system-artwork', { body: artworkBytes, contentType: 'image/png' });
+    await expect.poll(async () => (await readMediaSessionProbe(host)).album).toBe('Dotify');
+
+    await guest.screenshot({ path: testInfo.outputPath('room-discovery-entry-mobile.png'), fullPage: true, animations: 'disabled' });
+    await host.getByRole('button', { name: 'About this release', exact: true }).click();
+    await expect(host.getByRole('dialog')).toContainText(PUBLIC_TITLE);
+    await host.getByRole('button', { name: 'Close release details' }).click();
+    await guest.getByRole('button', { name: 'About this release', exact: true }).click();
+    await expect(guest.getByRole('dialog')).toContainText(PUBLIC_TITLE);
+    await expect(guest.getByRole('dialog')).toContainText('You’re still listening in the room');
+    await expect.poll(async () => (await readMediaSessionProbe(guest)).actions).not.toContain('nexttrack');
+    expect((await readMediaSessionProbe(guest)).actions).not.toContain('previoustrack');
+    expect((await readMediaSessionProbe(guest)).actions).not.toContain('seekto');
+    await guest.screenshot({ path: testInfo.outputPath('room-current-release-mobile.png'), fullPage: true, animations: 'disabled' });
+    await expect.poll(async () => (await readMediaSessionProbe(host)).actions).toContain('nexttrack');
+    expect((await readMediaSessionProbe(host)).actions).not.toContain('seekforward');
+    expect((await readMediaSessionProbe(host)).actions).not.toContain('seekbackward');
+    await host.evaluate(() => Reflect.get(window, '__TEST_MUSIC_SESSION__').handlers.nexttrack({ action: 'nexttrack' }));
+    await expect(guest.locator('.track-copy h2')).not.toHaveText(PUBLIC_TITLE);
+    await expect(guest.getByRole('dialog').locator('h2')).toHaveText(await guest.locator('.track-copy h2').innerText());
+    await expect(guest.getByTestId('room-code')).toHaveText(roomId);
+    await expectRemoteAudioPlaying(guest);
+    expect((await readRoomJoinState(guest))?.keyRequests).toBe(0);
+    await expect(guest.getByRole('dialog').getByRole('button', { name: /pay|unlock|leave/i })).toHaveCount(0);
+    await guest.getByRole('button', { name: 'Close release details' }).click();
+    await expect(guest.getByTestId('room-code')).toHaveText(roomId);
+    await guest.getByRole('button', { name: 'About this release', exact: true }).click();
+    await guest.getByRole('button', { name: 'Explore this artist' }).click();
+    await expect(guest.getByRole('heading', { name: 'Dotify Room Host', exact: true })).toBeVisible();
+    await expectRemoteAudioPlaying(guest);
+    await guest.getByRole('button', { name: 'Return to your room', exact: true }).click();
+    await expect(guest.getByTestId('room-code')).toHaveText(roomId);
+    expect((await readRoomJoinState(guest))?.keyRequests).toBe(0);
+    await guest.getByRole('button', { name: 'Leave', exact: true }).click();
+    await guest.getByRole('button', { name: 'Leave room', exact: true }).click();
+    await expect.poll(async () => (await readMediaSessionProbe(guest)).album ?? '').toBe('');
+    await expect.poll(async () => (await readMediaSessionProbe(host)).album).toBe('Dotify');
+  } finally {
+    await hostContext.close();
+    await guestContext.close();
+  }
+});
+
 type HostScenario = 'public' | 'protected-authorized' | 'protected-unauthorized';
 type HostCaptureMode = 'synthetic' | 'web-audio';
 
@@ -62,13 +123,14 @@ async function openHostRoom(
   page: Page,
   scenario: HostScenario,
   trackTitle: string,
-  options: { captureMode?: HostCaptureMode; offerDelayMs?: number; catalogSequence?: boolean; autoplay?: boolean } = {}
+  options: { captureMode?: HostCaptureMode; offerDelayMs?: number; catalogSequence?: boolean; autoplay?: boolean; sync?: boolean } = {}
 ) {
   const params = new URLSearchParams({ e2eRoom: scenario });
   if (options.captureMode) params.set('e2eCapture', options.captureMode);
   if (options.offerDelayMs) params.set('e2eOfferDelayMs', String(options.offerDelayMs));
   if (options.catalogSequence) params.set('e2eCatalog', 'sequence');
   if (options.autoplay) params.set('e2eAutoplay', 'on');
+  if (options.sync) params.set('e2eSync', 'on');
   await page.goto(`/?${params.toString()}`);
   // Open the room straight from the create-room modal so an unauthorized
   // protected track does not raise an access-gate overlay over the player
@@ -90,14 +152,23 @@ test('host lineup is shared, advances on track end, and Previous follows real hi
     const host = await hostContext.newPage();
     const roomId = await openHostRoom(host, 'public', PUBLIC_TITLE, { captureMode: 'web-audio', catalogSequence: true });
 
-    await host.getByRole('tab', { name: 'Queue', exact: true }).click();
+    await host.getByRole('button', { name: 'Queue', exact: true }).click();
     await host.getByRole('textbox', { name: 'Find a track to add next' }).fill('Second room track');
     await host.getByRole('button', { name: 'Add to queue Second room track by Dotify Room Host' }).click();
     await expect(host.locator('.host-lineup')).toContainText('Second room track');
 
     const listener = await joinAsListener(listenerContext, roomId, { storedDisplayName: 'Echo' });
-    await listener.getByRole('tab', { name: 'Queue', exact: true }).click();
+    await expect(listener.getByTestId('room-code')).toHaveText(roomId);
+    await expect.poll(() => listener.evaluate(() => window.history.state?.dotifyView)).toBe('player');
+    await listener.getByRole('button', { name: 'Queue', exact: true }).click();
     await expect(listener.locator('.host-lineup summary')).toContainText('Second room track');
+    // A remembered-name join must seed player history before a sheet pushes its
+    // entry. Closing that sheet must never send a still-connected guest to Rooms.
+    await listener.getByRole('button', { name: 'Close room queue', exact: true }).click();
+    await expect(listener.getByRole('dialog', { name: 'Room queue', exact: true })).toBeHidden();
+    await expect(listener.getByTestId('room-code')).toHaveText(roomId);
+    await expect.poll(() => listener.evaluate(() => window.history.state?.dotifyView)).toBe('player');
+    await listener.getByRole('button', { name: 'Queue', exact: true }).click();
     await Promise.all([
       host.screenshot({ path: testInfo.outputPath('host-lineup-desktop.png'), fullPage: true }),
       listener.screenshot({ path: testInfo.outputPath('listener-lineup-mobile.png'), fullPage: true })
@@ -107,6 +178,7 @@ test('host lineup is shared, advances on track end, and Previous follows real hi
     await expect(listener.locator('.track-copy h2')).toHaveText('Second room track', { timeout: 20_000 });
     await expect(listener.locator('.host-lineup summary')).toContainText('Nothing queued');
 
+    await host.getByRole('button', { name: 'Close room queue', exact: true }).click();
     await host.getByRole('button', { name: 'Previous track' }).click();
     await expect(listener.locator('.track-copy h2')).toHaveText(PUBLIC_TITLE, { timeout: 20_000 });
   } finally {
@@ -121,7 +193,7 @@ test('rapid host Next commands consume distinct lineup entries', async ({ browse
     const host = await hostContext.newPage();
     await openHostRoom(host, 'public', PUBLIC_TITLE, { catalogSequence: true });
 
-    await host.getByRole('tab', { name: 'Queue', exact: true }).click();
+    await host.getByRole('button', { name: 'Queue', exact: true }).click();
     await host.getByRole('textbox', { name: 'Find a track to add next' }).fill('Second room track');
     await host.getByRole('button', { name: 'Add to queue Second room track by Dotify Room Host' }).click();
     await host.getByRole('textbox', { name: 'Find a track to add next' }).fill(PROTECTED_TITLE);
@@ -273,6 +345,8 @@ test('public room: listener joins via link, hears full playback, no wallet, no c
     await expect(secondListener.locator('.listener-list')).toContainText('Nomad', { timeout: 20_000 });
     await expect(secondListener.locator('.listener-list')).toContainText('Zed', { timeout: 20_000 });
 
+    if (await listener.getByRole('button', { name: 'Close room queue', exact: true }).isVisible())
+      await listener.getByRole('button', { name: 'Close room queue', exact: true }).click();
     await listener.getByRole('tab', { name: /People/ }).click();
     await listener.getByLabel('Your name or nickname').fill('Nia');
     await listener.getByRole('button', { name: 'Update room name' }).click();
@@ -460,6 +534,9 @@ test('protected room with authorized host: host gets the key, listener streams f
 
     // Switching back also preserves the receiver. Source replacement retires
     // the old Web Audio graph only after its sender has moved to the new track.
+    // Previous intentionally restarts after three seconds; choose the intro
+    // here so this test exercises history even on a busy browser worker.
+    await host.getByRole('slider', { name: 'Seek', exact: true }).fill('0');
     await host.getByRole('button', { name: 'Previous track' }).click();
     await host.getByRole('button', { name: 'Play', exact: true }).click();
     await expect(listener.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20_000 });
@@ -539,10 +616,11 @@ test('host explicitly closes: the room is removed and the listener sees a clear 
     // The exit lives in the room header; with a guest present the host confirms.
     await host.getByRole('button', { name: 'Close room', exact: true }).click();
     await expect(host.getByRole('dialog', { name: 'Close this room?' })).toContainText('1 person is listening with you');
-    await host.getByRole('button', { name: 'Close for everyone', exact: true }).click();
+    await host.getByRole('button', { name: 'Close room and keep listening', exact: true }).click();
 
-    await expect(listener.getByTestId('session-error')).toContainText(/host left|room closed|expired/i, { timeout: 20_000 });
-    await expect(listener.getByRole('button', { name: 'Try another room', exact: true })).toBeVisible();
+    await expect(listener.getByRole('heading', { name: 'Listen together.', exact: true })).toBeVisible({ timeout: 20_000 });
+    await expect(listener.getByRole('region', { name: 'Status messages' })).toContainText('Room ended');
+    await expect(listener.locator('.topbar').getByRole('button', { name: 'Rooms', exact: true })).toBeVisible();
     // The room is gone from the listener UI (no lingering room code).
     await expect(listener.getByTestId('room-code')).toHaveCount(0);
 
@@ -556,8 +634,11 @@ test('host explicitly closes: the room is removed and the listener sees a clear 
     await host.getByRole('button', { name: 'Open the room', exact: true }).click();
     await expect(host.getByTestId('room-code')).toHaveText(/[A-Z0-9]{4,}/, { timeout: 15_000 });
     await expect(host.locator('.player-stage .cover')).toHaveAttribute('data-live', 'true');
+    if (await host.getByRole('button', { name: 'Close room queue', exact: true }).isVisible())
+      await host.getByRole('button', { name: 'Close room queue', exact: true }).click();
     await host.getByRole('tab', { name: /People/ }).click();
     await host.getByRole('button', { name: 'Close room' }).click();
+    await host.getByRole('button', { name: 'Close room and stop', exact: true }).click();
 
     // Once solo playback moves to another source generation, the retained
     // capture owner is finally retired and its Web Audio graph is closed.

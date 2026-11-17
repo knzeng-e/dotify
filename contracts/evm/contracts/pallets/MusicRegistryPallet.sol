@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only WITH Classpath-exception-2.0
 pragma solidity ^0.8.28;
 
+import { LibMusicBounds } from '../libraries/LibMusicBounds.sol';
 import { LibDiamond } from '../libraries/LibDiamond.sol';
 import { LibMusicRegistry } from '../libraries/LibMusicRegistry.sol';
 import { LibMusicNFT } from '../libraries/LibMusicNFT.sol';
@@ -193,6 +194,19 @@ contract MusicRegistryPallet {
     return LibMusicRegistry.store().trackHashes[index];
   }
 
+  /// @notice Registration-order page, including inactive tracks. At most 100 hashes.
+  /// Out-of-range offsets and zero limits return an empty page; large limits clamp.
+  function musicRegTrackHashesPage(uint256 offset, uint256 limit) external view returns (bytes32[] memory hashes) {
+    bytes32[] storage all = LibMusicRegistry.store().trackHashes;
+    uint256 total = all.length;
+    if (offset >= total || limit == 0) return new bytes32[](0);
+    uint256 length = total - offset;
+    if (length > limit) length = limit;
+    if (length > LibMusicBounds.TRACK_PAGE_SIZE) length = LibMusicBounds.TRACK_PAGE_SIZE;
+    hashes = new bytes32[](length);
+    for (uint256 i; i < length; ++i) hashes[i] = all[offset + i];
+  }
+
   // -------------------------------------------------------------------------
   // Internal
   // -------------------------------------------------------------------------
@@ -206,6 +220,13 @@ contract MusicRegistryPallet {
     require(bytes(reg.audioRef).length > 0, 'MusicRegistry: missing audio ref');
     require(bytes(reg.metadataRef).length > 0, 'MusicRegistry: missing metadata ref');
     require(bytes(reg.artistContractRef).length > 0, 'MusicRegistry: missing artist contract ref');
+    require(bytes(reg.title).length <= LibMusicBounds.TITLE_BYTES, 'MusicRegistry: title too long');
+    require(bytes(reg.artistName).length <= LibMusicBounds.ARTIST_BYTES, 'MusicRegistry: artistName too long');
+    require(bytes(reg.description).length <= LibMusicBounds.DESCRIPTION_BYTES, 'MusicRegistry: description too long');
+    require(bytes(reg.imageRef).length <= LibMusicBounds.REFERENCE_BYTES, 'MusicRegistry: imageRef too long');
+    require(bytes(reg.audioRef).length <= LibMusicBounds.REFERENCE_BYTES, 'MusicRegistry: audioRef too long');
+    require(bytes(reg.metadataRef).length <= LibMusicBounds.REFERENCE_BYTES, 'MusicRegistry: metadataRef too long');
+    require(bytes(reg.artistContractRef).length <= LibMusicBounds.REFERENCE_BYTES, 'MusicRegistry: artistContractRef too long');
     require(rs.tracks[reg.contentHash].artist == address(0), 'MusicRegistry: already registered');
     _validateAccessPolicy(reg.accessMode, reg.pricePlanck, reg.requiredPersonhood);
   }

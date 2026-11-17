@@ -35,3 +35,12 @@ No production change and no new paid service without owner authorization.
 ## Handoff
 
 Write `docs/backlog/implementation/evidence/W39.md` using `evidence-template.md`.
+
+## Research implementation
+
+The isolated [local harness](../../../research/room-scaling/README.md),
+[ADR 0037](../../adr/0037-room-scaling-and-sfu.md) and
+[evidence record](evidence/W39.md) distinguish measured feasibility from
+production activation. The current single signaling instance and audience cap
+remain unchanged. Follow-up scopes are listed in the decision; native and
+regional acceptance remains with #89/#158.

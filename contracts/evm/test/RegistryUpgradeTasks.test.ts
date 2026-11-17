@@ -131,7 +131,7 @@ describe('Registry remediation Hardhat tasks', () => {
     expect(report.runtimes[0].ownerMatchesDirectoryArtist).to.equal(true);
     expect(report.runtimes[0].registerFacetMatchesSource).to.equal(true);
     expect(report.runtimes[0].guard.status).to.equal('protected');
-    expect(report.runtimes[0].selectorRoutes).to.have.lengthOf(10);
+    expect(report.runtimes[0].selectorRoutes).to.have.lengthOf(11);
   });
 
   it('executes a vulnerable-to-protected upgrade and finalizes its evidence manifest', async () => {

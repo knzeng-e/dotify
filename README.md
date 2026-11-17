@@ -4,7 +4,7 @@
 
 # Dotify
 
-**Music brings us closer.**
+**Let the music connect the dots**
 
 Dotify turns a shared link into a listening room. Discover music through the
 people playing it, join the conversation, and support its creators. Artists
@@ -20,6 +20,14 @@ Dotify is in **testnet construction and validation** on Polkadot. Web and Produc
 DevNet are delivery targets; a deployed build is not an accepted public pilot.
 Current device, reliability and payment checks live in the
 [pilot release plan](docs/operations/pilot-release-plan.md).
+
+Internal testing uses one authenticated streaming format. The [streaming-only
+reset](docs/adr/0033-streaming-only-internal-reset.md) was deployed in Product
+0.1.58. The [0.1.63 API/Web rollout](docs/backlog/implementation/evidence/product-0.1.63-rollout-2026-10-28.md)
+activated shared API state; [Product 0.1.65](docs/backlog/implementation/evidence/product-0.1.65-rollout-2026-10-28.md)
+adds early-segment mobile AAC streaming and an accessible build/reader view
+while preserving that state and catalog. Physical-device
+and public-pilot acceptance remain separate gates.
 
 ## Listen together
 
@@ -45,6 +53,10 @@ of native Product support. [Capture source and reproduction](docs/images/release
 ![Music catalog with artist releases and listening options](docs/images/release-preview/music-desktop.jpg)
 
 **Find a listening room**
+
+The **Room view** picker offers **Radar** and **List** over the same live rooms.
+Hover over a room, or tap it on mobile, to read its invitation, meet the host,
+and see the current music and listeners before joining.
 
 ![Three parallel rooms with different covers, orbiting listeners and Nearby and Worldwide discovery](docs/images/release-preview/rooms-desktop.jpg)
 
@@ -82,6 +94,14 @@ guests receive a WebRTC audio stream, never its source file or content key.
 [Access policy](docs/explanation/access-control-model.md) ·
 [Content protection and its limits](docs/explanation/content-protection.md)
 
+## Identify your app version
+
+Open **You → About Dotify**, without connecting an account. Product builds show
+Dotify's version; Web builds show their build identifier. **Copy app details**
+includes only public build information and audio capabilities. If copying is
+blocked, open **Technical details** and select the text or take a screenshot.
+Polkadot App's own version is separate and is not inferred from Dotify's version.
+
 ## Develop locally
 
 Use **Node 22 and npm 10+**. On a fresh checkout, from the repository root:
@@ -111,7 +131,8 @@ For deterministic flows without real wallets, keys or uploads, use the existing
 | [Artist runtimes](contracts/README.md)                                 | Artist-owned contracts for catalog, access and value flows on Paseo Asset Hub.               |
 | [Product integration](docs/explanation/product-devnet-architecture.md) | Host account/runtime adapters and Bulletin/DotNS app distribution.                           |
 
-Pinata credentials and master key material stay on the API. Audio travels over
+Master key material stays server-side; Pinata credentials stay with the private
+publication service. Audio travels over
 WebRTC directly or through TURN when needed; signaling does not carry it.
 Protection controls source distribution and key delivery, not recording after
 someone is authorized to hear music.
@@ -140,3 +161,9 @@ second list here. The Product publication process is
 [documented separately](docs/operations/product-devnet-deployment.md).
 
 [GPL-3.0 license](LICENSE) · [Project presentation](docs/presentation/dotify-showcase-2026.pdf)
+
+[W36](docs/backlog/implementation/evidence/W36.md) is activated in the test
+deployment: two public APIs share PostgreSQL trust/catalog state and one private
+publication-custody service. The [migration runbook](docs/operations/shared-api-state.md)
+protects preserved data and rollback. Artist access rules and anonymous room
+entry are unchanged.

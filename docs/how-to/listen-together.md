@@ -57,7 +57,19 @@ contribute to private artist activity totals without exposing their identity.
 
 Chat, react, or request a track for the host to consider. Guests can mute or
 pause their own audio; the host controls the shared track. Browsing Music or
-Rooms keeps the session available through the compact player.
+Rooms keeps the session available through the compact player. The same player
+stays available in the artist studio.
+
+**Leave** returns to the home screen and stops your room audio. **Close room**
+ends a hosted room; when others are listening, the host confirms first. If the
+host closes the room, guests return home with a short explanation.
+
+Use the mini-player's **Close mini-player** button to stop listening and hide
+it. In a room, a confirmation explains whether you are leaving as a guest or
+closing the room as its host. Cancel keeps the room and audio intact. Choosing
+music again reopens playback. Browsing or opening the artist studio by itself
+does not close the room. To prepare a new artist release, leave the live room
+first; the release draft is preserved and uploaded drafts do not autoplay.
 
 **Hide** affects your own discovery view during this visit. Restore it through
 **Hidden rooms** then **Show again**, if it is still available. **Report** also
@@ -70,6 +82,20 @@ the draft should resume with that identity. Approve only the intended payment.
 Confirmation can take time: a pending result is not a reason to send it again.
 Keep the contribution reference and use its status-check action instead.
 See [Check a pending payment](recover-a-payment.md) for recovery steps.
+
+## Continue a solo listen
+
+On returning to Dotify, **Resume** on Music offers the last saved solo track,
+position and upcoming queue for this account and network. Nothing plays until
+you choose it. Access is checked again; a saved position never unlocks a track.
+Saved listening stays on this device for up to seven days, without keys or audio.
+Use **Dismiss saved listening** to remove it. Closing the mini-player also clears
+it. Room links and room membership are never restored by this offer.
+
+Where the browser or Product Host supports system media controls, the lock
+screen or headset can play/pause. Hosts and solo listeners can also skip or seek;
+guests retain local pause/resume. Device background behavior must be tested on
+the actual Host version. See [how continuous listening works](../explanation/continuous-listening.md).
 
 ## If something interrupts
 

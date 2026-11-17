@@ -1,0 +1,62 @@
+{
+  "observedAt": "2026-11-09T12:00:17.732Z",
+  "purpose": "Three sequential read-only root probes, not a publication/throughput benchmark",
+  "cid": "bafykbzacebqzfpyuwwsrwwuvcmp4b5vpj3g2kfxbjd4k4idmvroau6mawv7u6",
+  "samples": [
+    {
+      "attempt": 1,
+      "elapsedMs": 1570,
+      "head": 1571828,
+      "bytes": 276
+    },
+    {
+      "attempt": 2,
+      "elapsedMs": 845,
+      "head": 1571828,
+      "bytes": 276
+    },
+    {
+      "attempt": 3,
+      "elapsedMs": 775,
+      "head": 1571828,
+      "bytes": 276
+    }
+  ],
+  "phases": {
+    "status": {
+      "calls": 3,
+      "failures": 0,
+      "totalMs": 1637,
+      "maxMs": 1071,
+      "peakConcurrency": 1,
+      "inFlightAtReport": 0
+    },
+    "lookup": {
+      "calls": 3,
+      "failures": 0,
+      "totalMs": 1260,
+      "maxMs": 431,
+      "peakConcurrency": 1,
+      "inFlightAtReport": 0
+    },
+    "readBlock": {
+      "calls": 3,
+      "failures": 0,
+      "totalMs": 293,
+      "maxMs": 100,
+      "peakConcurrency": 1,
+      "inFlightAtReport": 0
+    }
+  },
+  "networkWrites": 0,
+  "signerUsed": false,
+  "network": {
+    "endpoint": "wss://bulletin-paseo.tservices.es:8443",
+    "genesis": "0xe101f0fa4627d29a257645e02be86d80378fea1a2bf8fa6a918d150ebc760a59"
+  },
+  "conditions": {
+    "externalCache": "unknown; not cleared",
+    "sequentialIterations": 3,
+    "maxReadConcurrency": 1
+  }
+}

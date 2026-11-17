@@ -36,7 +36,7 @@ export function createSessionRevocations(apiUrl: string) {
     }
     for (const [key, record] of records) {
       // Retain past local expiry to allow for modest server/client clock skew.
-      if (Date.parse(record.expiresAt) + 300_000 <= Date.now()) {
+      if (Date.parse(record.revocableUntil ?? record.expiresAt) + 300_000 <= Date.now()) {
         memory.delete(key);
         records.delete(key);
         try {

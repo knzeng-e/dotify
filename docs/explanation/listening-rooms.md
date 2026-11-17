@@ -200,3 +200,23 @@ record exact Host/device versions in release evidence.
 - Socket reconnect can silently rejoin the room, but the host still needs to
   create a fresh WebRTC offer for the new socket. If the host leaves, expires,
   or times out, the room is closed and listeners must join another room.
+
+## Leaving, browsing and the player
+
+The playback provider owns the persistent media elements across listener and
+artist shells. Navigation alone keeps an established session and its media
+identity. Full player and mini-player share transport; dismissing the mini-player
+stops playback intent, pauses the local/remote elements, and cancels unfinished
+source preparation so a late fetch cannot restart audio. Ready sources remain
+available for an explicit replay. Draft uploads are preview-only and do not
+autoplay; preparing a release requires leaving a live room to avoid replacing
+its shared source.
+
+Explicit room exit clears the peers and current invitation URL, replaces the
+player history entry with home, and stops local playback. Mini-player exit
+always confirms for active rooms. Guests leave only their own session; hosts
+close the room for everyone. A passive closure returns an orphaned player home
+and announces the reason; a person already browsing keeps that view. Canceling
+an incoming invitation clears the link. Leaving a pending join/create aborts
+its acknowledgement path, so an obsolete response cannot reopen the session.
+Browser navigation and reopening a release remain explicit user intents.

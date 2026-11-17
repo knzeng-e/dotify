@@ -1,0 +1,224 @@
+# Continuous listening
+
+W35 (#290) builds on the current authenticated AAC format (W32) and short-lived
+access preparation (W34). It does not replace WebRTC or give room guests a
+content key. Code readiness and a published, physically verified experience
+remain separate gates.
+
+## One active source, one silent successor
+
+While solo audio is advancing with enough buffered headroom, the last 15 seconds
+can prepare one successor. Queue order wins over catalog order. Pause, seek,
+stall, backgrounding, data saving, an offline connection, a changed selection,
+repeat mode, room entry or dismissal cancels speculation. The current source is
+not canceled by those speculative failures.
+
+`useNextTrackPreparation` reuses the existing prefetch eligibility/headroom
+rules. `useCatalog.prepareNextPlayback` obtains a Free authorization or uses an
+existing W34 session grant. Protected speculation never opens a wallet or
+creates a new identity session. It authenticates the manifest and media under
+the full release scope before loading a detached, paused native audio element.
+Only the first two segments are prepared while that element is detached.
+
+Policy coverage is independent of encryption. A non-encrypted artist-runtime
+source is not speculatively loaded and cannot use a ready player or key-cache
+entry to skip its ordinary runtime access check on selection. A denied or
+unavailable check leaves it stopped. Non-policy-managed local/demo sources keep
+their existing preparation path. This client guard cannot make an already
+public, unencrypted URL confidential; protected distribution still requires
+the authenticated encrypted format.
+
+`StandbyAudio` holds one candidate for at most a 30-second adoption window. A
+protected handoff additionally needs a currently valid W34 grant. The candidate
+must match the current account/network, purpose and release identity (including
+source/encryption classification, artist and local URL), be ready,
+and have no native error. A miss, expired grant or denial takes the ordinary
+authoritative selection path. No key, source URL or decrypted media is persisted.
+Already delivered material cannot be cryptographically recalled.
+
+At the natural boundary, ownership of that exact element transfers to the new
+selection before retiring its predecessor. The native pause/timeupdate events
+that precede `ended` must not cancel the successor. `PersistentAudio` mounts the
+prepared element, replays readiness callbacks after the source owner commits,
+and preserves generation/element guards against stale media events. The player
+and dock still share one active transport. There is no crossfade or early cut.
+
+This avoids waiting for a key, network fetch and decoder startup at the boundary.
+It is an alternating-player implementation, not a sample-clock scheduling
+guarantee. Browser event latency and actual audible gaps are different measures;
+albums, continuous mixes and physical Hosts still need listening evidence.
+Encrypted standby preparation requires standard or managed AAC streaming. If
+neither reader is supported, explicit playback retains the bounded authenticated
+compatibility reader. A managed Host can decline silent preload; an unready
+successor expires normally and cannot block the current track.
+
+## Explicit mobile startup
+
+Encrypted v3 Free selections with a configured key service use its canonical
+release/on-chain check directly. They do not wait for an additional client
+runtime read. The existing 15-second key-request timeout and bounded retries
+apply before the media budget. Other access paths keep their identity and
+runtime checks. Cached compatibility Blobs are returned only after the same
+authorization path succeeds (including an eligible prepared grant); a new
+denial leaves the player stopped. Access UI remains unconfirmed while the Free
+request is unresolved.
+
+This removes one reproducible pre-media stall. It does not establish the cause
+of the reported physical mobile failure. The follow-up now selects standard AAC
+MSE where available, then `ManagedMediaSource` with AAC support, then the bounded
+whole-rendition compatibility reader. This is capability detection, not an OS
+or Host-version assumption. See the [managed mobile reader evidence](../backlog/implementation/evidence/managed-mobile-audio-2026-10-28.md).
+
+The managed reader starts at 96 kb/s with authenticated init and early segments.
+It follows native streaming demand, cancels outstanding reads when demand stops
+or seeking changes the target, and appends one segment at a time. It keeps at
+most about 30 seconds ahead (4 seconds for a silent successor), not a clear-file
+cache. Native buffer removal invalidates segment presence; a backwards seek or
+eviction re-reads and authenticates the required segments. Frame replacement is
+not mistaken for eviction. Repeated eviction is bounded, absent initial demand
+fails after 20 seconds, and idle readers wait for events rather than polling.
+A failure remains terminal for that source; it does not switch keys or download
+the archival master.
+
+Managed URLs require `disableRemotePlayback` before assigning `src` or calling
+`load`. This applies only to those sources, including silent successors. No
+clear AirPlay URL is introduced; URL-based AirPlay is unavailable for this path.
+Ordinary sources and room guest streams keep their existing configuration.
+About reports the selected capability; native mobile playback and real first
+sound must still be verified in the installed Product Host.
+
+Authorization/source preparation and native media readiness are separate states.
+A fresh element receives its listeners before `src`, `preload="auto"` and an
+explicit `load()`. An adopted standby element is never reloaded. Once an
+approved source exists, Play is available even before metadata: some Host
+engines need that gesture to begin resource selection. An outstanding autoplay
+intent must not make that first Play behave as Pause.
+
+While readiness is pending, both transport controls retain native play/pause
+intent, so a requested start displays Pause. Time/duration remain zero and
+seeking stays disabled. Each fresh source resets the preceding track's play
+state before its own native events arrive.
+
+One 60-second startup budget starts after key authorization and spans transport
+retries, compatibility download and native readiness. It ends on readiness,
+terminal playback, replacement or cancellation. Expiry cancels the old source
+and presents the existing in-place retry; it never grants access, submits a
+payment or changes the key. Wallet approval time is outside that media budget.
+See [the mobile startup correction and evidence](../backlog/implementation/evidence/mobile-host-audio-startup-2026-10-28.md).
+
+## Adaptive delivery
+
+Standard MSE playback starts at 96 kb/s. The managed mobile reader remains at
+96 kb/s in this first slice; adaptive managed playback requires separate native
+acceptance. Only measured network reads contribute to a
+per-playback throughput estimate; ciphertext-cache hits do not masquerade as
+bandwidth. Selection uses a 55% safety budget, drops promptly after congestion,
+and requires eight seconds of buffer and two segments between upgrades.
+Data-saving mode stays at 96. Active read-ahead is about 30 seconds; the existing
+bounded ciphertext cache is shared with intent preparation.
+
+The managed producer downloads at most two authenticated segments ahead while
+appending them in order, only inside native streaming demand and its playhead
+window. Seek, demand stop, source close and owner cancellation abort pending
+reads. A buffer append already started finishes under the owner signal; a native
+demand stop cannot make the producer forget committed frames. Evicted segments
+can be fetched again without keeping a permanent clear-audio cache.
+
+The shared in-memory ciphertext cache keeps at most 4 MiB / 128 objects for five
+minutes. This lets a short low-bitrate rendition survive a Room preparation retry
+without repeatedly downloading its beginning. It contains no keys or clear audio;
+each reader still authorizes its purpose and authenticates every object. API
+reads remain limited to two complete response bodies per client. Waiting solo
+reads take precedence over Room preparation, without preempting active bodies.
+After acquiring a queued relay slot, the reader rechecks the same ciphertext
+cache before starting HTTP. Solo may have completed the object during that wait.
+The recheck enforces the same expiry and authenticated-size constraints, reports
+a cache hit rather than network throughput, and releases the slot even when no
+HTTP request is needed. It does not coalesce downloads already in flight.
+
+The ordinary IPFS API relay has a separate process-local ciphertext cache:
+16 MiB of payload and at most 128 objects, evicting the least recently used
+entries when either bound is exceeded. A short 73-object rendition can survive
+a second pass without evicting its own beginning. Larger or competing working
+sets can still miss; another replica or a restarted process has its own cache.
+The [cache correction evidence](../backlog/implementation/evidence/ipfs-rendition-cache-replay-2026-11-16.md)
+separates the controlled reuse result from hosted and phone acceptance.
+
+This cache holds neither keys nor clear audio. The catalog-gated
+[media route](../../services/api/src/routes/media.ts) checks current active,
+encrypted release eligibility before consulting the
+[reader](../../services/api/src/services/encryptedMedia.ts), even for a warm
+object. Client purpose authorization and authentication remain separate. Two
+cold reads, gateway/redirect policy and no-store HTTP responses remain; this is
+not a browser cache, an unrestricted gateway or the separate Bulletin reader.
+Keeping more small objects helps repeated reads, not an empty-cache first pass.
+
+Complete compatibility preparation collects the lowest authenticated rendition
+with at most four reader workers and the existing 40-MiB rendition cap
+(`web/src/features/catalog/compatibilityAudio.ts`). When any read finishes, its
+worker can take the next object; a slow early object does not prevent spare
+transport capacity from collecting later parts. Each part keeps its original
+array position, so final MP4 assembly remains ordered. This is distinct from
+progressive SourceBuffer appends, which still need the ordered read-ahead window.
+
+Progress counts completed authenticated bytes, including out-of-order parts,
+rather than only a contiguous prefix. A complete source is returned only after
+every read succeeds. Parent cancellation or a read/authentication failure aborts
+the shared preparation; late results cannot add parts or progress after abort.
+The collector discards partial output on failure. Its four workers still pass
+through the same two-body API relay and solo priority; no extra network capacity,
+access privilege, key reuse or longer startup deadline is introduced.
+
+A very slow cold full-file download can still exceed the unchanged 60-second Room
+budget: these bounds improve reuse and continuity, not network availability.
+
+The support report records a terminal `timeout` and aggregate read/decryption
+work when that Room deadline expires. Normal dismissal/selection cancellation is
+not reported as a failure. The Room notice distinguishes an authorized download
+timeout from an access refusal; it does not suggest connecting a wallet to fix
+free-track transport.
+
+Rendition changes append the authenticated initialization segment before its
+media, keeping the AAC codec and W32 segment timeline. Inconsistent rendition
+segment counts disable switching. Authentication failure is terminal: there is
+no archival-master fallback or unverified alternate key. The compatibility
+reader uses the lowest rendition rather than claiming adaptive MSE support.
+
+## System controls and return
+
+Media Session publishes the actual title, artist, artwork and transport state.
+Play and Pause are explicit, idempotent commands. Only hosts/solo listeners get
+supported Next/Previous/seek actions; guests keep local pause/resume. Unsupported
+actions are optional individually, and dismissal clears system controls and
+metadata. See the [Media Session specification](https://www.w3.org/TR/mediasession/).
+
+The active player owns playback intent. An explicit Pause, including an observed
+native pause of the current loaded element, survives same-track Room preparation,
+source replacement and a late foreground/native play event. Sharing the current
+track changes the audience; it does not request Play. Choosing another track or
+using the registered Play command can start it explicitly. Retired sources and
+natural end are excluded from native-pause ownership so they cannot pause a new
+selection or disable ordinary queue advance.
+
+A listening session lasts while its player remains open. The paused mini-player
+can resume its current selection and position; closing it retires the source and
+selecting that track again starts at the beginning. No cross-visit audio position
+or Room auto-rejoin is restored. Hosts can explicitly close a Room and keep the
+same playing or paused source in solo; guests retain only their local controls.
+See [the Pause correction evidence](../backlog/implementation/evidence/explicit-pause-authority-2026-11-13.md)
+for the tested source and remaining physical lock-screen acceptance.
+
+## Evidence boundaries
+
+The first-sound export retains schema 6 and adds optional session aggregates:
+up to 40 host/solo Next-to-`playing` latencies, native playing/post-start waiting time and rebuffer
+ratio. These contain no account, room or release identifiers. Intentional pause
+and native paused time are excluded; guest transport is outside this measurement.
+They are media-event observations, not proof of audible output or
+background execution. Rendition diagnostics remain in the existing bounded,
+local startup observer; no analytics endpoint is added.
+
+First sound p75 below one second, Next below 300 ms and rebuffering below 0.5%
+remain measurement targets. Record physical Desktop/mobile Host versions,
+foreground/background/lock behavior and actual audio on the release candidate;
+never infer those from browser fixtures or a successful build.

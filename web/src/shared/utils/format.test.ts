@@ -16,6 +16,14 @@ const classicTrack = {
 } as CatalogTrack;
 
 describe('describeArtistRegistrationError', () => {
+  it('explains a reverted installation as resumable setup, without instructing the artist to redeploy', () => {
+    const message = describeArtistRegistrationError(
+      new Error('Product CDM transaction "installRuntimeStep" failed: Transaction dispatch failed: Revive.ContractReverted')
+    );
+    expect(message).toContain('Completed steps are saved');
+    expect(message).toContain('continue setup');
+    expect(message).not.toContain('Revive.');
+  });
   it('explains Polkadot Hub EVM invalid transaction contract-call errors as runtime deployment weight limits', () => {
     const message = describeArtistRegistrationError(
       new Error(

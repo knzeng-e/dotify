@@ -21,7 +21,7 @@ async function hostRoom(browser: Browser) {
         // Closing a tab is now a reconnectable disconnect. Explicitly end the
         // fixture room so its grace-period invitation cannot enter the next test.
         await host.getByRole('button', { name: 'Close room', exact: true }).click();
-        const confirm = host.getByRole('button', { name: 'Close for everyone', exact: true });
+        const confirm = host.getByRole('button', { name: 'Close room and stop', exact: true });
         await expect.poll(async () => (await host.getByTestId('room-code').count()) === 0 || (await confirm.isVisible())).toBe(true);
         if (await confirm.isVisible()) await confirm.click();
         await expect(host.getByTestId('room-code')).toHaveCount(0);

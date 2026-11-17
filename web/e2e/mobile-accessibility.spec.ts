@@ -63,7 +63,8 @@ for (const width of [390, 1440]) {
             await page.getByRole('button', { name: 'Open the room', exact: true }).click();
             await expect(page.getByTestId('room-code')).toHaveText(/[A-Z0-9]{4,}/);
             if (surface === 'share') await page.getByRole('button', { name: 'Share room', exact: true }).click();
-            else if (width <= 768) await page.getByRole('tab', { name: surface === 'people' ? /People/ : surface === 'requests' ? /Queue/ : 'Chat' }).click();
+            else if (surface === 'requests') await page.getByRole('button', { name: 'Queue', exact: true }).click();
+            else if (width <= 768) await page.getByRole('tab', { name: surface === 'people' ? /People/ : 'Chat' }).click();
           }
         }
       }

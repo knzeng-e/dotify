@@ -1,3 +1,4 @@
+import { normalizedAudioCapture } from '../features/player/audioNormalization';
 import { useEffect, useRef, useState } from 'react';
 import type { RoomRealtimePort, RoomRequests, RoomTrackEmitter } from '../features/rooms/roomRealtimePort';
 import type { RoomTyping, RoomActivity } from '../shared/types';
@@ -31,7 +32,8 @@ import { ensureProductHostRoomPermissions, isProductHostWebRtcUnavailable, openP
 import { isChosenDisplayName, sanitizeDisplayName, storeDisplayName } from '../features/identity/walletIdentity';
 import { nextCaptureAttempt, shouldReuseCapture, type CaptureAttempt } from '../features/rooms/streamCapture';
 import { RoomCreationController } from '../features/rooms/roomCreation';
-import { registerHostAudioOutput, syncHostAudioOutput } from '../features/player/hostAudioOutput';
+import { queuePendingIce } from '../features/rooms/pendingIce';
+import { registerHostAudioOutput, releaseHostAudioOutput, resumeHostAudioOutput, syncHostAudioOutput } from '../features/player/hostAudioOutput';
 import { CHAT_CLIENT_LIMIT, CHAT_TEXT_MAX_LENGTH, REQUEST_QUEUE_CLIENT_LIMIT, REQUEST_TEXT_MAX_LENGTH, ROOM_LINEUP_CLIENT_LIMIT } from '../shared/social';
 import { normalizeRoomCode, normalizeRooms, peerStatusLabel, getPeerStatus } from '../shared/utils/format';
 import { getTurnIceServers, hasTurnIceServer } from '../services/turn';
@@ -113,6 +115,8 @@ function retireWebAudioElementCapture(audio: HTMLMediaElement) {
   const capture = webAudioElementCaptures.get(audio);
   if (!capture) return false;
   webAudioElementCaptures.delete(audio);
+  // This path can retire a fallback graph before PersistentAudio unmounts it.
+  releaseHostAudioOutput(audio);
   audio.removeEventListener('volumechange', capture.onVolumeChange);
   for (const node of [capture.source, capture.playbackGain, capture.monitorGain, capture.destination]) {
     try {
@@ -216,6 +220,7 @@ export function useSession(deps: UseSessionDeps) {
   const [joinCode, setJoinCode] = useState(() => getInitialRoomCode());
   const [displayName, setDisplayName] = useState('Listener');
   const [localStreamReady, setLocalStreamReady] = useState(false);
+  const pendingJoinRef = useRef<AbortController | null>(null);
   const [isRefreshingRooms, setIsRefreshingRooms] = useState(false);
   // `preview` is retained only for backward-compatible signaling payloads.
   // Access model v2 creates and updates current rooms in `full` mode; a host
@@ -519,6 +524,8 @@ export function useSession(deps: UseSessionDeps) {
   }
 
   function clearRoomState(status: string, errorMessage: string | null, options: { closePeers?: boolean } = {}) {
+    pendingJoinRef.current?.abort();
+    pendingJoinRef.current = null;
     if (roomCreationRef.current.cancel()) socketRef.current?.emit('room:leave');
     if (options.closePeers !== false) {
       closeAllPeers();
@@ -676,6 +683,7 @@ export function useSession(deps: UseSessionDeps) {
       clearHostConnectionTimer(payload.listenerId);
       hostPeersRef.current.get(payload.listenerId)?.close();
       hostPeersRef.current.delete(payload.listenerId);
+      pendingIceCandidatesRef.current.delete(payload.listenerId);
       removeListener(payload.listenerId);
       setListenerCount(payload.listenerCount);
     });
@@ -800,7 +808,7 @@ export function useSession(deps: UseSessionDeps) {
   async function ensureRoomTransportReady() {
     if (!roomPermissionRef.current) {
       roomPermissionRef.current = ensureProductHostRoomPermissions(signalUrl, undefined, {
-        remoteUrls: dotifyApiUrl ? [dotifyApiUrl] : []
+        remoteUrls: [dotifyApiUrl, import.meta.env.VITE_DOTIFY_MEDIA_EDGE_URL].filter((url): url is string => Boolean(url))
       })
         .then(result => {
           if (result.ok) return true;
@@ -911,6 +919,12 @@ export function useSession(deps: UseSessionDeps) {
     // One Web Audio destination survives pause/seek on this element. Next
     // creates a new generation and replaces the sender's track. Native capture
     // can retire tracks between metadata and playing; prefer the stable graph.
+    const normalized = normalizedAudioCapture(audio);
+    if (normalized) {
+      normalized.sync();
+      void normalized.resume().catch(() => undefined);
+      return normalized.stream;
+    }
     const contextCtor = window.AudioContext ?? (window as AudioContextWindow).webkitAudioContext;
     if (!contextCtor) {
       const capturable = audio as CapturableMediaElement;
@@ -922,7 +936,7 @@ export function useSession(deps: UseSessionDeps) {
     const existing = webAudioElementCaptures.get(audio);
     if (existing) {
       syncWebAudioMonitorGain(audio, existing);
-      void existing.context.resume().catch(() => undefined);
+      void resumeHostAudioOutput(audio).catch(() => undefined);
       return existing.stream;
     }
 
@@ -960,7 +974,7 @@ export function useSession(deps: UseSessionDeps) {
       },
       release: () => retireWebAudioElementCapture(audio)
     });
-    void context.resume().catch(() => undefined);
+    void resumeHostAudioOutput(audio).catch(() => undefined);
     if (isRoomJoinE2e) recordRoomJoinE2eWebAudioCapture();
     // Do NOT throw when there is no audio track yet: capture can legitimately
     // run before the element starts producing audio (e.g. at loadedmetadata,
@@ -1526,9 +1540,7 @@ export function useSession(deps: UseSessionDeps) {
   }
 
   function queueRemoteCandidate(from: string, candidate: RTCIceCandidateInit) {
-    const pending = pendingIceCandidatesRef.current.get(from) ?? [];
-    pending.push(candidate);
-    pendingIceCandidatesRef.current.set(from, pending);
+    queuePendingIce(pendingIceCandidatesRef.current, from, candidate);
   }
 
   async function flushRemoteCandidates(from: string, peer: RTCPeerConnection) {
@@ -1572,6 +1584,8 @@ export function useSession(deps: UseSessionDeps) {
   }
 
   function beginRoomCreation() {
+    pendingJoinRef.current?.abort();
+    pendingJoinRef.current = null;
     cancelRoomCreation();
     const signal = roomCreationRef.current.begin();
     setSessionAction('creating');
@@ -1683,6 +1697,9 @@ export function useSession(deps: UseSessionDeps) {
       navigateToView('player');
       return;
     }
+    pendingJoinRef.current?.abort();
+    const joinController = new AbortController();
+    pendingJoinRef.current = joinController;
     const joinDisplayName = options.displayName ?? displayName;
 
     // Persist the chosen name on a real join (not on every keystroke). No-ops
@@ -1749,7 +1766,8 @@ export function useSession(deps: UseSessionDeps) {
       },
       () => {
         clearRoomState('Error', 'Room service unavailable.', { closePeers: false });
-      }
+      },
+      joinController.signal
     );
   }
 
@@ -2026,6 +2044,8 @@ export function useSession(deps: UseSessionDeps) {
   }
 
   function destroySession() {
+    pendingJoinRef.current?.abort();
+    pendingJoinRef.current = null;
     roomCreationRef.current.cancel();
     socketRef.current?.emit('room:leave');
     socketRef.current?.disconnect();

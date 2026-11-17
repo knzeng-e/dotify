@@ -1,0 +1,71 @@
+{
+  "schema": "dotify.bulletin.continuity-preparation.v1",
+  "date": "2026-10-30",
+  "status": "local-preparation-only",
+  "base": "b3de877b0b507f9e735d2ec6c446c600d3023465",
+  "fixture": {
+    "profile": "continuity",
+    "root": "bafykbzacecj2qvfpqevlm6pqkm24fjcmszi6qd5r3ywikxfxx5yhjqsyorot4",
+    "durationSeconds": 64,
+    "bitratesKbps": [96, 160, 320],
+    "segmentsPerRendition": 16,
+    "blocks": 66,
+    "bytes": 5677848,
+    "verifiedPlaybackObjects": 51,
+    "playbackFetchedMaster": false
+  },
+  "futureBudget": {
+    "stores": 66,
+    "storeBytes": 5677848,
+    "oneRenewalReserveTransactions": 66,
+    "oneRenewalReserveBytes": 5677848,
+    "totalTransactionReservation": 132,
+    "distributionBudgetIncluded": false,
+    "approved": false
+  },
+  "writerProbe": {
+    "schema": "dotify.bulletin.writer-probe.v1",
+    "papiVersion": "3.3.0",
+    "genesis": "0xe101f0fa4627d29a257645e02be86d80378fea1a2bf8fa6a918d150ebc760a59",
+    "finalizedBlock": 1434307,
+    "nonce": 948,
+    "transactionCreator": "getFakeTxCreator (invalid synthetic signature)",
+    "encodedBytes": 120,
+    "encodedSha256": "b5348e28ab95d2261c32f7ca6dc59bcb05e8fa66a6d47be63aabae04167c7872",
+    "realSignatures": 0,
+    "networkWrites": 0,
+    "storageQuotaConsumed": 0,
+    "limitation": "Construction compatibility only; no dispatch or finality proof",
+    "endpoint": "wss://bulletin-paseo.tservices.es:8443",
+    "rpcMethods": [
+      "chainHead_v1_call",
+      "chainHead_v1_follow",
+      "chainHead_v1_header",
+      "chainHead_v1_storage",
+      "chainHead_v1_unpin",
+      "chainSpec_v1_chainName",
+      "chainSpec_v1_genesisHash",
+      "chainSpec_v1_properties"
+    ]
+  },
+  "automatedBrowser": {
+    "transport": "bundled-decoder-control",
+    "playbackRate": 4,
+    "continuedReadsAfterPlaybackStart": true,
+    "progressBeyondInitial30SecondBuffer": true,
+    "pauseSeekStopAndReportReload": true,
+    "humanNetworkMarkerPersisted": true,
+    "physicalHost": false,
+    "verifiedNetworkHandover": false,
+    "audibleStartupMeasured": false
+  },
+  "newNetworkWrites": 0,
+  "newRealSignatures": 0,
+  "productionStorageActivated": false,
+  "remainingGates": [
+    "Reviewed exact storage, retention and independent Product distribution budgets",
+    "Fresh quota and signer identity checks; preserve existing renewal reserves",
+    "Native 64-second iPhone/Desktop runs, manual controls and background/network continuity",
+    "Cold audible first sound and production access/renewal ownership"
+  ]
+}

@@ -22,6 +22,22 @@ specialized concepts in plain language, then connect them to concrete files and
 runtime behavior. Do not turn the description into a generic textbook or
 repeat the diff line by line.
 
+## Reader attention: techno-professional care
+
+Practice **bienveillance techno-professionnelle**: a reviewer's attention is a
+limited resource. More generated information is not automatically more useful.
+Lead with the result, the decision and the material risk. Give the reader one
+clear path through the change; keep paragraphs short and define unfamiliar
+terms where they first matter.
+
+Use progressive disclosure. The four visible sections should let a human decide
+what to inspect and why. Put detailed measurements, exhaustive state transitions
+and reproduction commands in a linked, versioned evidence/design document, or
+an optional `<details>` block when they are useful inside the PR. Preserve exact
+invariants, code paths, failure boundaries and evidence for both humans and
+agents. Do not hide a security or rollout condition in optional detail, repeat
+identical facts across sections, or paste raw logs into the main reading path.
+
 ## The required story
 
 Every PR description must convey the following information, but not through a
@@ -95,6 +111,15 @@ metadata checklist into the reviewer-facing description.
 - Request reviewers when ownership is known. Do not assign arbitrary people or
   request the PR author to review their own change.
 - Keep the PR draft until its stated review prerequisites are satisfied.
+
+## Documentation in the same change
+
+Follow [Document a change](../how-to/document-a-change.md). Update the rule's
+reference or procedure rather than appending the same release paragraph to
+multiple documents. Link dated evidence with its commit and environment; keep
+candidate, deployed and accepted states distinct. When moving a document,
+verify its relative links and section anchors. Review diagrams as well as prose
+for retired behavior or guarantees the implementation cannot provide.
 
 ## Review-ready checklist
 

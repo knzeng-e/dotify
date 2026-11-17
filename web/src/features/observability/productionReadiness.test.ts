@@ -20,7 +20,7 @@ const baseCheck: ReadinessCheck = {
 const track = {
   metadataRef: 'ipfs://QmManifest',
   imageRef: 'https://gateway.example/ipfs/QmCover',
-  audioRef: 'dotify:enc:ipfs://QmAudio'
+  audioRef: 'dotify:enc:v3:key-v2:ipfs://Qm9xbPnX2h2VnxfRwzFjHa13DQXGJM66ikuLncRHkKydcZ'
 } as CatalogTrack;
 
 describe('isProductionReadinessPanelEnabled', () => {

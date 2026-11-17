@@ -1,5 +1,11 @@
 # PR review quality
 
+## Current reconciliation, 2026-10-23
+
+#241 is merged; the four-section template and writing guide are present.
+#240 closes as delivered documentation. No deployment or native-device gate
+belongs to this process-only scope.
+
 Issue: #240
 
 ## Outcome

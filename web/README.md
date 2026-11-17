@@ -9,7 +9,9 @@ and **You** form the listener app; `/artists` opens the artist studio.
 
 ## Run locally
 
-Use Node 22 and npm 10+. From this directory:
+Use the [maintained Node 22 patch](../docs/reference/server-runtime.md) selected
+in `.nvmrc`, and npm 10+. See [tooling requirements](../docs/reference/development-toolchain.md)
+for the supported version range. From this directory:
 
 ```sh
 npm ci
@@ -82,6 +84,12 @@ have their own configurations; run them sequentially to avoid port conflicts.
 See [quality gates](../docs/operations/dev-quality-gates.md) and the
 [pilot plan](../docs/operations/pilot-release-plan.md) for candidate-bound,
 real-device evidence.
+
+The separate [compact AAC gate](../docs/operations/dev-quality-gates.md#compact-aac-acceptance)
+needs FFmpeg-generated synthetic artifacts and API test dependencies. It checks
+real decoded samples through Web/injected-Host delivery and a loopback guest,
+with explicit WebKit progressive-output limits. It starts only local servers and
+does not establish physical Host compatibility or faster publication.
 
 The README gallery is reproducible through the
 [documentation capture recipe](../docs/images/release-preview/README.md).

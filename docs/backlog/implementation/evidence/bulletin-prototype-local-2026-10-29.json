@@ -1,0 +1,33 @@
+{
+  "observedAt": "2026-10-29T16:21:43.098Z",
+  "synthetic": true,
+  "networkWrites": 0,
+  "model": "in-memory finalized block/expiry simulation; not a Bulletin node",
+  "encryption": "actual Dotify v3 encryptor, nonce reservation, manifest verification and AEAD decoder",
+  "files": 11,
+  "blocks": 19,
+  "graphBytes": 870498,
+  "maxBlockBytes": 262144,
+  "startup": {
+    "fetchedBytes": 28767,
+    "localReadAndDecryptMs": 4.963209000000006,
+    "fullMasterFetched": false,
+    "validAac": false,
+    "audibleFirstSoundMeasured": false
+  },
+  "checkpointReopen": {
+    "reusedBlocks": 19,
+    "extraStoreCalls": 0
+  },
+  "renewal": {
+    "requested": 19,
+    "acknowledgedIsRetention": false,
+    "verifiedBlocks": 19
+  },
+  "canaryBudget": {
+    "maxStoredBytes": 870498,
+    "maxStoreAndOneRenewalTransactions": 38
+  },
+  "liveReadWriteVerified": false,
+  "nativeHostVerified": false
+}

@@ -1,5 +1,7 @@
 import { zeroAddress, type Address, type Hash } from 'viem';
 import { assertNativeAccessPayment } from '../payments/paymentModel';
+import { SupportNotSubmittedError } from '../payments/supportPayment';
+import { createProductPaymentApproval, type ProductPaymentSigner } from './productPaymentApproval';
 import {
   MAX_ROYALTY_SPLITS,
   MAX_RUNTIME_TRACKS,
@@ -82,6 +84,7 @@ export type ProductCdmRuntimeWriterDeps = ProductCdmRuntimeAdapterDeps & {
   /** Native Balance precision used by Revive.call.value on the connected chain. */
   nativeTokenDecimals: number;
   readAvailableBalance?: () => Promise<bigint>;
+  getPaymentSigner?: () => ProductPaymentSigner | null;
 };
 
 const EVM_VALUE_DECIMALS = 18;
@@ -133,6 +136,7 @@ export function evmValueToNativeUnits(value: bigint, nativeTokenDecimals: number
 export function productCdmPaymentWasNotSubmitted(error: unknown): boolean {
   const preSubmissionNames = new Set([
     'ProductCdmNativeValueError',
+    'ProductCdmStorageDepositError',
     'ContractSignerMissingError',
     'ContractInvalidOriginError',
     'ContractDryRunFailedError',
@@ -229,9 +233,15 @@ export function createProductCdmRuntimeReader(deps: ProductCdmRuntimeAdapterDeps
       const trackCount = toBigInt(await queryContract<bigint | number | string>(runtime, 'musicRegTrackCount'));
       const trackTotal = assertBoundedCount(trackCount, MAX_RUNTIME_TRACKS, `Runtime ${runtimeAddress}`);
 
+      const hashes: Hash[] = [];
+      for (let offset = 0; offset < trackTotal; offset += 100) {
+        const limit = Math.min(100, trackTotal - offset);
+        const page = await queryContract<Hash[]>(runtime, 'musicRegTrackHashesPage', [BigInt(offset), BigInt(limit)]);
+        if (page.length !== limit) throw new Error('The artist catalog returned an incomplete page. Try again.');
+        hashes.push(...page);
+      }
       return Promise.all(
-        Array.from({ length: trackTotal }, async (_, index): Promise<RuntimeTrackSnapshot> => {
-          const hash = await queryContract<Hash>(runtime, 'musicRegTrackHashAtIndex', [BigInt(index)]);
+        hashes.map(async (hash): Promise<RuntimeTrackSnapshot> => {
           const trackResult = await queryContract<OnchainTrackRecord | { track: OnchainTrackRecord; tokenOwner: Address } | [OnchainTrackRecord, Address]>(
             runtime,
             'musicRegGetTrack',
@@ -317,11 +327,11 @@ export function createProductCdmRuntimeWriter(deps: ProductCdmRuntimeWriterDeps)
       }
     },
     createRuntime(factoryAddress) {
-      return txContract(deps.contracts.getFactoryContract(factoryAddress), 'createRuntime');
+      return txContract(deps.contracts.getFactoryContract(factoryAddress), 'createRuntime', [{ waitFor: 'finalized' }]);
     },
 
     installRuntimeStep(factoryAddress) {
-      return txContract(deps.contracts.getFactoryContract(factoryAddress), 'installRuntimeStep');
+      return txContract(deps.contracts.getFactoryContract(factoryAddress), 'installRuntimeStep', [{ waitFor: 'finalized' }]);
     },
 
     registerTrack(runtimeAddress, registration: RuntimeTrackRegistration) {
@@ -362,10 +372,31 @@ export function createProductCdmRuntimeWriter(deps: ProductCdmRuntimeWriterDeps)
     payForAccess(intent, onStatus) {
       assertNativeAccessPayment(intent);
       const nativeValue = evmValueToNativeUnits(intent.amountPlanck, deps.nativeTokenDecimals);
-      return txContract(deps.contracts.getRuntimeContract(intent.runtimeAddress), 'musicRoyPayAccess', [
+      const signer = deps.getPaymentSigner?.();
+      const approval = signer ? createProductPaymentApproval(signer) : undefined;
+      const result = txContract(deps.contracts.getRuntimeContract(intent.runtimeAddress), 'musicRoyPayAccess', [
         intent.contentHash,
-        { value: nativeValue, waitFor: 'finalized', ...(onStatus ? { onStatus } : {}) }
+        {
+          value: nativeValue,
+          waitFor: 'finalized',
+          ...(approval ? { signer: approval.signer } : {}),
+          ...(approval || onStatus
+            ? {
+                onStatus: (status: Parameters<NonNullable<typeof onStatus>>[0], hash?: Hash) => {
+                  approval?.observe(status);
+                  onStatus?.(status, hash);
+                }
+              }
+            : {})
+        }
       ]);
+      return result
+        .catch(error => {
+          approval?.close();
+          if (approval?.unsignedTimeout(error)) throw new SupportNotSubmittedError(error, 'approval-expired');
+          throw error;
+        })
+        .finally(() => approval?.close());
     },
 
     claimRoyalty(runtimeAddress, recipientAddress) {

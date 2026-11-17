@@ -1,0 +1,106 @@
+{
+  "schema": "dotify.exact-release-activation.v1",
+  "date": "2026-11-11",
+  "issue": 407,
+  "trial": "Eskapade à engong",
+  "imageSource": "8d0706548416fe5e17711a5d480def7499776c1a",
+  "image": "registry.fly.io/dotify-api@sha256:51714fcf022d38a45eae71ddd7a5c11f6557c1048bc8b37fd98cf99722e3009e",
+  "sameImageReused": true,
+  "registryUpload": false,
+  "testedDev": "99b62a3baff6de70fb33f25c194e18cbd0158289",
+  "ciRun": 42926472731,
+  "ciConclusion": "success",
+  "maximumNewAttempts": 356,
+  "maximumNewBytes": 75563008,
+  "writeWindow": {
+    "concurrency": 16,
+    "maxInFlightBytes": 4194304
+  },
+  "priorReservesPreserved": true,
+  "previousProtectedHistoryPreserved": true,
+  "onlyAdmissionAndNewArchiveChanged": true,
+  "providerSnapshotCompleted": true,
+  "healthAndReadinessPassedTwice": true,
+  "maintenanceBulletinOperations": 0,
+  "renewals": 0,
+  "dotnsSignatures": 0,
+  "keyChange": false,
+  "webProductPublicApiVersion": "0.1.82",
+  "maintenanceApprovalConsumed": true,
+  "sourceDurationSeconds": 114.8,
+  "offlineSizing": {
+    "audioBlocks": 108,
+    "audioBytes": 11401205,
+    "coverBlocks": 8,
+    "coverBytes": 191720,
+    "modeledWaves": 9,
+    "noNetwork": true,
+    "productionKeysRead": false
+  },
+  "publicationAcceptanceAtActivation": "pending",
+  "realPublicationLatencyMeasuredAtActivation": false,
+  "hostedMemoryUnderNewWorkMeasuredAtActivation": false,
+  "boundedPrivateTimingCollectionApprovedSeconds": 7200,
+  "sameFilePerformanceComparison": false,
+  "issue407Closed": false,
+  "laterOwnerAcceptance": {
+    "publication": "OK",
+    "listening": "OK",
+    "approximatePublishToWalletMs": 466000,
+    "exactWalletRenderTimestampMeasured": false
+  },
+  "capturedTimingAcceptance": {
+    "collection": {
+      "parts": 3,
+      "reports": 4,
+      "repeatedCoverReportsAreNotDistinctReleases": true,
+      "readFailures": 0,
+      "rawLogsPersisted": false
+    },
+    "audio": {
+      "publisherElapsedMs": 435455,
+      "storeCalls": 108,
+      "storeFailures": 0,
+      "storePeak": 16,
+      "finalizeMeanMs": 32040.556,
+      "firstInclusionMeanMs": 6101.907,
+      "proofReadPeak": 2,
+      "lookupCalls": 432,
+      "readBlockCalls": 216
+    },
+    "coverReports": [
+      {
+        "publisherElapsedMs": 426161,
+        "queueMs": 421783,
+        "elapsedMinusQueueMs": 4378,
+        "storeCalls": 0
+      },
+      {
+        "publisherElapsedMs": 7143,
+        "queueMs": 2769,
+        "elapsedMinusQueueMs": 4374,
+        "storeCalls": 0
+      }
+    ],
+    "metadata": {
+      "publisherElapsedMs": 87384,
+      "storeCalls": 2,
+      "storeFailures": 0,
+      "storePeak": 1,
+      "finalizeMeanMs": 32308.5,
+      "lookupCalls": 124
+    },
+    "observedStoreCallsTotal": 110,
+    "publisherReportAnchoredSpanMs": 531947,
+    "interpretation": {
+      "spanIsNotPublishToWallet": true,
+      "logTimestampAnchoringIsApproximate": true,
+      "phaseTotalsAreNotAdditive": true,
+      "sourceDiffersFromPriorTrial": true,
+      "isolatedSpeedupFactorEstablished": false,
+      "localSizingBytesAreNotLiveBytes": true
+    }
+  },
+  "liveInventoryOrByteCountReaudited": false,
+  "nextInvestigation": "Offline reduction of storage blocks/dependency stages and format/resolver compatibility; retain integrity, canonical/retention and nonce gates."
+}

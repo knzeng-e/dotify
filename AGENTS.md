@@ -113,6 +113,14 @@ When working on an issue:
 7. Update `docs/index.html` when product positioning, roadmap, architecture narrative, public presentation, or visual identity changes.
 8. Avoid unrelated refactors.
 
+## Documentation discipline
+
+Follow `docs/how-to/document-a-change.md`. Give each rule one authoritative home,
+separate reusable procedures from dated evidence, and distinguish implemented,
+deployed and device-accepted states. Bind validation results to a commit and
+verify links and referenced anchors when moving content. Keep the documentation
+index useful for contributors and operators without private chat context.
+
 ## Pull requests as knowledge sharing
 
 Every pull request must teach the change, not merely list changed files.

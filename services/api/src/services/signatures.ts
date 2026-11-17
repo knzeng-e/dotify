@@ -27,7 +27,7 @@ import { verify as verifySr25519Signature } from '@scure/sr25519';
 import { verifyMessage } from 'viem';
 import { config } from '../config.js';
 import { checkDotifyChainId } from './chainDomain.js';
-import { consumeNonce, issueNonce } from './replayProtection.js';
+import { consumeWalletNonce, issueWalletNonce } from './replayProtection.js';
 
 // 'room_listener' deliberately does not exist: room listeners never receive
 // content keys, they only receive the host's ephemeral WebRTC stream.
@@ -217,9 +217,7 @@ export function deriveProductAccountH160(publicKey: Uint8Array): `0x${string}` {
     throw new Error(`Expected ${PRODUCT_PUBLIC_KEY_BYTES}-byte Product public key`);
   }
 
-  const addressBytes = isEvmDerivedAccountId(publicKey)
-    ? publicKey.slice(0, H160_BYTES)
-    : keccak_256(publicKey).slice(PRODUCT_PUBLIC_KEY_BYTES - H160_BYTES);
+  const addressBytes = isEvmDerivedAccountId(publicKey) ? publicKey.slice(0, H160_BYTES) : keccak_256(publicKey).slice(PRODUCT_PUBLIC_KEY_BYTES - H160_BYTES);
   return `0x${bytesToHex(addressBytes)}`;
 }
 
@@ -350,16 +348,12 @@ export async function verifySignInRequest(request: SignInRequest): Promise<Signa
     return { valid: false, code: 'EXPIRED_SESSION', reason: 'Sign-in challenge has expired. Request a new one.' };
   }
 
-  const signature = await verifySignatureEnvelope(
-    request,
-    buildSignInMessage(request),
-    'Wallet signature does not match the sign-in payload.'
-  );
+  const signature = await verifySignatureEnvelope(request, buildSignInMessage(request), 'Wallet signature does not match the sign-in payload.');
   if (!signature.valid) {
     return signature;
   }
 
-  const nonce = consumeNonce(request.nonce, request.requester, request.chainId);
+  const nonce = await consumeWalletNonce(request.nonce, request.requester, request.chainId);
   if (!nonce.ok) {
     return { valid: false, code: nonce.code, reason: nonce.reason };
   }
@@ -368,12 +362,12 @@ export async function verifySignInRequest(request: SignInRequest): Promise<Signa
 }
 
 /** Issue a wallet nonce challenge bound to the address and chain. */
-export function createWalletNonceChallenge(request: NonceChallengeRequest): NonceChallenge {
+export async function createWalletNonceChallenge(request: NonceChallengeRequest): Promise<NonceChallenge> {
   // The public route rejects an explicitly wrong chain. Always issue the
   // actual challenge for the configured chain so internal callers cannot
   // accidentally mint a cross-domain nonce.
   const chainId = config.DOTIFY_CHAIN_ID;
-  const issued = issueNonce(request.address, chainId);
+  const issued = await issueWalletNonce(request.address, chainId);
   return { nonce: issued.nonce, expiresAt: issued.expiresAt, chainId };
 }
 
@@ -393,16 +387,12 @@ export async function verifySignedRequest(request: KeySignatureRequest): Promise
     return { valid: false, code: 'EXPIRED_SESSION', reason: 'Key request has expired. Request a new challenge.' };
   }
 
-  const signature = await verifySignatureEnvelope(
-    request,
-    buildSignedRequestMessage(request),
-    'Wallet signature does not match the request payload.'
-  );
+  const signature = await verifySignatureEnvelope(request, buildSignedRequestMessage(request), 'Wallet signature does not match the request payload.');
   if (!signature.valid) {
     return signature;
   }
 
-  const nonce = consumeNonce(request.nonce, request.requester, request.chainId);
+  const nonce = await consumeWalletNonce(request.nonce, request.requester, request.chainId);
   if (!nonce.ok) {
     return { valid: false, code: nonce.code, reason: nonce.reason };
   }

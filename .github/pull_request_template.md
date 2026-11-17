@@ -1,3 +1,7 @@
+<!-- Respect reader attention: result first, short paragraphs, one review path.
+Keep material risks visible. Link detailed design/evidence and use <details>
+for optional depth rather than repeating it in every section. -->
+
 ## Outcome
 
 <!-- In 2-3 sentences: before -> after, who benefits, and why now. Link the
@@ -19,6 +23,10 @@ the invariant or regression each reviewer should challenge. -->
 1. `path`: Does ...?
 
 ## Evidence and remaining gates
+
+<!-- For documentation, follow docs/how-to/document-a-change.md: update the
+authoritative reference, verify links/anchors and distinguish dated evidence
+from current procedures and deployed state. -->
 
 <!-- Say what each test or manual check proves, not just that it ran. Distinguish
 local checks from live/physical-device evidence. State unverified behavior,

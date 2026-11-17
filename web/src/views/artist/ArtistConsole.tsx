@@ -86,8 +86,6 @@ export function ArtistConsole() {
     personhoodLevel,
     setPersonhoodLevel,
     setCoverFile,
-    uploadToBulletinEnabled,
-    setUploadToBulletinEnabled,
     assetAction,
     setAssetAction,
     artistTab,
@@ -95,12 +93,11 @@ export function ArtistConsole() {
     releaseStep,
     setReleaseStep
   } = useReleaseForm();
-  const { connectedWallet, activeEvmAddress, activeSubstrateAddress, expectedChainId, getActiveWalletClient, bulletinAccountIndex, setBulletinAccountIndex } =
-    useWalletContext();
+  const { connectedWallet, activeEvmAddress, expectedChainId, getActiveWalletClient } = useWalletContext();
   const catalog = useCatalogContext();
   const session = useSessionContext();
   const { artistConsole, totalRoyaltyWei } = useArtistStudio();
-  const { openTrack } = usePlaybackContext();
+  const { openTrack, requestRoomExit } = usePlaybackContext();
 
   const factoryAddress = deployments.factory;
   const directoryAddress = deployments.directory;
@@ -117,7 +114,6 @@ export function ArtistConsole() {
   const royaltyStatus = artistConsole.royaltyStatus;
   const isRefreshingRoyalties = artistConsole.isRefreshingRoyalties;
   const expandedRoyaltyPaymentId = artistConsole.expandedRoyaltyPaymentId;
-  const bulletinManifestRef = artistConsole.bulletinManifestRef;
   const audioSource = catalog.audioSource;
   const fileHash = catalog.fileHash;
   const coverSource = catalog.coverSource;
@@ -148,7 +144,7 @@ export function ArtistConsole() {
   const artistPublicationQuarantined = artistConsole.artistPublicationQuarantined;
   const hasArtistRuntime = Boolean(artistConsole.artistRuntimeAddress);
   const artistStudioLocked = artistPublicationQuarantined || deriveArtistStudioLocked(artistRegistrationAvailable, hasArtistRuntime);
-  const canReviewRelease = deriveCanReviewRelease({ fileHash, title, audioSource });
+  const canReviewRelease = deriveCanReviewRelease({ fileHash, title, artistName, description, audioSource });
 
   const onOpenTrack = openTrack;
   const onSetReleaseStep = setReleaseStep;
@@ -174,8 +170,6 @@ export function ArtistConsole() {
   const onRemoveRoyaltySplit = (id: string) => {
     setAdditionalRoyaltySplits(current => current.filter(split => split.id !== id));
   };
-  const onSetUploadToBulletinEnabled = setUploadToBulletinEnabled;
-  const onSetBulletinAccountIndex = setBulletinAccountIndex;
   const onUpdateArtistName = (name: string) => artistConsole.updateArtistName(name, setArtistName);
   const onRefreshArtistRuntime = () => {
     void artistConsole.refreshArtistRuntime(true);
@@ -198,6 +192,7 @@ export function ArtistConsole() {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    catalog.cancelPlaybackPreparation();
     setAssetAction('audio');
     artistConsole.setRightsStatus(uploadStatusMessage('audio', 'preparing'));
     catalog.setAudioCID('');
@@ -211,6 +206,10 @@ export function ArtistConsole() {
       setDurationSeconds(await measureAudioDuration(nextUrl));
 
       catalog.setAudioSource(nextUrl);
+      if (isBackendConfigured() && catalog.fileHash !== result.hash) {
+        catalog.coverUploadRef.current = null;
+        catalog.setCoverCID('');
+      }
       catalog.setFileHash(result.hash);
       setTitle(nextTitle);
       catalog.setSelectedTrackId('draft-upload');
@@ -264,16 +263,27 @@ export function ArtistConsole() {
       catalog.objectUrlsRef.current.add(nextUrl);
       catalog.setCoverSource(nextUrl);
       setCoverFile(file);
+      if (isBackendConfigured() && !catalog.fileHash) {
+        artistConsole.setRightsStatus('Cover ready for your release');
+        return;
+      }
       artistConsole.setRightsStatus(uploadStatusMessage('cover', 'uploading'));
       const uploadIdentity = await getUploadIdentity();
 
-      const uploadPromise = uploadFileToPinata(file, file.name, { app: 'dotify', type: 'cover' }, uploadIdentity)
+      const uploadPromise = uploadFileToPinata(
+        file,
+        file.name,
+        { app: 'dotify', type: 'cover' },
+        { ...uploadIdentity!, contentHash: catalog.fileHash ?? undefined }
+      )
         .then(cid => {
+          if (catalog.coverUploadRef.current !== uploadPromise) return cid;
           catalog.setCoverCID(cid);
           artistConsole.setRightsStatus(uploadStatusMessage('cover', 'uploaded'));
           return cid;
         })
         .catch(() => {
+          if (catalog.coverUploadRef.current !== uploadPromise) return '';
           artistConsole.setRightsStatus(uploadStatusMessage('cover', 'failed'));
           return '';
         });
@@ -414,7 +424,16 @@ export function ArtistConsole() {
           />
         )}
 
-        {artistTab === 'new' && (
+        {artistTab === 'new' && session.roomId && (
+          <section className='doc-panel' role='status'>
+            <h2>Your room is still live</h2>
+            <p>Leave your room before preparing a new release. Your draft will stay here.</p>
+            <button className='secondary-action' type='button' onClick={() => requestRoomExit()}>
+              Leave room
+            </button>
+          </section>
+        )}
+        {artistTab === 'new' && !session.roomId && (
           <NewReleaseTab
             releaseStep={releaseStep}
             artistStudioLocked={artistStudioLocked}
@@ -433,16 +452,14 @@ export function ArtistConsole() {
             nativePaymentSymbol={nativePaymentSymbol}
             royaltyBps={royaltyBps}
             additionalRoyaltySplits={additionalRoyaltySplits}
-            uploadToBulletinEnabled={uploadToBulletinEnabled}
             rightsStatus={rightsStatus}
             isRegistering={isRegistering}
+            publicationVisibility={artistConsole.publicationVisibility}
             canReviewRelease={canReviewRelease}
             artistName={artistName}
-            connectedWallet={connectedWallet}
+            onUpdateArtistName={onUpdateArtistName}
             activeEvmAddress={activeEvmAddress}
             artistRuntimeAddress={artistRuntimeAddress}
-            activeSubstrateAddress={activeSubstrateAddress}
-            bulletinAccountIndex={bulletinAccountIndex}
             onSetReleaseStep={onSetReleaseStep}
             onGoToPreviousStep={onGoToPreviousStep}
             onGoToNextStep={onGoToNextStep}
@@ -458,8 +475,6 @@ export function ArtistConsole() {
             onAddRoyaltySplit={onAddRoyaltySplit}
             onUpdateRoyaltySplit={onUpdateRoyaltySplit}
             onRemoveRoyaltySplit={onRemoveRoyaltySplit}
-            onSetUploadToBulletinEnabled={onSetUploadToBulletinEnabled}
-            onSetBulletinAccountIndex={onSetBulletinAccountIndex}
             onRegisterRights={onRegisterRights}
           />
         )}
@@ -516,10 +531,7 @@ export function ArtistConsole() {
               fileHash={fileHash}
               audioCID={audioCID}
               coverCID={coverCID}
-              bulletinManifestRef={bulletinManifestRef}
               trackInfo={trackInfo}
-              uploadToBulletinEnabled={uploadToBulletinEnabled}
-              activeSubstrateAddress={activeSubstrateAddress}
             />
           </details>
         )}

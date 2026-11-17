@@ -2,12 +2,13 @@
 //
 // Flow: sign one SIGN_IN challenge to establish an identity session, then send
 // its token for per-track content-key requests. The backend independently
-// re-checks the access policy on every key request. Session-service failures
+// verifies a short-lived, block-bound access verdict for each key request. Session-service failures
 // never switch playback to per-track wallet signatures.
 
 import type { WalletClient } from 'viem';
 import { createSessionCache, type SessionScope } from './sessionCache';
 import { createSessionRevocations } from './sessionRevocations';
+import { createPreparedKeys, preparedTrackKey, type PreparedTrack } from './preparedKeys';
 
 import { publishProductHostKeySmokeMetric, type ProductHostKeySmokeMetric } from '../features/productHost/productCdmHostSmokeEvidence';
 
@@ -16,7 +17,6 @@ const keyServiceTimeout = () => AbortSignal.timeout(15_000);
 
 export type KeyRequestPurpose = 'individual' | 'room_host';
 export const PRODUCT_SR25519_SIGNATURE_SCHEME = 'product-sr25519-v1';
-export const LEGACY_CONTENT_KEY_VERSION = 'dotify-content-key-v1';
 export const RELEASE_BOUND_CONTENT_KEY_VERSION = 'dotify-content-key-v2';
 export type ContentKeyVersion = `dotify-content-key-v${number}`;
 
@@ -115,10 +115,20 @@ export type ContentKeyReleaseIdentity = {
 // ---------------------------------------------------------------------------
 // Session: sign once, listen freely (ticket 24 P2).
 //
-// One SIWE-style signature opens a ~24h session; the token (identity only,
+// One wallet signature opens a two-hour session, renewable for up to 24h; the token (identity only,
 // never access) then rides every key request instead of a fresh signature.
-// The backend re-checks the on-chain policy per track on every request.
+// The backend checks a short-lived, block-bound policy verdict per track.
 // ---------------------------------------------------------------------------
+
+const preparedKeys = createPreparedKeys();
+let preparedKeyGeneration = 0;
+let preparedSession: { signer: DotifySessionIdentity; chainId: number; token: string; scope: string } | null = null;
+/** Called synchronously on disconnect and during wallet scope cleanup. */
+export function clearPreparedContentKeys(): void {
+  preparedKeyGeneration++;
+  preparedKeys.clear();
+  preparedSession = null;
+}
 
 const sessionRevocations = createSessionRevocations(API_URL ?? '');
 const sessionCache = createSessionCache(API_URL ?? '', token => sessionRevocations.has(token));
@@ -223,6 +233,7 @@ function publishProductKeyResponseSmoke(input: {
 }
 
 export function clearStoredSession(address: string, expectedToken?: string): void {
+  clearPreparedContentKeys();
   sessionCache.clear(address, expectedToken);
 }
 
@@ -282,7 +293,34 @@ async function openDotifySessionForSigner(signer: KeyRequestSigner, chainId: num
   };
   const scope = sessionScope(signer, chainId);
   const stored = sessionCache.read(scope);
-  if (stored) return stored.token;
+  // Renew during ordinary track changes before expiry, not only during the
+  // final minute (which a typical song can easily span).
+  if (stored && Date.parse(stored.expiresAt) > Date.now() + 15 * 60_000) return stored.token;
+  const renewable = sessionCache.readRenewable(scope);
+  if (renewable && Date.parse(renewable.expiresAt) > Date.now()) {
+    const response = await fetch(`${API_URL}/api/auth/renew`, {
+      method: 'POST',
+      signal: keyServiceTimeout(),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionToken: renewable.token })
+    });
+    if (response.ok) {
+      const renewed = (await response.json()) as { sessionToken: string; expiresAt: string; revocableUntil?: string };
+      if (!isCurrent()) {
+        sessionRevocations.add(signer.address, { token: renewed.sessionToken, expiresAt: renewed.expiresAt, revocableUntil: renewed.revocableUntil });
+        await retryPendingSessionRevocations().catch(() => {});
+        assertCurrent();
+      }
+      sessionCache.store(scope, { token: renewed.sessionToken, expiresAt: renewed.expiresAt, revocableUntil: renewed.revocableUntil });
+      return renewed.sessionToken;
+    }
+    // A store outage never becomes an unexpected wallet prompt.
+    if (response.status !== 401) {
+      const failure = await parseError(response, 'Your listening session could not be checked. Please try again.');
+      throw new KeyServiceError(failure.message, failure.code);
+    }
+    sessionCache.clear(signer.address, renewable.token);
+  }
   try {
     if (!(await isDotifySessionAvailable())) {
       keyRequestSmokeFields(signer, chainId, { phase: 'session-unavailable', path: 'session' });
@@ -337,14 +375,14 @@ async function openDotifySessionForSigner(signer: KeyRequestSigner, chainId: num
       throw new KeyServiceError(message, code);
     }
 
-    const body = (await res.json()) as { sessionToken: string; expiresAt: string };
+    const body = (await res.json()) as { sessionToken: string; expiresAt: string; revocableUntil?: string };
     if (!isCurrent()) {
-      sessionRevocations.add(signer.address, { token: body.sessionToken, expiresAt: body.expiresAt });
+      sessionRevocations.add(signer.address, { token: body.sessionToken, expiresAt: body.expiresAt, revocableUntil: body.revocableUntil });
       // Disconnect stays authoritative even if durable revocation must retry.
       await retryPendingSessionRevocations().catch(() => {});
       assertCurrent();
     }
-    sessionCache.store(scope, { token: body.sessionToken, expiresAt: body.expiresAt });
+    sessionCache.store(scope, { token: body.sessionToken, expiresAt: body.expiresAt, revocableUntil: body.revocableUntil });
     interruptedSignIns.delete(sessionCache.keyFor(scope));
     keyRequestSmokeFields(signer, chainId, { phase: 'session-created', path: 'session' });
     return body.sessionToken;
@@ -408,6 +446,7 @@ export async function ensureDotifySession(walletClient: WalletClient, chainId: n
 
 /** Stop local use immediately; retain inactive credentials until durable logout. */
 export async function signOutOfDotifySession(address: string): Promise<void> {
+  clearPreparedContentKeys();
   const key = address.toLowerCase();
   sessionEpochs.set(key, (sessionEpochs.get(key) ?? 0) + 1);
   for (const [scope, interrupted] of interruptedSignIns) {
@@ -500,22 +539,49 @@ export async function requestContentKey(request: ContentKeyRequest): Promise<Con
   if (!API_URL) throw new KeyServiceError('Backend key service is not configured.', 'KEY_SERVICE_NOT_CONFIGURED');
   const signer = resolveRequestSigner(request);
   if (!signer) throw new KeyServiceError('Connect an account before requesting protected playback.', 'WALLET_REQUIRED');
+  let generation = preparedKeyGeneration;
+  const assertIdentityCurrent = () => {
+    if (generation !== preparedKeyGeneration) throw new KeyServiceError('Listening identity changed during preparation.', 'SESSION_CANCELLED');
+  };
   let token = await getOrCreateDotifySession(signer, request.chainId);
+  assertIdentityCurrent();
   if (!token) throw sessionUnavailable();
+  const assertRequestCurrent = () => {
+    assertIdentityCurrent();
+    // Observe cross-tab replacement as well as local disconnect. A rejected old
+    // token must not clear or renew a different, newer identity session.
+    if (sessionCache.readRenewable(sessionScope(signer, request.chainId))?.token !== token)
+      throw new KeyServiceError('Listening session changed during preparation.', 'SESSION_CANCELLED');
+  };
+  assertRequestCurrent();
+  let preparedScope = `${sessionCache.keyFor(sessionScope(signer, request.chainId))}:${token}`;
+  let preparedEpoch = preparedKeys.bind(preparedScope);
+  if (request.release) {
+    const prepared = preparedKeys.read(preparedScope, { contentHash: request.contentHash, release: request.release }, request.purpose);
+    if (prepared) return prepared;
+  }
   try {
     let res = await requestKeyWithSession(request.contentHash, request.purpose, token, request.release);
+    assertRequestCurrent();
     if (res.status === 401) {
       const failure = await parseError(res.clone(), 'Listening is temporarily unavailable.');
+      assertRequestCurrent();
       // Service/proxy failures are not proof that the cached identity expired.
       if (RENEWABLE_SESSION_CODES.has(failure.code)) {
         clearStoredSession(signer.address, token);
+        generation = preparedKeyGeneration;
         token = await getOrCreateDotifySession(signer, request.chainId);
+        assertIdentityCurrent();
         if (!token) throw sessionUnavailable();
+        preparedScope = `${sessionCache.keyFor(sessionScope(signer, request.chainId))}:${token}`;
+        preparedEpoch = preparedKeys.bind(preparedScope);
         res = await requestKeyWithSession(request.contentHash, request.purpose, token, request.release);
+        assertRequestCurrent();
       }
     }
     if (!res.ok) {
       const { message, code } = await parseError(res, 'Protected listening is temporarily unavailable. Please try again.');
+      assertRequestCurrent();
       if (res.status === 401 && RENEWABLE_SESSION_CODES.has(code)) {
         clearStoredSession(signer.address, token);
         const failure = new KeyServiceError('Your listening session could not be renewed. Reconnect your account to try again.', 'SESSION_SIGN_IN_INTERRUPTED');
@@ -534,6 +600,9 @@ export async function requestContentKey(request: ContentKeyRequest): Promise<Con
       throw new KeyServiceError(message, code);
     }
     const body = (await res.json()) as ContentKeyResponse;
+    assertRequestCurrent();
+    if (!preparedKeys.current(preparedScope, preparedEpoch) || existingDotifySession(signer, request.chainId) !== token)
+      throw new KeyServiceError('Listening session changed during preparation.', 'SESSION_CANCELLED');
     publishProductKeyResponseSmoke({
       signer,
       chainId: request.chainId,
@@ -557,17 +626,89 @@ export async function requestContentKey(request: ContentKeyRequest): Promise<Con
   }
 }
 
+/** A prepared grant is useful only while its exact identity session is live. */
+export function readPreparedContentKey(
+  contentHash: `0x${string}`,
+  release: ContentKeyReleaseIdentity | undefined,
+  purpose: KeyRequestPurpose
+): ContentKeyResponse | null {
+  const current = preparedSession;
+  if (!current || !release || existingDotifySession(current.signer, current.chainId) !== current.token) return null;
+  return preparedKeys.read(current.scope, { contentHash, release }, purpose);
+}
+
+/** Speculation never opens/renews a session or invokes a wallet. Only an
+ * existing identity token can prepare up to five individually checked grants. */
+export async function prepareContentKeys(input: {
+  signer?: KeyRequestSigner;
+  walletClient?: WalletClient;
+  chainId: number;
+  purpose: KeyRequestPurpose;
+  tracks: PreparedTrack[];
+  signal?: AbortSignal;
+}): Promise<void> {
+  if (!API_URL || input.signal?.aborted) return;
+  const signer = input.signer ?? (input.walletClient ? toWalletSigner(input.walletClient) : null);
+  if (!signer) return;
+  const token = existingDotifySession(signer, input.chainId);
+  if (!token) return;
+  const scope = `${sessionCache.keyFor(sessionScope(signer, input.chainId))}:${token}`;
+  const epoch = preparedKeys.bind(scope);
+  preparedSession = { signer, chainId: input.chainId, token, scope };
+  const tracks = [...new Map(input.tracks.map(track => [preparedTrackKey(track, input.purpose), track])).values()]
+    .filter(track => !preparedKeys.read(scope, track, input.purpose, 10_000))
+    .slice(0, 5);
+  if (!tracks.length) return;
+  const started = Date.now();
+  const response = await fetch(`${API_URL}/api/tracks/keys/prepare`, {
+    method: 'POST',
+    signal: input.signal ? AbortSignal.any([input.signal, keyServiceTimeout()]) : keyServiceTimeout(),
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sessionToken: token, purpose: input.purpose, tracks: tracks.map(track => ({ contentHash: track.contentHash, ...track.release })) })
+  });
+  if (!response.ok) {
+    if (response.status === 401) {
+      const failure = await parseError(response, 'Queue preparation unavailable.');
+      if (RENEWABLE_SESSION_CODES.has(failure.code) && existingDotifySession(signer, input.chainId) === token) clearStoredSession(signer.address, token);
+    }
+    return;
+  }
+  const body = (await response.json()) as { expiresAt: string; tracks: Array<ContentKeyResponse & { contentHash: string; releaseId: string }> };
+  if (input.signal?.aborted || !preparedKeys.current(scope, epoch) || existingDotifySession(signer, input.chainId) !== token) return;
+  const until = Math.min(started + 30_000, Date.parse(body.expiresAt));
+  if (!Number.isFinite(until) || !Array.isArray(body.tracks)) return;
+  for (const track of tracks) {
+    const result = body.tracks.find(
+      result =>
+        result.contentHash?.toLowerCase() === track.contentHash.toLowerCase() && result.releaseId?.toLowerCase() === track.release.releaseId.toLowerCase()
+    );
+    if (
+      result?.access === 'allowed' &&
+      result.playbackMode === 'full' &&
+      /^0x[0-9a-fA-F]{64}$/.test(result.contentKey) &&
+      result.runtime?.toLowerCase() === track.release.runtimeAddress.toLowerCase()
+    )
+      preparedKeys.store(scope, epoch, track, input.purpose, result, until);
+  }
+}
+
 /**
  * Request the content key for a Free track. No wallet, no signature, no
  * session: the backend verifies on-chain that the track's current access mode
  * grants access to everyone, and only then releases the key. Free must feel
  * free - a guest without a wallet can play a Free track.
  */
-export async function requestFreeContentKey(contentHash: `0x${string}`, release?: ContentKeyReleaseIdentity): Promise<ContentKeyResponse> {
+export async function requestFreeContentKey(
+  contentHash: `0x${string}`,
+  release?: ContentKeyReleaseIdentity,
+  purpose: KeyRequestPurpose = 'individual'
+): Promise<ContentKeyResponse> {
   if (!API_URL) {
     throw new KeyServiceError('Backend key service is not configured (VITE_DOTIFY_API_URL).', 'KEY_SERVICE_NOT_CONFIGURED');
   }
 
+  const prepared = readPreparedContentKey(contentHash, release, purpose);
+  if (prepared) return prepared;
   const res = await fetch(`${API_URL}/api/tracks/${contentHash}/free-key`, {
     method: 'POST',
     signal: keyServiceTimeout(),

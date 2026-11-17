@@ -1,0 +1,43 @@
+{
+  "operation": "custody-publication-diagnostics-rollout",
+  "source": "f9fdd693399761baa6d88d155d6768dccde40dee",
+  "mergedDevCi": {
+    "run": 42652248697,
+    "conclusion": "success"
+  },
+  "reviewedPrCi": {
+    "run": 42647688065,
+    "conclusion": "success"
+  },
+  "image": "registry.fly.io/dotify-api@sha256:e2c0267da90820f70493dff9c68168a786d17a05d706e1d4a5f8c778794aa98d",
+  "localImageId": "sha256:79416195296362388664b2e2a1de99c8d206bcf609a3933d854eb880610354bf",
+  "role": "custody",
+  "uid": 1000,
+  "health": 200,
+  "readiness": 200,
+  "firstReadyAt": "2026-11-09T16:45:13.788Z",
+  "confirmedAt": "2026-11-09T16:46:37.095Z",
+  "selectedFilesByteUnchanged": 9,
+  "readyInventories": 5,
+  "readyQueueJobs": 2,
+  "pendingIntents": 0,
+  "ownerCursorUnchanged": 1642,
+  "activeKeyVersion": "dotify-content-key-v3",
+  "retainedKeyVersions": [
+    "dotify-content-key-v2",
+    "dotify-content-key-v3"
+  ],
+  "snapshot": {
+    "id": "vs_0OzD2XDxyopt9QLqAp79",
+    "status": "created",
+    "createdAt": "2026-11-09T16:39:00Z"
+  },
+  "publicApiReplicasUnchanged": 2,
+  "webAndProductVersionUnchanged": "0.1.82",
+  "operatorBulletinOperations": 0,
+  "operatorDotnsSignatures": 0,
+  "newMusicalAllowance": 0,
+  "secretTransfer": false,
+  "publicationLatencyAccepted": false,
+  "productionDatabaseFailureInduced": false
+}

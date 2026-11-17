@@ -1,5 +1,15 @@
 # W34 - Take the content key off the critical path
 
+## Delivered checkpoint, 2026-10-26
+
+Issue #289 is a delivered record: #333 merged the current-format implementation;
+#334 records the API/Web and Product 0.1.62 rollout. See
+[implementation evidence](evidence/W34.md) and
+[publication evidence](evidence/product-0.1.62-rollout-2026-10-25.md).
+The synthetic key-wait benchmark is not physical audible-startup evidence;
+#88/#287/#317/#158 retain those gates. W35/#290 is the next eligible streaming
+implementation. The original assignment below is historical.
+
 Copy this entire file into an agent working in the Dotify repository, or use the launcher in README.md.
 
 ## Agent assignment
@@ -39,3 +49,11 @@ No change to key derivation, session signing, or the room key invariant. No pers
 ## Handoff
 
 Write `docs/backlog/implementation/evidence/W34.md` using `evidence-template.md`.
+
+## Implementation checkpoint, 2026-10-25
+
+The implementation follows the current v3-only streaming path, not the historical
+DAV2 prefetch filenames above. See [design and boundaries](../../explanation/fast-access-preparation.md)
+and [verification evidence](evidence/W34.md). Parallel block-bound reads, bounded
+verdicts, a five-track session batch and memory-only queue preparation are included.
+Real-device first sound remains a release gate; this change is not a deployment.

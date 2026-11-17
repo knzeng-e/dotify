@@ -92,6 +92,7 @@ async function completeReleaseDraft(page: Page, options: { royaltySharePercent?:
   await page.getByRole('button', { name: 'New release', exact: true }).click();
   await page.getByTestId('artist-audio-input').setInputFiles(audioFixture);
   await expect(page.getByText('Audio ready', { exact: true })).toBeVisible();
+  await expect(page.locator('audio.native-player-source').first()).toHaveJSProperty('paused', true);
   await page.getByTestId('artist-cover-input').setInputFiles(coverFixture);
   await expect(page.getByText('Cover ready', { exact: true })).toBeVisible();
 
@@ -111,6 +112,8 @@ async function completeReleaseDraft(page: Page, options: { royaltySharePercent?:
   await page.getByLabel('Contributor 1 role', { exact: true }).selectOption('producer');
 
   await page.getByRole('button', { name: 'Continue' }).click();
+  await expect(page.getByRole('checkbox', { name: /Bulletin archive/i })).toHaveCount(0);
+  await expect(page.getByRole('combobox', { name: /archive signer/i })).toHaveCount(0);
   await page.getByTestId('release-access-select').selectOption('classic');
   await page.getByTestId('release-price-input').fill('0.75');
   await page.getByTestId('release-royalty-input').fill(royaltySharePercent);
@@ -156,6 +159,138 @@ test('artist saves a scheduled gift destination and reloads it from Rights', asy
   await expect(policy).toContainText('25% of your remaining portion stays with you');
 });
 
+async function openPublishedTipPolicy(page: Page) {
+  await createArtistProfile(page);
+  await completeReleaseDraft(page);
+  await page.getByTestId('publish-release-button').click();
+  await expect(page.getByRole('dialog')).toContainText('Release published');
+  await page.getByRole('button', { name: 'Close', exact: true }).click();
+  await page.getByRole('tab', { name: 'Rights & support', exact: true }).click();
+  const policy = page.locator('.contribution-policy');
+  await policy.locator('select').selectOption({ label: 'Tips · E2E Published Signal' });
+  return policy;
+}
+
+test('host sharing prepares verification automatically but only persists after artist approval', async ({ page }) => {
+  await page.route('**/contributions/config', route => route.fulfill({ json: { chainId: 420420417, attestor: '0x0000000000000000000000000000000000001234' } }));
+  const policy = await openPublishedTipPolicy(page);
+  await policy.getByLabel('Share room tips with hosts', { exact: true }).check();
+  await expect(policy).toContainText('Save to approve this choice with your signature');
+  await expect(policy.getByRole('button', { name: 'Use Dotify room verification', exact: true })).toHaveCount(0);
+  // Preparing the public address must not save a policy or request a signature.
+  await page.getByRole('tab', { name: 'Overview', exact: true }).click();
+  await page.getByRole('tab', { name: 'Rights & support', exact: true }).click();
+  await policy.locator('select').selectOption({ label: 'Tips · E2E Published Signal' });
+  await expect(policy.getByLabel('Share room tips with hosts', { exact: true })).not.toBeChecked();
+  await policy.getByLabel('Share room tips with hosts', { exact: true }).check();
+  await expect(policy).toContainText('Save to approve this choice with your signature');
+  await policy.getByRole('button', { name: 'Save contribution settings', exact: true }).click();
+  await expect(policy).toContainText('Contribution settings saved');
+  await page.getByRole('tab', { name: 'Overview', exact: true }).click();
+  await page.getByRole('tab', { name: 'Rights & support', exact: true }).click();
+  await policy.locator('select').selectOption({ label: 'Tips · E2E Published Signal' });
+  await expect(policy.getByLabel('Share room tips with hosts', { exact: true })).toBeChecked();
+  await policy.locator('summary').click();
+  await expect(policy.getByLabel('Room authority address', { exact: true })).toHaveValue('0x0000000000000000000000000000000000001234');
+});
+
+test('host sharing rejects a wrong-network authority and can retry preparation', async ({ page }) => {
+  let correctNetwork = false;
+  await page.route('**/contributions/config', route =>
+    route.fulfill({
+      json: { chainId: correctNetwork ? 420420417 : 1, attestor: '0x0000000000000000000000000000000000001234' }
+    })
+  );
+  const policy = await openPublishedTipPolicy(page);
+  await policy.getByLabel('Share room tips with hosts', { exact: true }).check();
+  await expect(policy).toContainText('Room verification is unavailable on this network');
+  await policy.getByRole('button', { name: 'Save contribution settings', exact: true }).click();
+  await expect(policy).toContainText('Room verification is not ready');
+  await expect(policy).not.toContainText('Contribution settings saved');
+  correctNetwork = true;
+  await policy.getByRole('button', { name: 'Retry verification', exact: true }).click();
+  await expect(policy).toContainText('Save to approve this choice with your signature');
+  await policy.getByRole('button', { name: 'Save contribution settings', exact: true }).click();
+  await expect(policy).toContainText('Contribution settings saved');
+});
+
+test('host sharing preserves a custom inherited authority without contacting Dotify', async ({ page }) => {
+  let lookups = 0;
+  await page.route('**/contributions/config', route => {
+    lookups++;
+    return route.fulfill({ status: 503 });
+  });
+  const policy = await openPublishedTipPolicy(page);
+  await policy.locator('select').selectOption({ label: 'Gifts to your artist profile' });
+  await policy.locator('summary').click();
+  await policy.getByLabel('Room authority address', { exact: true }).fill('0x0000000000000000000000000000000000005678');
+  await policy.getByRole('button', { name: 'Save contribution settings', exact: true }).click();
+  await expect(policy).toContainText('Contribution settings saved');
+  await policy.locator('select').selectOption({ label: 'Tips · E2E Published Signal' });
+  await policy.getByLabel('Share room tips with hosts', { exact: true }).check();
+  await expect(policy).toContainText('Your existing room verification is preserved');
+  await policy.getByRole('button', { name: 'Save contribution settings', exact: true }).click();
+  await expect(policy).toContainText('Contribution settings saved');
+  // The track still inherits the profile address, rather than copying a replacement.
+  await expect(policy.getByLabel('Room authority address', { exact: true })).toHaveValue('');
+  await policy.getByLabel('Room authority address', { exact: true }).fill('0x0000000000000000000000000000000000009876');
+  await policy.getByLabel('Share room tips with hosts', { exact: true }).uncheck();
+  await policy.getByLabel('Share room tips with hosts', { exact: true }).check();
+  await expect(policy.getByLabel('Room authority address', { exact: true })).toHaveValue('0x0000000000000000000000000000000000009876');
+  await expect(policy).toContainText('Your existing room verification is preserved');
+  await policy.getByRole('button', { name: 'Save contribution settings', exact: true }).click();
+  await expect(policy).toContainText('Contribution settings saved');
+  expect(lookups).toBe(0);
+});
+
+test('a pending room authority lookup cannot leak into another contribution scope', async ({ page }) => {
+  let releaseLookup!: () => void;
+  const held = new Promise<void>(resolve => {
+    releaseLookup = resolve;
+  });
+  await page.route('**/contributions/config', async route => {
+    await held;
+    await route.fulfill({ json: { chainId: 420420417, attestor: '0x0000000000000000000000000000000000001234' } }).catch(() => {});
+  });
+  const policy = await openPublishedTipPolicy(page);
+  await policy.getByLabel('Share room tips with hosts', { exact: true }).check();
+  await expect(policy).toContainText('Preparing Dotify room verification');
+  await policy.locator('select').selectOption({ label: 'Gifts to your artist profile' });
+  releaseLookup();
+  await policy.locator('summary').click();
+  await expect(policy.getByLabel('Room authority address', { exact: true })).toHaveValue('');
+  await policy.getByRole('button', { name: 'Save contribution settings', exact: true }).click();
+  await expect(policy).toContainText('Contribution settings saved');
+  await page.getByRole('tab', { name: 'Overview', exact: true }).click();
+  await page.getByRole('tab', { name: 'Rights & support', exact: true }).click();
+  await policy.locator('summary').click();
+  await expect(policy.getByLabel('Room authority address', { exact: true })).toHaveValue('');
+});
+
+test('an existing artist can repair a missing name before saving release metadata', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await createArtistProfile(page);
+  await completeReleaseDraft(page);
+  await page.getByRole('button', { name: '2 Details', exact: true }).click();
+  const name = page.getByTestId('release-artist-name-input');
+  await expect(name).toHaveValue('E2E Artist');
+  await name.fill('   ');
+  await page.getByRole('button', { name: '4 Review', exact: true }).click();
+  await expect(page.getByTestId('publish-release-button')).toBeDisabled();
+  await expect(page.getByRole('alert')).toContainText('Add your artist name before publishing.');
+  await page.screenshot({ path: test.info().outputPath('missing-name.png'), fullPage: true });
+  expect((await readArtistPublishState(page))?.uploadRequests).toEqual({ audio: 1, cover: 1, metadata: 0 });
+  expect((await readArtistPublishState(page))?.registerTrackTransactions).toBe(0);
+  await page.getByRole('button', { name: 'Complete release details' }).click();
+  await name.fill(' Thot Nzeng ');
+  await page.getByRole('button', { name: '4 Review', exact: true }).click();
+  await expect(page.getByTestId('release-preflight-panel')).toContainText('By Thot Nzeng');
+  await page.getByTestId('publish-release-button').click();
+  await expect(page.getByRole('dialog')).toContainText('Release published');
+  expect((await readArtistPublishState(page))?.uploadRequests).toEqual({ audio: 1, cover: 1, metadata: 1 });
+  expect((await readArtistPublishState(page))?.registerTrackTransactions).toBe(1);
+});
+
 test('artist can create a runtime, publish a release, and see it in the listener catalog', async ({ page }, info) => {
   await createArtistProfile(page);
   await completeReleaseDraft(page);
@@ -175,7 +310,10 @@ test('artist can create a runtime, publish a release, and see it in the listener
   expect(publishState?.devAccountFallbackUsed).toBe(false);
 
   await page.getByRole('button', { name: 'Close', exact: true }).click();
-  await page.getByRole('tab', { name: 'Releases', exact: true }).click();
+  // Confirmation itself leaves the editor. No manual tab change or refresh.
+  await expect(page.locator('[data-task="releases"]')).toBeVisible();
+  await expect(page.locator('[data-task="releases"]')).toContainText('E2E Published Signal');
+  await expect(page.getByTestId('publish-release-button')).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Save access', exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: 'Manage rights', exact: true }).click();
   await expect(page.getByRole('tab', { name: 'Rights & support', exact: true })).toHaveAttribute('aria-selected', 'true');
@@ -238,6 +376,12 @@ test('artist can create a runtime, publish a release, and see it in the listener
   await expect(releaseDialog).toContainText('Soul · Electronic');
   await expect(releaseDialog).toContainText('Producer');
   await page.screenshot({ path: info.outputPath('release-details.png'), animations: 'disabled', fullPage: true });
+  const originalViewport = page.viewportSize();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(releaseDialog.locator('.release-access-summary')).toContainText(`0.75 ${E2E_NATIVE_PAYMENT_SYMBOL}`);
+  expect(await releaseDialog.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
+  await page.screenshot({ path: info.outputPath('release-details-mobile.png'), animations: 'disabled' });
+  if (originalViewport) await page.setViewportSize(originalViewport);
   await page.getByRole('button', { name: 'Close release details' }).click();
   await expect(release.getByRole('button', { name: /Open E2E Published Signal by E2E Artist/ })).toHaveAccessibleName(
     new RegExp(`0.75 ${E2E_NATIVE_PAYMENT_SYMBOL}`)
@@ -245,6 +389,7 @@ test('artist can create a runtime, publish a release, and see it in the listener
   await release.getByRole('button', { name: /Open E2E Published Signal by E2E Artist/ }).click();
   await page.getByRole('button', { name: 'Unlock listening', exact: true }).click();
   await expect(page.getByTestId('access-warning')).toContainText(`0.75 ${E2E_NATIVE_PAYMENT_SYMBOL}`);
+  await expect(page.getByTestId('access-warning')).toContainText('Additional, shown before you approve');
 });
 
 test('artist onboarding handles a missing wallet without enabling profile creation', async ({ page }) => {
@@ -275,6 +420,21 @@ test('artist profile creation rejects a mismatched wallet network', async ({ pag
   expect(state?.registerArtistTransactions ?? 0).toBe(0);
 });
 
+test('mobile publication returns directly to My releases after confirmation', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await createArtistProfile(page);
+  await completeReleaseDraft(page);
+  await page.getByTestId('publish-release-button').click();
+  await expect(page.getByRole('dialog')).toContainText('Release published');
+  await page.getByRole('button', { name: 'Close', exact: true }).click();
+  const releases = page.locator('[data-task="releases"]');
+  await expect(releases).toBeVisible();
+  await expect(releases.getByText('My releases', { exact: true })).toBeVisible();
+  await expect(releases).toContainText('E2E Published Signal');
+  await expect(page.getByTestId('publish-release-button')).toHaveCount(0);
+  expect((await readArtistPublishState(page))?.registerTrackTransactions).toBe(1);
+});
+
 test('upload failure surfaces an error and halts registration', async ({ page }) => {
   await createArtistProfile(page, 'upload-failure');
   await completeReleaseDraft(page);
@@ -282,6 +442,8 @@ test('upload failure surfaces an error and halts registration', async ({ page })
 
   await expect(page.getByRole('dialog')).toContainText('Publication needs attention');
   await expect(page.getByRole('dialog')).toContainText('No release was published');
+  await expect(page.getByTestId('publish-release-button')).toBeAttached();
+  await expect(page.locator('[data-task="releases"]')).toHaveCount(0);
   await expect(page.getByRole('dialog')).toContainText('E2E metadata upload failed.');
 
   const state = await readArtistPublishState(page);
@@ -299,6 +461,8 @@ test('artist publish surfaces transaction failure after successful uploads', asy
 
   await expect(page.getByRole('dialog')).toContainText('Publication needs attention');
   await expect(page.getByRole('dialog')).toContainText('No release was published');
+  await expect(page.getByTestId('publish-release-button')).toBeAttached();
+  await expect(page.locator('[data-task="releases"]')).toHaveCount(0);
   await expect(page.getByRole('dialog')).toContainText('E2E registration transaction rejected.');
 
   const state = await readArtistPublishState(page);
@@ -345,8 +509,10 @@ test('artist publish remains recoverable while catalog read-back is delayed', as
   await page.getByTestId('publish-release-button').click();
 
   const dialog = page.getByRole('dialog');
-  await expect(dialog).toContainText('Making your release visible');
+  await expect(dialog).toContainText('Release approved');
   await expect(dialog).toContainText('no further approval is needed');
+  await expect(page.getByTestId('publish-release-button')).toBeAttached();
+  await expect(page.locator('[data-task="releases"]')).toHaveCount(0);
   await expect(dialog).toContainText('Visible in Dotify');
 
   const state = await readArtistPublishState(page);
@@ -356,6 +522,8 @@ test('artist publish remains recoverable while catalog read-back is delayed', as
   await expect(dialog).toContainText('Release published', { timeout: 15000 });
   expect((await readArtistPublishState(page))?.registerTrackTransactions).toBe(1);
   await dialog.getByRole('button', { name: 'Close', exact: true }).click();
+  await expect(page.locator('[data-task="releases"]')).toBeVisible();
+  await expect(page.getByTestId('publish-release-button')).toHaveCount(0);
   await page.evaluate(() => {
     (window as unknown as { navigationMarker: string }).navigationMarker = 'same-document';
   });
@@ -368,19 +536,36 @@ test('artist publish remains recoverable while catalog read-back is delayed', as
   expect(await page.evaluate(() => (window as unknown as { navigationMarker?: string }).navigationMarker)).toBe('same-document');
 });
 
+test('delayed publication does not pull an artist back from another task', async ({ page }) => {
+  await page.clock.install();
+  await createArtistProfile(page, 'catalog-delay');
+  await completeReleaseDraft(page);
+  await page.getByTestId('publish-release-button').click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toContainText('Release approved');
+  await dialog.getByRole('button', { name: 'Close', exact: true }).click();
+  await page.getByRole('tab', { name: 'Earnings', exact: true }).click();
+  await page.clock.runFor(6000);
+  await expect(page.getByRole('tab', { name: 'Earnings', exact: true })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.locator('[data-task="releases"]')).toHaveCount(0);
+  await page.getByRole('button', { name: 'View publication status: Release published', exact: true }).click();
+  await expect(page.getByRole('dialog')).toContainText('Release published');
+  expect((await readArtistPublishState(page))?.registerTrackTransactions).toBe(1);
+});
+
 test('approved publication keeps read-only recovery after the artist disconnects', async ({ page }) => {
   await page.clock.install();
   await createArtistProfile(page, 'catalog-delay');
   await completeReleaseDraft(page);
   await page.getByTestId('publish-release-button').click();
   const dialog = page.getByRole('dialog');
-  await expect(dialog).toContainText('Making your release visible');
+  await expect(dialog).toContainText('Release approved');
   await dialog.getByRole('button', { name: 'Close', exact: true }).click();
   await page.getByRole('button', { name: 'Disconnect wallet', exact: true }).click();
   // Run the delayed catalog insertion and the next read-only poll explicitly;
   // this test checks disconnect recovery, not the browser's timer scheduling.
   await page.clock.runFor(6000);
-  await page.getByRole('button', { name: 'View payment status: Release published', exact: true }).click({ timeout: 15000 });
+  await page.getByRole('button', { name: 'View publication status: Release published', exact: true }).click({ timeout: 15000 });
   await expect(page.getByRole('dialog')).toContainText('Release published', { timeout: 15000 });
   expect((await readArtistPublishState(page))?.registerTrackTransactions).toBe(1);
 });
@@ -391,8 +576,10 @@ test('artist publish does not accept a same-hash track from another runtime as v
   await page.getByTestId('publish-release-button').click();
 
   const dialog = page.getByRole('dialog');
-  await expect(dialog).toContainText('Making your release visible');
+  await expect(dialog).toContainText('Release approved');
   await expect(dialog).not.toContainText('Release published');
+  await expect(page.getByTestId('publish-release-button')).toBeAttached();
+  await expect(page.locator('[data-task="releases"]')).toHaveCount(0);
 
   const state = await readArtistPublishState(page);
   expect(state?.registerTrackTransactions).toBe(1);
@@ -459,3 +646,37 @@ for (const width of [320, 390, 430, 1440]) {
     await page.screenshot({ path: info.outputPath(`${width}-studio-200.png`), animations: 'disabled', fullPage: true });
   });
 }
+
+test('confirmed approval stays calm after a long catalog delay and checks never publish twice', async ({ page }, testInfo) => {
+  await page.clock.install();
+  await createArtistProfile(page, 'catalog-long-delay');
+  await completeReleaseDraft(page);
+  await page.getByTestId('publish-release-button').click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toContainText('Release approved');
+  await expect(dialog).toContainText('Approval confirmed');
+  await page.clock.runFor(60_000);
+  await expect(dialog).toContainText('taking longer to appear');
+  await expect(dialog).not.toContainText('Catalog update delayed');
+  await expect(page.getByTestId('publish-release-button')).toHaveText('Check visibility');
+  const screenshot = testInfo.outputPath('approved-release-waiting-for-catalog.png');
+  await page.screenshot({ path: screenshot, animations: 'disabled' });
+  await testInfo.attach('approved-release-waiting-for-catalog', { path: screenshot, contentType: 'image/png' });
+  await page.setViewportSize({ width: 390, height: 844 });
+  const mobileScreenshot = testInfo.outputPath('approved-release-mobile.png');
+  await page.screenshot({ path: mobileScreenshot, animations: 'disabled' });
+  await testInfo.attach('approved-release-mobile', { path: mobileScreenshot, contentType: 'image/png' });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const before = await readArtistPublishState(page);
+  await dialog.getByRole('button', { name: 'Check visibility', exact: true }).click();
+  await expect(dialog).toContainText('taking longer to appear');
+  expect((await readArtistPublishState(page))?.registerTrackTransactions).toBe(1);
+  await dialog.getByRole('button', { name: 'Close', exact: true }).click();
+  await page.clock.runFor(31_000);
+  await expect(page.locator('[data-task="releases"]')).toContainText('E2E Published Signal');
+  await page.getByRole('button', { name: 'View publication status: Release published', exact: true }).click();
+  await expect(page.getByRole('dialog')).toContainText('Release published');
+  const after = await readArtistPublishState(page);
+  expect(after?.uploadRequests).toEqual(before?.uploadRequests);
+  expect(after?.registerTrackTransactions).toBe(1);
+});

@@ -1,3 +1,12 @@
+import { parsePreparedRelease, PreparedReleaseRecoveryError } from '../features/artist-studio/preparedReleaseRecovery';
+import { bulletinAssetUrl, fetchBulletinPublicAsset } from './bulletinPublicAssets';
+import {
+  AudioPreparationPending,
+  readPreparationId,
+  waitForAudioPreparation,
+  type AudioPreparationPhase,
+  type AudioPreparationProgress
+} from '../features/uploads/streamingPreparation';
 // ---------------------------------------------------------------------------
 // Pinata / IPFS service — demo/local mode and production backend mode.
 //
@@ -20,8 +29,6 @@ import { clearStoredSession, ensureDotifySession, ensureDotifySessionForSigner, 
 import { getAddress, isAddress, type WalletClient } from 'viem';
 import { parseReleaseEditorialMetadata } from '../features/catalog/releaseMetadata';
 import type { ReleaseEditorialMetadata } from '../shared/types';
-import { readAudioBody } from '../features/catalog/readAudioBody';
-import { parseAudioV2Container } from '../shared/utils/audioV2';
 
 // Backend API base URL. When set, uploads are routed server-side.
 const API_URL = (import.meta.env.VITE_DOTIFY_API_URL as string | undefined)?.replace(/\/$/, '');
@@ -42,8 +49,6 @@ const READ_GATEWAYS = (import.meta.env.VITE_IPFS_READ_GATEWAYS as string | undef
   .filter(Boolean);
 const FALLBACK_GATEWAYS = ['https://ipfs.io', 'https://dweb.link', 'https://devnet-ipfs.api.polkadotcommunity.foundation'];
 const RETIRED_GATEWAY_HOSTS = new Set(['bulletin-kubo.tservices.es', 'paseo-ipfs.polkadot.io']);
-const AUDIO_READ_TIMEOUT_MS = 20_000;
-const AUDIO_READ_HEDGE_DELAY_MS = 8_000;
 
 const PIN_FILE_URL = 'https://api.pinata.cloud/pinning/pinFileToIPFS';
 const PIN_JSON_URL = 'https://api.pinata.cloud/pinning/pinJSONToIPFS';
@@ -117,6 +122,8 @@ export function getGatewayUrl(cid: string): string {
 }
 
 export function getGatewayUrls(cid: string): string[] {
+  const bulletin = bulletinAssetUrl(cid, API_URL);
+  if (bulletin) return bulletin;
   const gateways = [GATEWAY, PINATA_PUBLIC_GATEWAY, ...(READ_GATEWAYS ?? []), ...FALLBACK_GATEWAYS].filter(gateway => !isRetiredGateway(gateway));
   return Array.from(new Set(gateways.map(gateway => `${gateway.replace(/\/$/, '')}/ipfs/${cid}`)));
 }
@@ -140,19 +147,7 @@ function isPinataGateway(gateway: string): boolean {
 
 export function getAudioGatewayUrls(cid: string): string[] {
   const gateways = [GATEWAY, PINATA_PUBLIC_GATEWAY, ...(READ_GATEWAYS ?? []).filter(isPinataGateway)].filter(isPinataGateway);
-  return Array.from(new Set([...mediaRelayUrls(cid), ...gateways.map(gateway => `${gateway.replace(/\/$/, '')}/ipfs/${cid}`)]));
-}
-
-function mediaRelayUrls(cid: string): string[] {
-  return API_URL && /^[A-Za-z0-9]+$/.test(cid) ? [`${API_URL.replace(/\/api$/, '')}/api/media/${cid}`] : [];
-}
-
-// DAV2 range reads stay on gateways known to serve encrypted byte ranges
-// consistently. If range playback cannot start, the bounded full-file decrypt
-// fallback may use every configured IPFS reader so a Pinata outage does not
-// silence an otherwise available release.
-export function getAudioFallbackGatewayUrls(cid: string): string[] {
-  return [...mediaRelayUrls(cid), ...getGatewayUrls(cid)];
+  return Array.from(new Set(gateways.map(gateway => `${gateway.replace(/\/$/, '')}/ipfs/${cid}`)));
 }
 
 function extractIpfsPath(ref: string): string | null {
@@ -168,6 +163,8 @@ export function getGatewayUrlsForAssetRef(assetRef: string): string[] {
   const ipfsPath = extractIpfsPath(assetRef);
   if (!ipfsPath) return assetRef ? [assetRef] : [];
 
+  const bulletin = bulletinAssetUrl(ipfsPath, API_URL);
+  if (bulletin) return bulletin;
   const fallbackUrls = getGatewayUrls(ipfsPath);
   if (isRetiredGateway(assetRef) || (!assetRef.startsWith('http://') && !assetRef.startsWith('https://'))) return fallbackUrls;
   return Array.from(new Set([assetRef, ...fallbackUrls]));
@@ -187,36 +184,14 @@ function throwIfGatewayReadAborted(signal?: AbortSignal): void {
 
 export async function fetchIpfsCid(cid: string, options: GatewayReadOptions = {}): Promise<Response> {
   throwIfGatewayReadAborted(options.signal);
-  return fetchThroughGateways(getGatewayUrls(cid), { signal: options.signal, label: `IPFS CID ${cid}` });
-}
-
-export async function fetchAudioIpfsCid(cid: string, options: GatewayReadOptions & { format?: 'dav2' } = {}): Promise<Response> {
-  throwIfGatewayReadAborted(options.signal);
-  return fetchThroughGateways(getAudioFallbackGatewayUrls(cid), {
-    signal: options.signal,
-    timeoutMs: AUDIO_READ_TIMEOUT_MS,
-    hedgeDelayMs: AUDIO_READ_HEDGE_DELAY_MS,
-    maxParallelAttempts: 2,
-    prepareResponse: async (response, signal) => {
-      // Headers alone are not recovery: keep alternate readers available if
-      // the winning connection stalls, truncates, or returns a partial file.
-      if (response.status !== 200) {
-        void response.body?.cancel().catch(() => undefined);
-        throw new Error('Audio gateway did not return the complete file.');
-      }
-      const bytes = await readAudioBody(response, signal);
-      if (options.format === 'dav2') parseAudioV2Container(bytes);
-      // Authentication stays outside transport retry. A complete ciphertext
-      // that fails AES-GCM must fail closed, never switch sources or keys.
-      return new Response(bytes, { headers: { 'content-type': response.headers.get('content-type') ?? 'application/octet-stream' } });
-    },
-    label: `audio IPFS CID ${cid}`
-  });
+  return fetchAssetRef(`ipfs://${cid}`, options);
 }
 
 export async function fetchAssetRef(assetRef: string, options: GatewayReadOptions = {}): Promise<Response> {
   throwIfGatewayReadAborted(options.signal);
-  return fetchThroughGateways(getGatewayUrlsForAssetRef(assetRef), { signal: options.signal, label: `asset ${assetRef}` });
+  const urls = getGatewayUrlsForAssetRef(assetRef);
+  if (urls[0]?.includes('/api/assets/ipfs/')) return fetchBulletinPublicAsset(urls[0], options.signal);
+  return fetchThroughGateways(urls, { signal: options.signal, label: `asset ${assetRef}` });
 }
 
 // ---------------------------------------------------------------------------
@@ -224,6 +199,7 @@ export async function fetchAssetRef(assetRef: string, options: GatewayReadOption
 // ---------------------------------------------------------------------------
 
 export type BackendUploadErrorBody = {
+  code?: unknown;
   error?: unknown;
   issues?: Array<{
     path?: unknown;
@@ -232,10 +208,27 @@ export type BackendUploadErrorBody = {
 };
 
 export type BackendUploadIdentity = {
+  contentHash?: string;
   chainId: number;
+  onAudioPreparation?: (phase: AudioPreparationPhase, progress?: AudioPreparationProgress) => void;
   walletClient?: WalletClient;
   signer?: KeyRequestSigner;
 };
+
+/** A stalled upload must not leave the publication modal pending forever.
+ * Expiry ends the local wait, not the owned durable job or its ciphertext. */
+async function fetchBackendUpload(url: string, init: RequestInit): Promise<Response> {
+  const signal = AbortSignal.timeout(5 * 60_000);
+  try {
+    return await fetch(url, { ...init, signal });
+  } catch (error) {
+    if (signal.aborted)
+      throw new AudioPreparationPending(
+        'The connection ended before storage confirmed this step. Your draft is safe. Check preparation to resume the same release.'
+      );
+    throw error;
+  }
+}
 
 type BackendUploadPurpose = 'audio' | 'cover' | 'metadata';
 
@@ -308,17 +301,84 @@ async function requestUploadAuthorization(identity: BackendUploadIdentity | unde
  *
  * @param rawFile     The original audio file as selected by the artist.
  * @param contentHash 0x-prefixed blake2b-256 hash of the raw audio bytes.
- * @returns           Full Dotify audio ref: "dotify:enc:v2:key-v2:ipfs://<CID>" for new backend uploads.
+ * @returns           Full Dotify audio ref: "dotify:enc:v3:key-v2:ipfs://<directory CID>" for new backend uploads.
  */
 export async function uploadAudioToBackend(rawFile: File, contentHash: string, identity?: BackendUploadIdentity): Promise<ProtectedAudioUpload> {
   if (!API_URL) throw new Error('Backend API is not configured (VITE_DOTIFY_API_URL).');
+  const principal = identity?.signer?.address ?? identity?.walletClient?.account?.address;
+  const storageKey = `dotify.audio-preparation.v1:${API_URL}:${identity?.chainId}:${principal?.toLowerCase()}:${contentHash.toLowerCase()}`;
+  const requestJob = async (id: string, retry: boolean | 'discard' = false): Promise<unknown> => {
+    if (!identity) throw new Error('Connect your artist account to resume audio preparation.');
+    const session = () =>
+      identity.signer
+        ? ensureDotifySessionForSigner(identity.signer, identity.chainId)
+        : identity.walletClient
+          ? ensureDotifySession(identity.walletClient, identity.chainId)
+          : Promise.resolve(null);
+    let token = await session();
+    if (!token) throw new Error('Sign in to resume preparing your music.');
+    const send = (value: string) =>
+      fetch(`${API_URL}/api/uploads/audio/jobs/${id}${retry === 'discard' ? '/discard' : retry ? '/retry' : ''}`, {
+        method: retry ? 'POST' : 'GET',
+        headers: { Authorization: `Bearer ${value}` },
+        signal: AbortSignal.timeout(15_000)
+      });
+    let response = await send(token);
+    if (response.status === 401 && principal) {
+      clearStoredSession(principal, token);
+      token = await session();
+      if (token) response = await send(token);
+    }
+    if (!response.ok) {
+      const body = (await response.json().catch(() => null)) as BackendUploadErrorBody | null;
+      throw Object.assign(new Error(formatBackendUploadError(body, 'Audio preparation could not be checked. Please try again.')), {
+        status: response.status,
+        code: typeof body?.code === 'string' ? body.code : undefined
+      });
+    }
+    return response.status === 204 ? null : response.json();
+  };
+  const discard = async (id: string) => {
+    await requestJob(id, 'discard');
+    try {
+      localStorage.removeItem(storageKey);
+    } catch {
+      /* No secret is stored. */
+    }
+  };
+  const saved = readPreparationId(storageKey);
+  if (saved) {
+    try {
+      const ready = await waitForAudioPreparation({
+        job: await requestJob(saved),
+        storageKey,
+        request: requestJob,
+        onProgress: identity?.onAudioPreparation,
+        discard,
+        retryFailed: true
+      });
+      if (!isAddress(ready.runtimeAddress) || ready.contentHash.toLowerCase() !== contentHash.toLowerCase())
+        throw new Error('Prepared audio does not match this release.');
+      return { ...ready, runtimeAddress: getAddress(ready.runtimeAddress), contentHash: ready.contentHash.toLowerCase() as `0x${string}` };
+    } catch (error) {
+      // A stale local hint after expiry/reset is safe to discard. A transport
+      // failure is not proof that a durable job disappeared.
+      if ((error as { status?: number }).status === 404) {
+        try {
+          localStorage.removeItem(storageKey);
+        } catch {
+          /* Storage can be unavailable. */
+        }
+      } else throw error;
+    }
+  }
   const authorization = await requestUploadAuthorization(identity, 'audio', rawFile.size);
 
   const form = new FormData();
   form.append('audio', rawFile, rawFile.name);
   form.append('contentHash', contentHash);
 
-  const res = await fetch(`${API_URL}/api/uploads/audio`, {
+  const res = await fetchBackendUpload(`${API_URL}/api/uploads/audio`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${authorization}` },
     body: form
@@ -329,7 +389,10 @@ export async function uploadAudioToBackend(rawFile: File, contentHash: string, i
     throw new Error(msg);
   }
 
-  const data = (await res.json()) as { ref?: unknown; runtimeAddress?: unknown; contentHash?: unknown; keyVersion?: unknown };
+  const responseBody: unknown = await res.json();
+  if (res.status !== 202) throw new Error('The backend returned an unsupported audio preparation response.');
+  const prepared = await waitForAudioPreparation({ job: responseBody, storageKey, request: requestJob, onProgress: identity?.onAudioPreparation, discard });
+  const data = prepared as { ref?: unknown; runtimeAddress?: unknown; contentHash?: unknown; keyVersion?: unknown };
   if (typeof data.ref !== 'string' || !data.ref.trim()) {
     throw new Error('The backend returned an invalid audio upload response.');
   }
@@ -359,8 +422,9 @@ export async function uploadCoverToBackend(file: File, identity?: BackendUploadI
 
   const form = new FormData();
   form.append('cover', file, file.name);
+  if (identity?.contentHash) form.append('contentHash', identity.contentHash);
 
-  const res = await fetch(`${API_URL}/api/uploads/cover`, {
+  const res = await fetchBackendUpload(`${API_URL}/api/uploads/cover`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${authorization}` },
     body: form
@@ -386,7 +450,7 @@ export async function uploadMetadataToBackend(manifest: DotifyTrackManifest, ide
   const body = JSON.stringify(manifest);
   const authorization = await requestUploadAuthorization(identity, 'metadata', new TextEncoder().encode(body).byteLength);
 
-  const res = await fetch(`${API_URL}/api/uploads/metadata`, {
+  const res = await fetchBackendUpload(`${API_URL}/api/uploads/metadata`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${authorization}`,
@@ -396,8 +460,14 @@ export async function uploadMetadataToBackend(manifest: DotifyTrackManifest, ide
   });
 
   if (!res.ok) {
-    const msg = await parseBackendError(res, `Metadata upload failed (${res.status})`);
-    throw new Error(msg);
+    const body = (await res.json().catch(() => null)) as (BackendUploadErrorBody & { preparedRelease?: unknown }) | null;
+    const message = formatBackendUploadError(body, `Metadata upload failed (${res.status})`);
+    const owner = identity?.signer?.address ?? identity?.walletClient?.account?.address;
+    if (res.status === 409 && body?.code === 'UPLOAD_PREPARED_RELEASE_CONFLICT' && owner && identity) {
+      const prepared = parsePreparedRelease(body.preparedRelease, manifest, owner, identity.chainId);
+      if (prepared) throw new PreparedReleaseRecoveryError(prepared, message);
+    }
+    throw new Error(message);
   }
 
   const data = (await res.json()) as { ref: string };
@@ -442,7 +512,8 @@ export async function uploadProtectedAudio(audio: ProtectedAudioSource, contentH
   if (isArtistPublishE2e) {
     void audio;
     void contentHash;
-    return getArtistPublishE2eCid('audio');
+    getArtistPublishE2eCid('audio');
+    return 'dotify:enc:v3:key-v2:ipfs://Qm' + 'a'.repeat(44);
   }
 
   if (API_URL) {
@@ -450,11 +521,7 @@ export async function uploadProtectedAudio(audio: ProtectedAudioSource, contentH
     return uploadAudioToBackend(rawFile, contentHash, identity);
   }
 
-  const { encryptTrackAudio } = await import('../shared/utils/protectedAudio');
-  const encrypted = await encryptTrackAudio(audio.bytes, contentHash);
-  const encFile = new File([encrypted as BlobPart], `${audio.name}.enc`, { type: 'application/octet-stream' });
-  const cid = await uploadFileToPinata(encFile, encFile.name, { app: 'dotify', type: 'audio', encrypted: 'true' });
-  return normalizeEncryptedAudioRef(cid);
+  throw new Error('The backend API is required to prepare protected streaming audio.');
 }
 
 export function protectedAudioUploadToRef(upload: ProtectedAudioUpload): string {

@@ -27,7 +27,6 @@ export default defineConfig({
         VITE_DOTIFY_HOST_MODE: 'off',
         VITE_SIGNAL_URL: 'http://127.0.0.1:8796',
         VITE_DOTIFY_NEARBY: 'on',
-        VITE_DOTIFY_ROOM_GALAXY: 'off'
       }
     }
   ],

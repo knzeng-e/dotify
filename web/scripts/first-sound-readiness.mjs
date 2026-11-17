@@ -16,7 +16,7 @@ const SCENARIO_EXPECTATIONS = {
   'broken-gateway': 'first-audio',
   'slow-key-service': 'first-audio',
   'interrupted-navigation': 'error',
-  'corrupted-dav2': 'error'
+  'corrupted-streaming': 'error'
 };
 const CONTROLLED_SCENARIOS = Object.keys(SCENARIO_EXPECTATIONS).filter(scenario => scenario !== 'ordinary-playback');
 const BUDGETS_MS = { free: 1_500, 'authorized-protected': 2_000, 'warm-next-track': 700 };
@@ -28,7 +28,6 @@ const BUDGET_CELLS = [
   { flow: 'warm-next-track', cacheState: 'warm' }
 ];
 const MIN_BUDGET_SAMPLES = 4;
-const MIN_FALLBACK_SAMPLES = 100;
 const FULL_SHA = /^[0-9a-f]{40}$/i;
 const CONFIG_DIGEST = /^[0-9a-f]{64}$/i;
 const PRODUCT_VERSION = /^\[\d+,\s*\d+,\s*\d+\]$/;
@@ -109,7 +108,7 @@ function validateSample(sample) {
       'measurement',
       'firstSoundMs',
       'capturedAt',
-      'dav2',
+      'streaming',
       'hostTerminalReason'
     ])
   )
@@ -129,31 +128,18 @@ function validateSample(sample) {
   if (sample.hostTerminalReason !== null && !HOST_TERMINAL_REASONS.includes(sample.hostTerminalReason)) return 'sample.hostTerminalReason is invalid';
   if (sample.outcome === 'first-audio' && sample.hostTerminalReason !== null) return 'successful sample cannot carry a terminal host reason';
   if (typeof sample.capturedAt !== 'string' || !Number.isFinite(Date.parse(sample.capturedAt))) return 'sample.capturedAt is invalid';
-  if (
-    !exactKeys(sample.dav2, [
-      'observed',
-      'fallback',
-      'hedged',
-      'gatewayRecovered',
-      'intentPrefetched',
-      'decryptor',
-      'firstRangeBytes',
-      'keyAuthorizationMs',
-      'authenticationFailed'
-    ])
-  )
-    return 'sample.dav2 contains unknown or missing fields';
-  for (const field of ['observed', 'fallback', 'hedged', 'gatewayRecovered', 'intentPrefetched', 'authenticationFailed']) {
-    if (typeof sample.dav2[field] !== 'boolean') return `sample.dav2.${field} must be boolean`;
+  if (!exactKeys(sample.streaming, ['observed', 'compatibilityReader', 'gatewayRecovered', 'firstObjectBytes', 'keyAuthorizationMs', 'authenticationFailed']))
+    return 'sample.streaming contains unknown or missing fields';
+  for (const field of ['observed', 'compatibilityReader', 'gatewayRecovered', 'authenticationFailed']) {
+    if (typeof sample.streaming[field] !== 'boolean') return `sample.streaming.${field} must be boolean`;
   }
-  if (![null, 'worker', 'main-thread'].includes(sample.dav2.decryptor)) return 'sample.dav2.decryptor is invalid';
-  if (sample.dav2.firstRangeBytes !== null && (!Number.isSafeInteger(sample.dav2.firstRangeBytes) || sample.dav2.firstRangeBytes <= 0)) {
-    return 'sample.dav2.firstRangeBytes is invalid';
+  if (sample.streaming.firstObjectBytes !== null && (!Number.isSafeInteger(sample.streaming.firstObjectBytes) || sample.streaming.firstObjectBytes <= 0)) {
+    return 'sample.streaming.firstObjectBytes is invalid';
   }
-  if (sample.dav2.keyAuthorizationMs !== null && (!Number.isFinite(sample.dav2.keyAuthorizationMs) || sample.dav2.keyAuthorizationMs < 0))
-    return 'sample.dav2.keyAuthorizationMs is invalid';
-  if ((sample.dav2.authenticationFailed || sample.dav2.keyAuthorizationMs !== null) && !sample.dav2.observed)
-    return 'DAV2 proof signals require dav2.observed=true';
+  if (sample.streaming.keyAuthorizationMs !== null && (!Number.isFinite(sample.streaming.keyAuthorizationMs) || sample.streaming.keyAuthorizationMs < 0))
+    return 'sample.streaming.keyAuthorizationMs is invalid';
+  if ((sample.streaming.authenticationFailed || sample.streaming.keyAuthorizationMs !== null) && !sample.streaming.observed)
+    return 'streaming proof signals require streaming.observed=true';
   return null;
 }
 
@@ -162,13 +148,13 @@ function controlledScenarioProofMatches(sample) {
     case 'denied-protected':
       return sample.hostTerminalReason === 'access-denied';
     case 'broken-gateway':
-      return sample.dav2.observed && sample.dav2.gatewayRecovered;
+      return sample.streaming.observed && sample.streaming.gatewayRecovered;
     case 'slow-key-service':
-      return sample.dav2.observed && sample.dav2.keyAuthorizationMs !== null && sample.dav2.keyAuthorizationMs >= SLOW_KEY_PROOF_MS;
+      return sample.streaming.observed && sample.streaming.keyAuthorizationMs !== null && sample.streaming.keyAuthorizationMs >= SLOW_KEY_PROOF_MS;
     case 'interrupted-navigation':
       return sample.hostTerminalReason === 'selection-interrupted';
-    case 'corrupted-dav2':
-      return sample.dav2.observed && sample.dav2.authenticationFailed;
+    case 'corrupted-streaming':
+      return sample.streaming.observed && sample.streaming.authenticationFailed;
     default:
       return true;
   }
@@ -180,7 +166,7 @@ export function validateFirstSoundEvidence(evidence) {
     problems.push('evidence contains unknown or missing top-level fields');
     return problems;
   }
-  if (evidence.schemaVersion !== 5) problems.push('schemaVersion must be 5');
+  if (evidence.schemaVersion !== 6) problems.push('schemaVersion must be 6');
   const candidateProblem = validateCandidate(evidence.candidate);
   if (candidateProblem) problems.push(candidateProblem);
   const profileProblem = validateProfile(evidence.profile);
@@ -425,19 +411,11 @@ export function buildFirstSoundReadinessReport(evidenceFiles, options = {}) {
     );
   }
 
-  const dav2Samples = ordinarySamples.filter(sample => sample.dav2.observed);
-  const fallbackCount = dav2Samples.filter(sample => sample.dav2.fallback).length;
-  const fallbackRate = dav2Samples.length === 0 ? null : fallbackCount / dav2Samples.length;
-  gates.push(
-    gate(
-      'fallback-rate',
-      'DAV2 fallback rate',
-      dav2Samples.length < MIN_FALLBACK_SAMPLES ? 'not-run' : fallbackRate < 0.01 ? 'pass' : 'fail',
-      dav2Samples.length < MIN_FALLBACK_SAMPLES
-        ? `${dav2Samples.length}/${MIN_FALLBACK_SAMPLES} DAV2 attempts; observed ${fallbackCount} fallback${fallbackCount === 1 ? '' : 's'}, but the <1% claim is not established.`
-        : `${(fallbackRate * 100).toFixed(2)}% observed across ${dav2Samples.length} DAV2 attempts; target <1%.`
-    )
-  );
+  // The AAC Blob reader is a supported current-format path on hosts without
+  // MSE. Its use is descriptive, not a failed legacy fallback. Both readers
+  // must still satisfy the same physical first-sound and denial gates above.
+  const streamingSamples = ordinarySamples.filter(sample => sample.streaming.observed);
+  const compatibilityCount = streamingSamples.filter(sample => sample.streaming.compatibilityReader).length;
 
   const counts = {
     pass: gates.filter(item => item.status === 'pass').length,
@@ -445,7 +423,7 @@ export function buildFirstSoundReadinessReport(evidenceFiles, options = {}) {
     notRun: gates.filter(item => item.status === 'not-run').length
   };
   return {
-    schemaVersion: 5,
+    schemaVersion: 6,
     candidate,
     profiles,
     counts,
@@ -454,7 +432,7 @@ export function buildFirstSoundReadinessReport(evidenceFiles, options = {}) {
     scenarios,
     budgets,
     profileBudgets,
-    fallback: { samples: dav2Samples.length, count: fallbackCount, rate: fallbackRate }
+    readers: { samples: streamingSamples.length, compatibility: compatibilityCount }
   };
 }
 

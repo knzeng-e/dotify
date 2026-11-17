@@ -1,5 +1,11 @@
 # W14 — Build an optional immersive 3D room galaxy
 
+> 2026-10-28 owner decision: retire the optional 3D renderer and Three.js.
+> Radar and List remain the supported discovery views. Historical 3D delivery
+> notes below are evidence, not a request to restore it. Immersive metaverse
+> exploration is deferred, with no implementation commitment.
+
+
 Copy this entire file into an agent working in the Dotify repository, or use the launcher in README.md.
 
 ## Agent assignment

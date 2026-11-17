@@ -82,6 +82,7 @@ let app: FastifyInstance | null = null;
 
 async function build(options: { snapshot: CatalogSnapshot | null; meta?: CatalogMetadata }): Promise<FastifyInstance> {
   const catalog = {
+    refresh: async () => {},
     getSnapshot: () => options.snapshot,
     getMetadata: () => options.meta ?? metadata(),
     getRevision: () => 'revision-1'

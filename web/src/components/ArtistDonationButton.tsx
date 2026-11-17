@@ -177,10 +177,8 @@ function ContributionButton({ track, kind = 'gift', draft }: ContributionButtonP
       let quote;
       try {
         quote = await reader.quote(runtime, context, value);
-      } catch (failure) {
-        throw new Error(
-          `Contributions could not be prepared. This artist may need to update their runtime. ${failure instanceof Error ? failure.message.split('\n')[0] : ''}`
-        );
+      } catch {
+        throw new Error('This tip could not be prepared. Check your connection and try again. No payment has been sent.');
       }
       if (account.current !== wallet.listenerEvmAddress) throw new Error('Your account changed. Prepare the contribution again.');
       const policy = await reader.policy(runtime, context.contentHash);

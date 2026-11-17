@@ -1,5 +1,5 @@
 import { useEffect, useId, useState, type CSSProperties } from 'react';
-import { ArrowRight, Eye, List, Pause, Play, Radar, RefreshCw, ShieldCheck, SlidersHorizontal, X } from 'lucide-react';
+import { ArrowRight, Eye, List, Music2, Pause, Play, Radar, RefreshCw, ShieldCheck, SlidersHorizontal, X } from 'lucide-react';
 import { Dialog } from './Dialog';
 import { ArtistPresenceBadge } from './ArtistPresenceBadge';
 import { CoverImage } from './CoverImage';
@@ -60,7 +60,8 @@ export function RoomRadar({
     document.addEventListener('keydown', dismiss);
     return () => document.removeEventListener('keydown', dismiss);
   }, [detailsId, dismissedDetailsId]);
-  const [listOnly, setListOnly] = useState(false);
+  const [view, setView] = useState<'radar' | 'list'>('radar');
+  const listOnly = view === 'list';
   const { nearby, worldwide, rooms, paused, radius } = discovery;
   const [foreground, setForeground] = useState(() => typeof document === 'undefined' || document.visibilityState === 'visible');
   useEffect(() => {
@@ -141,15 +142,19 @@ export function RoomRadar({
             <SlidersHorizontal size={18} />
             <span>{radius} km</span>
           </button>
-          <button
-            className='radar-tool'
-            type='button'
-            aria-label={listOnly ? 'Show galaxy' : 'Show room list'}
-            aria-pressed={listOnly}
-            onClick={() => setListOnly(!listOnly)}
-          >
-            {listOnly ? <Radar size={19} /> : <List size={19} />}
-          </button>
+          <label className='radar-tool radar-view-control'>
+            {view === 'list' ? <List size={18} aria-hidden='true' /> : <Radar size={18} aria-hidden='true' />}
+            <select
+              aria-label='Room view'
+              value={view}
+              onChange={event => {
+                setView(event.target.value as typeof view);
+              }}
+            >
+              <option value='radar'>Radar</option>
+              <option value='list'>List</option>
+            </select>
+          </label>
         </div>
       </header>
       <div className='radar-status' role='status'>
@@ -169,7 +174,7 @@ export function RoomRadar({
       )}
       {nearby.state.locationIssue === 'host-unavailable' && <ProductNearbyFallback />}
       <div className='radar-body' data-list-only={listOnly}>
-        {!listOnly && (
+        {view === 'radar' && (
           <div className='radar-stage'>
             <div
               className='radar-sky'
@@ -278,17 +283,21 @@ export function RoomRadar({
                       <strong>{room.roomName || room.title}</strong>
                       <span className='radar-room-artist'>{room.roomName ? `${room.title} · ${room.artist}` : room.artist}</span>
                       {room.connection === 'reconnecting' && <span className='room-reconnecting'>Reconnecting</span>}
-                      <span className='radar-room-details' hidden={!showDetails}>
+                      <span className='radar-room-details' id={tooltipId} role='tooltip' hidden={!showDetails}>
                         <strong aria-hidden='true'>{room.roomName || room.title}</strong>
-                        <span className='radar-details-artist' aria-hidden='true'>
-                          Now playing: {room.title} · {room.artist}
-                        </span>
-                        <span className='radar-room-metadata' id={tooltipId} role='tooltip'>
+                        {room.introduction && <span className='radar-room-introduction'>{room.introduction}</span>}
+                        <span className='radar-room-metadata'>
                           <span className='radar-room-host'>
                             <RoomScopeIcon worldwide={room.scope === 'worldwide'} />
                             Host: {room.hostName}
                           </span>
-                          {room.introduction && <span className='radar-room-introduction'>{room.introduction}</span>}
+                          <span className='radar-details-artist'>
+                            <Music2 size={14} aria-hidden='true' />
+                            <span>
+                              <span className='sr-only'>Now playing: </span>
+                              {room.title} · {room.artist}
+                            </span>
+                          </span>
                           {room.artistPresent && <ArtistPresenceBadge />}
                           <span className='radar-details-presence'>{discoveryPresenceLabel(room)}</span>
                           <span className='radar-room-distance'>{roomDistanceLabel(room)}</span>
@@ -426,12 +435,19 @@ export function RoomRadar({
           <h2 id={`${id}-room`}>{selected?.roomName || selected?.title || 'This room is no longer visible'}</h2>
           {selected ? (
             <>
-              <p className='radar-preview-host'>{selected.roomId === ownRoomId ? `Hosted by you · ${selected.hostName}` : `Hosted by ${selected.hostName}`}</p>
               {selected.introduction && <p className='radar-preview-introduction'>{selected.introduction}</p>}
-              <div className='radar-preview-playing'>
-                <small>NOW PLAYING</small>
-                <strong>{selected.title}</strong>
-                <span>Artist: {selected.artist}</span>
+              <div className='radar-preview-metadata'>
+                <p className='radar-preview-host'>
+                  {selected.roomId === ownRoomId ? `Hosted by you · ${selected.hostName}` : `Hosted by ${selected.hostName}`}
+                </p>
+                <div className='radar-preview-playing'>
+                  <Music2 size={20} aria-hidden='true' />
+                  <div>
+                    <span className='sr-only'>Now playing: </span>
+                    <strong>{selected.title}</strong>
+                    <span>Artist: {selected.artist}</span>
+                  </div>
+                </div>
               </div>
               <div className='radar-preview-presence'>
                 <span>{discoveryPresenceLabel(selected)}</span>

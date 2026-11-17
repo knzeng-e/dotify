@@ -1,0 +1,122 @@
+{
+  "observedAt": "2026-11-13",
+  "packages": [
+    {
+      "name": "@parity/truapi",
+      "version": "0.26.0",
+      "integrity": "sha512-KhKxfXtvo0wKj6LyRGbAN5coBi6AUbn3dhHO9ZEDv0zvzYU+KbpxzjNeM94op83NoBEwB9W0Uocc1dU0WE4j6Q==",
+      "tarSha256": "d9cd5a70669b83729dd87fd27163f551fc8fa359a41841b2d633d28c5f71597b",
+      "publishedAt": null,
+      "declarationSha256": "5220fe1424c114e1bdf6090ae801e6bcd3baf2858cadf37dec572155738131ee"
+    },
+    {
+      "name": "@parity/product-sdk-host",
+      "version": "0.33.0",
+      "integrity": "sha512-jCVuSH6OOTHnpVDeZSx22Yv9cBwNxFof1REtfwucioisREtlEw2aGfdOAAZCXvXii2VRi7CQKFb5IvIpi/WOxg==",
+      "tarSha256": "dd02fba8161def7571f182834a2be3c2dd2018a5cd02a38b5ff68816af2d85e8",
+      "publishedAt": null,
+      "declarationSha256": "8eea396fe29c55e4e71ae82d4ede4d8cb7aa689d52e5ae9c49ce858562a9910c"
+    },
+    {
+      "name": "@parity/product-sdk",
+      "version": "0.40.0",
+      "metadataUrl": "https://registry.npmjs.org/@parity/product-sdk/0.40.0",
+      "tarball": "https://registry.npmjs.org/@parity/product-sdk/-/product-sdk-0.40.0.tgz",
+      "integrity": "sha512-owyuLQSzzWY1+gYIun/+upn0yDWsG5nxITXP8FCgF2Xy8KI/ECPGqQgTO7JoCoBdfPjCQWMAXQ9W8bYisjh8aQ==",
+      "tarSha256": "5d322ffd1ec832cb6602da70d8bf7555c13ade7c85c952befb36afbe81e8799d",
+      "dependencies": {
+        "polkadot-api": "^3.2.1",
+        "@parity/result": "0.2.0",
+        "@parity/product-sdk-tx": "0.5.4",
+        "@parity/product-sdk-host": "0.29.0",
+        "@parity/product-sdk-keys": "0.5.4",
+        "@parity/product-sdk-nfts": "0.4.0",
+        "@parity/product-sdk-crypto": "0.1.1",
+        "@parity/product-sdk-errors": "0.2.0",
+        "@parity/product-sdk-logger": "0.1.2",
+        "@parity/product-sdk-signer": "0.17.4",
+        "@parity/product-sdk-address": "0.3.1",
+        "@parity/product-sdk-renderer": "0.8.0",
+        "@parity/product-sdk-contracts": "0.11.4",
+        "@parity/product-sdk-chain-client": "0.13.4",
+        "@parity/product-sdk-cloud-storage": "0.13.4",
+        "@parity/product-sdk-individuality": "0.11.1",
+        "@parity/product-sdk-local-storage": "0.3.20"
+      },
+      "files": {
+        "package/package.json": {
+          "size": 3668,
+          "sha256": "a14141c56de10dcd1ed69ff725949e113d12938f8bf342f3558aaf0debd30814"
+        },
+        "package/dist/index.d.ts": {
+          "size": 1022,
+          "sha256": "0f5fb4c2564f12cb16e3aa002bd4b35ab76911d8ea9ff26579642c6d4a58e793"
+        }
+      }
+    },
+    {
+      "name": "@parity/product-sdk-host",
+      "version": "0.29.0",
+      "metadataUrl": "https://registry.npmjs.org/@parity/product-sdk-host/0.29.0",
+      "tarball": "https://registry.npmjs.org/@parity/product-sdk-host/-/product-sdk-host-0.29.0.tgz",
+      "integrity": "sha512-vbuA9NcnMhcNfROpZUTl4lMQhOtWxcqH0M18opbbzbIckAAS/nrj2Aws8xt2/47djnURocid2otLtOt3/eYYBw==",
+      "tarSha256": "74bc7a6c06771b88257c6bb2fd9e63fa3d41634f7052f53f5eebb2e8e62e7127",
+      "dependencies": {
+        "neverthrow": "^8.2.0",
+        "polkadot-api": "^3.2.1",
+        "@parity/result": "0.2.0",
+        "@parity/truapi": "^0.26.0",
+        "@polkadot-api/tx-creator": "^0.2.0",
+        "@parity/product-sdk-errors": "0.2.0",
+        "@parity/product-sdk-logger": "0.1.2",
+        "@polkadot-api/signers-common": "^0.4.0",
+        "@polkadot-api/json-rpc-provider": "^0.2.0",
+        "@polkadot-api/substrate-bindings": "^0.21.2"
+      },
+      "files": {
+        "package/package.json": {
+          "size": 1353,
+          "sha256": "8e6f7564a0d19519ab8c5512215f17ebb831b9d6f3f927c098bc13970a9b8dc8"
+        },
+        "package/dist/index.d.ts": {
+          "size": 64872,
+          "sha256": "f0fa7fe5385e31b814a7d42a4041c54d17ef44f24b739e66ca2cc10aae1573cc"
+        },
+        "package/dist/index.js": {
+          "size": 56669,
+          "sha256": "5100f89962920e12326635199c56f3ba9fd8212e23de02f92b42d9cf8fcc7b65"
+        }
+      }
+    }
+  ],
+  "sdkSource": "f14ff5e2ebf5f5cb7d237a11a9c4371db466e80f",
+  "protocolSource": "12ff192f2ca5b1fd060a866ba20b775154e146c0",
+  "publishedDeclarationFacts": {
+    "hostSDK": {
+      "version": "0.33.0",
+      "requiresProtocol": "^0.29.0",
+      "requestParameterTypes": ["PaymentRequest"],
+      "sdkCallerChosenId": true
+    },
+    "protocol": {
+      "version": "0.26.0",
+      "requestFields": ["from", "amount", "destination", "id"],
+      "protocolCallerChosenId": true,
+      "statusTags": ["ClaimedPartially", "Completed", "Failed", "Processing"],
+      "requestErrorTags": ["AlreadyExists", "InsufficientBalance", "InvalidAmount", "Rejected", "Unknown"]
+    },
+    "matchedShippedPairVerified": false
+  },
+  "coherentPublishedCandidate": {
+    "sdk": "0.40.0",
+    "host": "0.29.0",
+    "protocol": "0.26.0",
+    "hostProtocolRange": "^0.26.0",
+    "sdkRequestForm": "fourth-argument",
+    "sdkCallerIdRequired": false,
+    "suppliedIdForwardedInStaticImplementation": true,
+    "shippedPairVerified": false,
+    "dependenciesInstalledOrExecuted": false,
+    "wireSchemaCompatibilityVerified": false
+  }
+}

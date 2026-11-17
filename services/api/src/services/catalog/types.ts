@@ -54,7 +54,9 @@ export const catalogSnapshotSchema = z.object({
   chainHeadBlock: z.number().int().nonnegative(),
   indexedAt: z.string().datetime(),
   reconciledAt: z.string().datetime(),
+  catchingUp: z.boolean().optional(),
   artists: z.array(catalogArtistSchema),
+  excludedReleases: z.array(z.object({ id: z.string(), reason: z.string() })).optional(),
   releases: z.array(catalogReleaseSchema)
 });
 
@@ -73,6 +75,7 @@ export type CatalogMetadata = {
   chainHeadBlock: number | null;
   blockLag: number | null;
   staleAfterMs: number;
+  excludedReleaseCount?: number;
   lastErrorCode: 'CATALOG_INDEXER_UNAVAILABLE' | 'CHAIN_RPC_UNAVAILABLE' | null;
 };
 
@@ -101,8 +104,8 @@ export interface CatalogChainGateway {
   readonly identity: CatalogChainIdentity;
   getHeadBlock(): Promise<number>;
   getBlockHash(blockNumber: number): Promise<`0x${string}`>;
-  listArtists(): Promise<DirectoryArtist[]>;
-  listTrackHashes(runtimeAddress: `0x${string}`): Promise<`0x${string}`[]>;
-  readRelease(artistAddress: `0x${string}`, runtimeAddress: `0x${string}`, contentHash: `0x${string}`): Promise<CatalogRelease>;
+  listArtists(blockNumber?: number): Promise<DirectoryArtist[]>;
+  listTrackHashes(runtimeAddress: `0x${string}`, blockNumber?: number): Promise<`0x${string}`[]>;
+  readRelease(artistAddress: `0x${string}`, runtimeAddress: `0x${string}`, contentHash: `0x${string}`, blockNumber?: number): Promise<CatalogRelease>;
   getChanges(fromBlock: number, toBlock: number, runtimeAddresses: `0x${string}`[]): Promise<CatalogChangeSet>;
 }

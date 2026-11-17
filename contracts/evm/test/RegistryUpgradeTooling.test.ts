@@ -18,7 +18,7 @@ describe('Registry remediation tooling', () => {
     const artifact = await hre.artifacts.readArtifact('MusicRegistryPallet');
     const selectors = assertRegistryArtifact(artifact.abi as Abi);
 
-    expect(selectors).to.have.lengthOf(10);
+    expect(selectors).to.have.lengthOf(11);
     expect(selectors.find(entry => entry.name === 'musicRegRegister')?.selector).to.equal(MUSIC_REGISTRY_REGISTER_SELECTOR);
   });
 

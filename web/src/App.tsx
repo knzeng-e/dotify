@@ -2,7 +2,6 @@ import { lazy, Suspense, useEffect } from 'react';
 
 import { deployments } from './shared/config/deployments';
 import { useTrackAura } from './features/player/useTrackAura';
-import { destroyBulletinClient } from './hooks/useBulletin';
 import { getStoredArtistName } from './hooks/useArtistConsole';
 import { runtimeIdentityKey } from './features/identity/walletIdentity';
 import { useNavigation, useCatalogContext, useSessionContext, useArtistStudio, useWalletContext, useReleaseForm } from './app/providers';
@@ -27,12 +26,11 @@ export default function App() {
   const { setArtistName } = useReleaseForm();
   const directoryAddress = deployments.directory;
 
-  // Tear down the room, revoke object URLs, and close the Bulletin client on exit.
+  // Tear down the room and revoke object URLs on exit.
   useEffect(() => {
     return () => {
       session.destroySession();
       catalog.clearObjectUrls();
-      destroyBulletinClient();
     };
   }, []);
 

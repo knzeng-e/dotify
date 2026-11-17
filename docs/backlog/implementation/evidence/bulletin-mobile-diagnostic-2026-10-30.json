@@ -1,0 +1,91 @@
+{
+  "schema": "dotify.bulletin.mobile-preparation-evidence.v1",
+  "base": "3ba973c0e2085d7a68203c0409d18843df28d036",
+  "testedSource": "ca24fd50f1739b9072518d25712cca805b142620",
+  "candidate": {
+    "schema": "dotify.bulletin.mobile-package.v1",
+    "implementation": {
+      "sha": "ca24fd50f1739b9072518d25712cca805b142620",
+      "dirty": false
+    },
+    "root": "bafykbzacecbgxu5coifnfzajpkwzuaxv36snvjfd4zqsbvpgfk4mx7mhzhtj4",
+    "publicGeneratedKey": true,
+    "requiresSeparateDestinationApproval": true,
+    "networkWrites": 0,
+    "controlBlocks": 14,
+    "productionStorageActivated": false,
+    "artifacts": [
+      {
+        "path": "assets/decoder-control-Uj2veBcR.js",
+        "bytes": 610448,
+        "sha256": "abf10dcac4481c5a4b65ccdc7a665e3c981042c922092c222a418d4639bc545d"
+      },
+      {
+        "path": "assets/index-CvLASarB.css",
+        "bytes": 3201,
+        "sha256": "8380712afe498aa1164574fa0bd8deb29aeaa272371f64760cfcd86f1f737ce1"
+      },
+      {
+        "path": "assets/index-D3KxB5B9.js",
+        "bytes": 375287,
+        "sha256": "9e9e4f0f80eaa846d0cd061773eab42d3086a12cb23f72dce85e0ca8e092e67b"
+      },
+      {
+        "path": "diagnostic-build.json",
+        "bytes": 389,
+        "sha256": "7ec0bcb849c029a92a328ac963d70973988613416861d19ce9ebb98384b13fc0"
+      },
+      {
+        "path": "index.html",
+        "bytes": 4215,
+        "sha256": "9efa447a0b81bb8bc3214ece34260fcaff279688b42e3f882b4703352076acca"
+      }
+    ]
+  },
+  "verification": {
+    "prototypeNodeTests": 38,
+    "pipelineNodeTests": 22,
+    "mobileNodeTests": 6,
+    "hostHarnessChecks": 6,
+    "standaloneBrowserChecks": 1,
+    "physicalMobileTested": false,
+    "audibleStartupMeasured": false,
+    "networkWrites": 0,
+    "signerUsed": false,
+    "productionChanged": false
+  },
+  "readOnlyAvailability": {
+    "observedAt": "2026-10-30T16:39:58.074Z",
+    "root": "bafykbzacecbgxu5coifnfzajpkwzuaxv36snvjfd4zqsbvpgfk4mx7mhzhtj4",
+    "command": "verify",
+    "result": {
+      "verifiedObjects": 9,
+      "paths": [
+        "96/init.bin",
+        "96/segment-000.bin",
+        "96/segment-001.bin",
+        "160/init.bin",
+        "160/segment-000.bin",
+        "160/segment-001.bin",
+        "320/init.bin",
+        "320/segment-000.bin",
+        "320/segment-001.bin"
+      ],
+      "masterFetched": false,
+      "startupRawReads": 8,
+      "startupBytes": 52323,
+      "firstAuthenticatedObjectsMs": 3405,
+      "totalRawReads": 29,
+      "totalReadBytes": 460656,
+      "audibleStartupMeasured": false,
+      "physicalHostTested": false
+    },
+    "attemptedTransactions": 0
+  },
+  "publication": {
+    "performed": false,
+    "approvedDestination": null,
+    "hostDeploymentProfileVerified": false,
+    "storageAdapterActivated": false
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "schema": "dotify.cash-tip-feasibility.v1",
+  "observed": {
+    "sdk": "0.39.0",
+    "host": "0.28.0",
+    "protocol": "0.25.0",
+    "requestParameterTypes": ["bigint", "HexString", "number"],
+    "callerChosenId": false,
+    "protocolCallerChosenId": false,
+    "sdkCallerChosenId": false,
+    "sdkCallerIdRequired": false,
+    "sdkCallerIdForm": "unavailable",
+    "requestFields": ["from", "amount", "destination"],
+    "statusTags": ["Completed", "Failed", "Processing"],
+    "requestErrorTags": ["InsufficientBalance", "Rejected", "Unknown"],
+    "statusLookupFields": ["paymentId"],
+    "hostDeclarationsSha256": "47d9c2995647c72c276e607cf96cbc867a8dcb5fafe832e7fd658e4ce10525a7",
+    "protocolDeclarationsSha256": "400a4162a9378d3b81116e863a503a9ec738357675285d73a9685c68741dccec"
+  },
+  "decision": "no-go",
+  "scope": "cash-work-tip",
+  "blockers": [
+    "pinned-api-cannot-recover-a-lost-request-id",
+    "shipped-host-payment-and-restart-support-unverified",
+    "payment-balance-unit-not-bound-to-the-shipped-host",
+    "no-verified-runtime-split-and-room-receipt-settlement"
+  ],
+  "cashEnabled": false,
+  "accessGranted": false,
+  "evidence": "offline-declarations-and-research-model-only",
+  "nativePasChanged": false,
+  "hostMethodsCalled": 0,
+  "networkCalls": 0,
+  "paymentsSubmitted": 0
+}

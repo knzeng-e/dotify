@@ -18,7 +18,7 @@
 :is(input, textarea, [contenteditable='true']) {
   scroll-margin-block: 1rem;
 }
-html:has(.modal-backdrop),
+html:has(.modal-backdrop:not([hidden])),
 html[data-keyboard-visible='true'] {
   scroll-behavior: auto;
 }

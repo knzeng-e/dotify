@@ -1,5 +1,30 @@
 # W31 - Discovery follow-ups and lighter first load for the trusted pilot
 
+## Delivered checkpoint, 2026-10-26
+
+Issue #286 is a delivered record: #297 implemented the behavior and #332 merged
+the remaining Worldwide Report verification. [Evidence](evidence/W31-worldwide-report-2026-10-25.md)
+covers ordinary Web and a Product Host fixture. Physical Host location/media
+acceptance remains #274/#85/#89/#158. The prompt below is historical.
+
+## Selected verification follow-up, 2026-10-25
+
+The original W31 implementation (#297) is merged and deployed. After #331's
+Product 0.1.61 publication, the owner selects the remaining #286 verification:
+exercise **Worldwide Report**, not only reversible Hide, through the browser UI
+and real local signaling. Verify the minimal target-bound request, one accepted
+anonymous server count, local hiding/restore and another client's continued
+access. Run on ordinary Web and the Product Host fixture without requesting an
+account or location. Keep physical Host acceptance separate.
+
+The existing Nearby hover gate also failed on starting dev `75d05f1`. Correct
+that test's pointer/scroll setup and fixture teardown without forcing hover or
+relaxing assertions. The original implementation prompt below is historical;
+do not rebuild its visibility controls, lazy studio or discovery modes.
+
+This follow-up uses `test/worldwide-report-coverage` because the original
+`fix/discovery-follow-ups` branch belongs to the already merged implementation.
+
 Copy this entire file into an agent working in the Dotify repository, or use the launcher in README.md.
 
 ## Agent assignment

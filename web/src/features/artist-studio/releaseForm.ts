@@ -4,6 +4,7 @@
 // step list) so the wizard navigation and gating are testable in isolation.
 
 import type { AccessMode, PersonhoodLevel, ReleaseRoyaltySplitDraft, ReleaseStep, TransactionFeedback, TransactionFeedbackFact } from '../../shared/types';
+import { releaseDetailsPreflightError, type ReleaseDetails } from './releaseDetails';
 import { shortenAddress } from '../../shared/utils/format';
 
 export const ROYALTY_BPS_DENOMINATOR = 10_000;
@@ -63,9 +64,9 @@ export function previousReleaseStep(current: ReleaseStep): ReleaseStep {
   return previous.id;
 }
 
-/** A release can reach review once it has a hashed audio file with a title. */
-export function canReviewRelease(input: { fileHash: string; title: string; audioSource: string | null }): boolean {
-  return Boolean(input.fileHash && input.title.trim() && input.audioSource);
+/** Review may be visited freely; publishing requires complete release details. */
+export function canReviewRelease(input: ReleaseDetails & { fileHash: string; audioSource: string | null }): boolean {
+  return Boolean(input.fileHash && input.audioSource && !releaseDetailsPreflightError(input));
 }
 
 /** Total configured royalty basis points, including the artist's primary share. */
@@ -172,7 +173,6 @@ export function buildReleasePublicationFacts(input: {
   personhoodLevel: PersonhoodLevel;
   artistRecipient: string;
   runtimeAddress: string | null;
-  uploadToBulletinEnabled: boolean;
 }): TransactionFeedbackFact[] {
   return [
     {
@@ -197,7 +197,6 @@ export function buildReleasePublicationFacts(input: {
 export function buildReleaseTechnicalFacts(input: {
   artistRecipient: string;
   runtimeAddress: string | null;
-  uploadToBulletinEnabled: boolean;
   additionalSplits?: ReleaseRoyaltySplitDraft[];
 }): TransactionFeedbackFact[] {
   const facts: TransactionFeedbackFact[] = [
@@ -214,10 +213,6 @@ export function buildReleaseTechnicalFacts(input: {
     {
       label: 'Release storage',
       value: 'Protected audio and release details use IPFS-backed references.'
-    },
-    {
-      label: 'Public archive',
-      value: input.uploadToBulletinEnabled ? 'Bulletin archival enabled' : 'Bulletin archival off'
     }
   ];
 
@@ -243,8 +238,8 @@ export function buildReleasePublicationRoadmap(stage: ReleasePublicationStage, t
     const status = isComplete ? 'complete' : isActive && step.id === 'registry' && txHash ? 'submitted' : isActive ? 'active' : 'upcoming';
 
     return {
-      label: step.label,
-      detail: step.detail,
+      label: step.id === 'assets' && !isComplete ? 'Save your music' : step.label,
+      detail: step.id === 'assets' && !isComplete ? 'Protect the audio and save the cover before publication.' : step.detail,
       status,
       txHash: step.id === 'registry' && (isComplete || status === 'submitted') ? txHash : undefined
     };
@@ -258,7 +253,7 @@ export function buildReleaseRegistrationFailureMessage(input: { error: string; s
   if (input.submittedTxHash) {
     return `Your publication approval was submitted, but confirmation did not finish: ${input.error} Keep the proof reference and check your account activity before retrying. Dotify will not submit another release automatically.`;
   }
-  return `No release was published. Your music and draft are still here, so you can retry: ${input.error}`;
+  return `No release was published. Your music and draft are still here. ${input.error}`;
 }
 
 export type ArtistSetupState = 'Ready' | 'Registration needed' | 'Wallet needed';

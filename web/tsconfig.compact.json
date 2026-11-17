@@ -1,0 +1,4 @@
+{
+  "extends": "./tsconfig.json",
+  "include": ["src/vite-env.d.ts", "e2e/compact-audio.spec.ts", "e2e/fixtures/compact-audio.ts", "playwright.compact.config.ts"]
+}

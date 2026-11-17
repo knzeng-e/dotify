@@ -1425,18 +1425,6 @@ button.you-panel:hover {
   font-size: inherit;
 }
 
-.release-technical-options {
-  padding-bottom: 0.25rem;
-}
-
-.technical-option-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  color: var(--muted);
-  font-size: var(--text-xs);
-}
-
 .royalty-split-editor {
   display: grid;
   gap: 0.85rem;

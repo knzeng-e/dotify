@@ -34,34 +34,30 @@ function bindProfile(surface: 'standalone-chrome' | 'standalone-safari' | 'ios-s
 
 function snapshot(startedAt: number): AudioStartupTelemetrySnapshot {
   return {
-    dav2: [
+    streaming: [
       {
         phase: 'key-authorized',
-        audioRef: 'dotify:enc:v2:ipfs://private-ref-not-exported',
+        audioRef: 'dotify:enc:v3:key-v2:ipfs://Qm5yTwg1vtqRsKxG3MGvwqYfb2KgY9vNbqA3BRGnMkzR2g',
         cid: 'private-cid-not-exported',
         elapsedMs: 240,
         timestamp: startedAt + 5
       },
       {
-        phase: 'first-range-ready',
-        audioRef: 'dotify:enc:v2:ipfs://private-ref-not-exported',
+        phase: 'first-object-ready',
+        audioRef: 'dotify:enc:v3:key-v2:ipfs://Qm5yTwg1vtqRsKxG3MGvwqYfb2KgY9vNbqA3BRGnMkzR2g',
         cid: 'private-cid-not-exported',
         elapsedMs: 310,
         timestamp: startedAt + 10,
         gatewayUrl: 'https://private-gateway.example/ipfs/cid',
-        rangeStart: 120,
-        rangeEnd: 511,
-        hedged: true,
-        gatewayRecovered: true,
-        intentPrefetched: true
+        objectBytes: 392,
+        gatewayRecovered: true
       },
       {
-        phase: 'first-chunk-decrypted',
-        audioRef: 'dotify:enc:v2:ipfs://private-ref-not-exported',
+        phase: 'first-segment-decrypted',
+        audioRef: 'dotify:enc:v3:key-v2:ipfs://Qm5yTwg1vtqRsKxG3MGvwqYfb2KgY9vNbqA3BRGnMkzR2g',
         cid: 'private-cid-not-exported',
         elapsedMs: 420,
-        timestamp: startedAt + 20,
-        decryptor: 'worker'
+        timestamp: startedAt + 20
       }
     ],
     host: [
@@ -118,7 +114,7 @@ describe('first-sound evidence capture', () => {
     expect(beginFirstSoundAttempt('product-desktop', 'free', 'cold', 'ordinary-playback', 2_000)).toBeNull();
   });
 
-  it('captures sanitized timing and DAV2 path facts after an audible result', () => {
+  it('captures sanitized timing and streaming path facts after an audible result', () => {
     bindCandidate('[0, 1, 25]', CID);
     bindProfile('product-desktop');
     beginFirstSoundAttempt('product-desktop', 'authorized-protected', 'warm', 'ordinary-playback', 1_000);
@@ -133,14 +129,11 @@ describe('first-sound evidence capture', () => {
         outcome: 'first-audio',
         measurement: 'human-confirmed',
         firstSoundMs: 812,
-        dav2: {
+        streaming: {
           observed: true,
-          fallback: false,
-          hedged: true,
+          compatibilityReader: false,
           gatewayRecovered: true,
-          intentPrefetched: true,
-          decryptor: 'worker',
-          firstRangeBytes: 392,
+          firstObjectBytes: 392,
           keyAuthorizationMs: 240,
           authenticationFailed: false
         },
@@ -174,11 +167,11 @@ describe('first-sound evidence capture', () => {
     bindProfile('ios-safari');
     beginFirstSoundAttempt('ios-safari', 'free', 'cold', 'ordinary-playback', 1_000);
 
-    expect(finishFirstSoundAttempt({ dav2: [], host: [], latestMediaPlayingMs: null }, 2_000, true)).toBeNull();
+    expect(finishFirstSoundAttempt({ streaming: [], host: [], latestMediaPlayingMs: null }, 2_000, true)).toBeNull();
     expect(readFirstSoundEvidenceDraft()?.activeAttempt).not.toBeNull();
   });
 
-  it('captures a DAV2 failure that happens before an audio source exists', () => {
+  it('captures a streaming failure that happens before an audio source exists', () => {
     bindCandidate();
     bindProfile('standalone-chrome');
     beginFirstSoundAttempt('standalone-chrome', 'authorized-protected', 'cold', 'ordinary-playback', 1_000);
@@ -186,10 +179,10 @@ describe('first-sound evidence capture', () => {
     const draft = finishFirstSoundAttempt(
       {
         host: [{ phase: 'playback-intent', attemptId: 'attempt-a', source: 'private-track-id', elapsedMs: 0, timestamp: 1_100 }],
-        dav2: [
+        streaming: [
           {
             phase: 'error',
-            audioRef: 'dotify:enc:v2:ipfs://private-ref',
+            audioRef: 'dotify:enc:v3:key-v2:ipfs://Qm3ixzpM2wEYFMWNpn48UgYiNavy5p5FGdfduggdEe6NEY',
             cid: 'private-cid',
             elapsedMs: 600,
             timestamp: 1_700,
@@ -202,7 +195,7 @@ describe('first-sound evidence capture', () => {
     );
 
     expect(draft?.activeAttempt).toBeNull();
-    expect(draft?.samples).toEqual([expect.objectContaining({ outcome: 'error', firstSoundMs: null, dav2: expect.objectContaining({ observed: true }) })]);
+    expect(draft?.samples).toEqual([expect.objectContaining({ outcome: 'error', firstSoundMs: null, streaming: expect.objectContaining({ observed: true }) })]);
     expect(serializeFirstSoundEvidence(buildFirstSoundEvidence(draft!, 3_000)!)).not.toContain('private gateway failure');
   });
 
@@ -213,7 +206,7 @@ describe('first-sound evidence capture', () => {
 
     const draft = finishFirstSoundAttempt(
       {
-        dav2: [],
+        streaming: [],
         host: [
           { phase: 'playback-intent', attemptId: 'attempt-a', source: 'track-id', elapsedMs: 0, timestamp: 1_100 },
           { phase: 'metadata-ready', attemptId: 'attempt-a', source: 'blob:first', elapsedMs: 50, timestamp: 1_150 },
@@ -236,7 +229,7 @@ describe('first-sound evidence capture', () => {
 
     const draft = finishFirstSoundAttempt(
       {
-        dav2: [],
+        streaming: [],
         host: [
           { phase: 'playback-intent', attemptId: 'attempt-a', source: 'first-private-track-id', elapsedMs: 0, timestamp: 1_100 },
           {
@@ -278,7 +271,7 @@ describe('first-sound evidence capture', () => {
 
     const draft = finishFirstSoundAttempt(
       {
-        dav2: [],
+        streaming: [],
         host: [
           { phase: 'playback-intent', attemptId: 'new-selection', source: 'new-track', elapsedMs: 0, timestamp: 1_100 },
           { phase: 'error', attemptId: 'outgoing-source', source: 'blob:old-track', elapsedMs: 20, timestamp: 1_120 },

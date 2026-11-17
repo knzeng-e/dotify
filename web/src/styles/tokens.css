@@ -54,8 +54,8 @@
   --aura-accent: hsl(207 46% 50%);
   --aura-hue: 207;
   --aura-strength: 0.7;
-  /* Eight-step type scale. Editorial is reserved for page, artist, release and
-     section titles; controls, status and proof stay in the interface face. */
+  /* Eight-step type scale. Editorial serves titles and artist liner notes;
+     controls, status, metadata and proof stay in the interface face. */
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;
   --text-base: 1rem;

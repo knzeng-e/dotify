@@ -1,7 +1,8 @@
+import { deployments } from '../shared/config/deployments';
 import { PRODUCT_DEVNET_BOOTSTRAP_CATALOG, PRODUCT_DEVNET_BOOTSTRAP_PRODUCT_ID } from './productDevnetCatalogBootstrap';
 
 const DEFAULT_API_URL = (import.meta.env.VITE_DOTIFY_API_URL as string | undefined)?.replace(/\/$/, '');
-const CACHE_VERSION = 1;
+const CACHE_VERSION = 2;
 const CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 const DEFAULT_CATALOG_TIMEOUT_MS = 8_000;
 
@@ -189,7 +190,7 @@ function resolveStorage(storage: Storage | null | undefined): Storage | null {
 }
 
 function cacheKey(apiUrl: string, includeInactive: boolean, limit: number): string {
-  return `dotify:catalog:v${CACHE_VERSION}:${apiUrl}:${includeInactive ? 'all' : 'active'}:${limit}`;
+  return `dotify:catalog:v${CACHE_VERSION}:${apiUrl}:${deployments.directory.toLowerCase()}:${includeInactive ? 'all' : 'active'}:${limit}`;
 }
 
 function readCache(apiUrl: string | undefined, includeInactive: boolean, limit: number, storage: Storage | null): CachedCatalog | null {

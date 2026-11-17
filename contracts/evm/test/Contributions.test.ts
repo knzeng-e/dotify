@@ -66,6 +66,84 @@ async function rejects(promise: Promise<unknown>, message: string) {
 }
 
 describe('Native gifts and tips', () => {
+  it('distinguishes unknown scopes from profile gifts and registered works without a policy', async () => {
+    const { gifts, reg, context } = await loadFixture(fixture);
+    const unknown = keccak256(toBytes('unregistered-work'));
+    await rejects(gifts.read.musicGiftPolicy([unknown]), 'MusicRegistry: track not found');
+    await rejects(gifts.write.musicGiftSetPolicy([unknown, policy]), 'MusicRegistry: track not found');
+    await rejects(gifts.read.musicGiftQuote([{ ...context, contentHash: unknown }, 1000n]), 'MusicRegistry: track not found');
+    expect(await gifts.read.musicGiftPolicy([zeroHash])).to.deep.equal(policy);
+    expect(await gifts.read.musicGiftPolicy([hash])).to.deep.equal(policy);
+    await reg.write.musicRegDeactivate([hash]);
+    expect(await gifts.read.musicGiftPolicy([hash])).to.deep.equal(policy);
+    // Deactivation prevents payment, but does not prevent an artist managing policy.
+    await gifts.write.musicGiftSetPolicy([hash, { ...policy, description: 'Paused work' }]);
+    expect((await gifts.read.musicGiftPolicy([hash])).version).to.equal(1n);
+    await rejects(gifts.read.musicGiftQuote([context, 1000n]), 'MusicRegistry: track inactive');
+  });
+  it('keeps policy authorization, versions and bounded allocation validation with typed errors', async () => {
+    const { gifts, donor, cause, runtime } = await loadFixture(fixture);
+    await rejects(gifts.write.musicGiftSetPolicy([hash, policy], { account: donor.account }), 'ContributionArtistOnly');
+    const invalid = [
+      [{ ...policy, version: 1n }, 'ContributionPolicyChanged'],
+      [{ ...policy, hostBps: 10001 }, 'ContributionInvalidHostShare'],
+      [{ ...policy, startsAt: 10n, endsAt: 10n }, 'ContributionInvalidDates'],
+      [{ ...policy, description: 'a'.repeat(281) }, 'ContributionDescriptionTooLong'],
+      [{ ...policy, recipients: [cause.account.address], shares: [] }, 'ContributionInvalidRecipients'],
+      [{ ...policy, recipients: Array(17).fill(cause.account.address), shares: Array(17).fill(1) }, 'ContributionInvalidRecipients'],
+      [{ ...policy, recipients: [zeroAddress], shares: [100] }, 'ContributionInvalidRecipient'],
+      [{ ...policy, recipients: [runtime.address], shares: [100] }, 'ContributionInvalidRecipient'],
+      [{ ...policy, recipients: [cause.account.address], shares: [0] }, 'ContributionInvalidRecipient'],
+      [{ ...policy, recipients: [cause.account.address], shares: [10001] }, 'ContributionInvalidShares']
+    ] as const;
+    for (const [next, error] of invalid) {
+      await rejects(gifts.write.musicGiftSetPolicy([hash, next]), error);
+      expect((await gifts.read.musicGiftPolicy([hash])).version).to.equal(0n);
+    }
+    await rejects(gifts.write.musicGiftSetPolicy([zeroHash, { ...policy, hostBps: 1 }]), 'ContributionInvalidHostShare');
+    await gifts.write.musicGiftSetPolicy([hash, policy]);
+    await rejects(gifts.write.musicGiftSetPolicy([hash, policy]), 'ContributionPolicyChanged');
+    expect((await gifts.read.musicGiftPolicy([hash])).version).to.equal(1n);
+  });
+  it('conserves odd amounts across sixteen destinations and at schedule boundaries', async () => {
+    const { gifts, context, donor, artist, client } = await loadFixture(fixture);
+    const destinations = (await hre.viem.getWalletClients()).slice(4, 20);
+    const recipients = destinations.map(wallet => wallet.account.address);
+    const startsAt = BigInt((await time.latest()) + 60);
+    const endsAt = startsAt + 60n;
+    await gifts.write.musicGiftSetPolicy([zeroHash, { ...policy, startsAt, endsAt, campaign: hash, recipients, shares: recipients.map(() => 625) }]);
+    const gift = { ...context, contentHash: zeroHash };
+    const amount = 10001n;
+    const beforeStart = await gifts.read.musicGiftQuote([gift, amount]);
+    expect(beforeStart.amounts).to.deep.equal([amount]);
+    expect(beforeStart.campaign).to.equal(zeroHash);
+    await time.increaseTo(startsAt);
+    const quote = await gifts.read.musicGiftQuote([gift, amount]);
+    expect(quote.amounts).to.deep.equal([...recipients.map(() => 625n), 1n]);
+    expect(quote.amounts.reduce((total, value) => total + value, 0n)).to.equal(amount);
+    expect(quote.recipients.at(-1)?.toLowerCase()).to.equal(artist.account.address);
+    const before = await Promise.all(recipients.map(address => client.getBalance({ address })));
+    await gifts.write.musicGiftContribute([gift, quote.digest, '0x'], { account: donor.account, value: amount });
+    const after = await Promise.all(recipients.map(address => client.getBalance({ address })));
+    expect(after.map((balance, i) => balance - before[i])).to.deep.equal(recipients.map(() => 625n));
+    await time.increaseTo(endsAt);
+    const expired = await gifts.read.musicGiftQuote([gift, amount]);
+    expect(expired.amounts).to.deep.equal([amount]);
+    expect(expired.campaign).to.equal(zeroHash);
+    expect(expired.digest).not.to.equal(quote.digest);
+  });
+  it('preserves cross-pallet reentrancy protection while settling contributions', async () => {
+    const { gifts, context, donor, runtime, client } = await loadFixture(fixture);
+    const recipient = await hre.viem.deployContract('ReentrantRoyaltyRecipient');
+    await recipient.write.configure([runtime.address, hash]);
+    await gifts.write.musicGiftSetPolicy([zeroHash, { ...policy, recipients: [recipient.address], shares: [10000] }]);
+    const gift = { ...context, contentHash: zeroHash };
+    const quote = await gifts.read.musicGiftQuote([gift, 1000n]);
+    await gifts.write.musicGiftContribute([gift, quote.digest, '0x'], { account: donor.account, value: 1000n });
+    expect(await recipient.read.attempted()).to.equal(true);
+    expect(await recipient.read.reenterSucceeded()).to.equal(false);
+    expect(await client.getBalance({ address: recipient.address })).to.equal(1000n);
+  });
   it('tips a free work repeatedly, preserving splits without granting paid access', async () => {
     const { gifts, context, donor, runtime, collaborator, client } = await loadFixture(fixture);
     const before = await client.getBalance({ address: collaborator.account.address });
@@ -75,7 +153,7 @@ describe('Native gifts and tips', () => {
     expect((await client.getBalance({ address: collaborator.account.address })) - before).to.equal(parseEther('3'));
     const access = await hre.viem.getContractAt('MusicAccessPallet', runtime.address);
     expect(await access.read.musicAccHasPaid([hash, donor.account.address])).to.equal(false);
-    await rejects(gifts.write.musicGiftContribute([context, q.digest, '0x'], { account: donor.account, value: amount }), 'already submitted');
+    await rejects(gifts.write.musicGiftContribute([context, q.digest, '0x'], { account: donor.account, value: amount }), 'ContributionAlreadySubmitted');
     const second = { ...context, intentId: keccak256(toBytes('second')) };
     const quote = await gifts.read.musicGiftQuote([second, amount]);
     await gifts.write.musicGiftContribute([second, quote.digest, '0x'], { account: donor.account, value: amount });
@@ -87,7 +165,7 @@ describe('Native gifts and tips', () => {
     const next = { ...policy, recipients: [cause.account.address], shares: [10000], campaign: hash };
     await rejects(gifts.write.musicGiftSetPolicy([zeroHash, next], { account: donor.account }), 'not owner');
     await gifts.write.musicGiftSetPolicy([zeroHash, next]);
-    await rejects(gifts.write.musicGiftContribute([gift, old.digest, '0x'], { account: donor.account, value: 1000n }), 'review changed distribution');
+    await rejects(gifts.write.musicGiftContribute([gift, old.digest, '0x'], { account: donor.account, value: 1000n }), 'ContributionDistributionChanged');
     const q = await gifts.read.musicGiftQuote([gift, 1000n]);
     expect(q.recipients[0].toLowerCase()).to.equal(cause.account.address);
     expect(q.amounts[0]).to.equal(1000n);
@@ -122,8 +200,8 @@ describe('Native gifts and tips', () => {
       )
     );
     const proof = await attestor.signMessage({ message: { raw: digest } });
-    await rejects(gifts.write.musicGiftContribute([ctx, q.digest, '0x'], { account: donor.account, value: amount }), 'proof length');
-    await rejects(gifts.write.musicGiftContribute([ctx, q.digest, proof], { account: host.account, value: amount }), 'invalid room proof');
+    await rejects(gifts.write.musicGiftContribute([ctx, q.digest, '0x'], { account: donor.account, value: amount }), 'ContributionInvalidProofLength');
+    await rejects(gifts.write.musicGiftContribute([ctx, q.digest, proof], { account: host.account, value: amount }), 'ContributionInvalidRoomProof');
     const before = await Promise.all([host, collaborator, cause].map(({ account }) => client.getBalance({ address: account.address })));
     await gifts.write.musicGiftContribute([ctx, q.digest, proof], { account: donor.account, value: amount });
     const after = await Promise.all([host, collaborator, cause].map(({ account }) => client.getBalance({ address: account.address })));
@@ -153,7 +231,7 @@ describe('Native gifts and tips', () => {
     await gifts.write.musicGiftContribute([gift, q.digest, '0x'], { account: donor.account, value: 1000n });
     const id = keccak256(encodeAbiParameters([{ type: 'address' }, { type: 'bytes32' }], [donor.account.address, context.intentId]));
     expect(await gifts.read.musicGiftPending([id, recipient.address])).to.equal(1000n);
-    await rejects(gifts.write.musicGiftClaim([id], { account: donor.account }), 'nothing to claim');
+    await rejects(gifts.write.musicGiftClaim([id], { account: donor.account }), 'ContributionNothingToClaim');
   });
   it('lets only a failed recipient recover its own share once, separately from royalties', async () => {
     const { gifts, context, donor, runtime, client } = await loadFixture(fixture);
@@ -163,7 +241,7 @@ describe('Native gifts and tips', () => {
     const q = await gifts.read.musicGiftQuote([gift, 1000n]);
     await gifts.write.musicGiftContribute([gift, q.digest, '0x'], { account: donor.account, value: 1000n });
     const id = keccak256(encodeAbiParameters([{ type: 'address' }, { type: 'bytes32' }], [donor.account.address, context.intentId]));
-    await rejects(recipient.write.claimContribution([runtime.address, id]), 'recipient rejected claim');
+    await rejects(recipient.write.claimContribution([runtime.address, id]), 'ContributionClaimRejected');
     expect(await gifts.read.musicGiftPending([id, recipient.address])).to.equal(1000n);
     const royalty = await hre.viem.getContractAt('MusicRoyaltiesPallet', runtime.address);
     expect(await royalty.read.musicRoyClaimable([recipient.address])).to.equal(0n);
@@ -171,6 +249,6 @@ describe('Native gifts and tips', () => {
     await recipient.write.claimContribution([runtime.address, id]);
     expect(await gifts.read.musicGiftPending([id, recipient.address])).to.equal(0n);
     expect(await client.getBalance({ address: recipient.address })).to.equal(1000n);
-    await rejects(recipient.write.claimContribution([runtime.address, id]), 'nothing to claim');
+    await rejects(recipient.write.claimContribution([runtime.address, id]), 'ContributionNothingToClaim');
   });
 });

@@ -1,0 +1,632 @@
+{
+  "schema": "dotify.product.rollout-evidence.v1",
+  "version": [
+    0,
+    1,
+    82
+  ],
+  "source": "26430e566cf7bd70995007cd266152a562cd35b7",
+  "base": "bccb20d5d70f30d41baafccc6939c11c68828a4d",
+  "domain": "dotify-test01.dot",
+  "ci": {
+    "mergedDev": {
+      "run": 42538044047,
+      "conclusion": "success"
+    },
+    "frozenCandidate": {
+      "run": 42540163615,
+      "conclusion": "success"
+    }
+  },
+  "application": {
+    "storageCid": "bafybeigqmu3ys3wfpxlii7lk3r5u6j7eqnbrvh7rbueqqmsydvtlfsrvnu",
+    "previousStorageCid": "bafybeiftek3c32m2ro6mf6xcrazdlyeccgrc3rvelbdzr6ngijfnhg7wb4",
+    "carSha256": "3fc289ca83962b2a4ffd71fe38f53a7a038ec14315263c09328aa361f54d0453",
+    "offlineVerification": {
+      "source": "26430e566cf7bd70995007cd266152a562cd35b7",
+      "carSha256": "3fc289ca83962b2a4ffd71fe38f53a7a038ec14315263c09328aa361f54d0453",
+      "storageCid": "bafybeigqmu3ys3wfpxlii7lk3r5u6j7eqnbrvh7rbueqqmsydvtlfsrvnu",
+      "carBlocksVerified": 99,
+      "filesByteCompared": 71,
+      "outerProductBlocksVerified": 20,
+      "networkWrites": 0,
+      "signerUsed": false
+    },
+    "stores": 12,
+    "storeBytes": 3590405,
+    "oneOffRenewals": 8,
+    "renewalBytes": 5899777,
+    "operations": [
+      {
+        "cid": "bafkreih34h3cfz5ijr2lvxzl2wcpfcub3qda2iaqzzsui4crgtrb7uulxm",
+        "bytes": 25651,
+        "phase": "store",
+        "nonce": 1642,
+        "afterBlock": 1565243,
+        "before": null,
+        "status": "finalized",
+        "receipt": {
+          "block": 1565249,
+          "index": 0,
+          "expiresAt": 1766849,
+          "finalized": true
+        }
+      },
+      {
+        "cid": "bafkreihix62yiofcswlqhq4wmbxkfobuiioyyxbs3ofgwivztccupyud24",
+        "bytes": 296,
+        "phase": "store",
+        "nonce": 1643,
+        "afterBlock": 1565249,
+        "before": null,
+        "status": "finalized",
+        "receipt": {
+          "block": 1565255,
+          "index": 0,
+          "expiresAt": 1766855,
+          "finalized": true
+        }
+      },
+      {
+        "cid": "bafkreid3pocb6ewhobvs6onk3u2b46b2qahapktczgdaxk33qrop5cb57m",
+        "bytes": 262183,
+        "phase": "store",
+        "nonce": 1644,
+        "afterBlock": 1565255,
+        "before": null,
+        "status": "finalized",
+        "receipt": {
+          "block": 1565260,
+          "index": 0,
+          "expiresAt": 1766860,
+          "finalized": true
+        }
+      },
+      {
+        "cid": "bafkreibbpduilvfshunswgkdow7cgf5c4vknuec4xbwkssg6zqswxvnt6e",
+        "bytes": 262183,
+        "phase": "store",
+        "nonce": 1645,
+        "afterBlock": 1565260,
+        "before": null,
+        "status": "finalized",
+        "receipt": {
+          "block": 1565266,
+          "index": 0,
+          "expiresAt": 1766866,
+          "finalized": true
+        }
+      },
+      {
+        "cid": "bafkreigxgsfjsaulachnmscj6e77673hia2khsnihnnma3zxfwc6el2zmq",
+        "bytes": 262183,
+        "phase": "store",
+        "nonce": 1646,
+        "afterBlock": 1565266,
+        "before": null,
+        "status": "finalized",
+        "receipt": {
+          "block": 1565272,
+          "index": 0,
+          "expiresAt": 1766872,
+          "finalized": true
+        }
+      },
+      {
+        "cid": "bafkreifxh5lfrzoysx6ibgnlbctmu27iefr2ae2bcrbetm4ooqew7wciqi",
+        "bytes": 262183,
+        "phase": "store",
+        "nonce": 1647,
+        "afterBlock": 1565272,
+        "before": null,
+        "status": "finalized",
+        "receipt": {
+          "block": 1565277,
+          "index": 0,
+          "expiresAt": 1766877,
+          "finalized": true
+        }
+      },
+      {
+        "cid": "bafkreibhfbmm5ir43qcnsjqqgnbwchps7ldvekthwms7yg3zjk6urzrkiu",
+        "bytes": 118345,
+        "phase": "store",
+        "nonce": 1648,
+        "afterBlock": 1565277,
+        "before": null,
+        "status": "finalized",
+        "receipt": {
+          "block": 1565283,
+          "index": 0,
+          "expiresAt": 1766883,
+          "finalized": true
+        }
+      },
+      {
+        "cid": "bafkreifsc4356vqxteq6bzqyb2izkza234h5ifgjzwkaod2l3kp6dcrgha",
+        "bytes": 962187,
+        "phase": "renewal",
+        "nonce": 1649,
+        "afterBlock": 1565283,
+        "before": {
+          "block": 1559206,
+          "index": 0,
+          "expiresAt": 1760806,
+          "finalized": true
+        },
+        "status": "finalized",
+        "receipt": {
+          "block": 1565289,
+          "index": 0,
+          "expiresAt": 1766889,
+          "finalized": true
+        }
+      },
+      {
+        "cid": "bafkreiaqw3736dby7fbj7bprgqnylolk5xv3iw32mvcvplojauecn754m4",
+        "bytes": 881923,
+        "phase": "renewal",
+        "nonce": 1650,
+        "afterBlock": 1565289,
+        "before": {
+          "block": 1559211,
+          "index": 0,
+          "expiresAt": 1760811,
+          "finalized": true
+        },
+        "status": "finalized",
+        "receipt": {
+          "block": 1565294,
+          "index": 0,
+          "expiresAt": 1766894,
+          "finalized": true
+        }
+      },
+      {
+        "cid": "bafkreifxktisancsexm3xlxwqkbgktc7zzdl6esom5q7a5lcly2ud2pv2y",
+        "bytes": 880931,
+        "phase": "renewal",
+        "nonce": 1651,
+        "afterBlock": 1565294,
+        "before": {
+          "block": 1559216,
+          "index": 0,
+          "expiresAt": 1760816,
+          "finalized": true
+        },
+        "status": "finalized",
+        "receipt": {
+          "block": 1565300,
+          "index": 0,
+          "expiresAt": 1766900,
+          "finalized": true
+        }
+      },
+      {
+        "cid": "bafkreifbzcb3z5ww5rcpawwl65majfatnnopmtxewo7e7yetyjrynpub5e",
+        "bytes": 868519,
+        "phase": "renewal",
+        "nonce": 1652,
+        "afterBlock": 1565300,
+        "before": {
+          "block": 1559221,
+          "index": 0,
+          "expiresAt": 1760821,
+          "finalized": true
+        },
+        "status": "finalized",
+        "receipt": {
+          "block": 1565306,
+          "index": 0,
+          "expiresAt": 1766906,
+          "finalized": true
+        }
+      },
+      {
+        "cid": "bafkreifmxpegwzacog6hx2etifypiipw5p6sbg67ujcjcez5evzx3gelwm",
+        "bytes": 716226,
+        "phase": "renewal",
+        "nonce": 1653,
+        "afterBlock": 1565306,
+        "before": {
+          "block": 1559227,
+          "index": 0,
+          "expiresAt": 1760827,
+          "finalized": true
+        },
+        "status": "finalized",
+        "receipt": {
+          "block": 1565311,
+          "index": 0,
+          "expiresAt": 1766911,
+          "finalized": true
+        }
+      },
+      {
+        "cid": "bafkreiglaydriq6evdoq5yrcw2nptznsrmkymvlq6e62bhcud6mtgxmfw4",
+        "bytes": 716226,
+        "phase": "renewal",
+        "nonce": 1654,
+        "afterBlock": 1565311,
+        "before": {
+          "block": 1559232,
+          "index": 0,
+          "expiresAt": 1760832,
+          "finalized": true
+        },
+        "status": "finalized",
+        "receipt": {
+          "block": 1565317,
+          "index": 0,
+          "expiresAt": 1766917,
+          "finalized": true
+        }
+      },
+      {
+        "cid": "bafkreia33wiyhvhfwkt2llmganx7zpob7lr66z6kd4d6omidolob4ovyzy",
+        "bytes": 837816,
+        "phase": "renewal",
+        "nonce": 1655,
+        "afterBlock": 1565317,
+        "before": {
+          "block": 1559238,
+          "index": 0,
+          "expiresAt": 1760838,
+          "finalized": true
+        },
+        "status": "finalized",
+        "receipt": {
+          "block": 1565323,
+          "index": 0,
+          "expiresAt": 1766923,
+          "finalized": true
+        }
+      },
+      {
+        "cid": "bafkreihaga7leyftr64zri6euzy2qls7fewaoqterwsxg2ddjiy2a3ciba",
+        "bytes": 964203,
+        "phase": "store",
+        "nonce": 1656,
+        "afterBlock": 1565323,
+        "before": null,
+        "status": "finalized",
+        "receipt": {
+          "block": 1565329,
+          "index": 0,
+          "expiresAt": 1766929,
+          "finalized": true
+        }
+      },
+      {
+        "cid": "bafkreiatiiygcflpazujab7rd3paakuhwissr6mclvvhkfqbx3mkft2cxi",
+        "bytes": 1024876,
+        "phase": "store",
+        "nonce": 1657,
+        "afterBlock": 1565329,
+        "before": null,
+        "status": "finalized",
+        "receipt": {
+          "block": 1565335,
+          "index": 0,
+          "expiresAt": 1766935,
+          "finalized": true
+        }
+      },
+      {
+        "cid": "bafkreihlqrmiompnxhnu6iaw2hb4tpi4wx2k7fzj2fuur2qmbaeo52zyqy",
+        "bytes": 400797,
+        "phase": "store",
+        "nonce": 1658,
+        "afterBlock": 1565335,
+        "before": null,
+        "status": "finalized",
+        "receipt": {
+          "block": 1565340,
+          "index": 0,
+          "expiresAt": 1766940,
+          "finalized": true
+        }
+      },
+      {
+        "cid": "bafkreidjof7jn2ftlpbw73jvcbu2jk3hifyhtro3xisvzemgnvdk3or2fi",
+        "bytes": 6600,
+        "phase": "store",
+        "nonce": 1659,
+        "afterBlock": 1565340,
+        "before": null,
+        "status": "finalized",
+        "receipt": {
+          "block": 1565345,
+          "index": 0,
+          "expiresAt": 1766945,
+          "finalized": true
+        }
+      },
+      {
+        "cid": "bafybeigqmu3ys3wfpxlii7lk3r5u6j7eqnbrvh7rbueqqmsydvtlfsrvnu",
+        "bytes": 905,
+        "phase": "store",
+        "nonce": 1660,
+        "afterBlock": 1565345,
+        "before": null,
+        "status": "finalized",
+        "receipt": {
+          "block": 1565350,
+          "index": 0,
+          "expiresAt": 1766950,
+          "finalized": true
+        }
+      },
+      {
+        "cid": "bafk2bzacebh4rknk6x7zl4pul7t3ff7y2pglpk5x4q2k3nxnql5ebizvgluxk",
+        "bytes": 35949,
+        "phase": "renewal",
+        "nonce": 1661,
+        "afterBlock": 1565350,
+        "before": {
+          "block": 1559269,
+          "index": 0,
+          "expiresAt": 1760869,
+          "finalized": true
+        },
+        "status": "finalized",
+        "receipt": {
+          "block": 1565355,
+          "index": 0,
+          "expiresAt": 1766955,
+          "finalized": true
+        }
+      }
+    ],
+    "dotns": [
+      {
+        "phase": "dotify-test01",
+        "nonce": 488,
+        "status": "finalized",
+        "block": {
+          "index": 2,
+          "number": 15506736,
+          "hash": "0x82f92ecf21e04beb411241cad8dd96f717824629af22ae7eebf1e25944b8ba3c"
+        }
+      },
+      {
+        "phase": "app.dotify-test01",
+        "nonce": 489,
+        "status": "finalized",
+        "block": {
+          "index": 2,
+          "number": 15506751,
+          "hash": "0xafd0b34de34e554e586befd76c2faa07e1789cac416bd56cfe5eb50f30b251c9"
+        }
+      }
+    ],
+    "completedAt": "2026-11-09T01:10:30.216Z",
+    "finalizedReadback": {
+      "head": 1565380,
+      "nonce": 1662,
+      "dependencies": 20,
+      "bytesCompared": 9490182,
+      "earliestExpiry": 1766849,
+      "authorization": {
+        "expiresAt": 1621405,
+        "remainingTransactions": 2719,
+        "remainingBytes": "515370541",
+        "remainingRenewBytes": "604234496"
+      },
+      "assetHub": {
+        "block": 15506801,
+        "hash": "0xcc9c53437f3e11041372f784b29ea5f7ce9e8745efa0ea097d96c221c49fbb5f"
+      },
+      "records": {
+        "dotify-test01.dot": {
+          "owner": "0xe3e3a0916d27c5174313f16E1507a286985a8Ac8",
+          "contenthash": "0xe30101701220d06537896ec57dd6847d6adc7b4f27e483431a9ff10d090832581d66b2ca356d",
+          "record": "{\"$v\":1,\"displayName\":\"Dotify\",\"description\":\"Shared musical presence with artist-owned access and value flows.\",\"icon\":{\"cid\":\"bafk2bzacebh4rknk6x7zl4pul7t3ff7y2pglpk5x4q2k3nxnql5ebizvgluxk\",\"format\":\"png\"}}"
+        },
+        "app.dotify-test01.dot": {
+          "owner": "0xe3e3a0916d27c5174313f16E1507a286985a8Ac8",
+          "contenthash": "0xe30101701220d06537896ec57dd6847d6adc7b4f27e483431a9ff10d090832581d66b2ca356d",
+          "record": "{\"$v\":1,\"kind\":\"app\",\"appVersion\":[0,1,82]}"
+        },
+        "dotify-bulletin-lab.dot": {
+          "owner": "0xe3e3a0916d27c5174313f16E1507a286985a8Ac8",
+          "contenthash": "0xe30101701220431f7ac8486f5e9b7f5778e58d65daa485eff8bdaf26ff8d81f086ac8a567e2a",
+          "record": "{\"$v\":1,\"displayName\":\"Dotify First note lab\",\"description\":\"Generated 64-second audio continuity diagnostic. No artist music, wallet or payment.\",\"icon\":{\"cid\":\"bafk2bzacebh4rknk6x7zl4pul7t3ff7y2pglpk5x4q2k3nxnql5ebizvgluxk\",\"format\":\"png\"}}"
+        },
+        "app.dotify-bulletin-lab.dot": {
+          "owner": "0xe3e3a0916d27c5174313f16E1507a286985a8Ac8",
+          "contenthash": "0xe30101701220431f7ac8486f5e9b7f5778e58d65daa485eff8bdaf26ff8d81f086ac8a567e2a",
+          "record": "{\"$v\":1,\"kind\":\"app\",\"appVersion\":[0,3,1]}"
+        }
+      }
+    }
+  },
+  "capacity": {
+    "source": "26430e566cf7bd70995007cd266152a562cd35b7",
+    "newApplicationOperations": 20,
+    "newApplicationBytes": 9490182,
+    "reservedExistingMusicalWrites": 712,
+    "reservedExistingMusicalBytes": 151126016,
+    "existingReserveIncludingPriorFullMusicalAllowance": {
+      "transactions": 1163,
+      "bytes": 311097873
+    },
+    "futureReserveAfterAll": {
+      "transactions": 1183,
+      "bytes": 320588055
+    },
+    "minimumAvailableTransactionsBeforeAll": 1915,
+    "minimumAvailableStoreBytesBeforeAll": 481204253,
+    "minimumAvailableRenewBytesBeforeAll": 330078237,
+    "newMusicalAllowance": 0
+  },
+  "api": {
+    "image": "registry.fly.io/dotify-api@sha256:431a80dfa9a924e109c0b90d9c9aff223bf17a532bb59cda7a6b92a24ebf0f24",
+    "readiness": [
+      {
+        "source": "26430e566cf7bd70995007cd266152a562cd35b7",
+        "role": "edge",
+        "activeVersion": "dotify-content-key-v3",
+        "configuredVersions": [
+          "dotify-content-key-v2",
+          "dotify-content-key-v3"
+        ],
+        "health": 200,
+        "readiness": 200,
+        "machine": "801939c6315568",
+        "app": "dotify-api"
+      },
+      {
+        "source": "26430e566cf7bd70995007cd266152a562cd35b7",
+        "role": "edge",
+        "activeVersion": "dotify-content-key-v3",
+        "configuredVersions": [
+          "dotify-content-key-v2",
+          "dotify-content-key-v3"
+        ],
+        "health": 200,
+        "readiness": 200,
+        "machine": "890e31c60749e8",
+        "app": "dotify-api"
+      },
+      {
+        "source": "26430e566cf7bd70995007cd266152a562cd35b7",
+        "role": "custody",
+        "activeVersion": "dotify-content-key-v3",
+        "configuredVersions": [
+          "dotify-content-key-v2",
+          "dotify-content-key-v3"
+        ],
+        "health": 200,
+        "readiness": 200,
+        "machine": "e82d13d0c61238",
+        "app": "dotify-custody"
+      }
+    ],
+    "allOtherConfigurationPreserved": true,
+    "activeContentVersion": "dotify-content-key-v3",
+    "configuredContentVersions": [
+      "dotify-content-key-v3"
+    ],
+    "preservation": {
+      "filesByteUnchanged": 9,
+      "ownedReadyInventories": 5,
+      "cursorBefore": 1642,
+      "cursorAfter": 1642,
+      "admissionLedgerByteUnchanged": true,
+      "pending": 0
+    },
+    "snapshot": {
+      "id": "vs_0OzD2XDxyoptDaYeORb",
+      "size": 72209210,
+      "volume_size": 1073741824,
+      "digest": "bd54b91564df89b5f38ccd40ad7ab90f5baebf270027fe4f19f55c932c16957c",
+      "created_at": "2026-11-09T00:49:40Z",
+      "status": "created",
+      "retention_days": 14
+    },
+    "localRehearsal": {
+      "image": "sha256:953dba238346319c984a4b3ef1686f7013755c7240698feda74cc877120f3cae",
+      "architecture": "amd64",
+      "user": "node",
+      "source": "26430e566cf7bd70995007cd266152a562cd35b7",
+      "rehearsals": [
+        {
+          "phase": "prepare",
+          "uid": 1000,
+          "syntheticOnly": true,
+          "networkWrites": 0
+        },
+        {
+          "phase": "verify",
+          "uid": 1000,
+          "legacyInventoryRead": true,
+          "receiptAndCursorPreserved": true,
+          "journalsByteUnchanged": true,
+          "deadlineSurvivesGC": true,
+          "signerAbsent": true,
+          "network": "none",
+          "networkWrites": 0
+        }
+      ],
+      "networkWrites": 0
+    }
+  },
+  "web": {
+    "source": "26430e566cf7bd70995007cd266152a562cd35b7",
+    "url": "https://muzinga.netlify.app/",
+    "entry": "./assets/index-BDhFNon1.js",
+    "bytes": 1152114,
+    "sha256": "006e8ae0dfb1bfbfb5e1c564922fc0a84228d44c379a4d3987bbb48f75d827e1",
+    "filesByteCompared": 19,
+    "totalComparedBytes": 1832396,
+    "exactReconstructionBytes": true,
+    "publicConfigDigest": "0d504400edfc50138a9d5f6df01a95bf42d6c6ca1160b52362afe6bc6b3193e9",
+    "publishedCleanFlag": "false",
+    "applicationSourceChanged": false,
+    "networkStorageWrites": 0
+  },
+  "publicWebBoot": {
+    "source": "26430e566cf7bd70995007cd266152a562cd35b7",
+    "url": "https://muzinga.netlify.app/",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "shellVisible": true,
+    "pageErrors": [],
+    "sensitiveRequests": [],
+    "networkStorageWrites": 0
+  },
+  "catalogReadback": {
+    "status": 200,
+    "state": "fresh",
+    "total": 3,
+    "existingReleaseVisible": true,
+    "title": "Black panther anthem",
+    "hash": "0x34c852decafab4884ccbf96ea4e4e8823a8b4b9a62d44f234f2d03b04159444b",
+    "runtimeAddress": "0x05C643A1eD0e75C8A3486410f13BC4597c2674D7",
+    "networkStorageWrites": 0,
+    "audioAudibilityVerified": false
+  },
+  "signerCleanup": {
+    "checkedAt": "2026-11-09T00:58:27.890245+00:00",
+    "launchctlMnemonicPresent": false,
+    "removedDuringPrivateHandoff": true,
+    "finalCheckedAt": "2026-11-09T01:11:54.713647+00:00",
+    "operatorCompleted": true
+  },
+  "newMusicalWrites": 0,
+  "newMusicalAllowance": 0,
+  "newKeys": 0,
+  "newAdmissions": 0,
+  "automaticRenewalActivated": false,
+  "remainingGates": [
+    "Owner validation of a long preparation using an existing authorized draft or a separately approved future publication",
+    "Acceptable publication/indexing latency and wider client acceptance; #407 stays open"
+  ],
+  "ownerAcceptance": {
+    "reportedOn": "2026-11-09",
+    "requestedVersion": [
+      0,
+      1,
+      82
+    ],
+    "releaseTitle": "Black panther anthem",
+    "scope": "Existing release, no new publication or purchase",
+    "clients": {
+      "Web": {
+        "artistVisibility": "OK",
+        "audiblePlayback": "OK"
+      },
+      "Desktop": {
+        "artistVisibility": "OK",
+        "audiblePlayback": "OK"
+      }
+    },
+    "evidence": "Owner confirmation in this conversation",
+    "freshPublicationTested": false,
+    "longPreparationProgressTested": false,
+    "delayedVisibilityRecoveryTested": false
+  }
+}

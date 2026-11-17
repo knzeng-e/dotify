@@ -1,0 +1,67 @@
+{
+  "date": "2026-10-23",
+  "baselineCommit": "3ec61ce895dfa490602546427f8b84ce998b9265",
+  "compiler": "solc 0.8.28, viaIR, optimizer runs 200",
+  "network": "ephemeral Hardhat only; not a Polkadot fee estimate",
+  "before": {
+    "sourceHashes": {
+      "pallets/MusicContributionsPallet.sol": "232815601457b44aacd06f42d56de635ce9e37b7969ed4224ce5251bbb0493dd",
+      "pallets/MusicRoyaltiesPallet.sol": "54909b667e7fd56db63a57365608880293e7390c290cf1ba1a684dd2b67ead78",
+      "libraries/LibMusicRoyalties.sol": "f99f4303725d0fc92a57b3ac9328e0603971a961288810458354d67fb415d9a3"
+    },
+    "metrics": {
+      "policyReadEstimate": "44883",
+      "directTipQuoteEstimate": "60197",
+      "directTip": "114176",
+      "classicAccess": "90685",
+      "setHostPolicy": "91466",
+      "roomTip": "132092",
+      "set16Destinations": "527813",
+      "gift16QuoteEstimate": "113996",
+      "gift16Destinations": "338009",
+      "royaltiesRuntimeBytes": "13725"
+    }
+  },
+  "after": {
+    "sourceHashes": {
+      "pallets/MusicContributionsPallet.sol": "6abed68ca033e4f42f4b7c6ff80553a182c64927eb0a957f0f606fc8941953ce",
+      "pallets/MusicRoyaltiesPallet.sol": "462605d03e83367497e439008c18e558425a17cc2e28342099d2454e6f99fadf",
+      "libraries/LibMusicRoyalties.sol": "d7162ff5a262bf3f40a53a3f43f2ba85f82b6e06e43db663694d3692c710002c"
+    },
+    "metrics": {
+      "policyReadEstimate": "47227",
+      "directTipQuoteEstimate": "59953",
+      "directTip": "113160",
+      "classicAccess": "90488",
+      "setHostPolicy": "90869",
+      "roomTip": "130674",
+      "set16Destinations": "524121",
+      "gift16QuoteEstimate": "111928",
+      "gift16Destinations": "331094",
+      "royaltiesRuntimeBytes": "12303"
+    }
+  },
+  "identicalCompleteQuotes": true,
+  "quoteDigests": {
+    "direct": {
+      "before": "0x80e72979bb288ae5833389fc8590c38e5ff2bae3a9e83a0c476aa2efe6815de0",
+      "after": "0x80e72979bb288ae5833389fc8590c38e5ff2bae3a9e83a0c476aa2efe6815de0"
+    },
+    "room": {
+      "before": "0x907497469759fd0a925aab9316579bd07a5392e0f8d63e8eff8113547bc87cea",
+      "after": "0x907497469759fd0a925aab9316579bd07a5392e0f8d63e8eff8113547bc87cea"
+    },
+    "gift16": {
+      "before": "0xdb9e8abceedd0e061176e6c1ca8a8552800b8be28b0e68cfddae96652e9f05a4",
+      "after": "0xdb9e8abceedd0e061176e6c1ca8a8552800b8be28b0e68cfddae96652e9f05a4"
+    }
+  },
+  "upgrade": {
+    "baselineBytecodeHash": "0x3b8401f7fcaa9a7a3d933b35aaef5e1574dc20f020b277c8d767d78bb753d10d",
+    "policiesPreserved": true,
+    "catalogPreserved": true,
+    "paidAccessPreserved": true,
+    "replayBlocked": true,
+    "pendingRecoveredExactlyOnce": true
+  }
+}

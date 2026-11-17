@@ -54,6 +54,99 @@ set.
 - Playwright checks run deterministic browser flows against local Vite and
   local signaling services from `web/playwright.config.ts`.
 
+## Browser font isolation
+
+The core Playwright dev server opts into `DOTIFY_E2E_LOCAL_FONTS=true`.
+Vite removes only the Google Fonts stylesheet and preconnect links from that
+server's HTML; the app uses its existing fallback font stacks. Local media,
+Socket.IO/WebRTC and every audio/capture assertion remain active. These are
+behavior checks, not acceptance of the production typography.
+
+Ordinary development and all builds retain the original font links, even if
+that variable is set during a build. No hosted setting is required. Keep the
+30-second test deadline and zero automatic retries: remote font availability
+must not consume the time intended for a user flow.
+
+## Codec prerequisites
+
+The API codec, offline Bulletin-prototype and two browser jobs use **Ubuntu
+24.04** rather than following `ubuntu-latest` image changes. Before installing
+system packages, they call
+[`use-ubuntu-mirror.sh`](../../scripts/ci/use-ubuntu-mirror.sh). This helper
+refuses outside Linux GitHub Actions / the known Ubuntu 24.04 mirror-list
+contract. It selects the official HTTPS Ubuntu archive, with Ubuntu's security
+archive as a lower-preference fallback. Both serve the configured suites; APT's
+[mirror transport](https://manpages.ubuntu.com/manpages/noble/man1/apt-transport-mirror.1.html)
+tries the next endpoint when a file cannot be acquired. This avoids depending
+only on the Azure or Kernel Archives endpoints that have timed out in CI.
+Suites, components, Ubuntu signing keys and repository signature checks remain
+unchanged; no key or unsigned package is imported.
+[Ubuntu's archive-verification model](https://documentation.ubuntu.com/security/software-integrity/archive-verification/)
+explains the package trust boundary independently of the delivery mirror.
+The setting exists only on the disposable CI runner, not a production machine.
+
+The API and prototype jobs then call
+[`scripts/ci/ensure-ffmpeg.sh`](../../scripts/ci/ensure-ffmpeg.sh). An existing
+usable FFmpeg binary is retained; if absent, the helper installs the official
+Ubuntu package with repository signature checks and without recommended extras.
+It never substitutes a third-party binary or skips the codec suite.
+
+Package operations use IPv4, two acquisition retries and 20-second HTTP/HTTPS
+timeouts. The update command has a 90-second deadline, installation 180 seconds,
+and each can be killed after a further 10 seconds. The Actions prerequisite
+step is capped at five minutes; the API job is capped at 15 minutes. Browser
+system-package/audio setup steps are capped at seven minutes. DNS or
+mirror failure remains a failed prerequisite rather than hours of silent wait.
+`ffmpeg -version`/`-L` record the selected build/license. Existing real AAC
+encode/decode, nonce, recovery and browser-fixture tests remain required.
+
+This changes CI runners only, not the production encoder image or a hosted
+setting. Do not modify service configuration or weaken assertions to repair a
+runner repository failure. A clean-runner retry after an external outage still
+needs the actual test results before it can count as passing.
+
+## Compact AAC acceptance
+
+Contributors can reproduce the local codec/transport gate without a wallet,
+storage account, production key or live Bulletin endpoint. It is part of
+`W35 / Adaptive streaming in three engines`, after the existing streaming and
+Room-output suites. Use Node 22, FFmpeg with AAC encoding, and the lock-matched
+Web and API dependencies. From the repository root:
+
+```sh
+npm ci --prefix services/api
+npm ci --prefix web
+cd services/api
+DOTIFY_TEST_FFMPEG="$(command -v ffmpeg)" node --import tsx src/scripts/streamingFixture.test.ts ../../web/.data/streaming-fixture.json ../../web/.data/compact-streaming-fixture.json
+cd ../../web
+npx playwright install chromium webkit firefox
+npx tsc --noEmit -p tsconfig.compact.json
+npx playwright test --config playwright.compact.config.ts
+```
+
+The first artifact retains the existing archive-free browser contract. The second
+contains complete standard/compact graphs of that same public synthetic audio;
+only its playback subset enters the Host browser fixture. Missing artifacts,
+decoding failures, absent audio signal and unexpected external HTTP traffic
+fail the gate. In CI, the API job generates both artifacts; only this specialized
+browser gate installs API dependencies to run its loopback fixture. Ordinary
+Web/Product builds keep their existing dependency boundary.
+
+The test servers bind only `127.0.0.1`: Vite Web `5293`, media API `5294`, Vite
+Host mode `5295`. Run this configuration serially, without another process on
+these ports. Its SDK responses and retained-key resolver are injected public
+synthetic data, not the real Host bridge or key-delivery service. All fixture
+scripts end in `.test.ts` and are excluded from the production API build.
+Do not publish the fixture server or copy these local settings into Fly/Netlify.
+
+The matrix's four intentional exclusions concern native HTTP-congestion cases
+and WebKit progressive capture energy. PCM decoding at all three qualities and
+compatibility guest-signal checks remain active on every engine/transport.
+The [coverage and remaining gates](../reference/bulletin-compact-delivery.md#automated-codec-acceptance)
+distinguish cold transport reopening from publication recovery and physical
+device acceptance. Failure traces and filtered synthetic codec reports are
+retained with the streaming job diagnostics.
+
 ## Operations
 
 Branch protection was enabled on 2026-09-20 after the backlog reconciliation PR
@@ -67,3 +160,27 @@ Rollback is straightforward: remove the required checks from branch protection,
 then revert the W01 workflow commit if the workflow itself is the blocker. Do
 not disable branch protection as a way to hide baseline failures; record the
 failing job and fix it in a scoped PR.
+
+## Generated Bulletin backup transfer
+
+The [generated restore procedure](bulletin-generated-restore-rehearsal.md) covers
+the two-runner artifact workflow and local commands. It retains a complete public
+fixture checkpoint, removes the source, then authenticates restored standard and
+compact playback objects and refuses six inconsistent states per layout.
+The API unit suite also checks the producer digest, safe paths, required empty
+directories, bounded inputs, symlinks and destination preservation. The shared
+fixture extraction keeps the existing 49 prepared-recovery scenarios in place.
+The same workflow also builds two pinned historical API revisions with their own
+lockfiles. Its [compiled-version comparison](bulletin-generated-restore-rehearsal.md#compare-compiled-historical-versions) checks advanced-journal recovery, stale-plan refusal, authenticated objects
+and compatible queue restarts. It does not start the service/container entrypoint.
+No generated harness is included in the production API build.
+
+## Generated Bulletin resource envelope
+
+The [resource procedure](bulletin-resource-envelope.md) owns profile limits,
+reproduction and interpretation. Its separate workflow builds the existing API
+and encoder images, generates 97/900-second inputs and exercises both layouts
+inside fresh, bounded containers. It authenticates the archive input and playback
+objects, checks cgroup/process observations and refuses OOM or failed ready state.
+Only numeric generated reports are retained for seven days. Real hosted load,
+service entrypoint and physical first-sound acceptance remain separate.

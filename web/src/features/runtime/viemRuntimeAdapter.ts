@@ -378,15 +378,20 @@ export function createViemRuntimeReader(deps: ViemRuntimeReaderDeps): RuntimeRea
 
       const trackTotal = assertBoundedCount(trackCount, MAX_RUNTIME_TRACKS, `Runtime ${runtimeAddress}`);
 
+      const hashes: Hash[] = [];
+      for (let offset = 0; offset < trackTotal; offset += 100) {
+        const limit = Math.min(100, trackTotal - offset);
+        const page = await client().readContract({
+          address: runtimeAddress,
+          abi: musicRegistryAbi,
+          functionName: 'musicRegTrackHashesPage',
+          args: [BigInt(offset), BigInt(limit)]
+        });
+        if (page.length !== limit) throw new Error('The artist catalog returned an incomplete page. Try again.');
+        hashes.push(...page);
+      }
       return Promise.all(
-        Array.from({ length: trackTotal }, async (_, index): Promise<RuntimeTrackSnapshot> => {
-          const hash = (await client().readContract({
-            address: runtimeAddress,
-            abi: musicRegistryAbi,
-            functionName: 'musicRegTrackHashAtIndex',
-            args: [BigInt(index)]
-          })) as Hash;
-
+        hashes.map(async (hash): Promise<RuntimeTrackSnapshot> => {
           const [record] = (await client().readContract({
             address: runtimeAddress,
             abi: musicRegistryAbi,

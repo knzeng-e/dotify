@@ -1,0 +1,319 @@
+name: Generated Bulletin backup restore
+
+on:
+  pull_request:
+    branches: [dev]
+    paths:
+      - 'services/api/**'
+      - '.github/workflows/bulletin-backup-restore.yml'
+  push:
+    branches: [dev]
+    paths:
+      - 'services/api/**'
+      - '.github/workflows/bulletin-backup-restore.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bulletin-backup-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backup:
+    name: Produce generated backup and discard source
+    runs-on: ubuntu-24.04
+    timeout-minutes: 7
+    outputs:
+      digest: ${{ steps.prepare.outputs.digest }}
+      artifact: ${{ steps.prepare.outputs.artifact }}
+    defaults:
+      run:
+        working-directory: services/api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: services/api/package-lock.json
+      - run: npm ci
+      - id: prepare
+        name: Prepare public fixtures, lose acknowledgements and discard original state
+        env:
+          BUNDLE_PATH: ${{ runner.temp }}/generated-bulletin-backup.json
+          BACKUP_ARTIFACT: generated-bulletin-backup-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          npm run --silent bulletin:rehearse-backup -- prepare "$BUNDLE_PATH" > "$RUNNER_TEMP/backup-report.json"
+          node --input-type=module <<'NODE'
+          import {readFileSync, appendFileSync} from 'node:fs';
+          const report = JSON.parse(readFileSync(process.env.RUNNER_TEMP + '/backup-report.json', 'utf8'));
+          if (!/^[0-9a-f]{64}$/.test(report.sha256) || report.syntheticOnly !== true) throw new Error('Invalid generated report');
+          if (!/^generated-bulletin-backup-[0-9]+-[0-9]+$/.test(process.env.BACKUP_ARTIFACT)) throw new Error('Invalid artifact name');
+          appendFileSync(process.env.GITHUB_OUTPUT, 'digest=' + report.sha256 + '\nartifact=' + process.env.BACKUP_ARTIFACT + '\n');
+          console.log(JSON.stringify(report));
+          NODE
+      - name: Keep only the generated bundle in independent artifact storage
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.prepare.outputs.artifact }}
+          path: ${{ runner.temp }}/generated-bulletin-backup.json
+          retention-days: 7
+          if-no-files-found: error
+
+  restore:
+    name: Restore on a fresh runner and refuse inconsistent history
+    needs: backup
+    runs-on: ubuntu-24.04
+    timeout-minutes: 7
+    defaults:
+      run:
+        working-directory: services/api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: services/api/package-lock.json
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.backup.outputs.artifact }}
+          path: ${{ runner.temp }}/generated-restore
+      - name: Verify separate producer digest, restore and authenticate both layouts
+        env:
+          EXPECTED_DIGEST: ${{ needs.backup.outputs.digest }}
+          BUNDLE_PATH: ${{ runner.temp }}/generated-restore/generated-bulletin-backup.json
+        run: |
+          npm run --silent bulletin:rehearse-backup -- restore "$BUNDLE_PATH" "$EXPECTED_DIGEST" > "$RUNNER_TEMP/restore-report.json"
+          cat "$RUNNER_TEMP/restore-report.json"
+      - name: Preserve the generated-only restore result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-bulletin-restore-result-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/restore-report.json
+          retention-days: 7
+          if-no-files-found: ignore
+
+  binary-compatibility:
+    name: Reconcile with compiled historical recovery and reader modules
+    needs: backup
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: candidate
+      - name: Checkout reviewed admitted-recovery floor
+        uses: actions/checkout@v4
+        with:
+          ref: 61869fb41f91bc69b7430410e4915153af7cc315
+          path: compatible
+      - name: Checkout deployed pilot-era refusal control
+        uses: actions/checkout@v4
+        with:
+          ref: 8d0706548416fe5e17711a5d480def7499776c1a
+          path: pilot
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            candidate/services/api/package-lock.json
+            compatible/services/api/package-lock.json
+            pilot/services/api/package-lock.json
+      - name: Build each clean executable with its own lockfile
+        shell: bash
+        run: |
+          for revision in candidate compatible pilot; do
+            (cd "$revision/services/api" && npm ci && npm run build)
+          done
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.backup.outputs.artifact }}
+          path: ${{ runner.temp }}/generated-binary-restore
+      - name: Switch executables without rewinding generated account journals
+        working-directory: candidate/services/api
+        env:
+          EXPECTED_DIGEST: ${{ needs.backup.outputs.digest }}
+          BUNDLE_PATH: ${{ runner.temp }}/generated-binary-restore/generated-bulletin-backup.json
+        run: |
+          node --import tsx scripts/rehearse-bulletin-binaries.mjs \
+            "$BUNDLE_PATH" "$EXPECTED_DIGEST" \
+            "$GITHUB_WORKSPACE/candidate" "$GITHUB_WORKSPACE/compatible" "$GITHUB_WORKSPACE/pilot" \
+            > "$RUNNER_TEMP/binary-compatibility-report.json"
+          cat "$RUNNER_TEMP/binary-compatibility-report.json"
+      - name: Keep the generated compatibility report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-bulletin-binary-result-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/binary-compatibility-report.json
+          retention-days: 7
+          if-no-files-found: ignore
+
+  schema-upgrade:
+    name: Recover Zod 3 state with the patched validator
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: candidate
+      - uses: actions/checkout@v4
+        with:
+          ref: 1a6b22d49679a4af4c9156f3229e69c754fcd0be
+          path: zod3-baseline
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            candidate/services/api/package-lock.json
+            zod3-baseline/services/api/package-lock.json
+      - name: Install the two independent lockfiles
+        run: |
+          npm ci --prefix zod3-baseline/services/api
+          npm ci --prefix candidate/services/api
+      - name: Prepare generated journals with the historical validator
+        working-directory: zod3-baseline/services/api
+        run: |
+          npm run --silent bulletin:rehearse-backup -- prepare "$RUNNER_TEMP/zod3-generated-backup.json" > "$RUNNER_TEMP/zod3-producer.json"
+      - name: Recover with the new validator and authenticate the original audio
+        working-directory: candidate/services/api
+        run: |
+          digest=$(node --input-type=module -e 'import {readFileSync} from "node:fs"; const r=JSON.parse(readFileSync(process.env.RUNNER_TEMP+"/zod3-producer.json","utf8")); if(r.syntheticOnly!==true || !/^[0-9a-f]{64}$/.test(r.sha256)) throw new Error("Invalid generated report"); console.log(r.sha256)')
+          npm run --silent bulletin:rehearse-backup -- restore "$RUNNER_TEMP/zod3-generated-backup.json" "$digest" > "$RUNNER_TEMP/schema-upgrade-report.json"
+          cat "$RUNNER_TEMP/schema-upgrade-report.json"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: generated-schema-upgrade-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/schema-upgrade-report.json
+          retention-days: 7
+          if-no-files-found: ignore
+
+  isolated-checkpoint-producer:
+    name: Capture generated data-only checkpoints and discard originals
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    outputs:
+      standard: ${{ steps.capture.outputs.standard }}
+      compact: ${{ steps.capture.outputs.compact }}
+      artifact: ${{ steps.capture.outputs.artifact }}
+    defaults:
+      run:
+        working-directory: services/api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: services/api/package-lock.json
+      - run: npm ci
+      - run: npm run build
+      - id: capture
+        name: Use the compiled capture CLI on public fixtures only
+        env:
+          GENERATED_DIRECTORY: ${{ runner.temp }}/generated-isolated-checkpoints
+          GENERATED_ARTIFACT: generated-isolated-checkpoints-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          node --import tsx scripts/rehearse-isolated-checkpoint.mjs prepare "$GENERATED_DIRECTORY" > "$RUNNER_TEMP/isolated-producer.json"
+          node --input-type=module <<'NODE'
+          import {readFileSync, appendFileSync} from 'node:fs';
+          const result=JSON.parse(readFileSync(process.env.RUNNER_TEMP+'/isolated-producer.json','utf8'));
+          if(result.syntheticOnly!==true || !/^[0-9a-f]{64}$/.test(result.standard) || !/^[0-9a-f]{64}$/.test(result.compact)) throw new Error('Invalid generated result');
+          if(!/^generated-isolated-checkpoints-[0-9]+-[0-9]+$/.test(process.env.GENERATED_ARTIFACT)) throw new Error('Invalid generated artifact');
+          appendFileSync(process.env.GITHUB_OUTPUT, `standard=${result.standard}\ncompact=${result.compact}\nartifact=${process.env.GENERATED_ARTIFACT}\n`);
+          console.log(JSON.stringify(result));
+          NODE
+      - name: Transfer only explicitly generated checkpoint directories
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.capture.outputs.artifact }}
+          path: ${{ runner.temp }}/generated-isolated-checkpoints/
+          retention-days: 7
+          if-no-files-found: error
+
+  isolated-checkpoint-consumer:
+    name: Reconstruct on a fresh runner without network and verify read-only
+    needs: isolated-checkpoint-producer
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: services/api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: services/api/package-lock.json
+      - run: npm ci
+      - run: npm run build
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.isolated-checkpoint-producer.outputs.artifact }}
+          path: ${{ runner.temp }}/generated-isolated-checkpoints
+      - name: Restore private modes for generated downloaded files only
+        run: node scripts/rehearse-isolated-checkpoint.mjs receive "$RUNNER_TEMP/generated-isolated-checkpoints"
+      - name: Build the unchanged production API image locally
+        run: docker build --target runner -t dotify-generated-isolated-restore .
+      - name: Run compiled reconstruction offline, then verify with no input and read-only output
+        env:
+          EXPECTED_STANDARD: ${{ needs.isolated-checkpoint-producer.outputs.standard }}
+          EXPECTED_COMPACT: ${{ needs.isolated-checkpoint-producer.outputs.compact }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          output_dir=$(mktemp -d "$RUNNER_TEMP/dotify-isolated-output.XXXXXX")
+          restore_uid=$(id -u)
+          restore_gid=$(id -g)
+          container=''
+          cleanup() { if [ -n "$container" ]; then docker rm -f "$container" >/dev/null; fi; }
+          trap cleanup EXIT
+          for phase in restore verify; do
+            mounts=(--mount "type=bind,source=$PWD/scripts/rehearse-isolated-checkpoint.mjs,target=/app/dist/rehearse-isolated-checkpoint.mjs,readonly")
+            if [ "$phase" = restore ]; then
+              mounts+=(--mount "type=bind,source=$RUNNER_TEMP/generated-isolated-checkpoints,target=/input,readonly")
+              mounts+=(--mount "type=bind,source=$output_dir,target=/review")
+              parameters=(restore /input /review "$EXPECTED_STANDARD" "$EXPECTED_COMPACT")
+            else
+              mounts+=(--mount "type=bind,source=$output_dir,target=/review,readonly")
+              parameters=(verify /review "$EXPECTED_STANDARD" "$EXPECTED_COMPACT")
+            fi
+            container=$(docker create --network none --read-only --cap-drop ALL --security-opt no-new-privileges --pids-limit 64 --memory 1g --memory-swap 1g --cpus 1 --user "$restore_uid:$restore_gid" --tmpfs /tmp:rw,noexec,mode=1777 "${mounts[@]}" dotify-generated-isolated-restore node dist/rehearse-isolated-checkpoint.mjs "${parameters[@]}")
+            observed=$(docker inspect --format '{{.HostConfig.NetworkMode}}/{{.HostConfig.ReadonlyRootfs}}/{{.Config.User}}/{{.HostConfig.Memory}}/{{.HostConfig.MemorySwap}}/{{.HostConfig.PidsLimit}}' "$container")
+            test "$observed" = "none/true/$restore_uid:$restore_gid/1073741824/1073741824/64"
+            observed_mounts=$(docker inspect --format '{{range .Mounts}}{{.Destination}}={{.RW}};{{end}}' "$container")
+            if [ "$phase" = verify ]; then
+              [[ "$observed_mounts" == *"/review=false;"* && "$observed_mounts" != *"/input="* ]]
+            else
+              [[ "$observed_mounts" == *"/review=true;"* && "$observed_mounts" == *"/input=false;"* ]]
+            fi
+            docker start -a "$container" > "$RUNNER_TEMP/isolated-$phase.json"
+            test "$(docker inspect --format '{{.State.ExitCode}}' "$container")" = 0
+            node --input-type=module - "$RUNNER_TEMP/isolated-$phase.json" "$phase" <<'NODE'
+          import {readFileSync} from 'node:fs';
+          const report=JSON.parse(readFileSync(process.argv[2],'utf8'));
+          if(report.syntheticOnly!==true || report.phase!==process.argv[3] || report.cases.length!==2 || report.realKeyRecoveryTested!==false || report.serviceEntrypointTested!==false || report.cases.some(item=>item.writerActivationAllowed!==false || item.originalSourcesAbsent!==true || item.authenticatedSyntheticObjects!==13 || item.keyReadbackAuthenticatedObjects!==14)) throw new Error('Invalid isolated fixture result');
+          NODE
+            cat "$RUNNER_TEMP/isolated-$phase.json"
+            docker rm "$container" >/dev/null
+            container=''
+          done
+      - name: Retain generated-only reconstruction reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-isolated-results-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/isolated-restore.json
+            ${{ runner.temp }}/isolated-verify.json
+          retention-days: 7
+          if-no-files-found: ignore

@@ -1,18 +1,21 @@
+import { PreparedReleaseConflictError } from '../services/bulletinMetadataRepair.js';
+import { dotifyManifestSchema } from '../services/releaseManifest.js';
+import { PublicAssetStorageError, type PublicAssetKind, type PublicAssetOwner } from '../services/bulletinPublicAssets.js';
+import { StreamingJobError, type StreamingJobs } from '../services/streamingJobs.js';
+import { PublicationAdmissionError } from '../services/publicationAdmission.js';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { blake2b } from '@noble/hashes/blake2';
 import { z } from 'zod';
-import { encryptAudioV2Container } from '../services/audioV2.js';
 import { checkArtistAuthority as defaultCheckArtistAuthority, type ArtistAuthorityResult } from '../services/chainAccess.js';
 import {
   deriveContentKeyBytes as defaultDeriveContentKeyBytes,
   getActiveContentKeyVersion,
-  makeReleaseBoundEncryptedAudioV2Ref,
   type ContentKeyDerivationInput,
   type ContentKeyVersion
 } from '../services/keyVault.js';
 import { detectAudioMedia, detectImageMedia } from '../services/mediaValidation.js';
 import { createResponsiveCover, type ResponsiveCover } from '../services/coverVariants.js';
-import { PinataError, PinataUnconfiguredError, pinFilesToPinata, pinFileToPinata, pinJsonToPinata, type PinataFile } from '../services/pinata.js';
+import { PinataError, PinataUnconfiguredError, pinFilesToPinata, pinJsonToPinata, type PinataFile } from '../services/pinata.js';
 import { verifySessionToken as defaultVerifySessionToken, type SessionVerification } from '../services/sessionTokens.js';
 import {
   uploadAuthorizationService,
@@ -38,102 +41,16 @@ const authorizationRequestSchema = z.object({
   bytes: z.number().int().positive()
 });
 
-const dotifyManifestSchema = z
-  .object({
-    schema: z.literal('dotify.track.v2'),
-    createdAt: z.string().datetime(),
-    assets: z
-      .object({
-        audioCID: z.string().min(1),
-        coverCID: z.string(),
-        encrypted: z.boolean().optional(),
-        keyVersion: z.string().min(1).max(80).optional(),
-        previewCID: z.string().optional()
-      })
-      .strict(),
-    track: z
-      .object({
-        contentHash: z.string().regex(/^0x[0-9a-fA-F]{64}$/),
-        title: z.string().min(1).max(200),
-        artistName: z.string().min(1).max(200),
-        description: z.string().max(2000),
-        durationSeconds: z
-          .number()
-          .positive()
-          .max(24 * 60 * 60)
-          .nullable(),
-        accessMode: z.enum(['human-free', 'classic', 'free']),
-        priceDot: z.string(),
-        requiredPersonhood: z.string(),
-        zone: z.string()
-      })
-      .strict(),
-    editorial: z
-      .object({
-        releaseKind: z.enum(['single', 'album-track', 'ep-track', 'live', 'remix', 'other']),
-        projectTitle: z.string().max(200),
-        version: z.string().max(120),
-        releaseDate: z.string().regex(/^(|\d{4}|\d{4}-\d{2}-\d{2})$/, 'releaseDate must be empty, YYYY or YYYY-MM-DD'),
-        genres: z.array(z.string().min(1).max(80)).max(8),
-        languages: z.array(z.string().min(1).max(80)).max(8),
-        credits: z
-          .array(
-            z
-              .object({
-                name: z.string().min(1).max(200),
-                role: z.enum(['performer', 'writer', 'composer', 'producer', 'featured-artist', 'engineer', 'other'])
-              })
-              .strict()
-          )
-          .max(20),
-        label: z.string().max(200),
-        productionLocation: z.string().max(200),
-        explicitContent: z.boolean(),
-        isrc: z.string().max(15),
-        copyrightNotice: z.string().max(300),
-        masterNotice: z.string().max(300)
-      })
-      .strict(),
-    royalties: z
-      .array(
-        z
-          .object({
-            recipient: z.string().min(1),
-            bps: z.number().int().min(0).max(10000)
-          })
-          .strict()
-      )
-      .max(20),
-    settlement: z
-      .object({
-        target: z.literal('evm'),
-        royaltyBps: z.number().int().min(0).max(10000),
-        pricePlanck: z.string()
-      })
-      .strict(),
-    evm: z
-      .object({
-        txHash: z.string(),
-        contractAddress: z.string()
-      })
-      .strict()
-      .optional()
-  })
-  .strict();
-
-type PinFile = (bytes: Uint8Array, filename: string, keyvalues?: Record<string, string>, signal?: AbortSignal) => Promise<string>;
 type PinFiles = (files: PinataFile[], name: string, keyvalues?: Record<string, string>, signal?: AbortSignal) => Promise<string>;
 type PinJson = (json: unknown, name: string, keyvalues?: Record<string, string>, signal?: AbortSignal) => Promise<string>;
 
 export type UploadRouteDeps = {
-  verifySessionToken: (token: string) => SessionVerification;
+  verifySessionToken: (token: string) => SessionVerification | Promise<SessionVerification>;
   checkArtistAuthority: (requester: string) => Promise<ArtistAuthorityResult>;
   authorizations: UploadAuthorizationService;
   getActiveContentKeyVersion: () => ContentKeyVersion;
   deriveContentKeyBytes: (input: ContentKeyDerivationInput) => Buffer | null;
-  encryptAudio: typeof encryptAudioV2Container;
   createCover: (bytes: Uint8Array, originalExtension: string) => Promise<ResponsiveCover>;
-  pinFile: PinFile;
   pinFiles: PinFiles;
   pinJson: PinJson;
 };
@@ -144,9 +61,7 @@ const defaultDeps: UploadRouteDeps = {
   authorizations: uploadAuthorizationService,
   getActiveContentKeyVersion,
   deriveContentKeyBytes: defaultDeriveContentKeyBytes,
-  encryptAudio: encryptAudioV2Container,
   createCover: createResponsiveCover,
-  pinFile: pinFileToPinata,
   pinFiles: pinFilesToPinata,
   pinJson: pinJsonToPinata
 };
@@ -176,12 +91,42 @@ function authorizationError(reply: FastifyReply, code: UploadAuthorizationErrorC
   return reply.status(status).send({ error: reason, code });
 }
 
-function handleUploadError(error: unknown, reply: FastifyReply) {
+function handleUploadError(error: unknown, request: FastifyRequest, reply: FastifyReply, stage: 'cover' | 'metadata') {
+  if (error instanceof PreparedReleaseConflictError && stage === 'metadata') {
+    request.log.info({ code: 'UPLOAD_PREPARED_RELEASE_CONFLICT', fields: error.fields }, 'Prepared release differs from draft');
+    return reply.header('Cache-Control', 'no-store').status(409).send({
+      code: 'UPLOAD_PREPARED_RELEASE_CONFLICT',
+      error: error.message,
+      fields: error.fields,
+      preparedRelease: error.preparedRelease
+    });
+  }
+  if (error instanceof PublicAssetStorageError) {
+    request.log.warn({ code: 'UPLOAD_STORAGE_FAILED', failure: { stage } }, 'Public asset storage needs attention');
+    return reply.status(503).send({
+      code: 'UPLOAD_STORAGE_FAILED',
+      failure: { stage },
+      error: 'Storage could not confirm this asset. Your draft is safe. Please contact the Dotify operator before retrying.'
+    });
+  }
   if (error instanceof PinataUnconfiguredError) {
     return reply.status(503).send({ error: 'Upload service is not configured. Contact the operator.', code: 'UPLOAD_STORAGE_NOT_CONFIGURED' });
   }
   if (error instanceof PinataError) {
-    return reply.status(502).send({ error: 'Upload to storage failed. Please try again.', code: 'UPLOAD_STORAGE_FAILED' });
+    const providerStatus = error.providerStatus;
+    const storageStatus =
+      typeof providerStatus === 'number' && Number.isInteger(providerStatus) && providerStatus >= 400 && providerStatus <= 599 ? providerStatus : undefined;
+    const failure = { stage, ...(storageStatus === undefined ? {} : { storageStatus }) };
+    // Provider messages/bodies can contain submitted data or credentials.
+    request.log.warn({ code: 'UPLOAD_STORAGE_FAILED', ...failure }, 'Release asset storage failed');
+    const asset = stage === 'cover' ? 'The cover' : 'The release details';
+    const message =
+      storageStatus === 401 || storageStatus === 403
+        ? `${asset} could not be saved. The storage account needs attention before you retry. Your draft is safe.`
+        : storageStatus === 429
+          ? `${asset} could not be saved because storage is busy. Your draft is safe; wait a moment before retrying.`
+          : `${asset} could not be saved because storage is unavailable. Your draft is safe; try again later.`;
+    return reply.status(502).send({ error: message, code: 'UPLOAD_STORAGE_FAILED', failure });
   }
   if (error instanceof Error && error.name === 'AbortError') {
     return reply.status(499).send({ error: 'Upload was cancelled before storage completed.', code: 'UPLOAD_CANCELLED' });
@@ -189,18 +134,18 @@ function handleUploadError(error: unknown, reply: FastifyReply) {
   throw error;
 }
 
-function beginAuthorizedUpload(
+async function beginAuthorizedUpload(
   request: FastifyRequest,
   reply: FastifyReply,
   purpose: UploadPurpose,
   authorizations: UploadAuthorizationService
-): UploadLease | null {
+): Promise<UploadLease | null> {
   const token = bearerToken(request);
   if (!token) {
     reply.status(401).send({ error: 'A scoped upload authorization is required.', code: 'UPLOAD_AUTH_REQUIRED' });
     return null;
   }
-  const result = authorizations.begin(token, purpose);
+  const result = await authorizations.begin(token, purpose);
   if (!result.ok) {
     authorizationError(reply, result.code, result.reason);
     return null;
@@ -223,13 +168,81 @@ function multipartLimitError(error: unknown): boolean {
   return message.toLowerCase().includes('file size limit') || message.includes('FST_MULTIPART');
 }
 
-export function createUploadRoutes(deps: UploadRouteDeps = defaultDeps) {
+export function createUploadRoutes(
+  deps: UploadRouteDeps = defaultDeps,
+  jobs?: StreamingJobs,
+  publicAssets?: (files: PinataFile[], kind: PublicAssetKind, owner: PublicAssetOwner, signal: AbortSignal) => Promise<string>
+) {
   return async function uploadRoutes(app: FastifyInstance): Promise<void> {
+    const sessionForJob = async (request: FastifyRequest, reply: FastifyReply) => {
+      reply.header('Cache-Control', 'no-store');
+      const token = bearerToken(request);
+      const session = token ? await deps.verifySessionToken(token) : null;
+      if (!session?.valid) {
+        reply.status(401).send({ error: 'Sign in to continue preparing your music.', code: 'SESSION_REQUIRED' });
+        return null;
+      }
+      if (!jobs) {
+        reply.status(503).send({ error: 'Audio preparation is not configured.', code: 'STREAMING_NOT_CONFIGURED' });
+        return null;
+      }
+      return session;
+    };
+    app.get<{ Params: { id: string } }>('/audio/jobs/:id', async (request, reply) => {
+      const session = await sessionForJob(request, reply);
+      if (!session) return;
+      try {
+        const job = jobs!.get(request.params.id, session.address, session.chainId);
+        if (!job) return reply.status(404).send({ error: 'Audio preparation was not found for this account.', code: 'STREAMING_JOB_NOT_FOUND' });
+        return reply.send(job);
+      } catch (error) {
+        if (error instanceof StreamingJobError)
+          return reply.status(error.status).send({ error: 'Audio preparation is temporarily unavailable.', code: error.code });
+        throw error;
+      }
+    });
+    app.post<{ Params: { id: string } }>('/audio/jobs/:id/discard', async (request, reply) => {
+      const session = await sessionForJob(request, reply);
+      if (!session) return;
+      try {
+        await jobs!.discard(request.params.id, session.address, session.chainId);
+        return reply.status(204).send();
+      } catch (error) {
+        if (error instanceof StreamingJobError)
+          return reply.status(error.status).send({
+            error:
+              error.code === 'STREAMING_RECOVERY_REQUIRED'
+                ? 'Your music is saved. A previous storage operation needs to be checked before this preparation can be removed. Please contact the Dotify operator.'
+                : 'Only a failed preparation can be removed by its artist.',
+            code: error.code
+          });
+        throw error;
+      }
+    });
+    app.post<{ Params: { id: string } }>('/audio/jobs/:id/retry', async (request, reply) => {
+      const session = await sessionForJob(request, reply);
+      if (!session) return;
+      try {
+        return reply.send(await jobs!.retry(request.params.id, session.address, session.chainId));
+      } catch (error) {
+        if (error instanceof StreamingJobError)
+          return reply.status(error.status).send({
+            error:
+              error.code === 'STREAMING_PUBLICATION_NOT_ADMITTED'
+                ? new PublicationAdmissionError().message
+                : error.code === 'STREAMING_RETRY_LIMIT'
+                  ? 'This preparation has reached its retry limit. Your draft is safe. Please contact the Dotify operator to recover it.'
+                  : 'Audio preparation could not be restarted. Your upload is still saved.',
+            code: error.code
+          });
+        throw error;
+      }
+    });
     app.post('/authorize', async (request: FastifyRequest, reply: FastifyReply) => {
       const token = bearerToken(request);
       if (!token) return reply.status(401).send({ error: 'Sign in before requesting upload capacity.', code: 'SESSION_REQUIRED' });
 
-      const session = deps.verifySessionToken(token);
+      const session = await deps.verifySessionToken(token);
       if (!session.valid) return reply.status(401).send({ error: session.reason, code: session.code });
 
       const parsed = authorizationRequestSchema.safeParse(request.body);
@@ -254,7 +267,7 @@ export function createUploadRoutes(deps: UploadRouteDeps = defaultDeps) {
         return reply.status(status).send({ error: authority.reason, code: authority.code });
       }
 
-      const issued = deps.authorizations.issue({
+      const issued = await deps.authorizations.issue({
         address: session.address,
         runtimeAddress: authority.runtime,
         chainId: session.chainId,
@@ -271,7 +284,8 @@ export function createUploadRoutes(deps: UploadRouteDeps = defaultDeps) {
     });
 
     app.post('/audio', async (request: FastifyRequest, reply: FastifyReply) => {
-      const lease = beginAuthorizedUpload(request, reply, 'audio', deps.authorizations);
+      if (!jobs) return reply.code(503).send({ code: 'STREAMING_UNAVAILABLE', error: 'Audio preparation is unavailable. Please try again later.' });
+      const lease = await beginAuthorizedUpload(request, reply, 'audio', deps.authorizations);
       if (!lease) return;
       const abort = requestAbortController(request);
       let completed = false;
@@ -325,64 +339,50 @@ export function createUploadRoutes(deps: UploadRouteDeps = defaultDeps) {
           });
         }
 
-        let encrypted: Buffer;
         try {
-          encrypted = deps.encryptAudio(fileBuffer, contentKey, {
-            contentHash: normalizedHash,
-            mediaMime: media.mime,
-            leadingMetadataBytes: media.leadingMetadataBytes ?? 0
+          abort.signal.throwIfAborted();
+          const job = await jobs.enqueue({
+            owner: lease.payload.address,
+            scope: { chainId: lease.payload.chainId, runtimeAddress: lease.payload.runtimeAddress.toLowerCase(), contentHash: normalizedHash, keyVersion },
+            master: fileBuffer
           });
-        } catch {
-          request.log.error('Audio encryption failed');
-          return reply.status(500).send({ error: 'Audio encryption failed.', code: 'AUDIO_ENCRYPTION_FAILED' });
-        }
-
-        let cid: string;
-        try {
-          cid = await deps.pinFile(
-            new Uint8Array(encrypted),
-            `${normalizedHash.slice(2, 10)}.dav2`,
-            {
-              app: 'dotify',
-              type: 'audio',
-              encrypted: 'true',
-              container: 'dotify.audio.v2',
-              keyVersion,
-              runtimeAddress: lease.payload.runtimeAddress,
-              contentHash: normalizedHash
-            },
-            abort.signal
-          );
+          completed = await lease.complete(fileBuffer.length);
+          if (!completed) return reply.status(500).send({ error: 'Upload quota accounting failed.', code: 'UPLOAD_ACCOUNTING_FAILED' });
+          return reply.header('Cache-Control', 'no-store').status(202).send(job);
         } catch (error) {
-          return handleUploadError(error, reply);
+          if (error instanceof StreamingJobError)
+            return reply.status(error.status).send({
+              error:
+                error.code === 'STREAMING_PUBLICATION_NOT_ADMITTED'
+                  ? new PublicationAdmissionError().message
+                  : 'Audio preparation is busy or unavailable. Please try again.',
+              code: error.code
+            });
+          throw error;
+        } finally {
+          contentKey.fill(0);
+          fileBuffer.fill(0);
         }
-
-        completed = lease.complete(fileBuffer.length);
-        if (!completed) return reply.status(500).send({ error: 'Upload quota accounting failed.', code: 'UPLOAD_ACCOUNTING_FAILED' });
-        return reply.status(200).send({
-          ref: makeReleaseBoundEncryptedAudioV2Ref(cid, keyVersion),
-          contentHash: normalizedHash,
-          keyVersion,
-          runtimeAddress: lease.payload.runtimeAddress
-        });
       } finally {
         abort.detach();
-        if (!completed) lease.abort();
+        if (!completed) await lease.abort();
       }
     });
 
     app.post('/cover', async (request: FastifyRequest, reply: FastifyReply) => {
-      const lease = beginAuthorizedUpload(request, reply, 'cover', deps.authorizations);
+      const lease = await beginAuthorizedUpload(request, reply, 'cover', deps.authorizations);
       if (!lease) return;
       const abort = requestAbortController(request);
       let completed = false;
 
       try {
         let fileBuffer: Buffer | undefined;
+        let contentHash: string | undefined;
         try {
           for await (const part of request.parts({ limits: { fileSize: Math.min(COVER_MAX_BYTES, lease.payload.maxBytes), files: 1 } })) {
             if (part.type === 'file' && part.fieldname === 'cover') fileBuffer = await part.toBuffer();
             else if (part.type === 'file') part.file.resume();
+            else if (part.type === 'field' && part.fieldname === 'contentHash') contentHash = String(part.value).trim().toLowerCase();
           }
         } catch (error) {
           if (multipartLimitError(error)) {
@@ -392,6 +392,7 @@ export function createUploadRoutes(deps: UploadRouteDeps = defaultDeps) {
         }
 
         if (!fileBuffer || fileBuffer.length === 0) return badRequest(reply, 'No cover image received. Include the file as field "cover".');
+        if (contentHash !== undefined && !contentHashSchema.safeParse(contentHash).success) return badRequest(reply, 'Invalid cover release identity.');
         if (fileBuffer.length > lease.payload.maxBytes) {
           return reply.status(413).send({ error: 'Cover image exceeds its authorized byte budget.', code: 'UPLOAD_BUDGET_EXCEEDED' });
         }
@@ -408,22 +409,24 @@ export function createUploadRoutes(deps: UploadRouteDeps = defaultDeps) {
 
         let cid: string;
         try {
-          cid = await deps.pinFiles(
-            cover.files,
-            `${lease.payload.address.slice(2, 10)}-${lease.payload.jti}-cover`,
-            {
-              app: 'dotify',
-              type: 'responsive-cover',
-              variants: '64,160,320,640',
-              original: 'preserved'
-            },
-            abort.signal
-          );
+          cid = publicAssets
+            ? await publicAssets(cover.files, 'cover', { ...lease.payload, contentHash, keyVersion: deps.getActiveContentKeyVersion() }, abort.signal)
+            : await deps.pinFiles(
+                cover.files,
+                `${lease.payload.address.slice(2, 10)}-${lease.payload.jti}-cover`,
+                {
+                  app: 'dotify',
+                  type: 'responsive-cover',
+                  variants: '64,160,320,640',
+                  original: 'preserved'
+                },
+                abort.signal
+              );
         } catch (error) {
-          return handleUploadError(error, reply);
+          return handleUploadError(error, request, reply, 'cover');
         }
 
-        completed = lease.complete(fileBuffer.length);
+        completed = await lease.complete(fileBuffer.length);
         if (!completed) return reply.status(500).send({ error: 'Upload quota accounting failed.', code: 'UPLOAD_ACCOUNTING_FAILED' });
         return reply.status(200).send({
           ref: `ipfs://${cid}/${cover.primaryPath}`,
@@ -437,12 +440,12 @@ export function createUploadRoutes(deps: UploadRouteDeps = defaultDeps) {
         });
       } finally {
         abort.detach();
-        if (!completed) lease.abort();
+        if (!completed) await lease.abort();
       }
     });
 
     app.post('/metadata', { bodyLimit: META_MAX_BYTES }, async (request: FastifyRequest, reply: FastifyReply) => {
-      const lease = beginAuthorizedUpload(request, reply, 'metadata', deps.authorizations);
+      const lease = await beginAuthorizedUpload(request, reply, 'metadata', deps.authorizations);
       if (!lease) return;
       const abort = requestAbortController(request);
       let completed = false;
@@ -468,26 +471,28 @@ export function createUploadRoutes(deps: UploadRouteDeps = defaultDeps) {
 
         let cid: string;
         try {
-          cid = await deps.pinJson(
-            manifest,
-            `${manifest.track.contentHash.slice(2, 10)}.json`,
-            {
-              app: 'dotify',
-              type: 'track-metadata',
-              contentHash: manifest.track.contentHash
-            },
-            abort.signal
-          );
+          cid = publicAssets
+            ? await publicAssets([{ path: 'release.json', bytes: Buffer.from(JSON.stringify(manifest)) }], 'metadata', lease.payload, abort.signal)
+            : await deps.pinJson(
+                manifest,
+                `${manifest.track.contentHash.slice(2, 10)}.json`,
+                {
+                  app: 'dotify',
+                  type: 'track-metadata',
+                  contentHash: manifest.track.contentHash
+                },
+                abort.signal
+              );
         } catch (error) {
-          return handleUploadError(error, reply);
+          return handleUploadError(error, request, reply, 'metadata');
         }
 
-        completed = lease.complete(actualBytes);
+        completed = await lease.complete(actualBytes);
         if (!completed) return reply.status(500).send({ error: 'Upload quota accounting failed.', code: 'UPLOAD_ACCOUNTING_FAILED' });
-        return reply.status(200).send({ ref: `ipfs://${cid}` });
+        return reply.status(200).send({ ref: `ipfs://${cid}${publicAssets ? '/release.json' : ''}` });
       } finally {
         abort.detach();
-        if (!completed) lease.abort();
+        if (!completed) await lease.abort();
       }
     });
   };

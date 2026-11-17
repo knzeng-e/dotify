@@ -1,5 +1,21 @@
 # Native gifts, work tips and direct allocations
 
+## Execution alignment, 2026-11-09
+
+Issue #229 stays open in **Next** as supporting acceptance. The [selected execution order](implementation/listening-and-publication-readiness.md) gives #407 publication latency, #395 Room startup and #388 artwork priority. Native PAS contribution implementation and its remaining activation/receipt/policy acceptance are retained. CASH tips are separate research in #406, followed by access settlement #408; no payment or artist-policy action follows from scheduling.
+
+Project 5 owns workflow status. Partial delivery remains In Progress; this phase change neither closes acceptance nor starts a parallel implementation.
+
+## Current reconciliation, 2026-10-23
+
+The #230 implementation and receipt/continuity corrections are merged.
+#324 adds room-policy preparation, automatic public authority lookup and scope
+validation. Product 0.1.60 includes the client, but its publication does not
+redeploy signaling or activate the new contribution facet. #229 stays open for
+coordinated real tip/receipt/chat and policy acceptance with the actual artist
+runtime. No authority change, owner-approved facet cut or repeat funded payment
+is authorized by this backlog reconciliation.
+
 Owner-authorized scope, 2026-10-01. Branch: `feat/native-gifts-tips`.
 Base: `d75b0385cde473962b112de92eb13aa01263bb5d` (dev CI passed).
 

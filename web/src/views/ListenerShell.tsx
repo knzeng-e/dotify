@@ -1,3 +1,5 @@
+import { roomPreparationFailureCopy } from '../features/player/roomPreparationFailure';
+import { isManagedAudioUrl } from '../features/catalog/streamingMediaSource';
 import { useRoomDiscovery } from '../features/rooms/useRoomDiscovery';
 import { useRoomViewport } from '../features/rooms/useRoomViewport';
 // Listener shell - the full listener-facing render tree (top bar, nav rail,
@@ -11,8 +13,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 
 import { emptyCatalogJourney } from '../components/CatalogBrowser';
 import { AuraBackground } from '../components/AuraBackground';
-import { PersistentAudio } from '../components/PersistentAudio';
-import { PlayerDock } from '../components/PlayerDock';
+import { PlayerDockSurface } from '../components/PlayerDockSurface';
 import { CreateRoomModal } from '../components/CreateRoomModal';
 import type { RoomVisibilityChoice } from '../components/NearbyVisibility';
 import { JoinRoomModal } from '../components/JoinRoomModal';
@@ -59,8 +60,9 @@ const apiConfigured = Boolean((import.meta.env.VITE_DOTIFY_API_URL as string | u
 export function ListenerShell() {
   const catalog = useCatalogContext();
   const session = useSessionContext();
-  const { playback, openTrack, prepareLocalStream } = usePlaybackContext();
-  const { activeView, publicArtistName, setPublicArtistName, navigateToView, openArtistStudio } = useNavigation();
+  const { playback, openTrack, prepareLocalStream, requestRoomExit } = usePlaybackContext();
+  const { activeView, publicArtistName, setPublicArtistName, openArtistProfile, closeArtistProfile, artistReturnLabel, navigateToView, openArtistStudio } =
+    useNavigation();
   const {
     walletState,
     activeEvmAddress,
@@ -72,7 +74,7 @@ export function ListenerShell() {
     productHostStatus
   } = useWalletContext();
   const discovery = useRoomDiscovery(session.socketRef.current, !session.roomId || activeView === 'rooms');
-  const { openWalletModal } = useUiFeedback();
+  const { openWalletModal, pushNotice } = useUiFeedback();
   const { artistName } = useReleaseForm();
   const { artistConsole, totalRoyaltyWei } = useArtistStudio();
 
@@ -149,17 +151,10 @@ export function ListenerShell() {
 
   const handlePlayTrack = useCallback(
     (track: CatalogTrack) => {
-      // Resume an already loaded source without reselecting (which pauses it).
-      // New sources continue through the catalog's authoritative access check.
-      if (session.mode !== 'listener' && track.id === catalog.selectedTrackId && catalog.audioSource && !catalog.accessGate) {
-        setPublicArtistName(null);
-        navigateToView('player');
-        if (!playback.transport.playing) void playback.togglePlay();
-        return;
-      }
+      setPublicArtistName(null);
       openTrack(track);
     },
-    [session.mode, catalog, playback, setPublicArtistName, navigateToView, openTrack]
+    [setPublicArtistName, openTrack]
   );
 
   function handleInspectTrack(track: CatalogTrack) {
@@ -182,10 +177,7 @@ export function ListenerShell() {
   }, [roomId, session.mode, handlePlayTrack]);
 
   function handleOpenArtistProfile(name: string) {
-    setPublicArtistName(name);
-    // A cross-view animation can outlive the artist view and override the
-    // catalog's restored position when the listener immediately returns.
-    window.scrollTo({ top: 0, behavior: 'instant' });
+    openArtistProfile(name);
   }
 
   // Opens the room after the user has confirmed their display name in the modal.
@@ -198,20 +190,47 @@ export function ListenerShell() {
         ? (roomId: string) => session.enableNearbyForRoom(roomId, visibility.radiusKm, visibility.worldwide)
         : undefined;
     const trackInfo = catalogTrackToTrackInfo(track);
-    const isCurrentReadyTrack = track.id === catalog.selectedTrackId && Boolean(catalog.audioSource);
+    const isCurrentReadyTrack = track.id === catalog.selectedTrackId && Boolean(catalog.audioSource) && !isManagedAudioUrl(catalog.audioSource);
     if (isCurrentReadyTrack) {
-      if (!playback.transport.playing) void playback.togglePlay();
       prepareLocalStream();
       session.createSession(trackInfo, 'full', undefined, { audioSourceHint: catalog.audioSource, onCreated, creationSignal, profile });
       return;
     }
 
-    // Opening a room is an explicit playback action. Re-arm intent before the
-    // source changes so a previous solo Pause does not keep the room track
-    // silent. Transport Next/Previous still preserves pause independently.
-    playback.requestAutoplay();
-    const selection = await catalog.openTrack(track, undefined, undefined, undefined, true).catch(() => null);
+    // Sharing the current track changes its audience, not its playback intent.
+    // Only choosing a different/unloaded track starts a new listening action.
+    // A Pause before or during preparation must survive the Room handoff.
+    if (track.id !== catalog.selectedTrackId || !catalog.audioSource) playback.requestAutoplay();
+    let mediaDeadlineMs: number | undefined;
+    if (track.id === catalog.selectedTrackId && isManagedAudioUrl(catalog.audioSource)) {
+      try {
+        mediaDeadlineMs = await catalog.prepareCurrentTrackForRoom(track, creationSignal);
+      } catch (error) {
+        if (!creationSignal.aborted && !(error instanceof Error && error.name === 'AbortError'))
+          pushNotice({
+            tone: 'info',
+            ...roomPreparationFailureCopy(error)
+          });
+        if (!creationSignal.aborted) session.cancelRoomCreation();
+        return;
+      }
+      if (creationSignal.aborted) return;
+    }
+
+    const selection = await catalog
+      .openTrack(track, undefined, undefined, undefined, true, {
+        forRoomCapture: true,
+        preserveCurrentPosition: track.id === catalog.selectedTrackId,
+        mediaDeadlineMs
+      })
+      .catch(() => null);
     if (creationSignal.aborted) return;
+    // A failed/cancelled source is not a prepared room. Preserve access-gated
+    // room creation, but do not publish a silent room after a transport failure.
+    if (!selection || selection.preparationFailed) {
+      session.cancelRoomCreation();
+      return;
+    }
     session.createSession(trackInfo, 'full', undefined, { audioSourceHint: selection?.audioSource ?? null, onCreated, creationSignal, profile });
   }
 
@@ -271,15 +290,6 @@ export function ListenerShell() {
 
   return (
     <>
-      <PersistentAudio
-        audioSource={catalog.audioSource}
-        audioSourceGeneration={catalog.audioSourceGeneration}
-        localAudioRef={catalog.localAudioRef}
-        remoteAudioRef={session.remoteAudioRef}
-        playback={playback}
-        onPrepareLocalStream={prepareLocalStream}
-        onEmitPlayerState={session.emitPlayerState}
-      />
       <div className='app-shell' ref={roomShellRef} data-room-focus={roomFocused} data-player-focus={activeView === 'player' && !roomId && !publicArtistName}>
         <AuraBackground />
         <a className='skip-link' href='#main-content'>
@@ -296,9 +306,12 @@ export function ListenerShell() {
             nativePaymentSymbol={nativePaymentSymbol}
             onClose={() => setInspectedRoomTrack(null)}
             onLeaveAndOpen={() => {
-              pendingSoloTrackRef.current = inspectedRoomTrack;
               setInspectedRoomTrack(null);
-              session.leaveSession();
+              requestRoomExit({
+                onConfirm: () => {
+                  pendingSoloTrackRef.current = inspectedRoomTrack;
+                }
+              });
             }}
           />
         )}
@@ -314,7 +327,8 @@ export function ListenerShell() {
                 openRooms={session.openRooms}
                 catalogAccessByTrackId={catalog.catalogAccessByTrackId}
                 nativePaymentSymbol={nativePaymentSymbol}
-                onBack={() => setPublicArtistName(null)}
+                onBack={closeArtistProfile}
+                backLabel={artistReturnLabel}
                 onOpenTrack={handleInspectTrack}
                 onPlayTrack={handlePlayTrack}
                 onTrackIntent={catalog.prefetchTrackAudio}
@@ -450,25 +464,7 @@ export function ListenerShell() {
           </main>
         </div>
 
-        {(activeView !== 'player' || publicArtistName) && (catalog.trackInfo || session.roomId) && (
-          <PlayerDock
-            track={selectedTrack}
-            trackInfo={catalog.trackInfo}
-            playback={playback}
-            mode={session.mode}
-            roomId={session.roomId}
-            hostName={session.hostName}
-            listenerCount={session.listenerCount}
-            listeners={session.listeners}
-            socketStatus={session.socketStatus}
-            locked={Boolean(
-              !isRoomGuest && selectedTrack && selectedTrack.accessMode === 'classic' && catalog.catalogAccessByTrackId[selectedTrack.id] !== true
-            )}
-            audioStartupStatus={catalog.audioStartupStatus}
-            onOpenPlayer={() => navigateToView('player')}
-            onStartRoom={() => showCreateRoom()}
-          />
-        )}
+        <PlayerDockSurface onStartRoom={() => showCreateRoom()} />
 
         {createRoomOpen && (
           <CreateRoomModal
@@ -503,7 +499,10 @@ export function ListenerShell() {
               session.joinRoom(code);
             }}
             onRetry={() => session.requestOpenRooms(true)}
-            onClose={() => setJoinRoomOpen(false)}
+            onClose={() => {
+              setJoinRoomOpen(false);
+              if (!session.roomId && getInitialRoomCode()) navigateToView('listen', { replace: true, clearRoomLink: true });
+            }}
           />
         )}
 

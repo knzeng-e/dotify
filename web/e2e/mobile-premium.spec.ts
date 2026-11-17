@@ -158,12 +158,14 @@ for (const [width, height] of sizes) {
       await guest.getByRole('button', { name: 'Join and listen', exact: true }).click();
       await expect(guest.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20_000 });
       await capture(guest, info, 'guest');
-      await guest.getByRole('tab', { name: 'Queue', exact: true }).click();
+      await guest.getByRole('button', { name: 'Queue', exact: true }).click();
       await expect(guest.locator('.host-lineup')).toBeVisible();
       await expect(guest.getByLabel('Add from the catalog')).toHaveCount(0);
       await guest.getByLabel('Request a track', { exact: true }).fill('E2E Public');
       await guest.getByRole('button', { name: /^Suggest E2E Public Room Track by/ }).click();
       await capture(guest, info, 'room-queue');
+      if (await guest.getByRole('button', { name: 'Close room queue', exact: true }).isVisible())
+        await guest.getByRole('button', { name: 'Close room queue', exact: true }).click();
       await guest.getByRole('tab', { name: 'Chat', exact: true }).click();
       await guest.getByLabel('Message the room', { exact: true }).fill('A shared listening moment');
       if (width <= 768) {
@@ -274,11 +276,21 @@ test('release details disclose access without opening audio or requesting a paym
   await trigger.press('Enter');
   const dialog = page.getByRole('dialog', { name: 'About this release', exact: true });
   await expect(dialog).toBeVisible();
-  await expect(dialog).toContainText('plus network fees');
+  await expect(dialog.locator('.release-access-summary')).toContainText('PAS');
+  await expect(dialog).not.toContainText('to unlock, plus network fees');
   await expect(dialog).toContainText('does not transfer copyright');
-  await expect(dialog.locator('details')).not.toHaveAttribute('open', '');
+  await expect(dialog.locator('.release-listening-section')).not.toHaveAttribute('open', '');
+  await expect(dialog.locator('.release-provenance')).not.toHaveAttribute('open', '');
+  await dialog.getByRole('button', { name: 'Close release details' }).focus();
+  await page.keyboard.press('Tab');
+  await expect(dialog.getByText('Listening & support', { exact: true })).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(dialog.locator('.release-listening-section')).toHaveAttribute('open', '');
+  await expect(dialog.locator('.release-access-summary .lucide-coins')).toBeVisible();
+  await page.keyboard.press('Enter');
+  await dialog.getByRole('button', { name: 'Close release details' }).focus();
   await page.screenshot({ path: testInfo.outputPath('release-details.png'), animations: 'disabled' });
-  await dialog.locator('summary').click();
+  await dialog.getByText('Release records', { exact: true }).click();
   await expect(dialog).toContainText('Content hash');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await expect(page.locator('.player-stage')).toHaveCount(0);
@@ -300,7 +312,8 @@ test('release details remain bound to the track that opened them', async ({ page
 
   await expect(page.locator('.track-copy h2')).toHaveText('Second room track');
   await expect(dialog.getByRole('heading', { name: 'E2E Public Room Track', exact: true })).toBeVisible();
-  await expect(dialog).not.toContainText('Second room track');
+  await expect(dialog.locator('.listening-sheet-content')).not.toContainText('Second room track');
+  await expect(dialog.getByRole('complementary', { name: 'Current listening' })).toContainText('Second room track');
 });
 
 test('browser Back dismisses contextual sheets without leaving or stopping the player', async ({ page }) => {
@@ -358,11 +371,9 @@ test('room sharing stays closed when a room is replaced', async ({ page }) => {
   await page.getByRole('button', { name: 'Share room', exact: true }).click();
   await expect(page.getByRole('dialog', { name: 'Listen together' })).toBeVisible();
 
-  await page.evaluate(() =>
-    Array.from(document.querySelectorAll<HTMLButtonElement>('button'))
-      .find(button => button.textContent?.trim() === 'Close room')
-      ?.click()
-  );
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Close room', exact: true }).click();
+  await page.getByRole('button', { name: 'Close room and keep listening', exact: true }).click();
   await expect(page.getByRole('dialog', { name: 'Listen together' })).toHaveCount(0);
   await page.getByRole('button', { name: 'Open a room', exact: true }).click();
   await page.getByRole('button', { name: 'Open the room', exact: true }).click();

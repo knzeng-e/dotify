@@ -1,21 +1,25 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { useCatalog } from '../../src/hooks/useCatalog';
 import { usePlayback } from '../../src/hooks/usePlayback';
 import { PersistentAudio } from '../../src/components/PersistentAudio';
+import { PlayerTransport } from '../../src/components/PlayerTransport';
+import { AudioFailureDiagnostics } from '../../src/components/AudioFailureDiagnostics';
+import { AudioStartupTelemetryProvider } from '../../src/app/providers/AudioStartupTelemetryProvider';
 import type { CatalogTrack } from '../../src/shared/types';
 
 const noop = () => {};
-const useRelay = new URLSearchParams(location.search).has('mediaRelay');
-const tracks: CatalogTrack[] = ['a', 'b'].map((id, index) => ({
-  id,
-  source: 'seed',
+const scope = Reflect.get(window, '__STREAMING_SCOPE__') as { runtimeAddress: string; contentHash: `0x${string}` };
+const tracks: CatalogTrack[] = ['a', 'b'].map(id => ({
+  id: `${scope.runtimeAddress}:${scope.contentHash}:${id}`,
+  source: 'artist',
+  artistAddress: `0x${'33'.repeat(20)}`,
   title: `Tone ${id}`,
   artist: 'Synthetic fixture',
-  audioRef: `dotify:enc:v2:ipfs://${useRelay ? `Qm${id.repeat(44)}` : `continuity-${id}`}`,
-  localUrl: `https://gateway.pinata.cloud/ipfs/continuity-${id}`,
+  audioRef: `dotify:enc:v3:key-v2:ipfs://Qm${id.repeat(44)}`,
+  localUrl: `https://gateway.pinata.cloud/ipfs/Qm${id.repeat(44)}`,
   imageRef: '',
-  hash: `0x${String(index + 1).repeat(64)}`,
+  hash: scope.contentHash,
   priceDot: '0',
   accessMode: 'free',
   encrypted: true,
@@ -26,11 +30,30 @@ const tracks: CatalogTrack[] = ['a', 'b'].map((id, index) => ({
   royaltySplits: [],
   personhoodLevel: 'DIM1',
   zone: 'test',
-  durationLabel: '20s'
+  durationLabel: '8s'
 }));
 
 function Harness() {
   const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
+  const plainPolicy = Reflect.get(window, '__plainPolicy') as 'classic' | 'human-free' | 'free' | undefined;
+  const encryptedOnPolicy = Boolean(Reflect.get(window, '__encryptedOnPolicy'));
+  const [policyApplied, setPolicyApplied] = useState(!Reflect.get(window, '__plainSeedCandidate'));
+  const [preparations, setPreparations] = useState(0);
+  const [preparationFailed, setPreparationFailed] = useState(false);
+  const roomPreparation = useRef<AbortController | null>(null);
+  const [roomResult, setRoomResult] = useState('idle');
+  const playbackTracks = tracks.map(track =>
+    plainPolicy && track.id.endsWith(':b')
+      ? {
+          ...track,
+          source: policyApplied ? ('artist' as const) : ('seed' as const),
+          accessMode: plainPolicy,
+          encrypted: encryptedOnPolicy && policyApplied,
+          audioRef: encryptedOnPolicy ? track.audioRef : 'http://media.audio.test/unencrypted-policy.wav',
+          localUrl: 'http://media.audio.test/unencrypted-policy.wav'
+        }
+      : track
+  );
   const catalog = useCatalog({
     ethRpcUrl: 'http://rpc.audio.test',
     listenerEvmAddress: null,
@@ -43,7 +66,6 @@ function Harness() {
     getActiveWalletClient: async () => {
       throw new Error('No wallet allowed');
     },
-    setBulletinManifestRef: noop,
     setAccessMode: noop,
     setPriceDot: noop,
     setPersonhoodLevel: noop,
@@ -62,32 +84,66 @@ function Harness() {
     audioRecovery: catalog.audioRecovery,
     audioStartupAttemptId: catalog.audioStartupAttemptId,
     trackSelectionPending: catalog.trackSelectionPending,
+    audioSourcePending: catalog.audioSourcePending,
     onHostMediaSettled: catalog.settleTrackSelectionMedia,
     remoteReady: false,
     remoteStreamVersion: 0,
     localStreamReady: false,
     playerState: null,
-    catalogTracks: tracks,
+    catalogTracks: playbackTracks,
     selectedTrackId: catalog.selectedTrackId,
     lineup: [],
     onLineupChange: noop,
-    onOpenTrack: track => void catalog.selectTrack(track),
+    onPrepareNext: new URLSearchParams(location.search).has('continuous')
+      ? async (track, signal) => {
+          await catalog.prepareNextPlayback(track, signal);
+          setPreparations(count => count + 1);
+        }
+      : undefined,
+    onOpenTrack: track => void catalog.selectTrack(track, Reflect.get(window, '__selectForRoom') ? noop : undefined),
     onEmitPlayerState: noop
   });
   return (
     <>
-      {tracks.map(track => (
+      {playbackTracks.map(track => (
         <button
           key={track.id}
           onClick={() => {
             playback.requestAutoplay();
-            void catalog.selectTrack(track);
+            void catalog
+              .selectTrack(track, undefined, undefined, undefined, false, { forRoomCapture: Reflect.get(window, '__captureForRoom') === true })
+              .then(result => setPreparationFailed(result.preparationFailed === true));
           }}
         >
-          Select {track.id}
+          Select {track.title.slice(-1)}
         </button>
       ))}
+      <button
+        onClick={() => {
+          roomPreparation.current?.abort();
+          const controller = new AbortController();
+          roomPreparation.current = controller;
+          const track = playbackTracks.find(track => track.id === catalog.selectedTrackId)!;
+          setRoomResult('preparing');
+          playback.requestAutoplay();
+          void catalog
+            .prepareCurrentTrackForRoom(track, controller.signal)
+            .then(async mediaDeadlineMs => {
+              controller.signal.throwIfAborted();
+              await catalog.selectTrack(track, undefined, undefined, undefined, true, { forRoomCapture: true, preserveCurrentPosition: true, mediaDeadlineMs });
+              setRoomResult('ready');
+            })
+            .catch(() => setRoomResult('cancelled-or-failed'));
+        }}
+      >
+        Prepare current for room
+      </button>
+      <button onClick={() => roomPreparation.current?.abort()}>Cancel room preparation</button>
+      <output data-testid='room-preparation'>{roomResult}</output>
       <button onClick={() => void playback.togglePlay()}>Toggle playback</button>
+      <PlayerTransport playback={playback} duration={playback.transport.duration} listener={false} />
+      {catalog.playbackFailure && <AudioFailureDiagnostics />}
+      {plainPolicy && <button onClick={() => setPolicyApplied(true)}>Apply artist policy to b</button>}
       <output
         data-testid='state'
         data-generation={catalog.audioSourceGeneration}
@@ -95,10 +151,15 @@ function Harness() {
         data-status={playback.status}
         data-pending={catalog.trackSelectionPending}
         data-failure={catalog.playbackFailure?.kind ?? ''}
+        data-preparation-failed={preparationFailed}
+        data-preparation={catalog.audioStartupStatus ?? ''}
         data-time={playback.transport.currentTime}
         data-playing={playback.transport.playing}
+        data-access={String(catalog.catalogAccessByTrackId[catalog.selectedTrackId])}
+        data-preparations={preparations}
       />
       <PersistentAudio
+        adoptPreparedAudio={catalog.adoptPreparedAudio}
         audioSource={catalog.audioSource}
         audioSourceGeneration={catalog.audioSourceGeneration}
         localAudioRef={catalog.localAudioRef}
@@ -110,4 +171,8 @@ function Harness() {
     </>
   );
 }
-createRoot(document.getElementById('root')!).render(<Harness />);
+createRoot(document.getElementById('root')!).render(
+  <AudioStartupTelemetryProvider>
+    <Harness />
+  </AudioStartupTelemetryProvider>
+);

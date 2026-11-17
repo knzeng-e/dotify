@@ -1,0 +1,111 @@
+name: Bulletin segmented storage prototype
+on:
+  pull_request:
+    branches: [dev]
+    paths:
+      - 'research/bulletin-prototype/**'
+      - 'services/api/src/routes/keys.ts'
+      - 'services/api/src/services/streamingJobs.ts'
+      - 'services/api/src/services/streamingPublicationStore*.ts'
+      - 'services/api/src/app.ts'
+      - 'services/api/src/services/bulletin*.ts'
+      - 'services/api/src/services/keyVault.ts'
+      - 'services/api/src/services/signatures.ts'
+      - 'services/api/src/services/replayProtection.ts'
+      - 'services/api/src/services/chainAccess.ts'
+      - 'services/api/src/config.ts'
+      - 'services/api/package-lock.json'
+      - 'services/api/src/services/streamingFormat.ts'
+      - 'services/api/src/services/streamingNonces.ts'
+      - 'services/api/src/services/streamingEncoder.ts'
+      - 'services/api/src/services/streamingTranscoder.ts'
+      - 'web/src/features/catalog/streaming*.ts'
+      - 'web/src/features/catalog/managedStreaming.ts'
+      - 'web/package-lock.json'
+      - '.github/workflows/bulletin-prototype.yml'
+      - 'scripts/ci/ensure-ffmpeg.sh'
+      - 'scripts/ci/use-ubuntu-mirror.sh'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline:
+    name: Offline directory, recovery and retention proof
+    # The prototype and API must use the same stable codec runner image.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure signed Ubuntu package mirror
+        run: bash scripts/ci/use-ubuntu-mirror.sh
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.23.5
+          cache: npm
+          cache-dependency-path: |
+            web/package-lock.json
+            services/api/package-lock.json
+            research/bulletin-prototype/package-lock.json
+      - name: Ensure FFmpeg for real AAC fixtures
+        timeout-minutes: 5
+        run: bash scripts/ci/ensure-ffmpeg.sh
+      - name: Install the unchanged API fixture and isolated prototype
+        run: |
+          npm ci --prefix services/api --ignore-scripts
+          npm ci --prefix web --ignore-scripts
+          npm ci --prefix research/bulletin-prototype --ignore-scripts
+      - name: Test actual v3 encryption, IPFS paths and simulated recovery
+        run: npm test --prefix research/bulletin-prototype
+      - name: Rehearse protected publication and signed key delivery offline
+        run: npm run test:protected --prefix research/bulletin-prototype
+      - name: Verify private canary custody, budgets and recovery offline
+        run: npm run test:protected-canary --prefix research/bulletin-prototype
+      - name: Verify generated-only mobile packaging and local evidence recovery
+        run: npm run test:mobile --prefix research/bulletin-prototype
+      - name: Verify explicit continuity limits and a read-only transaction creator
+        run: npm run test:continuity --prefix research/bulletin-prototype
+      - name: Install the browser codec control
+        timeout-minutes: 7
+        run: npm exec --prefix web -- playwright install --with-deps chromium
+      - name: Verify real AAC playback and local-server boundaries
+        run: npm run test:host --prefix research/bulletin-prototype
+      - name: Verify the standalone diagnostic at mobile viewport size
+        run: npm run test:mobile-browser --prefix research/bulletin-prototype
+      - name: Verify continued segment reads beyond the initial buffer
+        run: npm run test:continuity-browser --prefix research/bulletin-prototype
+      - name: Measure bounded synthetic startup reads and one renewal cycle
+        run: npm run measure --prefix research/bulletin-prototype
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bulletin-offline-prototype
+          path: research/bulletin-prototype/results.json
+          if-no-files-found: ignore
+          retention-days: 7
+
+  pipeline:
+    name: Bounded direct publication and nonce recovery
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.23.5
+          cache: npm
+          cache-dependency-path: |
+            services/api/package-lock.json
+            research/bulletin-prototype/package-lock.json
+      - name: Install isolated test dependencies
+        run: |
+          npm ci --prefix services/api --ignore-scripts
+          npm ci --prefix research/bulletin-prototype --ignore-scripts
+      - name: Verify bounded direct writes, durable nonces and fresh-process recovery
+        run: npm run test:pipeline --prefix research/bulletin-prototype
+      - name: Record scheduling model without network or signer
+        run: npm run measure:pipeline --prefix research/bulletin-prototype
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bulletin-pipeline-offline
+          path: research/bulletin-prototype/pipeline-results.json
+          retention-days: 7

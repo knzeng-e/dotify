@@ -47,6 +47,7 @@ declare module "@parity/product-sdk-contracts" {
                 musicRegSetAccessMode: { args: [contentHash: SizedHex<32>, accessMode: number, pricePlanck: bigint, requiredPersonhood: number]; response: undefined };
                 musicRegTrackCount: { args: []; response: bigint };
                 musicRegTrackHashAtIndex: { args: [index: bigint]; response: SizedHex<32> };
+                musicRegTrackHashesPage: { args: [offset: bigint, limit: bigint]; response: SizedHex<32>[] };
                 musicRegUpdateMetadata: { args: [contentHash: SizedHex<32>, title: string, description: string, metadataRef: string, expectedMetadataRef: string]; response: undefined };
                 musicGiftClaim: { args: [id: SizedHex<32>]; response: undefined };
                 musicGiftContribute: { args: [context: { contentHash: SizedHex<32>; intentId: SizedHex<32>; host: HexString; room: SizedHex<32>; expiresAt: bigint }, expectedQuote: SizedHex<32>, roomProof: HexString]; response: undefined };

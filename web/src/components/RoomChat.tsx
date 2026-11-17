@@ -1,5 +1,5 @@
 import { ArrowDown, LoaderCircle, MessageCircle, Send, ListFilter, BadgeCheck, Pin, X } from 'lucide-react';
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from 'react';
 import { useSessionContext } from '../app/providers';
 import { roomPresenceCount } from '../features/rooms/roomState';
 import { PanelTitle } from '../shared/ui/PanelTitle';
@@ -30,7 +30,7 @@ export function RoomChat({
   const [mentionIds, setMentionIds] = useState<string[]>([]);
   const [showActivity, setShowActivity] = useState(true);
   const [clock, setClock] = useState(() => Date.now());
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const lastTypingRef = useRef(0);
   const followingRef = useRef(true);
   const readStateRef = useRef<ChatReadState | null>(null);
@@ -85,6 +85,15 @@ export function RoomChat({
     observer.observe(list);
     return () => observer.disconnect();
   }, [active]);
+
+  // Resize only the editor, never remount it: selection, IME and keyboard survive sends.
+  useLayoutEffect(() => {
+    const input = inputRef.current;
+    if (!input) return;
+    input.style.height = '0px';
+    const line = Number.parseFloat(getComputedStyle(input).lineHeight) || 24;
+    input.style.height = `${Math.min(Math.max(44, input.scrollHeight), line * 3 + 16)}px`;
+  }, [draft, active]);
 
   if (!roomId) return null;
 
@@ -266,7 +275,8 @@ export function RoomChat({
         </p>
       )}
       <form className='room-chat-form' onSubmit={event => void handleSubmit(event)} aria-busy={sending}>
-        <input
+        <textarea
+          rows={1}
           className='field'
           ref={inputRef}
           value={draft}
@@ -285,10 +295,19 @@ export function RoomChat({
           aria-label='Message the room'
           autoComplete='off'
           onKeyDown={event => {
-            if (event.key === 'Enter' && (event.nativeEvent.isComposing || event.keyCode === 229)) event.preventDefault();
+            if (event.key === 'Enter' && !event.nativeEvent.isComposing && event.keyCode !== 229 && (event.ctrlKey || event.metaKey)) {
+              event.preventDefault();
+              event.currentTarget.form?.requestSubmit();
+            }
           }}
         />
-        <button className='room-chat-send' type='submit' disabled={!draft.trim() || sending || !connected} aria-label='Send message'>
+        <button
+          onPointerDown={event => event.preventDefault()}
+          className='room-chat-send'
+          type='submit'
+          disabled={!draft.trim() || sending || !connected}
+          aria-label='Send message'
+        >
           {sending ? <LoaderCircle size={18} /> : <Send size={18} />}
         </button>
       </form>

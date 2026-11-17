@@ -3,9 +3,9 @@ import AxeBuilder from '@axe-core/playwright';
 
 const fix = { latitude: 0.392, longitude: 9.454, accuracy: 100 };
 const title = 'E2E Protected Room Track';
-async function openHost(context: BrowserContext, visibility?: 'Nearby' | 'Everyone') {
+async function openHost(context: BrowserContext, visibility?: 'Nearby' | 'Everyone', capture: 'synthetic' | 'web-audio' = 'synthetic') {
   const host = await context.newPage();
-  await host.goto('/?e2eRoom=protected-authorized&e2eSync=on&e2eAutoplay=on');
+  await host.goto(`/?e2eRoom=protected-authorized&e2eSync=on&e2eAutoplay=on&e2eCapture=${capture}`);
   await host.getByRole('button', { name: 'Open a room' }).click();
   await host.getByRole('button', { name: `Select ${title}` }).click();
   await host.getByLabel('Your name or nickname').fill('Radar host');
@@ -42,7 +42,9 @@ test('automatic radar finds a later nearby publication, then joins real guest au
   });
   const packets: string[] = [];
   try {
-    const host = await openHost(hostContext);
+    // Exercise the ordinary Web Audio capture path, not the near-silent
+    // negotiation-only oscillator. The protected source is still synthetic.
+    const host = await openHost(hostContext, undefined, 'web-audio');
     await expect(host.getByRole('region', { name: 'Room visibility' })).toContainText('Link only');
     const guest = await guestContext.newPage();
     guest.on('websocket', socket =>
@@ -80,22 +82,74 @@ test('automatic radar finds a later nearby publication, then joins real guest au
     await expect(guest.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20_000 });
     await expect.poll(() => guest.evaluate(() => window.__DOTIFY_E2E_ROOM_JOIN__?.remotePlaybackCues ?? 0), { timeout: 15_000 }).toBeGreaterThan(0);
     expect(await guest.evaluate(() => window.__DOTIFY_E2E_ROOM_JOIN__?.keyRequests ?? 0)).toBe(0);
-    const energy = await guest.evaluate(async () => {
+    // ontrack/signaling can precede decoded frames. Bind the measurement to
+    // the current live receiver, as in the Room continuity acceptance tests.
+    await expect
+      .poll(() =>
+        guest.evaluate(() => {
+          const audio = [...document.querySelectorAll('audio')].find(item => item.srcObject instanceof MediaStream);
+          const tracks = (audio?.srcObject as MediaStream | null)?.getAudioTracks() ?? [];
+          return tracks.length > 0 && tracks.every(track => track.readyState === 'live' && !track.muted && track.enabled);
+        })
+      )
+      .toBe(true);
+    const meter = await guest.evaluateHandle(async () => {
       const audio = [...document.querySelectorAll('audio')].find(item => item.srcObject instanceof MediaStream);
-      if (!audio?.srcObject) return 0;
+      if (!audio?.srcObject) throw new Error('The guest has no received audio stream.');
       const context = new AudioContext();
       await context.resume();
+      if (context.state !== 'running') throw new Error('The guest audio meter did not start.');
       const source = context.createMediaStreamSource(audio.srcObject as MediaStream);
       const analyser = context.createAnalyser();
       source.connect(analyser);
-      await new Promise(resolve => setTimeout(resolve, 300));
-      const samples = new Uint8Array(analyser.fftSize);
-      analyser.getByteTimeDomainData(samples);
-      source.disconnect();
-      await context.close();
-      return Math.max(...samples) - Math.min(...samples);
+      // Render the measurement graph without duplicating the guest's output.
+      const silentOutput = context.createGain();
+      silentOutput.gain.value = 0;
+      analyser.connect(silentOutput).connect(context.destination);
+      // Measure decoded samples from the actual captured fixture audio.
+      const samples = new Float32Array(analyser.fftSize);
+      return {
+        energy() {
+          analyser.getFloatTimeDomainData(samples);
+          return Math.sqrt(samples.reduce((sum, sample) => sum + sample * sample, 0) / samples.length);
+        },
+        async dispose() {
+          source.disconnect();
+          analyser.disconnect();
+          silentOutput.disconnect();
+          await context.close();
+        }
+      };
     });
-    expect(energy).toBeGreaterThan(0);
+    try {
+      // Signaling cues can arrive before the first decoded WebRTC frames.
+      await expect.poll(() => meter.evaluate(probe => probe.energy()), { timeout: 10_000 }).toBeGreaterThan(0.01);
+    } catch (error) {
+      const inspectAudio = (page: Page) =>
+        page.evaluate(() => ({
+          fixture: window.__DOTIFY_E2E_ROOM_JOIN__,
+          audio: [...document.querySelectorAll('audio')].map(audio => ({
+            paused: audio.paused,
+            muted: audio.muted,
+            volume: audio.volume,
+            currentTime: audio.currentTime,
+            readyState: audio.readyState,
+            tracks: (audio.srcObject instanceof MediaStream ? audio.srcObject.getAudioTracks() : []).map(track => ({
+              enabled: track.enabled,
+              muted: track.muted,
+              readyState: track.readyState
+            }))
+          }))
+        }));
+      await testInfo.attach('nearby-audio-state', {
+        body: JSON.stringify({ host: await inspectAudio(host), guest: await inspectAudio(guest) }),
+        contentType: 'application/json'
+      });
+      throw error;
+    } finally {
+      await meter.evaluate(probe => probe.dispose());
+      await meter.dispose();
+    }
     expect(packets.join('\n')).not.toMatch(/latitude|longitude|accuracy|0\.392|9\.454|wallet|areaCells/);
     expect(await guest.evaluate(() => JSON.stringify([Object.values(localStorage), Object.values(sessionStorage)]))).not.toMatch(/n2:|0\.395|9\.454/);
     await host.evaluate(() => {
@@ -255,6 +309,10 @@ test('cover galaxies show exact live people and distinguish my room from an iden
     await expect(guest.getByTestId('room-listener-sync')).toHaveText('In sync', { timeout: 20_000 });
     await host.getByRole('button', { name: 'Keep listening and browse', exact: true }).click();
     const radar = await rooms(host);
+    // Exercise pointer crossing, not CSS-driven auto-scroll. A smooth scroll
+    // during locator.hover can move the open popup away from the real pointer.
+    // Keep radar/presence animations enabled; only page scrolling is immediate.
+    await host.addStyleTag({ content: 'html { scroll-behavior: auto !important; }' });
     await host.setViewportSize({ width: 1440, height: 1000 });
     const own = radar.locator('.radar-room-dot[data-own="true"]');
     const other = radar.locator('.radar-room-dot[data-own="false"]');
@@ -271,6 +329,10 @@ test('cover galaxies show exact live people and distinguish my room from an iden
     await expect(own.locator('.radar-room-artist')).toBeVisible();
     await expect(own.getByRole('tooltip', { includeHidden: true })).toBeHidden();
     await expect(own).toHaveAccessibleDescription(/Radar host.*2 listening.*Worldwide/);
+    // Leave room for the popup before moving the pointer. Otherwise hover's
+    // automatic scroll can move the marker away from the pointer and dismiss
+    // the popup before the second hover action reaches its metadata.
+    await own.evaluate(element => element.scrollIntoView({ block: 'center', inline: 'center', behavior: 'instant' }));
     await own.hover();
     const details = own.getByRole('tooltip');
     await expect(details).toContainText('2 listening');
@@ -311,7 +373,26 @@ test('cover galaxies show exact live people and distinguish my room from an iden
     await expect.poll(async () => (await planetVisuals(own)).size).toBe((await planetVisuals(other)).size);
     await expect.poll(async () => (await planetVisuals(own)).glow).toBe((await planetVisuals(other)).glow);
   } finally {
-    await Promise.allSettled([hostContext.close(), otherContext.close(), guestContext.close()]);
+    try {
+      // A tab close now means reconnectable disconnect. Explicitly close these
+      // rooms so grace-period invitations cannot contaminate the next case.
+      for (const context of [hostContext, otherContext]) {
+        const page = context.pages()[0];
+        if (!page) continue;
+        await page.keyboard.press('Escape');
+        const dock = page.getByRole('button', { name: 'Room live', exact: true });
+        if (await dock.isVisible()) await dock.click();
+        const close = page.getByRole('button', { name: 'Close room', exact: true });
+        if (!(await close.isVisible())) continue;
+        await close.click();
+        const confirm = page.getByRole('button', { name: 'Close room and stop', exact: true });
+        await expect.poll(async () => !(await page.getByTestId('room-code').count()) || (await confirm.isVisible())).toBe(true);
+        if (await confirm.isVisible()) await confirm.click();
+        await expect(page.getByTestId('room-code')).toHaveCount(0);
+      }
+    } finally {
+      await Promise.allSettled([hostContext.close(), otherContext.close(), guestContext.close()]);
+    }
   }
 });
 
@@ -332,12 +413,19 @@ test('room identity and reversible Hide update live without another scan', async
     await settings.getByLabel('A short invitation (optional)', { exact: true }).fill('Découvertes et discussion');
     await settings.getByRole('button', { name: 'Done', exact: true }).click();
     await expect(radar.getByRole('heading', { name: 'Escale à Libreville' })).toBeVisible({ timeout: 3000 });
+    await expect(radar.getByRole('combobox', { name: 'Room view' }).locator('option')).toHaveText(['Radar', 'List']);
+    const dot = radar.getByRole('button', { name: /Inspect Escale à Libreville/ });
+    await dot.hover();
+    const details = radar.getByRole('tooltip');
+    await expect(details).toContainText('Découvertes et discussion');
+    await expect(details).toContainText('Host: Radar host');
+    await observer.screenshot({ path: info.outputPath('room-hover-desktop.png'), fullPage: true, animations: 'disabled' });
     await radar.getByRole('button', { name: 'Escale à Libreville', exact: true }).click();
     await expect(observer.getByRole('dialog')).toContainText('Hosted by Radar host');
     await expect(observer.getByRole('dialog')).toContainText('Découvertes et discussion');
-    await observer.screenshot({ path: info.outputPath('room-preview-desktop.png') });
+    await observer.screenshot({ path: info.outputPath('room-preview-desktop.png'), animations: 'disabled' });
     await observer.setViewportSize({ width: 390, height: 844 });
-    await observer.screenshot({ path: info.outputPath('room-preview-mobile.png') });
+    await observer.screenshot({ path: info.outputPath('room-preview-mobile.png'), animations: 'disabled' });
     await observer.keyboard.press('Escape');
     await radar
       .locator('.nearby-room')
@@ -351,6 +439,8 @@ test('room identity and reversible Hide update live without another scan', async
     await observer.keyboard.press('Escape');
     await expect(radar.getByRole('heading', { name: 'Escale à Libreville' })).toBeVisible();
     await host.getByRole('button', { name: 'Close room', exact: true }).click();
+    await expect(radar.getByRole('heading', { name: 'Escale à Libreville' })).toBeVisible();
+    await host.getByRole('button', { name: 'Close room and stop', exact: true }).click();
     await expect(radar.getByRole('heading', { name: 'Escale à Libreville' })).toHaveCount(0, { timeout: 3000 });
   } finally {
     await Promise.allSettled([hostContext.close(), observerContext.close()]);

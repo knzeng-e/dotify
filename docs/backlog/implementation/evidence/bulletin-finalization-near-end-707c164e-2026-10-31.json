@@ -1,0 +1,159 @@
+{
+  "schema": "dotify.bulletin.observation-projection.v1",
+  "provenance": "Selected fields transcribed from the owner-provided JSON reply in this session; this is not a complete host report or audio-gap measurement.",
+  "reportId": "707c164e-01b2-4622-a1d1-6aec150547ad",
+  "startedAt": "2026-10-31T12:21:46.768Z",
+  "implementation": {
+    "sha": "20ff46df0d5a7c5716dc77afd14d06b4a223ff31",
+    "dirty": false
+  },
+  "transport": "bundled-decoder-control",
+  "network": "Wifi",
+  "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148",
+  "reader": "managed",
+  "hostVersionReconfirmed": false,
+  "hostCache": "unknown; not cleared",
+  "pageCache": "empty per attempt",
+  "outcome": "ended",
+  "root": "bafykbzacecj2qvfpqevlm6pqkm24fjcmszi6qd5r3ywikxfxx5yhjqsyorot4",
+  "firstPlayingEventMs": 91,
+  "fixtureProfile": "continuity",
+  "fixtureDurationSeconds": 64,
+  "finalizationPolicy": "near-playback-end",
+  "finalizationExperimentApplied": true,
+  "progressive": true,
+  "operatorHeardAudio": true,
+  "audibleFirstSoundMeasured": false,
+  "productionAccessTested": false,
+  "selectedEvents": [
+    {
+      "name": "segment-append-complete",
+      "elapsedMs": 161,
+      "mediaSeconds": 0.041983083,
+      "segmentIndex": 7,
+      "bufferedRanges": [
+        [
+          0,
+          32.064
+        ]
+      ]
+    },
+    {
+      "name": "segment-append-start",
+      "elapsedMs": 22413,
+      "mediaSeconds": 22.294488458,
+      "segmentIndex": 7,
+      "bufferedRanges": [
+        [
+          0,
+          32.064
+        ]
+      ]
+    },
+    {
+      "name": "startstreaming",
+      "elapsedMs": 22424,
+      "mediaSeconds": 22.305300949
+    },
+    {
+      "name": "segment-append-complete",
+      "elapsedMs": 22432,
+      "mediaSeconds": 22.313303194,
+      "segmentIndex": 7,
+      "bufferedRanges": [
+        [
+          0,
+          32.064
+        ]
+      ]
+    },
+    {
+      "name": "segment-append-complete",
+      "elapsedMs": 22486,
+      "mediaSeconds": 22.367471483,
+      "segmentIndex": 13,
+      "bufferedRanges": [
+        [
+          0,
+          56.128
+        ]
+      ]
+    },
+    {
+      "name": "audible-cut-marked",
+      "elapsedMs": 23222,
+      "mediaSeconds": 22.934693254
+    },
+    {
+      "name": "segment-append-start",
+      "elapsedMs": 46751,
+      "mediaSeconds": 46.363292581,
+      "segmentIndex": 13,
+      "bufferedRanges": [
+        [
+          0,
+          56.128
+        ]
+      ]
+    },
+    {
+      "name": "startstreaming",
+      "elapsedMs": 46763,
+      "mediaSeconds": 46.375329302
+    },
+    {
+      "name": "segment-append-complete",
+      "elapsedMs": 46776,
+      "mediaSeconds": 46.388007138,
+      "segmentIndex": 13,
+      "bufferedRanges": [
+        [
+          0,
+          56.128
+        ]
+      ]
+    },
+    {
+      "name": "segment-append-complete",
+      "elapsedMs": 46802,
+      "mediaSeconds": 46.414753537,
+      "segmentIndex": 15,
+      "bufferedRanges": [
+        [
+          0,
+          64
+        ]
+      ]
+    },
+    {
+      "name": "end-of-stream-requested",
+      "elapsedMs": 46803,
+      "mediaSeconds": 46.415410443
+    },
+    {
+      "name": "audible-cut-marked",
+      "elapsedMs": 47680,
+      "mediaSeconds": 47.124779851
+    },
+    {
+      "name": "end-of-stream-called",
+      "elapsedMs": 63822,
+      "mediaSeconds": 63.166967636
+    },
+    {
+      "name": "sourceended",
+      "elapsedMs": 63827,
+      "mediaSeconds": 63.172398715
+    },
+    {
+      "name": "pause",
+      "elapsedMs": 64792,
+      "mediaSeconds": 64
+    },
+    {
+      "name": "ended",
+      "elapsedMs": 64796,
+      "mediaSeconds": 64
+    }
+  ]
+}

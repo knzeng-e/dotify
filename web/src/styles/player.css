@@ -443,6 +443,31 @@ input[type='range']::-moz-range-thumb {
   line-height: 1.5;
 }
 
+.audio-support-report {
+  display: grid;
+  gap: 0.5rem;
+  justify-items: start;
+  min-width: 0;
+}
+
+.audio-support-report .field,
+.audio-support-report textarea {
+  width: 100%;
+}
+
+.audio-support-report textarea {
+  max-height: 10rem;
+}
+
+.room-connection-note.has-support-report {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.room-connection-note > .audio-support-report {
+  grid-column: 1 / -1;
+}
+
 .solo-session-feedback .primary-action,
 .solo-session-feedback .secondary-action {
   width: 100%;
@@ -769,7 +794,7 @@ input[type='range']::-moz-range-thumb {
   display: grid;
   width: min(100%, calc(var(--container) + (var(--content-pad) * 2)));
   min-height: var(--dock-height);
-  grid-template-columns: minmax(13rem, 0.85fr) minmax(19rem, 1.25fr) minmax(13rem, 0.85fr);
+  grid-template-columns: minmax(11rem, 0.85fr) minmax(17rem, 1.25fr) minmax(11rem, 0.85fr) auto;
   align-items: center;
   gap: 1rem;
   margin: 0 auto;
@@ -950,4 +975,36 @@ button.player-dock-chip:hover,
   color: var(--canvas);
   font-size: var(--text-xs);
   padding: 0.35rem 0.65rem;
+}
+
+.player-dock-close {
+  display: inline-flex;
+  width: 2.75rem;
+  height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink-soft);
+}
+.player-dock-close:hover {
+  border-color: var(--line-strong);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+/* A paused, still-open listening session, never a historical bookmark. */
+.track-artwork-progress {
+  position: absolute;
+  inset: auto 0 0;
+  height: 4px;
+  background: var(--line);
+  pointer-events: none;
+}
+.track-artwork-progress > span {
+  display: block;
+  height: 100%;
+  background: var(--action);
 }

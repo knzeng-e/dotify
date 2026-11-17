@@ -1,3 +1,6 @@
+import { PreparedReleaseReview } from '../../components/PreparedReleaseReview';
+import { preparedReleaseForm } from '../../features/artist-studio/preparedReleaseRecovery';
+import { usePreparedReleaseRecovery } from '../../features/artist-studio/usePreparedReleaseRecovery';
 // Artist-studio provider - wraps the useArtistConsole hook (runtime registration,
 // rights, royalties) and the royalty summary derivations. The hook keeps its
 // dependency-injection signature; the wiring App.tsx used to do (wallet identity,
@@ -29,8 +32,9 @@ type ArtistStudioValue = {
 const ArtistStudioContext = createContext<ArtistStudioValue | null>(null);
 
 export function ArtistStudioProvider({ children }: { children: ReactNode }) {
-  const { activeEvmAddress, connectedWallet, ethRpcUrl, expectedChainId, activeSubstrateAddress, activeSubstrateSigner } = useWalletContext();
+  const { activeEvmAddress, connectedWallet, ethRpcUrl, expectedChainId } = useWalletContext();
   const { setTransactionFeedback, transactionFeedback } = useUiFeedback();
+  const releaseForm = useReleaseForm();
   const {
     title,
     artistName,
@@ -43,11 +47,12 @@ export function ArtistStudioProvider({ children }: { children: ReactNode }) {
     royaltyBps,
     additionalRoyaltySplits,
     coverFile,
-    uploadToBulletinEnabled
-  } = useReleaseForm();
+    setArtistTab
+  } = releaseForm;
   const catalog = useCatalogContext();
 
   const artistConsole = useArtistConsole({
+    onReviewPreparedRelease: release => recovery.review(release),
     activeEvmAddress,
     connectedWallet,
     ethRpcUrl,
@@ -70,18 +75,66 @@ export function ArtistStudioProvider({ children }: { children: ReactNode }) {
     audioCID: catalog.audioCID,
     coverCID: catalog.coverCID,
     coverSource: catalog.coverSource,
-    activeSubstrateAddress,
-    activeSubstrateSigner,
     artistTracks: catalog.allCatalogTracks,
     setTransactionFeedback,
     transactionFeedback,
+    onReleasePublished: account => {
+      // Public confirmation can finish after a disconnect or account switch.
+      // Only leave this account's editor, never another artist's current task.
+      if (!connectedWallet || account.toLowerCase() !== activeEvmAddress.toLowerCase()) return;
+      setArtistTab(current => (current === 'new' ? 'releases' : current));
+    },
     refreshCatalogFromRegistry: catalog.refreshCatalogFromRegistry,
     setAudioCID: catalog.setAudioCID,
     setCoverCID: catalog.setCoverCID,
-    uploadToBulletinEnabled,
     audioUploadRef: catalog.audioUploadRef,
     coverUploadRef: catalog.coverUploadRef
   });
+
+  const recovery = usePreparedReleaseRecovery(
+    {
+      owner: activeEvmAddress,
+      runtimeAddress: artistConsole.artistRuntimeAddress,
+      chainId: connectedWallet?.chainId ?? expectedChainId,
+      contentHash: catalog.fileHash,
+      connected: Boolean(connectedWallet)
+    },
+    release => {
+      const saved = preparedReleaseForm(release);
+      releaseForm.setTitle(saved.title);
+      releaseForm.setArtistName(saved.artistName);
+      releaseForm.setDescription(saved.description);
+      releaseForm.setDurationSeconds(saved.durationSeconds);
+      releaseForm.setReleaseMetadata(saved.releaseMetadata);
+      releaseForm.setAccessMode(saved.accessMode);
+      releaseForm.setPriceDot(saved.priceDot);
+      releaseForm.setPersonhoodLevel(saved.personhoodLevel);
+      releaseForm.setRoyaltyBps(saved.royaltyBps);
+      releaseForm.setAdditionalRoyaltySplits(saved.additionalRoyaltySplits);
+      releaseForm.setCoverFile(null);
+      catalog.coverUploadRef.current = Promise.resolve(release.manifest.assets.coverCID);
+      catalog.setCoverCID(release.manifest.assets.coverCID);
+      catalog.setCoverSource(release.manifest.assets.coverCID);
+      catalog.setTrackInfo(previous =>
+        previous
+          ? {
+              ...previous,
+              title: saved.title,
+              artist: saved.artistName,
+              description: saved.description,
+              imageRef: release.manifest.assets.coverCID,
+              priceDot: saved.priceDot,
+              accessMode: saved.accessMode,
+              duration: saved.durationSeconds ?? 0
+            }
+          : previous
+      );
+      releaseForm.setArtistTab('new');
+      releaseForm.setReleaseStep('review');
+      artistConsole.setRightsStatus('Prepared release restored. Review it before publishing.');
+    },
+    () => setTransactionFeedback(null)
+  );
 
   const settledRoyaltyPayments = artistConsole.royaltyPayments.filter(payment => payment.settlement === 'paid' || payment.settlement === 'claimed');
   const totalRoyaltyWei = settledRoyaltyPayments.reduce((total, payment) => total + payment.amountWei, 0n);
@@ -93,7 +146,19 @@ export function ArtistStudioProvider({ children }: { children: ReactNode }) {
     [artistConsole, totalRoyaltyWei, uniqueRoyaltyListeners, paidRoyaltyTracks]
   );
 
-  return <ArtistStudioContext.Provider value={value}>{children}</ArtistStudioContext.Provider>;
+  return (
+    <ArtistStudioContext.Provider value={value}>
+      {children}
+      {recovery.candidate && (
+        <PreparedReleaseReview
+          release={recovery.candidate}
+          symbol={catalog.nativeRuntimePaymentAsset.symbol}
+          onCancel={recovery.cancel}
+          onConfirm={recovery.confirm}
+        />
+      )}
+    </ArtistStudioContext.Provider>
+  );
 }
 
 export function useArtistStudio(): ArtistStudioValue {

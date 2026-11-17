@@ -66,14 +66,23 @@ for (const width of [320, 390, 430, 1440]) {
     await expect(tip).toBeVisible();
     await expect(tip).not.toHaveAttribute('title');
     await expect(tip).toHaveAttribute('aria-haspopup', 'dialog');
+    await page.evaluate(() => document.fonts.ready);
+    // The player's mount effect can scroll after the button becomes visible.
+    // Document coordinates isolate hover layout from that viewport movement.
+    const documentBox = () =>
+      tip.evaluate(element => {
+        const rect = element.getBoundingClientRect();
+        return { x: rect.x + window.scrollX, y: rect.y + window.scrollY, width: rect.width, height: rect.height };
+      });
     const box = (await tip.boundingBox())!;
     expect(box.height).toBeGreaterThanOrEqual(44);
     expect(box.x + box.width).toBeLessThanOrEqual(width);
     await page.screenshot({ path: info.outputPath(`track-actions-${width}.png`), animations: 'disabled' });
+    const restingBox = await documentBox();
     const restingColor = await tip.evaluate(element => getComputedStyle(element).color);
     await tip.hover();
     await expect(tip).toHaveCSS('color', restingColor);
-    expect(await tip.boundingBox()).toEqual(box);
+    expect(await documentBox()).toEqual(restingBox);
     if (width === 1440) {
       const contrast = (await renderedTextContrast(page)).filter(sample => sample.text === 'Tip this track');
       expect(contrast).toHaveLength(1);

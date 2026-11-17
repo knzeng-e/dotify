@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dotify · Addressing comparison</title>
+<style>
+:root {font-family:system-ui,sans-serif;color:#e6f4fa;background:#071321;color-scheme:dark}
+body {max-width:720px;margin:4vh auto;padding:24px} h1{letter-spacing:-.04em}
+p{line-height:1.6;color:#a9c1ce} label{display:block;margin:16px 0}
+input,select,button{font:inherit;border:1px solid #345768;border-radius:10px;padding:12px;background:#102b3b;color:inherit}
+input{box-sizing:border-box;width:100%;margin-top:8px}button{cursor:pointer;min-height:46px}
+button:disabled{opacity:.45;cursor:default}#start{background:#69e3d5;color:#071321;font-weight:650}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:.8rem}#status{color:#69e3d5}
+</style>
+<main>
+<p>DOTIFY · ISOLATED RESEARCH</p><h1>Same bytes. Two addresses.</h1>
+<p>A public marker under SHA-256 and BLAKE2b-256. This test reads only: no audio, signing, publication or production change. Each native lookup is limited to 10 seconds. A named path can require two lookups.</p>
+<label>Delivery <select id="transport"><option value="native">Native Host preimage API</option><option value="local">Local control (not Bulletin)</option></select></label>
+<label>Device, OS, Host version and network <input id="environment" placeholder="Test environment"></label>
+<button id="start">Start comparison</button> <button id="stop" disabled>Stop</button>
+<p id="status" role="status" aria-live="polite">Ready. Native mode never falls back to the local reader or a gateway.</p>
+<button id="export" disabled>Download report</button><pre id="report" aria-label="Comparison report"></pre>
+</main><script type="module" src="./addressing.ts"></script>
+</html>

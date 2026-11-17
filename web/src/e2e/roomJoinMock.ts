@@ -35,13 +35,20 @@ const PROTECTED_COVER =
 const PUBLIC_COVER =
   'data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20640%20640%22%3E%3Crect%20width%3D%22640%22%20height%3D%22640%22%20fill%3D%22%23102f57%22/%3E%3Ccircle%20cx%3D%22460%22%20cy%3D%22440%22%20r%3D%22220%22%20fill%3D%22%2304B8FF%22%20opacity%3D%22.5%22/%3E%3C/svg%3E';
 
-// A deterministic 2s 8-bit/8kHz silent WAV, built once at module load (pure,
-// no Date/random). It gives the host a real, finite-duration local source so
-// playback progresses deterministically for the room specs.
+// Ordinary Room fixtures keep a tiny silent WAV. Native capture uses a 48-kHz
+// tone, matching the production encoder: this local WebKit runner produces no
+// MediaElement-to-WebAudio samples for the old 8-kHz fixture. Keep its 60-second
+// duration and 440/660-Hz signals; no energy threshold or player code changes.
 const syncFixture = isRoomJoinE2e && typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('e2eSync') === 'on';
+const nativeCaptureFixture = syncFixture && new URLSearchParams(window.location.search).get('e2eCapture') === 'web-audio';
+// Only the private fixed 440/660-Hz calls enter this cache. Reuse the identical
+// protected/public tone instead of keeping duplicate multi-megabyte strings.
+const captureTones = nativeCaptureFixture ? new Map<number, string>() : null;
 
 function buildSilentWavDataUrl(fillValue = 128, frequency = 440): string {
-  const sampleRate = 8000;
+  const cached = captureTones?.get(frequency);
+  if (cached) return cached;
+  const sampleRate = nativeCaptureFixture ? 48000 : 8000;
   const seconds = syncFixture ? 60 : 2;
   const dataLen = sampleRate * seconds; // 8-bit mono
   const bytes = new Uint8Array(44 + dataLen);
@@ -67,9 +74,11 @@ function buildSilentWavDataUrl(fillValue = 128, frequency = 440): string {
     for (let i = 0; i < dataLen; i++) bytes[44 + i] = 128 + Math.round(32 * Math.sin((2 * Math.PI * frequency * i) / sampleRate));
   }
 
-  let binary = '';
-  for (let i = 0; i < bytes.length; i += 1) binary += String.fromCharCode(bytes[i]);
-  return `data:audio/wav;base64,${btoa(binary)}`;
+  const chunks: string[] = [];
+  for (let i = 0; i < bytes.length; i += 32768) chunks.push(String.fromCharCode(...bytes.subarray(i, i + 32768)));
+  const url = `data:audio/wav;base64,${btoa(chunks.join(''))}`;
+  captureTones?.set(frequency, url);
+  return url;
 }
 
 export const E2E_ROOM_PUBLIC_AUDIO_URL = buildSilentWavDataUrl(128);
@@ -82,7 +91,7 @@ export const E2E_ROOM_PROTECTED_TRACK: CatalogTrack = {
   title: E2E_ROOM_PROTECTED_TITLE,
   artist: 'Dotify Room Host',
   artistAddress: E2E_ROOM_ARTIST,
-  audioRef: 'dotify:enc:ipfs://room-join-e2e-protected',
+  audioRef: 'dotify:enc:v3:key-v2:ipfs://QmafmXF11dKMXto7s39giJoRBJdZ3yvVtYx5fCCEVnW3qF',
   imageRef: PROTECTED_COVER,
   priceDot: '0.5',
   localUrl: E2E_ROOM_PROTECTED_AUDIO_URL,
@@ -139,7 +148,7 @@ export function getRoomJoinE2eTracks(): CatalogTrack[] {
   const protectedTrack = {
     ...E2E_ROOM_PROTECTED_TRACK,
     ...(responsiveImageRef ? { imageRef: responsiveImageRef } : {}),
-    ...(params?.get('e2eDav2Intent') === 'on' ? { audioRef: 'dotify:enc:v2:ipfs://bafy-e2e-intent-audio' } : {})
+    ...(params?.get('e2eStreamingIntent') === 'on' ? { audioRef: 'dotify:enc:v3:key-v2:ipfs://QmBptPVvSfjAZdLedjaQUqTfpaJ39rX8uUZkfVZwf4yec8' } : {})
   };
   const publicTrack = responsiveImageRef ? { ...E2E_ROOM_PUBLIC_TRACK, imageRef: responsiveImageRef } : E2E_ROOM_PUBLIC_TRACK;
   const tracks = [protectedTrack, publicTrack];

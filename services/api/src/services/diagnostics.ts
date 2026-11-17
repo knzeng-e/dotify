@@ -87,9 +87,18 @@ export function createDiagnostics(deps: DiagnosticsDeps = defaultDeps): () => Pr
           detail: keyVault.errors[0] ?? 'No content-key version secret is configured; key derivation and uploads are disabled.'
         };
 
-    const pinata: DiagnosticCheck = config.PINATA_JWT
-      ? { ok: true, detail: 'Pinata JWT is configured.' }
-      : { ok: false, detail: 'PINATA_JWT is not configured; audio uploads are disabled.' };
+    const pinata: DiagnosticCheck =
+      config.API_ROLE === 'edge'
+        ? { ok: true, detail: 'Uploads belong to private custody; public edges do not need Pinata credentials.' }
+        : config.STREAMING_AUDIO_STORAGE === 'bulletin' && config.PUBLIC_ASSET_STORAGE === 'bulletin'
+          ? {
+              ok: true,
+              detail:
+                'Audio and public assets select Bulletin; Pinata credentials are not required. This configuration check does not prove storage quota or retention.'
+            }
+          : config.PINATA_JWT
+            ? { ok: true, detail: 'Pinata JWT is configured.' }
+            : { ok: false, detail: 'PINATA_JWT is not configured; Pinata-backed uploads are disabled.' };
 
     let rpc: DiagnosticsReport['checks']['rpc'];
     if (!config.PASEO_ASSET_HUB_RPC) {

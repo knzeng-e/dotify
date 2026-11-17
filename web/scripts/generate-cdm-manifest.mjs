@@ -30,6 +30,7 @@
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { cdmSnapshotVersion } from './cdm-snapshot-version.mjs';
 import { generateContractTypes } from '@parity/product-sdk-contracts/codegen';
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
@@ -127,13 +128,15 @@ function requireAddress(deployments, key) {
 }
 
 const deployments = JSON.parse(readFileSync(deploymentsPath, 'utf8'));
+const registrySnapshot = JSON.parse(readFileSync(resolve(repoRoot, 'contracts/evm/cdm.json'), 'utf8'));
 
 const contracts = {};
 const typeInputs = [];
 
 for (const { library, deployment, artifact } of FIXED_CONTRACTS) {
   const abi = readArtifactAbi(artifact);
-  contracts[library] = { version: 1, address: requireAddress(deployments, deployment), abi };
+  const address = requireAddress(deployments, deployment);
+  contracts[library] = { version: cdmSnapshotVersion(registrySnapshot, library, address), address, abi };
   typeInputs.push({ library, abi: withNamedParams(abi) });
 }
 
@@ -144,7 +147,7 @@ mkdirSync(outDir, { recursive: true });
 
 // The manifest deliberately omits the artist runtime: it has no build-time
 // address, and inventing a placeholder one would misrepresent the deployment.
-const manifest = { dependencies: Object.fromEntries(Object.keys(contracts).map(library => [library, 1])), contracts };
+const manifest = { dependencies: Object.fromEntries(Object.keys(contracts).map(library => [library, contracts[library].version])), contracts };
 writeFileSync(resolve(outDir, 'cdm.json'), `${JSON.stringify(manifest, null, 2)}\n`);
 
 writeFileSync(

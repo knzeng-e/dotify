@@ -15,7 +15,20 @@ export default defineConfig(({ command, mode }) => {
 
   return {
     base: './',
-    plugins: [react()],
+    plugins: [
+      react(),
+      {
+        name: 'dotify-e2e-local-fonts',
+        // Synthetic browser flows must not spend their deadline on Google Fonts.
+        // Opt in only on their dev server; builds and ordinary development retain
+        // the actual stylesheet and the product's existing fallback font stacks.
+        apply: 'serve',
+        transformIndexHtml(html) {
+          if (env.DOTIFY_E2E_LOCAL_FONTS !== 'true') return html;
+          return html.replace(/\s*<link\b[^>]*\bhref=["']https:\/\/fonts\.(?:googleapis|gstatic)\.com(?:\/[^"']*)?["'][^>]*>/g, '');
+        }
+      }
+    ],
     define: {
       'import.meta.env.VITE_DOTIFY_BUILD_SHA': JSON.stringify(buildIdentity.gitSha),
       'import.meta.env.VITE_DOTIFY_BUILD_CLEAN': JSON.stringify(String(buildIdentity.clean)),

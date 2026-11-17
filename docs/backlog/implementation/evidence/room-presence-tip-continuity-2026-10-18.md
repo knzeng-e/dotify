@@ -123,7 +123,7 @@ npm run build:product-devnet:frozen
 
 Deploy signaling before the matching clients. There are no new secrets, flags,
 storage mounts, CORS origins or contracts. See the
-[deployment runbook](../../../operations/deployment-configuration.md#live-room-invitations-and-contribution-continuity-2026-10-18)
+[deployment runbook](../../../operations/deployment-configuration-history.md#live-room-invitations-and-contribution-continuity-2026-10-18)
 and [privacy amendment](../../../design/dotify-nearby-discovery-privacy.md#live-invitations-and-background-continuity-2026-10-18).
 
 - At implementation handoff this candidate had not been deployed; the rollout

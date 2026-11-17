@@ -3,15 +3,14 @@ import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import Fastify from 'fastify';
-import { decryptAudioV2Container, encryptAudioV2Container } from '../services/audioV2.js';
+import { StreamingEncryptor, decryptStreamingObject } from '../services/streamingFormat.js';
+import { initializeStreamingNonceLedger, StreamingNonceLedger } from '../services/streamingNonces.js';
 import {
-  LEGACY_CONTENT_KEY_VERSION,
   RELEASE_BOUND_CONTENT_KEY_VERSION,
   deriveContentKey,
   deriveContentKeyBytes,
   getActiveContentKeyVersion,
   getContentKeyVaultStatus,
-  makeReleaseBoundEncryptedAudioV2Ref,
   type ContentKeyVersion
 } from '../services/keyVault.js';
 import { createKeyRoutes, type KeyRouteDeps } from '../routes/keys.js';
@@ -25,7 +24,7 @@ const ARTIST = '0x3333333333333333333333333333333333333333' as const;
 const RELEASE_ID = `${RUNTIME}:${CONTENT_HASH}`;
 const ACTIVE_VERSION = 'dotify-content-key-v3' satisfies ContentKeyVersion;
 
-const LEGACY_SECRET = '11'.repeat(32);
+const RETAINED_SECRET = '11'.repeat(32);
 const ROTATED_SECRET = '22'.repeat(32);
 const PLAINTEXT = Buffer.from('synthetic W07 media access rehearsal');
 
@@ -54,8 +53,7 @@ async function writeSyntheticBackup(): Promise<string> {
     schema: 'dotify.content-key-custody-backup.synthetic.v1',
     activeVersion: ACTIVE_VERSION,
     versions: {
-      [LEGACY_CONTENT_KEY_VERSION]: LEGACY_SECRET,
-      [RELEASE_BOUND_CONTENT_KEY_VERSION]: LEGACY_SECRET,
+      [RELEASE_BOUND_CONTENT_KEY_VERSION]: RETAINED_SECRET,
       [ACTIVE_VERSION]: ROTATED_SECRET
     }
   };
@@ -82,14 +80,7 @@ async function main(): Promise<void> {
   const status = getContentKeyVaultStatus(restoredConfig);
   assert.equal(status.configured, true);
   assert.equal(status.activeVersion, ACTIVE_VERSION);
-  assert.deepEqual(status.configuredVersions, [LEGACY_CONTENT_KEY_VERSION, RELEASE_BOUND_CONTENT_KEY_VERSION, ACTIVE_VERSION]);
-
-  const legacyKey = deriveContentKeyBytes(CONTENT_HASH, { contentKeyMasterSecret: LEGACY_SECRET, chainId: CHAIN_ID });
-  assert.ok(legacyKey);
-  const legacyCiphertext = encryptAudioV2Container(PLAINTEXT, legacyKey, { contentHash: CONTENT_HASH, mediaMime: 'audio/mpeg', chunkSize: 8 });
-  const restoredLegacyKey = deriveContentKeyBytes({ contentHash: CONTENT_HASH, keyVersion: LEGACY_CONTENT_KEY_VERSION }, restoredConfig);
-  assert.ok(restoredLegacyKey);
-  assert.deepEqual(decryptAudioV2Container(legacyCiphertext, restoredLegacyKey), PLAINTEXT);
+  assert.deepEqual(status.configuredVersions, [RELEASE_BOUND_CONTENT_KEY_VERSION, ACTIVE_VERSION]);
 
   const activeVersion = getActiveContentKeyVersion(restoredConfig);
   const activeKey = deriveContentKeyBytes({ contentHash: CONTENT_HASH, keyVersion: activeVersion, chainId: CHAIN_ID, runtimeAddress: RUNTIME }, restoredConfig);
@@ -100,11 +91,22 @@ async function main(): Promise<void> {
   assert.ok(activeKey);
   assert.ok(oldReleaseBoundKey);
 
-  const activeCiphertext = encryptAudioV2Container(PLAINTEXT, activeKey, { contentHash: CONTENT_HASH, mediaMime: 'audio/mpeg', chunkSize: 8 });
-  assert.deepEqual(decryptAudioV2Container(activeCiphertext, activeKey), PLAINTEXT);
-  assert.throws(() => decryptAudioV2Container(activeCiphertext, oldReleaseBoundKey));
-
-  const audioRef = makeReleaseBoundEncryptedAudioV2Ref('synthetic-cid', activeVersion);
+  const ledgerPath = join(backupPath, '..', 'nonces');
+  await initializeStreamingNonceLedger(ledgerPath);
+  const reservation = await new StreamingNonceLedger(ledgerPath).reserve(activeKey);
+  const scope = { contentHash: CONTENT_HASH, chainId: CHAIN_ID, runtimeAddress: RUNTIME, keyVersion: activeVersion };
+  const encryptor = new StreamingEncryptor(activeKey, reservation, scope);
+  const encrypted = encryptor.object(PLAINTEXT, { rendition: 'archive', kind: 'master', index: 0, path: 'archive/master.bin' });
+  const identity = {
+    ...scope,
+    schema: 'dotify.audio.v3' as const,
+    version: 1 as const,
+    nonceScheme: 'dotify.gcm.high-counter.v1' as const,
+    generation: reservation.generation
+  };
+  assert.deepEqual(decryptStreamingObject(encrypted.bytes, activeKey, identity, encrypted.descriptor), PLAINTEXT);
+  assert.throws(() => decryptStreamingObject(encrypted.bytes, oldReleaseBoundKey, identity, encrypted.descriptor));
+  const audioRef = `dotify:enc:v3:key-v3:ipfs://Qm${'a'.repeat(44)}`;
   let deriveCalls = 0;
   const deps: KeyRouteDeps = {
     verifySignedRequest: async () => ({ valid: true }),

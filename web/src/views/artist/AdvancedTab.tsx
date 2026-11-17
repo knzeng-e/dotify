@@ -13,10 +13,7 @@ type AdvancedTabProps = {
   fileHash: `0x${string}` | '';
   audioCID: string;
   coverCID: string;
-  bulletinManifestRef: string;
   trackInfo: TrackInfo | null;
-  uploadToBulletinEnabled: boolean;
-  activeSubstrateAddress: string | null;
 };
 
 export function AdvancedTab({
@@ -27,10 +24,7 @@ export function AdvancedTab({
   fileHash,
   audioCID,
   coverCID,
-  bulletinManifestRef,
-  trackInfo,
-  uploadToBulletinEnabled,
-  activeSubstrateAddress
+  trackInfo
 }: AdvancedTabProps) {
   return (
     <section className='content-grid artist-grid'>
@@ -86,8 +80,8 @@ export function AdvancedTab({
           />
           <EndpointRow label='Content hash' value={fileHash ? shorten(fileHash, 18) : '0x'} />
           <EndpointRow label='Audio CID' value={audioCID ? shorten(audioCID, 18) : 'pending…'} />
+          <EndpointRow label='Release record' value={trackInfo?.metadataRef || 'not published'} />
           <EndpointRow label='Cover CID' value={coverCID ? shorten(coverCID, 18) : 'pending…'} />
-          <EndpointRow label='Bulletin archive' value={bulletinManifestRef || trackInfo?.bulletinRef || 'not published'} />
         </div>
       </div>
 
@@ -96,8 +90,6 @@ export function AdvancedTab({
         <div className='stack-list'>
           <EndpointRow label='Artist identity' value='Wallet address' />
           <EndpointRow label='Portable release record' value='Open release record' />
-          <EndpointRow label='Public archive' value={uploadToBulletinEnabled ? 'enabled for next release' : 'optional by default'} />
-          <EndpointRow label='Community signer' value={activeSubstrateAddress ? shorten(activeSubstrateAddress, 12) : 'not connected'} />
         </div>
       </div>
     </section>

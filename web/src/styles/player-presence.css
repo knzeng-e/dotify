@@ -193,6 +193,34 @@
 .player-room-mode .player-cover-column {
   background: transparent;
 }
+/* The title and its detail action form one readable heading. Keep the cover
+   unobstructed and reserve a real touch target beside truncated long titles. */
+.player-track-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 0;
+}
+.player-track-heading > h2 {
+  min-width: 0;
+  flex: 1;
+}
+.room-release-details-trigger {
+  flex: 0 0 var(--touch-target);
+  width: var(--touch-target);
+  min-width: var(--touch-target);
+  min-height: var(--touch-target);
+  display: grid;
+  place-items: center;
+  padding: 0;
+  background: transparent;
+  color: var(--ink-soft);
+}
+.room-release-details-trigger:hover,
+.room-release-details-trigger:focus-visible {
+  color: var(--ink);
+  background: var(--canvas);
+}
 .player-room-mode .player-stage > .player-transport {
   margin: 0;
   container-type: inline-size;
@@ -326,7 +354,7 @@
     color: var(--ink-soft);
     font-size: var(--text-sm);
   }
-  .solo-player-header button {
+  .solo-player-header .icon-action {
     width: var(--touch-target);
     height: var(--touch-target);
     color: var(--ink);
@@ -339,6 +367,30 @@
     height: var(--icon-primary);
     flex-shrink: 0;
   }
+}
+
+.player-account-trigger {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 var(--touch-target);
+  width: var(--touch-target);
+  min-height: var(--touch-target);
+  padding: 0;
+}
+.player-account-trigger svg {
+  flex-shrink: 0;
+}
+.player-account-trigger[data-connected='true']::after {
+  position: absolute;
+  right: 0.4rem;
+  bottom: 0.4rem;
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 50%;
+  background: var(--action);
+  content: '';
 }
 @media (max-width: 768px) and (max-height: 680px) {
   .player-view-grid:not(.player-room-mode) .cover-card {
@@ -353,6 +405,17 @@
   }
 }
 @media (max-width: 768px), (max-height: 799px) {
+  .player-room-mode .room-header {
+    container-type: inline-size;
+    flex-wrap: nowrap;
+  }
+  .player-room-mode .room-social-context .room-live-chip {
+    max-width: 100%;
+    overflow: hidden;
+  }
+  .player-room-mode .room-header-meta {
+    max-width: 100%;
+  }
   .player-room-mode .player-stage {
     grid-template-columns: 3rem minmax(0, 1fr);
     padding: 0.5rem;
@@ -363,6 +426,40 @@
   }
   .player-room-mode .track-copy h2 {
     font-size: var(--text-base);
+  }
+  /* Share the existing title/artist height at short viewports: the 44px
+     detail target occupies its own column across those two text rows. */
+  .player-room-mode .track-copy:has(.room-release-details-trigger) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) var(--touch-target) auto;
+    overflow: visible;
+  }
+  .player-room-mode .track-copy:has(.room-release-details-trigger) > * {
+    grid-column: 1 / -1;
+  }
+  .player-room-mode .track-copy:has(.room-release-details-trigger) .player-track-heading {
+    display: contents;
+  }
+  .player-room-mode .track-copy:has(.room-release-details-trigger) h2 {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .player-room-mode .track-copy:has(.room-release-details-trigger) .track-attribution {
+    grid-column: 1;
+    grid-row: 2;
+    min-width: 0;
+  }
+  .player-room-mode .track-copy:has(.room-release-details-trigger) .track-attribution .contribution-action {
+    grid-column: 3;
+  }
+  .player-room-mode .room-release-details-trigger {
+    grid-column: 2;
+    grid-row: 1 / 3;
+    align-self: start;
+    height: var(--touch-target);
+  }
+  .player-room-mode .room-release-details-trigger > svg {
+    transform: translateY(-0.55rem);
   }
   .player-room-mode .transport-play {
     width: var(--touch-target);
@@ -377,6 +474,23 @@
     grid-column: 2;
     grid-row: 2;
     gap: 0;
+  }
+}
+/* Account, exit and share retain separate touch targets on narrow room and
+   visual-viewport widths. The invite's accessible name remains unchanged. */
+@container (max-width: 360px) {
+  .room-back,
+  .room-exit-trigger {
+    width: var(--touch-target);
+    padding-inline: 0;
+  }
+  .room-share-trigger[data-invite] {
+    width: var(--touch-target);
+    justify-content: center;
+    padding-inline: 0;
+  }
+  .room-share-trigger .room-share-label {
+    display: none;
   }
 }
 @media (min-width: 769px) and (max-height: 799px) {

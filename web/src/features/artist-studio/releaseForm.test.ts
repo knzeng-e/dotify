@@ -40,11 +40,14 @@ describe('release step machine', () => {
 });
 
 describe('canReviewRelease', () => {
-  it('requires a file hash, a non-empty title, and an audio source', () => {
-    expect(canReviewRelease({ fileHash: '0xabc', title: 'Song', audioSource: 'blob:x' })).toBe(true);
-    expect(canReviewRelease({ fileHash: '', title: 'Song', audioSource: 'blob:x' })).toBe(false);
-    expect(canReviewRelease({ fileHash: '0xabc', title: '   ', audioSource: 'blob:x' })).toBe(false);
-    expect(canReviewRelease({ fileHash: '0xabc', title: 'Song', audioSource: null })).toBe(false);
+  it('requires music and contract-valid release details', () => {
+    const valid = { fileHash: '0xabc', title: 'Song', artistName: 'Artist', description: 'A story', audioSource: 'blob:x' };
+    expect(canReviewRelease(valid)).toBe(true);
+    for (const field of ['fileHash', 'title', 'artistName', 'description'] as const) {
+      expect(canReviewRelease({ ...valid, [field]: '' })).toBe(false);
+    }
+    expect(canReviewRelease({ ...valid, artistName: '   ' })).toBe(false);
+    expect(canReviewRelease({ ...valid, audioSource: null })).toBe(false);
   });
 });
 
@@ -100,8 +103,7 @@ describe('release publication disclosure helpers', () => {
       nativePaymentSymbol: 'PAS',
       personhoodLevel: 'DIM1',
       artistRecipient: '0x1111111111111111111111111111111111111111',
-      runtimeAddress: '0x2222222222222222222222222222222222222222',
-      uploadToBulletinEnabled: true
+      runtimeAddress: '0x2222222222222222222222222222222222222222'
     });
 
     expect(facts.map(fact => fact.label)).toEqual(['Listening access', 'Access price', 'Network fee', 'Published when']);
@@ -110,17 +112,17 @@ describe('release publication disclosure helpers', () => {
     expect(facts).not.toEqual(expect.arrayContaining([expect.objectContaining({ label: 'Artist space record' })]));
   });
 
-  it('keeps addresses, storage, and archive state in technical details', () => {
+  it('keeps addresses and storage references in technical details', () => {
     const facts = buildReleaseTechnicalFacts({
       artistRecipient: '0x1111111111111111111111111111111111111111',
       runtimeAddress: '0x2222222222222222222222222222222222222222',
-      uploadToBulletinEnabled: true,
       additionalSplits: [{ id: 'producer', label: 'Producer', recipient: '0x3333333333333333333333333333333333333333', bps: 2_000 }]
     });
 
     expect(facts).toContainEqual({ label: 'Artist account', value: '0x111111...111111', code: true });
     expect(facts).toContainEqual({ label: 'Artist space record', value: '0x222222...222222', code: true });
-    expect(facts).toContainEqual({ label: 'Public archive', value: 'Bulletin archival enabled' });
+    expect(facts).toContainEqual({ label: 'Release storage', value: 'Protected audio and release details use IPFS-backed references.' });
+    expect(facts.map(fact => fact.label)).not.toContain('Public archive');
     expect(facts).toContainEqual({ label: 'Producer address', value: '0x333333...333333', code: true });
   });
 
@@ -188,6 +190,18 @@ describe('release publication disclosure helpers', () => {
     expect(submitted?.map(step => step.status)).toEqual(['complete', 'complete', 'submitted', 'upcoming']);
     expect(catalog?.map(step => step.status)).toEqual(['complete', 'complete', 'complete', 'active']);
     expect(complete?.every(step => step.status === 'complete')).toBe(true);
+  });
+
+  it('does not claim music is saved before both assets complete', () => {
+    expect(buildReleasePublicationRoadmap('assets')?.[0]).toMatchObject({
+      label: 'Save your music',
+      detail: 'Protect the audio and save the cover before publication.',
+      status: 'active'
+    });
+    expect(buildReleasePublicationRoadmap('manifest')?.[0]).toMatchObject({ label: 'Music ready', status: 'complete' });
+    const blocked = buildReleaseRegistrationFailureMessage({ error: 'The storage account needs attention before you retry.' });
+    expect(blocked).not.toContain('so you can retry');
+    expect(blocked).toContain('draft are still here.');
   });
 
   it('distinguishes recoverable draft failures from submitted transactions awaiting catalog evidence', () => {

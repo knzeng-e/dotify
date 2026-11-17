@@ -1,0 +1,39 @@
+# Test and lint toolchain security migration
+
+GitHub: #433. Priority: P1. Track: Production spine. Phase: Next. Type: Work.
+Separate from application fixes #431 and API schema migration #432.
+
+Production-dependency audit is clean for Web after the compatible #431 patches.
+Full development audit still covers Vitest/mocker/Tinypool and lint/estree/
+minimatch branches with parent major-version constraints. These tools are not
+shipped application services, but critical development advisories remain real
+work. Current `vitest run` uses Node mode without configured public test API;
+that narrows exposure and does not remove the advisories.
+
+Migrate to a patched supported runner (the reviewed candidate is Vitest5.1.0),
+then a compatible lint/parser/minimatch graph. Validate Node22, all mock/worker
+semantics, full unit/lint/Web/Product builds and offline CLI guards. Do not
+suppress assertions, disable tests or globally override all minimatch consumers
+to a new major. Keep SDK and signer compatibility explicit. Re-run full audit
+including dev dependencies and record any remaining bounds before closure.
+
+Sources: [Tinypool](https://github.com/advisories/GHSA-5gmw-xhrv-c9v3),
+[mocker](https://github.com/advisories/GHSA-qxg6-89mg-rqv8),
+[minimatch](https://github.com/advisories/GHSA-g3hv-75wg-m249).
+No service operation, deployment or signing is authorized by this record.
+
+
+## Candidate checkpoint — 2026-11-12
+
+The isolated candidate uses Vitest 5.1.0 and scopes minimatch 11.0.8 to
+`@typescript-eslint/typescript-estree`. ESLint retains its own compatible v3
+matcher; SDK, signer and TrUAPI pins are unchanged. See the
+[toolchain reference](../reference/development-toolchain.md) for the tested
+consumer boundary and required Node version. Unit constructor mocks and signer
+helper types are adapted without removing assertions or changing runtime code.
+The Nearby browser acceptance now measures ordinary captured audio after receiver
+readiness, with a stronger decoded-energy assertion and unchanged deadlines;
+the original intermittent CI observation is retained in the evidence below.
+CI and review remain open; this does not deploy any service.
+
+[Source-bound candidate validation](implementation/evidence/toolchain-security-2026-11-12.md).

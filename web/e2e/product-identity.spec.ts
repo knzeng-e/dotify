@@ -99,3 +99,73 @@ test('extension events follow the extension account and cannot replace a Product
   });
   await expect(page.locator('.wallet-pill-open')).toHaveText('gaby.dot');
 });
+
+async function openHostSupport(page: Page) {
+  await page.getByRole('button', { name: 'You', exact: true }).click();
+  await page.getByRole('button', { name: 'About Dotify', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'About Dotify', exact: true });
+  await expect(dialog.getByRole('button', { name: 'Copy support report', exact: true })).toBeVisible();
+  return dialog;
+}
+
+for (const clipboardAllowed of [true, false]) {
+  test(`About adds optional Host software details without connecting an account, clipboard: ${clipboardAllowed}`, async ({ page }, testInfo) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.evaluate(allowed => {
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        value: {
+          writeText: async (text: string) => {
+            if (!allowed) throw Error('Denied');
+            Reflect.set(window, '__hostSupportCopy', text);
+          }
+        }
+      });
+    }, clipboardAllowed);
+    expect(await page.evaluate(() => window.identityFixture.hostInfoRequests)).toBe(0);
+    const dialog = await openHostSupport(page);
+    await expect.poll(() => page.evaluate(() => window.identityFixture.hostInfoRequests)).toBe(1);
+    await dialog.getByText('Technical details', { exact: true }).click();
+    await expect(dialog.getByText('Polkadot Desktop Dev 0.1.4-rc.3 (Desktop)', { exact: true })).toBeVisible();
+    await dialog.getByRole('button', { name: 'Copy support report', exact: true }).click();
+    const text = clipboardAllowed
+      ? await page.evaluate(() => Reflect.get(window, '__hostSupportCopy') as string)
+      : await dialog.getByRole('textbox', { name: 'Audio support report', exact: true }).inputValue();
+    expect(JSON.parse(text).hostSoftware).toEqual({ status: 'reported', platform: 'Desktop', name: 'Polkadot Desktop Dev', version: '0.1.4-rc.3' });
+    expect(text).not.toContain('PRIVATE');
+    if (clipboardAllowed) {
+      await dialog.getByRole('button', { name: 'Copy app details', exact: true }).click();
+      const details = await page.evaluate(() => Reflect.get(window, '__hostSupportCopy') as string);
+      expect(details).toContain('Host software: Polkadot Desktop Dev 0.1.4-rc.3 (Desktop)');
+      expect(details).not.toContain('dotify.audio-diagnostics');
+    }
+    expect(await dialog.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
+    await page.screenshot({ path: testInfo.outputPath('host-software-support.png'), animations: 'disabled' });
+    expect(
+      await page.evaluate(() => [window.identityFixture.accountRequests, window.identityFixture.requests, window.identityFixture.locationRequests])
+    ).toEqual([0, 0, 0]);
+    await page.keyboard.press('Escape');
+  });
+}
+
+test('closing About cancels the observation and repeated opens cannot queue Host requests', async ({ page }) => {
+  await page.evaluate(() => {
+    window.identityFixture.setHostInfoDelay(true);
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText: async (text: string) => Reflect.set(window, '__hostSupportCopy', text) }
+    });
+  });
+  let dialog = await openHostSupport(page);
+  await expect.poll(() => page.evaluate(() => window.identityFixture.hostInfoRequests)).toBe(1);
+  await page.keyboard.press('Escape');
+  dialog = await openHostSupport(page);
+  await dialog.getByText('Technical details', { exact: true }).click();
+  await expect(dialog.getByText('Host software unavailable', { exact: true })).toBeVisible();
+  await page.evaluate(() => window.identityFixture.resolveHostInfo());
+  await dialog.getByRole('button', { name: 'Copy support report', exact: true }).click();
+  const text = await page.evaluate(() => Reflect.get(window, '__hostSupportCopy') as string);
+  expect(JSON.parse(text).hostSoftware).toEqual({ status: 'unavailable' });
+  expect(await page.evaluate(() => window.identityFixture.hostInfoRequests)).toBe(1);
+  expect(await page.evaluate(() => window.identityFixture.accountRequests)).toBe(0);
+});

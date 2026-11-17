@@ -163,7 +163,7 @@ const session = useSession({
 
 **File:** `src/hooks/useArtistConsole.ts`
 
-Manages the full artist workflow: runtime registration, track publishing, royalty ledger, and Bulletin archival.
+Manages the full artist workflow: runtime registration, canonical release publishing, catalog confirmation and the royalty ledger. Storage routing belongs to the upload service; the artist supplies publication approval, not a separate storage signer.
 
 ### Usage
 
@@ -172,29 +172,30 @@ const artist = useArtistConsole({
   activeEvmAddress,
   connectedWallet,
   ethRpcUrl,
+  currentChainId,
   factoryAddress,
   directoryAddress,
   fileHash,
   title,
   artistName,
   description,
+  releaseMetadata,
+  durationSeconds,
   accessMode,
   priceDot,
   personhoodLevel,
   royaltyBps,
+  additionalRoyaltySplits,
   audioSource,
   coverFile,
   audioCID,
   coverCID,
   coverSource,
-  activeSubstrateAddress,
-  activeSubstrateSigner,
   artistTracks,
   setTransactionFeedback,
   refreshCatalogFromRegistry,
   setAudioCID,
   setCoverCID,
-  uploadToBulletinEnabled,
   audioUploadRef,
   coverUploadRef
 });
@@ -227,10 +228,9 @@ const artist = useArtistConsole({
 | ----------------------------- | ------------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
 | `registerArtist`              | `() => Promise<void>`                                  | Bootstrap and finalize a SmartRuntime for the active address via `ArtistRuntimeFactory`.            |
 | `refreshArtistRuntime`        | `(showBusy?: boolean) => Promise<0x${string} \| null>` | Check `ArtistDirectory` for the active address. Updates `artistRuntimeAddress`.                    |
-| `registerRights`              | `() => Promise<void>`                                  | Full release publish flow: IPFS upload → optional Bulletin → `musicRegRegister()`.                 |
+| `registerRights`              | `() => Promise<void>`                                  | Release preparation → canonical metadata upload → artist-approved `musicRegRegister()` → catalog confirmation.                 |
 | `refreshArtistRoyalties`      | `(showBusy?: boolean) => Promise<void>`                | Fetch settlement history and direct claimable balances across known runtimes for the active recipient. |
 | `claimRoyalties`              | `() => Promise<void>`                                  | Submit `musicRoyClaim(activeEvmAddress)` for every known runtime with pending funds, wait for confirmation, and re-read balances. |
 | `updateArtistName`            | `(name: string) => void`                               | Update artist name in state and persist to `localStorage`.                                         |
 | `getActiveWalletClient`       | `() => Promise<WalletClient>`                          | Returns the viem `WalletClient` for the connected artist wallet. Throws if no wallet is connected. |
-| `setUploadToBulletinEnabled`  | `(enabled: boolean) => void`                           | Toggle Bulletin archival for the next release.                                                     |
 | `setExpandedRoyaltyPaymentId` | `(id: string \| null) => void`                         | Expand or collapse a royalty ledger entry.                                                         |

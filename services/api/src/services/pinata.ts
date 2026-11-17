@@ -4,7 +4,11 @@ const PIN_FILE_URL = 'https://api.pinata.cloud/pinning/pinFileToIPFS';
 const PIN_JSON_URL = 'https://api.pinata.cloud/pinning/pinJSONToIPFS';
 
 export class PinataError extends Error {
-  constructor(message: string, public readonly httpStatus: number) {
+  constructor(
+    message: string,
+    public readonly httpStatus: number,
+    public readonly providerStatus?: number
+  ) {
     super(message);
     this.name = 'PinataError';
   }
@@ -23,12 +27,7 @@ function authHeaders(): Record<string, string> {
   return { Authorization: `Bearer ${config.PINATA_JWT}` };
 }
 
-export async function pinFileToPinata(
-  bytes: Uint8Array,
-  filename: string,
-  keyvalues: Record<string, string> = {},
-  signal?: AbortSignal,
-): Promise<string> {
+export async function pinFileToPinata(bytes: Uint8Array, filename: string, keyvalues: Record<string, string> = {}, signal?: AbortSignal): Promise<string> {
   const headers = authHeaders();
   const form = new FormData();
   form.append('file', new Blob([bytes]), filename);
@@ -38,12 +37,12 @@ export async function pinFileToPinata(
     method: 'POST',
     headers,
     body: form,
-    signal,
+    signal
   });
 
   if (!res.ok) {
     // Do not log the response body — it may echo back file content or tokens.
-    throw new PinataError(`Pinata file pin failed with HTTP ${res.status}`, 502);
+    throw new PinataError(`Pinata file pin failed with HTTP ${res.status}`, 502, res.status);
   }
 
   const data = (await res.json()) as { IpfsHash: string };
@@ -80,28 +79,23 @@ export async function pinFilesToPinata(files: PinataFile[], name: string, keyval
     signal
   });
 
-  if (!res.ok) throw new PinataError(`Pinata directory pin failed with HTTP ${res.status}`, 502);
+  if (!res.ok) throw new PinataError(`Pinata directory pin failed with HTTP ${res.status}`, 502, res.status);
   const data = (await res.json()) as { IpfsHash: string };
   if (!data.IpfsHash) throw new PinataError('Pinata returned no IpfsHash', 502);
   return data.IpfsHash;
 }
 
-export async function pinJsonToPinata(
-  json: unknown,
-  name: string,
-  keyvalues: Record<string, string> = {},
-  signal?: AbortSignal,
-): Promise<string> {
+export async function pinJsonToPinata(json: unknown, name: string, keyvalues: Record<string, string> = {}, signal?: AbortSignal): Promise<string> {
   const headers = authHeaders();
   const res = await fetch(PIN_JSON_URL, {
     method: 'POST',
     headers: { ...headers, 'Content-Type': 'application/json' },
     body: JSON.stringify({ pinataContent: json, pinataMetadata: { name, keyvalues } }),
-    signal,
+    signal
   });
 
   if (!res.ok) {
-    throw new PinataError(`Pinata JSON pin failed with HTTP ${res.status}`, 502);
+    throw new PinataError(`Pinata JSON pin failed with HTTP ${res.status}`, 502, res.status);
   }
 
   const data = (await res.json()) as { IpfsHash: string };

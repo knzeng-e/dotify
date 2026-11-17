@@ -1,0 +1,20 @@
+app = "dotify-encoder"
+primary_region = "ams"
+kill_signal = "SIGTERM"
+kill_timeout = "15s"
+
+[build]
+  dockerfile = "Dockerfile.encoder"
+
+[env]
+  PORT = "8791"
+  NODE_ENV = "production"
+  # Only STREAMING_WORKER_TOKEN belongs here as a Fly secret. No API/master,
+  # signing, Pinata or session secrets and no attached storage volume.
+
+# Private IPv6/WireGuard service only, no public HTTP/TCP service declaration.
+# Deploy one warm Machine with --ha=false; .internal DNS does not autostart it.
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory = "512mb"

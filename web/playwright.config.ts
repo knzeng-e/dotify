@@ -12,7 +12,9 @@ export default defineConfig({
     '**/audio-continuity.spec.ts',
     '**/nearby.spec.ts',
     '**/nearby-product.spec.ts',
-    '**/nearby-off.spec.ts'
+    '**/nearby-off.spec.ts',
+    '**/streaming-format.spec.ts',
+    '**/compact-audio.spec.ts'
   ],
   timeout: 30_000,
   expect: {
@@ -50,11 +52,12 @@ export default defineConfig({
         // context with empty storage and cookies, so mock state cannot leak between
         // tests. Do not disable that isolation (e.g. by sharing a context or page
         // across tests) without adding explicit per-test state resets.
+        // Use the app's fallback fonts instead of waiting for an external CDN.
+        DOTIFY_E2E_LOCAL_FONTS: 'true',
         VITE_E2E_CLASSIC_UNLOCK: 'true',
         VITE_E2E_ARTIST_PUBLISH: 'true',
         VITE_E2E_ROOM_JOIN: 'true',
         VITE_SIGNAL_URL: SIGNAL_URL,
-        VITE_DOTIFY_ROOM_GALAXY: 'on',
         VITE_E2E_READINESS_PANEL: 'true',
         // Exercise the opt-in observer with ordinary-web fallback. Production stays off.
         VITE_DOTIFY_ROOM_REALTIME: 'dual',
@@ -65,7 +68,8 @@ export default defineConfig({
   ],
   use: {
     baseURL: 'http://127.0.0.1:5274',
-    trace: 'on-first-retry'
+    // This gate has no automatic retries: retain the first failure's timeline.
+    trace: process.env.CI ? 'retain-on-failure' : 'on-first-retry'
   },
   projects: [
     {
@@ -76,7 +80,15 @@ export default defineConfig({
         // synthetic audio stream; allow autoplay and fake media so the host can
         // start streaming without a user-gesture or a real capture device.
         launchOptions: {
-          args: ['--autoplay-policy=no-user-gesture-required', '--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream']
+          args: [
+            '--autoplay-policy=no-user-gesture-required',
+            '--use-fake-ui-for-media-stream',
+            '--use-fake-device-for-media-stream',
+            // The peers share one runner and use host candidates only. Avoid
+            // multicast name resolution as an extra CI network dependency;
+            // real ICE/DTLS/RTP and decoded-audio assertions remain active.
+            '--disable-features=WebRtcHideLocalIpsWithMdns'
+          ]
         }
       }
     }

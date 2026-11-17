@@ -4,7 +4,7 @@
 	"version": "0.1.0",
 	"type": "module",
 	"engines": {
-		"node": ">=22 <23",
+		"node": ">=22.12 <23",
 		"npm": ">=10"
 	},
 	"scripts": {
@@ -39,8 +39,10 @@
 		"smoke:signal": "node scripts/signaling-smoke.mjs",
 		"test:pilot-release-readiness": "node --test scripts/pilot-release-readiness.test.mjs",
 		"test:first-sound-readiness": "node --test scripts/build-identity.test.mjs scripts/first-sound-readiness.test.mjs",
+		"test:cash-tip-feasibility": "node --test scripts/product-cash-tip-feasibility.test.mjs",
+		"research:cash-tips": "node scripts/product-cash-tip-feasibility.mjs",
 		"test:product-cash-settlement": "node --test scripts/product-cash-settlement-readiness.test.mjs",
-		"test:product-deploy-environment": "node --test scripts/product-deploy-environment-check.test.mjs scripts/product-host-config-check.test.mjs scripts/product-host-wire.test.mjs scripts/product-runtime-profile.test.mjs",
+		"test:product-deploy-environment": "node --test scripts/product-deploy-environment-check.test.mjs scripts/product-host-config-check.test.mjs scripts/product-host-wire.test.mjs scripts/product-runtime-profile.test.mjs scripts/cdm-snapshot-version.test.mjs scripts/security-dependencies.test.mjs",
 		"lint": "eslint .",
 		"fmt": "prettier --write 'src/**/*.{ts,tsx}' 'server/**/*.mjs' 'scripts/**/*.mjs' README.md",
 		"fmt:check": "prettier --check 'src/**/*.{ts,tsx}' 'server/**/*.mjs' 'scripts/**/*.mjs' README.md",
@@ -54,11 +56,11 @@
 		"preview": "vite preview --host 0.0.0.0 --port 4273"
 	},
 	"dependencies": {
-		"@parity/product-sdk": "0.27.0",
-		"@parity/product-sdk-descriptors": "0.11.0",
-		"@parity/product-sdk-host": "0.19.1",
-		"@parity/product-sdk-statement-store": "0.6.9",
-		"@parity/product-sdk-tx": "0.4.7",
+		"@parity/product-sdk": "0.39.0",
+		"@parity/product-sdk-descriptors": "0.14.0",
+		"@parity/product-sdk-host": "0.28.0",
+		"@parity/product-sdk-statement-store": "0.7.3",
+		"@parity/product-sdk-tx": "0.5.3",
 		"@polkadot-api/descriptors": "file:.papi/descriptors",
 		"@polkadot-apps/chain-client": "^2.0.5",
 		"@polkadot-apps/descriptors": "^1.0.1",
@@ -76,13 +78,26 @@
 		"react-dom": "^18.3.1",
 		"socket.io": "^4.8.3",
 		"socket.io-client": "^4.8.3",
-		"three": "^0.186.0",
-		"viem": "^2.53.1"
+		"viem": "^2.53.1",
+		"@ipld/dag-pb": "4.2.0",
+		"ipfs-unixfs": "13.1.2"
 	},
 	"overrides": {
-		"@parity/truapi": "0.13.1",
-		"brace-expansion": "5.0.9",
-		"ws": "8.21.0"
+		"@parity/truapi": "0.25.0",
+		"brace-expansion": "5.0.12",
+		"ws": "8.21.0",
+		"@novasamatech/host-api": {
+			"nanoid": "5.1.16"
+		},
+		"write-package": {
+			"deepmerge-ts": "8.0.0"
+		},
+		"postcss": {
+			"nanoid": "3.3.18"
+		},
+		"@typescript-eslint/typescript-estree": {
+			"minimatch": "11.0.8"
+		}
 	},
 	"devDependencies": {
 		"@axe-core/playwright": "4.13.0",
@@ -92,7 +107,6 @@
 		"@types/qrcode": "^1.5.6",
 		"@types/react": "^18.3.12",
 		"@types/react-dom": "^18.3.1",
-		"@types/three": "^0.186.0",
 		"autoprefixer": "^10.4.20",
 		"concurrently": "^9.2.1",
 		"eslint": "^9.39.4",
@@ -104,8 +118,8 @@
 		"tailwindcss": "^3.4.15",
 		"typescript": "~5.6.2",
 		"typescript-eslint": "^8.58.1",
-		"vite": "^6.0.1",
+		"vite": "^6.4.6",
 		"vite-plugin-singlefile": "^2.3.3",
-		"vitest": "^3.2.6"
+		"vitest": "5.1.0"
 	}
 }

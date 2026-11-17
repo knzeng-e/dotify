@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
+import { createMediaPrewarmer } from '../mediaPrewarm.js';
 import { CatalogReadModel } from './readModel.js';
 import type { CatalogChainGateway, CatalogChangeSet, CatalogRelease, CatalogSnapshot, DirectoryArtist } from './types.js';
 import type { CatalogSnapshotStore } from './snapshotStore.js';
@@ -24,7 +25,7 @@ function release(overrides: Partial<CatalogRelease> = {}): CatalogRelease {
     description: 'A registered release.',
     imageRef: 'ipfs://cover',
     coverVariants: ['ipfs://cover'],
-    audioRef: 'dotify:enc:v2:ipfs://audio',
+    audioRef: 'dotify:enc:v3:key-v2:ipfs://Qm8ThP7gtvJxE6sZqcZ6wT3bHeqcTpzyHQZTfarocQeEUJ',
     metadataRef: 'paseo-bulletin:manifest',
     bulletinRef: 'paseo-bulletin:manifest',
     artistContractRef: 'ipfs://contract',
@@ -45,6 +46,8 @@ function release(overrides: Partial<CatalogRelease> = {}): CatalogRelease {
 class MemoryStore implements CatalogSnapshotStore {
   snapshot: CatalogSnapshot | null = null;
   failSave = false;
+  writes = 0;
+  progressWrites = 0;
 
   async load(): Promise<CatalogSnapshot | null> {
     return this.snapshot;
@@ -52,6 +55,13 @@ class MemoryStore implements CatalogSnapshotStore {
 
   async save(snapshot: CatalogSnapshot): Promise<void> {
     if (this.failSave) throw new Error('disk unavailable');
+    this.writes++;
+    this.snapshot = structuredClone(snapshot);
+  }
+
+  async saveProgress(snapshot: CatalogSnapshot): Promise<void> {
+    if (this.failSave) throw new Error('disk unavailable');
+    this.progressWrites++;
     this.snapshot = structuredClone(snapshot);
   }
 }
@@ -104,6 +114,105 @@ function model(gateway: CatalogChainGateway, store: CatalogSnapshotStore, now = 
 }
 
 describe('CatalogReadModel', () => {
+  it('notifies acceleration only after persistence and isolates observer failure from catalog health', async () => {
+    const gateway = new FakeGateway(),
+      store = new MemoryStore();
+    let calls = 0;
+    const catalog = new CatalogReadModel({
+      gateway,
+      store,
+      pollIntervalMs: 60000,
+      reconcileIntervalMs: 300000,
+      staleAfterMs: 60000,
+      confirmations: 2,
+      onSnapshot: snapshot => {
+        calls++;
+        assert.deepEqual(snapshot, store.snapshot);
+        throw new Error('cache unavailable');
+      }
+    });
+    await catalog.sync();
+    assert.equal(calls, 1);
+    assert.equal(catalog.getMetadata().state, 'fresh');
+    gateway.head = 14;
+    store.failSave = true;
+    await assert.rejects(catalog.sync(), /disk unavailable/);
+    assert.equal(calls, 1);
+  });
+  it('continues bounded warming and propagation retries on unchanged polls after restart', async () => {
+    const hashes = Array.from({ length: 9 }, (_, i) => `0x${(i + 1).toString(16).padStart(64, '0')}` as const);
+    const cids = [...'abcdefghj'].map(letter => `Qm${letter.repeat(44)}`);
+    const gateway: CatalogChainGateway = {
+      identity: { chainId: 420420417, directoryAddress: ARTIST },
+      getHeadBlock: async () => 12,
+      getBlockHash: async block => blockHash(block),
+      listArtists: async () => [{ artistAddress: ARTIST, runtimeAddress: RUNTIME }],
+      listTrackHashes: async () => hashes,
+      readRelease: async (_artist, _runtime, hash) =>
+        release({ id: `${RUNTIME}:${hash}`, hash, audioRef: `dotify:enc:v3:key-v2:ipfs://${cids[hashes.indexOf(hash)]}` }),
+      getChanges: async () => ({ directoryChanged: false, releases: [] })
+    };
+    const store = new MemoryStore();
+    await model(gateway, store).sync(); // Persisted catalog from the previous process.
+    let clock = 0,
+      observations = 0;
+    const manifests = new Map<string, number>();
+    const prewarmer = createMediaPrewarmer(
+      'https://media.example',
+      async url => {
+        const [, cid, object] = new URL(String(url)).pathname.split('/').slice(1);
+        if (object === 'manifest.json') {
+          const attempt = (manifests.get(cid!) ?? 0) + 1;
+          manifests.set(cid!, attempt);
+          if (cid === cids[0] && attempt === 1) throw new Error('Content still propagating');
+        }
+        return new Response(new Uint8Array([1]));
+      },
+      () => clock
+    );
+    const catalog = new CatalogReadModel({
+      gateway,
+      store,
+      pollIntervalMs: 60000,
+      reconcileIntervalMs: 300000,
+      staleAfterMs: 60000,
+      confirmations: 2,
+      now: () => new Date(Date.parse('2026-07-23T12:00:00.000Z') + clock),
+      onSnapshot: snapshot => {
+        observations++;
+        prewarmer.observe(snapshot);
+      }
+    });
+    const settle = () => new Promise<void>(resolve => setImmediate(resolve));
+    try {
+      await catalog.start();
+      await catalog.sync();
+      await settle();
+      assert.equal(observations, 1);
+      assert.equal(manifests.size, 8); // Ninth release waits for the next admission window.
+      assert.equal(manifests.get(cids[0]!), 1);
+      clock = 10000;
+      await catalog.sync();
+      await settle();
+      assert.equal(manifests.size, 8);
+      assert.equal(manifests.get(cids[0]!), 1); // No premature retry/admission.
+      clock = 60000;
+      await catalog.sync();
+      await settle();
+      assert.equal(manifests.get(cids[0]!), 2);
+      assert.equal(manifests.get(cids[8]!), 1);
+      assert.equal(manifests.size, 9);
+      assert.equal(store.writes, 1); // Observing did not rewrite unchanged content.
+      assert.equal(store.progressWrites, 3);
+      assert.equal(observations, 3);
+      store.failSave = true;
+      await assert.rejects(catalog.sync(), /disk unavailable/);
+      assert.equal(observations, 3); // A failed checkpoint cannot trigger warming.
+    } finally {
+      catalog.stop();
+      prewarmer.close();
+    }
+  });
   it('builds and persists a deterministic chain snapshot', async () => {
     const gateway = new FakeGateway();
     const store = new MemoryStore();
@@ -190,4 +299,97 @@ describe('CatalogReadModel', () => {
     assert.equal(metadata.cacheAvailable, true);
     assert.equal(metadata.lastErrorCode, 'CATALOG_INDEXER_UNAVAILABLE');
   });
+});
+
+it('isolates deterministic oversized releases, persists reasons, restores corrections and never swallows RPC errors', async () => {
+  const { CatalogBoundsError } = await import('./bounds.js');
+  const gateway = new FakeGateway(),
+    store = new MemoryStore();
+  const badHash = `0x${'44'.repeat(32)}` as const;
+  let bad = true,
+    unavailable = false;
+  gateway.listTrackHashes = async () => [HASH, badHash];
+  gateway.readRelease = (async (_artist: string, _runtime: string, contentHash: string) => {
+    if (unavailable) throw new Error('RPC timeout');
+    if (contentHash === badHash && bad) throw new CatalogBoundsError('title byte limit');
+    return release({ id: `${RUNTIME}:${contentHash}`, hash: contentHash });
+  }) as typeof gateway.readRelease;
+  const catalog = model(gateway, store);
+  await catalog.sync();
+  assert.equal(catalog.getSnapshot()?.releases.length, 1);
+  assert.equal(store.snapshot?.excludedReleases?.[0]?.reason, 'title byte limit');
+  assert.equal(catalog.getMetadata().excludedReleaseCount, 1);
+  const revision = catalog.getRevision();
+  bad = false;
+  gateway.head++;
+  gateway.changes = { directoryChanged: false, releases: [{ runtimeAddress: RUNTIME, contentHash: badHash, sourceBlock: 11 }] };
+  await catalog.sync();
+  assert.equal(catalog.getSnapshot()?.releases.length, 2);
+  assert.equal(catalog.getSnapshot()?.excludedReleases?.length, 0);
+  assert.notEqual(catalog.getRevision(), revision);
+  bad = true;
+  gateway.head++;
+  await catalog.sync();
+  assert.equal(catalog.getSnapshot()?.releases.length, 1);
+  assert.equal(store.snapshot?.excludedReleases?.length, 1);
+  const checkpoint = catalog.getSnapshot()?.lastIndexedBlock;
+  unavailable = true;
+  gateway.head++;
+  await assert.rejects(catalog.sync(), /RPC timeout/);
+  assert.equal(catalog.getSnapshot()?.lastIndexedBlock, checkpoint);
+});
+
+it('reconciles an entirely excluded runtime after restart and restores eventless corrections', async t => {
+  const { CatalogBoundsError } = await import('./bounds.js');
+  const gateway = new FakeGateway();
+  const store = new MemoryStore();
+  const emptyRuntime = '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' as const;
+  gateway.artists.push({ artistAddress: ARTIST, runtimeAddress: emptyRuntime });
+  const enumerated: string[] = [];
+  gateway.listTrackHashes = (async (runtime: string) => {
+    enumerated.push(runtime);
+    return runtime === emptyRuntime ? [] : [HASH];
+  }) as typeof gateway.listTrackHashes;
+  let oversized = true;
+  gateway.readRelease = async () => {
+    if (oversized) throw new CatalogBoundsError('title byte limit');
+    return release();
+  };
+  let time = Date.parse('2026-10-29T12:00:00Z');
+  const now = () => new Date(time);
+  const initial = model(gateway, store, now);
+  await initial.sync();
+  assert.equal(
+    initial.getSnapshot()?.artists.every(artist => artist.releaseCount === 0),
+    true
+  );
+  assert.equal(initial.getMetadata().excludedReleaseCount, 1);
+  assert.deepEqual(enumerated.sort(), [RUNTIME, emptyRuntime].sort());
+  const exclusions = structuredClone(store.snapshot!.excludedReleases);
+  const revision = initial.getRevision();
+
+  // Persisted exclusions must survive normal scheduled reconciliation, including
+  // after a process restart. Truly empty runtimes should still avoid extra RPCs.
+  const restarted = model(gateway, store, now);
+  t.after(() => restarted.stop());
+  enumerated.length = 0;
+  time += 300_000;
+  await restarted.start();
+  await restarted.sync();
+  assert.deepEqual(enumerated, [RUNTIME]);
+  assert.deepEqual(store.snapshot?.excludedReleases, exclusions);
+  assert.equal(restarted.getMetadata().excludedReleaseCount, 1);
+  assert.equal(restarted.getRevision(), revision);
+
+  // An artist-owned module can correct its data without a recognized event.
+  // Periodic reconciliation must discover it rather than treating it as empty.
+  oversized = false;
+  enumerated.length = 0;
+  time += 300_000;
+  await restarted.sync();
+  assert.deepEqual(enumerated, [RUNTIME]);
+  assert.equal(store.snapshot?.releases.length, 1);
+  assert.deepEqual(store.snapshot?.excludedReleases, []);
+  assert.equal(restarted.getMetadata().excludedReleaseCount, undefined);
+  assert.notEqual(restarted.getRevision(), revision);
 });

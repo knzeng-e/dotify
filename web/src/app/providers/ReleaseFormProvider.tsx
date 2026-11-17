@@ -1,17 +1,7 @@
-// Release-form provider - owns the artist release draft and shared identity
-// fields (title, description, artist name, price, royalty split, access mode,
-// personhood level, cover file, Bulletin toggle, upload action, studio tab, and
-// wizard step). Catalog selection and the artist console both read/write these,
-// which is why they live above both consumers rather than inside either hook.
-//
-// It also owns the Bulletin manifest ref that useCatalog writes on track open.
-// That ref was previously a write-only useRef in App.tsx (catalog wrote it, but
-// nothing read it - the artist console displays its own separate manifest state),
-// carried there to "break a circular dependency". Relocating it here removes that
-// App-level hack while preserving behavior exactly: it stays a write sink until a
-// later step gives it a reader. Fail closed: the accessor throws outside the provider.
+// Shared release draft, used by catalog selection and the artist studio.
+// Storage routing belongs to the publishing service, not the draft.
 
-import { createContext, useContext, useMemo, useRef, useState, type Dispatch, type MutableRefObject, type ReactNode, type SetStateAction } from 'react';
+import { createContext, useContext, useMemo, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react';
 import { DEFAULT_TRACK_TITLE } from '../../features/uploads/uploadModel';
 import { createEmptyReleaseMetadata } from '../../features/catalog/releaseMetadata';
 import type { AccessMode, ArtistTab, AssetAction, PersonhoodLevel, ReleaseEditorialMetadata, ReleaseRoyaltySplitDraft, ReleaseStep } from '../../shared/types';
@@ -41,15 +31,12 @@ type ReleaseFormValue = {
   setPersonhoodLevel: Dispatch<SetStateAction<PersonhoodLevel>>;
   coverFile: File | null;
   setCoverFile: Dispatch<SetStateAction<File | null>>;
-  uploadToBulletinEnabled: boolean;
-  setUploadToBulletinEnabled: Dispatch<SetStateAction<boolean>>;
   assetAction: AssetAction;
   setAssetAction: Dispatch<SetStateAction<AssetAction>>;
   artistTab: ArtistTab;
   setArtistTab: Dispatch<SetStateAction<ArtistTab>>;
   releaseStep: ReleaseStep;
   setReleaseStep: Dispatch<SetStateAction<ReleaseStep>>;
-  bulletinManifestRef: MutableRefObject<string>;
 };
 
 const ReleaseFormContext = createContext<ReleaseFormValue | null>(null);
@@ -66,11 +53,9 @@ export function ReleaseFormProvider({ children }: { children: ReactNode }) {
   const [accessMode, setAccessMode] = useState<AccessMode>('human-free');
   const [personhoodLevel, setPersonhoodLevel] = useState<PersonhoodLevel>('DIM1');
   const [coverFile, setCoverFile] = useState<File | null>(null);
-  const [uploadToBulletinEnabled, setUploadToBulletinEnabled] = useState(false);
   const [assetAction, setAssetAction] = useState<AssetAction>('idle');
   const [artistTab, setArtistTab] = useState<ArtistTab>('overview');
   const [releaseStep, setReleaseStep] = useState<ReleaseStep>('assets');
-  const bulletinManifestRef = useRef('');
 
   const value = useMemo<ReleaseFormValue>(
     () => ({
@@ -96,15 +81,12 @@ export function ReleaseFormProvider({ children }: { children: ReactNode }) {
       setPersonhoodLevel,
       coverFile,
       setCoverFile,
-      uploadToBulletinEnabled,
-      setUploadToBulletinEnabled,
       assetAction,
       setAssetAction,
       artistTab,
       setArtistTab,
       releaseStep,
-      setReleaseStep,
-      bulletinManifestRef
+      setReleaseStep
     }),
     [
       title,
@@ -118,7 +100,6 @@ export function ReleaseFormProvider({ children }: { children: ReactNode }) {
       accessMode,
       personhoodLevel,
       coverFile,
-      uploadToBulletinEnabled,
       assetAction,
       artistTab,
       releaseStep

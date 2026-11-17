@@ -1,0 +1,22 @@
+{
+  "schema": "dotify.fresh-cdm-readback.v1",
+  "chainId": 420420417,
+  "blockNumber": 14710253,
+  "blockHash": "0xfaa7ac1c7ac6378bb711d205f84c1884f2873c47b9d1b27025e988f291543d71",
+  "packages": [
+    {
+      "name": "@dotify/artist-directory",
+      "address": "0x8e611ef60169f8ed93019de4a3034a504ae2ad29",
+      "versions": [
+        2
+      ]
+    },
+    {
+      "name": "@dotify/artist-runtime-factory",
+      "address": "0x708d35eee7c1416f6d332344068be9d714aec24c",
+      "versions": [
+        2
+      ]
+    }
+  ]
+}

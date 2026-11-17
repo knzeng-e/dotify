@@ -1,0 +1,241 @@
+{
+  "schema": "dotify.room-scaling-research.v1",
+  "startedAt": "2026-10-29T02:01:41.050Z",
+  "completedAt": "2026-10-29T02:01:55.701Z",
+  "sourceSha": "c510c97642a9be70dc5dbb0fc63c3e7281960694",
+  "environment": {
+    "node": "v22.13.1",
+    "platform": "linux",
+    "arch": "x64",
+    "redisImage": "redis:7.4-alpine@sha256:6ba19c50b56777f5c11c58eff8ddb69d0d5f27ba131cffb63f180ccfd43c66af"
+  },
+  "scope": "Local synthetic research; not production, native Product or audible-device evidence",
+  "signaling": {
+    "processes": 2,
+    "productionWithAdapterOnly": {
+      "crossNodeJoin": "ROOM_NOT_FOUND",
+      "restartResume": "ROOM_NOT_FOUND"
+    },
+    "prototype": {
+      "crossNodeEvents": 30,
+      "p50Ms": 1.0073210000000472,
+      "p95Ms": 3.818242000000282,
+      "maxMs": 6.726015000000189,
+      "simultaneousJoinAttempts": 30,
+      "acceptedWithOneExistingGuest": 23,
+      "rejectedAtSharedCap": 7,
+      "cap": 24,
+      "invalidResumeDenied": true,
+      "guestPublicationDenied": true,
+      "oldOwnerFenced": true,
+      "rotatedTokenRejectsReplay": true,
+      "drainResumeMs": 3.82999000000018,
+      "crashResumeMs": 1528.7471100000002,
+      "survivingGuestReceivesAfterTakeover": true,
+      "redisOutage": "STORE_UNAVAILABLE",
+      "mediaContinuityTested": false
+    }
+  },
+  "sfu": {
+    "state": "passed",
+    "serverVersion": "1.13.11",
+    "serverMode": "native",
+    "binarySha256": "85a58024d9b36542712514e0e926c0adb74f6182bcb19a664b9d9eb98ad01b52",
+    "browser": "149.0.7827.55",
+    "transport": "native loopback WebRTC; no WAN/TURN measurement",
+    "syntheticAudio": "440 Hz oscillator; no protected track/key/source or wallet",
+    "serverGrants": {
+      "participants": 26,
+      "hostPublishers": 1,
+      "subscribeOnlyGuests": 25
+    },
+    "subscriberCount": 25,
+    "receivers": [
+      {
+        "id": 0,
+        "subscribedMs": 335.6999999999971,
+        "packets": 237,
+        "bytes": 28677,
+        "decodedSamples": 226080
+      },
+      {
+        "id": 1,
+        "subscribedMs": 409.8999999999942,
+        "packets": 234,
+        "bytes": 28314,
+        "decodedSamples": 224160
+      },
+      {
+        "id": 2,
+        "subscribedMs": 481.6999999999971,
+        "packets": 231,
+        "bytes": 27951,
+        "decodedSamples": 220800
+      },
+      {
+        "id": 3,
+        "subscribedMs": 550.3999999999942,
+        "packets": 227,
+        "bytes": 27467,
+        "decodedSamples": 216000
+      },
+      {
+        "id": 4,
+        "subscribedMs": 626.8999999999942,
+        "packets": 223,
+        "bytes": 26983,
+        "decodedSamples": 213120
+      },
+      {
+        "id": 5,
+        "subscribedMs": 698.2999999999884,
+        "packets": 220,
+        "bytes": 26620,
+        "decodedSamples": 209280
+      },
+      {
+        "id": 6,
+        "subscribedMs": 767.5999999999913,
+        "packets": 216,
+        "bytes": 26136,
+        "decodedSamples": 206400
+      },
+      {
+        "id": 7,
+        "subscribedMs": 840.2999999999884,
+        "packets": 212,
+        "bytes": 25652,
+        "decodedSamples": 202560
+      },
+      {
+        "id": 8,
+        "subscribedMs": 915,
+        "packets": 209,
+        "bytes": 25289,
+        "decodedSamples": 198720
+      },
+      {
+        "id": 9,
+        "subscribedMs": 985.1999999999971,
+        "packets": 206,
+        "bytes": 24926,
+        "decodedSamples": 196800
+      },
+      {
+        "id": 10,
+        "subscribedMs": 1056,
+        "packets": 202,
+        "bytes": 24442,
+        "decodedSamples": 192960
+      },
+      {
+        "id": 11,
+        "subscribedMs": 1127.5,
+        "packets": 198,
+        "bytes": 23958,
+        "decodedSamples": 189120
+      },
+      {
+        "id": 12,
+        "subscribedMs": 1197.199999999997,
+        "packets": 195,
+        "bytes": 23595,
+        "decodedSamples": 185280
+      },
+      {
+        "id": 13,
+        "subscribedMs": 1267.699999999997,
+        "packets": 191,
+        "bytes": 23111,
+        "decodedSamples": 182400
+      },
+      {
+        "id": 14,
+        "subscribedMs": 1340.699999999997,
+        "packets": 188,
+        "bytes": 22748,
+        "decodedSamples": 179520
+      },
+      {
+        "id": 15,
+        "subscribedMs": 1409.7999999999884,
+        "packets": 184,
+        "bytes": 22264,
+        "decodedSamples": 175680
+      },
+      {
+        "id": 16,
+        "subscribedMs": 1478.7999999999884,
+        "packets": 181,
+        "bytes": 21901,
+        "decodedSamples": 171840
+      },
+      {
+        "id": 17,
+        "subscribedMs": 1549.3999999999942,
+        "packets": 177,
+        "bytes": 21417,
+        "decodedSamples": 168000
+      },
+      {
+        "id": 18,
+        "subscribedMs": 1618.8999999999942,
+        "packets": 174,
+        "bytes": 21054,
+        "decodedSamples": 166080
+      },
+      {
+        "id": 19,
+        "subscribedMs": 1696.5999999999913,
+        "packets": 170,
+        "bytes": 20570,
+        "decodedSamples": 161280
+      },
+      {
+        "id": 20,
+        "subscribedMs": 1767.699999999997,
+        "packets": 167,
+        "bytes": 20207,
+        "decodedSamples": 159360
+      },
+      {
+        "id": 21,
+        "subscribedMs": 1838,
+        "packets": 163,
+        "bytes": 19723,
+        "decodedSamples": 154560
+      },
+      {
+        "id": 22,
+        "subscribedMs": 1908.0999999999913,
+        "packets": 160,
+        "bytes": 19360,
+        "decodedSamples": 152640
+      },
+      {
+        "id": 23,
+        "subscribedMs": 1979.7999999999884,
+        "packets": 155,
+        "bytes": 18755,
+        "decodedSamples": 147840
+      },
+      {
+        "id": 24,
+        "subscribedMs": 2053.0999999999913,
+        "packets": 152,
+        "bytes": 18392,
+        "decodedSamples": 145440
+      }
+    ],
+    "guestPublishRejected": true,
+    "hostOutboundAudioStreams": 1,
+    "hostBytesSent": 29281,
+    "elapsedMs": 5079.299999999988,
+    "guestGrant": {
+      "canPublish": false,
+      "canPublishData": false,
+      "canSubscribe": true
+    },
+    "physicalAudibilityTested": false
+  }
+}

@@ -1,5 +1,14 @@
 # W16 — Prove a real Product CASH settlement path
 
+## Scheduling update — 2026-11-08
+
+The owner now requests a new bounded reassessment after listening/publication
+reliability: [#406 CASH-tip feasibility](../product-cash-tip-feasibility.md), then
+[#408 CASH access settlement](../product-cash-access-settlement.md). Use their
+current scopes and [execution order](listening-and-publication-readiness.md).
+Retain W16's delivered dated result; this is not permission to replay its old
+implementation prompt, upgrade the SDK or submit payments.
+
 Copy this entire file into an agent working in the Dotify repository, or use the launcher in README.md.
 
 ## Scheduling update — 2026-10-14

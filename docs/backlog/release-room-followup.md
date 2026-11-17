@@ -1,10 +1,27 @@
 # Publication and room follow-up — 2026-10-11
 
+## Execution alignment, 2026-11-09
+
+Issue #269 stays open in **Next** as supporting acceptance. The [selected execution order](implementation/listening-and-publication-readiness.md) gives #407 publication latency, #395 Room startup and #388 artwork priority. The follow-up implementation is delivered; actual-runtime metadata correction and tip/receipt acceptance remain. Do not revive retired-runtime upgrades.
+
+Project 5 owns workflow status. Partial delivery remains In Progress; this phase change neither closes acceptance nor starts a parallel implementation.
+
+## Current reconciliation, 2026-10-23
+
+#270 and the 0.1.48 rollout delivered this implementation. The owner-authorized
+reset retired the three previous artist runtimes: their missing metadata
+selector must not trigger new upgrade/migration work. #269 remains open for
+capability and real metadata correction/read-back on the actual new runtime,
+and coordinated room-tip verification/receipt acceptance (including #324's
+server and contract activation boundaries). Fresh factory deployment alone is
+not proof that an optional metadata selector is installed. Broader physical
+artwork/navigation/audio evidence remains #87/#85/#158.
+
 Owner-reported acceptance gaps on published Product 0.1.47.
 
 GitHub issue: #269.
 
-Priority: P1. Track: Production spine. Phase: Now. Type: Work.
+Priority: P1. Track: Production spine. Phase: Next. Type: Work.
 
 ## Scope
 
@@ -72,3 +89,15 @@ See [the candidate-bound rollout record](implementation/evidence/product-0.1.48-
 for exact SHA/CID, backend images, receipt-service authentication, finalized
 DotNS read-back and the remaining owner-approved metadata activation and physical
 checks. Issue #269 remains open; publication alone does not activate the editor.
+
+## Publication completion follow-up, 2026-10-26
+
+Once the catalog confirms the approved release's exact runtime and content hash,
+the artist workspace automatically returns from the publication editor to My
+releases. The existing success confirmation remains available. Upload completion
+or approval alone does not navigate: a delayed or mismatched catalog entry keeps
+the read-only recovery flow, and failed publication preserves the editor.
+Completion never submits another release. A late confirmation does not change
+another account's workspace or a different studio task already selected by the
+artist. This is frontend behavior shared by Web and Product; physical Host
+acceptance follows deployment.

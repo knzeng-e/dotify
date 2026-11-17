@@ -1,5 +1,7 @@
 # W32 - Encode releases for streaming at upload
 
+**2026-10-21 owner amendment:** [#320](../streaming-only-reset.md) supersedes the legacy catalog compatibility/migration requirements below. Restart on new artist runtimes with streaming-only publications; retain nonce custody and physical-device acceptance. Original problem/plan statements remain historical context, not instructions to restore removed codecs.
+
 Copy this entire file into an agent working in the Dotify repository, or use the launcher in README.md.
 
 ## Agent assignment
@@ -10,6 +12,18 @@ Implement **W32** only. Read `AGENTS.md`, `docs/backlog/implementation/common.md
 - Dependencies: W30. Refs #88.
 - Release stage: Next (streaming experience track). Applied during the trusted pilot when ready.
 - Product purpose: every protected or free release starts within a second on every supported browser, without downloading the whole file first.
+
+## Owner-selected first activation, 2026-10-21
+
+New publications first; existing releases keep DAV2 and their migration is
+deferred. This continuation connects durable bounded jobs, isolated encoding,
+studio progress/retry/discard, immutable encrypted publication and actual player/
+room playback with loudness gain. W30 non-root is prepared in #316 and remains
+a live prerequisite. The coordinated clean testnet cutover is #317. See the
+[activation procedure](../../operations/streaming-publication.md) and
+[dated evidence](evidence/W32-publication-2026-10-21.md). No live worker/API/Web/
+Product deployment is implied by implemented code. See the
+[W30 prerequisite evidence](evidence/W30-api-nonroot-2026-10-21.md).
 
 ## Problem at audit
 
@@ -75,3 +89,12 @@ No CDN (W33), no key-path change (W34), no player rewrite beyond reading the new
 ## Handoff
 
 Write `docs/backlog/implementation/evidence/W32.md` using `evidence-template.md`.
+
+## Publication recovery follow-up, 2026-10-29
+
+The [publication recovery investigation](evidence/publication-preparation-recovery-2026-10-29.md)
+separates a live Pinata HTTP 403 from the studio's late-progress/modal race.
+The candidate preserves encrypted preparations, offers explicit recovery and
+adds bounded, secret-free diagnostics. Provider admission was restored after owner cleanup; verifying actual
+Web/Product publication remains an acceptance gate; this does
+not close W32 or authorize deletion of pins, ciphertext or nonce custody.

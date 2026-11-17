@@ -1,5 +1,27 @@
 # W19 — Find and open listening rooms nearby
 
+## Execution alignment, 2026-11-09
+
+Issue #274 stays open in **Next** as supporting acceptance. The [selected execution order](listening-and-publication-readiness.md) gives #407 publication latency, #395 Room startup and #388 artwork priority. Nearby implementation is delivered. Exact-Host location/permission, lifecycle and two-client discovery-to-audio acceptance remain; Nearby is not the next feature expansion.
+
+Project 5 owns workflow status. Partial delivery remains In Progress; this phase change neither closes acceptance nor starts a parallel implementation.
+
+## Current reconciliation, 2026-10-23
+
+#274 is no longer a fresh implementation request. #278/#279/#283/#298/#300/#304
+and their rollouts deliver Nearby/Worldwide discovery, automatic foreground
+scanning, 5–42 km controls, compact overlays, stable host intent, cover planets,
+exact session counts and private-safe artist aggregates. City exploration was
+removed. The older manual-start, preset-radius and city instructions below
+are historical and must not be restored.
+
+Keep #274 open for exact physical Desktop/mobile location permission and usable
+fix delivery, denial/revocation/retry, nearby-only two-client discover-to-audio,
+opt-out, background/network recovery and expiry. Record the exact Host/build;
+a permission grant or shared Wi-Fi does not establish coordinates or proximity.
+Use the current privacy/operations rules and the #300/#304 lifecycle amendments,
+not the original snapshot checklist. #85/#89/#158 own wider release evidence.
+
 Copy this entire file into an agent working in the Dotify repository, or use the launcher in README.md.
 
 ## Agent assignment
@@ -8,8 +30,8 @@ Implement **W19** only. Read `AGENTS.md`, `docs/backlog/implementation/common.md
 
 - Branch: `feat/nearby-rooms` created from the latest tested `origin/dev` when work starts.
 - Dependencies: delivered W09, W10 and W18; review the radius amendment before collecting location. W13 remains a public release gate, not a prerequisite for starting flagged implementation.
-- Release stage: Now implementation, selected by the owner on 2026-10-14 as the next product expansion.
-- Priority: P1. Track: Room reliability. Phase: Now. Type: Work.
+- Release stage: supporting native acceptance in Next; the October 14 implementation priority is historical.
+- Priority: P1. Track: Room reliability. Phase: Next. Type: Work.
 - Existing issue: #274.
 - Product purpose: effortless shared listening, meaningful artist control, transparent value, and a coherent poetic interface. Product DevNet is a first-class target alongside ordinary web.
 
