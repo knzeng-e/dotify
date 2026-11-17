@@ -1,5 +1,13 @@
 # Polkadot product readiness and killer dapp roadmap
 
+## SDK/Host update checkpoint — 2026-11-17
+
+The [dated upgrade decision](../design/product-sdk-host-upgrade-decision-2026-11-17.md)
+compares the owner's iPhone Runtime 0.26, verified Desktop 0.9.4's bundled 0.29
+and SDK 0.45's 0.31. Fourteen offline codec checks make the compatibility limit
+reproducible; app pins stay unchanged. Next choose a phone- or Desktop-aligned
+candidate and verify the actual Host surface. CASH remains no-go under #406.
+
 ## Client delivery checkpoint — 2026-11-14
 
 [Web/Product 0.1.84](implementation/evidence/product-0.1.84-rollout-2026-11-14.md) delivers the bounded About-only

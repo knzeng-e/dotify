@@ -137,6 +137,30 @@ jobs:
       - name: Run signaling tests
         run: npm run test:signal
 
+  product-host-codecs:
+    name: W16 / Product Host codec matrix
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: research/product-host-compatibility
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: research/product-host-compatibility/package-lock.json
+      - name: Install isolated published codecs
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Check offline compatibility boundaries
+        run: npm test
+      - name: Record fixture-only matrix
+        run: npm run --silent report > "$RUNNER_TEMP/dotify-host-matrix.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: product-host-codec-matrix
+          path: ${{ runner.temp }}/dotify-host-matrix.json
+
   shared-api-state:
     name: W36 / Shared API state and recovery
     runs-on: ubuntu-latest
