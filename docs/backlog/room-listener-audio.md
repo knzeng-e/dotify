@@ -1,16 +1,17 @@
 # Mobile-host Room startup and listening continuity
 
-## First selected Bulletin journey accepted, 2026-11-17
+## Bounded Bulletin repeat check accepted, 2026-11-17
 
-[The Eskapade baseline](implementation/evidence/bulletin-room-baseline-2026-11-17.md)
-records 1.807-s media preparation in one complete preparation try on delivered
-0.1.88 / iOS Host
-0.10.0 (20). Pause already set before preparation survives handoff; the owner
-confirms guest sound through phone lock and the end of the track, plus visible
-artwork. Cache/native/API counts and the limits of the short supplied trace are
-recorded separately from those audible observations. Next check repeatability
-on this same existing Bulletin release; #395 remains open. No application or
-service change is selected from this successful observation.
+[The Eskapade baseline and repeat](implementation/evidence/bulletin-room-baseline-2026-11-17.md)
+complete media preparation in 1.807 s then 0.842 s on delivered 0.1.88 / iOS Host
+0.10.0 (20). Already-set Pause survives both handoffs; the owner confirms guest/
+lock sound and visible artwork on both. The first journey includes owner-confirmed
+track-end listening; the second report covers about 79 s of background boundary
+observations. The bounded same-release reopening check passes. Active device
+validation moves to #388 track-change artwork, with broader #395/pilot criteria
+still open. No extra unchanged-track repetition or latency patch is selected
+from these positive results; cold/Host-cache state and all-network reliability
+are not established.
 
 The [17 November owner decision](implementation/listening-and-publication-readiness.md#bulletin-only-readiness-scope-2026-11-17)
 limits active readiness work to Bulletin-backed releases. Ordinary IPFS startup

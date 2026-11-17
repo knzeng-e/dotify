@@ -1,6 +1,6 @@
-# Bulletin Room baseline — 17 November 2026
+# Bulletin Room baseline and repeat check — 17 November 2026
 
-One selected **Eskapade à engong** iPhone journey succeeds on delivered Dotify
+The first selected **Eskapade à engong** iPhone journey succeeds on delivered Dotify
 **0.1.88**, build `4cbdb4f4206f91470eb6097ade8f23093f4aa840`, with Polkadot app
 **0.10.0 (20)**. The support report measures **1.807 seconds of Room media
 preparation** with Pause preserved through source replacement. The owner
@@ -87,18 +87,70 @@ Artwork decodes in **2 ms**, composes in **23 ms**, and publishes PNG metadata i
 registration timing. Repeated locks, rapid changes and signature/immediate-lock
 triggers remain outside this acceptance.
 
+## Repeated opening and background readback
+
+The second supplied report, observed at `2026-11-17T05:11:23.217Z`, identifies the
+same client build and iOS Host. The owner reports **Room approximately 1 s,
+Pause OK, guest/lock sound OK and artwork OK** in response to the requested
+relaunch/reopening check. The export resets attempt numbering and retains the
+same 31-object / 1,464,541-byte media size; that is consistent with the selected
+journey, but does not independently prove the relaunch, release identity or
+network. Those remain bound through the request and owner reply.
+
+Attempt 2 / read attempt 1 authorizes in **237 ms**, authenticates the manifest
+in **238 ms**, downloads completely in **838 ms**, and prepares the source in
+**842 ms** (4-ms assembly). There is no preparation error or another complete
+Room preparation. Attempt 3 reuses that source after authorization in **100 ms**;
+replacement metadata takes **120 ms**. Keep the owner's approximately one-second
+visible timing separate from the 842-ms media boundary.
+
+The 31 authenticated objects split into **10 client-cache, 19 native Host and
+2 HTTP recovery** objects. All 21 native probes settle; two reject and recover
+through the catalogue-gated Bulletin API. Both HTTP requests/bodies succeed,
+with zero HTTP failures. Recorded work totals are 1,316 ms reads, 45 ms decryption,
+160 ms native probes, 1,136 ms before HTTP headers and 13 ms bodies; relay wait
+is 1 ms and maximum completed object read is 591 ms. These overlapping totals
+are not wall-time components. Host/API cache state and native rejection causes
+remain unknown; fewer fallbacks do not establish an optimization gain.
+
+Solo Pause occurs **9.562 s before preparation**, at **0.785519001 s** media
+position, which remains paused through source replacement. The first explicit
+Play reaches `playing` in **46 ms**; a later explicit pause/resume reaches
+`playing` in **27 ms**. This is preserved pause intent, not a new Pause gesture
+during the short preparation window.
+
+Unlike the first supplied export, this one includes background boundaries:
+`hidden` at timestamp `1794892181789`, then `visible` at `1794892260832`, about
+**79.043 s** apart. The context is running and media is unpaused/ready at both
+boundaries; media advances from **9.666 s** to **88.706 s**, about **79.040 s**.
+The context advances about **79.077 s**. Interior output is not continuously
+sampled, so the owner's audible guest confirmation remains the sound proof.
+A later foreground Pause occurs at media position **100.538 s**. There is no
+end event or new full-track-end confirmation in this second report; the first
+journey's explicit owner end-of-track confirmation remains separate.
+
+Artwork decodes in **2 ms**, composes in **19 ms**, and publishes PNG metadata in
+**23 ms**, with owner-confirmed visible cover. This is another positive lock
+observation on the same release, without a track-change or signature/immediate-lock
+trigger. Selected transcription and arithmetic are in the structured record's
+`repeatFollowup` section.
+
 ## Decision and remaining checks
 
-Retain this as the first selected Bulletin baseline. Do not select a speculative
+The bounded same-release repeatability check now passes: **1.807 s then 0.842 s**
+media preparation, with owner-confirmed Pause, guest/lock sound and artwork on
+both journeys. The first also has owner-confirmed listening to the track end.
+Move active device validation to **#388 track changes and artwork stability**,
+while retaining broader #395/pilot criteria. Do not select a speculative
 latency patch from a successful mixed native/API read. The earlier Adang Fobe
 IPFS runs use a different, larger release (73 objects / 3,580,693 bytes) and
 different transport/cache conditions; they cannot establish a controlled speed
 gain here and remain outside active Bulletin acceptance.
 
-Next collect a comparable independent relaunch/opening on this same existing
-Bulletin release to check repeatability, preserving any failure before retry.
-Do not clear data or relabel unknown Host caches as cold. #395 remains open for
-reliable repeated starts and continuity, while #388 retains its other physical
-triggers. The compact/CASH and owner-deferred real recovery gates keep their
+No additional unchanged-track repeat is selected merely to accumulate more
+positive reports. These two observations do not establish cold starts, a latency
+percentile, all-network/device reliability or all #395 continuity cases. #395
+remains open for that broader scope; #388 retains rapid changes, repeated modes
+and the particular signature/immediate-lock trigger. The compact/CASH and owner-deferred real recovery gates keep their
 existing order. Recording this evidence changes no application, service,
 capacity, access rule, publication, key or funded allowance.

@@ -114,5 +114,118 @@
     "dotnsSignatures": 0,
     "serviceChanges": 0,
     "newPublications": 0
+  },
+  "repeatFollowup": {
+    "kind": "selected transcription, not a full raw-report archive",
+    "schema": "dotify.audio-diagnostics.v1",
+    "observedAt": "2026-11-17T05:11:23.217Z",
+    "clientBuildSha": "4cbdb4f4206f91470eb6097ade8f23093f4aa840",
+    "clientVersion": "0.1.88",
+    "hostSoftware": {
+      "platform": "Ios",
+      "name": "Polkadot App",
+      "version": "0.10.0 (20)"
+    },
+    "releaseBinding": "Owner reply to specifically requested existing Eskapade à engong repeat after relaunch; report omits release identity",
+    "ownerObservation": {
+      "verbatim": "Room : 1 s ; Pause : OK ; invité/verrouillage : OK ; pochette : OK",
+      "stopwatchSecondsApproximate": 1,
+      "pause": true,
+      "guestAndLockSound": true,
+      "visibleArtwork": true,
+      "fullTrackEndNewlyReported": false
+    },
+    "roomPreparation": {
+      "attempt": 2,
+      "readAttempt": 1,
+      "forRoomCapture": true,
+      "startedTimestamp": 1794892134021,
+      "keyAuthorizedMs": 237,
+      "manifestReadyMs": 238,
+      "compatibilityReaderMs": 239,
+      "downloadedMs": 838,
+      "readyMs": 842,
+      "assemblyMs": 4,
+      "errorEvents": 0,
+      "readTimings": {
+        "objectsRead": 31,
+        "objectsDecrypted": 31,
+        "encryptedBytes": 1464541,
+        "cachedObjects": 10,
+        "hostObjects": 19,
+        "httpObjects": 2,
+        "recoveredObjects": 2,
+        "readWorkMs": 1316,
+        "decryptWorkMs": 45,
+        "maxReadMs": 591,
+        "relayWaitMs": 1,
+        "nativeReadMs": 160,
+        "httpHeadersMs": 1136,
+        "httpBodyMs": 13,
+        "nativeReadAttempts": 21,
+        "nativeReadFailures": 2,
+        "httpRequests": 2,
+        "httpBodyReads": 2,
+        "httpFailures": 0
+      }
+    },
+    "handoff": {
+      "attempt": 3,
+      "keyAuthorizedAndSourceReusedMs": 100,
+      "metadataReadyMs": 120,
+      "notAnotherRoomOpening": true
+    },
+    "pause": {
+      "initialTimestamp": 1794892124459,
+      "preparationStartTimestamp": 1794892134021,
+      "beforePreparationMs": 9562,
+      "preservedMediaPositionSeconds": 0.785519001,
+      "firstExplicitPlayTimestamp": 1794892161884,
+      "firstPlayToPlayingMs": 46,
+      "laterPauseTimestamp": 1794892165808,
+      "laterResumeTimestamp": 1794892176210,
+      "laterPlayToPlayingMs": 27,
+      "gestureDuringPreparationNotEstablished": true
+    },
+    "background": {
+      "hiddenTimestamp": 1794892181789,
+      "visibleTimestamp": 1794892260832,
+      "wallMs": 79043,
+      "contextStartSeconds": 46.757333333333335,
+      "contextEndSeconds": 125.83466666666666,
+      "contextAdvanceSeconds": 79.07733333333331,
+      "mediaStartSeconds": 9.666060291417729,
+      "mediaEndSeconds": 88.70632299997688,
+      "mediaAdvanceSeconds": 79.04026270855915,
+      "contextStateAtBoundaries": "running",
+      "pausedAtBoundaries": false,
+      "readyStateAtBoundaries": 4,
+      "interiorContinuity": "Not sampled continuously; audible guest continuity supplied by owner",
+      "traceLastMediaSeconds": 100.53797783334447,
+      "endedEvent": false
+    },
+    "artwork": {
+      "decodedMs": 2,
+      "composedMs": 19,
+      "pngMetadataPublishedMs": 23,
+      "ownerReportsVisible": true,
+      "nativeVisualTelemetryAcknowledgement": false
+    },
+    "limits": [
+      "10 client-memory objects reused from solo; Host/API caches unknown; not strictly cold",
+      "Wi-Fi, disconnected wallet and relaunch requested, not separately restated or independently exported",
+      "Two same-release successful preparations do not establish a latency percentile, all-network reliability, or controlled optimization gain",
+      "Native rejection causes unknown; two native rejections recovered through Bulletin API; zero HTTP failures",
+      "Latest report adds background boundaries and owner sound confirmation, not new end-of-track confirmation; earlier journey has owner-confirmed full-track end"
+    ],
+    "decision": "Bounded same-release repeatability check passes (1.807 s then 0.842 s); move active device validation to #388 track-change artwork. Broader #395/pilot gates retained.",
+    "operatorNetworkWrites": 0,
+    "audioOrKeysFetchedByOperator": false
+  },
+  "combinedCheckpoint": {
+    "boundedSameReleaseReopenings": "two positive preparations: 1807 ms and 842 ms",
+    "ownerGuestLockAndArtwork": "positive on both; full-track end confirmed on first",
+    "nextSelectedValidation": "#388 track-change artwork stability in solo and Room",
+    "scopeLimits": "Not a cold-start benchmark, all-network reliability guarantee, or acceptance of every #395/#388 criterion; broader pilot gates remain."
   }
 }
