@@ -42,7 +42,7 @@
 		"test:cash-tip-feasibility": "node --test scripts/product-cash-tip-feasibility.test.mjs",
 		"research:cash-tips": "node scripts/product-cash-tip-feasibility.mjs",
 		"test:product-cash-settlement": "node --test scripts/product-cash-settlement-readiness.test.mjs",
-		"test:product-deploy-environment": "node --test scripts/product-deploy-environment-check.test.mjs scripts/product-host-config-check.test.mjs scripts/product-host-wire.test.mjs scripts/product-runtime-profile.test.mjs scripts/cdm-snapshot-version.test.mjs scripts/security-dependencies.test.mjs",
+		"test:product-deploy-environment": "node --test scripts/product-deploy-environment-check.test.mjs scripts/product-host-config-check.test.mjs scripts/product-host-wire.test.mjs scripts/product-sdk-compat.test.mjs scripts/product-runtime-profile.test.mjs scripts/cdm-snapshot-version.test.mjs scripts/security-dependencies.test.mjs",
 		"lint": "eslint .",
 		"fmt": "prettier --write 'src/**/*.{ts,tsx}' 'server/**/*.mjs' 'scripts/**/*.mjs' README.md",
 		"fmt:check": "prettier --check 'src/**/*.{ts,tsx}' 'server/**/*.mjs' 'scripts/**/*.mjs' README.md",
@@ -53,14 +53,16 @@
 		"upload:cdm-metadata": "node scripts/upload-cdm-metadata.mjs",
 		"update-types": "papi update",
 		"codegen": "papi generate",
-		"preview": "vite preview --host 0.0.0.0 --port 4273"
+		"preview": "vite preview --host 0.0.0.0 --port 4273",
+		"postinstall": "node scripts/patch-truapi-info.mjs",
+		"test:product-sdk-compat": "node --test scripts/product-sdk-compat.test.mjs"
 	},
 	"dependencies": {
-		"@parity/product-sdk": "0.39.0",
+		"@parity/product-sdk": "0.45.0",
 		"@parity/product-sdk-descriptors": "0.14.0",
-		"@parity/product-sdk-host": "0.28.0",
-		"@parity/product-sdk-statement-store": "0.7.3",
-		"@parity/product-sdk-tx": "0.5.3",
+		"@parity/product-sdk-host": "0.34.0",
+		"@parity/product-sdk-statement-store": "0.7.10",
+		"@parity/product-sdk-tx": "0.5.10",
 		"@polkadot-api/descriptors": "file:.papi/descriptors",
 		"@polkadot-apps/chain-client": "^2.0.5",
 		"@polkadot-apps/descriptors": "^1.0.1",
@@ -83,7 +85,7 @@
 		"ipfs-unixfs": "13.1.2"
 	},
 	"overrides": {
-		"@parity/truapi": "0.25.0",
+		"@parity/truapi": "0.31.0",
 		"brace-expansion": "5.0.12",
 		"ws": "8.21.0",
 		"@novasamatech/host-api": {
@@ -120,6 +122,9 @@
 		"typescript-eslint": "^8.58.1",
 		"vite": "^6.4.6",
 		"vite-plugin-singlefile": "^2.3.3",
-		"vitest": "5.1.0"
+		"vitest": "5.1.0",
+		"truapi-v0250": "npm:@parity/truapi@0.25.0",
+		"truapi-v0260": "npm:@parity/truapi@0.26.0",
+		"truapi-v0290": "npm:@parity/truapi@0.29.0"
 	}
 }

@@ -13,6 +13,7 @@ import { resolveRuntimeAdapterConfig, type RuntimeAdapterConfig } from './runtim
 import type { RuntimeAccessPolicyUpdate, RuntimeTrackRegistration, RuntimeWritePort } from './runtimePorts';
 import { createViemRuntimeWriter } from './viemRuntimeAdapter';
 import { readNativeContributionReceiptApi } from './nativeContributionReceiptApi';
+import { requireProductTransactionHost } from '../productHost/productTransactionHost';
 
 type ViemWalletClient = Awaited<ReturnType<typeof getWalletClient>>;
 
@@ -65,6 +66,7 @@ async function createViemWriter(deps: RuntimeWriterDeps): Promise<RuntimeWritePo
 }
 
 export async function createProductSignerManager(account?: ProductRuntimeSignerAccount): Promise<ProductSignerManagerLike> {
+  await requireProductTransactionHost();
   const [{ SignerManager, HostProvider }, { deriveH160 }] = await Promise.all([
     import('@parity/product-sdk/wallet') as Promise<ProductSignerModule>,
     import('@parity/product-sdk/address') as Promise<ProductAddressModule>

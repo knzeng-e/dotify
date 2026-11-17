@@ -58,15 +58,19 @@ function restore(storage, id, expected) {
   return saved;
 }
 
-test('actual pinned API has an opaque response id and no caller-id recovery contract', async () => {
+test('pinned latest SDK has caller-id recovery declarations while actual Host and settlement gates remain', async () => {
   const actual = await inspectPinnedPayments();
-  assert.equal(actual.host, '0.28.0');
-  assert.equal(actual.protocol, '0.25.0');
-  assert.equal(actual.callerChosenId, false);
-  assert.deepEqual(actual.requestParameterTypes, ['bigint', 'HexString', 'number']);
-  assert.deepEqual(actual.statusTags, ['Completed', 'Failed', 'Processing']);
-  assert.deepEqual(actual.statusLookupFields, ['paymentId']);
-  assert.ok(decideCashWorkTip(actual).blockers.includes('pinned-api-cannot-recover-a-lost-request-id'));
+  assert.equal(actual.host, '0.34.0');
+  assert.equal(actual.protocol, '0.31.0');
+  assert.equal(actual.callerChosenId, true);
+  assert.equal(actual.sdkCallerIdRequired, true);
+  assert.deepEqual(actual.requestParameterTypes, ['PaymentRequest']);
+  assert.deepEqual(actual.statusTags, ['ClaimedPartially', 'Completed', 'Failed', 'Processing']);
+  assert.deepEqual(actual.statusLookupFields, ['id']);
+  assert.ok(actual.requestErrorTags.includes('AlreadyExists'));
+  const decision = decideCashWorkTip(actual);
+  assert.equal(decision.decision, 'no-go');
+  assert.equal(decision.blockers.length, 3);
 });
 
 test('newer declaration shape removes only the caller-id blocker, never the other gates', () => {
