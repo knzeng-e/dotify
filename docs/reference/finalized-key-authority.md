@@ -2,6 +2,8 @@
 
 This reference defines the A09 source candidate for API/client maintainers and
 operators. It is not a deployment or endpoint acceptance record.
+[Source-bound validation](../backlog/implementation/evidence/finalized-key-authority-2026-11-18.md)
+records automated results separately from delivery acceptance.
 [Scope #488](../backlog/finalized-key-authority.md) follows the merged
 [A01 runtime isolation](catalog-runtime-isolation.md).
 
