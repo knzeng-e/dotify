@@ -1,4 +1,4 @@
-import { ContractFunctionRevertedError, ContractFunctionZeroDataError, ExecutionRevertedError, ResponseBodyTooLargeError } from 'viem';
+import { ContractFunctionRevertedError, ContractFunctionZeroDataError, ExecutionRevertedError, HttpRequestError, ResponseBodyTooLargeError } from 'viem';
 import { mapConcurrent } from './concurrency.js';
 import { withDeadline } from '../deadline.js';
 
@@ -57,6 +57,10 @@ export async function fetchRuntimeRpc(
   const signal = init?.signal ? AbortSignal.any([owner, init.signal]) : owner;
   return withDeadline(signal, timeoutMs, async deadline => {
     const response = await fetchFn(input, { ...init, signal: deadline });
+    if (!response.ok) {
+      await response.body?.cancel().catch(() => undefined);
+      throw new HttpRequestError({ status: response.status, url: String(input) });
+    }
     const reader = response.body?.getReader();
     if (!reader) return response;
     const chunks: Uint8Array[] = [];
@@ -72,8 +76,6 @@ export async function fetchRuntimeRpc(
         if (chunk.done) break;
         size += chunk.value.byteLength;
         if (size > runtimeReadPolicy.maxResponseBytes) {
-          // Non-OK provider errors are transport failures, not artist faults.
-          if (!response.ok) throw new Error('Catalogue RPC error response exceeds byte budget');
           throw new ResponseBodyTooLargeError({ maxSize: runtimeReadPolicy.maxResponseBytes, size });
         }
         chunks.push(chunk.value);

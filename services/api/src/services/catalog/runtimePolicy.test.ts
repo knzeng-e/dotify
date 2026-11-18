@@ -52,14 +52,23 @@ it('classifies real Viem revert, missing-selector/zero-data and malformed ABI fa
         error => error instanceof CatalogRuntimeReadError && error.code === code && error.runtimeAddress === runtime
       );
     }
-    for (const kind of ['quota', '500', '429', 'malformed-json', 'socket']) {
+    for (const kind of ['quota', '500', '429', '500-revert', 'malformed-json', 'socket']) {
       setReply((res, id) => {
         if (kind === 'socket') {
           res.destroy();
           return;
         }
+        if (kind === '500-revert') res.statusCode = 500;
         if (kind === '500' || kind === '429') res.statusCode = Number(kind);
-        res.end(kind === 'malformed-json' ? '{' : JSON.stringify({ jsonrpc: '2.0', id, error: { code: -32005, message: 'provider quota' } }));
+        res.end(
+          kind === 'malformed-json'
+            ? '{'
+            : JSON.stringify({
+                jsonrpc: '2.0',
+                id,
+                error: kind === '500-revert' ? { code: 3, message: 'execution reverted', data: '0x' } : { code: -32005, message: 'provider quota' }
+              })
+        );
       });
       await assert.rejects(gateway.listTrackHashes(runtime, 100), error => error instanceof Error && !(error instanceof CatalogRuntimeReadError));
     }
