@@ -1165,6 +1165,29 @@ describe('MusicRoyaltiesPallet — payment security', () => {
     expect(refundEvents[0].args.amount).to.equal(OVERPAY - PRICE);
   });
 
+  it('rejects a runtime royalty recipient without registering a track or granting access', async () => {
+    const { registry, artistA, royalties, access, listener } = await withArtistRuntime();
+    const artistRegistry = await hre.viem.getContractAt('MusicRegistryPallet', registry.address, { client: { wallet: artistA } });
+    await expectRevertMessage(
+      artistRegistry.write.musicRegRegister([sampleRegistration({ pricePlanck: 100n }), [registry.address], [10000]]),
+      'runtime recipient'
+    );
+    expect(await registry.read.musicRegIsRegistered([TRACK_HASH])).to.equal(false);
+    expect(await royalties.read.musicRoyClaimable([registry.address])).to.equal(0n);
+    expect(await access.read.musicAccHasPaid([TRACK_HASH, listener.account.address])).to.equal(false);
+  });
+
+  it('refunds an overpaying receiver that needs more than the previous fixed 100k stipend', async () => {
+    const { registry, royalties, artistA, royaltyRecip, publicClient } = await withArtistRuntime();
+    const payer = await hre.viem.deployContract('ExpensiveRoyaltyRecipient');
+    const artistRegistry = await hre.viem.getContractAt('MusicRegistryPallet', registry.address, { client: { wallet: artistA } });
+    await artistRegistry.write.musicRegRegister([sampleRegistration({ pricePlanck: 100n }), [royaltyRecip.account.address], [10_000]]);
+    const before = await publicClient.getBalance({ address: royaltyRecip.account.address });
+    await payer.write.payAccess([royalties.address, TRACK_HASH], { value: 150n, gas: 1_000_000n });
+    expect(await publicClient.getBalance({ address: payer.address })).to.equal(50n);
+    expect((await publicClient.getBalance({ address: royaltyRecip.account.address })) - before).to.equal(100n);
+  });
+
   it('keeps access purchase valid when royalty recipients reject or exhaust bounded gas', async () => {
     const PRICE = 101n;
     const { registry, royalties, access, artistA, listener, royaltyRecip, publicClient } = await withArtistRuntime();
@@ -1228,6 +1251,23 @@ describe('MusicRoyaltiesPallet — payment security', () => {
       ((await publicClient.getBalance({ address: artistA.account.address })) - artistBefore);
     const pending = (await royalties.read.musicRoyClaimable([rejecting.address])) + (await royalties.read.musicRoyClaimable([gasConsumer.address]));
     expect(immediatePaid + pending).to.equal(PRICE);
+  });
+
+  it('preserves a late recipient and the ledger when fifteen earlier sends exhaust their relative budgets', async () => {
+    const { registry, royalties, artistA, listener, royaltyRecip, publicClient } = await withArtistRuntime();
+    const burner = await hre.viem.deployContract('GasConsumingRoyaltyRecipient');
+    const artistRegistry = await hre.viem.getContractAt('MusicRegistryPallet', registry.address, { client: { wallet: artistA } });
+    await artistRegistry.write.musicRegRegister([
+      sampleRegistration({ pricePlanck: 1600n }),
+      [...Array(15).fill(burner.address), royaltyRecip.account.address],
+      Array(16).fill(625)
+    ]);
+    const before = await publicClient.getBalance({ address: royaltyRecip.account.address });
+    const paying = await hre.viem.getContractAt('MusicRoyaltiesPallet', royalties.address, { client: { wallet: listener } });
+    await paying.write.musicRoyPayAccess([TRACK_HASH], { value: 1600n, gas: 2_000_000n });
+    expect((await publicClient.getBalance({ address: royaltyRecip.account.address })) - before).to.equal(100n);
+    expect(await royalties.read.musicRoyClaimable([burner.address])).to.equal(1500n);
+    expect(await publicClient.getBalance({ address: royalties.address })).to.equal(1500n);
   });
 
   it('lets recipients claim pending royalties once and rejects unauthorized claims', async () => {

@@ -25,6 +25,8 @@ export type RuntimeRoyaltyPaymentLog = {
   pendingTotalWei?: bigint;
   claimedAtMs?: number | null;
   claimTransactionHash?: Hash;
+  proofKind?: 'evm-transaction' | 'substrate-extrinsic';
+  claimProofKind?: 'evm-transaction' | 'substrate-extrinsic';
   paidAtMs: number | null;
   transactionHash: Hash;
   blockNumber: bigint;
@@ -95,6 +97,11 @@ export type ContributionConfirmationMode = 'evm-receipt' | 'finalized-event';
 export type NativeContributionBlock = { number: number; hash?: Hash; index?: number };
 export type NativeContributionLog = { address: Address; data: Hash; topics: Hash[]; transactionHash: Hash; logIndex: number };
 
+export type RoyaltyReceiptWarning = {
+  message: string;
+  block?: NativeContributionBlock;
+};
+
 export interface RuntimeWritePort {
   /**
    * Product CDM returns a native extrinsic hash after finalization. It must be
@@ -125,6 +132,8 @@ export interface RuntimeWritePort {
   inspectPayment?(intent: ExecutableTrackAccessPaymentIntent): Promise<PaymentAccountState>;
   payForAccess(intent: ExecutableTrackAccessPaymentIntent, onStatus?: PaymentObserver): Promise<Hash>;
   claimRoyalty(runtimeAddress: Address, recipientAddress: Address): Promise<Hash>;
+  /** History failures do not invalidate an already finalized transaction. */
+  getRoyaltyReceiptWarning?(hash: Hash): RoyaltyReceiptWarning | undefined;
   setAccessMode(runtimeAddress: Address, update: RuntimeAccessPolicyUpdate): Promise<Hash>;
   setReleaseActive(runtimeAddress: Address, contentHash: Hash, active: boolean): Promise<Hash>;
   waitForTransaction(txHash: Hash): Promise<void>;

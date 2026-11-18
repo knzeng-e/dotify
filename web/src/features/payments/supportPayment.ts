@@ -44,6 +44,7 @@ export type SupportResult = {
   txHash?: Hash;
   message?: string;
   errorDetail?: string;
+  historyWarning?: string;
   accountState?: PaymentAccountState;
   verification?: RuntimeAccessPaymentVerificationResult;
   hasPaid?: boolean;
@@ -123,6 +124,14 @@ export function createSupportPaymentFlow(
     let accountState: PaymentAccountState | undefined;
     let finalized = false;
     let journalReadFailed = false;
+    let journalWarning: string | undefined;
+    const rememberSubmitted = (attempt: Attempt) => {
+      try {
+        remember(key, attempt);
+      } catch {
+        journalWarning = 'The payment reference could not be saved. Keep this receipt and check access without paying again.';
+      }
+    };
     const readJournal = (journalKey: string) => {
       try {
         return read(journalKey);
@@ -181,14 +190,14 @@ export function createSupportPaymentFlow(
             if (hash) {
               submitted = true;
               attempt = { version: 1, txHash: hash, amountPlanck: input.intent.amountPlanck.toString(), symbol: input.intent.asset.symbol };
-              remember(key, attempt);
+              rememberSubmitted(attempt);
             }
             if (status !== 'error')
               input.onProgress(status === 'signing' ? 'approval' : status === 'finalized' ? 'finalized' : 'processing', hash ?? attempt?.txHash, accountState);
           });
           submitted = true;
           attempt = { version: 1, txHash, amountPlanck: input.intent.amountPlanck.toString(), symbol: input.intent.asset.symbol };
-          remember(key, attempt);
+          rememberSubmitted(attempt);
         }
       }
       if (attempt?.txHash && !input.readOnly) {
@@ -204,6 +213,7 @@ export function createSupportPaymentFlow(
         status: verification.ok ? 'verified' : attempt.txHash ? 'unverified' : 'uncertain',
         txHash: attempt.txHash,
         verification,
+        historyWarning: journalWarning ?? (attempt.txHash ? input.writer.getRoyaltyReceiptWarning?.(attempt.txHash)?.message : undefined),
         errorDetail: verification.ok ? undefined : verification.error,
         message: verification.ok ? undefined : 'Listening is not verified yet. Check again without sending another payment.'
       };

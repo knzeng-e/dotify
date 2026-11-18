@@ -1,0 +1,734 @@
+{
+  "schema": "dotify.payment-settlement-audit.v1",
+  "observedAt": "2026-11-17T19:50:41.411230+00:00",
+  "sourceSha": "8e3138c05dde3647002983296e0a44293c635c10",
+  "deployedProductSha": "4cbdb4f4206f91470eb6097ade8f23093f4aa840",
+  "scope": "Two catalogued artist runtimes; seven API-verified native contributions and two indexed EVM payments; no transactions submitted.",
+  "chainId": 420420417,
+  "genesisHash": "0xd6eec26135305a8ad257a20d003357284c8aa03d0bdb2b357ab0a22371e11ef2",
+  "nativeRpc": "https://asset-hub-paseo-rpc.n.dwellir.com",
+  "evmRpc": "https://eth-rpc-testnet.polkadot.io/",
+  "token": "PAS",
+  "nativeDecimals": 10,
+  "evmDecimals": 18,
+  "ethereumAnchor": {
+    "number": "0xf24c7f",
+    "hash": "0x84581ed655550a4a47ef2e48a55b121a032e18341860a72864f4f20bebe2e9cb"
+  },
+  "substrateAnchor": {
+    "number": 15879295,
+    "hash": "0x5ed5929690247f5887350c5ff5b78a9be902f44f43ab90732c3d30e4867d4755"
+  },
+  "existentialDepositNative": "100000000",
+  "accounts": [
+    {
+      "address": "0xC3571714248588C6E19cDECe2778B75341b2c288",
+      "original": null,
+      "fallback": "0xC3571714248588C6E19cDECe2778B75341b2c288eeeeeeeeeeeeeeeeeeeeeeee",
+      "accountId": "5GUq4mo4fVDKF9ZhQwGyBAhciuF2vXJ8N6fxXS6bKC77N6US",
+      "state": {
+        "nonce": 485,
+        "consumers": 0,
+        "providers": 1,
+        "sufficients": 0,
+        "data": {
+          "free": "98412235547199",
+          "reserved": "0",
+          "frozen": "0",
+          "flags": "170141183460469231731687303715884105728"
+        }
+      }
+    },
+    {
+      "address": "0x2f6BF01a6708C927b288a53B9fE3f9edc689FF56",
+      "original": "5G7KWbnCUoi1qKvjygWn3JvZNm1b3Z5hzq8V48KpXnpJrNFz",
+      "fallback": "0x2f6BF01a6708C927b288a53B9fE3f9edc689FF56eeeeeeeeeeeeeeeeeeeeeeee",
+      "accountId": "5G7KWbnCUoi1qKvjygWn3JvZNm1b3Z5hzq8V48KpXnpJrNFz",
+      "state": {
+        "nonce": 71,
+        "consumers": 0,
+        "providers": 1,
+        "sufficients": 1,
+        "data": {
+          "free": "49267465303397",
+          "reserved": "0",
+          "frozen": "0",
+          "flags": "170141183460469231731687303715884105728"
+        }
+      }
+    },
+    {
+      "address": "0xdcF6b75E4185E99a830878D044dC76372c556819",
+      "original": null,
+      "fallback": "0xdcF6b75E4185E99a830878D044dC76372c556819eeeeeeeeeeeeeeeeeeeeeeee",
+      "accountId": "5H4RgVxnPvYNQKeT7J5EyNdJdUdfDPWb2cfnYKcQVMbVqGbX",
+      "state": {
+        "nonce": 1,
+        "consumers": 2,
+        "providers": 1,
+        "sufficients": 1,
+        "data": {
+          "free": "100000000",
+          "reserved": "9293350000",
+          "frozen": "0",
+          "flags": "170141183460469231731687303715884105728"
+        }
+      }
+    },
+    {
+      "address": "0x05C643A1eD0e75C8A3486410f13BC4597c2674D7",
+      "original": null,
+      "fallback": "0x05C643A1eD0e75C8A3486410f13BC4597c2674D7eeeeeeeeeeeeeeeeeeeeeeee",
+      "accountId": "5CCGzZtF9bDKiyG8hHXn7iJf3Me18KdXT71KDA88dz8cfBSy",
+      "state": {
+        "nonce": 1,
+        "consumers": 2,
+        "providers": 1,
+        "sufficients": 1,
+        "data": {
+          "free": "100000000",
+          "reserved": "26400000",
+          "frozen": "0",
+          "flags": "170141183460469231731687303715884105728"
+        }
+      }
+    }
+  ],
+  "evmAccountDetails": [
+    {
+      "address": "0xC3571714248588C6E19cDECe2778B75341b2c288",
+      "info": {
+        "account_type": {
+          "type": "EOA"
+        },
+        "dust": 90000000
+      }
+    },
+    {
+      "address": "0x2f6BF01a6708C927b288a53B9fE3f9edc689FF56",
+      "info": null
+    },
+    {
+      "address": "0xdcF6b75E4185E99a830878D044dC76372c556819",
+      "info": {
+        "account_type": {
+          "type": "Contract",
+          "value": {
+            "trie_id": "0x27dbc416964d6a18ebca7dca99c4330561fbed51abd4cde9db4f80431880d27d",
+            "code_hash": "0x96c2b65397cdf1e0ead18fb4e1c6d39f8bbde283d355e970b5a62461b0e17d12",
+            "storage_bytes": 15040,
+            "storage_items": 235,
+            "storage_byte_deposit": "1504000000",
+            "storage_item_deposit": "4700000000",
+            "storage_base_deposit": "3221350000",
+            "immutable_data_len": 0
+          }
+        },
+        "dust": 0
+      }
+    },
+    {
+      "address": "0x05C643A1eD0e75C8A3486410f13BC4597c2674D7",
+      "info": {
+        "account_type": {
+          "type": "Contract",
+          "value": {
+            "trie_id": "0x1cb8c20d8df536f0dbeec8f97658dfc59e71ee439ccfb09bc042204a83bead1c",
+            "code_hash": "0x96c2b65397cdf1e0ead18fb4e1c6d39f8bbde283d355e970b5a62461b0e17d12",
+            "storage_bytes": 9088,
+            "storage_items": 142,
+            "storage_byte_deposit": "908800000",
+            "storage_item_deposit": "2840000000",
+            "storage_base_deposit": "3221350000",
+            "immutable_data_len": 0
+          }
+        },
+        "dust": 0
+      }
+    }
+  ],
+  "evmBalances": [
+    {
+      "address": "0xC3571714248588C6E19cDECe2778B75341b2c288",
+      "balance": "9841213554719990000000"
+    },
+    {
+      "address": "0x2f6BF01a6708C927b288a53B9fE3f9edc689FF56",
+      "balance": "4926736530339700000000"
+    },
+    {
+      "address": "0xdcF6b75E4185E99a830878D044dC76372c556819",
+      "balance": "0"
+    },
+    {
+      "address": "0x05C643A1eD0e75C8A3486410f13BC4597c2674D7",
+      "balance": "0"
+    }
+  ],
+  "royaltyClaimable": [
+    {
+      "address": "0xdcF6b75E4185E99a830878D044dC76372c556819",
+      "recipient": "0xC3571714248588C6E19cDECe2778B75341b2c288",
+      "amount": "0"
+    },
+    {
+      "address": "0xdcF6b75E4185E99a830878D044dC76372c556819",
+      "recipient": "0x2f6BF01a6708C927b288a53B9fE3f9edc689FF56",
+      "amount": "0"
+    },
+    {
+      "address": "0x05C643A1eD0e75C8A3486410f13BC4597c2674D7",
+      "recipient": "0xC3571714248588C6E19cDECe2778B75341b2c288",
+      "amount": "0"
+    },
+    {
+      "address": "0x05C643A1eD0e75C8A3486410f13BC4597c2674D7",
+      "recipient": "0x2f6BF01a6708C927b288a53B9fE3f9edc689FF56",
+      "amount": "0"
+    }
+  ],
+  "nativeContributionPending": [
+    {
+      "address": "0xdcf6b75e4185e99a830878d044dc76372c556819",
+      "recipient": "0xC3571714248588C6E19cDECe2778B75341b2c288",
+      "id": "0x366ac501f2e1bd476c55b10d61c6d85b2fb199cf38fa0afd5e77fa48a2422b21",
+      "amount": "0"
+    },
+    {
+      "address": "0xdcf6b75e4185e99a830878d044dc76372c556819",
+      "recipient": "0xC3571714248588C6E19cDECe2778B75341b2c288",
+      "id": "0x504392a54ac588ccf5722deb094b1f7025469f9c5c44482a9ec81ad17a4220ee",
+      "amount": "0"
+    },
+    {
+      "address": "0xdcf6b75e4185e99a830878d044dc76372c556819",
+      "recipient": "0xC3571714248588C6E19cDECe2778B75341b2c288",
+      "id": "0x855563c859a09d8a8fc9c31d2facb14feb802b809b8df4699ebc515489732420",
+      "amount": "0"
+    },
+    {
+      "address": "0x05c643a1ed0e75c8a3486410f13bc4597c2674d7",
+      "recipient": "0x2f6BF01a6708C927b288a53B9fE3f9edc689FF56",
+      "id": "0xe3e5b51e139b7a55d23c8abe8433b58fa302e34369feb1694ff704f8f78ee9a4",
+      "amount": "0"
+    },
+    {
+      "address": "0xdcf6b75e4185e99a830878d044dc76372c556819",
+      "recipient": "0xC3571714248588C6E19cDECe2778B75341b2c288",
+      "id": "0xa56d53f59bf0bf9dbf35340f305f6b4a9b601a7073f6737df06c85decea6af7a",
+      "amount": "0"
+    },
+    {
+      "address": "0x05c643a1ed0e75c8a3486410f13bc4597c2674d7",
+      "recipient": "0x2f6BF01a6708C927b288a53B9fE3f9edc689FF56",
+      "id": "0x53dc6c479434944d66a0a0f3b3ce074da8dc37f93fd6078fdbe738b2a547de2e",
+      "amount": "0"
+    },
+    {
+      "address": "0xdcf6b75e4185e99a830878d044dc76372c556819",
+      "recipient": "0xC3571714248588C6E19cDECe2778B75341b2c288",
+      "id": "0xb0bc1ed02d8ee2ec1eb292fb8a2927a4831ce6e54a4801f7570abed8aa22af7e",
+      "amount": "0"
+    }
+  ],
+  "nativeIndexCoverage": [
+    {
+      "hash": "0x40a3468769d49d9a23655a381d5c92c0284fed0e8ee5b1d7504b1ef43f388285",
+      "number": 15105004,
+      "ethereumReceipt": null,
+      "ethereumReceivedLogCount": 0
+    },
+    {
+      "hash": "0xe1952be2e4ff1018e48dfcb3c2cfaef73d65eba7f5365f759ac568d8eab602f1",
+      "number": 15416223,
+      "ethereumReceipt": null,
+      "ethereumReceivedLogCount": 0
+    },
+    {
+      "hash": "0x157cd70ed5383d3c1e3170ac3849667898749ad5cf1d6d66719037aa49a38927",
+      "number": 15501651,
+      "ethereumReceipt": null,
+      "ethereumReceivedLogCount": 0
+    },
+    {
+      "hash": "0xc579cffc6fd64acd76725b0151266450e12c793d5f8bccfd54ca2e814ebe7441",
+      "number": 15501782,
+      "ethereumReceipt": null,
+      "ethereumReceivedLogCount": 0
+    },
+    {
+      "hash": "0x1a9d7300356418fd7bcdde5b643ca6e1562fab12c4440327ea762b671bff1d2b",
+      "number": 15501838,
+      "ethereumReceipt": null,
+      "ethereumReceivedLogCount": 0
+    },
+    {
+      "hash": "0x5109c8ceb2e1a1d06d91db4bf0c25a99c237c4c60d9e4fab2d304aa269c85ecd",
+      "number": 15501936,
+      "ethereumReceipt": null,
+      "ethereumReceivedLogCount": 0
+    },
+    {
+      "hash": "0x056d541cfeeddb3894e38c2efb04beb889fae034ce5e81182164bbb905b6e557",
+      "number": 15700697,
+      "ethereumReceipt": null,
+      "ethereumReceivedLogCount": 0
+    }
+  ],
+  "samples": [
+    {
+      "rail": "native-product",
+      "hash": "0x40a3468769d49d9a23655a381d5c92c0284fed0e8ee5b1d7504b1ef43f388285",
+      "block": {
+        "number": 15105004,
+        "hash": "0x09adae06b259b7c54bb73d273cc9f77c879ef29555ccb66314d95af633be8027",
+        "index": 2
+      },
+      "runtime": "0xdcf6b75e4185e99a830878d044dc76372c556819",
+      "sender": "0x2f6BF01a6708C927b288a53B9fE3f9edc689FF56",
+      "amountEvm": "4200000000000000000",
+      "shares": [
+        {
+          "contributionId": "0x366ac501f2e1bd476c55b10d61c6d85b2fb199cf38fa0afd5e77fa48a2422b21",
+          "recipient": "0xC3571714248588C6E19cDECe2778B75341b2c288",
+          "amount": "4200000000000000000",
+          "role": 0,
+          "paid": true
+        }
+      ],
+      "transfers": [
+        {
+          "from": "5G7KWbnCUoi1qKvjygWn3JvZNm1b3Z5hzq8V48KpXnpJrNFz",
+          "to": "5H4RgVxnPvYNQKeT7J5EyNdJdUdfDPWb2cfnYKcQVMbVqGbX",
+          "amount": "42000000000"
+        },
+        {
+          "from": "5H4RgVxnPvYNQKeT7J5EyNdJdUdfDPWb2cfnYKcQVMbVqGbX",
+          "to": "5GUq4mo4fVDKF9ZhQwGyBAhciuF2vXJ8N6fxXS6bKC77N6US",
+          "amount": "42000000000"
+        }
+      ],
+      "matchesApiReceipt": true
+    },
+    {
+      "rail": "native-product",
+      "hash": "0xe1952be2e4ff1018e48dfcb3c2cfaef73d65eba7f5365f759ac568d8eab602f1",
+      "block": {
+        "number": 15416223,
+        "hash": "0x072f79010010f249cc67e6e8ca6d90e6ae7c41ebff29bcb6633759b74d56abc6",
+        "index": 2
+      },
+      "runtime": "0xdcf6b75e4185e99a830878d044dc76372c556819",
+      "sender": "0x2f6BF01a6708C927b288a53B9fE3f9edc689FF56",
+      "amountEvm": "500000000000000000",
+      "shares": [
+        {
+          "contributionId": "0x504392a54ac588ccf5722deb094b1f7025469f9c5c44482a9ec81ad17a4220ee",
+          "recipient": "0xC3571714248588C6E19cDECe2778B75341b2c288",
+          "amount": "500000000000000000",
+          "role": 0,
+          "paid": true
+        }
+      ],
+      "transfers": [
+        {
+          "from": "5G7KWbnCUoi1qKvjygWn3JvZNm1b3Z5hzq8V48KpXnpJrNFz",
+          "to": "5H4RgVxnPvYNQKeT7J5EyNdJdUdfDPWb2cfnYKcQVMbVqGbX",
+          "amount": "5000000000"
+        },
+        {
+          "from": "5H4RgVxnPvYNQKeT7J5EyNdJdUdfDPWb2cfnYKcQVMbVqGbX",
+          "to": "5GUq4mo4fVDKF9ZhQwGyBAhciuF2vXJ8N6fxXS6bKC77N6US",
+          "amount": "5000000000"
+        }
+      ],
+      "matchesApiReceipt": true
+    },
+    {
+      "rail": "native-product",
+      "hash": "0x157cd70ed5383d3c1e3170ac3849667898749ad5cf1d6d66719037aa49a38927",
+      "block": {
+        "number": 15501651,
+        "hash": "0x1b18358ece9eee87f6205c7394d4e6faef4554dc2746443952ad1c21e39ba874",
+        "index": 2
+      },
+      "runtime": "0xdcf6b75e4185e99a830878d044dc76372c556819",
+      "sender": "0x2f6BF01a6708C927b288a53B9fE3f9edc689FF56",
+      "amountEvm": "1000000000000000000",
+      "shares": [
+        {
+          "contributionId": "0x855563c859a09d8a8fc9c31d2facb14feb802b809b8df4699ebc515489732420",
+          "recipient": "0xC3571714248588C6E19cDECe2778B75341b2c288",
+          "amount": "1000000000000000000",
+          "role": 0,
+          "paid": true
+        }
+      ],
+      "transfers": [
+        {
+          "from": "5G7KWbnCUoi1qKvjygWn3JvZNm1b3Z5hzq8V48KpXnpJrNFz",
+          "to": "5H4RgVxnPvYNQKeT7J5EyNdJdUdfDPWb2cfnYKcQVMbVqGbX",
+          "amount": "10000000000"
+        },
+        {
+          "from": "5H4RgVxnPvYNQKeT7J5EyNdJdUdfDPWb2cfnYKcQVMbVqGbX",
+          "to": "5GUq4mo4fVDKF9ZhQwGyBAhciuF2vXJ8N6fxXS6bKC77N6US",
+          "amount": "10000000000"
+        }
+      ],
+      "matchesApiReceipt": true
+    },
+    {
+      "rail": "native-product",
+      "hash": "0xc579cffc6fd64acd76725b0151266450e12c793d5f8bccfd54ca2e814ebe7441",
+      "block": {
+        "number": 15501782,
+        "hash": "0x53fe05c0452cabb76dfc70eaf6d0c95b246095a66d5cc72ad76ce3723aed19a0",
+        "index": 2
+      },
+      "runtime": "0x05c643a1ed0e75c8a3486410f13bc4597c2674d7",
+      "sender": "0x2f6BF01a6708C927b288a53B9fE3f9edc689FF56",
+      "amountEvm": "1420000000000000000",
+      "shares": [
+        {
+          "contributionId": "0xe3e5b51e139b7a55d23c8abe8433b58fa302e34369feb1694ff704f8f78ee9a4",
+          "recipient": "0x2f6BF01a6708C927b288a53B9fE3f9edc689FF56",
+          "amount": "1420000000000000000",
+          "role": 0,
+          "paid": true
+        }
+      ],
+      "transfers": [
+        {
+          "from": "5G7KWbnCUoi1qKvjygWn3JvZNm1b3Z5hzq8V48KpXnpJrNFz",
+          "to": "5CCGzZtF9bDKiyG8hHXn7iJf3Me18KdXT71KDA88dz8cfBSy",
+          "amount": "14200000000"
+        },
+        {
+          "from": "5CCGzZtF9bDKiyG8hHXn7iJf3Me18KdXT71KDA88dz8cfBSy",
+          "to": "5G7KWbnCUoi1qKvjygWn3JvZNm1b3Z5hzq8V48KpXnpJrNFz",
+          "amount": "14200000000"
+        }
+      ],
+      "matchesApiReceipt": true
+    },
+    {
+      "rail": "native-product",
+      "hash": "0x1a9d7300356418fd7bcdde5b643ca6e1562fab12c4440327ea762b671bff1d2b",
+      "block": {
+        "number": 15501838,
+        "hash": "0x9591dd16c5f6c850ffd91d9a177b52ebf5bf9dba309a3ccc37862822493b402b",
+        "index": 2
+      },
+      "runtime": "0xdcf6b75e4185e99a830878d044dc76372c556819",
+      "sender": "0x2f6BF01a6708C927b288a53B9fE3f9edc689FF56",
+      "amountEvm": "1000000000000000000",
+      "shares": [
+        {
+          "contributionId": "0xa56d53f59bf0bf9dbf35340f305f6b4a9b601a7073f6737df06c85decea6af7a",
+          "recipient": "0xC3571714248588C6E19cDECe2778B75341b2c288",
+          "amount": "1000000000000000000",
+          "role": 0,
+          "paid": true
+        }
+      ],
+      "transfers": [
+        {
+          "from": "5G7KWbnCUoi1qKvjygWn3JvZNm1b3Z5hzq8V48KpXnpJrNFz",
+          "to": "5H4RgVxnPvYNQKeT7J5EyNdJdUdfDPWb2cfnYKcQVMbVqGbX",
+          "amount": "10000000000"
+        },
+        {
+          "from": "5H4RgVxnPvYNQKeT7J5EyNdJdUdfDPWb2cfnYKcQVMbVqGbX",
+          "to": "5GUq4mo4fVDKF9ZhQwGyBAhciuF2vXJ8N6fxXS6bKC77N6US",
+          "amount": "10000000000"
+        }
+      ],
+      "matchesApiReceipt": true
+    },
+    {
+      "rail": "native-product",
+      "hash": "0x5109c8ceb2e1a1d06d91db4bf0c25a99c237c4c60d9e4fab2d304aa269c85ecd",
+      "block": {
+        "number": 15501936,
+        "hash": "0x2c7b37cf24814eaee9e135ee35c493eeade27585de646598d62c4691a75ffb79",
+        "index": 2
+      },
+      "runtime": "0x05c643a1ed0e75c8a3486410f13bc4597c2674d7",
+      "sender": "0x2f6BF01a6708C927b288a53B9fE3f9edc689FF56",
+      "amountEvm": "500000000000000000",
+      "shares": [
+        {
+          "contributionId": "0x53dc6c479434944d66a0a0f3b3ce074da8dc37f93fd6078fdbe738b2a547de2e",
+          "recipient": "0x2f6BF01a6708C927b288a53B9fE3f9edc689FF56",
+          "amount": "500000000000000000",
+          "role": 0,
+          "paid": true
+        }
+      ],
+      "transfers": [
+        {
+          "from": "5G7KWbnCUoi1qKvjygWn3JvZNm1b3Z5hzq8V48KpXnpJrNFz",
+          "to": "5CCGzZtF9bDKiyG8hHXn7iJf3Me18KdXT71KDA88dz8cfBSy",
+          "amount": "5000000000"
+        },
+        {
+          "from": "5CCGzZtF9bDKiyG8hHXn7iJf3Me18KdXT71KDA88dz8cfBSy",
+          "to": "5G7KWbnCUoi1qKvjygWn3JvZNm1b3Z5hzq8V48KpXnpJrNFz",
+          "amount": "5000000000"
+        }
+      ],
+      "matchesApiReceipt": true
+    },
+    {
+      "rail": "native-product",
+      "hash": "0x056d541cfeeddb3894e38c2efb04beb889fae034ce5e81182164bbb905b6e557",
+      "block": {
+        "number": 15700697,
+        "hash": "0xd62843ea2acebb388723379dabf520782d0ecb8d20ae4aefb06c2c8bf53bfee1",
+        "index": 2
+      },
+      "runtime": "0xdcf6b75e4185e99a830878d044dc76372c556819",
+      "sender": "0x2f6BF01a6708C927b288a53B9fE3f9edc689FF56",
+      "amountEvm": "240000000000000000",
+      "shares": [
+        {
+          "contributionId": "0xb0bc1ed02d8ee2ec1eb292fb8a2927a4831ce6e54a4801f7570abed8aa22af7e",
+          "recipient": "0xC3571714248588C6E19cDECe2778B75341b2c288",
+          "amount": "240000000000000000",
+          "role": 0,
+          "paid": true
+        }
+      ],
+      "transfers": [
+        {
+          "from": "5G7KWbnCUoi1qKvjygWn3JvZNm1b3Z5hzq8V48KpXnpJrNFz",
+          "to": "5H4RgVxnPvYNQKeT7J5EyNdJdUdfDPWb2cfnYKcQVMbVqGbX",
+          "amount": "2400000000"
+        },
+        {
+          "from": "5H4RgVxnPvYNQKeT7J5EyNdJdUdfDPWb2cfnYKcQVMbVqGbX",
+          "to": "5GUq4mo4fVDKF9ZhQwGyBAhciuF2vXJ8N6fxXS6bKC77N6US",
+          "amount": "2400000000"
+        }
+      ],
+      "matchesApiReceipt": true
+    },
+    {
+      "rail": "evm",
+      "hash": "0xeea31c868422a381d1a97bb2e704db833b308914297df5daa47fe4e2ec929444",
+      "extrinsicHash": "0x67d03d201e146c824de5dbd9627840815bb5e2babde880d640c0694039a62b79",
+      "block": {
+        "number": 15323656,
+        "nativeHash": "0x6482ab42b45f955e285d32a924ff81d9790a2bd1d578182ba2ecb5ef3a2c202a",
+        "ethereumHash": "0xaa2005a211f81cf66c2a227651a7e7dfd42517b97b92d43e3d94bc8f67d75783"
+      },
+      "runtime": "0x05c643a1ed0e75c8a3486410f13bc4597c2674d7",
+      "kind": "MusicRoyAccessPaid",
+      "sender": "0xC3571714248588C6E19cDECe2778B75341b2c288",
+      "amountEvm": "1420000000000000000",
+      "shares": [
+        {
+          "contentHash": "0x66aae2bdd5859205f46c62291d93d6d5618e56201a507c2b9f5277823edafd35",
+          "listener": "0xC3571714248588C6E19cDECe2778B75341b2c288",
+          "recipient": "0x2f6BF01a6708C927b288a53B9fE3f9edc689FF56",
+          "amount": "1420000000000000000"
+        }
+      ],
+      "transfers": [
+        {
+          "from": "5GUq4mo4fVDKF9ZhQwGyBAhciuF2vXJ8N6fxXS6bKC77N6US",
+          "to": "5CCGzZtF9bDKiyG8hHXn7iJf3Me18KdXT71KDA88dz8cfBSy",
+          "amount": "14200000000"
+        },
+        {
+          "from": "5CCGzZtF9bDKiyG8hHXn7iJf3Me18KdXT71KDA88dz8cfBSy",
+          "to": "5G7KWbnCUoi1qKvjygWn3JvZNm1b3Z5hzq8V48KpXnpJrNFz",
+          "amount": "14200000000"
+        }
+      ]
+    },
+    {
+      "rail": "evm",
+      "hash": "0x6bb8752eb3701cf9fd29b4cb47263c368df7f44f25e1ddd52b987420b580401c",
+      "extrinsicHash": "0x0c95f0cef0b986f288559be645e79976c3493f5fba9047040b28069a388339c9",
+      "block": {
+        "number": 15449016,
+        "nativeHash": "0x18eb94c6ded57b8c50e859b2e0b708d32ef400500d3377e98f11c1ed571470a2",
+        "ethereumHash": "0x10336328341c896b02f67110437b68d6318d5dda2a45a176445672bffe924a09"
+      },
+      "runtime": "0xdcf6b75e4185e99a830878d044dc76372c556819",
+      "kind": "ContributionReceived",
+      "sender": "0xC3571714248588C6E19cDECe2778B75341b2c288",
+      "amountEvm": "500000000000000000",
+      "shares": [
+        {
+          "contributionId": "0xa6172f979022fa6476d5e2c8d65d1bed6e3d1687c6ac974f811cf11d55380359",
+          "recipient": "0xC3571714248588C6E19cDECe2778B75341b2c288",
+          "amount": "500000000000000000",
+          "role": 0,
+          "paid": true
+        }
+      ],
+      "transfers": [
+        {
+          "from": "5GUq4mo4fVDKF9ZhQwGyBAhciuF2vXJ8N6fxXS6bKC77N6US",
+          "to": "5H4RgVxnPvYNQKeT7J5EyNdJdUdfDPWb2cfnYKcQVMbVqGbX",
+          "amount": "5000000000"
+        },
+        {
+          "from": "5H4RgVxnPvYNQKeT7J5EyNdJdUdfDPWb2cfnYKcQVMbVqGbX",
+          "to": "5GUq4mo4fVDKF9ZhQwGyBAhciuF2vXJ8N6fxXS6bKC77N6US",
+          "amount": "5000000000"
+        }
+      ]
+    }
+  ],
+  "balanceDeltas": [
+    {
+      "number": 15700697,
+      "address": "0xC3571714248588C6E19cDECe2778B75341b2c288",
+      "expected": "2400000000",
+      "results": [
+        {
+          "number": 15700696,
+          "nativeHash": "0x9d0ed7c2dd8ea5c5f9970e899c468c87e234eea05be770adeba50b4341f14dcb",
+          "accountId": "5GUq4mo4fVDKF9ZhQwGyBAhciuF2vXJ8N6fxXS6bKC77N6US",
+          "state": {
+            "nonce": 484,
+            "consumers": 0,
+            "providers": 1,
+            "sufficients": 0,
+            "data": {
+              "free": "98409852857199",
+              "reserved": "0",
+              "frozen": "0",
+              "flags": "170141183460469231731687303715884105728"
+            }
+          },
+          "ethereumBalance": "9840975285719990000000"
+        },
+        {
+          "number": 15700697,
+          "nativeHash": "0xd62843ea2acebb388723379dabf520782d0ecb8d20ae4aefb06c2c8bf53bfee1",
+          "accountId": "5GUq4mo4fVDKF9ZhQwGyBAhciuF2vXJ8N6fxXS6bKC77N6US",
+          "state": {
+            "nonce": 484,
+            "consumers": 0,
+            "providers": 1,
+            "sufficients": 0,
+            "data": {
+              "free": "98412252857199",
+              "reserved": "0",
+              "frozen": "0",
+              "flags": "170141183460469231731687303715884105728"
+            }
+          },
+          "ethereumBalance": "9841215285719990000000"
+        }
+      ],
+      "nativeDelta": "2400000000",
+      "evmDelta": "240000000000000000"
+    },
+    {
+      "number": 15323656,
+      "address": "0x2f6BF01a6708C927b288a53B9fE3f9edc689FF56",
+      "results": [
+        {
+          "number": 15323655,
+          "nativeHash": "0x10b1b004aac38fb0256c569c9b4fe6c32269bffb51b9a68d0dfaa4618957b372",
+          "accountId": "5G7KWbnCUoi1qKvjygWn3JvZNm1b3Z5hzq8V48KpXnpJrNFz",
+          "state": {
+            "nonce": 63,
+            "consumers": 0,
+            "providers": 1,
+            "sufficients": 1,
+            "data": {
+              "free": "49281061384360",
+              "reserved": "0",
+              "frozen": "0",
+              "flags": "170141183460469231731687303715884105728"
+            }
+          },
+          "ethereumBalance": "4928096138436000000000"
+        },
+        {
+          "number": 15323656,
+          "nativeHash": "0x6482ab42b45f955e285d32a924ff81d9790a2bd1d578182ba2ecb5ef3a2c202a",
+          "accountId": "5G7KWbnCUoi1qKvjygWn3JvZNm1b3Z5hzq8V48KpXnpJrNFz",
+          "state": {
+            "nonce": 63,
+            "consumers": 0,
+            "providers": 1,
+            "sufficients": 1,
+            "data": {
+              "free": "49295261384360",
+              "reserved": "0",
+              "frozen": "0",
+              "flags": "170141183460469231731687303715884105728"
+            }
+          },
+          "ethereumBalance": "4929516138436000000000"
+        }
+      ],
+      "nativeDelta": "14200000000",
+      "evmDelta": "1420000000000000000"
+    },
+    {
+      "number": 15449016,
+      "address": "0xC3571714248588C6E19cDECe2778B75341b2c288",
+      "results": [
+        {
+          "number": 15449015,
+          "nativeHash": "0xba52280261e8b393164d472da2ffd689be3cdc630a905d2c1e731c240409dd16",
+          "accountId": "5GUq4mo4fVDKF9ZhQwGyBAhciuF2vXJ8N6fxXS6bKC77N6US",
+          "state": {
+            "nonce": 480,
+            "consumers": 0,
+            "providers": 1,
+            "sufficients": 0,
+            "data": {
+              "free": "98393081607199",
+              "reserved": "0",
+              "frozen": "0",
+              "flags": "170141183460469231731687303715884105728"
+            }
+          },
+          "ethereumBalance": "9839298160719990000000"
+        },
+        {
+          "number": 15449016,
+          "nativeHash": "0x18eb94c6ded57b8c50e859b2e0b708d32ef400500d3377e98f11c1ed571470a2",
+          "accountId": "5GUq4mo4fVDKF9ZhQwGyBAhciuF2vXJ8N6fxXS6bKC77N6US",
+          "state": {
+            "nonce": 481,
+            "consumers": 0,
+            "providers": 1,
+            "sufficients": 0,
+            "data": {
+              "free": "98393013437199",
+              "reserved": "0",
+              "frozen": "0",
+              "flags": "170141183460469231731687303715884105728"
+            }
+          },
+          "ethereumBalance": "9839291343719990000000"
+        }
+      ],
+      "nativeDelta": "-68170000",
+      "evmDelta": "-6817000000000000"
+    }
+  ],
+  "summary": {
+    "samples": 9,
+    "selfPayments": 3,
+    "totalPas": "10.78",
+    "selfPaymentsPas": "2.42",
+    "unsettledKnownShares": 0
+  },
+  "limitations": [
+    "API native history covers only verified receipts saved by Dotify.",
+    "No exhaustive scan of all historical native calls, other runtimes, assets or accounts.",
+    "No Host signing or new failed-recipient/claim transaction was performed."
+  ]
+}

@@ -25,35 +25,36 @@ export function createNativeReceiptRoutes(deps: { read: (input: NativeReceiptReq
       )
     );
   return async (app: FastifyInstance): Promise<void> => {
-    app.post(
-      '/api/contributions/native-receipt',
-      {
-        config: {
-          rateLimit: {
-            max: (request: FastifyRequest) => (trusted(request) ? 300 : 20),
-            timeWindow: '1 minute',
-            keyGenerator: (request: FastifyRequest) => (trusted(request) ? 'native-receipt:signaling' : `native-receipt:public:${request.ip}`)
+    for (const route of ['/api/contributions/native-receipt', '/api/payments/native-receipt'])
+      app.post(
+        route,
+        {
+          config: {
+            rateLimit: {
+              max: (request: FastifyRequest) => (trusted(request) ? 300 : 20),
+              timeWindow: '1 minute',
+              keyGenerator: (request: FastifyRequest) => (trusted(request) ? 'native-receipt:signaling' : `native-receipt:public:${request.ip}`)
+            }
+          }
+        },
+        async (request, reply) => {
+          reply.header('Cache-Control', 'no-store');
+          const input = schema.safeParse(request.body);
+          if (!input.success)
+            return reply
+              .code(400)
+              .send({ code: 'INVALID_NATIVE_RECEIPT', error: 'Choose a valid native transaction and receipt block.', requestId: String(request.id) });
+          try {
+            return await deps.read(input.data as NativeReceiptRequest);
+          } catch (error) {
+            const unavailable = error instanceof NativeReceiptUnavailableError;
+            return reply.code(unavailable ? 503 : 409).send({
+              code: unavailable ? 'NATIVE_RECEIPT_UNAVAILABLE' : 'NATIVE_RECEIPT_UNVERIFIED',
+              error: unavailable ? error.message : 'The native receipt could not be verified for this transaction and block. Keep this contribution pending.',
+              requestId: String(request.id)
+            });
           }
         }
-      },
-      async (request, reply) => {
-        reply.header('Cache-Control', 'no-store');
-        const input = schema.safeParse(request.body);
-        if (!input.success)
-          return reply
-            .code(400)
-            .send({ code: 'INVALID_NATIVE_RECEIPT', error: 'Choose a valid native transaction and receipt block.', requestId: String(request.id) });
-        try {
-          return await deps.read(input.data as NativeReceiptRequest);
-        } catch (error) {
-          const unavailable = error instanceof NativeReceiptUnavailableError;
-          return reply.code(unavailable ? 503 : 409).send({
-            code: unavailable ? 'NATIVE_RECEIPT_UNAVAILABLE' : 'NATIVE_RECEIPT_UNVERIFIED',
-            error: unavailable ? error.message : 'The native receipt could not be verified for this transaction and block. Keep this contribution pending.',
-            requestId: String(request.id)
-          });
-        }
-      }
-    );
+      );
   };
 }

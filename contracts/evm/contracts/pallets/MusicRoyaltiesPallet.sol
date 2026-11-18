@@ -88,7 +88,7 @@ contract MusicRoyaltiesPallet is MusicContributionsPallet {
 
     uint256 refund = msg.value - price;
     if (refund > 0) {
-      bool refunded = LibMusicRoyalties.trySendNative(msg.sender, refund);
+      bool refunded = LibMusicRoyalties.tryClaimNative(msg.sender, refund);
       require(refunded, 'MusicRoyalties: refund failed');
       emit MusicRoyRefunded(contentHash, msg.sender, refund);
     }
@@ -113,7 +113,7 @@ contract MusicRoyaltiesPallet is MusicContributionsPallet {
     amount = LibMusicRoyalties.takeClaimable(royaltyStore, recipient);
     require(amount > 0, 'MusicRoyalties: nothing to claim');
 
-    settled = LibMusicRoyalties.trySendNative(recipient, amount);
+    settled = LibMusicRoyalties.tryClaimNative(recipient, amount);
     if (settled) {
       emit MusicRoyRoyaltyClaimed(recipient, amount);
       return (amount, true);

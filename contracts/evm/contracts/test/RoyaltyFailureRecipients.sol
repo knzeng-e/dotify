@@ -30,12 +30,34 @@ contract GasConsumingRoyaltyRecipient {
 
   receive() external payable {
     if (!burnGas) return;
-    for (uint256 i = 0; i < 300; i++) {
-      sink += i + msg.value;
+    while (burnGas) {
+      sink += 1 + msg.value;
     }
   }
 
   function claimFrom(address runtime) external returns (uint256 amount, bool settled) {
     return IRoyaltyClaimRuntime(runtime).musicRoyClaim(address(this));
+  }
+}
+
+/// @dev A legitimate receiver whose execution exceeds the old fixed stipend.
+contract ExpensiveRoyaltyRecipient {
+  uint256 public minimumGas = 150_000;
+
+  receive() external payable {
+    require(gasleft() >= minimumGas, 'ExpensiveRoyaltyRecipient: insufficient budget');
+  }
+
+  function claimFrom(address runtime) external returns (uint256 amount, bool settled) {
+    return IRoyaltyClaimRuntime(runtime).musicRoyClaim(address(this));
+  }
+
+  function claimContribution(address runtime, bytes32 id) external {
+    IRoyaltyClaimRuntime(runtime).musicGiftClaim(id);
+  }
+
+  function payAccess(address runtime, bytes32 contentHash) external payable {
+    (bool ok, ) = runtime.call{ value: msg.value }(abi.encodeWithSignature('musicRoyPayAccess(bytes32)', contentHash));
+    require(ok, 'ExpensiveRoyaltyRecipient: purchase failed');
   }
 }

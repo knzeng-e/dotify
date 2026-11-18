@@ -150,3 +150,53 @@ it('allows a maximum-size history at the refresh cadence while retaining an IP r
       await app.close();
     }
   }));
+
+it('preserves native royalty purchases and claim-only receipts across restart without mixing contribution totals', async () =>
+  fixture(async (ledger, path) => {
+    const { royaltiesAbi } = await import('../generated/royalties.js');
+    const purchase = receipt(2);
+    const makeLog = (eventName: 'MusicRoyRoyaltyPaid' | 'MusicRoyRoyaltyClaimable' | 'MusicRoyAccessPaid', amount: bigint, logIndex: number) => ({
+      address: runtime,
+      transactionHash: purchase.hash,
+      logIndex,
+      topics: encodeEventTopics({
+        abi: royaltiesAbi,
+        eventName,
+        args: { contentHash: id, listener: sender, ...(eventName === 'MusicRoyAccessPaid' ? {} : { recipient: sender }) }
+      }) as `0x${string}`[],
+      data:
+        eventName === 'MusicRoyRoyaltyClaimable'
+          ? encodeAbiParameters([{ type: 'uint256' }, { type: 'uint256' }], [amount, amount])
+          : encodeAbiParameters([{ type: 'uint256' }], [amount])
+    });
+    purchase.logs = [makeLog('MusicRoyRoyaltyPaid', 60n, 0), makeLog('MusicRoyRoyaltyClaimable', 40n, 1), makeLog('MusicRoyAccessPaid', 100n, 2)];
+    const claim = receipt(3);
+    claim.logs = [
+      {
+        address: runtime,
+        transactionHash: claim.hash,
+        logIndex: 0,
+        topics: encodeEventTopics({ abi: royaltiesAbi, eventName: 'MusicRoyRoyaltyClaimed', args: { recipient: sender } }) as `0x${string}`[],
+        data: encodeAbiParameters([{ type: 'uint256' }], [40n])
+      }
+    ];
+    await ledger.record(receipt());
+    await ledger.record(purchase);
+    await ledger.record(claim);
+    const restored = new NativeContributionLedger(path);
+    assert.equal((await restored.history([runtime])).receipts.length, 1);
+    assert.equal((await restored.history([runtime], 0, undefined, 'royalties')).receipts.length, 2);
+    await assert.rejects(restored.record({ ...purchase, hash: id, logs: purchase.logs.map(log => ({ ...log, transactionHash: id })).slice(1) }));
+    assert.equal((await restored.history([runtime], 0, undefined, 'royalties')).receipts.length, 2);
+    const app = Fastify();
+    await app.register(createContributionHistoryRoutes(restored, true));
+    try {
+      const response = await app.inject({ method: 'POST', url: '/api/royalties/history', payload: { runtimes: [runtime] } });
+      assert.equal(response.statusCode, 200);
+      assert.equal(response.json().receipts.length, 2);
+      assert.equal(response.json().coverage, 'verified-receipts');
+      assert.equal((await app.inject({ method: 'POST', url: '/api/royalties/history', payload: { runtimes: [runtime], logs: claim.logs } })).statusCode, 400);
+    } finally {
+      await app.close();
+    }
+  }));

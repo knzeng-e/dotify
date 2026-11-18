@@ -1431,7 +1431,10 @@ export function useCatalog(deps: UseCatalogDeps) {
               ...buildClassicAccessVerifiedFeedback(receiptTrack, result.txHash, receiptAsset),
               proofKind: supportProofKind,
               facts: buildSupportFacts(receiptTrack, receiptAsset, 'confirmed'),
-              technicalFacts: buildSupportTechnicalFacts(receiptTrack, receiptAsset, 'confirmed')
+              technicalFacts: [
+                ...buildSupportTechnicalFacts(receiptTrack, receiptAsset, 'confirmed'),
+                ...(result.historyWarning ? [{ label: 'Payment history', value: result.historyWarning }] : [])
+              ]
             }
           : { tone: 'success', title: 'Listening access available', message: 'This account can already listen. No payment was sent.' }
       );

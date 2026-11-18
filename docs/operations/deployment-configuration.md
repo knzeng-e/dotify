@@ -100,6 +100,52 @@ update a Netlify dashboard, server image or deployment.
 
 ## Hosted surfaces
 
+### Native payment correction candidate (#484)
+
+The owner selected a **complete fresh testnet generation on 18 November 2026**.
+The old contracts, releases, references, purchases, NFTs and pending test balances
+are abandoned as active application state. This replaces the earlier facet-only
+migration plan for [the payment correction](../backlog/native-payment-settlement-parity.md).
+This is a planned procedure; no deployment or reset is recorded here.
+
+1. Finish the system-audit corrections and freeze a tested source commit before
+   preparing deployment transactions. Review a versioned manifest for the fresh
+   directory, factory, initializer, facets and artist runtimes, with chain ID,
+   compiler settings, addresses and bytecode hashes. Verify any optional metadata
+   and contribution facets needed by the selected product flows are included.
+2. Prepare a coherent new active scope across contract configuration, API
+   catalogue/checkpoints, native receipt history, client bootstrap/catalogue and
+   runtime-bound release/key references. Provision clean generation-specific
+   journals/queues and retire old active jobs, admissions and saved receipt
+   lookups. Preserve dated audit evidence separately. Old on-chain/storage
+   objects are not claimed to be deleted. Do not replay old pending writes or
+   reset a reused account's chain nonce.
+3. Deploy and read back the new manifest before switching its references. Keep
+   one custody writer, `PASEO_ASSET_HUB_NATIVE_RPC`, `DOTIFY_CHAIN_ID=420420417`
+   and durable `NATIVE_CONTRIBUTION_SNAPSHOT_PATH`; bind its active history to
+   the new generation. The version-1 schema can retain both contribution and
+   royalty events. Its path belongs on the custody volume, not an edge filesystem.
+4. Deliver matching custody/edge receipt endpoints before enabling clients.
+   Edges proxy `/api/payments` and `/api/royalties` with contribution routes.
+   Verify royalty-history reads and reject caller-supplied logs/targets at
+   `/api/payments/native-receipt`. Keep API/RPC configuration coherent and
+   publish fresh Bulletin releases with new runtime-bound identities and keys.
+   No new environment variable, CORS origin, mount type or scaling is introduced
+   by the payment code itself; exact fresh state paths/configuration still need
+   a reviewed deployment manifest.
+5. Verify native payout, failed-recipient claims, refund isolation and maximum
+   fan-out on the exact target Revive artifact. On physical Product Host, verify
+   finality, beneficiary balance, receipt links, API outage/reload/sync repair,
+   and pre-submit storage rejection. A post-finality storage failure must retain
+   the hash/block and continue balance/access verification, with a separate
+   history warning. Never repay merely to repair history. Accept publication,
+   solo/Room listening, track changes and lock-screen artwork against the new
+   release generation. SDK #483 and CASH keep their separate compatibility gates.
+6. Back up the new generation's expanded receipt journal before delivery and
+   retain it across rollback within that generation. Roll clients and APIs back
+   coherently; do not restore an empty journal or silently reconnect the new
+   client to the abandoned generation. Old-testnet debt migration is not required.
+
 These links describe tracked candidate settings, not a readback of dashboards.
 Read exact origins, addresses and scaling values from the reviewed commit rather
 than copying an old release table.

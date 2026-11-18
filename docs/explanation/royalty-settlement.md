@@ -2,6 +2,17 @@
 
 > **Reading level:** Plain-language explanation first, then technical mechanics.
 
+Dated validation: the [2026-11-17 payment audit](../backlog/implementation/evidence/payment-settlement-audit-2026-11-17.md)
+compares nine existing payments against native transfers and account balances,
+and records remaining EVM/native history and claim-finality gaps. It is bounded
+evidence, not an exhaustive payment history or a CASH acceptance record.
+
+The [#484 correction candidate](../backlog/native-payment-settlement-parity.md)
+adds relative call budgets and native royalty history below. Source behavior
+is described here; the selected rollout is a complete fresh testnet generation,
+followed by matched API/client delivery and live Revive/Host acceptance. See the
+[deployment boundary](../operations/deployment-configuration.md#native-payment-correction-candidate-484).
+
 ---
 
 ## How royalties work for artists
@@ -71,9 +82,14 @@ results. No earnings history is persisted to browser storage.
 Product builds explicitly use the configured public EVM RPC for this read-only
 history, because the Product CDM reader does not expose royalty event history.
 The RPC chain ID must match the selected network. This does not replace Product
-signing, entitlement checks, or the configured contract writer. The read model
-uses latest-chain events; reorgs can change a later reading. It scans known
-runtimes from their full history and is not an exhaustive cross-chain indexer.
+signing, entitlement checks, or the configured contract writer. EVM events and
+pending balance reads use finalized state. On Paseo, the configured API also
+provides saved verified native royalty receipts. Those sources merge before
+claims are allocated; a native claim can settle an EVM accrual or vice versa.
+The same extrinsic is counted once using block number and extrinsic index,
+even when native and EVM transaction hashes/log offsets differ. Conflicting
+sources make history unavailable instead of inventing income. Reads cover known
+runtimes, not an exhaustive cross-chain index.
 
 The settled total counts only immediately paid rows and claimable rows that were
 later cleared by `MusicRoyRoyaltyClaimed`. Current claimable balances are shown
@@ -150,7 +166,10 @@ royaltyRecipients = [collaborator, artist]
 royaltyShares     = [3000, 7000]   // 30 % + 70 % = 100 %
 ```
 
-These splits are stored in the runtime and applied on every payment.
+These splits are stored in the runtime and applied on every payment. A recipient
+must be nonzero and cannot be the runtime itself: a successful self-call would
+retain the money without paying an external beneficiary. Settlement also rejects
+self-destinations before transferring, so they cannot emit a false paid event.
 
 ### Payment transaction
 
@@ -164,6 +183,29 @@ When a listener calls `musicRoyPayAccess(contentHash)`, the contract:
 6. Sends any rounding remainder to the original artist address through the same bounded settlement path.
 7. Refunds any overpayment to the caller.
 8. Emits `MusicRoyAccessPaid(contentHash, listener, price)` plus per-recipient settlement events.
+
+### Resource budgets and recovery
+
+Immediate payout attempts use at most `gasleft() / 68` per recipient, reserving
+resources for the bounded split loop, pending bookkeeping and events. The
+divisor accounts for sixteen rights holders, sixteen contribution-policy
+recipients, an artist remainder and a Room host (34 entries). Claims and overpayment refunds use at most half the remaining frame:
+they have one recipient and leave resources for failure handling. Zero amounts
+make no external call. Return data from recipients is not copied.
+
+This replaces the absolute 100,000 stipend. Revive's native execution can map a
+nested gas allowance to a proportional weight/deposit budget; Ethereum gas
+constants are not a portability guarantee. Relative budgets preserve bounded
+external calls while giving a recipient a larger self-authorized claim path.
+An expensive or rejecting receiver can still make its own transfer fail; its
+pending share remains. If an overpaying caller rejects the refund, the purchase
+still reverts atomically. Pay the exact price to avoid a refund.
+
+The storage namespace, mappings, selectors and entitlement semantics are
+unchanged. This is a facet-code candidate, not an automatic runtime upgrade.
+Hardhat regressions prove local accounting and recovery, not arbitrary PVM
+compiler/runtime resource behavior; matched live Revive acceptance is required
+before activating the new facet.
 
 The `pricePlanck` field name is historical. The active EVM path stores and pays
 prices as 18-decimal native token units. The frontend uses `parseEther()` for
@@ -231,7 +273,7 @@ timestamps are fetched separately to display human-readable dates.
 
 `musicRoyClaimable(recipient)` returns the pending native-token amount for that
 recipient. `musicRoyClaim(recipient)` requires `recipient == msg.sender`, sends
-the pending amount with the same bounded native-transfer helper, and either:
+the pending amount with the larger bounded single-claim allowance, and either:
 
 - emits `MusicRoyRoyaltyClaimed` and clears the pending balance; or
 - emits `MusicRoyRoyaltyClaimFailed` and restores the balance for a later retry.
@@ -240,54 +282,42 @@ The failed-claim path does not revert, because a reverted transaction would also
 discard the failure event. The caller must read `musicRoyClaimable` again before
 treating the money as received.
 
-### Runtime upgrades and clean migration
+### Fresh testnet generation
 
-Artist SmartRuntimes are Diamond proxies. The preferred upgrade path is an
-owner-signed `diamondCut` that replaces or adds only the affected pallet
-selectors while preserving the runtime address, catalogue storage, paid-access
-state, claimable balances, and content-key binding.
+On 18 November 2026 the owner chose a complete clean testnet redeployment after
+the audit corrections. The previous runtimes, releases, references, purchases,
+NFT state and pending test balances will not be imported. Historical contracts
+and immutable storage objects may remain on-chain, but are retired from the
+active application. New releases require new runtime-bound identities and keys;
+old upload jobs and signing intents must not be replayed into the new generation.
 
-W05 adds Hardhat tasks for that path:
+The [deployment procedure](../operations/deployment-configuration.md#native-payment-correction-candidate-484)
+owns the cutover and validation requirements. Redeployment has not been executed.
+General Diamond tooling remains available for future maintenance, but recovering
+old testnet debts is not a requirement of this release. The migration-only
+`LegacyFixedGasPaymentPallet` test fixture is removed; ordinary failed-payout and
+claim tests remain.
 
-```bash
-cd contracts/evm
-npm run runtime:export:testnet -- --runtime <OLD_RUNTIME> --recipient <RECIPIENT> --out /tmp/runtime-snapshot.json
-npm run runtime:deploy-royalties-facet:testnet
-npm run runtime:deploy-royalties-facet:testnet -- --execute --confirm-chain-id 420420417 --confirm-code-hash <LOCAL_CODE_HASH> --out /tmp/royalties-facet.json
-npm run runtime:royalties-upgrade:testnet -- --runtime <OLD_RUNTIME> --facet <NEW_ROYALTIES_FACET> --out /tmp/royalties-upgrade-plan.json
-npm run runtime:royalties-upgrade:testnet -- --runtime <OLD_RUNTIME> --facet <NEW_ROYALTIES_FACET> --execute --confirm-plan <PLAN_DIGEST> --out /tmp/royalties-upgrade-final.json
-```
+### Receipt persistence and finalized results
 
-Both deploy and upgrade tasks are dry-run by default. The deploy task emits the
-local source code hash that must be passed back as `--confirm-code-hash`, then
-writes the new stateless facet address to the deployment manifest. The upgrade
-task execution requires the current runtime owner key, the new facet via
-`--facet`, an output evidence path, and an exact fresh plan digest. It snapshots
-track state before the cut, simulates the owner call, records signed/broadcast
-evidence, waits for finality, verifies every royalties selector, and compares
-the post-upgrade catalogue hash with the pre-upgrade hash.
+Before a Product royalty payment or claim, Dotify checks that the saved-reference
+queue is readable, below its 1,000-reference cap and writable. A failure at this
+stage prevents transaction submission. The check cannot reserve browser quota
+or prevent a concurrent tab from changing the queue during wallet approval.
 
-If `runtime:royalties-upgrade` reports a target royalties facet code-hash
-mismatch, the facet address being used is not the locally compiled W05 facet.
-Deploy the current facet first, then rerun the upgrade with `--facet
-<NEW_ROYALTIES_FACET>`.
-
-Clean redeploy is a fallback, not the default. You can save a runtime snapshot
-and render replay calldata for a new runtime:
-
-```bash
-npm run runtime:migration-plan -- --snapshot /tmp/runtime-snapshot.json --target-runtime <NEW_RUNTIME> --out /tmp/runtime-migration-plan.json
-```
-
-That plan does not move paid-access state or claimable balances. It also blocks
-encrypted `dotify:enc:v2:` audio refs by default because content-key derivation
-is bound to `chainId + runtimeAddress + contentHash`; migrating those releases
-requires re-encrypting/re-uploading audio for the new runtime or an explicit
-key-recovery flow.
+After finalization, receipt persistence is best effort with an explicit failure
+result separate from the transaction: the writer returns the finalized hash
+and retains its block for a history warning. The queue also retains the public
+reference in the current tab if durable saving fails. The claim UI continues its
+finalized pending-balance readback and distinguishes cleared balances from a
+history warning. The listener flow continues verifying paid/playable access and
+shows history trouble in the receipt details. Neither case resubmits money.
+Copy the receipt before closing the tab if the durable save failed; a later
+read-only receipt check can repair API history.
 
 ### Human free tracking
 
-`musicRoyRecordListen(contentHash)` is available for Human free tracks. It does not process a payment but records that a listener completed playback. This data is available for analytics. The event is:
+`musicRoyRecordListen(contentHash)` is available for Human free tracks. It does not process a payment; it records an eligible account's declaration. It does not prove playback duration or deduplicate repeated listens. Analytics must preserve that distinction. The event is:
 
 ```solidity
 event MusicRoyListenRecorded(bytes32 indexed contentHash, address indexed listener);
@@ -329,7 +359,6 @@ compute aggregates:
 
 The `RoyaltyPayment` type is defined in `web/src/shared/types.ts`.
 
-
 ## Artist dashboard: recorded native support
 
 Overview and Earnings share a contribution snapshot. The headline is the
@@ -358,3 +387,47 @@ not represent listening counts, wallet balances or claim-day cash flow.
 The ledger is a bounded single-writer read model: a persistent volume is required
 for deployment, with snapshots and independent backup. It does not replace
 on-chain proof. See the [deployment runbook](../operations/deployment-configuration.md).
+
+## Native Classic royalty receipts
+
+`POST /api/payments/native-receipt` uses the same canonical finalized native
+proof reader as contributions. It discovers the actual extrinsic index from
+the saved hash, validates dispatch and returns only that extrinsic's emitted
+logs. Caller-provided logs, RPC targets and success flags are rejected.
+The existing native journal also saves access, royalty, claim and failure
+events. Access receipts with settlement shares must conserve their price;
+legacy access-only receipts establish gross revenue only. Claim-only receipts
+must be retained even though they introduce no sale.
+
+`POST /api/royalties/history` has the same runtime/page/revision bounds as
+contribution history and filters the shared journal by event family.
+Contributions still deduplicate by runtime/intent; royalties deduplicate
+overlapping native/EVM extrinsics before reconciling ordered claims. Native
+proof links go to Subscan; EVM proofs go to Blockscout. Claims preceding an
+accrual cannot clear it. Failed claims are not received income.
+
+Product access payments and royalty claims request `waitFor: finalized`.
+Their public hash/block/runtime references are saved locally before background
+verification. A failed API request retains the reference for a read-only retry;
+it never signs or submits another transaction. Each sync is bounded to four
+references and one 25-second budget. Storage writes use the existing browser
+lock when available. Missing block metadata remains explicit and requires
+verification by hash/block through **Find an earlier native payment**. An
+unreadable journal is an error, not permission to discard unknown references.
+
+Artist claim feedback also checks the finalized pending balance: successful
+transaction inclusion alone is insufficient. Native history remains
+`coverage: verified-receipts`, including repaired references; unsaved older
+transactions may be absent. There is no background whole-chain scan.
+
+The payout-account disclosure calls the System precompile's `toAccountId` at
+finalized state, checks the returned 32-byte account round-trip against H160,
+and formats it as SS58. It never guesses that every H160 uses the EE-padded
+fallback. The display names PAS/Paseo separately from CASH, other networks and
+other Host accounts. Contributions returning to their sender are labelled as
+self-payments: settled shares can increase recorded income while fees reduce
+the sender's wallet balance.
+
+The [2026-11-18 source-candidate evidence](../backlog/implementation/evidence/native-payment-settlement-candidate-2026-11-18.md)
+separates local regressions and read-only account resolution from deployment
+and physical Host acceptance.

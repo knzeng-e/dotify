@@ -68,3 +68,28 @@ describe('native receipt route', () => {
     await app.close();
   });
 });
+
+it('royalty receipt checks use the same verified reader and reject injected events or RPC URLs', async () => {
+  const app = Fastify();
+  let calls = 0;
+  await app.register(
+    createNativeReceiptRoutes({
+      read: async input => {
+        calls++;
+        return { ...input, block: { ...input.block, hash, index: 2 }, genesisHash: PASEO_ASSET_HUB_GENESIS, status: 'success', logs: [] };
+      }
+    })
+  );
+  try {
+    const payload = { hash, block: { number: 123 } };
+    const response = await app.inject({ method: 'POST', url: '/api/payments/native-receipt', payload });
+    assert.equal(response.statusCode, 200);
+    assert.equal(response.json().block.index, 2);
+    for (const extra of [{ logs: [] }, { rpcUrl: 'https://untrusted.example' }]) {
+      assert.equal((await app.inject({ method: 'POST', url: '/api/payments/native-receipt', payload: { ...payload, ...extra } })).statusCode, 400);
+    }
+    assert.equal(calls, 1);
+  } finally {
+    await app.close();
+  }
+});

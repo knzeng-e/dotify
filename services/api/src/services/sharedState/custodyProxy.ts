@@ -19,7 +19,7 @@ export async function registerCustodyProxy(
   options: { origin: string; token: string; production: boolean; clientIp?: (request: Pick<import('fastify').FastifyRequest, 'headers' | 'ip'>) => string }
 ) {
   const upstream = validateCustodyOrigin(options.origin, options.production);
-  for (const prefix of ['/api/uploads', '/api/contributions']) {
+  for (const prefix of ['/api/uploads', '/api/contributions', '/api/payments', '/api/royalties']) {
     await app.register(proxy, {
       upstream,
       prefix,
@@ -38,13 +38,11 @@ export async function registerCustodyProxy(
           'fly-client-ip': options.clientIp?.(request) ?? request.ip
         }),
         onError: reply => {
-          void reply
-            .code(503)
-            .send({
-              code: 'CUSTODY_UNAVAILABLE',
-              error: 'Publishing is temporarily unavailable. Please try again shortly.',
-              requestId: String(reply.request.id)
-            });
+          void reply.code(503).send({
+            code: 'CUSTODY_UNAVAILABLE',
+            error: 'Publishing is temporarily unavailable. Please try again shortly.',
+            requestId: String(reply.request.id)
+          });
         }
       }
     });

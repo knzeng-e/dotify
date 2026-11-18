@@ -381,7 +381,7 @@ describe('createProductCdmRuntimeWriter', () => {
     expect(createRuntime.tx).toHaveBeenCalledWith({ waitFor: 'finalized' });
     expect(installRuntimeStep.tx).toHaveBeenCalledWith({ waitFor: 'finalized' });
     expect(musicRoyPayAccess.tx).toHaveBeenCalledWith(hash, { value: 30_000_000_000n, waitFor: 'finalized' });
-    expect(musicRoyClaim.tx).toHaveBeenCalledWith(splitRecipient);
+    expect(musicRoyClaim.tx).toHaveBeenCalledWith(splitRecipient, { waitFor: 'finalized' });
     expect(musicGiftContribute.tx).toHaveBeenCalledWith(hash, { value: 42_000_000_000n, waitFor: 'finalized' });
     expect(writer.contributionConfirmationMode).toBe('finalized-event');
     expect(musicRegSetAccessMode.tx).toHaveBeenCalledWith(hash, 2, 0n, 1);
@@ -438,3 +438,80 @@ describe('createProductCdmRuntimeWriter', () => {
     await expect(badHashWriter.createRuntime(factory)).rejects.toThrow(ProductCdmRuntimeError);
   });
 });
+
+it('does not publish a claim receipt before finalized tx resolution and preserves the verified block', async () => {
+  let finish!: (value: { ok: true; value: { ok: true; txHash: string; block: { number: number; index: number; hash: string } } }) => void;
+  const tx = vi.fn(
+    () =>
+      new Promise<{ ok: true; value: { ok: true; txHash: string; block: { number: number; index: number; hash: string } } }>(resolve => {
+        finish = resolve;
+      })
+  );
+  const onRoyaltyFinalized = vi.fn();
+  const writer = createProductCdmRuntimeWriter({
+    nativeTokenDecimals: 10,
+    onRoyaltyFinalized,
+    contracts: { getDirectoryContract: () => ({}), getFactoryContract: () => ({}), getRuntimeContract: () => ({ musicRoyClaim: { tx } }) }
+  });
+  const claim = writer.claimRoyalty(runtime, splitRecipient);
+  expect(onRoyaltyFinalized).not.toHaveBeenCalled();
+  expect(tx).toHaveBeenCalledWith(splitRecipient, { waitFor: 'finalized' });
+  finish({ ok: true, value: { ok: true, txHash, block: { number: 123, index: 2, hash } } });
+  await expect(claim).resolves.toBe(txHash);
+  expect(onRoyaltyFinalized).toHaveBeenCalledExactlyOnceWith(runtime, txHash, { number: 123, index: 2, hash });
+});
+
+for (const kind of ['payment', 'claim'] as const) {
+  it(`preserves a finalized ${kind} hash/block when its history callback rejects`, async () => {
+    const block = { number: 123, index: 2, hash };
+    const tx = vi.fn(async () => ({ ok: true as const, value: { ok: true, txHash, block } }));
+    const writer = createProductCdmRuntimeWriter({
+      nativeTokenDecimals: 10,
+      onRoyaltyFinalized: vi.fn().mockRejectedValue(new Error('quota')),
+      contracts: {
+        getDirectoryContract: () => ({}),
+        getFactoryContract: () => ({}),
+        getRuntimeContract: () => ({ musicRoyClaim: { tx }, musicRoyPayAccess: { tx } })
+      }
+    });
+    const result =
+      kind === 'claim'
+        ? writer.claimRoyalty(runtime, splitRecipient)
+        : writer.payForAccess(
+            createNativeRuntimeAccessPaymentIntent({
+              runtimeAddress: runtime,
+              contentHash: hash,
+              amountPlanck: 100000000n,
+              asset: DOTIFY_FALLBACK_NATIVE_RUNTIME_ASSET
+            })
+          );
+    await expect(result).resolves.toBe(txHash);
+    expect(writer.getRoyaltyReceiptWarning?.(txHash)).toMatchObject({ block, message: expect.stringContaining('finalized') });
+    expect(tx).toHaveBeenCalledOnce();
+  });
+  it(`does not submit a ${kind} when receipt preflight fails`, async () => {
+    const tx = vi.fn();
+    const writer = createProductCdmRuntimeWriter({
+      nativeTokenDecimals: 10,
+      beforeRoyaltySubmit: vi.fn().mockRejectedValue(new Error('queue full')),
+      contracts: {
+        getDirectoryContract: () => ({}),
+        getFactoryContract: () => ({}),
+        getRuntimeContract: () => ({ musicRoyClaim: { tx }, musicRoyPayAccess: { tx } })
+      }
+    });
+    const result =
+      kind === 'claim'
+        ? writer.claimRoyalty(runtime, splitRecipient)
+        : writer.payForAccess(
+            createNativeRuntimeAccessPaymentIntent({
+              runtimeAddress: runtime,
+              contentHash: hash,
+              amountPlanck: 100000000n,
+              asset: DOTIFY_FALLBACK_NATIVE_RUNTIME_ASSET
+            })
+          );
+    await expect(result).rejects.toMatchObject({ name: 'SupportNotSubmittedError', message: 'queue full' });
+    expect(tx).not.toHaveBeenCalled();
+  });
+}

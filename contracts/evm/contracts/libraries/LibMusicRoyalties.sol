@@ -10,7 +10,11 @@ import { LibMusicBounds } from './LibMusicBounds.sol';
 /// Storage slot: keccak256("smart.runtime.pallet.music-royalties.storage")
 library LibMusicRoyalties {
   bytes32 constant STORAGE_POSITION = keccak256('smart.runtime.pallet.music-royalties.storage');
-  uint256 internal constant NATIVE_TRANSFER_GAS_LIMIT = 100_000;
+  // Contribution loops can include sixteen rights holders, sixteen policy
+  // recipients, an artist remainder and a Room host. Each attempted push may use only a small share of the remaining
+  // frame. Avoid an Ethereum-specific absolute stipend: Revive maps a nested
+  // gas budget to proportional weight/deposit resources in native execution.
+  uint256 internal constant TRANSFER_BUDGET_DIVISOR = 2 * (2 * LibMusicBounds.SPLIT_RECIPIENTS + 2);
 
   struct RoyaltySplit {
     address recipient;
@@ -42,6 +46,7 @@ library LibMusicRoyalties {
     RoyaltySplit[] storage splits = s.splits[contentHash];
     for (uint256 i; i < recipientCount; ++i) {
       require(recipients[i] != address(0), 'MusicRoyalties: zero recipient');
+      require(recipients[i] != address(this), 'MusicRoyalties: runtime recipient');
       require(bps[i] > 0, 'MusicRoyalties: zero bps');
       totalBps += bps[i];
       require(totalBps <= 10_000, 'MusicRoyalties: bps overflow');
@@ -51,7 +56,20 @@ library LibMusicRoyalties {
 
   function trySendNative(address recipient, uint256 amount) internal returns (bool) {
     if (amount == 0) return true;
-    (bool ok, ) = payable(recipient).call{ value: amount, gas: NATIVE_TRANSFER_GAS_LIMIT }('');
+    return sendNativeWithinBudget(recipient, amount, gasleft() / TRANSFER_BUDGET_DIVISOR);
+  }
+
+  /// @dev One self-authorized claim/refund has no later recipient loop. Give it
+  /// more room while retaining half the caller frame for restoration/events.
+  /// A receiver that needs more than the push budget can recover its own funds.
+  function tryClaimNative(address recipient, uint256 amount) internal returns (bool) {
+    if (amount == 0) return true;
+    return sendNativeWithinBudget(recipient, amount, gasleft() / 2);
+  }
+
+  function sendNativeWithinBudget(address recipient, uint256 amount, uint256 budget) private returns (bool) {
+    require(recipient != address(this), 'MusicRoyalties: runtime recipient');
+    (bool ok, ) = payable(recipient).call{ value: amount, gas: budget }('');
     return ok;
   }
 

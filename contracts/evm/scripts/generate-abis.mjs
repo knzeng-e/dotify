@@ -50,23 +50,29 @@ for (const { exportName, file, artifact } of CONTRACTS) {
     const serverDir = resolve(scriptDir, '../../../services/api/src/generated');
     mkdirSync(serverDir, { recursive: true });
     const lookup = parsed.abi.filter(item => item.name === 'runtimeOf');
-    writeFileSync(resolve(serverDir, 'artistDirectoryLookup.ts'), `${HEADER}\n\nexport const artistDirectoryLookupAbi = ${JSON.stringify(lookup, null, 2)} as const;\n`);
+    writeFileSync(
+      resolve(serverDir, 'artistDirectoryLookup.ts'),
+      `${HEADER}\n\nexport const artistDirectoryLookupAbi = ${JSON.stringify(lookup, null, 2)} as const;\n`
+    );
   }
   if (file === 'musicRegistry') {
     const serverDir = resolve(scriptDir, '../../../services/api/src/generated');
     mkdirSync(serverDir, { recursive: true });
     const status = parsed.abi.filter(item => item.name === 'musicRegIsRegistered');
-    writeFileSync(resolve(serverDir, 'musicRegistryStatus.ts'), `${HEADER}\n\nexport const musicRegistryStatusAbi = ${JSON.stringify(status, null, 2)} as const;\n`);
+    writeFileSync(
+      resolve(serverDir, 'musicRegistryStatus.ts'),
+      `${HEADER}\n\nexport const musicRegistryStatusAbi = ${JSON.stringify(status, null, 2)} as const;\n`
+    );
     const page = parsed.abi.filter(item => item.name === 'musicRegTrackHashesPage');
     writeFileSync(resolve(serverDir, 'musicRegistryPage.ts'), `${HEADER}\n\nexport const musicRegistryPageAbi = ${JSON.stringify(page, null, 2)} as const;\n`);
   }
   if (file === 'musicRoyalties') {
     const serverDir = resolve(scriptDir, '../../../services/api/src/generated');
     mkdirSync(serverDir, { recursive: true });
-    const events = parsed.abi.filter(item =>
-      (item.type === 'event' && item.name.startsWith('Contribution')) || item.name === 'musicGiftPending'
-    );
+    const events = parsed.abi.filter(item => (item.type === 'event' && item.name.startsWith('Contribution')) || item.name === 'musicGiftPending');
     writeFileSync(resolve(serverDir, 'contributions.ts'), `${HEADER}\n\nexport const contributionsAbi = ${JSON.stringify(events, null, 2)} as const;\n`);
+    const royalties = parsed.abi.filter(item => item.type === 'event' && item.name.startsWith('MusicRoy'));
+    writeFileSync(resolve(serverDir, 'royalties.ts'), `${HEADER}\n\nexport const royaltiesAbi = ${JSON.stringify(royalties, null, 2)} as const;\n`);
   }
 }
 

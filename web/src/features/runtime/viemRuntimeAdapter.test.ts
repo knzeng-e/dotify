@@ -172,6 +172,7 @@ describe('createViemRuntimeReader', () => {
     await expect(reader.listRoyaltyPaymentLogs(runtime, splitRecipient)).resolves.toEqual([
       {
         runtimeAddress: runtime,
+        proofKind: 'evm-transaction',
         trackHash: hash,
         listener,
         recipient: splitRecipient,
@@ -184,6 +185,7 @@ describe('createViemRuntimeReader', () => {
       },
       {
         runtimeAddress: runtime,
+        proofKind: 'evm-transaction',
         trackHash: hash,
         listener,
         recipient: splitRecipient,
@@ -196,7 +198,8 @@ describe('createViemRuntimeReader', () => {
         logIndex: 4
       }
     ]);
-    expect(getLogs).toHaveBeenCalledWith(expect.objectContaining({ args: { recipient: splitRecipient } }));
+    expect(getLogs).toHaveBeenCalledWith(expect.objectContaining({ toBlock: 'finalized' }));
+    expect(getLogs.mock.calls.every(([request]) => !('args' in request))).toBe(true);
   });
 
   it('reconciles claimable accrual rows after successful royalty claims', async () => {
@@ -239,6 +242,7 @@ describe('createViemRuntimeReader', () => {
     await expect(reader.listRoyaltyPaymentLogs(runtime, splitRecipient)).resolves.toMatchObject([
       {
         runtimeAddress: runtime,
+        proofKind: 'evm-transaction',
         trackHash: hash,
         listener,
         recipient: splitRecipient,
@@ -251,6 +255,7 @@ describe('createViemRuntimeReader', () => {
       },
       {
         runtimeAddress: runtime,
+        proofKind: 'evm-transaction',
         trackHash: hash,
         listener,
         recipient: splitRecipient,
@@ -302,6 +307,7 @@ describe('createViemRuntimeReader', () => {
     await expect(reader.listRoyaltyPaymentLogs(runtime, splitRecipient)).resolves.toEqual([
       {
         runtimeAddress: runtime,
+        proofKind: 'evm-transaction',
         trackHash: hash,
         listener,
         recipient: splitRecipient,
@@ -314,6 +320,7 @@ describe('createViemRuntimeReader', () => {
       },
       {
         runtimeAddress: runtime,
+        proofKind: 'evm-transaction',
         trackHash: hash,
         listener,
         recipient: splitRecipient,

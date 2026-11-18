@@ -11,11 +11,20 @@ const paidTopic = toEventSelector(
   parseAbiItem('event MusicRoyRoyaltyPaid(bytes32 indexed contentHash, address indexed listener, address indexed recipient, uint256 amount)')
 );
 
-async function openStudio(page: Page, options: { collaboratorOnly?: boolean; nativeSupport?: boolean; supportUnavailable?: boolean } = {}) {
-  const control = { failed: false, payments: 1, queries: 0, nativeFailed: false };
+async function openStudio(
+  page: Page,
+  options: { collaboratorOnly?: boolean; nativeSupport?: boolean; supportUnavailable?: boolean; nativeRoyalty?: boolean } = {}
+) {
+  const control = { failed: false, payments: 1, queries: 0, nativeFailed: false, royaltyAvailable: options.nativeRoyalty ?? false };
   await page.route('**/*', async route => {
     if (route.request().resourceType() === 'image' && route.request().url().includes('QmYtt')) {
       return route.fulfill({ path: 'e2e/fixtures/artist-cover.svg', contentType: 'image/svg+xml' });
+    }
+    if (route.request().url().includes('/api/royalties/history')) {
+      const headers = { 'access-control-allow-origin': '*', 'access-control-allow-headers': 'content-type' };
+      if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 204, headers });
+      if (control.nativeFailed) return route.fulfill({ status: 503, headers, json: { error: 'Native history unavailable' } });
+      return route.fulfill({ headers, json: control.royaltyAvailable ? nativeRoyaltyFixture() : { ...nativeHistoryFixture(), receipts: [] } });
     }
     if (route.request().url().includes('/api/contributions/history')) {
       const headers = { 'access-control-allow-origin': '*', 'access-control-allow-headers': 'content-type' };
@@ -33,7 +42,11 @@ async function openStudio(page: Page, options: { collaboratorOnly?: boolean; nat
     if (!body?.jsonrpc) return route.continue();
     let result: unknown = '0x';
     if (body.method === 'eth_chainId') result = toHex(420420417);
-    else if (body.method === 'eth_call') result = encodeAbiParameters([{ type: 'uint256' }], [0n]);
+    else if (body.method === 'eth_call')
+      result =
+        body.params[0].to?.toLowerCase() === '0x0000000000000000000000000000000000000900'
+          ? encodeAbiParameters([{ type: 'bytes' }], [(account + 'ee'.repeat(12)) as `0x${string}`])
+          : encodeAbiParameters([{ type: 'uint256' }], [0n]);
     else if (body.method === 'eth_getCode') result = '0x01';
     else if (body.method === 'eth_getLogs') {
       control.queries++;
@@ -330,3 +343,96 @@ for (const width of [390, 1440]) {
     await expect(summary.locator('[data-metric=received]')).toContainText('Unavailable');
   });
 }
+
+function nativeRoyaltyFixture() {
+  const history = nativeHistoryFixture();
+  const purchaseHash = `0x${'a1'.repeat(32)}` as const;
+  const claimHash = `0x${'a2'.repeat(32)}` as const;
+  const claimable = {
+    address: runtime,
+    transactionHash: purchaseHash,
+    logIndex: 1,
+    topics: encodeEventTopics({
+      abi: musicRoyaltiesAbi,
+      eventName: 'MusicRoyRoyaltyClaimable',
+      args: { contentHash: hash, listener: collaborator, recipient: account }
+    }),
+    data: encodeAbiParameters([{ type: 'uint256' }, { type: 'uint256' }], [300000000000000000n, 300000000000000000n])
+  };
+  const access = {
+    address: runtime,
+    transactionHash: purchaseHash,
+    logIndex: 2,
+    topics: encodeEventTopics({ abi: musicRoyaltiesAbi, eventName: 'MusicRoyAccessPaid', args: { contentHash: hash, listener: collaborator } }),
+    data: encodeAbiParameters([{ type: 'uint256' }], [300000000000000000n])
+  };
+  const claim = {
+    address: runtime,
+    transactionHash: claimHash,
+    logIndex: 1,
+    topics: encodeEventTopics({ abi: musicRoyaltiesAbi, eventName: 'MusicRoyRoyaltyClaimed', args: { recipient: account } }),
+    data: encodeAbiParameters([{ type: 'uint256' }], [300000000000000000n])
+  };
+  return {
+    ...history,
+    receipts: [
+      { hash: purchaseHash, block: { number: 120, hash: zeroHash, index: 2 }, genesisHash: history.genesisHash, status: 'success', logs: [claimable, access] },
+      { hash: claimHash, block: { number: 121, hash: zeroHash, index: 2 }, genesisHash: history.genesisHash, status: 'success', logs: [claim] }
+    ]
+  };
+}
+
+test('native Classic income and claim appear once with native proof links and the resolved payout account', async ({ page }, info) => {
+  const control = await openStudio(page, { nativeSupport: true, nativeRoyalty: true });
+  const summary = page.getByRole('region', { name: 'All earnings' });
+  await expect(summary.locator('[data-metric=received]')).toContainText('6.264 PAS');
+  await expect(summary.locator('[data-metric=generated]')).toContainText('8.7 PAS');
+  await summary.getByText('Payout account · PAS on Paseo Asset Hub', { exact: true }).click();
+  await expect(summary.locator('.payout-account')).not.toContainText('Checking…');
+  await expect(summary.locator('.payout-account')).toContainText('Native account: 5');
+  await page.getByRole('tab', { name: 'Earnings', exact: true }).click();
+  // Payment rows expose their evidence after expansion.
+  await page
+    .getByRole('button', { name: /Street scriptures/ })
+    .filter({ hasText: 'Claimed' })
+    .click();
+  await expect(page.getByRole('link', { name: /a1a1a1/ }).first()).toHaveAttribute('href', /assethub-paseo.subscan.io/);
+  await expect(page.getByRole('link', { name: /a2a2a2/ }).first()).toHaveAttribute('href', /assethub-paseo.subscan.io/);
+  control.nativeFailed = true;
+  await page.getByRole('button', { name: 'Refresh all earnings' }).click();
+  await expect(summary).toContainText('Update delayed');
+  await expect(summary.locator('[data-metric=received]')).toContainText('6.264 PAS');
+  await page.screenshot({ path: info.outputPath('native-royalty-history.png'), fullPage: true });
+});
+
+test('an earlier native royalty is verified by hash and block without another payment', async ({ page }) => {
+  const control = await openStudio(page, { nativeSupport: true });
+  const submitted: string[] = [];
+  page.on('request', request => {
+    if (request.method() !== 'POST') return;
+    try {
+      const body = request.postDataJSON();
+      if (/^eth_send/.test(body?.method ?? '')) submitted.push(body.method);
+    } catch {
+      /* static request */
+    }
+  });
+  let verified = 0;
+  await page.route('**/api/payments/native-receipt', async route => {
+    const headers = { 'access-control-allow-origin': '*', 'access-control-allow-headers': 'content-type' };
+    if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 204, headers });
+    expect(route.request().postDataJSON()).toEqual({ hash: `0x${'a1'.repeat(32)}`, block: { number: 120 } });
+    verified++;
+    control.royaltyAvailable = true;
+    return route.fulfill({ headers, json: nativeRoyaltyFixture().receipts[0] });
+  });
+  await page.getByRole('tab', { name: 'Earnings', exact: true }).click();
+  await page.getByText('Find an earlier native payment', { exact: true }).click();
+  await page.getByLabel('Native transaction hash', { exact: true }).fill(`0x${'a1'.repeat(32)}`);
+  await page.getByLabel('Native block number', { exact: true }).fill('120');
+  await page.getByRole('button', { name: 'Verify existing payment', exact: true }).click();
+  await expect(page.locator('.native-royalty-recovery')).toContainText('Native receipt verified and saved');
+  await expect(page.getByRole('region', { name: 'All earnings' }).locator('[data-metric=received]')).toContainText('6.264 PAS');
+  expect(verified).toBe(1);
+  expect(submitted).toEqual([]);
+});

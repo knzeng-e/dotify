@@ -80,6 +80,7 @@ export function createNativeReceiptService(options: { rpcUrl?: string; chainId: 
           codecs.set(digest, decode);
         }
         let status: NativeReceiptResponse['status'] = 'success';
+        let verifiedBlock = { ...input.block, hash: blockHash };
         let logs: NativeContributionLog[] = [];
         try {
           logs = await readNativeContributionLogs(
@@ -88,14 +89,17 @@ export function createNativeReceiptService(options: { rpcUrl?: string; chainId: 
             {
               request,
               decodeEvents: decode,
-              hashExtrinsic: bytes => toHex(Blake2256(bytes))
+              hashExtrinsic: bytes => toHex(Blake2256(bytes)),
+              onVerifiedBlock: block => {
+                verifiedBlock = block;
+              }
             }
           );
         } catch (error) {
           if (!(error instanceof FinalizedNativeContributionFailedError)) throw error;
           status = 'failed';
         }
-        const receipt: NativeReceiptResponse = { ...input, block: { ...input.block, hash: blockHash }, genesisHash: genesis, status, logs };
+        const receipt: NativeReceiptResponse = { ...input, block: verifiedBlock, genesisHash: genesis, status, logs };
         if (cache.size >= 128) cache.delete(cache.keys().next().value!);
         cache.set(key, { expires: Date.now() + 30 * 60_000, receipt });
         return receipt;
