@@ -119,16 +119,17 @@ test('a cold transport restart reopens the same compact graph with measurable ou
   await hear(page);
 });
 
-test('compact compatibility AAC reaches a WebRTC guest and plays to its authenticated end', async ({ page }) => {
+test('compact compatibility AAC reaches a WebRTC guest and plays to its authenticated end', async ({ page, browserName }) => {
   // Full authenticated rendition, the same portable fallback used by managed
   // Room capture. This is a loopback guest, not physical iPhone background proof.
   expect(await start(page, 'compact', true)).toEqual({ progressive: false });
-  // Prove decoded source PCM before adding another Web Audio/RTC consumer.
-  // The failing Linux WebKit trace had running clocks but no source samples.
-  // Pause for Room preparation, then require explicit Play and measurable
-  // source/guest output again; negotiation must not restart the paused source.
-  await hear(page);
-  await page.evaluate(() => Reflect.get(window, '__compactAudio').pause());
+  // Prime WebKit's downstream graph with measured PCM before adding RTC.
+  // Keep the source paused for negotiation. Other engines retain the cold
+  // capture path: priming Firefox before capture shifts its reported duration.
+  if (browserName === 'webkit') {
+    await hear(page);
+    await page.evaluate(() => Reflect.get(window, '__compactAudio').pause());
+  }
   const pausedAt = (await snapshot(page)).currentTime;
   await page.evaluate(() => Reflect.get(window, '__compactAudio').connectGuest());
   expect(await snapshot(page)).toMatchObject({ paused: true, currentTime: pausedAt });
