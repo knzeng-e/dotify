@@ -9,7 +9,7 @@ import { catalogContent } from './catalog/content.js';
 //   4. calls musicAccCanAccess(contentHash, requester) on that target runtime.
 //
 // Full v3 release identity is required. Short-lived verdicts are bound to the
-// current observed block; ambiguous, stale or unreachable evidence gets no key.
+// observed finalized/current block pair; ambiguous, stale or unreachable evidence gets no key.
 
 import { createPublicClient, fallback, http, type Address, type PublicClient } from 'viem';
 import { config } from '../config.js';
@@ -102,6 +102,7 @@ type OnchainTrack = {
 export type AccessDenialCode =
   | 'RPC_UNAVAILABLE'
   | 'CATALOG_UNAVAILABLE'
+  | 'ACCESS_PENDING_FINALITY'
   | 'TRACK_NOT_FOUND'
   | 'AMBIGUOUS_RUNTIME'
   | 'RELEASE_IDENTITY_MISMATCH'
@@ -366,10 +367,28 @@ export function createChainAccessService(options: ChainAccessServiceOptions = {}
   // Verdicts, never keys. Bounded per process; restart only makes access cold.
   const verdicts = new Map<string, { result: TrackAccessResult; until: number }>();
   const pending = new Map<string, Promise<TrackAccessResult>>();
-  let headRequest: { client: ChainReadClient; promise: ReturnType<ChainReadClient['getBlock']> } | undefined;
-  function observedHead(client: ChainReadClient) {
+  type ObservedBlock = { number: bigint; hash: `0x${string}` };
+  let headRequest: { client: ChainReadClient; promise: Promise<{ finalized: ObservedBlock; latest: ObservedBlock }> } | undefined;
+  function observedBlocks(client: ChainReadClient) {
     if (headRequest?.client === client) return headRequest.promise;
-    const promise = client.getBlock({ blockTag: 'latest', includeTransactions: false });
+    const promise = (async () => {
+      // A canonical latest hash is not finality. No fallback tag or numeric
+      // confirmation heuristic is allowed at irreversible key delivery.
+      const [finalized, latest] = await Promise.all([
+        client.getBlock({ blockTag: 'finalized', includeTransactions: false }),
+        client.getBlock({ blockTag: 'latest', includeTransactions: false })
+      ]);
+      for (const block of [finalized, latest])
+        if (typeof block.number !== 'bigint' || block.number < 0n || !block.hash || !/^0x[0-9a-fA-F]{64}$/.test(block.hash))
+          throw new Error('Missing block authority');
+      if (
+        finalized.number! > latest.number! ||
+        (finalized.number === latest.number && finalized.hash!.toLowerCase() !== latest.hash!.toLowerCase()) ||
+        (finalized.number !== latest.number && finalized.hash!.toLowerCase() === latest.hash!.toLowerCase())
+      )
+        throw new Error('Inconsistent finalized/current observations');
+      return { finalized: { number: finalized.number!, hash: finalized.hash! }, latest: { number: latest.number!, hash: latest.hash! } };
+    })();
     headRequest = { client, promise };
     void promise
       .finally(() => {
@@ -378,6 +397,8 @@ export function createChainAccessService(options: ChainAccessServiceOptions = {}
       .catch(() => {});
     return promise;
   }
+  const pendingFinality = () =>
+    fail('ACCESS_PENDING_FINALITY', 'Your release or listening access is still being confirmed. Please wait and try again; no new payment is needed.');
 
   async function checkRelease(
     contentHash: string,
@@ -393,21 +414,25 @@ export function createChainAccessService(options: ChainAccessServiceOptions = {}
     const canonical = resolveCatalogRelease({ contentHash, provided, catalog, chainId, directoryAddress });
     if (!canonical.allowed) return canonical;
     const started = now();
-    let head;
+    let blocks;
     try {
-      head = await observedHead(client);
-      if (typeof head.number !== 'bigint' || !head.hash) throw new Error('No observed block');
+      blocks = await observedBlocks(client);
     } catch {
-      return fail('RPC_UNAVAILABLE', 'Access checks are unavailable: current block could not be verified.');
+      return fail('RPC_UNAVAILABLE', 'Access checks are unavailable: finalized and current state could not be verified.');
     }
+    if (canonical.release.sourceBlock === null || !Number.isSafeInteger(canonical.release.sourceBlock) || canonical.release.sourceBlock < 0)
+      return fail('CATALOG_UNAVAILABLE', 'Confirmed release evidence is unavailable. Please try again.');
+    if (BigInt(canonical.release.sourceBlock) > blocks.finalized.number) return pendingFinality();
     const key = JSON.stringify([
       chainId,
       directoryAddress.toLowerCase(),
       requester.toLowerCase(),
       purpose,
       canonical.release,
-      head.number.toString(),
-      head.hash
+      blocks.finalized.number.toString(),
+      blocks.finalized.hash,
+      blocks.latest.number.toString(),
+      blocks.latest.hash
     ]);
     const cached = verdicts.get(key);
     if (cached && cached.until > now() + 10_000) return cached.result;
@@ -416,7 +441,18 @@ export function createChainAccessService(options: ChainAccessServiceOptions = {}
     // Share the processed result, including its original expiry. Sharing only
     // the raw RPC promise would let a second caller extend that grant window.
     const request = (async (): Promise<TrackAccessResult> => {
-      const raw = await readReleaseVerdict(client, directoryAddress, canonical.release, requester, purpose, head.hash!, chainId);
+      const finalized = readReleaseVerdict(client, directoryAddress, canonical.release, requester, purpose, blocks.finalized.hash, chainId);
+      // A newly observed revocation must not wait for finality. Positive access
+      // must hold at BOTH hashes. Same-block observations share three reads.
+      const latest =
+        blocks.latest.hash.toLowerCase() === blocks.finalized.hash.toLowerCase()
+          ? finalized
+          : readReleaseVerdict(client, directoryAddress, canonical.release, requester, purpose, blocks.latest.hash, chainId);
+      const [settled, current] = await Promise.all([finalized, latest]);
+      let raw: TrackAccessResult;
+      if (!settled.allowed && settled.code === 'RPC_UNAVAILABLE') raw = settled;
+      else if (!current.allowed) raw = current;
+      else raw = settled.allowed ? settled : pendingFinality();
       if (started + 30_000 <= now()) return fail('RPC_UNAVAILABLE', 'Access verification took too long. Please try again.');
       const result = raw.allowed ? { ...raw, validUntil: started + 30_000 } : raw;
       if (result.allowed || result.code !== 'RPC_UNAVAILABLE') {

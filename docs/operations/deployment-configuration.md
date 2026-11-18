@@ -100,6 +100,26 @@ update a Netlify dashboard, server image or deployment.
 
 ## Hosted surfaces
 
+### Finalized key authority candidate (#488)
+
+[The A09 policy](../reference/finalized-key-authority.md) requires true finalized
+block observations and EIP-1898 canonical historical reads on every configured
+primary/fallback EVM endpoint. There is no latest/confirmation-count fallback.
+Accept the exact Revive provider behavior before delivery; an unsupported or
+unavailable finalized view denies new keys. No RPC switch, new variable, mount,
+CORS origin, secret or scaling change is made by this source correction.
+
+Deliver matching API/client artifacts so `ACCESS_PENDING_FINALITY` offers retry
+without another unlock/payment. Validate an unfinalized-only entitlement denies,
+a finalized entitlement grants only while current policy permits it, and a newer
+deactivation blocks it. Exercise signed/session/Free/queue/Room-host requests,
+RPC outage, cache changes and retry without paying again. Observe the extra
+cold proof work and hosted quotas before claiming first-sound acceptance.
+Already delivered keys are not recalled. Contract, key/nonce and receipt formats
+do not change, so no state migration/reset is required by A09. Rolling the API
+back restores the prior latest-only disclosure risk and is not a secure fallback.
+The fresh-generation procedure below remains separate after other audit fixes.
+
 ### Catalogue runtime isolation candidate (#486)
 
 [The A01 source candidate](../reference/catalog-runtime-isolation.md) adds optional
