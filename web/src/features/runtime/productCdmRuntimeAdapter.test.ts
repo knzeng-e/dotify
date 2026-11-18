@@ -381,7 +381,7 @@ describe('createProductCdmRuntimeWriter', () => {
     expect(createRuntime.tx).toHaveBeenCalledWith({ waitFor: 'finalized' });
     expect(installRuntimeStep.tx).toHaveBeenCalledWith({ waitFor: 'finalized' });
     expect(musicRoyPayAccess.tx).toHaveBeenCalledWith(hash, { value: 30_000_000_000n, waitFor: 'finalized' });
-    expect(musicRoyClaim.tx).toHaveBeenCalledWith(splitRecipient);
+    expect(musicRoyClaim.tx).toHaveBeenCalledWith(splitRecipient, { waitFor: 'finalized' });
     expect(musicGiftContribute.tx).toHaveBeenCalledWith(hash, { value: 42_000_000_000n, waitFor: 'finalized' });
     expect(writer.contributionConfirmationMode).toBe('finalized-event');
     expect(musicRegSetAccessMode.tx).toHaveBeenCalledWith(hash, 2, 0n, 1);
@@ -437,4 +437,26 @@ describe('createProductCdmRuntimeWriter', () => {
     await expect(failedWriter.createRuntime(factory)).rejects.toThrow(ProductCdmRuntimeError);
     await expect(badHashWriter.createRuntime(factory)).rejects.toThrow(ProductCdmRuntimeError);
   });
+});
+
+it('does not publish a claim receipt before finalized tx resolution and preserves the verified block', async () => {
+  let finish!: (value: { ok: true; value: { ok: true; txHash: string; block: { number: number; index: number; hash: string } } }) => void;
+  const tx = vi.fn(
+    () =>
+      new Promise<{ ok: true; value: { ok: true; txHash: string; block: { number: number; index: number; hash: string } } }>(resolve => {
+        finish = resolve;
+      })
+  );
+  const onRoyaltyFinalized = vi.fn();
+  const writer = createProductCdmRuntimeWriter({
+    nativeTokenDecimals: 10,
+    onRoyaltyFinalized,
+    contracts: { getDirectoryContract: () => ({}), getFactoryContract: () => ({}), getRuntimeContract: () => ({ musicRoyClaim: { tx } }) }
+  });
+  const claim = writer.claimRoyalty(runtime, splitRecipient);
+  expect(onRoyaltyFinalized).not.toHaveBeenCalled();
+  expect(tx).toHaveBeenCalledWith(splitRecipient, { waitFor: 'finalized' });
+  finish({ ok: true, value: { ok: true, txHash, block: { number: 123, index: 2, hash } } });
+  await expect(claim).resolves.toBe(txHash);
+  expect(onRoyaltyFinalized).toHaveBeenCalledExactlyOnceWith(runtime, txHash, { number: 123, index: 2, hash });
 });

@@ -85,6 +85,7 @@ export type ProductCdmRuntimeWriterDeps = ProductCdmRuntimeAdapterDeps & {
   nativeTokenDecimals: number;
   readAvailableBalance?: () => Promise<bigint>;
   getPaymentSigner?: () => ProductPaymentSigner | null;
+  onRoyaltyFinalized?: (runtime: Address, hash: Hash, block?: NativeContributionBlock) => void | Promise<void>;
 };
 
 const EVM_VALUE_DECIMALS = 18;
@@ -374,22 +375,33 @@ export function createProductCdmRuntimeWriter(deps: ProductCdmRuntimeWriterDeps)
       const nativeValue = evmValueToNativeUnits(intent.amountPlanck, deps.nativeTokenDecimals);
       const signer = deps.getPaymentSigner?.();
       const approval = signer ? createProductPaymentApproval(signer) : undefined;
-      const result = txContract(deps.contracts.getRuntimeContract(intent.runtimeAddress), 'musicRoyPayAccess', [
-        intent.contentHash,
-        {
-          value: nativeValue,
-          waitFor: 'finalized',
-          ...(approval ? { signer: approval.signer } : {}),
-          ...(approval || onStatus
-            ? {
-                onStatus: (status: Parameters<NonNullable<typeof onStatus>>[0], hash?: Hash) => {
-                  approval?.observe(status);
-                  onStatus?.(status, hash);
+      let finalizedBlock: NativeContributionBlock | undefined;
+      const result = txContract(
+        deps.contracts.getRuntimeContract(intent.runtimeAddress),
+        'musicRoyPayAccess',
+        [
+          intent.contentHash,
+          {
+            value: nativeValue,
+            waitFor: 'finalized',
+            ...(approval ? { signer: approval.signer } : {}),
+            ...(approval || onStatus
+              ? {
+                  onStatus: (status: Parameters<NonNullable<typeof onStatus>>[0], hash?: Hash) => {
+                    approval?.observe(status);
+                    onStatus?.(status, hash);
+                  }
                 }
-              }
-            : {})
+              : {})
+          }
+        ],
+        block => {
+          finalizedBlock = block;
         }
-      ]);
+      ).then(async hash => {
+        await deps.onRoyaltyFinalized?.(intent.runtimeAddress, hash, finalizedBlock);
+        return hash;
+      });
       return result
         .catch(error => {
           approval?.close();
@@ -399,8 +411,13 @@ export function createProductCdmRuntimeWriter(deps: ProductCdmRuntimeWriterDeps)
         .finally(() => approval?.close());
     },
 
-    claimRoyalty(runtimeAddress, recipientAddress) {
-      return txContract(deps.contracts.getRuntimeContract(runtimeAddress), 'musicRoyClaim', [recipientAddress]);
+    async claimRoyalty(runtimeAddress, recipientAddress) {
+      let finalizedBlock: NativeContributionBlock | undefined;
+      const hash = await txContract(deps.contracts.getRuntimeContract(runtimeAddress), 'musicRoyClaim', [recipientAddress, { waitFor: 'finalized' }], block => {
+        finalizedBlock = block;
+      });
+      await deps.onRoyaltyFinalized?.(runtimeAddress, hash, finalizedBlock);
+      return hash;
     },
 
     setAccessMode(runtimeAddress, update: RuntimeAccessPolicyUpdate) {

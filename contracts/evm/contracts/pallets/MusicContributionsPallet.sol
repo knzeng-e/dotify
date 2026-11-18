@@ -202,7 +202,7 @@ contract MusicContributionsPallet {
     uint256 amount = contributions.pending[id][msg.sender];
     if (amount == 0) revert ContributionNothingToClaim();
     contributions.pending[id][msg.sender] = 0;
-    if (!LibMusicRoyalties.trySendNative(msg.sender, amount)) revert ContributionClaimRejected();
+    if (!LibMusicRoyalties.tryClaimNative(msg.sender, amount)) revert ContributionClaimRejected();
     emit ContributionClaimed(id, msg.sender, amount);
   }
 

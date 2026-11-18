@@ -210,7 +210,12 @@ describe('createRuntimeWriter', () => {
     expect(createProductCdmContracts).toHaveBeenCalledWith({ environment: 'devnet', signerManager });
     expect(verifyDeployment).toHaveBeenCalledTimes(1);
     expect(createProductCdmRuntimeWriter).toHaveBeenCalledTimes(1);
-    expect(createProductCdmRuntimeWriter).toHaveBeenCalledWith({ contracts: resolver, nativeTokenDecimals: 10, getPaymentSigner: expect.any(Function) });
+    expect(createProductCdmRuntimeWriter).toHaveBeenCalledWith({
+      contracts: resolver,
+      nativeTokenDecimals: 10,
+      getPaymentSigner: expect.any(Function),
+      onRoyaltyFinalized: expect.any(Function)
+    });
     expect(productWriter.createRuntime).toHaveBeenCalledWith(factory);
     expect(productWriter.payForAccess).toHaveBeenCalledWith(intent);
     expect(productWriter.claimRoyalty).toHaveBeenCalledWith(runtime, productH160Address);

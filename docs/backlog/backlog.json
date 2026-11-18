@@ -862,6 +862,16 @@
       "track": "Production spine",
       "phase": "Record",
       "note": "Completed code scope in #454, merged into tested dev 93e99042: explicit offline published-audio authentication with separately supplied trusted scope/digests and versioned keys. Generated coverage only; real independent recovery remains in #407. No transfer, deployment or writer authority."
+    },
+    {
+      "id": "native-payment-settlement-parity",
+      "doc": "docs/backlog/native-payment-settlement-parity.md",
+      "issue": 484,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Now",
+      "note": "Owner-requested correction before CASH: bounded relative native payout budgets, finalized Product royalty claims, verified native access/claim history, EVM/native deduplication and explicit beneficiary/self-payment presentation. Source candidate only; owner-signed facet upgrades, matched services/client rollout and live Revive/Host acceptance remain separate."
     }
   ]
 }

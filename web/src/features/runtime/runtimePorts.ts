@@ -25,6 +25,8 @@ export type RuntimeRoyaltyPaymentLog = {
   pendingTotalWei?: bigint;
   claimedAtMs?: number | null;
   claimTransactionHash?: Hash;
+  proofKind?: 'evm-transaction' | 'substrate-extrinsic';
+  claimProofKind?: 'evm-transaction' | 'substrate-extrinsic';
   paidAtMs: number | null;
   transactionHash: Hash;
   blockNumber: bigint;

@@ -10,16 +10,21 @@ export async function readNativeContributionReceiptApi(input: {
   hash: Hash;
   block: NativeContributionBlock;
   fetchImpl?: typeof fetch;
+  kind?: 'contribution' | 'royalty';
+  signal?: AbortSignal;
 }): Promise<NativeContributionLog[]> {
   if (!input.apiUrl) throw new Error('Native receipt checks need the Dotify API. Keep this contribution pending.');
   let response: Response;
   try {
-    response = await (input.fetchImpl ?? fetch)(`${input.apiUrl.replace(/\/$/, '')}/api/contributions/native-receipt`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ hash: input.hash, block: input.block }),
-      signal: AbortSignal.timeout(25_000)
-    });
+    response = await (input.fetchImpl ?? fetch)(
+      `${input.apiUrl.replace(/\/$/, '')}/api/${input.kind === 'royalty' ? 'payments' : 'contributions'}/native-receipt`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hash: input.hash, block: input.block }),
+        signal: input.signal ?? AbortSignal.timeout(25_000)
+      }
+    );
   } catch {
     throw new Error('The native receipt service could not be reached. Check this saved contribution again.');
   }

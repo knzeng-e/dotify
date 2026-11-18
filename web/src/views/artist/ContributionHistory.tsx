@@ -161,6 +161,7 @@ export function ContributionLedger({
               <summary>
                 <span>
                   {row.contentHash === zeroHash ? 'Gift to artist' : `Tip · ${track?.title || 'Release'}`}
+                  {row.shares.every(share => share.recipient.toLowerCase() === row.sender.toLowerCase()) && <small>Contribution to yourself</small>}
                   <small>{new Date(row.timestamp).toLocaleString()}</small>
                 </span>
                 <strong>
@@ -177,6 +178,9 @@ export function ContributionLedger({
                       {['Artist / beneficiary', 'Collaborator', 'Room host'][share.role]}
                       <small>{share.recipient}</small>
                       {share.paid || share.claimed ? 'Received' : 'Available to claim'}
+                      {share.recipient.toLowerCase() === row.sender.toLowerCase() && (
+                        <small>Returns to the sender · no added wallet balance · network fees apply</small>
+                      )}
                     </span>
                     <strong>
                       {formatEther(share.amount)} {symbol}

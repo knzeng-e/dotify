@@ -1,3 +1,4 @@
+import { nativeRoyaltyApiUrl } from '../features/runtime/nativePaymentHistory';
 import { audioReferenceForMetadata } from '../shared/utils/protectedAudio';
 import { preparePublicationAssets } from '../features/uploads/preparePublicationAssets';
 import { PreparedReleaseRecoveryError, type PreparedRelease } from '../features/artist-studio/preparedReleaseRecovery';
@@ -299,9 +300,17 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
     onPublished: deps.onReleasePublished
   });
 
-  // Earnings use public EVM events, including in Product builds. This reader
+  // Earnings combine public EVM events with verified native receipts. This reader
   // cannot sign, grant access, or replace the configured contract writer.
-  const royaltyHistoryReader = useMemo(() => createViemRuntimeReader({ ethRpcUrl }), [ethRpcUrl]);
+  const nativeHistoryApiUrl = nativeRoyaltyApiUrl();
+  const royaltyHistoryReader = useMemo(
+    () =>
+      createViemRuntimeReader({
+        ethRpcUrl,
+        nativeHistoryApiUrl
+      }),
+    [ethRpcUrl, nativeHistoryApiUrl]
+  );
   const royaltyScope = JSON.stringify([
     activeEvmAddress.toLowerCase(),
     currentChainId,
@@ -743,6 +752,8 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
                 ...(log.pendingTotalWei !== undefined ? { pendingTotalWei: log.pendingTotalWei } : {}),
                 ...(log.claimedAtMs !== undefined ? { claimedAtMs: log.claimedAtMs } : {}),
                 ...(log.claimTransactionHash !== undefined ? { claimTransactionHash: log.claimTransactionHash } : {}),
+                proofKind: log.proofKind,
+                claimProofKind: log.claimProofKind,
                 paidAtMs: log.paidAtMs,
                 transactionHash: log.transactionHash,
                 blockNumber: log.blockNumber,
@@ -1489,7 +1500,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
           txHash
         });
         await runtimeWriter.waitForTransaction(txHash);
-        const remainingClaimableWei = await runtimeReader.getRoyaltyClaimable(target.runtimeAddress, activeEvmAddress).catch(() => null);
+        const remainingClaimableWei = await royaltyHistoryReader.getRoyaltyClaimable(target.runtimeAddress, activeEvmAddress).catch(() => null);
         if (remainingClaimableWei === null) {
           unreadableRuntimes.push(target.runtimeAddress);
         } else if (remainingClaimableWei > 0n) {

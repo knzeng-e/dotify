@@ -13,6 +13,7 @@ import { resolveRuntimeAdapterConfig, type RuntimeAdapterConfig } from './runtim
 import type { RuntimeAccessPolicyUpdate, RuntimeTrackRegistration, RuntimeWritePort } from './runtimePorts';
 import { createViemRuntimeWriter } from './viemRuntimeAdapter';
 import { readNativeContributionReceiptApi } from './nativeContributionReceiptApi';
+import { nativeRoyaltyReceipts } from './nativeRoyaltyReceipts';
 
 type ViemWalletClient = Awaited<ReturnType<typeof getWalletClient>>;
 
@@ -134,7 +135,7 @@ export async function createProductSignerManager(account?: ProductRuntimeSignerA
   return manager;
 }
 
-async function createProductCdmWriter(config: RuntimeAdapterConfig, productAccount?: ProductRuntimeSignerAccount): Promise<RuntimeWritePort> {
+async function createProductCdmWriter(config: RuntimeAdapterConfig, productAccount?: ProductRuntimeSignerAccount, apiUrl?: string): Promise<RuntimeWritePort> {
   if (!PRODUCT_CDM_ENABLED) {
     throw new Error(
       'This Dotify build was not built with VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm, so the Product contract write adapter is not bundled. Rebuild with that flag to use it.'
@@ -154,6 +155,12 @@ async function createProductCdmWriter(config: RuntimeAdapterConfig, productAccou
       contracts: resolver,
       nativeTokenDecimals,
       getPaymentSigner: () => signerManager.getSigner(),
+      onRoyaltyFinalized: async (runtime, hash, block) => {
+        if (!apiUrl) return;
+        // Persist first. A failed API call must never trigger another payment.
+        await nativeRoyaltyReceipts.enqueue(apiUrl, { runtime, hash, block });
+        void nativeRoyaltyReceipts.flush(apiUrl, runtime).catch(() => {});
+      },
       ...(address && readAvailableBalance ? { readAvailableBalance: () => readAvailableBalance(address) } : {})
     });
   } catch (error) {
@@ -176,7 +183,7 @@ export function createRuntimeWriter(deps: RuntimeWriterDeps): RuntimeWritePort {
 
   function portForWrite(): Promise<RuntimeWritePort> {
     if (config.kind === 'viem') return createViemWriter(deps);
-    productPortPromise ??= createProductCdmWriter(config, deps.productAccount).catch(error => {
+    productPortPromise ??= createProductCdmWriter(config, deps.productAccount, deps.nativeReceiptApiUrl ?? import.meta.env.VITE_DOTIFY_API_URL).catch(error => {
       productPortPromise = null;
       throw error;
     });

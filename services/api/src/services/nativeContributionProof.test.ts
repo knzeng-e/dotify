@@ -73,3 +73,17 @@ describe('native contribution chain proof', () => {
     await assert.rejects(readNativeContributionLogs(hash, { number: 123 }, f.deps), /events are unavailable/);
   });
 });
+
+it('reports the actual verified native index even when the caller supplies only a block number', async () => {
+  const f = fixture();
+  const verified: unknown[] = [];
+  f.deps.onVerifiedBlock = block => {
+    verified.push(block);
+  };
+  await readNativeContributionLogs(hash, { number: 123 }, f.deps);
+  assert.deepEqual(verified, [{ number: 123, hash: blockHash, index: 2 }]);
+  verified.length = 0;
+  f.responses.chain_getHeader = { number: '0x01' };
+  await assert.rejects(readNativeContributionLogs(hash, { number: 123 }, f.deps));
+  assert.equal(verified.length, 0);
+});

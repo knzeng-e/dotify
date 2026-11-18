@@ -14,6 +14,16 @@ The #407 compact delivery/admission and synthetic AAC checks are documented ther
 physical-device and recovery acceptance remain before activation. Dated entries below
 retain their original checkpoints.
 
+## Native payment correction candidate, 2026-11-18
+
+The owner requested native PAS payment verification before further CASH work.
+[#484](native-payment-settlement-parity.md) adds bounded relative payout budgets,
+finalized Product royalty claims, verified native royalty history and clear
+beneficiary/self-payment presentation. The [bounded audit](implementation/evidence/payment-settlement-audit-2026-11-17.md)
+proves settlement for nine historical payments; it does not clear every payment.
+Matched service/client delivery, artist-owner facet replacement and live
+Revive/Host acceptance remain separate from the source candidate.
+
 ## Listening security review, 2026-11-11
 
 [The bounded #431 correction](listening-security-hardening.md) keeps disconnect and grant expiry

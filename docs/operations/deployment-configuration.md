@@ -100,6 +100,42 @@ update a Netlify dashboard, server image or deployment.
 
 ## Hosted surfaces
 
+### Native payment correction candidate (#484)
+
+Before delivering the [native payment correction](../backlog/native-payment-settlement-parity.md),
+verify the following as one matched service/client change. This is a deployment
+procedure, not a record that it has run.
+
+- Keep the existing single custody writer, `PASEO_ASSET_HUB_NATIVE_RPC`,
+  `DOTIFY_CHAIN_ID=420420417` and durable `NATIVE_CONTRIBUTION_SNAPSHOT_PATH`.
+  Its version-1 snapshot now retains royalty access/claim events as well as
+  contributions. Preserve all existing receipts, revisions and independent
+  backups. The path must remain on the custody volume, not an edge filesystem.
+- Deliver custody receipt/history support before enabling the matching clients.
+  Edges must proxy both `/api/payments` and `/api/royalties` to custody alongside
+  existing contribution routes. Verify `POST /api/royalties/history` with a known
+  runtime, and reject caller logs/targets at `POST /api/payments/native-receipt`.
+  No new secret, CORS origin, mount, retention allowance or scaling is required.
+- Preserve `VITE_DOTIFY_API_URL` and the selected chain's EVM RPC. A missing
+  native endpoint is unavailable history, not zero income. Validate native
+  receipt links, a read-only hash/block repair, an API outage/reload/sync retry,
+  the mapped payout account, and a finalized claim read-back. Do not pay again
+  merely to repair a missing history row.
+- Facet replacement is a separate artist-owner operation. Existing selectors,
+  namespaced storage, paid access, split rights and pending balances must remain
+  identical. Use the existing dry-run/owner-confirmed upgrade procedure; review
+  every runtime's current routes and compiled code hash. Never execute a cut
+  from a generic frontend or API service.
+- Before activating the relative-budget facet, independently verify immediate
+  recipient payout, an expensive recipient's claim, isolated failure and an
+  overpayment refund on the exact supported Revive network/artifact, plus the
+  matching physical Host journey. The local replacement fixture is not that
+  live acceptance. Preserve the separate SDK #483 and CASH holds.
+- Rollback must retain the expanded journal. Older services cannot serve the
+  new royalty-history endpoints, so roll back clients coherently; never reset
+  history or restore an empty snapshot. Replacing the facet with the old fixed
+  stipend retains its storage but reintroduces the old expensive-claim limit.
+
 These links describe tracked candidate settings, not a readback of dashboards.
 Read exact origins, addresses and scaling values from the reviewed commit rather
 than copying an old release table.

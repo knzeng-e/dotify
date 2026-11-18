@@ -2,6 +2,16 @@
 
 > **Reading level:** Plain-language explanation first, then technical mechanics.
 
+Dated validation: the [2026-11-17 payment audit](../backlog/implementation/evidence/payment-settlement-audit-2026-11-17.md)
+compares nine existing payments against native transfers and account balances,
+and records remaining EVM/native history and claim-finality gaps. It is bounded
+evidence, not an exhaustive payment history or a CASH acceptance record.
+
+The [#484 correction candidate](../backlog/native-payment-settlement-parity.md)
+adds relative call budgets and native royalty history below. Source behavior
+is described here; owner-signed facet replacement, matched API/client delivery
+and live Revive/Host acceptance remain separate from implementation.
+
 ---
 
 ## How royalties work for artists
@@ -71,9 +81,14 @@ results. No earnings history is persisted to browser storage.
 Product builds explicitly use the configured public EVM RPC for this read-only
 history, because the Product CDM reader does not expose royalty event history.
 The RPC chain ID must match the selected network. This does not replace Product
-signing, entitlement checks, or the configured contract writer. The read model
-uses latest-chain events; reorgs can change a later reading. It scans known
-runtimes from their full history and is not an exhaustive cross-chain indexer.
+signing, entitlement checks, or the configured contract writer. EVM events and
+pending balance reads use finalized state. On Paseo, the configured API also
+provides saved verified native royalty receipts. Those sources merge before
+claims are allocated; a native claim can settle an EVM accrual or vice versa.
+The same extrinsic is counted once using block number and extrinsic index,
+even when native and EVM transaction hashes/log offsets differ. Conflicting
+sources make history unavailable instead of inventing income. Reads cover known
+runtimes, not an exhaustive cross-chain index.
 
 The settled total counts only immediately paid rows and claimable rows that were
 later cleared by `MusicRoyRoyaltyClaimed`. Current claimable balances are shown
@@ -164,6 +179,29 @@ When a listener calls `musicRoyPayAccess(contentHash)`, the contract:
 6. Sends any rounding remainder to the original artist address through the same bounded settlement path.
 7. Refunds any overpayment to the caller.
 8. Emits `MusicRoyAccessPaid(contentHash, listener, price)` plus per-recipient settlement events.
+
+### Resource budgets and recovery
+
+Immediate payout attempts use at most `gasleft() / 36` per recipient, reserving
+resources for the bounded split loop, pending bookkeeping and events. The
+divisor accounts for sixteen rights holders, an artist remainder and a Room
+host. Claims and overpayment refunds use at most half the remaining frame:
+they have one recipient and leave resources for failure handling. Zero amounts
+make no external call. Return data from recipients is not copied.
+
+This replaces the absolute 100,000 stipend. Revive's native execution can map a
+nested gas allowance to a proportional weight/deposit budget; Ethereum gas
+constants are not a portability guarantee. Relative budgets preserve bounded
+external calls while giving a recipient a larger self-authorized claim path.
+An expensive or rejecting receiver can still make its own transfer fail; its
+pending share remains. If an overpaying caller rejects the refund, the purchase
+still reverts atomically. Pay the exact price to avoid a refund.
+
+The storage namespace, mappings, selectors and entitlement semantics are
+unchanged. This is a facet-code candidate, not an automatic runtime upgrade.
+Hardhat regressions prove local accounting and recovery, not arbitrary PVM
+compiler/runtime resource behavior; matched live Revive acceptance is required
+before activating the new facet.
 
 The `pricePlanck` field name is historical. The active EVM path stores and pays
 prices as 18-decimal native token units. The frontend uses `parseEther()` for
@@ -358,3 +396,43 @@ not represent listening counts, wallet balances or claim-day cash flow.
 The ledger is a bounded single-writer read model: a persistent volume is required
 for deployment, with snapshots and independent backup. It does not replace
 on-chain proof. See the [deployment runbook](../operations/deployment-configuration.md).
+
+## Native Classic royalty receipts
+
+`POST /api/payments/native-receipt` uses the same canonical finalized native
+proof reader as contributions. It discovers the actual extrinsic index from
+the saved hash, validates dispatch and returns only that extrinsic's emitted
+logs. Caller-provided logs, RPC targets and success flags are rejected.
+The existing native journal also saves access, royalty, claim and failure
+events. Access receipts with settlement shares must conserve their price;
+legacy access-only receipts establish gross revenue only. Claim-only receipts
+must be retained even though they introduce no sale.
+
+`POST /api/royalties/history` has the same runtime/page/revision bounds as
+contribution history and filters the shared journal by event family.
+Contributions still deduplicate by runtime/intent; royalties deduplicate
+overlapping native/EVM extrinsics before reconciling ordered claims. Native
+proof links go to Subscan; EVM proofs go to Blockscout. Claims preceding an
+accrual cannot clear it. Failed claims are not received income.
+
+Product access payments and royalty claims request `waitFor: finalized`.
+Their public hash/block/runtime references are saved locally before background
+verification. A failed API request retains the reference for a read-only retry;
+it never signs or submits another transaction. Each sync is bounded to four
+references and one 25-second budget. Storage writes use the existing browser
+lock when available. Missing block metadata remains explicit and requires
+verification by hash/block through **Find an earlier native payment**. An
+unreadable journal is an error, not permission to discard unknown references.
+
+Artist claim feedback also checks the finalized pending balance: successful
+transaction inclusion alone is insufficient. Native history remains
+`coverage: verified-receipts`, including repaired references; unsaved older
+transactions may be absent. There is no background whole-chain scan.
+
+The payout-account disclosure calls the System precompile's `toAccountId` at
+finalized state, checks the returned 32-byte account round-trip against H160,
+and formats it as SS58. It never guesses that every H160 uses the EE-padded
+fallback. The display names PAS/Paseo separately from CASH, other networks and
+other Host accounts. Contributions returning to their sender are labelled as
+self-payments: settled shares can increase recorded income while fees reduce
+the sender's wallet balance.

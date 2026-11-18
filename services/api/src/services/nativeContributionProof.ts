@@ -16,6 +16,7 @@ export type NativeContributionProofDeps = {
   request: <T>(method: string, params: unknown[]) => Promise<T>;
   decodeEvents: (bytes: Uint8Array) => EventRecord[];
   hashExtrinsic: (bytes: Uint8Array) => Hash;
+  onVerifiedBlock?: (block: Required<NativeContributionBlock>) => void;
 };
 
 // Twox128("System") ++ Twox128("Events"), the standard native event storage key.
@@ -57,6 +58,7 @@ export async function readNativeContributionLogs(
   );
   if (dispatch.length !== 1) throw new Error('The native transaction has no verified dispatch result.');
   if (dispatch[0].event.value.type === 'ExtrinsicFailed') throw new FinalizedNativeContributionFailedError();
+  deps.onVerifiedBlock?.({ number: anchor.number, hash: blockHash, index: matches[0] });
   return events.flatMap((row, index) => {
     if (row.event.type !== 'Revive' || row.event.value.type !== 'ContractEmitted') return [];
     const event = row.event.value.value as { contract: unknown; data: unknown; topics: unknown[] };

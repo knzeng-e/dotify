@@ -1,9 +1,10 @@
 import { mkdir, readFile, rename, writeFile, stat } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { decodeEventLog } from 'viem';
+import { decodeEventLog, toEventSelector } from 'viem';
 import { z } from 'zod';
 import { contributionsAbi } from '../generated/contributions.js';
+import { royaltiesAbi } from '../generated/royalties.js';
 import { PASEO_ASSET_HUB_GENESIS, NativeReceiptUnavailableError, type NativeReceiptResponse } from './nativeReceipts.js';
 
 const hash = z.string().regex(/^0x[\da-f]{64}$/i);
@@ -32,6 +33,12 @@ const snapshotSchema = z.object({
   receipts: z.array(receiptSchema).max(10_000)
 });
 type Snapshot = z.infer<typeof snapshotSchema>;
+const royaltyEvents = royaltiesAbi.filter(event => event.name !== 'MusicRoyListenRecorded');
+const paymentAbi = [...contributionsAbi, ...royaltyEvents] as const;
+// The journal validated event payloads on insertion; paging needs only the
+// signature index, not millions of repeated ABI decodes at the refresh cadence.
+const royaltyTopics = new Set(royaltyEvents.map(event => toEventSelector(event)));
+const isRoyalty = (log: { topics: string[] }) => royaltyTopics.has(log.topics[0] as `0x${string}`);
 
 /** A shared index of verified receipts, not an exhaustive native-chain indexer. */
 export class NativeContributionLedger {
@@ -58,8 +65,7 @@ export class NativeContributionLedger {
       const logs = receipt.logs.filter(log => {
         try {
           return (
-            decodeEventLog({ abi: contributionsAbi, topics: log.topics as [`0x${string}`, ...`0x${string}`[]], data: log.data }).eventName !==
-            'ContributionPolicy'
+            decodeEventLog({ abi: paymentAbi, topics: log.topics as [`0x${string}`, ...`0x${string}`[]], data: log.data }).eventName !== 'ContributionPolicy'
           );
         } catch {
           return false;
@@ -67,10 +73,10 @@ export class NativeContributionLedger {
       });
       const events = logs.map(log => ({
         log,
-        event: decodeEventLog({ abi: contributionsAbi, topics: log.topics as [`0x${string}`, ...`0x${string}`[]], data: log.data })
+        event: decodeEventLog({ abi: paymentAbi, topics: log.topics as [`0x${string}`, ...`0x${string}`[]], data: log.data })
       }));
       const received = events.filter(row => row.event.eventName === 'ContributionReceived');
-      if (!received.length) return;
+      if (!received.length && !logs.some(isRoyalty)) return;
       for (const row of received) {
         if (row.event.eventName !== 'ContributionReceived') continue;
         const id = row.event.args.id;
@@ -80,6 +86,25 @@ export class NativeContributionLedger {
         );
         const sum = shares.reduce((total, share) => total + (share.event.eventName === 'ContributionShare' ? share.event.args.amount : 0n), 0n);
         if (!shares.length || sum !== row.event.args.amount) throw new Error('Incomplete native contribution distribution');
+      }
+      for (const row of events) {
+        if (row.event.eventName !== 'MusicRoyAccessPaid') continue;
+        const access = row.event.args;
+        const shares = events.filter(
+          other =>
+            other.log.address.toLowerCase() === row.log.address.toLowerCase() &&
+            (other.event.eventName === 'MusicRoyRoyaltyPaid' || other.event.eventName === 'MusicRoyRoyaltyClaimable') &&
+            other.event.args.contentHash === access.contentHash &&
+            other.event.args.listener.toLowerCase() === access.listener.toLowerCase()
+        );
+        const sum = shares.reduce(
+          (total, share) =>
+            total + (share.event.eventName === 'MusicRoyRoyaltyPaid' || share.event.eventName === 'MusicRoyRoyaltyClaimable' ? share.event.args.amount : 0n),
+          0n
+        );
+        // Access-only records predate recipient evidence: keep them as legacy
+        // gross revenue, never invent a settled beneficiary from them.
+        if (shares.length && sum !== access.amount) throw new Error('Incomplete native royalty distribution');
       }
       const verified = receiptSchema.parse({ ...receipt, logs });
       if (logs.some(log => log.transactionHash.toLowerCase() !== receipt.hash.toLowerCase())) throw new Error('Native receipt hash mismatch');
@@ -109,12 +134,14 @@ export class NativeContributionLedger {
     });
   }
 
-  async history(runtimes: string[], offset = 0, revision?: string) {
+  async history(runtimes: string[], offset = 0, revision?: string, kind: 'contributions' | 'royalties' = 'contributions') {
     await this.serial;
     const snapshot = await this.load();
     if (revision && revision !== snapshot.updatedAt) throw new Error('Contribution history changed during paging. Refresh again.');
     const allowed = new Set(runtimes.map(value => value.toLowerCase()));
-    const matches = snapshot.receipts.filter(row => row.logs.some(log => allowed.has(log.address.toLowerCase())));
+    const matches = snapshot.receipts.filter(row =>
+      row.logs.some(log => allowed.has(log.address.toLowerCase()) && (kind === 'royalties' ? isRoyalty(log) : !isRoyalty(log)))
+    );
     return {
       genesisHash: snapshot.genesisHash,
       chainId: 420420417,
