@@ -269,7 +269,7 @@ timestamps are fetched separately to display human-readable dates.
 
 `musicRoyClaimable(recipient)` returns the pending native-token amount for that
 recipient. `musicRoyClaim(recipient)` requires `recipient == msg.sender`, sends
-the pending amount with the same bounded native-transfer helper, and either:
+the pending amount with the larger bounded single-claim allowance, and either:
 
 - emits `MusicRoyRoyaltyClaimed` and clears the pending balance; or
 - emits `MusicRoyRoyaltyClaimFailed` and restores the balance for a later retry.
@@ -436,3 +436,7 @@ fallback. The display names PAS/Paseo separately from CASH, other networks and
 other Host accounts. Contributions returning to their sender are labelled as
 self-payments: settled shares can increase recorded income while fees reduce
 the sender's wallet balance.
+
+The [2026-11-18 source-candidate evidence](../backlog/implementation/evidence/native-payment-settlement-candidate-2026-11-18.md)
+separates local regressions and read-only account resolution from deployment
+and physical Host acceptance.

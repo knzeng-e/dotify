@@ -47,3 +47,6 @@ ticket. The held Host SDK candidate stays separate.
 Related: #145 (original W05 isolation), #85 (Host acceptance), #408 (future CASH
 settlement). The [bounded audit evidence](implementation/evidence/payment-settlement-audit-2026-11-17.md)
 records exactly which existing payments were independently checked.
+
+The [source-candidate validation](implementation/evidence/native-payment-settlement-candidate-2026-11-18.md)
+records the email review, regression evidence and remaining live acceptance.
