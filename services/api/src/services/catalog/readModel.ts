@@ -242,7 +242,15 @@ export class CatalogReadModel {
   private async commit(candidate: CatalogSnapshot): Promise<CatalogSnapshot> {
     const current = this.snapshot;
     const changed = !current || catalogContent(current).revision !== catalogContent(candidate).revision;
-    const next = changed ? candidate : { ...candidate, artists: current!.artists, releases: current!.releases };
+    const next = changed
+      ? candidate
+      : {
+          ...candidate,
+          artists: current!.artists,
+          releases: current!.releases,
+          excludedReleases: current!.excludedReleases,
+          excludedRuntimes: current!.excludedRuntimes
+        };
     try {
       if (!changed && this.store.saveProgress) await this.store.saveProgress(next);
       else await this.store.save(next);

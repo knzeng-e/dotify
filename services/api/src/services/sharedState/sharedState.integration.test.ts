@@ -356,6 +356,7 @@ describe('W36 real PostgreSQL / independent API processes', () => {
     await x.asWriter(() => x.saveProgress({ ...excluded, lastIndexedBlock: 11 }));
     const compact = await y.load();
     assert.equal(compact?.releases, initial?.releases);
+    assert.equal(compact?.excludedRuntimes, initial?.excludedRuntimes);
     assert.deepEqual(compact?.excludedRuntimes, excluded.excludedRuntimes);
     const restarted = await new PostgresCatalogSnapshotStore(b).load();
     assert.equal(restarted?.lastIndexedBlock, 11);

@@ -345,6 +345,8 @@ it('persists exclusion diagnostics through local base/progress reload and binds 
     assert.notEqual(catalogContent(changed).revision, catalogContent(snapshot).revision);
     assert.throws(() => progressFor(snapshot, changed), /cannot replace/);
     const progress = progressFor(snapshot, { ...snapshot, lastIndexedBlock: 11 });
+    assert.equal('excludedRuntimes' in progress.checkpoint, false);
+    assert.equal(withProgress(snapshot, progress).excludedRuntimes, snapshot.excludedRuntimes);
     assert.equal(withProgress(changed, progress), changed);
   } finally {
     await rm(directory, { recursive: true, force: true });

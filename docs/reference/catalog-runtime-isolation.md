@@ -68,7 +68,9 @@ Public metadata adds `excludedRuntimeCount` when nonzero. The full diagnosis
 belongs to the durable catalogue snapshot, not a new public diagnostic endpoint.
 
 Exclusions participate in the content revision/ETag and are saved with the
-confirmed snapshot. They survive local base/checkpoint reload, PostgreSQL
+confirmed content snapshot. Progress records carry metadata only and retain
+the base diagnostic arrays, so unchanged replica reads do not rebuild the
+whole catalogue index. They survive local base/checkpoint reload, PostgreSQL
 writer handover and compact reader reuse. A failed write cannot advance the
 in-memory authority or clear an exclusion. Existing schema-1 snapshots without
 the optional field remain readable; no old-generation state migration is added.
