@@ -253,7 +253,8 @@ it('skips discovered empty runtimes during reconciliation but notices their firs
   clock += 300001;
   gateway.head = 18;
   await catalog.sync();
-  assert.equal(gateway.lists, 2);
+  // Event replay rechecks the runtime inventory admission budget.
+  assert.equal(gateway.lists, 3);
 });
 
 it('never advances memory past a failed content write, and retries the content before progress', async () => {

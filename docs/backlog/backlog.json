@@ -25,6 +25,16 @@
   },
   "items": [
     {
+      "id": "catalog-runtime-isolation",
+      "doc": "docs/backlog/catalog-runtime-isolation.md",
+      "issue": 486,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Now",
+      "note": "Audit A01: isolate deterministic runtime/ABI faults and bounded reader-policy excess from provider outages, atomically persist exclusions and recover by full rescan. Code scope only; matched API delivery, native acceptance and remaining audit fixes precede the owner-selected fresh testnet generation."
+    },
+    {
       "id": "bulletin-published-graph-backup",
       "doc": "docs/backlog/bulletin-published-graph-backup.md",
       "issue": 451,

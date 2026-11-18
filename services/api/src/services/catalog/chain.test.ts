@@ -64,7 +64,7 @@ it('shares one RPC budget across nested track/split reads and pins every read to
       active--;
       if (functionName === 'musicRegTrackCount') return 20n;
       if (functionName === 'musicRoySplitCount') return 16n;
-      if (functionName === 'musicRegTrackHashesPage') return Array(20).fill(hash);
+      if (functionName === 'musicRegTrackHashesPage') return Array.from({ length: 20 }, (_, i) => `0x${(i + 1).toString(16).padStart(64, '0')}`);
       if (functionName === 'musicRoySplitAt') return [runtime, 500];
       if (functionName === 'musicRegGetTrack')
         return [

@@ -21,8 +21,14 @@ The owner requested native PAS payment verification before further CASH work.
 finalized Product royalty claims, verified native royalty history and clear
 beneficiary/self-payment presentation. The [bounded audit](implementation/evidence/payment-settlement-audit-2026-11-17.md)
 proves settlement for nine historical payments; it does not clear every payment.
-Matched service/client delivery, artist-owner facet replacement and live
-Revive/Host acceptance remain separate from the source candidate.
+The owner selected a complete fresh testnet generation after the audit fixes,
+replacing the earlier facet-only plan; previous releases/references are abandoned
+as active state. Matched delivery and native Revive/Host acceptance remain ahead.
+
+[A01 / #486](catalog-runtime-isolation.md) is the next source correction: isolate
+an incompatible artist runtime from healthy catalogue discovery and key grants.
+[Reader policy and recovery](../reference/catalog-runtime-isolation.md) define its
+boundaries. Other audit corrections remain before the fresh deployment.
 
 ## Listening security review, 2026-11-11
 

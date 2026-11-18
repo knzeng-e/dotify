@@ -1,5 +1,12 @@
 # Dotify documentation
 
+The [18 November audit checkpoint](backlog/implementation/listening-and-publication-readiness.md#smart-runtime-audit-checkpoint-2026-11-18)
+puts payment/contract corrections before further CASH work. The next source
+candidate is [artist-runtime catalogue isolation](reference/catalog-runtime-isolation.md).
+A complete fresh testnet generation follows the remaining audit fixes; no reset
+or deployment is recorded by this source change. Earlier dated checkpoints
+below retain their own scope.
+
 The [SDK/Host update decision](design/product-sdk-host-upgrade-decision-2026-11-17.md)
 holds the default SDK 0.45 upgrade after an offline codec comparison against the
 phone/Desktop protocol observations. App pins stay unchanged; CASH awaits actual
@@ -95,6 +102,7 @@ including successful starts and physical locked-screen observations.
 
 ## Look something up
 
+- [Artist-runtime catalogue isolation](reference/catalog-runtime-isolation.md): admission budgets, exclusions, freshness and repair
 - [Bulletin proof read coordination](adr/0058-coordinate-bulletin-proof-loads.md): avoid duplicate block downloads while retaining per-query checks
 - [Server Node runtime and offline reader packaging](reference/server-runtime.md)
 - [Environment variables](reference/environment-variables.md)

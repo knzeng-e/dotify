@@ -85,3 +85,10 @@ progress, so rollback requires a quiesced writer and a forced reindex before
 serving keys; it may be much slower. Never roll W36 shared trust state back to
 local state. No content keys, receipts, permanent encryption nonces, contracts,
 wallet protocol, permissions or room signaling change in W37.
+
+## A01 refinement, 2026-11-18
+
+The [artist-runtime isolation reference](../reference/catalog-runtime-isolation.md)
+defines the bounded source candidate for local execution/ABI failures, persisted
+exclusions and full-rescan repair. It refines failure handling without changing
+confirmed checkpoints, shared writer fencing or content/progress ownership.
