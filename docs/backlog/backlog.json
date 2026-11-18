@@ -25,6 +25,16 @@
   },
   "items": [
     {
+      "id": "finalized-key-authority",
+      "doc": "docs/backlog/finalized-key-authority.md",
+      "issue": 488,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Now",
+      "note": "Audit A09: require finalized and current pinned authority for irreversible keys, with both-state cache identity and a retry-only pending-finality response. API/client source scope; exact endpoint acceptance and remaining audit corrections precede fresh deployment."
+    },
+    {
       "id": "catalog-runtime-isolation",
       "doc": "docs/backlog/catalog-runtime-isolation.md",
       "issue": 486,

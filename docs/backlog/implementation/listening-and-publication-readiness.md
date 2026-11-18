@@ -7,11 +7,14 @@ research. #485 is merged into `dev` at `2198a447`; the owner selected a complete
 fresh testnet generation after corrections, abandoning previous contracts,
 releases and references as active state. No redeployment/reset has occurred.
 
-Next source scope: [A01 / #486 runtime isolation](../catalog-runtime-isolation.md).
+[A01 / #486 runtime isolation](../catalog-runtime-isolation.md) is merged in #487
+at `6ca1f50c`; its tree matches the reviewed PR head. Next source scope:
+[A09 / #488 finalized key authority](../finalized-key-authority.md).
 Its [reader policy](../../reference/catalog-runtime-isolation.md) keeps a broken
 artist runtime from acquiring availability control over healthy discovery and
-key grants. A09 key finality and the other audit findings remain separate
-corrections before the [fresh-generation procedure](../../operations/deployment-configuration.md#native-payment-correction-candidate-484).
+key grants. A09 now requires finalized and current positive authority, with a
+retry-only pending response. Endpoint acceptance, other audit corrections and
+matching delivery remain before the [fresh-generation procedure](../../operations/deployment-configuration.md#native-payment-correction-candidate-484).
 The SDK/Host hold, CASH evidence and physical acceptance gates below still apply;
 this checkpoint supersedes their earlier immediate-work order.
 

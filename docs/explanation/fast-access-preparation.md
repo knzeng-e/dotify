@@ -7,21 +7,24 @@ labels. A signed session proves identity; the artist runtime still decides acces
 ## Server authority and lifetime
 
 For each release the API first checks the full supplied identity against its
-fresh, confirmed catalog. It obtains an uncached current block header, then reads
-`runtimeOf`, `musicRegGetTrack` and `musicAccCanAccess` concurrently at that exact block
-hash with EIP-1898 `requireCanonical`. Every read must succeed and match. This saves sequential network waits
-without assuming a Multicall contract exists on Product DevNet.
+fresh, confirmed catalog. The [A09 authority policy](../reference/finalized-key-authority.md)
+requires valid finalized and current block observations, then positive directory,
+release and access checks at both exact canonical hashes. This conservatively
+waits for final settlement of new access while respecting newer revocations.
+Coincident block identities share one proof. `ACCESS_PENDING_FINALITY` asks the
+listener to retry without another payment; unsupported finality fails closed.
 
 The service retains at most 512 verdicts in process memory, not keys. Both policy
-allows and denials expire within 30 seconds from the start of verification. The
-key includes chain, directory, requester (zero address for Free), purpose, full
-canonical release and observed block number/hash. A new block or same-height
-reorg misses the cache. Canonical freshness is checked even on a hit. Failure to
-obtain the current head denies access, including when an older allow is cached;
-RPC failures themselves are not cached. Concurrent overlapping requests share
-one head read and identical in-flight verdicts. There is no numeric-block or latest-state fallback if the pinned call fails.
+allows and denials expire within 30 seconds from the start of verification. Cache
+identity includes chain, directory, requester (zero address for Free), purpose,
+full canonical release and both observed block numbers/hashes. Changing either
+block misses the cache. Catalogue freshness and both observations are checked on
+a hit; RPC failures are not cached. Overlapping requests share block observations
+and identical in-flight proofs without extending their original expiry.
+
 The configured public RPC accepted a read-only EIP-1898 probe on 2026-10-25;
-this verifies wire support, not native Host acceptance.
+that dated wire check does not validate A09 finalized-tag semantics or a native
+Host. Exact provider acceptance remains before matching delivery.
 
 `POST /api/tracks/keys/prepare` accepts an existing `sessionToken`, purpose
 `individual` or `room_host`, and one to five complete track identities. It never

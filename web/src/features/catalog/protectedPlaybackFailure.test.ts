@@ -33,6 +33,8 @@ describe('protected playback failure', () => {
   });
 
   it('separates a refused key from a missing account and a slow audio file', () => {
+    expect(classifyProtectedPlaybackFailure(new KeyServiceError('wait, no new payment needed', 'ACCESS_PENDING_FINALITY'))).toBe('access-not-confirmed');
+    expect(protectedPlaybackFailureCopy('access-not-confirmed').message).toContain('no new payment is needed');
     expect(classifyProtectedPlaybackFailure(new KeyServiceError('denied', 'LISTENER_ACCESS_REQUIRED'))).toBe('access-not-confirmed');
     expect(classifyProtectedPlaybackFailure(new KeyServiceError('connect', 'WALLET_REQUIRED'))).toBe('account-required');
     expect(classifyProtectedPlaybackFailure(new Error('Unable to fetch audio (504)'))).toBe('audio-unavailable');

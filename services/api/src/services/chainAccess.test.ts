@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
+import { createServer } from 'node:http';
+import { once } from 'node:events';
+import { createPublicClient, encodeFunctionResult, http, parseAbi, toFunctionSelector } from 'viem';
 import { createChainAccessService, type ReleaseKeyIdentity } from './chainAccess.js';
 import { RELEASE_BOUND_CONTENT_KEY_VERSION } from './keyVault.js';
 import type { CatalogMetadata, CatalogRelease, CatalogSnapshot } from './catalog/index.js';
@@ -549,4 +552,268 @@ it('compact physical layout retains canonical Classic/Room denials and rejects r
   publicService.client.access.set(`${RUNTIME_A}:${HASH}:${ZERO_ADDRESS}`.toLowerCase(), false);
   publicService.client.blockNumber++;
   assert.equal((await publicService.access.checkPublicAccess({ contentHash: HASH, release: freeIdentity })).allowed, false);
+});
+
+describe('A09 finalized and current key authority', () => {
+  function finalityFixture(sourceBlock = 10) {
+    const candidate = release({ sourceBlock }),
+      original = new FakeClient([candidate]);
+    const finalized = { number: 100n, hash: `0x${'77'.repeat(32)}` as `0x${string}` };
+    const latest = { number: 102n, hash: `0x${'66'.repeat(32)}` as `0x${string}` };
+    const state = { finalizedAccess: true, latestAccess: true, finalizedActive: true, latestActive: true, failTag: '', failRead: '', clock: 1000 };
+    const tags: string[] = [],
+      reads: string[] = [];
+    const client = {
+      getBlock: async ({ blockTag }: { blockTag: string }) => {
+        tags.push(blockTag);
+        if (blockTag === state.failTag) throw new Error('unsupported finalized state');
+        return { ...(blockTag === 'finalized' ? finalized : latest) };
+      },
+      readContract: async (input: { address: string; functionName: string; args?: readonly unknown[]; blockHash: string; requireCanonical: boolean }) => {
+        assert.equal(input.requireCanonical, true);
+        reads.push(`${input.blockHash}:${input.functionName}`);
+        if (input.blockHash === state.failRead) throw new Error('Canonical hash unavailable');
+        const atFinalized = input.blockHash === finalized.hash;
+        if (input.functionName === 'musicAccCanAccess') return atFinalized ? state.finalizedAccess : state.latestAccess;
+        const result = await original.readContract(input);
+        if (input.functionName === 'musicRegGetTrack') (result as [{ active: boolean }])[0].active = atFinalized ? state.finalizedActive : state.latestActive;
+        return result;
+      }
+    };
+    const access = createChainAccessService({
+      getClient: () => client as never,
+      getDirectoryAddress: () => DIRECTORY,
+      getChainId: () => CHAIN_ID,
+      catalog: new FakeCatalog(snapshot([candidate])),
+      now: () => state.clock
+    });
+    const input = { contentHash: HASH, requester: REQUESTER, purpose: 'individual' as const, release: identity(candidate) };
+    return { candidate, finalized, latest, state, tags, reads, access, input, client };
+  }
+  it('never grants a latest-only purchase or NFT entitlement; finalization unlocks the same request', async () => {
+    const f = finalityFixture();
+    f.state.finalizedAccess = false;
+    const pending = await f.access.checkTrackAccess(f.input);
+    assert.equal(pending.allowed, false);
+    if (!pending.allowed) assert.equal(pending.code, 'ACCESS_PENDING_FINALITY');
+    assert.deepEqual(f.tags, ['finalized', 'latest']);
+    assert.equal(f.reads.length, 6);
+    f.finalized.number = f.latest.number;
+    f.finalized.hash = f.latest.hash;
+    f.state.finalizedAccess = true;
+    const allowed = await f.access.checkTrackAccess(f.input);
+    assert.equal(allowed.allowed, true);
+    assert.equal(f.reads.length, 9); // One block needs only one three-read proof.
+  });
+  it('does not grant a reorganized-away unfinalized purchase', async () => {
+    const f = finalityFixture();
+    f.state.finalizedAccess = false;
+    assert.equal((await f.access.checkTrackAccess(f.input)).allowed, false);
+    f.latest.hash = `0x${'88'.repeat(32)}`;
+    f.state.latestAccess = false;
+    const denied = await f.access.checkTrackAccess(f.input);
+    assert.equal(denied.allowed, false);
+    if (!denied.allowed) assert.equal(denied.code, 'LISTENER_ACCESS_REQUIRED');
+  });
+  it('a newer-head deactivation wins over a warm finalized allow, including a same-height reorg', async () => {
+    const f = finalityFixture();
+    assert.equal((await f.access.checkTrackAccess(f.input)).allowed, true);
+    assert.equal((await f.access.checkTrackAccess(f.input)).allowed, true);
+    assert.equal(f.reads.length, 6);
+    f.latest.hash = `0x${'88'.repeat(32)}`;
+    f.state.latestActive = false;
+    const denied = await f.access.checkTrackAccess(f.input);
+    assert.equal(denied.allowed, false);
+    if (!denied.allowed) assert.equal(denied.code, 'RELEASE_INACTIVE');
+    assert.equal(f.reads.length, 12);
+  });
+  it('a finalized-block change invalidates a warm verdict even when latest is unchanged', async () => {
+    const f = finalityFixture();
+    assert.equal((await f.access.checkTrackAccess(f.input)).allowed, true);
+    f.finalized.number++;
+    f.finalized.hash = `0x${'99'.repeat(32)}`;
+    f.state.finalizedAccess = false;
+    assert.equal((await f.access.checkTrackAccess(f.input)).allowed, false);
+    assert.equal(f.reads.length, 12);
+  });
+  it('unsupported finalized state denies even a warm allow and never substitutes another tag', async () => {
+    const f = finalityFixture();
+    await f.access.checkTrackAccess(f.input);
+    f.state.failTag = 'finalized';
+    const denied = await f.access.checkTrackAccess(f.input);
+    assert.equal(denied.allowed, false);
+    if (!denied.allowed) assert.equal(denied.code, 'RPC_UNAVAILABLE');
+    assert.deepEqual(f.tags, ['finalized', 'latest', 'finalized', 'latest']);
+    assert.equal(f.reads.length, 6);
+  });
+  it('rejects missing or inconsistent block authority before any access reads', async () => {
+    for (const invalid of [{ number: 103n }, { number: -1n }, { hash: '0x' }, { hash: null }, { number: 102n }, { hash: `0x${'66'.repeat(32)}` }]) {
+      const f = finalityFixture();
+      Object.assign(f.finalized, invalid);
+      const denied = await f.access.checkTrackAccess(f.input);
+      assert.equal(denied.allowed, false);
+      if (!denied.allowed) assert.equal(denied.code, 'RPC_UNAVAILABLE');
+      assert.equal(f.reads.length, 0);
+    }
+  });
+  it('either canonical-state read failure denies and cannot poison a later retry', async () => {
+    for (const side of ['finalized', 'latest'] as const) {
+      const f = finalityFixture();
+      f.state.failRead = f[side].hash;
+      const denied = await f.access.checkTrackAccess(f.input);
+      assert.equal(denied.allowed, false);
+      if (!denied.allowed) assert.equal(denied.code, 'RPC_UNAVAILABLE');
+      f.state.failRead = '';
+      assert.equal((await f.access.checkTrackAccess(f.input)).allowed, true);
+      assert.equal(f.reads.length, 12);
+    }
+  });
+  it('waits for the catalogue source block to finalize without reading a not-yet-existing finalized track', async () => {
+    const f = finalityFixture(101);
+    const pending = await f.access.checkTrackAccess(f.input);
+    assert.equal(pending.allowed, false);
+    if (!pending.allowed) assert.equal(pending.code, 'ACCESS_PENDING_FINALITY');
+    assert.equal(f.reads.length, 0);
+    f.finalized.number = 101n;
+    assert.equal((await f.access.checkTrackAccess(f.input)).allowed, true);
+  });
+  it('applies the same finality rule to Room hosts and anonymous Free access', async () => {
+    const f = finalityFixture();
+    f.state.finalizedAccess = false;
+    for (const result of [
+      await f.access.checkTrackAccess({ ...f.input, purpose: 'room_host' }),
+      await f.access.checkPublicAccess({ contentHash: HASH, release: f.input.release })
+    ]) {
+      assert.equal(result.allowed, false);
+      if (!result.allowed) assert.equal(result.code, 'ACCESS_PENDING_FINALITY');
+    }
+  });
+  it('an overlong two-state proof cannot authorize either coalesced caller', async () => {
+    const f = finalityFixture();
+    const original = f.client.readContract;
+    f.client.readContract = async input => {
+      f.state.clock = 31000;
+      return original(input);
+    };
+    const results = await Promise.all([f.access.checkTrackAccess(f.input), f.access.checkTrackAccess(f.input)]);
+    assert.equal(f.reads.length, 6);
+    for (const result of results) {
+      assert.equal(result.allowed, false);
+      if (!result.allowed) assert.equal(result.code, 'RPC_UNAVAILABLE');
+    }
+  });
+  it('coalesces both-state proofs without extending expiry', async () => {
+    const f = finalityFixture();
+    const results = await Promise.all([f.access.checkTrackAccess(f.input), f.access.checkTrackAccess(f.input)]);
+    assert.equal(f.reads.length, 6);
+    for (const result of results) {
+      assert.equal(result.allowed, true);
+      if (result.allowed) assert.equal(result.validUntil, 31000);
+    }
+    f.state.clock = 31000;
+    f.state.finalizedAccess = false;
+    assert.equal((await f.access.checkTrackAccess(f.input)).allowed, false);
+  });
+});
+
+it('real Viem transport uses finalized/latest tags and EIP-1898 canonical hashes, with no fallback for unsupported finality', async () => {
+  const candidate = release();
+  const registry = parseAbi([
+    'function musicRegGetTrack(bytes32) view returns ((address artist, uint256 tokenId, string title, string artistName, string description, string imageRef, string audioRef, string metadataRef, string artistContractRef, uint16 royaltyBps, uint8 accessMode, uint128 pricePlanck, uint8 requiredPersonhood, uint64 registeredAtBlock, bool active) track, address tokenOwner)'
+  ]);
+  const directory = parseAbi(['function runtimeOf(address) view returns (address)']);
+  const accessAbi = parseAbi(['function musicAccCanAccess(bytes32,address) view returns (bool)']);
+  let finalHash: `0x${string}` = `0x${'77'.repeat(32)}`;
+  let finalizedNumber = '0x64';
+  const latestHash = `0x${'66'.repeat(32)}` as const;
+  let settledAccess = false,
+    unsupported = false,
+    calls = 0;
+  const tags: string[] = [];
+  const server = createServer(async (req, res) => {
+    let body = '';
+    for await (const chunk of req) body += chunk;
+    const request = JSON.parse(body);
+    res.setHeader('content-type', 'application/json');
+    let result: unknown;
+    if (request.method === 'eth_getBlockByNumber') {
+      tags.push(request.params[0]);
+      if (unsupported && request.params[0] === 'finalized') {
+        res.end(JSON.stringify({ jsonrpc: '2.0', id: request.id, error: { code: -32602, message: 'unsupported finalized tag' } }));
+        return;
+      }
+      result = request.params[0] === 'finalized' ? { number: finalizedNumber, hash: finalHash } : { number: '0x66', hash: latestHash };
+    } else {
+      assert.equal(request.method, 'eth_call');
+      calls++;
+      const [tx, block] = request.params;
+      assert.equal(block.requireCanonical, true);
+      assert.ok([finalHash, latestHash].includes(block.blockHash));
+      const selector = tx.data.slice(0, 10);
+      result =
+        selector === toFunctionSelector(directory[0])
+          ? encodeFunctionResult({ abi: directory, functionName: 'runtimeOf', result: RUNTIME_A })
+          : selector === toFunctionSelector(accessAbi[0])
+            ? encodeFunctionResult({ abi: accessAbi, functionName: 'musicAccCanAccess', result: block.blockHash !== finalHash || settledAccess })
+            : encodeFunctionResult({
+                abi: registry,
+                functionName: 'musicRegGetTrack',
+                result: [
+                  {
+                    artist: ARTIST_A,
+                    tokenId: 1n,
+                    title: 'Track',
+                    artistName: 'Artist',
+                    description: '',
+                    imageRef: '',
+                    audioRef: candidate.audioRef,
+                    metadataRef: '',
+                    artistContractRef: '',
+                    royaltyBps: 10000,
+                    accessMode: 1,
+                    pricePlanck: 1n,
+                    requiredPersonhood: 0,
+                    registeredAtBlock: 10n,
+                    active: true
+                  },
+                  ARTIST_A
+                ]
+              });
+    }
+    res.end(JSON.stringify({ jsonrpc: '2.0', id: request.id, result }));
+  });
+  server.listen(0, '127.0.0.1');
+  await once(server, 'listening');
+  try {
+    const client = createPublicClient({ transport: http(`http://127.0.0.1:${(server.address() as { port: number }).port}`, { retryCount: 0 }) });
+    const clock = 1000;
+    const access = createChainAccessService({
+      getClient: () => client,
+      getDirectoryAddress: () => DIRECTORY,
+      getChainId: () => CHAIN_ID,
+      catalog: new FakeCatalog(snapshot([candidate])),
+      now: () => clock
+    });
+    const input = { contentHash: HASH, requester: REQUESTER, purpose: 'individual' as const, release: identity(candidate) };
+    const pending = await access.checkTrackAccess(input);
+    assert.equal(pending.allowed, false);
+    if (!pending.allowed) assert.equal(pending.code, 'ACCESS_PENDING_FINALITY');
+    assert.equal(calls, 6);
+    settledAccess = true;
+    finalizedNumber = '0x65';
+    finalHash = `0x${'99'.repeat(32)}`;
+    assert.equal((await access.checkTrackAccess(input)).allowed, true);
+    assert.equal(calls, 12);
+    unsupported = true;
+    const denied = await access.checkTrackAccess(input);
+    assert.equal(denied.allowed, false);
+    if (!denied.allowed) assert.equal(denied.code, 'RPC_UNAVAILABLE');
+    assert.equal(calls, 12);
+    assert.equal(tags.length, 6);
+    assert.equal(tags.filter(tag => tag === 'finalized').length, 3);
+    assert.equal(tags.filter(tag => tag === 'latest').length, 3);
+  } finally {
+    server.closeAllConnections();
+    await new Promise<void>(resolve => server.close(() => resolve()));
+  }
 });
