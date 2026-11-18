@@ -89,3 +89,31 @@ physical Host finality/receipt/balance acceptance, and fresh listening/Room
 acceptance still need deployment evidence. CASH and the held SDK/Host upgrade
 remain separate. Retiring the old generation does not erase its immutable
 on-chain history or waive ordinary claim accounting in the new generation.
+
+## Subsequent W35 CI correction
+
+The [W35 job on the earlier PR head](https://github.com/knzeng-e/dotify/actions/runs/44283426136/job/134731154509)
+failed one `webkit-web` compact compatibility Room case; the compact matrix
+reported 31 passes and four deliberate exclusions. The source media clock had
+advanced to 12.629 seconds, all three contexts reported running, peers were
+connected, and no media/reader error was recorded, but the source PCM meter
+remained zero. RTC counters were not substituted for measured audio.
+
+Test correction: `c95297e6f45936490ab0ba2183064d0694b68d35`. The Room gate now proves actual source PCM first,
+pauses the source, connects the guest, verifies that negotiation preserves Pause
+and media position, then requires explicit Play and source/guest PCM again.
+The RMS thresholds and authenticated end-of-track assertion are unchanged;
+there is no automatic retry, extra skip or longer timeout. This exercises the
+solo → Pause → Room → Play sequence; it does not establish reliability of a
+never-played source with a guest attached before its first Play gesture.
+
+The downloaded CI synthetic fixture was used locally with matching-lock API
+fixture dependencies. The unmodified WebKit Web case passed three local repeats,
+so the intermittent Linux failure was not reproduced on macOS. An exploratory
+run was invalidated by editing its fixture while Vite was running and is not
+acceptance evidence. The frozen corrected version passed all four focused Room
+cases (Chromium/WebKit × Web/injected Host), **4/4**, including both source and
+guest signal and full playback. Compact harness TypeScript, formatting and
+whitespace checks passed. Production audio, payment code and workflow limits
+were not changed by this correction. Full Linux CI validation follows the push;
+local passes alone are not a green W35 claim.
