@@ -1,5 +1,7 @@
 # Native payment settlement candidate — 2026-11-18
 
+Later source/rollout scope is recorded in the [review follow-up](native-payment-review-follow-up-2026-11-18.md). The results below remain bound to their original source; old-state migration was subsequently removed from the required scope.
+
 ## Result and scope
 
 Source candidate tested: `5cfb032dd9345b8823f356c827b31ab713d87352`, based on
@@ -48,15 +50,15 @@ API dependencies used an existing matching-lock installation; frontend
 dependencies used a copy-on-write clone of a matching-lock installation after
 the task's earlier install was removed to recover disk space.
 
-| Check | Observed result and meaning |
-| --- | --- |
-| Frontend unit suite | 1,238 passed across 161 files: finality, canonical receipt reconciliation, duplicate/conflicting evidence, persistence/retry bounds, manual repair and account mapping. |
-| Contract suite | 93 passed: rejected/gas-consuming/reentrant recipients, conservation with late healthy recipients, expensive payer refunds, repeated claims and recovery of actual legacy-stipend debt after selector replacement. |
-| API suite | Complete sequential rerun: 660/660 passed, 43 suites, no skips or cancellations (347.55 seconds). Focused payment/proxy tests also passed (21 tests). |
-| Browser earnings/contribution flows | 37 passed; a subsequent targeted run passed native Classic plus the new manual hash/block repair (2 tests, 38 unique browser cases in total). Synthetic fixtures only. |
-| Typecheck / lint | API typecheck and frontend TypeScript passed. Frontend lint had no errors and two existing App.tsx effect-dependency warnings. |
-| Clean builds | Ordinary Web and frozen Product DevNet builds passed from clean source `5cfb032d`. Existing large-chunk build warnings remain. |
-| ABI generation / hygiene | Generated bindings reproduced; Web/contract formatting, backlog offline check and whitespace check passed. |
+| Check                               | Observed result and meaning                                                                                                                                                                                        |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Frontend unit suite                 | 1,238 passed across 161 files: finality, canonical receipt reconciliation, duplicate/conflicting evidence, persistence/retry bounds, manual repair and account mapping.                                            |
+| Contract suite                      | 93 passed: rejected/gas-consuming/reentrant recipients, conservation with late healthy recipients, expensive payer refunds, repeated claims and recovery of actual legacy-stipend debt after selector replacement. |
+| API suite                           | Complete sequential rerun: 660/660 passed, 43 suites, no skips or cancellations (347.55 seconds). Focused payment/proxy tests also passed (21 tests).                                                              |
+| Browser earnings/contribution flows | 37 passed; a subsequent targeted run passed native Classic plus the new manual hash/block repair (2 tests, 38 unique browser cases in total). Synthetic fixtures only.                                             |
+| Typecheck / lint                    | API typecheck and frontend TypeScript passed. Frontend lint had no errors and two existing App.tsx effect-dependency warnings.                                                                                     |
+| Clean builds                        | Ordinary Web and frozen Product DevNet builds passed from clean source `5cfb032d`. Existing large-chunk build warnings remain.                                                                                     |
+| ABI generation / hygiene            | Generated bindings reproduced; Web/contract formatting, backlog offline check and whitespace check passed.                                                                                                         |
 
 The first broad API run was not green: 651/658 passed, with local socket
 restrictions and disk exhaustion affecting seven tests. All seven affected
