@@ -3,6 +3,8 @@
 This reference describes the A01 source candidate for API maintainers and
 operators. It is not evidence of deployment or native Host acceptance.
 [The scope](../backlog/catalog-runtime-isolation.md) is tracked in #486.
+[Validation evidence](../backlog/implementation/evidence/catalog-runtime-isolation-2026-11-18/README.md)
+is bound to its tested source.
 
 ## Authority and failure boundaries
 
