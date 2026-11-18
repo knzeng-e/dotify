@@ -123,7 +123,15 @@ test('compact compatibility AAC reaches a WebRTC guest and plays to its authenti
   // Full authenticated rendition, the same portable fallback used by managed
   // Room capture. This is a loopback guest, not physical iPhone background proof.
   expect(await start(page, 'compact', true)).toEqual({ progressive: false });
+  // Prove decoded source PCM before adding another Web Audio/RTC consumer.
+  // The failing Linux WebKit trace had running clocks but no source samples.
+  // Pause for Room preparation, then require explicit Play and measurable
+  // source/guest output again; negotiation must not restart the paused source.
+  await hear(page);
+  await page.evaluate(() => Reflect.get(window, '__compactAudio').pause());
+  const pausedAt = (await snapshot(page)).currentTime;
   await page.evaluate(() => Reflect.get(window, '__compactAudio').connectGuest());
+  expect(await snapshot(page)).toMatchObject({ paused: true, currentTime: pausedAt });
   await hear(page);
   await expect.poll(() => page.evaluate(() => Reflect.get(window, '__compactAudio').guestPower())).toBeGreaterThan(0.01);
   await expect.poll(async () => (await snapshot(page)).ended, { timeout: 28_000 }).toBe(true);
