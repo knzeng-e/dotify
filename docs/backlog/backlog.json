@@ -871,7 +871,7 @@
       "priority": "P1",
       "track": "Production spine",
       "phase": "Now",
-      "note": "Owner-requested correction before CASH: bounded relative native payout budgets, finalized Product royalty claims, verified native access/claim history, EVM/native deduplication and explicit beneficiary/self-payment presentation. Source candidate only; owner-signed facet upgrades, matched services/client rollout and live Revive/Host acceptance remain separate."
+      "note": "Owner-requested correction before CASH: bounded relative native payout budgets, finalized Product royalty claims, verified native access/claim history, EVM/native deduplication and explicit beneficiary/self-payment presentation. Source candidate only; clean full testnet redeployment replaces old-state migration. Receipt preflight/post-finality warnings, runtime-recipient rejection and 34-entry payout isolation are included; remaining audit fixes, matched rollout and live Revive/Host acceptance remain separate."
     }
   ]
 }

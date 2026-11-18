@@ -1443,6 +1443,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
     }
 
     setIsClaimingRoyalties(true);
+    let lastTxHash: `0x${string}` | undefined;
     try {
       const summaries = await readRoyaltyRuntimeSummaries();
       const claimTargets = summaries.filter(
@@ -1480,7 +1481,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
       }
 
       const runtimeWriter = getRuntimeWriter();
-      let lastTxHash: `0x${string}` | undefined;
+      const historyWarnings: { hash: `0x${string}`; block?: number }[] = [];
       const unresolvedRuntimes: string[] = [];
       const unreadableRuntimes: string[] = [];
 
@@ -1493,6 +1494,8 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
       for (const target of claimTargets) {
         const txHash = await runtimeWriter.claimRoyalty(target.runtimeAddress, activeEvmAddress);
         lastTxHash = txHash;
+        const warning = runtimeWriter.getRoyaltyReceiptWarning?.(txHash);
+        if (warning) historyWarnings.push({ hash: txHash, block: warning.block?.number });
         setTransactionFeedback({
           tone: 'pending',
           title: 'Royalty claim submitted',
@@ -1543,13 +1546,19 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
 
       setTransactionFeedback({
         tone: 'success',
-        title: 'Royalties claimed',
-        message: 'All known pending royalty balances were cleared.',
+        title: historyWarnings.length ? 'Royalties claimed; history needs attention' : 'Royalties claimed',
+        message: historyWarnings.length
+          ? 'All known pending balances were cleared. Keep these receipts: history could not be saved; sync it without submitting another claim.'
+          : 'All known pending royalty balances were cleared.',
+        technicalFacts: historyWarnings.map(warning => ({
+          label: warning.block === undefined ? 'Finalized receipt' : `Finalized receipt · block ${warning.block}`,
+          value: warning.hash
+        })),
         txHash: lastTxHash
       });
     } catch (claimError) {
       const message = claimError instanceof Error ? claimError.message : 'Royalty claim failed';
-      setTransactionFeedback({ tone: 'error', title: 'Royalty claim failed', message });
+      setTransactionFeedback({ tone: 'error', title: lastTxHash ? 'Some royalty claims need checking' : 'Royalty claim failed', message, txHash: lastTxHash });
     } finally {
       setIsClaimingRoyalties(false);
     }

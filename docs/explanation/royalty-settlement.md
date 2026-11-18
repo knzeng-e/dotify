@@ -9,8 +9,9 @@ evidence, not an exhaustive payment history or a CASH acceptance record.
 
 The [#484 correction candidate](../backlog/native-payment-settlement-parity.md)
 adds relative call budgets and native royalty history below. Source behavior
-is described here; owner-signed facet replacement, matched API/client delivery
-and live Revive/Host acceptance remain separate from implementation.
+is described here; the selected rollout is a complete fresh testnet generation,
+followed by matched API/client delivery and live Revive/Host acceptance. See the
+[deployment boundary](../operations/deployment-configuration.md#native-payment-correction-candidate-484).
 
 ---
 
@@ -165,7 +166,10 @@ royaltyRecipients = [collaborator, artist]
 royaltyShares     = [3000, 7000]   // 30 % + 70 % = 100 %
 ```
 
-These splits are stored in the runtime and applied on every payment.
+These splits are stored in the runtime and applied on every payment. A recipient
+must be nonzero and cannot be the runtime itself: a successful self-call would
+retain the money without paying an external beneficiary. Settlement also rejects
+self-destinations before transferring, so they cannot emit a false paid event.
 
 ### Payment transaction
 
@@ -182,10 +186,10 @@ When a listener calls `musicRoyPayAccess(contentHash)`, the contract:
 
 ### Resource budgets and recovery
 
-Immediate payout attempts use at most `gasleft() / 36` per recipient, reserving
+Immediate payout attempts use at most `gasleft() / 68` per recipient, reserving
 resources for the bounded split loop, pending bookkeeping and events. The
-divisor accounts for sixteen rights holders, an artist remainder and a Room
-host. Claims and overpayment refunds use at most half the remaining frame:
+divisor accounts for sixteen rights holders, sixteen contribution-policy
+recipients, an artist remainder and a Room host (34 entries). Claims and overpayment refunds use at most half the remaining frame:
 they have one recipient and leave resources for failure handling. Zero amounts
 make no external call. Return data from recipients is not copied.
 
@@ -278,54 +282,42 @@ The failed-claim path does not revert, because a reverted transaction would also
 discard the failure event. The caller must read `musicRoyClaimable` again before
 treating the money as received.
 
-### Runtime upgrades and clean migration
+### Fresh testnet generation
 
-Artist SmartRuntimes are Diamond proxies. The preferred upgrade path is an
-owner-signed `diamondCut` that replaces or adds only the affected pallet
-selectors while preserving the runtime address, catalogue storage, paid-access
-state, claimable balances, and content-key binding.
+On 18 November 2026 the owner chose a complete clean testnet redeployment after
+the audit corrections. The previous runtimes, releases, references, purchases,
+NFT state and pending test balances will not be imported. Historical contracts
+and immutable storage objects may remain on-chain, but are retired from the
+active application. New releases require new runtime-bound identities and keys;
+old upload jobs and signing intents must not be replayed into the new generation.
 
-W05 adds Hardhat tasks for that path:
+The [deployment procedure](../operations/deployment-configuration.md#native-payment-correction-candidate-484)
+owns the cutover and validation requirements. Redeployment has not been executed.
+General Diamond tooling remains available for future maintenance, but recovering
+old testnet debts is not a requirement of this release. The migration-only
+`LegacyFixedGasPaymentPallet` test fixture is removed; ordinary failed-payout and
+claim tests remain.
 
-```bash
-cd contracts/evm
-npm run runtime:export:testnet -- --runtime <OLD_RUNTIME> --recipient <RECIPIENT> --out /tmp/runtime-snapshot.json
-npm run runtime:deploy-royalties-facet:testnet
-npm run runtime:deploy-royalties-facet:testnet -- --execute --confirm-chain-id 420420417 --confirm-code-hash <LOCAL_CODE_HASH> --out /tmp/royalties-facet.json
-npm run runtime:royalties-upgrade:testnet -- --runtime <OLD_RUNTIME> --facet <NEW_ROYALTIES_FACET> --out /tmp/royalties-upgrade-plan.json
-npm run runtime:royalties-upgrade:testnet -- --runtime <OLD_RUNTIME> --facet <NEW_ROYALTIES_FACET> --execute --confirm-plan <PLAN_DIGEST> --out /tmp/royalties-upgrade-final.json
-```
+### Receipt persistence and finalized results
 
-Both deploy and upgrade tasks are dry-run by default. The deploy task emits the
-local source code hash that must be passed back as `--confirm-code-hash`, then
-writes the new stateless facet address to the deployment manifest. The upgrade
-task execution requires the current runtime owner key, the new facet via
-`--facet`, an output evidence path, and an exact fresh plan digest. It snapshots
-track state before the cut, simulates the owner call, records signed/broadcast
-evidence, waits for finality, verifies every royalties selector, and compares
-the post-upgrade catalogue hash with the pre-upgrade hash.
+Before a Product royalty payment or claim, Dotify checks that the saved-reference
+queue is readable, below its 1,000-reference cap and writable. A failure at this
+stage prevents transaction submission. The check cannot reserve browser quota
+or prevent a concurrent tab from changing the queue during wallet approval.
 
-If `runtime:royalties-upgrade` reports a target royalties facet code-hash
-mismatch, the facet address being used is not the locally compiled W05 facet.
-Deploy the current facet first, then rerun the upgrade with `--facet
-<NEW_ROYALTIES_FACET>`.
-
-Clean redeploy is a fallback, not the default. You can save a runtime snapshot
-and render replay calldata for a new runtime:
-
-```bash
-npm run runtime:migration-plan -- --snapshot /tmp/runtime-snapshot.json --target-runtime <NEW_RUNTIME> --out /tmp/runtime-migration-plan.json
-```
-
-That plan does not move paid-access state or claimable balances. It also blocks
-encrypted `dotify:enc:v2:` audio refs by default because content-key derivation
-is bound to `chainId + runtimeAddress + contentHash`; migrating those releases
-requires re-encrypting/re-uploading audio for the new runtime or an explicit
-key-recovery flow.
+After finalization, receipt persistence is best effort with an explicit failure
+result separate from the transaction: the writer returns the finalized hash
+and retains its block for a history warning. The queue also retains the public
+reference in the current tab if durable saving fails. The claim UI continues its
+finalized pending-balance readback and distinguishes cleared balances from a
+history warning. The listener flow continues verifying paid/playable access and
+shows history trouble in the receipt details. Neither case resubmits money.
+Copy the receipt before closing the tab if the durable save failed; a later
+read-only receipt check can repair API history.
 
 ### Human free tracking
 
-`musicRoyRecordListen(contentHash)` is available for Human free tracks. It does not process a payment but records that a listener completed playback. This data is available for analytics. The event is:
+`musicRoyRecordListen(contentHash)` is available for Human free tracks. It does not process a payment; it records an eligible account's declaration. It does not prove playback duration or deduplicate repeated listens. Analytics must preserve that distinction. The event is:
 
 ```solidity
 event MusicRoyListenRecorded(bytes32 indexed contentHash, address indexed listener);
@@ -366,7 +358,6 @@ compute aggregates:
 ```
 
 The `RoyaltyPayment` type is defined in `web/src/shared/types.ts`.
-
 
 ## Artist dashboard: recorded native support
 

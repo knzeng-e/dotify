@@ -17,13 +17,16 @@ self-payments well enough.
 
 1. Replace the absolute transfer allowance with bounded relative frame budgets,
    preserving recipient isolation, exact accounting, reentrancy protection and
-   existing Diamond storage/selectors. Provide a recovery path for expensive
-   recipients and test overpayment refunds, failed/repeated claims, and a local
-   replacement of the old fixed-stipend facet with a positive pending balance.
+   Diamond storage/selectors. Test expensive recipients, overpayment refunds,
+   failed/repeated claims, and combined 34-entry contribution fan-out. Reject
+   the runtime itself as a royalty recipient and fail closed before a self-payout.
 2. Verify and save finalized native access/royalty/claim receipts in the existing
    single-writer native journal. Keep contributions and royalty history queries
    separate, revision-consistent, bounded and honest about saved-receipt coverage.
-3. Persist Product receipt references for read-only sync retries. Merge native
+3. Check receipt-storage readability, capacity and writability before signing.
+   After finality, keep the hash/block and continue settlement/access readback
+   even when history persistence fails; expose that separate warning.
+   Persist Product receipt references for read-only sync retries. Merge native
    and EVM evidence before reconciling claims, without counting the same
    extrinsic twice. Keep the correct receipt links and expose manual verification
    of an existing hash/block without resubmitting payment.
@@ -38,11 +41,18 @@ Local contract, frontend, API and browser regressions must cover the changed
 money, persistence, identity, finality and accounting boundaries. Document the
 matched API/client rollout, unchanged journal location and independent backups.
 
-This ticket delivers a reviewable source candidate. Owner-signed facet upgrades,
-matched client/API deployment and live Revive/physical Host acceptance remain
-separate operational gates before activation or public-pilot claims. No signer,
-transaction, treasury redesign, CASH adapter or SDK upgrade is authorized by this
-ticket. The held Host SDK candidate stays separate.
+This ticket delivers a reviewable source candidate. On 18 November 2026 the
+owner selected a complete fresh testnet deployment and abandoned the previous
+contracts, releases, references and test state as active application data. Legacy
+state migration and old-debt recovery are outside the required scope; the
+migration-only fixed-gas fixture is removed. New-generation pending claims and
+receipt repair remain part of ordinary operation.
+
+The authoritative [clean-generation rollout boundary](../operations/deployment-configuration.md#native-payment-correction-candidate-484)
+requires the remaining system-audit corrections before deployment, a coordinated
+contract/API/client cutover, and live Revive/physical Host acceptance. Source
+review does not mean that deployment or reset has run. CASH and the held SDK/Host
+upgrade remain separate.
 
 Related: #145 (original W05 isolation), #85 (Host acceptance), #408 (future CASH
 settlement). The [bounded audit evidence](implementation/evidence/payment-settlement-audit-2026-11-17.md)

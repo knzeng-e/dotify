@@ -85,6 +85,7 @@ export type ProductCdmRuntimeWriterDeps = ProductCdmRuntimeAdapterDeps & {
   nativeTokenDecimals: number;
   readAvailableBalance?: () => Promise<bigint>;
   getPaymentSigner?: () => ProductPaymentSigner | null;
+  beforeRoyaltySubmit?: () => Promise<void>;
   onRoyaltyFinalized?: (runtime: Address, hash: Hash, block?: NativeContributionBlock) => void | Promise<void>;
 };
 
@@ -308,7 +309,26 @@ export function createProductCdmRuntimeReader(deps: ProductCdmRuntimeAdapterDeps
 }
 
 export function createProductCdmRuntimeWriter(deps: ProductCdmRuntimeWriterDeps): RuntimeWritePort {
+  const receiptWarnings = new Map<Hash, { message: string; block?: NativeContributionBlock }>();
+  async function rememberFinalized(runtime: Address, hash: Hash, block?: NativeContributionBlock) {
+    try {
+      await deps.onRoyaltyFinalized?.(runtime, hash, block);
+    } catch {
+      receiptWarnings.set(hash, {
+        message: 'The transaction is finalized, but its history reference could not be saved. Keep the receipt and sync history without paying again.',
+        block
+      });
+    }
+  }
+  async function preflight() {
+    try {
+      await deps.beforeRoyaltySubmit?.();
+    } catch (error) {
+      throw new SupportNotSubmittedError(error);
+    }
+  }
   return {
+    getRoyaltyReceiptWarning: hash => receiptWarnings.get(hash),
     contributionConfirmationMode: 'finalized-event',
     contributionCall(runtime, method, args, value = 0n, onFinalized, onStatus) {
       return txContract(
@@ -376,30 +396,32 @@ export function createProductCdmRuntimeWriter(deps: ProductCdmRuntimeWriterDeps)
       const signer = deps.getPaymentSigner?.();
       const approval = signer ? createProductPaymentApproval(signer) : undefined;
       let finalizedBlock: NativeContributionBlock | undefined;
-      const result = txContract(
-        deps.contracts.getRuntimeContract(intent.runtimeAddress),
-        'musicRoyPayAccess',
-        [
-          intent.contentHash,
-          {
-            value: nativeValue,
-            waitFor: 'finalized',
-            ...(approval ? { signer: approval.signer } : {}),
-            ...(approval || onStatus
-              ? {
-                  onStatus: (status: Parameters<NonNullable<typeof onStatus>>[0], hash?: Hash) => {
-                    approval?.observe(status);
-                    onStatus?.(status, hash);
+      const submit = () =>
+        txContract(
+          deps.contracts.getRuntimeContract(intent.runtimeAddress),
+          'musicRoyPayAccess',
+          [
+            intent.contentHash,
+            {
+              value: nativeValue,
+              waitFor: 'finalized',
+              ...(approval ? { signer: approval.signer } : {}),
+              ...(approval || onStatus
+                ? {
+                    onStatus: (status: Parameters<NonNullable<typeof onStatus>>[0], hash?: Hash) => {
+                      approval?.observe(status);
+                      onStatus?.(status, hash);
+                    }
                   }
-                }
-              : {})
+                : {})
+            }
+          ],
+          block => {
+            finalizedBlock = block;
           }
-        ],
-        block => {
-          finalizedBlock = block;
-        }
-      ).then(async hash => {
-        await deps.onRoyaltyFinalized?.(intent.runtimeAddress, hash, finalizedBlock);
+        );
+      const result = (deps.beforeRoyaltySubmit ? preflight().then(submit) : submit()).then(async hash => {
+        await rememberFinalized(intent.runtimeAddress, hash, finalizedBlock);
         return hash;
       });
       return result
@@ -412,11 +434,12 @@ export function createProductCdmRuntimeWriter(deps: ProductCdmRuntimeWriterDeps)
     },
 
     async claimRoyalty(runtimeAddress, recipientAddress) {
+      if (deps.beforeRoyaltySubmit) await preflight();
       let finalizedBlock: NativeContributionBlock | undefined;
       const hash = await txContract(deps.contracts.getRuntimeContract(runtimeAddress), 'musicRoyClaim', [recipientAddress, { waitFor: 'finalized' }], block => {
         finalizedBlock = block;
       });
-      await deps.onRoyaltyFinalized?.(runtimeAddress, hash, finalizedBlock);
+      await rememberFinalized(runtimeAddress, hash, finalizedBlock);
       return hash;
     },
 

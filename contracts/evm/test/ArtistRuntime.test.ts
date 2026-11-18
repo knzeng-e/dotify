@@ -1165,31 +1165,16 @@ describe('MusicRoyaltiesPallet — payment security', () => {
     expect(refundEvents[0].args.amount).to.equal(OVERPAY - PRICE);
   });
 
-  it('recovers a legacy fixed-stipend debt after an owner facet replacement without losing access or splits', async () => {
-    const { registry, royalties, access, artistA, listener, publicClient } = await withArtistRuntime();
-    const recipient = await hre.viem.deployContract('ExpensiveRoyaltyRecipient');
+  it('rejects a runtime royalty recipient without registering a track or granting access', async () => {
+    const { registry, artistA, royalties, access, listener } = await withArtistRuntime();
     const artistRegistry = await hre.viem.getContractAt('MusicRegistryPallet', registry.address, { client: { wallet: artistA } });
-    await artistRegistry.write.musicRegRegister([sampleRegistration({ pricePlanck: 100n }), [recipient.address], [10_000]]);
-    const legacy = await hre.viem.deployContract('LegacyFixedGasPaymentPallet');
-    const selectors = selectorsFromAbi((await hre.artifacts.readArtifact('LegacyFixedGasPaymentPallet')).abi as Abi);
-    const cut = await hre.viem.getContractAt('DiamondCutPallet', royalties.address, { client: { wallet: artistA } });
-    await cut.write.diamondCut([[{ facetAddress: legacy.address, action: FacetCutAction.Replace, functionSelectors: selectors }], ZERO_ADDR, '0x']);
-    const paying = await hre.viem.getContractAt('MusicRoyaltiesPallet', royalties.address, { client: { wallet: listener } });
-    await paying.write.musicRoyPayAccess([TRACK_HASH], { value: 100n, gas: 1_000_000n });
-    await recipient.write.claimFrom([royalties.address], { gas: 1_000_000n });
-    expect(await royalties.read.musicRoyClaimable([recipient.address])).to.equal(100n);
-    expect(await publicClient.getBalance({ address: recipient.address })).to.equal(0n);
-    const split = await royalties.read.musicRoySplitAt([TRACK_HASH, 0n]);
-    const replacement = await hre.viem.deployContract('MusicRoyaltiesPallet');
-    await cut.write.diamondCut([[{ facetAddress: replacement.address, action: FacetCutAction.Replace, functionSelectors: selectors }], ZERO_ADDR, '0x']);
-    expect(await royalties.read.musicRoySplitAt([TRACK_HASH, 0n])).to.deep.equal(split);
-    expect(await access.read.musicAccHasPaid([TRACK_HASH, listener.account.address])).to.equal(true);
-    expect(await access.read.musicAccCanAccess([TRACK_HASH, listener.account.address])).to.equal(true);
-    expect(await royalties.read.musicRoyClaimable([recipient.address])).to.equal(100n);
-    await recipient.write.claimFrom([royalties.address], { gas: 1_000_000n });
-    expect(await royalties.read.musicRoyClaimable([recipient.address])).to.equal(0n);
-    expect(await publicClient.getBalance({ address: recipient.address })).to.equal(100n);
-    await expectRevertMessage(recipient.write.claimFrom([royalties.address]), 'MusicRoyalties: nothing to claim');
+    await expectRevertMessage(
+      artistRegistry.write.musicRegRegister([sampleRegistration({ pricePlanck: 100n }), [registry.address], [10000]]),
+      'runtime recipient'
+    );
+    expect(await registry.read.musicRegIsRegistered([TRACK_HASH])).to.equal(false);
+    expect(await royalties.read.musicRoyClaimable([registry.address])).to.equal(0n);
+    expect(await access.read.musicAccHasPaid([TRACK_HASH, listener.account.address])).to.equal(false);
   });
 
   it('refunds an overpaying receiver that needs more than the previous fixed 100k stipend', async () => {

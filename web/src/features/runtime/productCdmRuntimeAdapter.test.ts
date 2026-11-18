@@ -460,3 +460,58 @@ it('does not publish a claim receipt before finalized tx resolution and preserve
   await expect(claim).resolves.toBe(txHash);
   expect(onRoyaltyFinalized).toHaveBeenCalledExactlyOnceWith(runtime, txHash, { number: 123, index: 2, hash });
 });
+
+for (const kind of ['payment', 'claim'] as const) {
+  it(`preserves a finalized ${kind} hash/block when its history callback rejects`, async () => {
+    const block = { number: 123, index: 2, hash };
+    const tx = vi.fn(async () => ({ ok: true as const, value: { ok: true, txHash, block } }));
+    const writer = createProductCdmRuntimeWriter({
+      nativeTokenDecimals: 10,
+      onRoyaltyFinalized: vi.fn().mockRejectedValue(new Error('quota')),
+      contracts: {
+        getDirectoryContract: () => ({}),
+        getFactoryContract: () => ({}),
+        getRuntimeContract: () => ({ musicRoyClaim: { tx }, musicRoyPayAccess: { tx } })
+      }
+    });
+    const result =
+      kind === 'claim'
+        ? writer.claimRoyalty(runtime, splitRecipient)
+        : writer.payForAccess(
+            createNativeRuntimeAccessPaymentIntent({
+              runtimeAddress: runtime,
+              contentHash: hash,
+              amountPlanck: 100000000n,
+              asset: DOTIFY_FALLBACK_NATIVE_RUNTIME_ASSET
+            })
+          );
+    await expect(result).resolves.toBe(txHash);
+    expect(writer.getRoyaltyReceiptWarning?.(txHash)).toMatchObject({ block, message: expect.stringContaining('finalized') });
+    expect(tx).toHaveBeenCalledOnce();
+  });
+  it(`does not submit a ${kind} when receipt preflight fails`, async () => {
+    const tx = vi.fn();
+    const writer = createProductCdmRuntimeWriter({
+      nativeTokenDecimals: 10,
+      beforeRoyaltySubmit: vi.fn().mockRejectedValue(new Error('queue full')),
+      contracts: {
+        getDirectoryContract: () => ({}),
+        getFactoryContract: () => ({}),
+        getRuntimeContract: () => ({ musicRoyClaim: { tx }, musicRoyPayAccess: { tx } })
+      }
+    });
+    const result =
+      kind === 'claim'
+        ? writer.claimRoyalty(runtime, splitRecipient)
+        : writer.payForAccess(
+            createNativeRuntimeAccessPaymentIntent({
+              runtimeAddress: runtime,
+              contentHash: hash,
+              amountPlanck: 100000000n,
+              asset: DOTIFY_FALLBACK_NATIVE_RUNTIME_ASSET
+            })
+          );
+    await expect(result).rejects.toMatchObject({ name: 'SupportNotSubmittedError', message: 'queue full' });
+    expect(tx).not.toHaveBeenCalled();
+  });
+}

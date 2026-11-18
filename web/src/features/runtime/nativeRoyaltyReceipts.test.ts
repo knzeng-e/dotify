@@ -103,3 +103,35 @@ it('bounds sync batches and shares one deadline without discarding the next save
   await queue.flush(apiUrl, runtime, fetchImpl);
   expect(fetchImpl).toHaveBeenCalledTimes(5);
 });
+
+it('checks malformed, full and unwritable queues before submission without clearing references', async () => {
+  const { values, store } = fixture();
+  const queue = createNativeRoyaltyReceiptQueue(() => store);
+  await queue.preflight(apiUrl);
+  const key = [...values.keys()][0];
+  values.set(key, '{broken');
+  await expect(queue.preflight(apiUrl)).rejects.toThrow();
+  expect(values.get(key)).toBe('{broken');
+  values.set(key, JSON.stringify(Array.from({ length: 1000 }, (_, i) => ({ runtime, hash: `0x${i.toString(16).padStart(64, '0')}`, block }))));
+  await expect(queue.preflight(apiUrl)).rejects.toThrow('needs syncing');
+  values.set(key, '[]');
+  store.setItem = () => {
+    throw new Error('quota');
+  };
+  await expect(queue.preflight(apiUrl)).rejects.toThrow('quota');
+});
+it('retains a finalized reference in this tab after a post-submission storage failure', async () => {
+  const { values, store } = fixture();
+  const queue = createNativeRoyaltyReceiptQueue(() => store);
+  await queue.preflight(apiUrl);
+  const write = store.setItem;
+  store.setItem = () => {
+    throw new Error('quota');
+  };
+  await expect(queue.enqueue(apiUrl, { hash, runtime, block })).rejects.toThrow('quota');
+  store.setItem = write;
+  const fetchImpl = vi.fn().mockImplementation(response);
+  await queue.flush(apiUrl, runtime, fetchImpl);
+  expect(fetchImpl).toHaveBeenCalledOnce();
+  expect([...values.values()][0]).toBe('[]');
+});

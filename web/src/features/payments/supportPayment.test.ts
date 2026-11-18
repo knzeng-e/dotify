@@ -193,7 +193,7 @@ describe('support payment recovery', () => {
       };
       return txHash;
     });
-    await expect(f.flow.run(f.input)).resolves.toMatchObject({ status: 'uncertain', txHash });
+    await expect(f.flow.run(f.input)).resolves.toMatchObject({ status: 'verified', txHash, historyWarning: expect.any(String) });
     f.reader.hasPaid.mockResolvedValue(true);
     f.reader.canAccess.mockResolvedValue(true);
     await expect(f.flow.run({ ...f.input, readOnly: true })).resolves.toMatchObject({ status: 'verified', txHash });
@@ -372,4 +372,25 @@ describe('support payment recovery', () => {
     expect(f.writer.payForAccess).not.toHaveBeenCalled();
     expect(f.items.size).toBe(0);
   });
+});
+
+it('verifies a finalized payment even if its durable journal update fails, and never resubmits', async () => {
+  const f = fixture();
+  f.input.writer.payForAccess = vi.fn(async (_intent, onStatus) => {
+    f.storage.setItem = () => {
+      throw new Error('quota');
+    };
+    onStatus?.('finalized', txHash);
+    return txHash;
+  });
+  await expect(f.flow.run(f.input)).resolves.toMatchObject({ status: 'verified', txHash, historyWarning: expect.stringContaining('could not be saved') });
+  await expect(f.flow.run({ ...f.input, readOnly: true })).resolves.toMatchObject({ status: 'verified', txHash });
+  expect(f.input.writer.payForAccess).toHaveBeenCalledOnce();
+  expect(f.writer.waitForTransaction).toHaveBeenCalledWith(txHash);
+});
+it('keeps verified access and the receipt hash when royalty history needs repair', async () => {
+  const f = fixture();
+  f.input.writer.getRoyaltyReceiptWarning = () => ({ message: 'History delayed' });
+  await expect(f.flow.run(f.input)).resolves.toMatchObject({ status: 'verified', txHash, historyWarning: 'History delayed' });
+  expect(f.writer.waitForTransaction).toHaveBeenCalledWith(txHash);
 });

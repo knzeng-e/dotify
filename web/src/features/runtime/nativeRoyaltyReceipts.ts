@@ -56,11 +56,25 @@ export function createNativeRoyaltyReceiptQueue(storage: () => Store, lock: Paym
     storage().setItem(key(apiUrl), JSON.stringify(rows));
   }
   return {
+    preflight(apiUrl: string): Promise<void> {
+      return lock(key(apiUrl), async () => {
+        const rows = read(apiUrl);
+        if (rows.length >= 1000) throw new Error('Native payment history needs syncing before more references can be saved.');
+        // Exercise durable storage before asking for a signature. Capacity can
+        // still change during submission, so finalized results remain separate.
+        storage().setItem(key(apiUrl), JSON.stringify(rows));
+      });
+    },
     enqueue(apiUrl: string, reference: Reference): Promise<void> {
+      // Retain the finalized reference in this tab even if durable data becomes
+      // malformed/unavailable or another tab fills the queue during submission.
+      const pending = memory.get(key(apiUrl)) ?? [];
+      memory.set(key(apiUrl), [...pending.filter(row => row.hash.toLowerCase() !== reference.hash.toLowerCase()), reference]);
       return lock(key(apiUrl), async () => {
         const rows = read(apiUrl);
         const existing = rows.find(row => row.hash.toLowerCase() === reference.hash.toLowerCase());
-        if (!existing && rows.length >= 1000) throw new Error('Native payment history needs syncing before more references can be saved.');
+        if (rows.length > 1000 || (!existing && rows.length >= 1000))
+          throw new Error('Native payment history needs syncing before more references can be saved.');
         write(apiUrl, existing ? rows.map(row => (row === existing ? reference : row)) : [...rows, reference]);
       });
     },

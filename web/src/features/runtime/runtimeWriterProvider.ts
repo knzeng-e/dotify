@@ -155,6 +155,7 @@ async function createProductCdmWriter(config: RuntimeAdapterConfig, productAccou
       contracts: resolver,
       nativeTokenDecimals,
       getPaymentSigner: () => signerManager.getSigner(),
+      ...(apiUrl ? { beforeRoyaltySubmit: () => nativeRoyaltyReceipts.preflight(apiUrl) } : {}),
       onRoyaltyFinalized: async (runtime, hash, block) => {
         if (!apiUrl) return;
         // Persist first. A failed API call must never trigger another payment.
@@ -180,17 +181,24 @@ async function createProductCdmWriter(config: RuntimeAdapterConfig, productAccou
 export function createRuntimeWriter(deps: RuntimeWriterDeps): RuntimeWritePort {
   const config = deps.config ?? resolveRuntimeAdapterConfig(import.meta.env);
   let productPortPromise: Promise<RuntimeWritePort> | null = null;
+  let productPort: RuntimeWritePort | undefined;
 
   function portForWrite(): Promise<RuntimeWritePort> {
     if (config.kind === 'viem') return createViemWriter(deps);
-    productPortPromise ??= createProductCdmWriter(config, deps.productAccount, deps.nativeReceiptApiUrl ?? import.meta.env.VITE_DOTIFY_API_URL).catch(error => {
-      productPortPromise = null;
-      throw error;
-    });
+    productPortPromise ??= createProductCdmWriter(config, deps.productAccount, deps.nativeReceiptApiUrl ?? import.meta.env.VITE_DOTIFY_API_URL)
+      .then(port => {
+        productPort = port;
+        return port;
+      })
+      .catch(error => {
+        productPortPromise = null;
+        throw error;
+      });
     return productPortPromise;
   }
 
   return {
+    getRoyaltyReceiptWarning: hash => productPort?.getRoyaltyReceiptWarning?.(hash),
     contributionConfirmationMode: config.kind === 'product-cdm' ? 'finalized-event' : 'evm-receipt',
     readFinalizedContributionLogs: async (hash, block) => {
       if (!PRODUCT_CDM_ENABLED || config.kind !== 'product-cdm') throw new Error('Native contribution receipts require the Product CDM profile.');
