@@ -57,6 +57,15 @@ export const catalogSnapshotSchema = z.object({
   catchingUp: z.boolean().optional(),
   artists: z.array(catalogArtistSchema),
   excludedReleases: z.array(z.object({ id: z.string(), reason: z.string() })).optional(),
+  excludedRuntimes: z
+    .array(
+      z.object({
+        runtimeAddress: addressSchema,
+        code: z.enum(['execution-failed', 'invalid-output', 'track-limit', 'response-limit', 'scan-deadline']),
+        reason: z.string()
+      })
+    )
+    .optional(),
   releases: z.array(catalogReleaseSchema)
 });
 
@@ -76,6 +85,7 @@ export type CatalogMetadata = {
   blockLag: number | null;
   staleAfterMs: number;
   excludedReleaseCount?: number;
+  excludedRuntimeCount?: number;
   lastErrorCode: 'CATALOG_INDEXER_UNAVAILABLE' | 'CHAIN_RPC_UNAVAILABLE' | null;
 };
 
@@ -105,7 +115,13 @@ export interface CatalogChainGateway {
   getHeadBlock(): Promise<number>;
   getBlockHash(blockNumber: number): Promise<`0x${string}`>;
   listArtists(blockNumber?: number): Promise<DirectoryArtist[]>;
-  listTrackHashes(runtimeAddress: `0x${string}`, blockNumber?: number): Promise<`0x${string}`[]>;
-  readRelease(artistAddress: `0x${string}`, runtimeAddress: `0x${string}`, contentHash: `0x${string}`, blockNumber?: number): Promise<CatalogRelease>;
+  listTrackHashes(runtimeAddress: `0x${string}`, blockNumber?: number, signal?: AbortSignal): Promise<`0x${string}`[]>;
+  readRelease(
+    artistAddress: `0x${string}`,
+    runtimeAddress: `0x${string}`,
+    contentHash: `0x${string}`,
+    blockNumber?: number,
+    signal?: AbortSignal
+  ): Promise<CatalogRelease>;
   getChanges(fromBlock: number, toBlock: number, runtimeAddresses: `0x${string}`[]): Promise<CatalogChangeSet>;
 }

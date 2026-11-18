@@ -100,6 +100,29 @@ update a Netlify dashboard, server image or deployment.
 
 ## Hosted surfaces
 
+### Catalogue runtime isolation candidate (#486)
+
+[The A01 source candidate](../reference/catalog-runtime-isolation.md) adds optional
+schema-1 runtime exclusion diagnostics and bounded artist reads. No environment
+variable, mount, origin, secret or scaling change is introduced. It is not
+recorded as deployed or native-accepted.
+
+For its later delivery, quiesce catalogue writers, retain a paired base/checkpoint
+backup (or the shared namespace backup), and install matching API writer/reader
+artifacts on every replica before resuming indexing. An older binary ignores
+runtime diagnostics and must not remain an elected writer. Force a confirmed
+reindex with the matched version, then verify healthy releases, exclusion count,
+full diagnostic persistence, global-RPC failure metadata and denied keys for an
+excluded runtime. Confirm fresh healthy key checks still read directory/track/
+access independently. Repeat after reader restart and writer handover.
+
+On rollback, quiesce writers and force a coherent reindex before allowing keys;
+do not let an older writer use a filtered snapshot as a complete inventory.
+Never delete protected key/receipt state to repair a catalogue diagnostic. Exact
+Revive resource-budget acceptance remains a deployment gate. The owner-selected
+fresh-generation reset below remains a separate reviewed operation after all
+required audit fixes; this source change does not perform it.
+
 ### Native payment correction candidate (#484)
 
 The owner selected a **complete fresh testnet generation on 18 November 2026**.

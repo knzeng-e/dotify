@@ -1,5 +1,20 @@
 # Publication, listening reliability and CASH — execution order
 
+## Smart-runtime audit checkpoint, 2026-11-18
+
+The owner prioritized the payments and whole-contract audit before further CASH
+research. #485 is merged into `dev` at `2198a447`; the owner selected a complete
+fresh testnet generation after corrections, abandoning previous contracts,
+releases and references as active state. No redeployment/reset has occurred.
+
+Next source scope: [A01 / #486 runtime isolation](../catalog-runtime-isolation.md).
+Its [reader policy](../../reference/catalog-runtime-isolation.md) keeps a broken
+artist runtime from acquiring availability control over healthy discovery and
+key grants. A09 key finality and the other audit findings remain separate
+corrections before the [fresh-generation procedure](../../operations/deployment-configuration.md#native-payment-correction-candidate-484).
+The SDK/Host hold, CASH evidence and physical acceptance gates below still apply;
+this checkpoint supersedes their earlier immediate-work order.
+
 ## SDK/Host research checkpoint, 2026-11-17
 
 The [SDK/Host upgrade investigation](../../design/product-sdk-host-upgrade-decision-2026-11-17.md)

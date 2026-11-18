@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { catalogSnapshotSchema, type CatalogSnapshot } from './types.js';
 import { catalogContent } from './content.js';
 
-export const checkpointSchema = catalogSnapshotSchema.omit({ artists: true, releases: true });
+export const checkpointSchema = catalogSnapshotSchema.omit({ artists: true, releases: true, excludedReleases: true, excludedRuntimes: true });
 export const progressSchema = z.object({
   revision: z.string().regex(/^[a-f0-9]{64}$/),
   base: z.object({ indexedAt: z.string().datetime(), lastIndexedBlock: z.number().int().nonnegative(), lastIndexedBlockHash: z.string() }),

@@ -1,9 +1,17 @@
 import { CatalogBoundsError } from './bounds.js';
 import { createHash } from 'node:crypto';
 import { catalogContent } from './content.js';
-import { mapConcurrent } from './concurrency.js';
+import { concurrencyGate, mapConcurrent } from './concurrency.js';
+import { createDeadline } from '../deadline.js';
+import { CatalogRuntimeReadError, mapRuntimeReads, runtimeReadPolicy } from './runtimePolicy.js';
 import type { CatalogArtist, CatalogChainGateway, CatalogMetadata, CatalogRelease, CatalogSnapshot, DirectoryArtist } from './types.js';
 import type { CatalogSnapshotStore } from './snapshotStore.js';
+
+type RuntimeScan = {
+  releases: CatalogRelease[];
+  excludedReleases: NonNullable<CatalogSnapshot['excludedReleases']>;
+  excludedRuntimes: NonNullable<CatalogSnapshot['excludedRuntimes']>;
+};
 
 type FailureKind = 'indexer' | 'rpc';
 
@@ -17,6 +25,7 @@ export type CatalogReadModelOptions = {
   now?: () => Date;
   readConcurrency?: number;
   logBlockRange?: number;
+  runtimeScanTimeoutMs?: number;
   onSnapshot?: (snapshot: CatalogSnapshot) => void;
 };
 
@@ -31,6 +40,8 @@ export class CatalogReadModel {
   private readonly onSnapshot;
   private readonly readConcurrency;
   private readonly logBlockRange;
+  private readonly reads;
+  private readonly runtimeScanTimeoutMs;
   private snapshot: CatalogSnapshot | null = null;
   private failure: { kind: FailureKind; at: string } | null = null;
   private syncInFlight: Promise<CatalogSnapshot> | null = null;
@@ -48,6 +59,9 @@ export class CatalogReadModel {
     this.onSnapshot = options.onSnapshot;
     this.readConcurrency = options.readConcurrency ?? 8;
     this.logBlockRange = options.logBlockRange ?? 1000;
+    this.reads = concurrencyGate(this.readConcurrency);
+    this.runtimeScanTimeoutMs = options.runtimeScanTimeoutMs ?? runtimeReadPolicy.scanTimeoutMs;
+    if (!Number.isFinite(this.runtimeScanTimeoutMs) || this.runtimeScanTimeoutMs < 1) throw new Error('Invalid runtime scan deadline');
     if (!Number.isInteger(this.logBlockRange) || this.logBlockRange < 1 || !Number.isInteger(this.readConcurrency) || this.readConcurrency < 1)
       throw new Error('Invalid catalog work bounds');
   }
@@ -148,6 +162,7 @@ export class CatalogReadModel {
       blockLag,
       staleAfterMs: this.staleAfterMs,
       ...(snapshot?.excludedReleases?.length ? { excludedReleaseCount: snapshot.excludedReleases.length } : {}),
+      ...(snapshot?.excludedRuntimes?.length ? { excludedRuntimeCount: snapshot.excludedRuntimes.length } : {}),
       lastErrorCode: this.failure?.kind === 'indexer' ? 'CATALOG_INDEXER_UNAVAILABLE' : this.failure?.kind === 'rpc' ? 'CHAIN_RPC_UNAVAILABLE' : null
     };
   }
@@ -204,7 +219,10 @@ export class CatalogReadModel {
         // releaseCount covers accepted releases only. An entirely excluded
         // runtime still needs reconciliation to retain diagnostics and discover
         // corrections made without a recognized release event.
-        const excludedRuntimes = new Set((next.excludedReleases ?? []).map(release => release.id.split(':', 1)[0].toLowerCase()));
+        const excludedRuntimes = new Set([
+          ...(next.excludedReleases ?? []).map(release => release.id.split(':', 1)[0].toLowerCase()),
+          ...(next.excludedRuntimes ?? []).map(runtime => runtime.runtimeAddress.toLowerCase())
+        ]);
         const empty = new Set(
           next.artists
             .filter(artist => artist.releaseCount === 0 && !excludedRuntimes.has(artist.runtimeAddress.toLowerCase()))
@@ -224,7 +242,15 @@ export class CatalogReadModel {
   private async commit(candidate: CatalogSnapshot): Promise<CatalogSnapshot> {
     const current = this.snapshot;
     const changed = !current || catalogContent(current).revision !== catalogContent(candidate).revision;
-    const next = changed ? candidate : { ...candidate, artists: current!.artists, releases: current!.releases };
+    const next = changed
+      ? candidate
+      : {
+          ...candidate,
+          artists: current!.artists,
+          releases: current!.releases,
+          excludedReleases: current!.excludedReleases,
+          excludedRuntimes: current!.excludedRuntimes
+        };
     try {
       if (!changed && this.store.saveProgress) await this.store.saveProgress(next);
       else await this.store.save(next);
@@ -256,16 +282,14 @@ export class CatalogReadModel {
 
     const expectedHash = await gateway.getBlockHash(safeHeadBlock);
     const directoryArtists = await gateway.listArtists(safeHeadBlock);
-    const hashes = await mapConcurrent(directoryArtists, this.readConcurrency, async artist => ({
-      artist,
-      hashes: knownEmpty.has(artist.runtimeAddress.toLowerCase()) ? [] : await gateway.listTrackHashes(artist.runtimeAddress, safeHeadBlock)
-    }));
-    const work = hashes.flatMap(({ artist, hashes }) => hashes.map(hash => ({ artist, hash })));
-    const results = await mapConcurrent(work, this.readConcurrency, ({ artist, hash }) =>
-      this.readBoundedRelease(artist.artistAddress, artist.runtimeAddress, hash, safeHeadBlock)
+    const results = await mapConcurrent(directoryArtists, this.readConcurrency, artist =>
+      knownEmpty.has(artist.runtimeAddress.toLowerCase())
+        ? Promise.resolve({ releases: [], excludedReleases: [], excludedRuntimes: [] } as RuntimeScan)
+        : this.scanRuntime(artist, safeHeadBlock)
     );
-    const releases = sortReleases(results.flatMap(result => (result.release ? [result.release] : [])));
-    const excludedReleases = results.flatMap(result => (result.excluded ? [result.excluded] : []));
+    const releases = sortReleases(results.flatMap(result => result.releases));
+    const excludedReleases = results.flatMap(result => result.excludedReleases);
+    const excludedRuntimes = results.flatMap(result => result.excludedRuntimes);
     const checkpointHash = await gateway.getBlockHash(safeHeadBlock);
     if (checkpointHash.toLowerCase() !== expectedHash.toLowerCase()) throw new Error('Catalog checkpoint changed during indexing');
     const indexedAt = this.now().toISOString();
@@ -280,6 +304,7 @@ export class CatalogReadModel {
       indexedAt,
       reconciledAt: indexedAt,
       excludedReleases,
+      excludedRuntimes,
       artists: buildArtists(directoryArtists, releases),
       releases
     };
@@ -301,17 +326,36 @@ export class CatalogReadModel {
     if (changes.releases.some(change => !artistByRuntime.has(change.runtimeAddress.toLowerCase()))) {
       return this.reindex(safeHeadBlock, chainHeadBlock);
     }
-    const changedReleases = await mapConcurrent(changes.releases, this.readConcurrency, async change => {
-      const artistAddress = artistByRuntime.get(change.runtimeAddress.toLowerCase());
-      if (!artistAddress) throw new Error('Catalog change references an unknown runtime');
-      const result = await this.readBoundedRelease(artistAddress as `0x${string}`, change.runtimeAddress, change.contentHash, safeHeadBlock);
-      return { ...result, release: result.release ? { ...result.release, sourceBlock: change.sourceBlock } : undefined };
+    const grouped = new Map<string, typeof changes.releases>();
+    for (const change of changes.releases) {
+      const key = change.runtimeAddress.toLowerCase();
+      const group = grouped.get(key) ?? [];
+      group.push(change);
+      grouped.set(key, group);
+    }
+    const quarantined = new Set((current.excludedRuntimes ?? []).map(item => item.runtimeAddress.toLowerCase()));
+    const changedRuntimes = await mapConcurrent([...grouped], this.readConcurrency, async ([key, events]) => {
+      const runtimeAddress = events[0]!.runtimeAddress;
+      const artistAddress = artistByRuntime.get(key)! as `0x${string}`;
+      // A repaired runtime must supply its entire inventory before readmission.
+      const full = quarantined.has(key);
+      const result = await this.scanRuntime({ artistAddress, runtimeAddress }, safeHeadBlock, full ? undefined : events.map(event => event.contentHash));
+      const blocks = new Map(events.map(event => [event.contentHash.toLowerCase(), event.sourceBlock]));
+      return {
+        key,
+        full,
+        ...result,
+        releases: result.releases.map(release => ({
+          ...release,
+          sourceBlock: blocks.get(release.hash.toLowerCase()) ?? release.sourceBlock
+        }))
+      };
     });
 
     if (await this.checkpointChanged(current)) throw new Error('Catalog checkpoint changed during event replay');
     const actualHash = await gateway.getBlockHash(safeHeadBlock);
     if (actualHash.toLowerCase() !== expectedHash.toLowerCase()) throw new Error('Catalog checkpoint changed during indexing');
-    if (changedReleases.length === 0)
+    if (changedRuntimes.length === 0)
       return {
         ...current,
         lastIndexedBlock: safeHeadBlock,
@@ -321,13 +365,21 @@ export class CatalogReadModel {
       };
     const releasesById = new Map(current.releases.map(release => [release.id.toLowerCase(), release]));
     const excluded = new Map((current.excludedReleases ?? []).map(item => [item.id.toLowerCase(), item]));
-    for (const result of changedReleases) {
-      if (result.release) {
-        releasesById.set(result.release.id.toLowerCase(), result.release);
-        excluded.delete(result.release.id.toLowerCase());
-      } else if (result.excluded) {
-        releasesById.delete(result.excluded.id.toLowerCase());
-        excluded.set(result.excluded.id.toLowerCase(), result.excluded);
+    const excludedRuntimes = new Map((current.excludedRuntimes ?? []).map(item => [item.runtimeAddress.toLowerCase(), item]));
+    for (const result of changedRuntimes) {
+      if (result.full || result.excludedRuntimes.length) {
+        for (const [id, release] of releasesById) if (release.runtimeAddress.toLowerCase() === result.key) releasesById.delete(id);
+        for (const id of excluded.keys()) if (id.startsWith(`${result.key}:`)) excluded.delete(id);
+      }
+      excludedRuntimes.delete(result.key);
+      for (const item of result.excludedRuntimes) excludedRuntimes.set(result.key, item);
+      for (const release of result.releases) {
+        releasesById.set(release.id.toLowerCase(), release);
+        excluded.delete(release.id.toLowerCase());
+      }
+      for (const item of result.excludedReleases) {
+        releasesById.delete(item.id.toLowerCase());
+        excluded.set(item.id.toLowerCase(), item);
       }
     }
     const releases = sortReleases([...releasesById.values()]);
@@ -341,6 +393,7 @@ export class CatalogReadModel {
     return {
       ...current,
       excludedReleases: [...excluded.values()],
+      excludedRuntimes: [...excludedRuntimes.values()].sort((a, b) => a.runtimeAddress.toLowerCase().localeCompare(b.runtimeAddress.toLowerCase())),
       lastIndexedBlock: safeHeadBlock,
       lastIndexedBlockHash: checkpointHash,
       chainHeadBlock,
@@ -350,17 +403,49 @@ export class CatalogReadModel {
     };
   }
 
+  private async scanRuntime(artist: DirectoryArtist, block: number, changedHashes?: `0x${string}`[]): Promise<RuntimeScan> {
+    const deadline = createDeadline(new AbortController().signal, this.runtimeScanTimeoutMs);
+    const signal = deadline.signal;
+    const runtime = artist.runtimeAddress;
+    try {
+      const inventory = await this.reads(() => {
+        if (signal.aborted) throw new CatalogRuntimeReadError(runtime, 'scan-deadline');
+        return this.gateway!.listTrackHashes(runtime, block, signal);
+      });
+      if (inventory.length > runtimeReadPolicy.maxTracks || (changedHashes?.length ?? 0) > runtimeReadPolicy.maxTracks)
+        throw new CatalogRuntimeReadError(runtime, 'track-limit');
+      const results = await mapRuntimeReads(changedHashes ?? inventory, this.readConcurrency, hash =>
+        this.reads(() => {
+          if (signal.aborted) throw new CatalogRuntimeReadError(runtime, 'scan-deadline');
+          return this.readBoundedRelease(artist.artistAddress, runtime, hash, block, signal);
+        })
+      );
+      if (signal.aborted) throw new CatalogRuntimeReadError(runtime, 'scan-deadline');
+      return {
+        releases: results.flatMap(result => (result.release ? [result.release] : [])),
+        excludedReleases: results.flatMap(result => (result.excluded ? [result.excluded] : [])),
+        excludedRuntimes: []
+      };
+    } catch (error) {
+      if (!(error instanceof CatalogRuntimeReadError) || error.runtimeAddress.toLowerCase() !== runtime.toLowerCase()) throw error;
+      return { releases: [], excludedReleases: [], excludedRuntimes: [{ runtimeAddress: runtime, code: error.code, reason: error.message }] };
+    } finally {
+      deadline.dispose();
+    }
+  }
+
   private async readBoundedRelease(
     artist: `0x${string}`,
     runtime: `0x${string}`,
     hash: `0x${string}`,
-    block: number
+    block: number,
+    signal: AbortSignal
   ): Promise<{
     release?: CatalogRelease;
     excluded?: { id: string; reason: string };
   }> {
     try {
-      return { release: await this.gateway!.readRelease(artist, runtime, hash, block) };
+      return { release: await this.gateway!.readRelease(artist, runtime, hash, block, signal) };
     } catch (error) {
       if (!(error instanceof CatalogBoundsError)) throw error;
       return { excluded: { id: `${runtime}:${hash}`, reason: error.reason } };
