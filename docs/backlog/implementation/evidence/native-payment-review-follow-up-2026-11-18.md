@@ -117,3 +117,29 @@ guest signal and full playback. Compact harness TypeScript, formatting and
 whitespace checks passed. Production audio, payment code and workflow limits
 were not changed by this correction. Full Linux CI validation follows the push;
 local passes alone are not a green W35 claim.
+
+### Linux matrix refinement
+
+The [next Linux W35 run](https://github.com/knzeng-e/dotify/actions/runs/44359968951/job/134999773984)
+passed both WebKit Room cases, including the originally failing one. It exposed
+a separate effect of applying the new priming/Pause sequence to Firefox: both
+Firefox Room cases had real source/guest signal and reached `ended`, but the
+browser reported duration/currentTime **25.216 s** instead of the authenticated
+24.2-second duration. The matrix ended with 30 passes, four exclusions and those
+two failures. These results are retained rather than described as a green run.
+
+Refined test source: `1eacf6157a7acd7b78ca5b63456d48aab1390eeb`. Priming is now limited to WebKit. Chromium and
+Firefox keep their original cold-capture sequence; all engines still require
+Pause/position preservation during negotiation, source and guest PCM, and the
+same strict 24.2-second end assertion. No threshold, timeout, retry or exclusion
+was relaxed.
+
+The frozen refined version passed the Chromium Web and WebKit Web Room cases
+locally (**2/2**) plus compact-harness TypeScript, formatting and whitespace
+checks. The unchanged WebKit priming branch had also passed six local repeats
+(Web/Host, three each) before the first push. A local Firefox attempt cannot be
+counted as decoder acceptance: macOS Firefox failed its renderer/framebuffer
+startup before the test could run. Linux CI remains authoritative for that
+engine. The attempted rewind experiment was not retained; it did not establish
+a Firefox fix. Production audio and payment code remain unchanged by this
+refinement.
