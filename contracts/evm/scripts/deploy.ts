@@ -2,8 +2,8 @@
  * Dotify — Smart Runtime deployment script
  *
  * Deploys the full Artist Runtime system:
- *   1. 7 shared pallet implementations (DiamondCut, DiamondLoupe, Ownership,
- *      MusicRegistry, MusicNFT, MusicRoyalties, MusicAccess)
+ *   1. 6 shared pallet implementations (DiamondCut, DiamondLoupe, Ownership,
+ *      MusicRegistry, MusicRoyalties, MusicAccess)
  *   2. DotifyRuntimeInitializer (bootstraps each new artist runtime)
  *   3. ArtistDirectory        (artist → SmartRuntime index)
  *   4. ArtistRuntimeFactory   (bootstraps a staged SmartRuntime per artist)
@@ -16,7 +16,7 @@
  */
 
 import hre from 'hardhat';
-import { getDeployConfig, verifySmartRuntimeSystem, writeDeployments } from './smartRuntime';
+import { getDeployConfig, nativeTokenDecimalsForDeployment, verifySmartRuntimeSystem, writeDeployments } from './smartRuntime';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Main
@@ -26,6 +26,7 @@ async function main() {
   const network = hre.network.name;
   console.log(`\nDeploying Dotify Smart Runtime system on [${network}]...\n`);
 
+  const nativeTokenDecimals = nativeTokenDecimalsForDeployment();
   const cfg = await getDeployConfig(hre);
 
   // ── 1. Shared pallet implementations ──────────────────────────────────────
@@ -35,7 +36,6 @@ async function main() {
   const loupePallet = await hre.viem.deployContract('DiamondLoupePallet', [], cfg);
   const ownershipPallet = await hre.viem.deployContract('OwnershipPallet', [], cfg);
   const registryPallet = await hre.viem.deployContract('MusicRegistryPallet', [], cfg);
-  const nftPallet = await hre.viem.deployContract('MusicNFTPallet', [], cfg);
   const royaltiesPallet = await hre.viem.deployContract('MusicRoyaltiesPallet', [], cfg);
   const accessPallet = await hre.viem.deployContract('MusicAccessPallet', [], cfg);
 
@@ -43,7 +43,6 @@ async function main() {
   console.log(`  DiamondLoupePallet   : ${loupePallet.address}`);
   console.log(`  OwnershipPallet      : ${ownershipPallet.address}`);
   console.log(`  MusicRegistryPallet  : ${registryPallet.address}`);
-  console.log(`  MusicNFTPallet       : ${nftPallet.address}`);
   console.log(`  MusicRoyaltiesPallet : ${royaltiesPallet.address}`);
   console.log(`  MusicAccessPallet    : ${accessPallet.address}`);
 
@@ -69,9 +68,9 @@ async function main() {
       loupePallet.address,
       ownershipPallet.address,
       registryPallet.address,
-      nftPallet.address,
       royaltiesPallet.address,
-      accessPallet.address
+      accessPallet.address,
+      nativeTokenDecimals
     ],
     cfg
   );
@@ -85,6 +84,7 @@ async function main() {
   // ── Write deployment artifacts ─────────────────────────────────────────────
   console.log('\nWriting deployment artifacts...');
   writeDeployments({
+    nativeTokenDecimals,
     factory: factory.address,
     directory: directory.address,
     initializer: initializer.address,
@@ -93,7 +93,6 @@ async function main() {
       loupePallet: loupePallet.address,
       ownershipPallet: ownershipPallet.address,
       registryPallet: registryPallet.address,
-      nftPallet: nftPallet.address,
       royaltiesPallet: royaltiesPallet.address,
       accessPallet: accessPallet.address
     }
@@ -105,6 +104,7 @@ async function main() {
     await verifySmartRuntimeSystem(
       hre,
       {
+        nativeTokenDecimals,
         factory: factory.address,
         directory: directory.address,
         initializer: initializer.address,
@@ -113,7 +113,6 @@ async function main() {
           loupePallet: loupePallet.address,
           ownershipPallet: ownershipPallet.address,
           registryPallet: registryPallet.address,
-          nftPallet: nftPallet.address,
           royaltiesPallet: royaltiesPallet.address,
           accessPallet: accessPallet.address
         }

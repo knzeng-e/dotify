@@ -306,7 +306,6 @@ export function ReleasesTab({
               <EndpointRow label='Registered block' value={selectedRelease.registeredAtBlock ? selectedRelease.registeredAtBlock.toString() : 'unknown'} />
               <EndpointRow label='Encrypted audio' value={selectedRelease.encrypted ? 'yes' : 'no'} />
               <EndpointRow label='Status' value={selectedReleaseActive ? 'active' : 'inactive'} />
-              <EndpointRow label='Track NFT' value='Current owner receives active-track access; policy control does not move with the NFT.' />
               <EndpointRow label='Content hash' value={<code className='release-ref-code'>{selectedRelease.hash}</code>} />
               <EndpointRow
                 label='Directory runtime'

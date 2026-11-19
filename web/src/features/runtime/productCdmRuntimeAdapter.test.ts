@@ -25,7 +25,7 @@ const txHash = `0x${'cd'.repeat(32)}` as const;
 function baseTrackRecord(patch: Partial<OnchainTrackRecord> = {}): OnchainTrackRecord {
   return {
     artist,
-    tokenId: 1n,
+
     title: 'Product runtime song',
     artistName: 'Product runtime artist',
     description: 'CDM-backed description',
@@ -158,7 +158,7 @@ describe('createProductCdmRuntimeReader', () => {
     const runtimeContract: ProductCdmContractHandle = {
       musicRegTrackCount: queryMethod(1n),
       musicRegTrackHashesPage: queryMethod([hash]),
-      musicRegGetTrack: queryMethod([record, runtime]),
+      musicRegGetTrack: queryMethod(record),
       musicRoySplitCount: queryMethod(2n),
       musicRoySplitAt
     };
@@ -203,7 +203,7 @@ describe('createProductCdmRuntimeReader', () => {
         getRuntimeContract: () => ({
           musicRegTrackCount: queryMethod(1n),
           musicRegTrackHashesPage: queryMethod([hash]),
-          musicRegGetTrack: queryMethod({ track: record, tokenOwner: artist }),
+          musicRegGetTrack: queryMethod({ track: record }),
           musicRoySplitCount: queryMethod(1n),
           musicRoySplitAt: queryMethod({ recipient: splitRecipient, bps: 2500 })
         })
@@ -326,6 +326,7 @@ describe('createProductCdmRuntimeWriter', () => {
         getDirectoryContract: () => ({}),
         getFactoryContract: () => ({ createRuntime, installRuntimeStep }),
         getRuntimeContract: () => ({
+          musicRegNativeDecimals: queryMethod(10),
           musicRegRegister,
           musicRoyPayAccess,
           musicRoyClaim,
@@ -349,7 +350,7 @@ describe('createProductCdmRuntimeWriter', () => {
         metadataRef: 'ipfs://metadata',
         artistContractRef: 'dotify:self-certified',
         accessMode: 1,
-        pricePlanck: 1n,
+        pricePlanck: 100_000_000n,
         requiredPersonhood: 0,
         royaltyRecipients: [artist],
         royaltyShares: [10_000]

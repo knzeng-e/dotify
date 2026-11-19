@@ -1,3 +1,4 @@
+import { musicRegistryAbi } from '../generated/musicRegistry.js';
 import { runtimeArtistAbi } from '../generated/runtimeArtist.js';
 import { catalogContent } from './catalog/content.js';
 // On-chain access checks for content-key delivery.
@@ -28,39 +29,6 @@ const artistDirectoryAbi = [
   }
 ] as const;
 
-const musicRegistryAbi = [
-  {
-    type: 'function',
-    name: 'musicRegGetTrack',
-    inputs: [{ name: 'contentHash', type: 'bytes32' }],
-    outputs: [
-      {
-        name: 'track',
-        type: 'tuple',
-        components: [
-          { name: 'artist', type: 'address' },
-          { name: 'tokenId', type: 'uint256' },
-          { name: 'title', type: 'string' },
-          { name: 'artistName', type: 'string' },
-          { name: 'description', type: 'string' },
-          { name: 'imageRef', type: 'string' },
-          { name: 'audioRef', type: 'string' },
-          { name: 'metadataRef', type: 'string' },
-          { name: 'artistContractRef', type: 'string' },
-          { name: 'royaltyBps', type: 'uint16' },
-          { name: 'accessMode', type: 'uint8' },
-          { name: 'pricePlanck', type: 'uint128' },
-          { name: 'requiredPersonhood', type: 'uint8' },
-          { name: 'registeredAtBlock', type: 'uint64' },
-          { name: 'active', type: 'bool' }
-        ]
-      },
-      { name: 'tokenOwner', type: 'address' }
-    ],
-    stateMutability: 'view'
-  }
-] as const;
-
 const musicAccessAbi = [
   {
     type: 'function',
@@ -85,7 +53,7 @@ type CatalogReader = {
 
 type OnchainTrack = {
   artist: Address;
-  tokenId: bigint;
+
   title: string;
   artistName: string;
   description: string;
@@ -332,7 +300,7 @@ async function readReleaseVerdict(
     if (!directoryRuntime || directoryRuntime.toLowerCase() === ZERO_ADDRESS || !sameAddress(directoryRuntime, release.runtimeAddress))
       return fail('RELEASE_IDENTITY_MISMATCH', 'ArtistDirectory no longer maps this artist to the requested runtime.');
     if (!sameAddress(runtimeArtist, release.artistAddress)) return fail('RELEASE_IDENTITY_MISMATCH', 'The runtime artist does not match this release.');
-    const [track] = record as [OnchainTrack, Address];
+    const track = record as OnchainTrack;
     if (
       !sameAddress(track.artist, release.artistAddress) ||
       track.audioRef !== release.audioRef ||

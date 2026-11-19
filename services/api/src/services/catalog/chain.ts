@@ -1,3 +1,4 @@
+import { musicRegistryAbi } from '../../generated/musicRegistry.js';
 import { CatalogBoundsError } from './bounds.js';
 import { musicRegistryPageAbi } from '../../generated/musicRegistryPage.js';
 import {
@@ -43,46 +44,6 @@ const artistDirectoryAbi = [
   }
 ] as const;
 
-const musicRegistryAbi = [
-  {
-    type: 'function',
-    name: 'musicRegTrackCount',
-    inputs: [],
-    outputs: [{ name: '', type: 'uint256' }],
-    stateMutability: 'view'
-  },
-  {
-    type: 'function',
-    name: 'musicRegGetTrack',
-    inputs: [{ name: 'contentHash', type: 'bytes32' }],
-    outputs: [
-      {
-        name: 'track',
-        type: 'tuple',
-        components: [
-          { name: 'artist', type: 'address' },
-          { name: 'tokenId', type: 'uint256' },
-          { name: 'title', type: 'string' },
-          { name: 'artistName', type: 'string' },
-          { name: 'description', type: 'string' },
-          { name: 'imageRef', type: 'string' },
-          { name: 'audioRef', type: 'string' },
-          { name: 'metadataRef', type: 'string' },
-          { name: 'artistContractRef', type: 'string' },
-          { name: 'royaltyBps', type: 'uint16' },
-          { name: 'accessMode', type: 'uint8' },
-          { name: 'pricePlanck', type: 'uint128' },
-          { name: 'requiredPersonhood', type: 'uint8' },
-          { name: 'registeredAtBlock', type: 'uint64' },
-          { name: 'active', type: 'bool' }
-        ]
-      },
-      { name: 'tokenOwner', type: 'address' }
-    ],
-    stateMutability: 'view'
-  }
-] as const;
-
 const musicRoyaltiesAbi = [
   {
     type: 'function',
@@ -108,7 +69,7 @@ const musicRoyaltiesAbi = [
 
 const artistRegisteredEvent = parseAbiItem('event ArtistRegistered(address indexed artist, address indexed runtime)');
 const trackRegisteredEvent = parseAbiItem(
-  'event TrackRegistered(bytes32 indexed contentHash, uint256 indexed tokenId, address indexed artist, string title, uint8 accessMode, uint128 pricePlanck, uint8 requiredPersonhood)'
+  'event TrackRegistered(bytes32 indexed contentHash, address indexed artist, string title, uint8 accessMode, uint128 pricePlanck, uint8 requiredPersonhood)'
 );
 const trackDeactivatedEvent = parseAbiItem('event TrackDeactivated(bytes32 indexed contentHash, address indexed artist)');
 const trackMetadataUpdatedEvent = parseAbiItem('event TrackMetadataUpdated(bytes32 indexed contentHash, address indexed artist, string metadataRef)');
@@ -119,7 +80,7 @@ const trackAccessModeChangedEvent = parseAbiItem(
 
 type OnchainTrack = {
   artist: Address;
-  tokenId: bigint;
+
   title: string;
   artistName: string;
   description: string;
@@ -146,9 +107,7 @@ function personhoodLevel(value: number): CatalogRelease['personhoodLevel'] {
 }
 
 function formatNativeAmount(value: bigint): string {
-  const [whole = '0', fraction = ''] = formatEther(value).split('.');
-  const trimmedFraction = fraction.replace(/0+$/, '').slice(0, 9);
-  return trimmedFraction ? `${whole}.${trimmedFraction}` : whole;
+  return formatEther(value);
 }
 
 function asBlockNumber(value: bigint | null): number {
@@ -270,7 +229,7 @@ export class ViemCatalogChainGateway implements CatalogChainGateway {
     blockNumber?: number,
     signal?: AbortSignal
   ): Promise<CatalogRelease> {
-    const [[track], splitCount] = (await mapRuntimeReads<() => Promise<unknown>, unknown>(
+    const [track, splitCount] = (await mapRuntimeReads<() => Promise<unknown>, unknown>(
       [
         () =>
           this.readRuntime(runtimeAddress, signal, {
@@ -291,7 +250,7 @@ export class ViemCatalogChainGateway implements CatalogChainGateway {
       ],
       2,
       call => call()
-    )) as [[OnchainTrack, Address], bigint];
+    )) as [OnchainTrack, bigint];
 
     // Bound subsequent RPC work before allocating or walking untrusted splits.
     // Do not silently truncate rights or metadata from a malformed or artist-modified runtime.
@@ -334,7 +293,7 @@ export class ViemCatalogChainGateway implements CatalogChainGateway {
       hash: contentHash,
       runtimeAddress,
       artistAddress: track.artist || artistAddress,
-      tokenId: track.tokenId.toString(),
+
       title: track.title,
       artist: track.artistName,
       description: track.description,

@@ -1,3 +1,4 @@
+import { assertClassicPrice } from '../features/runtime/nativePrice';
 import { nativeRoyaltyApiUrl } from '../features/runtime/nativePaymentHistory';
 import { audioReferenceForMetadata } from '../shared/utils/protectedAudio';
 import { preparePublicationAssets } from '../features/uploads/preparePublicationAssets';
@@ -950,6 +951,13 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
         runtimeAddress = resolvedRuntime;
       }
 
+      if (!isArtistPublishE2e && runtimeAddress) {
+        assertClassicPrice(
+          encodeAccessMode(accessMode),
+          dotToPlanck(priceDotForAccessMode(accessMode, priceDot)),
+          await runtimeReader.getNativeTokenDecimals(runtimeAddress)
+        );
+      }
       setRightsStatus('Preparing your music…');
       publicationStage = 'assets';
       setPublicationFeedback({

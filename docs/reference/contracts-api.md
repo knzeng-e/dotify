@@ -20,7 +20,7 @@ retains its target-runtime and device acceptance gates.
 
 The earlier [one-selector registry remediation](../operations/registry-facet-remediation.md)
 is historical tooling, not a migration into A03. ABI bindings are authoritative;
-legacy NFT entries below still await the separate A04 review.
+the [NFT-free price candidate](native-price-without-nft.md) changes the record ABI and Classic price policy.
 
 ---
 
@@ -69,10 +69,9 @@ Installs the next pending bootstrap stage for `msg.sender`.
 | `1` | Install `DiamondLoupePallet` |
 | `2` | Install `OwnershipPallet` |
 | `3` | Install `MusicRegistryPallet` |
-| `4` | Install `MusicNFTPallet` |
-| `5` | Install `MusicRoyaltiesPallet` |
-| `6` | Install `MusicAccessPallet` |
-| `7` | Initialise access registrar, transfer ownership to the artist, register in `ArtistDirectory` |
+| `4` | Install `MusicRoyaltiesPallet` |
+| `5` | Install `MusicAccessPallet` |
+| `6` | Initialise access registrar, transfer ownership to the artist, register in `ArtistDirectory` |
 
 When the final step completes, `pendingRuntimeOf[msg.sender]` is cleared and
 `ArtistDirectory.runtimeOf(msg.sender)` becomes the runtime address.
@@ -174,7 +173,7 @@ function musicRegRegister(
 ```
 
 The bound artist registers a new content hash after bootstrap readiness, mints
-its NFT and fixes the royalty split. Technical administration alone cannot
+fixes its royalty split without minting a token. Technical administration alone cannot
 publish. The exact tuple fields and event signature are in the
 [generated registry ABI](../../web/src/generated/contracts/musicRegistry.ts).
 
@@ -248,7 +247,6 @@ Returns `true` if the listener is allowed full playback. Logic:
 ```
 track.active == false                          → false
 listener == original artist                    → true
-listener == owner(tokenId)                     → true
 accessMode == classic
   AND paidAccess[contentHash][listener] == true → true
 accessMode == human-free
@@ -372,41 +370,14 @@ Records a completed listen event for a Human free track (analytics only, no paym
 
 ---
 
-## MusicNFTPallet
+## Native-compatible price policy
 
-**File:** `contracts/pallets/MusicNFTPallet.sol`
-
-ERC-721-style NFT per track. Each registered track mints one NFT to the artist.
-The current NFT owner has playback access while the release is active. NFT
-transfer does not rewrite the original artist field, SmartRuntime ownership, or
-royalty beneficiaries.
-
-### `ownerOf(uint256 tokenId)`
-
-```solidity
-function ownerOf(uint256 tokenId) external view returns (address)
-```
-
----
-
-### `balanceOf(address owner)`
-
-```solidity
-function balanceOf(address owner) external view returns (uint256)
-```
-
----
-
-### `transferFrom(address from, address to, uint256 tokenId)`
-
-```solidity
-function transferFrom(address from, address to, uint256 tokenId) external
-```
-
-Transfers track ownership (NFT). For Human free tracks, `to` must have the
-required personhood level.
-
----
+`musicRegNativeDecimals()` returns the generation's native Balance precision.
+Classic registration and policy edits require a positive uint128 EVM price
+that is divisible by `10 ** (18 - nativeDecimals)`. Prices remain 18-decimal
+EVM integers; the historical `pricePlanck` name does not change their unit.
+See [exact prices and NFT removal](native-price-without-nft.md) for the
+constructor, getter/event changes, supported precision and delivery boundary.
 
 ## Core Diamond pallets
 
@@ -426,33 +397,20 @@ The generated [ownership ABI](../../web/src/generated/contracts/runtimeOwnership
 exposes `owner()`, `runtimeArtist()` and `pendingOwner()`. `transferOwnership`
 offers administration; only the pending recipient's `acceptOwnership` completes
 it. The current owner can `cancelOwnershipTransfer`. Artist identity, authorship,
-publication, NFTs and recipients do not move. See the
+publication and recipients do not move. See the
 [canonical role and bootstrap model](runtime-artist-authority.md).
 
 ---
 
 ## Price conversion
 
-The Solidity field is still named `pricePlanck` for historical/Substrate
-context, but the active EVM path stores prices directly as 18-decimal native
-token units. The frontend uses viem's `parseEther()` and `formatEther()` helpers
-for display and `msg.value`; the payment symbol comes from the configured EVM
-chain's native currency (`PAS` on chain `420420417`).
+The historical `pricePlanck` field stores 18-decimal EVM values. Decimal input
+is parsed exactly by `dotToPlanck()` / `parseExactEvmAmount()` and prices are
+formatted without truncation. EVM writers send that integer as `msg.value`;
+Product converts only the extrinsic's native `Revive.call.value`. ABI price
+arguments are never rescaled. The configured currency symbol is independent
+of native Balance precision.
 
-| Format                         | Example                   |
-| ------------------------------ | ------------------------- |
-| Native display amount                    | `0.5`                     |
-| Stored value / EVM `msg.value`           | `500_000_000_000_000_000` |
-| Paseo `Revive.call.value` (10 decimals)   | `5_000_000_000`           |
-
-Frontend conversion: `src/utils/format.ts` → `dotToPlanck()` for input and
-`formatWeiAsDot()` for display. The `dotToPlanck()` function name is legacy; it
-returns 18-decimal EVM contract units via `parseEther()`.
-
-The viem adapter sends the stored value directly as EVM `msg.value`. The Product
-CDM adapter submits a native `pallet-revive` extrinsic instead, so it reads the
-connected chain's `tokenDecimals` and divides only `Revive.call.value` by
-`10^(18 - tokenDecimals)`. The pallet expands that native Balance back to the
-same 18-decimal EVM value before contract execution. The adapter rejects values
-that cannot be represented exactly; stored `pricePlanck` ABI arguments are never
-rescaled.
+Publication and policy edits enforce the generation's native precision in both
+writers and the registry. See [exact price units and limits](native-price-without-nft.md#price-units-and-authority)
+for the authoritative conversion rule, supported decimals and failure policy.

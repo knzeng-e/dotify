@@ -80,7 +80,7 @@ function runtimeModel() {
       assert.equal(input.address, RUNTIME);
       if (input.functionName === 'runtimeArtist') return runtimeArtist;
       assert.equal(input.args[0], candidate.hash);
-      if (input.functionName === 'musicRegGetTrack') return [{ artist: ARTIST, audioRef: registeredRef, active }, ARTIST];
+      if (input.functionName === 'musicRegGetTrack') return { artist: ARTIST, audioRef: registeredRef, active };
       if (input.functionName === 'musicAccCanAccess') return entitled.has(input.args[1].toLowerCase());
       throw new Error('Unexpected RPC read');
     }
@@ -137,7 +137,7 @@ function runtimeModel() {
         encrypted: true,
         sourceBlock: block,
         accessMode: 'classic',
-        tokenId: '1',
+
         title: 'Generated protected chord',
         artist: 'Generated artist model',
         description: 'Offline synthetic rehearsal',

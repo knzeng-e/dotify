@@ -9,7 +9,7 @@ library LibMusicRegistry {
   bytes32 constant STORAGE_POSITION = keccak256('smart.runtime.pallet.music-registry.storage');
 
   // -------------------------------------------------------------------------
-  // Shared domain enums (used by all four music pallets)
+  // Shared domain enums (used by the music pallets)
   // -------------------------------------------------------------------------
 
   enum AccessMode {
@@ -30,7 +30,6 @@ library LibMusicRegistry {
 
   struct TrackRecord {
     address artist; // original registrant / rights holder
-    uint256 tokenId; // corresponding NFT id
     string title;
     string artistName;
     string description;
@@ -48,9 +47,7 @@ library LibMusicRegistry {
 
   struct Storage {
     mapping(bytes32 => TrackRecord) tracks; // contentHash → record
-    mapping(uint256 => bytes32) tokenIdToHash; // tokenId → contentHash
     bytes32[] trackHashes; // ordered enumeration
-    uint256 nextTokenId; // auto-increments; starts at 1
   }
 
   function store() internal pure returns (Storage storage s) {

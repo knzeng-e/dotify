@@ -75,7 +75,7 @@ const PACKAGES = [
       '',
       'Deploys a SmartRuntime for an artist and registers it in `@dotify/artist-directory`.',
       '',
-      'A runtime is a diamond: music registry, royalties, access, and NFT pallets are',
+      'A runtime is a diamond: music registry, royalties and access pallets are',
       'installed as facets, and the artist is set as its owner. Because each artist owns',
       'their own runtime, catalog, access policy, and royalty splits stay under the',
       "artist's control rather than the platform's.",

@@ -36,11 +36,6 @@ export const artistRuntimeFactoryAbi = [
       },
       {
         "internalType": "address",
-        "name": "_nftPallet",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
         "name": "_royaltiesPallet",
         "type": "address"
       },
@@ -48,6 +43,11 @@ export const artistRuntimeFactoryAbi = [
         "internalType": "address",
         "name": "_accessPallet",
         "type": "address"
+      },
+      {
+        "internalType": "uint8",
+        "name": "_nativeTokenDecimals",
+        "type": "uint8"
       }
     ],
     "stateMutability": "nonpayable",
@@ -209,12 +209,12 @@ export const artistRuntimeFactoryAbi = [
   },
   {
     "inputs": [],
-    "name": "nftPallet",
+    "name": "nativeTokenDecimals",
     "outputs": [
       {
-        "internalType": "address",
+        "internalType": "uint8",
         "name": "",
-        "type": "address"
+        "type": "uint8"
       }
     ],
     "stateMutability": "view",

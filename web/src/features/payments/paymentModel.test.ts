@@ -124,6 +124,8 @@ describe('payment model', () => {
 
   it('falls back to the decimal display amount for non-registry tracks without a planck price', () => {
     expect(classicTrackPaymentAmountPlanck({ priceDot: '0.5' })).toBe(500_000_000_000_000_000n);
+    expect(classicTrackPaymentAmountPlanck({ priceDot: '0.0000000001' })).toBe(100_000_000n);
+    expect(() => classicTrackPaymentAmountPlanck({ priceDot: '0.0000000000000000001' })).toThrow(/decimal/);
   });
 
   it('models CASH access as an explicit unsupported future settlement rail', () => {

@@ -54,7 +54,6 @@ type RuntimeAudit = {
   guard: GuardProbe;
   trackCount: string;
   foreignTrackHashes: Hex[];
-  transferredTokenHashes: Hex[];
   selectorRoutes: Array<RegistrySelector & { facet: Address; codeHash: Hex | null }>;
 };
 
@@ -68,7 +67,6 @@ type CatalogueSnapshot = {
   tracks: Array<{
     hash: Hex;
     record: unknown;
-    tokenOwner: Address;
     royaltySplits: Array<{ recipient: Address; bps: string }>;
     totalBps: string;
   }>;
@@ -969,12 +967,10 @@ async function auditRuntime(
   const registerFacetCodeHash = await readCodeHash(publicClient, registerFacet, blockNumber);
   const trackCount = await registry.read.musicRegTrackCount({ blockNumber });
   const foreignTrackHashes = [] as Hex[];
-  const transferredTokenHashes = [] as Hex[];
   for (let index = 0n; index < trackCount; index += 1n) {
     const hash = await registry.read.musicRegTrackHashAtIndex([index], { blockNumber });
-    const [track, tokenOwner] = await registry.read.musicRegGetTrack([hash], { blockNumber });
+    const track = await registry.read.musicRegGetTrack([hash], { blockNumber });
     if (getAddress(track.artist) !== runtimeArtist) foreignTrackHashes.push(hash);
-    if (getAddress(tokenOwner) !== getAddress(track.artist)) transferredTokenHashes.push(hash);
   }
   return {
     runtime,
@@ -989,7 +985,6 @@ async function auditRuntime(
     guard: await probeArtistGuard(publicClient, runtime, registryAbi, runtimeArtist, blockNumber),
     trackCount: trackCount.toString(),
     foreignTrackHashes,
-    transferredTokenHashes,
     selectorRoutes
   };
 }
@@ -1010,7 +1005,7 @@ async function readCatalogueSnapshot(
 
   for (let index = 0n; index < trackCount; index += 1n) {
     const hash = await registry.read.musicRegTrackHashAtIndex([index], { blockNumber });
-    const [record, tokenOwner] = await registry.read.musicRegGetTrack([hash], { blockNumber });
+    const record = await registry.read.musicRegGetTrack([hash], { blockNumber });
     const splitCount = await royalties.read.musicRoySplitCount([hash], { blockNumber });
     const royaltySplits: CatalogueSnapshot['tracks'][number]['royaltySplits'] = [];
     for (let splitIndex = 0n; splitIndex < splitCount; splitIndex += 1n) {
@@ -1020,7 +1015,6 @@ async function readCatalogueSnapshot(
     tracks.push({
       hash,
       record,
-      tokenOwner: getAddress(tokenOwner),
       royaltySplits,
       totalBps: (await royalties.read.musicRoyTotalBps([hash], { blockNumber })).toString()
     });

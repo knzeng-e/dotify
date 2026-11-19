@@ -21,7 +21,7 @@ function release(n = 1, owner = artist, space = runtime): CatalogRelease {
     hash: hash(n),
     runtimeAddress: space,
     artistAddress: owner,
-    tokenId: String(n),
+
     title: `Track ${n}`,
     artist: `Artist ${owner}`,
     description: '',
@@ -150,7 +150,7 @@ it('indexes 1,000 artists and 10,000 releases with bounded reads; records synthe
   }
   assert.equal(index.byRuntime.get(address(1001))?.length, 10);
   assert.equal(index.byHash.get(hash(1))?.length, 1000);
-  assert.equal(index.byId.get(`${address(1001)}:${hash(1)}`)?.tokenId, '1');
+  assert.equal(index.byId.get(`${address(1001)}:${hash(1)}`)?.hash, hash(1));
   gateway.getHeadBlock = async () => 14;
   await catalog.sync();
   assert.equal(store.writes, 1);

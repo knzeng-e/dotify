@@ -7,6 +7,7 @@ import { createEmptyReleaseMetadata } from '../features/catalog/releaseMetadata'
 import type { TransactionFeedback } from '../shared/types';
 import type { BackendUploadIdentity, ProtectedAudioUpload } from '../services/pinata';
 const runtime = vi.hoisted(() => ({
+  getNativeTokenDecimals: vi.fn(async () => 10),
   ensureContract: vi.fn(async () => true),
   resolveArtistRuntime: vi.fn(async () => '0x0000000000000000000000000000000000000002'),
   registerTrack: vi.fn()
@@ -64,6 +65,25 @@ function publicationDeps(overrides: Partial<UseArtistConsoleDeps> = {}): UseArti
 }
 
 describe('publication preparation ownership', () => {
+  it.each(['0.00000000011', '0.0000000000000000001'])('rejects an inexact Classic price before preparing assets or asking for approval: %s', async priceDot => {
+    const deps = publicationDeps({
+      factoryAddress: '0x0000000000000000000000000000000000000003',
+      directoryAddress: '0x0000000000000000000000000000000000000004',
+      accessMode: 'classic',
+      priceDot
+    });
+    const captured: { current: ReturnType<typeof useArtistConsole> | null } = { current: null };
+    function Harness() {
+      captured.current = useArtistConsole(deps);
+      return null;
+    }
+    renderToStaticMarkup(<Harness />);
+    await captured.current!.registerRights();
+    expect(uploads.audio).not.toHaveBeenCalled();
+    expect(uploads.cover).not.toHaveBeenCalled();
+    expect(uploads.metadata).not.toHaveBeenCalled();
+    expect(runtime.registerTrack).not.toHaveBeenCalled();
+  });
   it.each([{ artistName: '   ' }, { title: '' }, { description: '  ' }, { artistName: '🎶'.repeat(201) }])(
     'rejects invalid text before upload and retains prepared music: %j',
     async invalid => {

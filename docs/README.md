@@ -4,8 +4,10 @@ The [18 November audit checkpoint](backlog/implementation/listening-and-publicat
 puts payment/contract corrections before further CASH work. The merged
 [artist-runtime catalogue isolation](reference/catalog-runtime-isolation.md) is
 followed by merged [finalized key authority](reference/finalized-key-authority.md).
-The next candidate, [artist authority](reference/runtime-artist-authority.md),
+Merged [artist authority](reference/runtime-artist-authority.md),
 keeps artist identity separate from delegated technical administration.
+The [NFT-free price candidate](reference/native-price-without-nft.md) follows with
+exact EVM/native prices, without token minting or holder-based access.
 A complete fresh testnet generation follows the remaining audit fixes; no reset
 or deployment is recorded by this source change. Earlier dated checkpoints
 below retain their own scope.
@@ -105,6 +107,7 @@ including successful starts and physical locked-screen observations.
 
 ## Look something up
 
+- [Exact prices and NFT-free releases](reference/native-price-without-nft.md): native precision, record ABI and coordinated fresh-generation delivery
 - [Artist identity and administration](reference/runtime-artist-authority.md): stable publishing/profile authority and accepted administration transfer
 - [Finalized key authority](reference/finalized-key-authority.md): irreversible key grants and conservative current-state denials
 - [Artist-runtime catalogue isolation](reference/catalog-runtime-isolation.md): admission budgets, exclusions, freshness and repair

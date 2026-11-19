@@ -1,4 +1,5 @@
-import { parseEther, type Address, type Chain, type Hash } from 'viem';
+import { type Address, type Chain, type Hash } from 'viem';
+import { parseExactEvmAmount } from '../runtime/nativePrice';
 import type { CatalogTrack } from '../../shared/types';
 
 export type DotifyNativeRuntimeAsset = {
@@ -93,7 +94,7 @@ export function nativeRuntimeAmountLabel(amount: string, asset: Pick<DotifyNativ
 }
 
 export function classicTrackPaymentAmountPlanck(track: Pick<CatalogTrack, 'priceDot' | 'pricePlanck'>): bigint {
-  return track.pricePlanck ?? parseEther(track.priceDot.trim() || '0');
+  return track.pricePlanck ?? parseExactEvmAmount(track.priceDot);
 }
 
 export function createNativeRuntimeAccessPaymentIntent(input: {

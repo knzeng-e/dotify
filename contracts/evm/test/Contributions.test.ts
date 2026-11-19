@@ -25,6 +25,7 @@ async function fixture() {
   const runtime = await hre.viem.deployContract('SmartRuntime', [
     artist.account.address,
     artist.account.address,
+    18,
     [cut, registry, royalty, access].map(item => ({ facetAddress: item.address, action: 0, functionSelectors: selectors(item.abi) })),
     zeroAddress,
     '0x'
@@ -212,7 +213,7 @@ describe('Native gifts and tips', () => {
     const { gifts, reg, context, host, attestor, donor, runtime, client, artist } = await loadFixture(fixture);
     const burn = await hre.viem.deployContract('GasConsumingRoyaltyRecipient');
     const work = keccak256(toBytes('maximum-fanout'));
-    const [record] = await reg.read.musicRegGetTrack([hash]);
+    const record = await reg.read.musicRegGetTrack([hash]);
     const recipients = Array(16).fill(burn.address) as `0x${string}`[];
     await reg.write.musicRegRegister([{ ...record, contentHash: work }, recipients, Array(16).fill(100)]);
     await gifts.write.musicGiftSetPolicy([work, { ...policy, hostBps: 1000, roomAttestor: attestor.account.address, recipients, shares: Array(16).fill(500) }]);

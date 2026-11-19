@@ -7,4 +7,3 @@ export * from './musicRegistry';
 export * from './musicMetadata';
 export * from './musicRoyalties';
 export * from './musicAccess';
-export * from './musicNFT';

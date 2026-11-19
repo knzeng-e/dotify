@@ -5,6 +5,34 @@ encoder or signaling delivery. It identifies what to compare and what evidence
 to retain. Component runbooks contain the actual publication and maintenance
 procedures; this guide does not authorize or execute a delivery.
 
+## Native price and NFT removal (#493)
+
+The [#493 candidate model](../reference/native-price-without-nft.md) changes
+creation bytecode, registry storage/getter/event ABI, bootstrap stages and catalog
+fields. Deliver it only as the selected matched fresh generation, after the
+remaining audit corrections and authorized cutover. Do not update the API or
+clients against earlier contracts and do not install this registry over old state.
+
+Before a signing/deployment command, set `DOTIFY_NATIVE_TOKEN_DECIMALS` to the
+verified native Balance precision (0..18). For the 10-decimal native preset,
+use `10`, not the EVM currency metadata's `18`. Keep the value in the reviewed
+plan and deployment manifest; finalized factory readback must match. Verify a
+new artist runtime reports the same `musicRegNativeDecimals()` and the Product
+adapter agrees. Missing or mismatched precision must stop publication/signing.
+
+Read back the new NFT-free selector inventory and record ABI, absent ERC-721
+interface, six installation calls and bound artist/administrator roles. Check
+minimum valid Classic price, a refused nonrepresentable price/edit, exact price
+display and real native settlement/access through both writers. Local EVM tests
+are not Revive weight, recipient-settlement or physical Host acceptance.
+
+Regenerate API/Web ABIs, Product CDM bindings and candidate metadata from the
+same compiler artifacts. Replace finalized CDM versions/addresses only during
+the separately authorized fresh publication/readback. The retained earlier CDM
+snapshot is historical evidence, not a compatible NFT-free deployment. Existing
+secret custody, receipt history and nonce preservation duties remain; no CORS,
+mount, scaling or frontend-secret settings change in this source scope.
+
 ## Establish the state first
 
 Record the candidate commit and affected components before changing settings.

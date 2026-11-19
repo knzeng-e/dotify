@@ -1,5 +1,14 @@
 # Dotify product memory
 
+## NFT-free price candidate, 2026-11-19
+
+The owner selected [A07 and NFT removal](../backlog/native-price-without-nft.md)
+after merged #492. Active source will register releases without transferable
+tokens or holder access and require exact native-compatible Classic prices.
+Matched fresh contracts/API/clients and target-runtime acceptance remain ahead;
+no deployment or previous-state migration is performed. Earlier NFT references
+below describe earlier source or proposed ideas, not this active scope.
+
 Current code/deployment checkpoint: see the
 [selected sequence](../backlog/implementation/listening-and-publication-readiness.md).
 Explicit compact reference/dispatch and exact-source admission are implemented

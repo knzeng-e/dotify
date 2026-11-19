@@ -16,7 +16,7 @@ const legacyTxHash = `0x${'de'.repeat(32)}` as const;
 function baseTrackRecord(patch: Partial<OnchainTrackRecord> = {}): OnchainTrackRecord {
   return {
     artist,
-    tokenId: 1n,
+
     title: 'Runtime song',
     artistName: 'Runtime artist',
     description: 'On-chain description',
@@ -62,7 +62,7 @@ describe('createViemRuntimeReader', () => {
         case 'musicRegTrackHashesPage':
           return [hash];
         case 'musicRegGetTrack':
-          return [record, runtime];
+          return record;
         case 'musicRoySplitCount':
           return 1n;
         case 'musicRoySplitAt':
@@ -121,7 +121,7 @@ describe('createViemRuntimeReader', () => {
         case 'musicRegTrackHashesPage':
           return [hash];
         case 'musicRegGetTrack':
-          return [record, runtime];
+          return record;
         case 'musicRoySplitCount':
           return 10_000n;
         default:
@@ -371,7 +371,7 @@ describe('createViemRuntimeWriter', () => {
       estimatedFee: undefined,
       detail: expect.stringContaining('Fee estimate unavailable')
     });
-    expect(() => writer.payForAccess({ ...intent, rail: 'product-cash' } as never)).toThrow(/CASH settlement is not executable/);
+    await expect(writer.payForAccess({ ...intent, rail: 'product-cash' } as never)).rejects.toThrow(/CASH settlement is not executable/);
     expect(writeContract).not.toHaveBeenCalled();
   });
 
@@ -404,7 +404,7 @@ describe('createViemRuntimeWriter', () => {
     const writer = createViemRuntimeWriter({
       ethRpcUrl: 'http://localhost:8545',
       walletClient: { account: { address: artist }, getChainId, writeContract } as never,
-      publicClient: { estimateContractGas, getChainId, getGasPrice, waitForTransactionReceipt } as never
+      publicClient: { readContract: vi.fn(async () => 18), estimateContractGas, getChainId, getGasPrice, waitForTransactionReceipt } as never
     });
 
     await expect(writer.createRuntime(factory)).resolves.toBe(`${txHash}:createRuntime`);
@@ -467,7 +467,7 @@ describe('createViemRuntimeWriter', () => {
     const writer = createViemRuntimeWriter({
       ethRpcUrl: 'https://eth-rpc-testnet.polkadot.io/',
       walletClient: { account: { address: artist }, getChainId: vi.fn(async () => 1), writeContract } as never,
-      publicClient: { getChainId: vi.fn(async () => 420420417), estimateContractGas } as never
+      publicClient: { readContract: vi.fn(async () => 18), getChainId: vi.fn(async () => 420420417), estimateContractGas } as never
     });
 
     await expect(writer.registerTrack(runtime, runtimeRegistration())).rejects.toThrow(/Wallet is connected to chain 1/);

@@ -126,7 +126,7 @@ function ContributionButton({ track, kind = 'gift', draft }: ContributionButtonP
       const runtime = track.id.split(':')[0] as Address;
       if ((await reader.client.getChainId()) !== expectedChainId) throw new Error('The network changed. Reconnect before contributing.');
       if (!contributionE2e) {
-        const [record] = await reader.client.readContract({
+        const record = await reader.client.readContract({
           address: runtime,
           abi: musicRegistryAbi,
           functionName: 'musicRegGetTrack',

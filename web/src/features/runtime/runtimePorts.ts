@@ -78,6 +78,7 @@ export function assertBoundedCount(count: bigint, max: number, label: string): n
 }
 
 export interface RuntimeReadPort {
+  getNativeTokenDecimals(runtimeAddress: Address): Promise<number>;
   ensureContract(address: Address): Promise<boolean>;
   resolveArtistRuntime(directoryAddress: Address, artistAddress: Address): Promise<Address | null>;
   getArtistCount(directoryAddress: Address): Promise<bigint>;

@@ -1,6 +1,6 @@
 # Dotify Project Specification
 
-Last updated: 2026-07-14
+Last updated: 2026-11-19 (NFT-free fresh-generation candidate)
 
 ## 1. Purpose
 
@@ -66,7 +66,7 @@ An artist can:
 - define access mode and price/personhood requirements;
 - define royalty recipients and basis-point splits;
 - receive revenue through runtime payment distribution;
-- own the initial track NFT.
+- retain the original publishing identity independently of technical administration.
 
 ### 3.2 Listener
 
@@ -181,7 +181,6 @@ The runtime includes:
 - `DiamondLoupePallet`: runtime introspection.
 - `OwnershipPallet`: runtime ownership.
 - `MusicRegistryPallet`: track registration, reads, and deactivation.
-- `MusicNFTPallet`: per-track NFT ownership and transfer state.
 - `MusicRoyaltiesPallet`: Classic access payment, bounded royalty settlement,
   and claimable failed recipient shares.
 - `MusicAccessPallet`: access checks and personhood-level state.
@@ -211,7 +210,6 @@ A registered track stores:
 `Human free`:
 
 - requires `personhoodLevelOf(listener) >= requiredPersonhood`;
-- also gates NFT transfer to recipients with the required personhood level;
 - is intended for integration with Polkadot Proof of Personhood / Individuality.
 
 `Classic`:
@@ -222,9 +220,9 @@ A registered track stores:
 - settles payment according to royalty splits, while failed recipient transfers
   remain claimable instead of blocking access.
 
-Artists and track NFT owners are expected to have access to their own active
+Original artists have access to their own active
 tracks. Inactive tracks deny playback for everyone, including the original
-artist, NFT owner, and previously paid listeners.
+artist and previously paid listeners.
 
 ### 6.5 Contract Tests
 
@@ -235,11 +233,10 @@ The active runtime tests cover:
 - track registration and deactivation;
 - paid access, royalty settlement, and claimable recipient fallback;
 - personhood-gated access;
-- NFT transfer gating;
 - isolation between artist runtimes.
 
-Legacy `MusicRightsRegistry.sol` remains in the repository but is not the active
-frontend integration path.
+The unused monolithic NFT registry has been removed. The frontend uses the
+artist runtime pallets and generated interfaces.
 
 ## 7. Audio And Metadata Specification
 

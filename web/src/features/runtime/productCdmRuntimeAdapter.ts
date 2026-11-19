@@ -1,3 +1,4 @@
+import { assertClassicPrice } from './nativePrice';
 import { zeroAddress, type Address, type Hash } from 'viem';
 import { assertNativeAccessPayment } from '../payments/paymentModel';
 import { SupportNotSubmittedError } from '../payments/supportPayment';
@@ -197,6 +198,9 @@ export function createProductCdmRuntimeReader(deps: ProductCdmRuntimeAdapterDeps
   const pageSize = deps.directoryPageSize ?? 50n;
 
   return {
+    async getNativeTokenDecimals(runtimeAddress) {
+      return Number(await queryContract(deps.contracts.getRuntimeContract(runtimeAddress), 'musicRegNativeDecimals'));
+    },
     async ensureContract(address) {
       return deps.contracts.hasContract ? deps.contracts.hasContract(address) : false;
     },
@@ -244,12 +248,8 @@ export function createProductCdmRuntimeReader(deps: ProductCdmRuntimeAdapterDeps
       }
       return Promise.all(
         hashes.map(async (hash): Promise<RuntimeTrackSnapshot> => {
-          const trackResult = await queryContract<OnchainTrackRecord | { track: OnchainTrackRecord; tokenOwner: Address } | [OnchainTrackRecord, Address]>(
-            runtime,
-            'musicRegGetTrack',
-            [hash]
-          );
-          const record = Array.isArray(trackResult) ? trackResult[0] : 'track' in trackResult ? trackResult.track : trackResult;
+          const trackResult = await queryContract<OnchainTrackRecord | { track: OnchainTrackRecord }>(runtime, 'musicRegGetTrack', [hash]);
+          const record = 'track' in trackResult ? trackResult.track : trackResult;
           const splitCount = await queryContract<bigint | number | string>(runtime, 'musicRoySplitCount', [hash]).catch(() => 0n);
           const splitTotal = assertBoundedCount(toBigInt(splitCount), MAX_ROYALTY_SPLITS, `Track ${hash} royalty splits`);
           const royaltySplits = (
@@ -355,7 +355,11 @@ export function createProductCdmRuntimeWriter(deps: ProductCdmRuntimeWriterDeps)
       return txContract(deps.contracts.getFactoryContract(factoryAddress), 'installRuntimeStep', [{ waitFor: 'finalized' }]);
     },
 
-    registerTrack(runtimeAddress, registration: RuntimeTrackRegistration) {
+    async registerTrack(runtimeAddress, registration: RuntimeTrackRegistration) {
+      const decimals = Number(await queryContract(deps.contracts.getRuntimeContract(runtimeAddress), 'musicRegNativeDecimals'));
+      if (decimals !== deps.nativeTokenDecimals)
+        throw new ProductCdmNativeValueError('The artist space and connected network payment precisions do not match. No transaction was submitted.');
+      assertClassicPrice(registration.accessMode, registration.pricePlanck, decimals);
       return txContract(deps.contracts.getRuntimeContract(runtimeAddress), 'musicRegRegister', [
         {
           contentHash: registration.contentHash,
@@ -443,7 +447,11 @@ export function createProductCdmRuntimeWriter(deps: ProductCdmRuntimeWriterDeps)
       return hash;
     },
 
-    setAccessMode(runtimeAddress, update: RuntimeAccessPolicyUpdate) {
+    async setAccessMode(runtimeAddress, update: RuntimeAccessPolicyUpdate) {
+      const decimals = Number(await queryContract(deps.contracts.getRuntimeContract(runtimeAddress), 'musicRegNativeDecimals'));
+      if (decimals !== deps.nativeTokenDecimals)
+        throw new ProductCdmNativeValueError('The artist space and connected network payment precisions do not match. No transaction was submitted.');
+      assertClassicPrice(update.accessMode, update.pricePlanck, decimals);
       return txContract(deps.contracts.getRuntimeContract(runtimeAddress), 'musicRegSetAccessMode', [
         update.contentHash,
         update.accessMode,

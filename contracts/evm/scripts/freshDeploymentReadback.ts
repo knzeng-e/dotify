@@ -1,6 +1,6 @@
 // Public, finalized readback only. Never signs or changes deployed state.
 import hre from 'hardhat';
-import { createPublicClient, http } from 'viem';
+import { createPublicClient, http, type Abi } from 'viem';
 import { POLKADOT_TESTNET_CHAIN, readDeployments } from './smartRuntime';
 const abi = [
   {
@@ -28,6 +28,12 @@ async function main() {
   if ((await client.getChainId()) !== 420420417) throw new Error('Unexpected chain');
   const block = await client.getBlock({ blockTag: 'finalized' });
   const record = readDeployments();
+  const factoryAbi = (await hre.artifacts.readArtifact('ArtistRuntimeFactory')).abi as Abi;
+  const nativeTokenDecimals = Number(
+    await client.readContract({ address: record.factory, abi: factoryAbi, functionName: 'nativeTokenDecimals', blockNumber: block.number })
+  );
+  if (record.nativeTokenDecimals === undefined || nativeTokenDecimals !== record.nativeTokenDecimals)
+    throw new Error('Factory native precision does not match the explicit deployment manifest');
   const matches = [];
   for (const [name, address] of [
     ['@dotify/artist-directory', record.directory],
@@ -48,7 +54,14 @@ async function main() {
     matches.push({ name, address, versions });
   }
   console.log(
-    JSON.stringify({ schema: 'dotify.fresh-cdm-readback.v1', chainId: 420420417, blockNumber: Number(block.number), blockHash: block.hash, packages: matches })
+    JSON.stringify({
+      schema: 'dotify.fresh-cdm-readback.v1',
+      chainId: 420420417,
+      nativeTokenDecimals,
+      blockNumber: Number(block.number),
+      blockHash: block.hash,
+      packages: matches
+    })
   );
 }
 main().catch(error => {

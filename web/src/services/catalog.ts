@@ -24,7 +24,7 @@ export type CatalogApiRelease = {
   hash: `0x${string}`;
   runtimeAddress: `0x${string}`;
   artistAddress: `0x${string}`;
-  tokenId: string;
+
   title: string;
   artist: string;
   description: string;
