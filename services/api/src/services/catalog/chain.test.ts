@@ -187,3 +187,26 @@ it('rejects excessive splits and UTF-8 metadata before requesting any split entr
     await assert.rejects(gateway.readRelease(runtime, runtime, hash, 100), excess === 'splits' ? /16-recipient/ : /title byte/);
   }
 });
+
+it('enumerates every artist in bounded directory pages at the same confirmed block', async () => {
+  const artists = Array.from({ length: 207 }, (_, i) => `0x${(1000 + i).toString(16).padStart(40, '0')}` as const);
+  const runtimes = artists.map((_, i) => `0x${(2000 + i).toString(16).padStart(40, '0')}` as const);
+  const pages: bigint[][] = [];
+  const block = 123n;
+  const client = {
+    readContract: async ({ functionName, args, blockNumber }: { functionName: string; args?: bigint[]; blockNumber?: bigint }) => {
+      assert.equal(blockNumber, block);
+      if (functionName === 'artistCount') return BigInt(artists.length);
+      assert.equal(functionName, 'artistsPage');
+      const [offset, limit] = args!;
+      assert.ok(limit > 0n && limit <= 100n);
+      pages.push([offset, limit]);
+      const start = Number(offset);
+      const end = start + Number(limit);
+      return [artists.slice(start, end), runtimes.slice(start, end)];
+    }
+  } as unknown as PublicClient;
+  const gateway = new ViemCatalogChainGateway({ rpcUrl: 'https://example.invalid', chainId: 42, directoryAddress: artists[0], client });
+  assert.deepEqual(await gateway.listArtists(Number(block)), artists.map((artistAddress, i) => ({ artistAddress, runtimeAddress: runtimes[i] })));
+  assert.deepEqual(pages, [[0n, 50n], [50n, 50n], [100n, 50n], [150n, 50n], [200n, 7n]]);
+});

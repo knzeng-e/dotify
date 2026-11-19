@@ -25,6 +25,16 @@
   },
   "items": [
     {
+      "id": "bounded-contract-pagination",
+      "doc": "docs/backlog/bounded-contract-pagination.md",
+      "issue": 497,
+      "kind": "work",
+      "priority": "P3",
+      "track": "Production spine",
+      "phase": "Now",
+      "note": "A08: subtraction-based artist pages capped at 100, compatible API/Web/Product readers and unchanged independent indexing budgets. Source correction for the selected fresh directory; no deployment or migration."
+    },
+    {
       "id": "personhood-status-policy",
       "doc": "docs/backlog/personhood-status-policy.md",
       "issue": 495,
