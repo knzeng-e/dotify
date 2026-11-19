@@ -57,3 +57,6 @@ Implementation: `contracts/evm/contracts/libraries/LibPersonhood.sol`,
 `contracts/evm/contracts/pallets/MusicAccessPallet.sol` and
 `contracts/evm/test/PersonhoodPolicy.test.ts`. The [scope](../backlog/personhood-status-policy.md)
 tracks the bounded audit correction separately from live integration.
+
+[The 19 November local evidence](../backlog/implementation/evidence/personhood-status-policy-2026-11-19.md)
+binds exhaustive status/parser and access regressions to the tested source.
