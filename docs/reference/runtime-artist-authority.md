@@ -103,6 +103,8 @@ the retained one-selector hotfix tooling.
 
 Source and local EVM/API validation do not deploy these contracts. Follow the
 [matched-generation gate](../operations/deployment-configuration.md#artist-authority-candidate-490).
+The [19 November validation record](../backlog/implementation/evidence/runtime-artist-authority-2026-11-19.md)
+binds the local checks to the tested source commit.
 An API requiring this getter must not be delivered ahead of a compatible fresh
 contract generation. Validate target Revive compiler/resource behavior, role
 readback, finalized/current proofs, artist publishing, gifts and listening
