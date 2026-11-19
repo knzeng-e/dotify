@@ -149,14 +149,15 @@ class FakeClient {
     [ARTIST_B, RUNTIME_B]
   ]);
   access = new Map<string, boolean>([[`${RUNTIME_A}:${HASH}:${REQUESTER}`.toLowerCase(), true]]);
-  releases = new Map<string, { artist: string; audioRef: string; active: boolean }>();
+  releases = new Map<string, { artist: string; audioRef: string; active: boolean; accessMode: number }>();
 
   constructor(candidates: CatalogRelease[]) {
     for (const candidate of candidates) {
       this.releases.set(`${candidate.runtimeAddress}:${candidate.hash}`.toLowerCase(), {
         artist: candidate.artistAddress,
         audioRef: candidate.audioRef,
-        active: candidate.active
+        active: candidate.active,
+        accessMode: candidate.accessMode === 'classic' ? 1 : candidate.accessMode === 'free' ? 2 : 0
       });
     }
   }
@@ -185,7 +186,7 @@ class FakeClient {
         metadataRef: 'ipfs://metadata',
         artistContractRef: 'ipfs://contract',
         royaltyBps: 10_000,
-        accessMode: 1,
+        accessMode: record.accessMode,
         pricePlanck: 1n,
         requiredPersonhood: 0,
         registeredAtBlock: 10n,
@@ -321,7 +322,8 @@ describe('canonical release access', () => {
     client.releases.set(`${RUNTIME_A}:${HASH}`.toLowerCase(), {
       artist: ARTIST_A,
       audioRef: makeStreamingRef('replaced-cid'),
-      active: true
+      active: true,
+      accessMode: 1
     });
 
     const result = await access.checkTrackAccess({
@@ -562,8 +564,8 @@ it('compact physical layout retains canonical Classic/Room denials and rejects r
 });
 
 describe('A09 finalized and current key authority', () => {
-  function finalityFixture(sourceBlock = 10) {
-    const candidate = release({ sourceBlock }),
+  function finalityFixture(sourceBlock = 10, overrides: Partial<CatalogRelease> = {}) {
+    const candidate = release({ ...overrides, sourceBlock }),
       original = new FakeClient([candidate]);
     const finalized = { number: 100n, hash: `0x${'77'.repeat(32)}` as `0x${string}` };
     const latest = { number: 102n, hash: `0x${'66'.repeat(32)}` as `0x${string}` };
@@ -597,6 +599,32 @@ describe('A09 finalized and current key authority', () => {
     const input = { contentHash: HASH, requester: REQUESTER, purpose: 'individual' as const, release: identity(candidate) };
     return { candidate, finalized, latest, state, tags, reads, access, input, client };
   }
+  for (const purpose of ['individual', 'room_host'] as const) {
+    it(`A05: accepts a paid HumanFree ${purpose} verdict only with finalized/current authority`, async () => {
+      const f = finalityFixture(10, { accessMode: 'human-free', personhoodLevel: 'DIM2', priceWei: '0', priceDot: '0' });
+      const input = { ...f.input, purpose };
+      assert.equal((await f.access.checkTrackAccess(input)).allowed, true);
+      assert.equal(f.reads.length, 8);
+      f.latest.hash = `0x${'88'.repeat(32)}`;
+      f.state.latestAccess = false;
+      const unpaid = await f.access.checkTrackAccess(input);
+      assert.equal(unpaid.allowed, false);
+      if (!unpaid.allowed) assert.equal(unpaid.code, purpose === 'room_host' ? 'HOST_ACCESS_REQUIRED' : 'LISTENER_ACCESS_REQUIRED');
+      f.latest.hash = `0x${'99'.repeat(32)}`;
+      f.state.latestAccess = true;
+      f.state.finalizedAccess = false;
+      const pending = await f.access.checkTrackAccess(input);
+      assert.equal(pending.allowed, false);
+      if (!pending.allowed) assert.equal(pending.code, 'ACCESS_PENDING_FINALITY');
+      f.finalized.hash = `0x${'aa'.repeat(32)}`;
+      f.state.finalizedAccess = true;
+      f.state.latestActive = false;
+      const inactive = await f.access.checkTrackAccess(input);
+      assert.equal(inactive.allowed, false);
+      if (!inactive.allowed) assert.equal(inactive.code, 'RELEASE_INACTIVE');
+    });
+  }
+
   it('never grants a latest-only purchase entitlement; finalization unlocks the same request', async () => {
     const f = finalityFixture();
     f.state.finalizedAccess = false;
@@ -907,4 +935,15 @@ describe('A03 artist authority independent from administration', () => {
     if (!result.allowed) assert.equal(result.code, 'RPC_UNAVAILABLE');
     assert.ok(client.calls.some(call => call.functionName === 'runtimeArtist'));
   });
+});
+
+it('A05: a private paid HumanFree grant does not turn into public or another account access', async () => {
+  const candidate = release({ accessMode: 'human-free', personhoodLevel: 'DIM2', priceWei: '0', priceDot: '0' });
+  const { access, client } = service([candidate]);
+  assert.equal((await access.checkTrackAccess({ contentHash: HASH, requester: REQUESTER, purpose: 'individual', release: identity(candidate) })).allowed, true);
+  const publicVerdict = await access.checkPublicAccess({ contentHash: HASH, release: identity(candidate) });
+  assert.equal(publicVerdict.allowed, false);
+  if (!publicVerdict.allowed) assert.equal(publicVerdict.code, 'NOT_FREE');
+  assert.equal((await access.checkTrackAccess({ contentHash: HASH, requester: ARTIST_B, purpose: 'individual', release: identity(candidate) })).allowed, false);
+  assert.equal(client.calls.some(call => call.functionName === 'musicAccHasPaid'), false);
 });

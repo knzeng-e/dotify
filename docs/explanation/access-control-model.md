@@ -31,7 +31,9 @@ stable if the artist later changes the policy.
 
 Free is not cryptographic revocation. If a listener receives the key while the
 track is Free, they may keep it. A later flip to Classic or Human free stops
-future Dotify key requests; true revocation requires key rotation and a new CID.
+future Dotify key requests for listeners without another current grant. Prior
+paid access follows the [active-release entitlement rule](../reference/paid-release-access.md).
+True revocation of a disclosed key requires key rotation and a new CID.
 
 **When to choose Free:**
 
@@ -45,7 +47,7 @@ future Dotify key requests; true revocation requires key rotation and a new CID.
 
 > "This track is for people, not bots."
 
-In Human free mode, a listener unlocks full playback by proving they are a real
+In Human free mode, a listener without an existing paid grant unlocks full playback by proving they are a real
 human using **Polkadot Proof of Personhood (PoP)**. No payment is required. The
 artist sets which personhood level they require: `DIM1` or `DIM2`.
 
@@ -88,11 +90,13 @@ runtime. It is not, however, a perpetual media availability guarantee:
 
 - inactive releases do not open, even for the original artist or a
   previously paid wallet;
-- if the artist changes the release away from Classic, the paid record remains
-  visible but playback follows the current policy;
-- if the artist later reactivates the release or changes it back to Classic,
-  Dotify can verify the existing paid record again instead of asking for a
-  second payment.
+- while active, the paid wallet keeps access through Free or Human free mode
+  changes, including without personhood;
+- reactivation restores the same paid entitlement without a second payment.
+
+The [paid-access reference](../reference/paid-release-access.md) defines scope,
+proof separation and upgrade/availability limits. This is a source candidate
+for the matched fresh generation, not a deployment record.
 
 **When to choose Classic:**
 
@@ -129,7 +133,7 @@ listenerAddress == original artist
 OR
 accessMode == Free
 OR
-accessMode == Classic AND paidAccess[contentHash][listenerAddress] == true
+paidAccess[contentHash][listenerAddress] == true
 OR
 accessMode == HumanFree AND verified Individuality level meets requiredPersonhood
 ```

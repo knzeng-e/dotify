@@ -25,6 +25,16 @@
   },
   "items": [
     {
+      "id": "preserve-paid-release-access",
+      "doc": "docs/backlog/preserve-paid-release-access.md",
+      "issue": 499,
+      "kind": "work",
+      "priority": "P2",
+      "track": "Production spine",
+      "phase": "Now",
+      "note": "A05 owner decision: retain a prior Classic buyer’s access to the same active release across policy changes; deactivation still denies and preserves history. Matched fresh-generation source correction, with no deployment or old-state migration."
+    },
+    {
       "id": "personhood-status-policy",
       "doc": "docs/backlog/personhood-status-policy.md",
       "issue": 495,

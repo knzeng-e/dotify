@@ -16,6 +16,15 @@ The #407 compact delivery/admission and synthetic AAC checks are documented ther
 physical-device and recovery acceptance remain before activation. Dated entries below
 retain their original checkpoints.
 
+## Paid-access decision, 2026-11-20
+
+[A05 / #499](preserve-paid-release-access.md) implements the owner's selected
+active-release paid entitlement across policy changes, with deactivation and
+payment history preserved. [The reference](../reference/paid-release-access.md)
+defines the boundaries. [A08 / #498](https://github.com/knzeng-e/dotify/pull/498)
+is separate; source review and matched fresh-generation native acceptance remain
+before rollout. No deployment or old-state import is performed.
+
 ## Native payment correction candidate, 2026-11-18
 
 The owner requested native PAS payment verification before further CASH work.

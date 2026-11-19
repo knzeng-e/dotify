@@ -239,6 +239,13 @@ export function ReleasesTab({
           )}
 
           {mode === 'rights' && (
+            <p className='release-split-note'>
+              Previous buyers keep access when you change these settings. Deactivating the release stops new listening access; reactivating it restores their
+              paid access.
+            </p>
+          )}
+
+          {mode === 'rights' && (
             <form className='release-access-editor' onSubmit={handleAccessSubmit}>
               <label className='release-editor-field'>
                 <span>Access mode</span>

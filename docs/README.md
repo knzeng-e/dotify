@@ -1,5 +1,10 @@
 # Dotify documentation
 
+The [20 November A05 paid-access decision](reference/paid-release-access.md)
+keeps earlier buyers authorized across access-mode changes while the release
+remains active. It is a source candidate for the matched fresh generation;
+withdrawal, upgrade and availability boundaries remain explicit.
+
 The [18 November audit checkpoint](backlog/implementation/listening-and-publication-readiness.md#smart-runtime-audit-checkpoint-2026-11-18)
 puts payment/contract corrections before further CASH work. The merged
 [artist-runtime catalogue isolation](reference/catalog-runtime-isolation.md) is
@@ -109,6 +114,7 @@ including successful starts and physical locked-screen observations.
 
 ## Look something up
 
+- [Paid release access while active](reference/paid-release-access.md): mode changes, deactivation, signed keys and trust boundaries
 - [Supported personhood evidence](reference/personhood-status-policy.md): raw/typed diagnostics, unsupported tiers and fail-closed access
 - [Exact prices and NFT-free releases](reference/native-price-without-nft.md): native precision, record ABI and coordinated fresh-generation delivery
 - [Artist identity and administration](reference/runtime-artist-authority.md): stable publishing/profile authority and accepted administration transfer

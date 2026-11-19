@@ -92,7 +92,7 @@ export function runtimeAccessPaymentReadbackError(readback: RuntimeAccessPayment
     return 'The runtime reports access, but not a paid Classic grant for this account.';
   }
   if (!readback.canAccess) {
-    return 'The runtime recorded the payment, but still denies playable access for this account. The release may be inactive or no longer using a policy that grants this wallet access.';
+    return 'The runtime recorded the payment, but still denies playable access for this account. The release may be inactive, or the access check may be inconsistent. Keep the payment reference and check access again without another payment.';
   }
   return null;
 }

@@ -57,6 +57,10 @@ export function buildClassicAccessReceipt(track: CatalogTrack, nativePaymentAsse
         value: 'Full listening opens after payment is confirmed and the access check passes'
       },
       {
+        label: 'Access after changes',
+        value: 'Your paid access stays valid through access-setting changes while this release is active'
+      },
+      {
         label: 'Availability',
         value: 'The access record has no fixed expiry, but the artist may later withdraw the release'
       }
@@ -76,7 +80,7 @@ export function buildClassicSupportFacts(
     receipt.recipients.map(row => `${row.label}: ${row.value}${row.account ? ` to ${row.account}` : ''}`).join('; ') || 'Artist’s published recipient list';
   const accessValue =
     status === 'confirmed'
-      ? 'Listening access is verified for this account while the release remains available.'
+      ? 'Listening access is verified for this account while the release remains active, including after access-setting changes.'
       : status === 'included-unverified'
         ? 'Protected audio stays closed until the access check passes.'
         : 'Full listening opens only after the access check passes.';
@@ -127,7 +131,7 @@ export function buildAccessGate(input: { track: CatalogTrack; connected: boolean
     return {
       track,
       title: 'Verification needed',
-      message: `"${track.title}" is free for verified humans. Connect to check your eligibility.`,
+      message: `"${track.title}" is free for verified humans. Connect to check your access, including any previous purchase.`,
       hint: 'No payment is required for this check.',
       actionType: 'signin'
     };
@@ -138,7 +142,7 @@ export function buildAccessGate(input: { track: CatalogTrack; connected: boolean
       track,
       title: 'Verification needed',
       message: `"${track.title}" is free for verified humans while the release remains active.`,
-      hint: 'No payment is required. Dotify only checks whether listening should open.',
+      hint: 'Previous buyers can use the account they paid with. No new payment is required.',
       actionType: 'personhood'
     };
   }
@@ -160,7 +164,7 @@ export function buildClassicAccessVerifiedFeedback(
   return {
     tone: 'success',
     title: 'Access verified',
-    message: `Payment confirmed. Full listening for "${track.title}" is available to this account while the release remains available and access continues to be granted.`,
+    message: `Payment confirmed. Full listening for "${track.title}" is available to this account while the release remains available. Your paid access is kept when access settings change.`,
     txHash,
     facts: buildClassicSupportFacts(track, nativePaymentAsset, 'confirmed')
   };
