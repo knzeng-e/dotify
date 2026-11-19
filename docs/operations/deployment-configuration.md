@@ -100,6 +100,28 @@ update a Netlify dashboard, server image or deployment.
 
 ## Hosted surfaces
 
+### Artist authority candidate (#490)
+
+[The A03 role model](../reference/runtime-artist-authority.md) requires a matched
+fresh SmartRuntime/factory/initializer generation and all six ownership selectors.
+The runtime constructor now takes an independent artist argument. After staged
+artist-signed completion, read back `runtimeArtist == directory artist`, readiness
+via successful artist publication, `owner == artist` and zero pending owner.
+Subsequent administration delegation requires explicit pending acceptance.
+
+Regenerate Web/API ABIs from the compiled artifacts. The API now checks the
+runtime artist in finalized/current state for uploads and keys; missing getters
+fail closed. Do not ship this API ahead of compatible contracts or use a
+one-selector legacy facet hotfix as migration. Deploy/activate only through the
+owner-selected fresh-generation procedure after remaining audit corrections.
+No new environment variable, mount, secret, origin or scaling is introduced.
+
+Before activation validate actual Revive creation/resource bounds, recipient
+acceptance/cancel, normal artist publication and profile gifts after delegation,
+historical paid access and matched API/client behavior. Upgrade administration
+still permits arbitrary code and is a trust boundary. Source tests do not
+perform a deployment, artist-identity migration or active-state reset.
+
 ### Finalized key authority candidate (#488)
 
 [The A09 policy](../reference/finalized-key-authority.md) requires true finalized

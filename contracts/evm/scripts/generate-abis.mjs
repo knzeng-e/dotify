@@ -20,6 +20,7 @@ const outDir = resolve(scriptDir, '../../../web/src/generated/contracts');
 // is called through these facet ABIs at the runtime address, so it needs no
 // separate binding.
 const CONTRACTS = [
+  { exportName: 'runtimeOwnershipAbi', file: 'runtimeOwnership', artifact: 'pallets/OwnershipPallet.sol/OwnershipPallet.json' },
   { exportName: 'artistDirectoryAbi', file: 'artistDirectory', artifact: 'ArtistDirectory.sol/ArtistDirectory.json' },
   { exportName: 'artistRuntimeFactoryAbi', file: 'artistRuntimeFactory', artifact: 'ArtistRuntimeFactory.sol/ArtistRuntimeFactory.json' },
   { exportName: 'musicRegistryAbi', file: 'musicRegistry', artifact: 'pallets/MusicRegistryPallet.sol/MusicRegistryPallet.json' },
@@ -46,6 +47,12 @@ for (const { exportName, file, artifact } of CONTRACTS) {
   }
   const body = `${HEADER}\n// Source: contracts/evm/artifacts/contracts/${artifact}\n\nexport const ${exportName} = ${JSON.stringify(parsed.abi, null, 2)} as const;\n`;
   writeFileSync(resolve(outDir, `${file}.ts`), body);
+  if (file === 'runtimeOwnership') {
+    const serverDir = resolve(scriptDir, '../../../services/api/src/generated');
+    mkdirSync(serverDir, { recursive: true });
+    const identity = parsed.abi.filter(item => item.name === 'runtimeArtist');
+    writeFileSync(resolve(serverDir, 'runtimeArtist.ts'), `${HEADER}\n\nexport const runtimeArtistAbi = ${JSON.stringify(identity, null, 2)} as const;\n`);
+  }
   if (file === 'artistDirectory') {
     const serverDir = resolve(scriptDir, '../../../services/api/src/generated');
     mkdirSync(serverDir, { recursive: true });

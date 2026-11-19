@@ -9,7 +9,9 @@ labels. A signed session proves identity; the artist runtime still decides acces
 For each release the API first checks the full supplied identity against its
 fresh, confirmed catalog. The [A09 authority policy](../reference/finalized-key-authority.md)
 requires valid finalized and current block observations, then positive directory,
-release and access checks at both exact canonical hashes. This conservatively
+release, bound-artist and access checks at both exact canonical hashes.
+The [A03 role model](../reference/runtime-artist-authority.md) keeps artist
+authority independent from technical ownership. This conservatively
 waits for final settlement of new access while respecting newer revocations.
 Coincident block identities share one proof. `ACCESS_PENDING_FINALITY` asks the
 listener to retry without another payment; unsupported finality fails closed.

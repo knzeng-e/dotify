@@ -29,8 +29,10 @@ as active state. Matched delivery and native Revive/Host acceptance remain ahead
 
 [A01 / #486](catalog-runtime-isolation.md) is merged in #487: isolate
 an incompatible artist runtime from healthy catalogue discovery and key grants.
-The next candidate, [A09 / #488](finalized-key-authority.md), requires positive
-finalized and current evidence before irreversible key delivery.
+[A09 / #488](finalized-key-authority.md) is merged in #489 and requires positive
+finalized and current evidence before irreversible key delivery. The next
+candidate, [A03 / #490](runtime-artist-authority.md), separates stable artist
+authority from two-step technical administration.
 [Reader policy and recovery](../reference/catalog-runtime-isolation.md) define its
 boundaries. Other audit corrections remain before the fresh deployment.
 

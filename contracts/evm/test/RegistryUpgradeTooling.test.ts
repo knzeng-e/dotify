@@ -57,10 +57,10 @@ describe('Registry remediation tooling', () => {
     expect(registryUpgradePlanDigest({ ...body, trackStateHash: keccak256(toBytes('changed-catalogue')) })).to.not.equal(first);
   });
 
-  it('fails runtime safety closed on bytecode, owner, guard, track, or route anomalies', () => {
+  it('fails runtime safety closed on bytecode, artist, guard, track, or route anomalies', () => {
     const protectedAudit = {
       registerFacetMatchesSource: true,
-      ownerMatchesDirectoryArtist: true,
+      artistMatchesDirectoryArtist: true,
       guardStatus: 'protected' as const,
       foreignTrackCount: 0,
       selectorRoutes: Array.from({ length: 10 }, () => ({ facet: targetFacet, codeHash: keccak256(toBytes('facet')) }))
@@ -68,7 +68,7 @@ describe('Registry remediation tooling', () => {
 
     expect(isRegistryRuntimeSafe(protectedAudit, 10)).to.equal(true);
     expect(isRegistryRuntimeSafe({ ...protectedAudit, registerFacetMatchesSource: false }, 10)).to.equal(false);
-    expect(isRegistryRuntimeSafe({ ...protectedAudit, ownerMatchesDirectoryArtist: false }, 10)).to.equal(false);
+    expect(isRegistryRuntimeSafe({ ...protectedAudit, artistMatchesDirectoryArtist: false }, 10)).to.equal(false);
     expect(isRegistryRuntimeSafe({ ...protectedAudit, guardStatus: 'inconclusive' }, 10)).to.equal(false);
     expect(isRegistryRuntimeSafe({ ...protectedAudit, foreignTrackCount: 1 }, 10)).to.equal(false);
     expect(isRegistryRuntimeSafe({ ...protectedAudit, selectorRoutes: protectedAudit.selectorRoutes.slice(1) }, 10)).to.equal(false);

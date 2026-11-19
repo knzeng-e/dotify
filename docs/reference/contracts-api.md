@@ -1,37 +1,26 @@
 # Smart Contracts API Reference
 
-All contracts are deployed on **Paseo Asset Hub** (`chainId 420420417`). Source lives in `Dotify/contracts/evm/contracts/`.
+This reference includes the source candidate for the next clean **Paseo Asset
+Hub** generation (`chainId 420420417`). Contracts live under
+`contracts/evm/contracts/`; generated bindings are the exact interface source.
+A source merge does not establish deployed bytecode or device acceptance.
 
-Classic unlock payments settle through the runtime's native EVM `msg.value`
-rail. The frontend fetches the connected EVM `chainId`, then derives the
-displayed native asset from an explicit Polkadot Hub metadata table because
-standard EVM JSON-RPC does not expose a native-currency symbol/decimals method.
-The current Product DevNet/Paseo runtime rail displays `PAS`; a DOT-backed
-Polkadot Hub EVM chain displays `DOT`.
+The owner selected a complete fresh testnet generation after the audit fixes,
+abandoning older contracts/releases/references as active state. A03 changes the
+runtime constructor, stable artist identity and administration transfer; see
+[the role model](runtime-artist-authority.md) and the
+[fresh-generation gate](../operations/deployment-configuration.md#native-payment-correction-candidate-484).
+Tracked `deployments.json` addresses do not automatically implement this
+candidate. No reset or deployment is performed by this source change.
 
-> **Pre-fix deployment warning (2026-07-12):** this reference describes the
-> current source contract. The configured Paseo factory and indexed runtimes
-> still use the registry facet deployed before `musicRegRegister` became
-> runtime-owner-only. The caller rule below is therefore not true on those
-> addresses yet. Existing artist owners must hotfix the registration selector,
-> and the system also needs a corrected factory/directory generation plus
-> catalog migration before publication is production-safe. See the
-> [registry remediation runbook](../operations/registry-facet-remediation.md).
+Classic unlock payments use native EVM `msg.value`; ordinary Web uses EVM units
+and Product submission converts to the connected chain's native precision.
+[Native payment settlement](../backlog/native-payment-settlement-parity.md)
+retains its target-runtime and device acceptance gates.
 
-**Configured deployments:**
-
-- `ArtistRuntimeFactory`: see `deployments.json`
-- `ArtistDirectory`: see `deployments.json`
-- `DotifyRuntimeInitializer`: see `deployments.json`
-
-Do not use a full system redeploy for a live-runtime facet hotfix. Follow the
-owner-led remediation runbook; its tooling never rewrites active address files.
-The repository does not yet contain the candidate-only deployment and catalog
-import tooling required for a new system generation. The existing
-`npm run deploy:testnet` command rewrites both `deployments.json` and
-`web/src/shared/config/deployments.ts`; do not use it as a candidate deployment
-command. Build and validate the migration tooling described in the runbook
-before any separately approved active-address cutover.
+The earlier [one-selector registry remediation](../operations/registry-facet-remediation.md)
+is historical tooling, not a migration into A03. ABI bindings are authoritative;
+legacy NFT entries below still await the separate A04 review.
 
 ---
 
@@ -174,44 +163,25 @@ Returns a paginated slice of artists and their runtime addresses. Used by the fr
 
 Tracks the on-chain record of every registered release. All state lives in the artist's own SmartRuntime.
 
-### `musicRegRegister(TrackData calldata data, address[] calldata royaltyRecipients, uint256[] calldata royaltyShares)`
+### `musicRegRegister(TrackRegistration reg, address[] recipients, uint16[] bps)`
 
 ```solidity
-struct TrackData {
-    bytes32 contentHash;
-    string title;
-    string artistName;
-    string description;
-    string imageRef;
-    string audioRef;
-    string metadataRef;
-    string artistContractRef;
-    uint256 royaltyBps;
-    uint8 accessMode;         // 0 = human-free, 1 = classic
-    uint256 pricePlanck;       // Historical name; value is 18-decimal EVM contract units.
-    uint8 requiredPersonhood; // 0 = none, 1 = DIM1, 2 = DIM2
-}
-
 function musicRegRegister(
-    TrackData calldata data,
-    address[] calldata royaltyRecipients,
-    uint256[] calldata royaltyShares
+    TrackRegistration calldata reg,
+    address[] calldata recipients,
+    uint16[] calldata bps
 ) external
 ```
 
-Registers a new track. Mints an NFT via `MusicNFTPallet` and stores royalty splits in `MusicRoyaltiesPallet`.
+The bound artist registers a new content hash after bootstrap readiness, mints
+its NFT and fixes the royalty split. Technical administration alone cannot
+publish. The exact tuple fields and event signature are in the
+[generated registry ABI](../../web/src/generated/contracts/musicRegistry.ts).
 
-**Caller must be in current source:** Runtime owner (the artist). This is
-contract-tested locally, including a one-selector state-preserving hotfix, but
-not yet deployed to the configured Paseo runtimes; see the warning above.
-
-**Reverts if:**
-
-- `contentHash` is already registered and active.
-- `royaltyRecipients.length != royaltyShares.length`.
-- Sum of `royaltyShares` exceeds 10,000 bps.
-
-**Emits:** `MusicTrackRegistered(bytes32 indexed contentHash, address indexed artist, uint256 tokenId)`
+Metadata and recipient limits are enforced by `LibMusicBounds` and
+`LibMusicRoyalties.storeSplits`. An already registered hash cannot be reused,
+even if its record is inactive. `TrackRegistered` records the original artist;
+a later administration transfer does not rewrite it.
 
 ---
 
@@ -221,9 +191,10 @@ not yet deployed to the configured Paseo runtimes; see the warning above.
 function musicRegDeactivate(bytes32 contentHash) external
 ```
 
-Marks a track as inactive. Deactivated tracks are excluded from catalog queries.
+Marks a track inactive without deleting its record or payment history. Inactive
+policy denies new key grants; ordinary active discovery filters it out.
 
-**Caller must be:** Runtime owner.
+**Caller must be:** the recorded original track artist.
 
 ---
 
@@ -451,8 +422,12 @@ Introspection: `facets()`, `facetFunctionSelectors(address)`, `facetAddresses()`
 
 ### `OwnershipPallet`
 
-`owner()` — returns the current runtime owner.
-`transferOwnership(address newOwner)` — transfers runtime ownership.
+The generated [ownership ABI](../../web/src/generated/contracts/runtimeOwnership.ts)
+exposes `owner()`, `runtimeArtist()` and `pendingOwner()`. `transferOwnership`
+offers administration; only the pending recipient's `acceptOwnership` completes
+it. The current owner can `cancelOwnershipTransfer`. Artist identity, authorship,
+publication, NFTs and recipients do not move. See the
+[canonical role and bootstrap model](runtime-artist-authority.md).
 
 ---
 

@@ -20,9 +20,8 @@ import { MusicAccessPallet } from './pallets/MusicAccessPallet.sol';
 ///         ────────────
 ///         Pallet implementations are deployed ONCE and shared across all artist
 ///         runtimes — storage lives in each SmartRuntime proxy, not in the pallet
-///         contract, so artists are fully isolated.  Artists can later upgrade
-///         their own runtime independently by calling `diamondCut` with a new
-///         pallet address.
+///         contract. The accepted technical administrator can later upgrade a
+///         runtime via diamondCut; artist publishing identity remains separate.
 ///
 ///         Initialisation
 ///         ──────────────
@@ -125,7 +124,7 @@ contract ArtistRuntimeFactory {
     IDiamondCut.FacetCut[] memory cuts = new IDiamondCut.FacetCut[](1);
     cuts[0] = IDiamondCut.FacetCut(cutPallet, IDiamondCut.FacetCutAction.Add, _diamondCutSelectors());
 
-    SmartRuntime sr = new SmartRuntime(address(this), cuts, address(0), '');
+    SmartRuntime sr = new SmartRuntime(address(this), msg.sender, cuts, address(0), '');
     runtime = address(sr);
     pendingRuntimeOf[msg.sender] = runtime;
     pendingRuntimeStageOf[msg.sender] = 1;
@@ -164,7 +163,7 @@ contract ArtistRuntimeFactory {
     } else if (stage == 7) {
       IDiamondCut.FacetCut[] memory cuts = new IDiamondCut.FacetCut[](0);
       IDiamondCut(runtime).diamondCut(cuts, initContract, abi.encodeWithSignature('initializeFor(address)', msg.sender));
-      OwnershipPallet(runtime).transferOwnership(msg.sender);
+      // The artist-signed creation finalizer binds initial administration before publication.
 
       delete pendingRuntimeOf[msg.sender];
       delete pendingRuntimeStageOf[msg.sender];
@@ -215,9 +214,13 @@ contract ArtistRuntimeFactory {
   }
 
   function _ownershipSelectors() private pure returns (bytes4[] memory selectors) {
-    selectors = new bytes4[](2);
+    selectors = new bytes4[](6);
     selectors[0] = OwnershipPallet.owner.selector;
     selectors[1] = OwnershipPallet.transferOwnership.selector;
+    selectors[2] = OwnershipPallet.pendingOwner.selector;
+    selectors[3] = OwnershipPallet.acceptOwnership.selector;
+    selectors[4] = OwnershipPallet.cancelOwnershipTransfer.selector;
+    selectors[5] = OwnershipPallet.runtimeArtist.selector;
   }
 
   function _musicRegistrySelectors() private pure returns (bytes4[] memory selectors) {

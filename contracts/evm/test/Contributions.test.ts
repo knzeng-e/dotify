@@ -24,6 +24,7 @@ async function fixture() {
   const access = await hre.viem.deployContract('MusicAccessPallet');
   const runtime = await hre.viem.deployContract('SmartRuntime', [
     artist.account.address,
+    artist.account.address,
     [cut, registry, royalty, access].map(item => ({ facetAddress: item.address, action: 0, functionSelectors: selectors(item.abi) })),
     zeroAddress,
     '0x'
@@ -163,7 +164,7 @@ describe('Native gifts and tips', () => {
     const gift = { ...context, contentHash: zeroHash };
     const old = await gifts.read.musicGiftQuote([gift, 1000n]);
     const next = { ...policy, recipients: [cause.account.address], shares: [10000], campaign: hash };
-    await rejects(gifts.write.musicGiftSetPolicy([zeroHash, next], { account: donor.account }), 'not owner');
+    await rejects(gifts.write.musicGiftSetPolicy([zeroHash, next], { account: donor.account }), 'not artist');
     await gifts.write.musicGiftSetPolicy([zeroHash, next]);
     await rejects(gifts.write.musicGiftContribute([gift, old.digest, '0x'], { account: donor.account, value: 1000n }), 'ContributionDistributionChanged');
     const q = await gifts.read.musicGiftQuote([gift, 1000n]);

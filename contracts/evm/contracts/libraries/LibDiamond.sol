@@ -40,6 +40,8 @@ library LibDiamond {
     mapping(bytes4 => bool) supportedInterfaces;
     // owner of the Smart Runtime
     address contractOwner;
+    // Appended: an unaccepted administration offer grants no privileges.
+    address pendingOwner;
   }
 
   function diamondStorage() internal pure returns (DiamondStorage storage ds) {
@@ -60,6 +62,7 @@ library LibDiamond {
     DiamondStorage storage ds = diamondStorage();
     address previousOwner = ds.contractOwner;
     ds.contractOwner = newOwner;
+    ds.pendingOwner = address(0);
     emit OwnershipTransferred(previousOwner, newOwner);
   }
 

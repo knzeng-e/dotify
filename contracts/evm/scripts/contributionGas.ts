@@ -26,6 +26,7 @@ async function main() {
   const selectors = (abi: Abi) => abi.filter((item): item is AbiFunction => item.type === 'function').map(toFunctionSelector);
   const runtime = await hre.viem.deployContract('SmartRuntime', [
     artist.account.address,
+    artist.account.address,
     facets.map(facet => ({ facetAddress: facet.address, action: 0, functionSelectors: selectors(facet.abi) })),
     zeroAddress,
     '0x'

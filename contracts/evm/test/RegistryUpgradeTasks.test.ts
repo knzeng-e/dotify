@@ -134,6 +134,31 @@ describe('Registry remediation Hardhat tasks', () => {
     expect(report.runtimes[0].selectorRoutes).to.have.lengthOf(11);
   });
 
+  it('audits delegated administration against the stable artist instead of treating the new administrator as a foreign author', async () => {
+    const { owner, other, publicClient, factory, directory, runtime } = await deployTaskFixture();
+    const ownership = await hre.viem.getContractAt('OwnershipPallet', runtime, { client: { wallet: owner } });
+    await publicClient.waitForTransactionReceipt({ hash: await ownership.write.transferOwnership([other.account.address]) });
+    const recipient = await hre.viem.getContractAt('OwnershipPallet', runtime, { client: { wallet: other } });
+    await publicClient.waitForTransactionReceipt({ hash: await recipient.write.acceptOwnership() });
+    const output: string[] = [],
+      previous = console.log,
+      previousExit = process.exitCode;
+    process.exitCode = undefined;
+    console.log = (...values: unknown[]) => output.push(values.map(String).join(' '));
+    try {
+      await hre.run('registry:audit', { factory: factory.address, directory: directory.address });
+      expect(process.exitCode).not.to.equal(2);
+    } finally {
+      console.log = previous;
+      process.exitCode = previousExit;
+    }
+    const report = JSON.parse(output.find(line => line.includes('"schema": "dotify.registry-audit.v1"'))!);
+    expect(report.runtimes[0].ownerMatchesDirectoryArtist).to.equal(false);
+    expect(report.runtimes[0].artistMatchesDirectoryArtist).to.equal(true);
+    expect(report.runtimes[0].foreignTrackHashes).to.deep.equal([]);
+    expect(report.runtimes[0].guard.status).to.equal('protected');
+  });
+
   it('executes a vulnerable-to-protected upgrade and finalizes its evidence manifest', async () => {
     const { owner, publicClient, runtime } = await deployTaskFixture();
     await installUnsafeRegisterFacet(owner, publicClient, runtime);
@@ -445,6 +470,8 @@ describe('Registry remediation Hardhat tasks', () => {
     const ownership = await hre.viem.getContractAt('OwnershipPallet', runtime, { client: { wallet: owner } });
     const transferHash = await ownership.write.transferOwnership([other.account.address]);
     await publicClient.waitForTransactionReceipt({ hash: transferHash });
+    const recipient = await hre.viem.getContractAt('OwnershipPallet', runtime, { client: { wallet: other } });
+    await publicClient.waitForTransactionReceipt({ hash: await recipient.write.acceptOwnership() });
     const correctedFacet = await hre.viem.deployContract('MusicRegistryPallet');
     const evidenceDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'dotify-registry-task-'));
 
@@ -479,11 +506,13 @@ describe('Registry remediation Hardhat tasks', () => {
   });
 
   it('rejects registry:upgrade execution when the runtime owner is a contract', async () => {
-    const { owner, publicClient, directory, runtime } = await deployTaskFixture();
+    const { owner, publicClient, runtime } = await deployTaskFixture();
     await installUnsafeRegisterFacet(owner, publicClient, runtime);
     const ownership = await hre.viem.getContractAt('OwnershipPallet', runtime, { client: { wallet: owner } });
-    const transferHash = await ownership.write.transferOwnership([directory.address]);
+    const receiver = await hre.viem.deployContract('AdminReceiverMock');
+    const transferHash = await ownership.write.transferOwnership([receiver.address]);
     await publicClient.waitForTransactionReceipt({ hash: transferHash });
+    await publicClient.waitForTransactionReceipt({ hash: await receiver.write.accept([runtime]) });
     const correctedFacet = await hre.viem.deployContract('MusicRegistryPallet');
     const evidenceDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'dotify-registry-task-'));
 

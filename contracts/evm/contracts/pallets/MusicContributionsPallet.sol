@@ -4,7 +4,7 @@ pragma solidity ^0.8.28;
 import { LibMusicContributions as C } from '../libraries/LibMusicContributions.sol';
 import { LibMusicRegistry } from '../libraries/LibMusicRegistry.sol';
 import { LibMusicRoyalties } from '../libraries/LibMusicRoyalties.sol';
-import { LibDiamond } from '../libraries/LibDiamond.sol';
+import { LibRuntimeArtist } from '../libraries/LibRuntimeArtist.sol';
 import { LibReentrancyGuard } from '../libraries/LibReentrancyGuard.sol';
 
 /// @notice Voluntary contributions never write listening entitlements.
@@ -76,7 +76,7 @@ contract MusicContributionsPallet {
   }
 
   function musicGiftSetPolicy(bytes32 scope, C.Policy calldata next) external {
-    if (scope == bytes32(0)) LibDiamond.enforceIsContractOwner();
+    if (scope == bytes32(0)) LibRuntimeArtist.enforceArtist();
     else {
       LibMusicRegistry.Storage storage registry = LibMusicRegistry.store();
       LibMusicRegistry.requireExists(registry, scope);
@@ -103,11 +103,12 @@ contract MusicContributionsPallet {
   }
 
   function musicGiftQuote(Context calldata context, uint256 amount) public view returns (Quote memory q) {
+    LibRuntimeArtist.requireReady();
     if (amount == 0) revert ContributionInvalidAmount();
     C.Store storage contributions = C.store();
     C.Policy storage p = contributions.policies[context.contentHash];
     bool active = block.timestamp >= p.startsAt && (p.endsAt == 0 || block.timestamp < p.endsAt);
-    address artist = LibDiamond.contractOwner();
+    address artist = LibRuntimeArtist.store().artist;
     uint256 distributable = amount;
     LibMusicRoyalties.RoyaltySplit[] storage splits = LibMusicRoyalties.store().splits[context.contentHash];
     if (context.contentHash != bytes32(0)) {

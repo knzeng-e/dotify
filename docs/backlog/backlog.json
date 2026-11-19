@@ -25,6 +25,16 @@
   },
   "items": [
     {
+      "id": "runtime-artist-authority",
+      "doc": "docs/backlog/runtime-artist-authority.md",
+      "issue": 490,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Now",
+      "note": "A03: owner-confirmed administration-only transfer, stable artist publication/profile authority, two-step ownership and finalized/current API identity checks. Matched fresh contracts/API and generated bindings; no old-generation migration or deployment."
+    },
+    {
       "id": "finalized-key-authority",
       "doc": "docs/backlog/finalized-key-authority.md",
       "issue": 488,

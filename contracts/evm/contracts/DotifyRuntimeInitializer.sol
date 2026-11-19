@@ -3,27 +3,25 @@ pragma solidity ^0.8.28;
 
 import { LibDiamond } from './libraries/LibDiamond.sol';
 import { LibMusicAccess } from './libraries/LibMusicAccess.sol';
+import { LibRuntimeArtist } from './libraries/LibRuntimeArtist.sol';
 
-/// @title DotifyRuntimeInitializer
-/// @notice Diamond init contract — called once via `delegatecall` inside the
-///         SmartRuntime constructor.
-///
-///         Bootstraps each new artist runtime so that:
-///           - The legacy personhood registrar storage slot is initialised for
-///             layout/ABI continuity. Current access reads Individuality
-///             precompile evidence instead of artist-granted DIM levels.
-///
-///         This contract is deployed once and shared across all artist runtimes
-///         created by the factory.  It executes in the SmartRuntime's storage
-///         context via `delegatecall`, so `LibDiamond.contractOwner()` returns
-///         the artist's address (set by SmartRuntime's constructor before the
-///         init call is made).
+/// @notice One-time creation finalizer. Factory completion is initiated by the
+/// bound artist's signed installRuntimeStep, before directory publication.
+/// Subsequent administration changes use OwnershipPallet's pending/accept flow.
 contract DotifyRuntimeInitializer {
   function initialize() external {
-    LibMusicAccess.setPersonhoodRegistrar(LibMusicAccess.store(), LibDiamond.contractOwner());
+    _finish(LibRuntimeArtist.store().artist);
   }
 
-  function initializeFor(address registrar) external {
-    LibMusicAccess.setPersonhoodRegistrar(LibMusicAccess.store(), registrar);
+  function initializeFor(address artist) external {
+    _finish(artist);
+  }
+
+  function _finish(address artist) private {
+    require(artist != address(0) && artist == LibRuntimeArtist.store().artist, 'RuntimeArtist: bootstrap identity mismatch');
+    require(!LibRuntimeArtist.store().ready, 'RuntimeArtist: bootstrap complete');
+    LibMusicAccess.setPersonhoodRegistrar(LibMusicAccess.store(), artist);
+    LibRuntimeArtist.store().ready = true;
+    LibDiamond.setContractOwner(artist);
   }
 }
