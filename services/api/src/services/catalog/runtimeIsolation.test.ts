@@ -165,6 +165,7 @@ it('cold reindex isolates a runtime and preserves healthy independently verified
         readContract: async ({ functionName }: { functionName: string }) => {
           calls.push(functionName);
           if (functionName === 'runtimeOf') return RUNTIME;
+          if (functionName === 'runtimeArtist') return ARTIST;
           if (functionName === 'musicRegGetTrack') return [{ artist: ARTIST, audioRef: release().audioRef, active: true }];
           if (functionName === 'musicAccCanAccess') return true;
           assert.fail(functionName);
@@ -184,7 +185,7 @@ it('cold reindex isolates a runtime and preserves healthy independently verified
     }
   });
   assert.equal(allowed.allowed, true, JSON.stringify(allowed));
-  assert.deepEqual(calls, ['runtimeOf', 'musicRegGetTrack', 'musicAccCanAccess']);
+  assert.deepEqual(calls, ['runtimeOf', 'musicRegGetTrack', 'musicAccCanAccess', 'runtimeArtist']);
   const bad = await access.checkTrackAccess({
     contentHash: HASH,
     requester: ARTIST,
@@ -199,7 +200,7 @@ it('cold reindex isolates a runtime and preserves healthy independently verified
   });
   assert.equal(bad.allowed, false);
   if (!bad.allowed) assert.equal(bad.code, 'TRACK_NOT_FOUND');
-  assert.equal(calls.length, 3);
+  assert.equal(calls.length, 4);
 });
 
 it('incremental failure removes the entire runtime atomically and event repair rereads its whole inventory', async () => {

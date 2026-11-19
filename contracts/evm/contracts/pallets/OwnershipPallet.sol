@@ -2,30 +2,44 @@
 pragma solidity ^0.8.28;
 
 import { LibDiamond } from '../libraries/LibDiamond.sol';
+import { LibRuntimeArtist } from '../libraries/LibRuntimeArtist.sol';
 
-/// @title OwnershipPallet
-/// @notice Smart Pallet for managing the Smart Runtime's owner.
-///
-///         The owner is the account allowed to call `diamondCut` and therefore
-///         controls which Smart Pallets are registered in the Smart Runtime.
-///
-///         Ownership transfer is a two-step, single-transaction operation here
-///         (immediate transfer).  To implement a pending-accept pattern, replace
-///         this pallet with an upgraded version — no redeployment of the Smart
-///         Runtime required.
+/// @notice Upgrade administration only. Artist identity, publishing and rights
+/// do not move with ownership. Subsequent transfers require recipient acceptance.
 contract OwnershipPallet {
   event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+  event OwnershipTransferStarted(address indexed owner, address indexed pendingOwner);
+  event OwnershipTransferCancelled(address indexed owner, address indexed pendingOwner);
 
-  /// @notice Returns the current owner of the Smart Runtime.
-  function owner() external view returns (address owner_) {
-    owner_ = LibDiamond.contractOwner();
+  function owner() external view returns (address) {
+    return LibDiamond.contractOwner();
   }
 
-  /// @notice Transfer ownership of the Smart Runtime to `newOwner`.
-  /// @dev Only callable by the current owner.
+  function runtimeArtist() external view returns (address) {
+    return LibRuntimeArtist.store().artist;
+  }
+
+  function pendingOwner() external view returns (address) {
+    return LibDiamond.diamondStorage().pendingOwner;
+  }
+
   function transferOwnership(address newOwner) external {
     LibDiamond.enforceIsContractOwner();
-    require(newOwner != address(0), 'OwnershipPallet: new owner is zero');
-    LibDiamond.setContractOwner(newOwner);
+    require(newOwner != address(0) && newOwner != address(this) && newOwner != msg.sender, 'OwnershipPallet: invalid pending owner');
+    LibDiamond.diamondStorage().pendingOwner = newOwner;
+    emit OwnershipTransferStarted(msg.sender, newOwner);
+  }
+
+  function acceptOwnership() external {
+    require(msg.sender == LibDiamond.diamondStorage().pendingOwner, 'OwnershipPallet: not pending owner');
+    LibDiamond.setContractOwner(msg.sender);
+  }
+
+  function cancelOwnershipTransfer() external {
+    LibDiamond.enforceIsContractOwner();
+    address pending = LibDiamond.diamondStorage().pendingOwner;
+    require(pending != address(0), 'OwnershipPallet: no pending owner');
+    LibDiamond.diamondStorage().pendingOwner = address(0);
+    emit OwnershipTransferCancelled(msg.sender, pending);
   }
 }

@@ -3,8 +3,9 @@
 The [18 November audit checkpoint](backlog/implementation/listening-and-publication-readiness.md#smart-runtime-audit-checkpoint-2026-11-18)
 puts payment/contract corrections before further CASH work. The merged
 [artist-runtime catalogue isolation](reference/catalog-runtime-isolation.md) is
-followed by [finalized key authority](reference/finalized-key-authority.md), a
-source candidate requiring both finalized and current positive access.
+followed by merged [finalized key authority](reference/finalized-key-authority.md).
+The next candidate, [artist authority](reference/runtime-artist-authority.md),
+keeps artist identity separate from delegated technical administration.
 A complete fresh testnet generation follows the remaining audit fixes; no reset
 or deployment is recorded by this source change. Earlier dated checkpoints
 below retain their own scope.
@@ -104,6 +105,7 @@ including successful starts and physical locked-screen observations.
 
 ## Look something up
 
+- [Artist identity and administration](reference/runtime-artist-authority.md): stable publishing/profile authority and accepted administration transfer
 - [Finalized key authority](reference/finalized-key-authority.md): irreversible key grants and conservative current-state denials
 - [Artist-runtime catalogue isolation](reference/catalog-runtime-isolation.md): admission budgets, exclusions, freshness and repair
 - [Bulletin proof read coordination](adr/0058-coordinate-bulletin-proof-loads.md): avoid duplicate block downloads while retaining per-query checks

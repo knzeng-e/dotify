@@ -65,12 +65,14 @@ const musicRoyRoyaltyClaimedEvent = parseAbiItem('event MusicRoyRoyaltyClaimed(a
 const musicRoyRoyaltyClaimFailedEvent = parseAbiItem('event MusicRoyRoyaltyClaimFailed(address indexed recipient, uint256 amount)');
 
 async function expectRevertMessage(promise: Promise<unknown>, fragment: string) {
+  let failure: unknown;
   try {
     await promise;
-    expect.fail('Should have reverted');
-  } catch (e: unknown) {
-    expect((e as Error).message).to.include(fragment);
+  } catch (error) {
+    failure = error;
   }
+  expect(failure, 'Expected failed contract execution').not.to.equal(undefined);
+  expect((failure as Error).message, (failure as Error).message).to.include(fragment);
 }
 
 function sampleRegistration(
@@ -419,7 +421,7 @@ describe('Artist SmartRuntime — music pallets', () => {
     expect(owner.toLowerCase()).to.equal(artistA.account.address.toLowerCase());
   });
 
-  it('rejects track registration from a non-owner without creating registry or NFT state', async () => {
+  it('rejects track registration from a non-artist without creating registry or NFT state', async () => {
     const { registry, nft, artistA, other, royaltyRecip } = await withArtistRuntime();
 
     const outsiderRegistry = await hre.viem.getContractAt('MusicRegistryPallet', registry.address, { client: { wallet: other } });
@@ -427,7 +429,7 @@ describe('Artist SmartRuntime — music pallets', () => {
       await outsiderRegistry.write.musicRegRegister([sampleRegistration(), [royaltyRecip.account.address], [10_000]]);
       expect.fail('Should have reverted');
     } catch (e: unknown) {
-      expect((e as Error).message).to.include('LibDiamond: not owner');
+      expect((e as Error).message).to.include('RuntimeArtist: not artist');
     }
 
     expect(await registry.read.musicRegIsRegistered([TRACK_HASH])).to.equal(false);
@@ -567,7 +569,7 @@ describe('Access model v2 - Free mode + musicRegSetAccessMode', () => {
       await promise;
       expect.fail('Should have reverted');
     } catch (e: unknown) {
-      expect((e as Error).message).to.include(fragment);
+      expect((e as Error).message, (e as Error).message).to.include(fragment);
     }
   }
 
@@ -708,6 +710,8 @@ describe('Access model v2 - Free mode + musicRegSetAccessMode', () => {
 
     const artistOwnership = await hre.viem.getContractAt('OwnershipPallet', ownership.address, { client: { wallet: artistA } });
     await artistOwnership.write.transferOwnership([other.account.address]);
+    const recipientOwnership = await hre.viem.getContractAt('OwnershipPallet', ownership.address, { client: { wallet: other } });
+    await recipientOwnership.write.acceptOwnership();
     expect((await ownership.read.owner()).toLowerCase()).to.equal(other.account.address.toLowerCase());
     expect((await directory.read.runtimeOf([artistA.account.address])).toLowerCase()).to.equal(registry.address.toLowerCase());
 
@@ -1075,7 +1079,7 @@ describe('Forkless upgrade — artist replaces their music pallets', () => {
       await outsiderRegistry.write.musicRegRegister([sampleRegistration({ contentHash: TRACK_HASH2 }), [ctx.royaltyRecip.account.address], [10_000]]);
       expect.fail('Should have reverted');
     } catch (error: unknown) {
-      expect((error as Error).message).to.include('LibDiamond: not owner');
+      expect((error as Error).message).to.include('RuntimeArtist: not artist');
     }
 
     expect(await registry.read.musicRegIsRegistered([TRACK_HASH2])).to.equal(false);
@@ -1459,5 +1463,159 @@ describe('ArtistDirectory — pagination', () => {
     expect(runtimes.length).to.equal(2);
     expect(artists[0].toLowerCase()).to.equal(ctx.artistA.account.address.toLowerCase());
     expect(artists[1].toLowerCase()).to.equal(ctx.artistB.account.address.toLowerCase());
+  });
+});
+
+describe('A03 artist identity and technical administration', () => {
+  async function fixture() {
+    const ctx = await loadFixture(deployDotifySystemFixture);
+    await createArtistRuntime(ctx.factory, ctx.artistA);
+    const runtime = await ctx.directory.read.runtimeOf([ctx.artistA.account.address]);
+    const ownership = await hre.viem.getContractAt('OwnershipPallet', runtime, { client: { wallet: ctx.artistA } });
+    const registry = await hre.viem.getContractAt('MusicRegistryPallet', runtime, { client: { wallet: ctx.artistA } });
+    return { ...ctx, runtime, ownership, registry };
+  }
+
+  it('requires pending acceptance, preserves current powers, and rejects replaced/cancelled/wrong recipients', async () => {
+    const f = await fixture();
+    const recipient = await hre.viem.getContractAt('OwnershipPallet', f.runtime, { client: { wallet: f.artistB } });
+    await expectRevertMessage(recipient.write.transferOwnership([f.other.account.address]), 'not owner');
+    await f.ownership.write.transferOwnership([f.artistB.account.address]);
+    expect((await f.ownership.read.owner()).toLowerCase()).to.equal(f.artistA.account.address.toLowerCase());
+    expect((await f.ownership.read.pendingOwner()).toLowerCase()).to.equal(f.artistB.account.address.toLowerCase());
+    await f.ownership.write.transferOwnership([f.other.account.address]);
+    await expectRevertMessage(recipient.write.acceptOwnership(), 'reverted');
+    expect((await f.ownership.read.owner()).toLowerCase()).to.equal(f.artistA.account.address.toLowerCase());
+    expect((await f.ownership.read.pendingOwner()).toLowerCase()).to.equal(f.other.account.address.toLowerCase());
+    await f.ownership.write.cancelOwnershipTransfer();
+    const other = await hre.viem.getContractAt('OwnershipPallet', f.runtime, { client: { wallet: f.other } });
+    await expectRevertMessage(other.write.acceptOwnership(), 'reverted');
+    expect((await f.ownership.read.owner()).toLowerCase()).to.equal(f.artistA.account.address.toLowerCase());
+    expect(await f.ownership.read.pendingOwner()).to.equal(ZERO_ADDR);
+    for (const invalid of [ZERO_ADDR, f.runtime, f.artistA.account.address])
+      await expectRevertMessage(f.ownership.write.transferOwnership([invalid]), 'invalid pending owner');
+    await f.ownership.write.transferOwnership([f.artistB.account.address]);
+    await recipient.write.acceptOwnership();
+    expect(await f.ownership.read.pendingOwner()).to.equal(ZERO_ADDR);
+    await expectRevertMessage(f.ownership.write.transferOwnership([f.other.account.address]), 'not owner');
+    expect((await f.ownership.read.runtimeArtist()).toLowerCase()).to.equal(f.artistA.account.address.toLowerCase());
+  });
+
+  for (const ownRuntime of [false, true])
+    it(`keeps A publishing and historical rights after B accepts administration (${ownRuntime ? 'B already has a runtime' : 'B has no runtime'})`, async () => {
+      const f = await fixture();
+      if (ownRuntime) await createArtistRuntime(f.factory, f.artistB);
+      const reg = sampleRegistration();
+      await f.registry.write.musicRegRegister([reg, [f.royaltyRecip.account.address], [2500]]);
+      const royalties = await hre.viem.getContractAt('MusicRoyaltiesPallet', f.runtime, { client: { wallet: f.listener } });
+      await royalties.write.musicRoyPayAccess([reg.contentHash], { value: reg.pricePlanck });
+      const access = await hre.viem.getContractAt('MusicAccessPallet', f.runtime);
+      const before = await f.registry.read.musicRegGetTrack([reg.contentHash]);
+      await f.ownership.write.transferOwnership([f.artistB.account.address]);
+      const recipient = await hre.viem.getContractAt('OwnershipPallet', f.runtime, { client: { wallet: f.artistB } });
+      await recipient.write.acceptOwnership();
+      expect(await f.registry.read.musicRegGetTrack([reg.contentHash])).to.deep.equal(before);
+      expect(await access.read.musicAccCanAccess([reg.contentHash, f.listener.account.address])).to.equal(true);
+      expect((await f.directory.read.runtimeOf([f.artistA.account.address])).toLowerCase()).to.equal(f.runtime.toLowerCase());
+      const bRuntime = await f.directory.read.runtimeOf([f.artistB.account.address]);
+      expect(bRuntime === ZERO_ADDR).to.equal(!ownRuntime);
+      if (ownRuntime) expect(bRuntime.toLowerCase()).not.to.equal(f.runtime.toLowerCase());
+      const asB = await hre.viem.getContractAt('MusicRegistryPallet', f.runtime, { client: { wallet: f.artistB } });
+      await expectRevertMessage(
+        asB.write.musicRegRegister([sampleRegistration({ contentHash: TRACK_HASH2 }), [f.artistB.account.address], [10000]]),
+        'not artist'
+      );
+      await f.registry.write.musicRegRegister([sampleRegistration({ contentHash: TRACK_HASH2 }), [f.artistA.account.address], [10000]]);
+      expect((await f.registry.read.musicRegGetTrack([TRACK_HASH2]))[0].artist.toLowerCase()).to.equal(f.artistA.account.address.toLowerCase());
+      await expectRevertMessage(asB.write.musicRegDeactivate([reg.contentHash]), 'not artist');
+      const split = await royalties.read.musicRoySplitAt([reg.contentHash, 0n]);
+      expect(split[0].toLowerCase()).to.equal(f.royaltyRecip.account.address.toLowerCase());
+      expect(split[1]).to.equal(2500);
+    });
+
+  it('moves real upgrade power to B while metadata and normal publication remain A-only', async () => {
+    const f = await fixture();
+    await f.registry.write.musicRegRegister([sampleRegistration(), [f.artistA.account.address], [10000]]);
+    await f.ownership.write.transferOwnership([f.artistB.account.address]);
+    const asB = await hre.viem.getContractAt('OwnershipPallet', f.runtime, { client: { wallet: f.artistB } });
+    await asB.write.acceptOwnership();
+    const oldCut = await hre.viem.getContractAt('DiamondCutPallet', f.runtime, { client: { wallet: f.artistA } });
+    await expectRevertMessage(oldCut.write.diamondCut([[], ZERO_ADDR, '0x']), 'not owner');
+    const newCut = await hre.viem.getContractAt('DiamondCutPallet', f.runtime, { client: { wallet: f.artistB } });
+    const facet = await hre.viem.deployContract('MusicMetadataPallet');
+    await newCut.write.diamondCut([[{ facetAddress: facet.address, action: 0, functionSelectors: selectorsFromAbi(facet.abi) }], ZERO_ADDR, '0x']);
+    const metadata = await hre.viem.getContractAt('MusicMetadataPallet', f.runtime, { client: { wallet: f.artistA } });
+    const args = [TRACK_HASH, 'Updated title', 'Updated story', 'paseo-bulletin:new', sampleRegistration().metadataRef] as const;
+    await expectRevertMessage(metadata.write.musicRegUpdateMetadata(args, { account: f.artistB.account }), 'not artist');
+    await metadata.write.musicRegUpdateMetadata(args);
+    expect((await f.registry.read.musicRegGetTrack([TRACK_HASH]))[0].title).to.equal('Updated title');
+  });
+
+  it('preserves a pending royalty through delegation and only lets its original recipient claim', async () => {
+    const f = await fixture(),
+      amount = 100n;
+    const recipient = await hre.viem.deployContract('GasConsumingRoyaltyRecipient');
+    await f.registry.write.musicRegRegister([sampleRegistration({ pricePlanck: amount }), [recipient.address], [10000]]);
+    const royalties = await hre.viem.getContractAt('MusicRoyaltiesPallet', f.runtime, { client: { wallet: f.listener } });
+    await royalties.write.musicRoyPayAccess([TRACK_HASH], { value: amount });
+    expect(await royalties.read.musicRoyClaimable([recipient.address])).to.equal(amount);
+    await f.ownership.write.transferOwnership([f.artistB.account.address]);
+    const administrator = await hre.viem.getContractAt('OwnershipPallet', f.runtime, { client: { wallet: f.artistB } });
+    await administrator.write.acceptOwnership();
+    expect(await royalties.read.musicRoyClaimable([recipient.address])).to.equal(amount);
+    await expectRevertMessage(royalties.write.musicRoyClaim([recipient.address], { account: f.artistB.account }), 'claim self only');
+    await recipient.write.setBurnGas([false]);
+    const before = await f.publicClient.getBalance({ address: recipient.address });
+    await f.publicClient.waitForTransactionReceipt({ hash: await recipient.write.claimFrom([f.runtime]) });
+    expect(await royalties.read.musicRoyClaimable([recipient.address])).to.equal(0n);
+    expect(await f.publicClient.getBalance({ address: recipient.address })).to.equal(before + amount);
+  });
+
+  it('keeps profile policy and real gift remainder with A rather than the new administrator', async () => {
+    const f = await fixture();
+    const gifts = await hre.viem.getContractAt('MusicContributionsPallet', f.runtime, { client: { wallet: f.artistA } });
+    const scope = `0x${'00'.repeat(32)}` as const;
+    const policy = { version: 0n, startsAt: 0n, endsAt: 0n, hostBps: 0, roomAttestor: ZERO_ADDR, campaign: scope, description: '', recipients: [], shares: [] };
+    const context = {
+      contentHash: scope,
+      intentId: keccak256(toBytes('A03-profile-gift')),
+      host: ZERO_ADDR,
+      room: scope,
+      expiresAt: (await f.publicClient.getBlock()).timestamp + 600n
+    };
+    const quote = await gifts.read.musicGiftQuote([context, 10000n]);
+    await f.ownership.write.transferOwnership([f.artistB.account.address]);
+    const asB = await hre.viem.getContractAt('OwnershipPallet', f.runtime, { client: { wallet: f.artistB } });
+    await asB.write.acceptOwnership();
+    expect((await gifts.read.musicGiftQuote([context, 10000n])).digest).to.equal(quote.digest);
+    await expectRevertMessage(gifts.write.musicGiftSetPolicy([scope, policy], { account: f.artistB.account }), 'not artist');
+    expect(quote.recipients.map(x => x.toLowerCase())).to.deep.equal([f.artistA.account.address.toLowerCase()]);
+    const beforeA = await f.publicClient.getBalance({ address: f.artistA.account.address });
+    const beforeB = await f.publicClient.getBalance({ address: f.artistB.account.address });
+    await f.publicClient.waitForTransactionReceipt({
+      hash: await gifts.write.musicGiftContribute([context, quote.digest, '0x'], { account: f.listener.account, value: 10000n })
+    });
+    expect(await f.publicClient.getBalance({ address: f.artistA.account.address })).to.equal(beforeA + 10000n);
+    expect(await f.publicClient.getBalance({ address: f.artistB.account.address })).to.equal(beforeB);
+    await gifts.write.musicGiftSetPolicy([scope, policy]);
+  });
+
+  it('binds A before staged setup but blocks publication until atomic artist-signed completion', async () => {
+    const f = await loadFixture(deployDotifySystemFixture);
+    const factory = await hre.viem.getContractAt('ArtistRuntimeFactory', f.factory.address, { client: { wallet: f.artistA } });
+    await factory.write.createRuntime();
+    const runtime = await factory.read.pendingRuntimeOf([f.artistA.account.address]);
+    for (let step = 0; step < 3; step++) await factory.write.installRuntimeStep();
+    const ownership = await hre.viem.getContractAt('OwnershipPallet', runtime);
+    expect((await ownership.read.runtimeArtist()).toLowerCase()).to.equal(f.artistA.account.address.toLowerCase());
+    expect((await ownership.read.owner()).toLowerCase()).to.equal(f.factory.address.toLowerCase());
+    const registry = await hre.viem.getContractAt('MusicRegistryPallet', runtime, { client: { wallet: f.artistA } });
+    await expectRevertMessage(registry.write.musicRegRegister([sampleRegistration(), [f.artistA.account.address], [10000]]), 'bootstrap pending');
+    expect(await f.directory.read.runtimeOf([f.artistA.account.address])).to.equal(ZERO_ADDR);
+    for (let step = 0; step < 4; step++) await factory.write.installRuntimeStep();
+    expect((await ownership.read.owner()).toLowerCase()).to.equal(f.artistA.account.address.toLowerCase());
+    expect((await f.directory.read.runtimeOf([f.artistA.account.address])).toLowerCase()).to.equal(runtime.toLowerCase());
+    await registry.write.musicRegRegister([sampleRegistration(), [f.artistA.account.address], [10000]]);
+    expect(await registry.read.musicRegTrackCount()).to.equal(1n);
   });
 });

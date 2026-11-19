@@ -1,3 +1,4 @@
+import { runtimeArtistAbi } from '../generated/runtimeArtist.js';
 import { catalogContent } from './catalog/content.js';
 // On-chain access checks for content-key delivery.
 //
@@ -5,8 +6,9 @@ import { catalogContent } from './catalog/content.js';
 // allowlists. For every key request it:
 //   1. resolves one canonical catalog release from the confirmed read model;
 //   2. validates that release against ArtistDirectory.runtimeOf(artist);
-//   3. validates the current runtime track/audioRef/key version;
-//   4. calls musicAccCanAccess(contentHash, requester) on that target runtime.
+//   3. validates the stable runtime artist identity;
+//   4. validates the runtime track/audioRef/key version;
+//   5. calls musicAccCanAccess(contentHash, requester) on that target runtime.
 //
 // Full v3 release identity is required. Short-lived verdicts are bound to the
 // observed finalized/current block pair; ambiguous, stale or unreachable evidence gets no key.
@@ -149,7 +151,7 @@ export type TrackAccessResult =
 
 export type ArtistAuthorityResult =
   | { allowed: true; runtime: Address }
-  | { allowed: false; code: 'RPC_UNAVAILABLE' | 'ARTIST_RUNTIME_REQUIRED'; reason: string };
+  | { allowed: false; code: 'RPC_UNAVAILABLE' | 'ARTIST_RUNTIME_REQUIRED' | 'ARTIST_IDENTITY_MISMATCH'; reason: string };
 
 export type ChainAccessService = {
   checkArtistAuthority(requester: string): Promise<ArtistAuthorityResult>;
@@ -300,7 +302,7 @@ async function readReleaseVerdict(
   chainId: number
 ): Promise<TrackAccessResult> {
   try {
-    const [directoryRuntime, record, canAccess] = await Promise.all([
+    const [directoryRuntime, record, canAccess, runtimeArtist] = await Promise.all([
       client.readContract({
         address: directoryAddress,
         abi: artistDirectoryAbi,
@@ -324,10 +326,12 @@ async function readReleaseVerdict(
         args: [release.contentHash, requester],
         blockHash,
         requireCanonical: true
-      })
+      }),
+      client.readContract({ address: release.runtimeAddress, abi: runtimeArtistAbi, functionName: 'runtimeArtist', blockHash, requireCanonical: true })
     ]);
     if (!directoryRuntime || directoryRuntime.toLowerCase() === ZERO_ADDRESS || !sameAddress(directoryRuntime, release.runtimeAddress))
       return fail('RELEASE_IDENTITY_MISMATCH', 'ArtistDirectory no longer maps this artist to the requested runtime.');
+    if (!sameAddress(runtimeArtist, release.artistAddress)) return fail('RELEASE_IDENTITY_MISMATCH', 'The runtime artist does not match this release.');
     const [track] = record as [OnchainTrack, Address];
     if (
       !sameAddress(track.artist, release.artistAddress) ||
@@ -480,18 +484,42 @@ export function createChainAccessService(options: ChainAccessServiceOptions = {}
       }
 
       try {
-        const runtime = (await client.readContract({
-          address: directory,
-          abi: artistDirectoryAbi,
-          functionName: 'runtimeOf',
-          args: [requester as Address]
-        })) as Address;
-        if (!runtime || runtime.toLowerCase() === ZERO_ADDRESS) {
+        const blocks = await observedBlocks(client);
+        const artistAt = async (blockHash: `0x${string}`) => {
+          const runtime = await client.readContract({
+            address: directory,
+            abi: artistDirectoryAbi,
+            functionName: 'runtimeOf',
+            args: [requester as Address],
+            blockHash,
+            requireCanonical: true
+          });
+          if (!runtime || sameAddress(runtime, ZERO_ADDRESS)) return null;
+          const artist = await client.readContract({
+            address: runtime,
+            abi: runtimeArtistAbi,
+            functionName: 'runtimeArtist',
+            blockHash,
+            requireCanonical: true
+          });
+          return { runtime, artist };
+        };
+        const settled = artistAt(blocks.finalized.hash);
+        const current = blocks.finalized.hash.toLowerCase() === blocks.latest.hash.toLowerCase() ? settled : artistAt(blocks.latest.hash);
+        const [finalized, latest] = await Promise.all([settled, current]);
+        if (!finalized && !latest)
           return { allowed: false, code: 'ARTIST_RUNTIME_REQUIRED', reason: 'Create an artist runtime before uploading release assets.' };
-        }
-        return { allowed: true, runtime };
+        if (!finalized || !latest || !sameAddress(finalized.runtime, latest.runtime))
+          return { allowed: false, code: 'RPC_UNAVAILABLE', reason: 'Your artist profile is still being confirmed. Please wait and retry.' };
+        if (!sameAddress(finalized.artist, requester) || !sameAddress(latest.artist, requester))
+          return {
+            allowed: false,
+            code: 'ARTIST_IDENTITY_MISMATCH',
+            reason: 'This account does not match the runtime artist. Check your selected artist account.'
+          };
+        return { allowed: true, runtime: finalized.runtime };
       } catch {
-        return { allowed: false, code: 'RPC_UNAVAILABLE', reason: 'Artist verification is unavailable: chain RPC request failed.' };
+        return { allowed: false, code: 'RPC_UNAVAILABLE', reason: 'Artist verification is unavailable. Please try again.' };
       }
     },
 
@@ -511,7 +539,7 @@ export function createChainAccessService(options: ChainAccessServiceOptions = {}
 
 const defaultChainAccessService = createChainAccessService();
 
-/** Verify that the authenticated requester already owns a directory runtime. */
+/** Verify the bound artist in finalized/current state; upgrade ownership is a separate role. */
 export async function checkArtistAuthority(requester: string): Promise<ArtistAuthorityResult> {
   return defaultChainAccessService.checkArtistAuthority(requester);
 }

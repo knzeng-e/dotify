@@ -28,7 +28,7 @@ export type RegistryHotfixTransaction = {
 
 export type RegistryRuntimeSafetyInput = {
   registerFacetMatchesSource: boolean;
-  ownerMatchesDirectoryArtist: boolean;
+  artistMatchesDirectoryArtist: boolean;
   guardStatus: 'protected' | 'vulnerable' | 'inconclusive';
   foreignTrackCount: number;
   selectorRoutes: Array<{ facet: Address; codeHash: Hex | null }>;
@@ -102,7 +102,7 @@ export function registryUpgradePlanDigest<T extends { capturedBlockNumber: strin
 export function isRegistryRuntimeSafe(audit: RegistryRuntimeSafetyInput, expectedSelectorCount: number): boolean {
   return (
     audit.registerFacetMatchesSource &&
-    audit.ownerMatchesDirectoryArtist &&
+    audit.artistMatchesDirectoryArtist &&
     audit.guardStatus === 'protected' &&
     audit.foreignTrackCount === 0 &&
     audit.selectorRoutes.length === expectedSelectorCount &&

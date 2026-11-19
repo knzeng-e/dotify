@@ -49,7 +49,7 @@ async function fixture() {
     cuts.push({ facetAddress: facet.address, action: 0, functionSelectors });
   }
   expect(new Set(allSelectors).size).to.equal(allSelectors.length);
-  const runtime = await hre.viem.deployContract('SmartRuntime', [owner.account.address, cuts, zeroAddress, '0x']);
+  const runtime = await hre.viem.deployContract('SmartRuntime', [owner.account.address, owner.account.address, cuts, zeroAddress, '0x']);
   const registry = await hre.viem.getContractAt('MusicRegistryPallet', runtime.address, { client: { wallet: owner } });
   const royalties = await hre.viem.getContractAt('MusicRoyaltiesPallet', runtime.address, { client: { wallet: listener } });
   return { owner, listener, stranger, runtime, registry, royalties, client: await hre.viem.getPublicClient() };

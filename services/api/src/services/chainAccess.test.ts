@@ -136,6 +136,14 @@ class FakeClient {
     return { number: this.blockNumber, hash: this.blockHash };
   }
   readonly calls: Array<{ address: string; functionName: string; args: readonly unknown[] }> = [];
+  owners = new Map<string, string>([
+    [RUNTIME_A, ARTIST_A],
+    [RUNTIME_B, ARTIST_B]
+  ]);
+  runtimeArtists = new Map<string, string>([
+    [RUNTIME_A, ARTIST_A],
+    [RUNTIME_B, ARTIST_B]
+  ]);
   runtimeOf = new Map<string, string>([
     [ARTIST_A, RUNTIME_A],
     [ARTIST_B, RUNTIME_B]
@@ -158,6 +166,8 @@ class FakeClient {
     if (input.functionName === 'artistCount' || input.functionName === 'artistsPage' || input.functionName === 'musicRegIsRegistered') {
       throw new Error('global scan should not run for canonical release access');
     }
+    if (input.functionName === 'owner') return this.owners.get(input.address) ?? ZERO_ADDRESS;
+    if (input.functionName === 'runtimeArtist') return this.runtimeArtists.get(input.address) ?? ZERO_ADDRESS;
     if (input.functionName === 'runtimeOf') {
       return this.runtimeOf.get(String(input.args?.[0])) ?? ZERO_ADDRESS;
     }
@@ -398,19 +408,19 @@ describe('W34 block-bound verdicts', () => {
   it('reuses allow and deny only within 30 seconds at the same observed block', async () => {
     const f = fixture();
     assert.equal((await f.access.checkTrackAccess(f.input)).allowed, true);
-    assert.equal(f.client.calls.length, 3);
+    assert.equal(f.client.calls.length, 4);
     assert.equal((await f.access.checkTrackAccess(f.input)).allowed, true);
-    assert.equal(f.client.calls.length, 3);
+    assert.equal(f.client.calls.length, 4);
     f.client.access.clear();
     f.advance(30_000);
     assert.equal((await f.access.checkTrackAccess(f.input)).allowed, false);
-    assert.equal(f.client.calls.length, 6);
+    assert.equal(f.client.calls.length, 8);
     assert.equal((await f.access.checkTrackAccess(f.input)).allowed, false);
-    assert.equal(f.client.calls.length, 6);
+    assert.equal(f.client.calls.length, 8);
     f.client.blockNumber++;
     f.client.access.set(`${RUNTIME_A}:${HASH}:${REQUESTER}`.toLowerCase(), true);
     assert.equal((await f.access.checkTrackAccess(f.input)).allowed, true);
-    assert.equal(f.client.calls.length, 9);
+    assert.equal(f.client.calls.length, 12);
   });
   it('rechecks on same-height reorg and fails closed on a failed head despite a warm allow', async () => {
     const f = fixture();
@@ -453,7 +463,7 @@ describe('W34 block-bound verdicts', () => {
     };
     const pending = f.access.checkTrackAccess(f.input);
     await new Promise(resolve => setImmediate(resolve));
-    assert.deepEqual(started, [f.client.blockHash, f.client.blockHash, f.client.blockHash]);
+    assert.deepEqual(started, [f.client.blockHash, f.client.blockHash, f.client.blockHash, f.client.blockHash]);
     releaseReads();
     assert.equal((await pending).allowed, true);
     f.client.blockNumber++;
@@ -478,7 +488,7 @@ describe('W34 block-bound verdicts', () => {
   it('coalesced callers keep the same expiry and both deny if verification outlasts the window', async () => {
     const f = fixture();
     const results = await Promise.all([f.access.checkTrackAccess(f.input), f.access.checkTrackAccess(f.input)]);
-    assert.equal(f.client.calls.length, 3);
+    assert.equal(f.client.calls.length, 4);
     for (const result of results) {
       assert.equal(result.allowed, true);
       if (result.allowed) assert.equal(result.validUntil, 31_000);
@@ -597,13 +607,13 @@ describe('A09 finalized and current key authority', () => {
     assert.equal(pending.allowed, false);
     if (!pending.allowed) assert.equal(pending.code, 'ACCESS_PENDING_FINALITY');
     assert.deepEqual(f.tags, ['finalized', 'latest']);
-    assert.equal(f.reads.length, 6);
+    assert.equal(f.reads.length, 8);
     f.finalized.number = f.latest.number;
     f.finalized.hash = f.latest.hash;
     f.state.finalizedAccess = true;
     const allowed = await f.access.checkTrackAccess(f.input);
     assert.equal(allowed.allowed, true);
-    assert.equal(f.reads.length, 9); // One block needs only one three-read proof.
+    assert.equal(f.reads.length, 12); // One block needs only one four-read proof.
   });
   it('does not grant a reorganized-away unfinalized purchase', async () => {
     const f = finalityFixture();
@@ -619,13 +629,13 @@ describe('A09 finalized and current key authority', () => {
     const f = finalityFixture();
     assert.equal((await f.access.checkTrackAccess(f.input)).allowed, true);
     assert.equal((await f.access.checkTrackAccess(f.input)).allowed, true);
-    assert.equal(f.reads.length, 6);
+    assert.equal(f.reads.length, 8);
     f.latest.hash = `0x${'88'.repeat(32)}`;
     f.state.latestActive = false;
     const denied = await f.access.checkTrackAccess(f.input);
     assert.equal(denied.allowed, false);
     if (!denied.allowed) assert.equal(denied.code, 'RELEASE_INACTIVE');
-    assert.equal(f.reads.length, 12);
+    assert.equal(f.reads.length, 16);
   });
   it('a finalized-block change invalidates a warm verdict even when latest is unchanged', async () => {
     const f = finalityFixture();
@@ -634,7 +644,7 @@ describe('A09 finalized and current key authority', () => {
     f.finalized.hash = `0x${'99'.repeat(32)}`;
     f.state.finalizedAccess = false;
     assert.equal((await f.access.checkTrackAccess(f.input)).allowed, false);
-    assert.equal(f.reads.length, 12);
+    assert.equal(f.reads.length, 16);
   });
   it('unsupported finalized state denies even a warm allow and never substitutes another tag', async () => {
     const f = finalityFixture();
@@ -644,7 +654,7 @@ describe('A09 finalized and current key authority', () => {
     assert.equal(denied.allowed, false);
     if (!denied.allowed) assert.equal(denied.code, 'RPC_UNAVAILABLE');
     assert.deepEqual(f.tags, ['finalized', 'latest', 'finalized', 'latest']);
-    assert.equal(f.reads.length, 6);
+    assert.equal(f.reads.length, 8);
   });
   it('rejects missing or inconsistent block authority before any access reads', async () => {
     for (const invalid of [{ number: 103n }, { number: -1n }, { hash: '0x' }, { hash: null }, { number: 102n }, { hash: `0x${'66'.repeat(32)}` }]) {
@@ -665,7 +675,7 @@ describe('A09 finalized and current key authority', () => {
       if (!denied.allowed) assert.equal(denied.code, 'RPC_UNAVAILABLE');
       f.state.failRead = '';
       assert.equal((await f.access.checkTrackAccess(f.input)).allowed, true);
-      assert.equal(f.reads.length, 12);
+      assert.equal(f.reads.length, 16);
     }
   });
   it('waits for the catalogue source block to finalize without reading a not-yet-existing finalized track', async () => {
@@ -696,7 +706,7 @@ describe('A09 finalized and current key authority', () => {
       return original(input);
     };
     const results = await Promise.all([f.access.checkTrackAccess(f.input), f.access.checkTrackAccess(f.input)]);
-    assert.equal(f.reads.length, 6);
+    assert.equal(f.reads.length, 8);
     for (const result of results) {
       assert.equal(result.allowed, false);
       if (!result.allowed) assert.equal(result.code, 'RPC_UNAVAILABLE');
@@ -705,7 +715,7 @@ describe('A09 finalized and current key authority', () => {
   it('coalesces both-state proofs without extending expiry', async () => {
     const f = finalityFixture();
     const results = await Promise.all([f.access.checkTrackAccess(f.input), f.access.checkTrackAccess(f.input)]);
-    assert.equal(f.reads.length, 6);
+    assert.equal(f.reads.length, 8);
     for (const result of results) {
       assert.equal(result.allowed, true);
       if (result.allowed) assert.equal(result.validUntil, 31000);
@@ -722,6 +732,7 @@ it('real Viem transport uses finalized/latest tags and EIP-1898 canonical hashes
     'function musicRegGetTrack(bytes32) view returns ((address artist, uint256 tokenId, string title, string artistName, string description, string imageRef, string audioRef, string metadataRef, string artistContractRef, uint16 royaltyBps, uint8 accessMode, uint128 pricePlanck, uint8 requiredPersonhood, uint64 registeredAtBlock, bool active) track, address tokenOwner)'
   ]);
   const directory = parseAbi(['function runtimeOf(address) view returns (address)']);
+  const runtimeIdentity = parseAbi(['function runtimeArtist() view returns (address)']);
   const accessAbi = parseAbi(['function musicAccCanAccess(bytes32,address) view returns (bool)']);
   let finalHash: `0x${string}` = `0x${'77'.repeat(32)}`;
   let finalizedNumber = '0x64';
@@ -751,34 +762,36 @@ it('real Viem transport uses finalized/latest tags and EIP-1898 canonical hashes
       assert.ok([finalHash, latestHash].includes(block.blockHash));
       const selector = tx.data.slice(0, 10);
       result =
-        selector === toFunctionSelector(directory[0])
-          ? encodeFunctionResult({ abi: directory, functionName: 'runtimeOf', result: RUNTIME_A })
-          : selector === toFunctionSelector(accessAbi[0])
-            ? encodeFunctionResult({ abi: accessAbi, functionName: 'musicAccCanAccess', result: block.blockHash !== finalHash || settledAccess })
-            : encodeFunctionResult({
-                abi: registry,
-                functionName: 'musicRegGetTrack',
-                result: [
-                  {
-                    artist: ARTIST_A,
-                    tokenId: 1n,
-                    title: 'Track',
-                    artistName: 'Artist',
-                    description: '',
-                    imageRef: '',
-                    audioRef: candidate.audioRef,
-                    metadataRef: '',
-                    artistContractRef: '',
-                    royaltyBps: 10000,
-                    accessMode: 1,
-                    pricePlanck: 1n,
-                    requiredPersonhood: 0,
-                    registeredAtBlock: 10n,
-                    active: true
-                  },
-                  ARTIST_A
-                ]
-              });
+        selector === toFunctionSelector(runtimeIdentity[0])
+          ? encodeFunctionResult({ abi: runtimeIdentity, functionName: 'runtimeArtist', result: ARTIST_A })
+          : selector === toFunctionSelector(directory[0])
+            ? encodeFunctionResult({ abi: directory, functionName: 'runtimeOf', result: RUNTIME_A })
+            : selector === toFunctionSelector(accessAbi[0])
+              ? encodeFunctionResult({ abi: accessAbi, functionName: 'musicAccCanAccess', result: block.blockHash !== finalHash || settledAccess })
+              : encodeFunctionResult({
+                  abi: registry,
+                  functionName: 'musicRegGetTrack',
+                  result: [
+                    {
+                      artist: ARTIST_A,
+                      tokenId: 1n,
+                      title: 'Track',
+                      artistName: 'Artist',
+                      description: '',
+                      imageRef: '',
+                      audioRef: candidate.audioRef,
+                      metadataRef: '',
+                      artistContractRef: '',
+                      royaltyBps: 10000,
+                      accessMode: 1,
+                      pricePlanck: 1n,
+                      requiredPersonhood: 0,
+                      registeredAtBlock: 10n,
+                      active: true
+                    },
+                    ARTIST_A
+                  ]
+                });
     }
     res.end(JSON.stringify({ jsonrpc: '2.0', id: request.id, result }));
   });
@@ -798,22 +811,106 @@ it('real Viem transport uses finalized/latest tags and EIP-1898 canonical hashes
     const pending = await access.checkTrackAccess(input);
     assert.equal(pending.allowed, false);
     if (!pending.allowed) assert.equal(pending.code, 'ACCESS_PENDING_FINALITY');
-    assert.equal(calls, 6);
+    assert.equal(calls, 8);
     settledAccess = true;
     finalizedNumber = '0x65';
     finalHash = `0x${'99'.repeat(32)}`;
     assert.equal((await access.checkTrackAccess(input)).allowed, true);
-    assert.equal(calls, 12);
+    assert.equal(calls, 16);
     unsupported = true;
     const denied = await access.checkTrackAccess(input);
     assert.equal(denied.allowed, false);
     if (!denied.allowed) assert.equal(denied.code, 'RPC_UNAVAILABLE');
-    assert.equal(calls, 12);
-    assert.equal(tags.length, 6);
+    assert.equal(calls, 16);
+    // A failed finalized header can settle before its concurrent latest query.
     assert.equal(tags.filter(tag => tag === 'finalized').length, 3);
-    assert.equal(tags.filter(tag => tag === 'latest').length, 3);
+    assert.ok(tags.every(tag => tag === 'finalized' || tag === 'latest'));
+    assert.ok(tags.filter(tag => tag === 'latest').length >= 2);
   } finally {
     server.closeAllConnections();
     await new Promise<void>(resolve => server.close(() => resolve()));
   }
+});
+
+describe('A03 artist authority independent from administration', () => {
+  it('keeps A uploads and paid keys after B takes administration, without treating B as the artist', async () => {
+    const candidate = release(),
+      { access, client } = service([candidate]);
+    client.owners.set(RUNTIME_A, ARTIST_B);
+    client.runtimeOf.delete(ARTIST_B);
+    assert.deepEqual(await access.checkArtistAuthority(ARTIST_A), { allowed: true, runtime: RUNTIME_A });
+    const b = await access.checkArtistAuthority(ARTIST_B);
+    assert.equal(b.allowed, false);
+    if (!b.allowed) assert.equal(b.code, 'ARTIST_RUNTIME_REQUIRED');
+    assert.equal(
+      (await access.checkTrackAccess({ contentHash: HASH, requester: REQUESTER, purpose: 'individual', release: identity(candidate) })).allowed,
+      true
+    );
+    assert.equal(
+      client.calls.some(call => call.functionName === 'owner'),
+      false
+    );
+    assert.ok(client.calls.some(call => call.functionName === 'runtimeArtist'));
+  });
+  it('keeps B upload authority scoped to its own runtime when it also administers A', async () => {
+    const { access, client } = service([release(), release({ artistAddress: ARTIST_B, runtimeAddress: RUNTIME_B })]);
+    client.owners.set(RUNTIME_A, ARTIST_B);
+    assert.deepEqual(await access.checkArtistAuthority(ARTIST_A), { allowed: true, runtime: RUNTIME_A });
+    assert.deepEqual(await access.checkArtistAuthority(ARTIST_B), { allowed: true, runtime: RUNTIME_B });
+  });
+  it('rejects mismatched root identity for uploads and source keys instead of falling back to the owner', async () => {
+    const candidate = release(),
+      { access, client } = service([candidate]);
+    client.runtimeArtists.set(RUNTIME_A, ARTIST_B);
+    const upload = await access.checkArtistAuthority(ARTIST_A);
+    assert.equal(upload.allowed, false);
+    if (!upload.allowed) assert.equal(upload.code, 'ARTIST_IDENTITY_MISMATCH');
+    const key = await access.checkTrackAccess({ contentHash: HASH, requester: REQUESTER, purpose: 'individual', release: identity(candidate) });
+    assert.equal(key.allowed, false);
+    if (!key.allowed) assert.equal(key.code, 'RELEASE_IDENTITY_MISMATCH');
+    assert.equal(
+      client.calls.some(call => call.functionName === 'owner'),
+      false
+    );
+  });
+  it('fails closed on a missing identity interface and does not offer legacy owner-based authorization', async () => {
+    const candidate = release(),
+      { access, client } = service([candidate]);
+    const original = client.readContract.bind(client);
+    client.readContract = async input => {
+      if (input.functionName === 'runtimeArtist') throw new Error('selector unavailable');
+      return original(input);
+    };
+    const upload = await access.checkArtistAuthority(ARTIST_A);
+    assert.equal(upload.allowed, false);
+    if (!upload.allowed) assert.equal(upload.code, 'RPC_UNAVAILABLE');
+    const key = await access.checkTrackAccess({ contentHash: HASH, requester: REQUESTER, purpose: 'individual', release: identity(candidate) });
+    assert.equal(key.allowed, false);
+    if (!key.allowed) assert.equal(key.code, 'RPC_UNAVAILABLE');
+    assert.equal(
+      client.calls.some(call => call.functionName === 'owner'),
+      false
+    );
+  });
+  it('waits for a finalized artist profile before allocating upload capacity', async () => {
+    const candidate = release(),
+      client = new FakeClient([candidate]),
+      finalHash = `0x${'77'.repeat(32)}`;
+    const serviceClient = {
+      getBlock: async ({ blockTag }: { blockTag: string }) => ({
+        number: blockTag === 'finalized' ? 100n : 102n,
+        hash: blockTag === 'finalized' ? finalHash : client.blockHash
+      }),
+      readContract: async (input: { address: string; functionName: string; args?: readonly unknown[]; blockHash: string; requireCanonical: boolean }) => {
+        assert.equal(input.requireCanonical, true);
+        if (input.functionName === 'runtimeOf' && input.blockHash === finalHash) return ZERO_ADDRESS;
+        return client.readContract(input);
+      }
+    };
+    const access = createChainAccessService({ getClient: () => serviceClient as never, getDirectoryAddress: () => DIRECTORY, getChainId: () => CHAIN_ID });
+    const result = await access.checkArtistAuthority(ARTIST_A);
+    assert.equal(result.allowed, false);
+    if (!result.allowed) assert.equal(result.code, 'RPC_UNAVAILABLE');
+    assert.ok(client.calls.some(call => call.functionName === 'runtimeArtist'));
+  });
 });

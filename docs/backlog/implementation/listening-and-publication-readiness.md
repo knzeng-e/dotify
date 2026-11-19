@@ -1,5 +1,16 @@
 # Publication, listening reliability and CASH — execution order
 
+## Artist authority checkpoint, 2026-11-19
+
+#489 / A09 is merged into `dev` at `2af6d093`, with the reviewed tree. The owner
+confirmed that administration transfer must not transfer artist identity.
+[A03 / #490](../runtime-artist-authority.md) now separates those roles, preserves
+artist publication/profile authority and requires recipient acceptance for
+administration. [Its model](../../reference/runtime-artist-authority.md) adds a
+fresh-generation compatibility gate; no API/contract deployment or old-state
+migration is performed. A04/A06 and other audit corrections, native acceptance,
+SDK/Host and recovery/pilot gates remain before activation.
+
 ## Smart-runtime audit checkpoint, 2026-11-18
 
 The owner prioritized the payments and whole-contract audit before further CASH

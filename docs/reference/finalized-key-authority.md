@@ -32,11 +32,13 @@ For each distinct observed hash the API independently checks:
 1. `ArtistDirectory.runtimeOf(artist)` matches the requested runtime.
 2. `musicRegGetTrack(hash)` matches artist, source and key version and is active.
 3. `musicAccCanAccess(hash, requester)` permits the requested listening policy.
+4. The [A03 runtime artist](runtime-artist-authority.md) matches the release artist.
 
 All reads use EIP-1898 `{ blockHash, requireCanonical: true }`. Distinct states
-run concurrently: six contract reads plus two block observations on a cold
-request. If both block identities coincide, one three-read proof is reused.
-No Multicall deployment or new contract ABI is assumed. The existing queue cap,
+run concurrently: eight contract reads plus two block observations on a cold
+request. If both block identities coincide, one four-read proof is reused.
+No Multicall deployment is assumed. A03 adds the runtime-artist view with an ABI
+generated from compiled artifacts. The existing queue cap,
 request limits and in-process coalescing remain; this change does not establish
 hosted quota or first-sound latency acceptance.
 
