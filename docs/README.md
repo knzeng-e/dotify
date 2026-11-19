@@ -148,6 +148,8 @@ background audio or physical-device behavior.
 
 ## Direction and history
 
+The proposed [relational experiences](design/relational-experiences.md) unite Rooms, place-based Imprints and artist-authored Resonance Gardens. The [community-gated roadmap](backlog/relational-experience-roadmap.md) describes exploratory steps and their technical/human checkpoints **without replacing the selected production-readiness sequence** or GitHub Project 5 statuses.
+
 The [implementation plan](backlog/implementation/README.md) defines scope and
 sequence; [Project 5](https://github.com/users/knzeng-e/projects/5) owns live
 workflow status. [Product memory](context/dotify-product-memory.md),

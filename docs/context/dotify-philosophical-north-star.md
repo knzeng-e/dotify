@@ -75,6 +75,12 @@ A Dotify room is a temporary village square:
 
 The room UX must be simple, warm, and low-friction.
 
+## One relational continuum, three expressions
+
+Rooms create encounters in the present. Proposed **Imprints** could let people leave or discover consented music, poetry and memory across places and time. Longer-range **Resonance Gardens** could let artists define how an artwork evolves through voluntary community encounters. Every place and solitary listen must remain artistically complete; further relations add richness, not mandatory access barriers.
+
+This is a vision, not a delivered feature set or a replacement for today's listening and artist-readiness priorities. See the [relational experience model](../design/relational-experiences.md) and its [community-gated roadmap](../backlog/relational-experience-roadmap.md).
+
 ## Ambassadors
 
 The ambassador model should not become spam referral mechanics.
