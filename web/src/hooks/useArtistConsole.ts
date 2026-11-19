@@ -93,10 +93,6 @@ const runtimeBootstrapSteps = [
     detail: 'Prepare a public record for your tracks, artwork, stories, and listening choices.'
   },
   {
-    label: 'Attach ownership to music',
-    detail: 'Let each track carry an ownership record that can move with the work.'
-  },
-  {
     label: 'Define how value flows',
     detail: 'Prepare paid access and royalty splits so support reaches the right people.'
   },

@@ -9,7 +9,12 @@ import type { BackendUploadIdentity, ProtectedAudioUpload } from '../services/pi
 const runtime = vi.hoisted(() => ({
   getNativeTokenDecimals: vi.fn(async () => 10),
   ensureContract: vi.fn(async () => true),
-  resolveArtistRuntime: vi.fn(async () => '0x0000000000000000000000000000000000000002'),
+  resolveArtistRuntime: vi.fn(async (): Promise<string | null> => '0x0000000000000000000000000000000000000002'),
+  pendingRuntimeOf: vi.fn(),
+  pendingRuntimeStageOf: vi.fn(),
+  createRuntime: vi.fn(),
+  installRuntimeStep: vi.fn(),
+  waitForTransaction: vi.fn(async () => {}),
   registerTrack: vi.fn()
 }));
 vi.mock('../features/runtime/runtimeReaderProvider', () => ({ createRuntimeReader: () => runtime }));
@@ -65,6 +70,74 @@ function publicationDeps(overrides: Partial<UseArtistConsoleDeps> = {}): UseArti
 }
 
 describe('publication preparation ownership', () => {
+  it.each([0, 4, 6])('describes the actual seven-approval bootstrap when starting at stage %i', async initialStage => {
+    const address = '0x0000000000000000000000000000000000000002';
+    const labels = [
+      'Claim your artist space',
+      'Make the space findable',
+      'Keep creative control',
+      'Open your music record',
+      'Define how value flows',
+      'Choose listening conditions',
+      'Own the artist space'
+    ];
+    let stage = initialStage;
+    let created = initialStage > 0;
+    let complete = false;
+    const feedback: TransactionFeedback[] = [];
+    const signedStages: number[] = [];
+    const hashFor = (index: number) => `0x${(index + 1).toString(16).padStart(64, '0')}` as const;
+    const deps = publicationDeps({
+      factoryAddress: '0x0000000000000000000000000000000000000003',
+      directoryAddress: '0x0000000000000000000000000000000000000004',
+      setTransactionFeedback: value => {
+        const next = typeof value === 'function' ? value(feedback[feedback.length - 1] ?? null) : value;
+        if (next) feedback.push(next);
+      }
+    });
+    runtime.resolveArtistRuntime.mockImplementation(async () => (complete ? address : null));
+    runtime.pendingRuntimeOf.mockImplementation(async () => (created && !complete ? address : null));
+    runtime.pendingRuntimeStageOf.mockImplementation(async () => stage);
+    runtime.createRuntime.mockImplementation(async () => {
+      created = true;
+      stage = 1;
+      return hashFor(0);
+    });
+    runtime.installRuntimeStep.mockImplementation(async () => {
+      const prompt = feedback[feedback.length - 1]!;
+      expect(prompt.message).toBe(`Approval ${stage + 1}/7: ${prompt.steps![stage].detail}`);
+      expect(prompt.steps!.map(step => step.label)).toEqual(labels);
+      expect(prompt.steps![stage].status).toBe('active');
+      expect(prompt.steps![stage].label).toBe(labels[stage]);
+      signedStages.push(stage);
+      const hash = hashFor(stage);
+      complete = stage === 6;
+      stage += 1;
+      return hash;
+    });
+    const captured: { current: ReturnType<typeof useArtistConsole> | null } = { current: null };
+    function Harness() {
+      captured.current = useArtistConsole(deps);
+      return null;
+    }
+    try {
+      renderToStaticMarkup(<Harness />);
+      await captured.current!.registerArtist();
+      expect(feedback[feedback.length - 1]?.title).toBe('Artist registered');
+      expect(signedStages).toEqual(Array.from({ length: 7 - Math.max(1, initialStage) }, (_, index) => Math.max(1, initialStage) + index));
+      expect(runtime.createRuntime).toHaveBeenCalledTimes(initialStage === 0 ? 1 : 0);
+      expect(runtime.waitForTransaction).toHaveBeenCalledTimes(signedStages.length + (initialStage === 0 ? 1 : 0));
+      const steps = feedback[feedback.length - 1]!.steps!;
+      expect(steps).toHaveLength(7);
+      expect(steps.every(step => step.status === 'complete')).toBe(true);
+      for (const signed of signedStages) expect(steps[signed].txHash).toBe(hashFor(signed));
+      if (initialStage === 0) expect(feedback[0].message).toContain('7 clear approvals');
+      else expect(feedback[0].steps![initialStage].label).toBe(labels[initialStage]);
+      expect(JSON.stringify(feedback)).not.toMatch(/Attach ownership to music|ownership record that can move/);
+    } finally {
+      runtime.resolveArtistRuntime.mockResolvedValue(address);
+    }
+  });
   it.each(['0.00000000011', '0.0000000000000000001'])('rejects an inexact Classic price before preparing assets or asking for approval: %s', async priceDot => {
     const deps = publicationDeps({
       factoryAddress: '0x0000000000000000000000000000000000000003',
