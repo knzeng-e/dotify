@@ -1,5 +1,16 @@
 # Publication, listening reliability and CASH — execution order
 
+## Supported personhood checkpoint, 2026-11-19
+
+#494 / A07 and NFT removal is merged into `dev` at `9767cbb6`. The next bounded
+source correction is [A06 / #495](../personhood-status-policy.md): refuse unknown
+or malformed evidence without letting typed diagnostics revert. Its
+[reader policy](../../reference/personhood-status-policy.md) preserves supported
+tiers and independent Free/Classic/artist access. A08 pagination and A05's
+product decision remain next, before the selected matched fresh generation and
+native/physical acceptance. This does not activate W17 or deploy/reset state.
+Earlier checkpoints below retain their original scope.
+
 ## Exact-price and NFT-free checkpoint, 2026-11-19
 
 #492 / A03 is merged into `dev` at `ba2b8f92`. The owner selected

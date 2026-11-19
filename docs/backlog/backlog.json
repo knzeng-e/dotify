@@ -25,6 +25,16 @@
   },
   "items": [
     {
+      "id": "personhood-status-policy",
+      "doc": "docs/backlog/personhood-status-policy.md",
+      "issue": 495,
+      "kind": "work",
+      "priority": "P3",
+      "track": "Production spine",
+      "phase": "Now",
+      "note": "A06 bounded audit correction: supported personhood status, typed diagnostics and HumanFree access agree; malformed or unknown evidence denies without decoding/enum panic. No W17 activation or deployment."
+    },
+    {
       "id": "native-price-without-nft",
       "doc": "docs/backlog/native-price-without-nft.md",
       "issue": 493,

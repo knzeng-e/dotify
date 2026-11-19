@@ -46,7 +46,7 @@ library LibMusicAccess {
   /// @notice True when `account` meets `required` personhood, per the Individuality
   ///         precompile. The storage argument is unused and kept only so existing
   ///         call sites and the pallet ABI stay unchanged.
-  /// @dev Fails closed when the precompile cannot answer. See LibPersonhood.hasStatus.
+  /// @dev Fails closed on unavailable, malformed or unsupported evidence. See LibPersonhood.hasStatus.
   function hasRequiredPersonhood(Storage storage, address account, LibMusicRegistry.PersonhoodLevel required) internal view returns (bool) {
     return LibPersonhood.hasStatus(account, uint8(required));
   }

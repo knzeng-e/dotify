@@ -250,7 +250,7 @@ listener == original artist                    → true
 accessMode == classic
   AND paidAccess[contentHash][listener] == true → true
 accessMode == human-free
-  AND Individuality level >= requiredPersonhood → true
+  AND supported Individuality level >= requiredPersonhood → true
 accessMode == free                             → true
 otherwise                                     → false
 ```
@@ -265,6 +265,17 @@ function musicAccHasPaid(bytes32 contentHash, address listener)
 ```
 
 Returns whether the listener has paid for Classic-mode access. Does not evaluate personhood.
+
+---
+
+### Personhood diagnostics and predicates
+
+`musicAccPersonhoodInfo(address)` returns `(uint8 status, bytes32 contextAlias,
+bool live)`; `musicAccPersonhoodLevel(address)` returns the supported typed level.
+`musicAccHasPersonhood(address, PersonhoodLevel)` checks a supported requirement.
+The [reader policy](personhood-status-policy.md) defines the response table and
+failure cases. A nonzero raw diagnostic status alone never grants access;
+unsupported or malformed responses produce a typed None without enum panic.
 
 ---
 

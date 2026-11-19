@@ -10,9 +10,10 @@ import { LibMusicAccess } from '../libraries/LibMusicAccess.sol';
 ///
 ///         Access logic:
 ///           1. Inactive track            → denied
-///           2. Caller is artist or owner → granted (always)
+///           2. Listener is original artist → granted
 ///           3. HumanFree track           → granted if caller meets personhood level
 ///           4. Classic track             → granted if caller has paid
+///           5. Free track                → granted
 ///
 ///         Personhood (DIM1, DIM2) is read from the Individuality precompile at
 ///         0x000000000000000000000000000000000A010000, in Dotify's own application
@@ -96,18 +97,21 @@ contract MusicAccessPallet {
 
   /// @notice Returns the verified personhood level for `account`, read from the
   ///         Individuality precompile in Dotify's application context.
-  /// @dev Returns None when the precompile is unavailable, matching the access
-  ///      decision. Use `musicAccPersonhoodInfo` to tell those two cases apart.
+  /// @dev Returns None for unavailable, malformed or unsupported evidence.
+  ///      The raw getter distinguishes a supported None from unusable evidence.
   function musicAccPersonhoodLevel(address account) external view returns (LibMusicRegistry.PersonhoodLevel) {
     (uint8 status, , bool live) = LibMusicAccess.personhoodOf(account);
     if (!live) return LibMusicRegistry.PersonhoodLevel.None;
-    return LibMusicRegistry.PersonhoodLevel(status);
+    if (status == 1) return LibMusicRegistry.PersonhoodLevel.DIM1;
+    if (status == 2) return LibMusicRegistry.PersonhoodLevel.DIM2;
+    return LibMusicRegistry.PersonhoodLevel.None;
   }
 
   /// @notice Full personhood reading for `account`: tier, Dotify-context pseudonym, and
-  ///         whether the precompile answered at all.
-  /// @dev `live == false` means this chain cannot answer, which is a deployment
-  ///      diagnosis, not a statement about the listener. `contextAlias` is the same
+  ///         whether the response is supported and usable by this implementation.
+  /// @dev `live == false` means unavailable/malformed evidence or an unsupported
+  ///      uint8 tier (retained in status). Its alias is zero; this is not a claim
+  ///      that the listener has no identity. `contextAlias` is the same
   ///      person under a different pseudonym in every other application, so it can
   ///      identify a returning listener without revealing who they are elsewhere.
   function musicAccPersonhoodInfo(address account) external view returns (uint8 status, bytes32 contextAlias, bool live) {
