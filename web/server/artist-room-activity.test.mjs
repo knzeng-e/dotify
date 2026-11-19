@@ -18,7 +18,7 @@ const config = { chainId: 42, directory: other, api: 'https://api.example/api' }
 const deps = {
   client: {
     getChainId: async () => 42,
-    readContract: async ({ functionName }) => (functionName === 'runtimeOf' ? runtime : [canonical])
+    readContract: async ({ functionName }) => (functionName === 'runtimeOf' ? runtime : canonical)
   },
   fetch: async (_url, options) => ({
     ok: options.headers.Authorization === 'Bearer valid',
@@ -38,7 +38,7 @@ test('only the verified runtime owner sees private aggregates, with public invit
         client: {
           ...deps.client,
           readContract: async input =>
-            input.functionName === 'musicRegGetTrack' && input.args[0] !== hash ? [{ ...canonical, active: false }] : deps.client.readContract(input)
+            input.functionName === 'musicRegGetTrack' && input.args[0] !== hash ? { ...canonical, active: false } : deps.client.readContract(input)
         }
       }
     }
