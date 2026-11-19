@@ -126,7 +126,7 @@ not custody or hosting; physical Product first-sound measurements remain open.
 The factory creates a SmartRuntime for an artist and the directory indexes the
 finalized association. Runtime music pallets are implemented through a Diamond
 proxy: each runtime has isolated storage while code can be shared. Runtime
-ownership, track NFT ownership, authorship and royalty recipients are separate
+administration, authorship and royalty recipients are separate
 facts. Use the [contract documentation](../../contracts/README.md) and generated
 bindings for current interfaces.
 

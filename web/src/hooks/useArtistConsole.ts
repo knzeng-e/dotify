@@ -1,3 +1,4 @@
+import { assertClassicPrice } from '../features/runtime/nativePrice';
 import { nativeRoyaltyApiUrl } from '../features/runtime/nativePaymentHistory';
 import { audioReferenceForMetadata } from '../shared/utils/protectedAudio';
 import { preparePublicationAssets } from '../features/uploads/preparePublicationAssets';
@@ -90,10 +91,6 @@ const runtimeBootstrapSteps = [
   {
     label: 'Open your music record',
     detail: 'Prepare a public record for your tracks, artwork, stories, and listening choices.'
-  },
-  {
-    label: 'Attach ownership to music',
-    detail: 'Let each track carry an ownership record that can move with the work.'
   },
   {
     label: 'Define how value flows',
@@ -950,6 +947,13 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
         runtimeAddress = resolvedRuntime;
       }
 
+      if (!isArtistPublishE2e && runtimeAddress) {
+        assertClassicPrice(
+          encodeAccessMode(accessMode),
+          dotToPlanck(priceDotForAccessMode(accessMode, priceDot)),
+          await runtimeReader.getNativeTokenDecimals(runtimeAddress)
+        );
+      }
       setRightsStatus('Preparing your music…');
       publicationStage = 'assets';
       setPublicationFeedback({

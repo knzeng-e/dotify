@@ -84,7 +84,7 @@ Once a listener has paid for a track, their wallet is recorded on-chain as a
 Classic paid-access account. That record has no fixed expiry in the current
 runtime. It is not, however, a perpetual media availability guarantee:
 
-- inactive releases do not open, even for the original artist, NFT owner, or a
+- inactive releases do not open, even for the original artist or a
   previously paid wallet;
 - if the artist changes the release away from Classic, the paid record remains
   visible but playback follows the current policy;
@@ -125,8 +125,6 @@ inactive, access is denied for everyone. For an active track, the call returns
 ```txt
 listenerAddress == original artist
 OR
-listenerAddress == current track NFT owner
-OR
 accessMode == Free
 OR
 accessMode == Classic AND paidAccess[contentHash][listenerAddress] == true
@@ -149,10 +147,6 @@ Dotify keeps several facts separate:
 - **Runtime owner**: the account returned by `owner()` on the SmartRuntime. This
   owner controls pallet upgrades through `diamondCut`, but ownership transfer
   does not rewrite `ArtistDirectory.runtimeOf(originalArtist)`.
-- **Track NFT owner**: the holder of the minted track NFT. The current NFT owner
-  has playback access while the release is active, but NFT transfer does not by
-  itself change the original artist field, runtime ownership, or stored royalty
-  beneficiaries.
 - **Royalty beneficiaries**: the recipients and basis-point shares stored when
   the release is registered. Classic payments use those stored splits; a payment
   receipt is evidence of settlement, not a guarantee that the media stays

@@ -34,7 +34,7 @@ function release(overrides: Partial<CatalogRelease> = {}): CatalogRelease {
     hash,
     runtimeAddress,
     artistAddress,
-    tokenId: '1',
+
     title: 'Canonical track',
     artist: 'Dotify Artist',
     description: 'Description',
@@ -174,26 +174,23 @@ class FakeClient {
     if (input.functionName === 'musicRegGetTrack') {
       const record = this.releases.get(`${input.address}:${String(input.args?.[0])}`.toLowerCase());
       if (!record) throw new Error('track not found');
-      return [
-        {
-          artist: record.artist,
-          tokenId: 1n,
-          title: 'Canonical track',
-          artistName: 'Dotify Artist',
-          description: 'Description',
-          imageRef: 'ipfs://cover',
-          audioRef: record.audioRef,
-          metadataRef: 'ipfs://metadata',
-          artistContractRef: 'ipfs://contract',
-          royaltyBps: 10_000,
-          accessMode: 1,
-          pricePlanck: 1n,
-          requiredPersonhood: 0,
-          registeredAtBlock: 10n,
-          active: record.active
-        },
-        record.artist
-      ];
+      return {
+        artist: record.artist,
+
+        title: 'Canonical track',
+        artistName: 'Dotify Artist',
+        description: 'Description',
+        imageRef: 'ipfs://cover',
+        audioRef: record.audioRef,
+        metadataRef: 'ipfs://metadata',
+        artistContractRef: 'ipfs://contract',
+        royaltyBps: 10_000,
+        accessMode: 1,
+        pricePlanck: 1n,
+        requiredPersonhood: 0,
+        registeredAtBlock: 10n,
+        active: record.active
+      };
     }
     if (input.functionName === 'musicAccCanAccess') {
       const key = `${input.address}:${String(input.args?.[0])}:${String(input.args?.[1])}`.toLowerCase();
@@ -586,7 +583,7 @@ describe('A09 finalized and current key authority', () => {
         const atFinalized = input.blockHash === finalized.hash;
         if (input.functionName === 'musicAccCanAccess') return atFinalized ? state.finalizedAccess : state.latestAccess;
         const result = await original.readContract(input);
-        if (input.functionName === 'musicRegGetTrack') (result as [{ active: boolean }])[0].active = atFinalized ? state.finalizedActive : state.latestActive;
+        if (input.functionName === 'musicRegGetTrack') (result as { active: boolean }).active = atFinalized ? state.finalizedActive : state.latestActive;
         return result;
       }
     };
@@ -600,7 +597,7 @@ describe('A09 finalized and current key authority', () => {
     const input = { contentHash: HASH, requester: REQUESTER, purpose: 'individual' as const, release: identity(candidate) };
     return { candidate, finalized, latest, state, tags, reads, access, input, client };
   }
-  it('never grants a latest-only purchase or NFT entitlement; finalization unlocks the same request', async () => {
+  it('never grants a latest-only purchase entitlement; finalization unlocks the same request', async () => {
     const f = finalityFixture();
     f.state.finalizedAccess = false;
     const pending = await f.access.checkTrackAccess(f.input);
@@ -729,7 +726,7 @@ describe('A09 finalized and current key authority', () => {
 it('real Viem transport uses finalized/latest tags and EIP-1898 canonical hashes, with no fallback for unsupported finality', async () => {
   const candidate = release();
   const registry = parseAbi([
-    'function musicRegGetTrack(bytes32) view returns ((address artist, uint256 tokenId, string title, string artistName, string description, string imageRef, string audioRef, string metadataRef, string artistContractRef, uint16 royaltyBps, uint8 accessMode, uint128 pricePlanck, uint8 requiredPersonhood, uint64 registeredAtBlock, bool active) track, address tokenOwner)'
+    'function musicRegGetTrack(bytes32) view returns ((address artist, string title, string artistName, string description, string imageRef, string audioRef, string metadataRef, string artistContractRef, uint16 royaltyBps, uint8 accessMode, uint128 pricePlanck, uint8 requiredPersonhood, uint64 registeredAtBlock, bool active) track)'
   ]);
   const directory = parseAbi(['function runtimeOf(address) view returns (address)']);
   const runtimeIdentity = parseAbi(['function runtimeArtist() view returns (address)']);
@@ -771,26 +768,23 @@ it('real Viem transport uses finalized/latest tags and EIP-1898 canonical hashes
               : encodeFunctionResult({
                   abi: registry,
                   functionName: 'musicRegGetTrack',
-                  result: [
-                    {
-                      artist: ARTIST_A,
-                      tokenId: 1n,
-                      title: 'Track',
-                      artistName: 'Artist',
-                      description: '',
-                      imageRef: '',
-                      audioRef: candidate.audioRef,
-                      metadataRef: '',
-                      artistContractRef: '',
-                      royaltyBps: 10000,
-                      accessMode: 1,
-                      pricePlanck: 1n,
-                      requiredPersonhood: 0,
-                      registeredAtBlock: 10n,
-                      active: true
-                    },
-                    ARTIST_A
-                  ]
+                  result: {
+                    artist: ARTIST_A,
+
+                    title: 'Track',
+                    artistName: 'Artist',
+                    description: '',
+                    imageRef: '',
+                    audioRef: candidate.audioRef,
+                    metadataRef: '',
+                    artistContractRef: '',
+                    royaltyBps: 10000,
+                    accessMode: 1,
+                    pricePlanck: 1n,
+                    requiredPersonhood: 0,
+                    registeredAtBlock: 10n,
+                    active: true
+                  }
                 });
     }
     res.end(JSON.stringify({ jsonrpc: '2.0', id: request.id, result }));

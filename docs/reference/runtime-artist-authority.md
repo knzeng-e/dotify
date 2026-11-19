@@ -13,7 +13,6 @@ or migration of previously deployed artists/releases/references.
 | Bound artist, `runtimeArtist()` | Registration, uploads, profile gift policy and remainder | Stays with the original artist |
 | Recorded track artist | Metadata, deactivation/reactivation, access policy and work gift policy | Does not rewrite historic authorship or controls |
 | Technical administrator, `owner()` | Diamond upgrades and administration offers | Moves only after recipient acceptance |
-| NFT holder | Existing NFT ownership and its access policy | Does not move or acquire artist policy rights |
 | Royalty/gift/claim recipient | Existing split, quote and claim rules | Does not redirect or erase these balances |
 | Pending administrator, `pendingOwner()` | Acceptance of the current offer only | Has no current upgrade or artist authority |
 
@@ -27,13 +26,12 @@ not silently rotate identity or rewrite previous works.
 
 ## Creation and storage
 
-`SmartRuntime(owner, artist, initialCuts, init, initCalldata)` now binds a nonzero
+`SmartRuntime(owner, artist, nativeTokenDecimals, initialCuts, init, initCalldata)` now binds a nonzero
 artist independently of the initial administrator. `LibRuntimeArtist` owns the
 namespaced `keccak256("dotify.runtime.artist.storage")` slot, containing artist
 and publication readiness. No normal facet changes the artist after creation.
 `LibDiamond.DiamondStorage` appends a pending-owner field; existing routing,
-interface and owner fields retain their order. The namespaced registry, NFT,
-access, royalties and contribution storage layouts are unchanged.
+interface and owner fields retain their order. A03 preserved the registry layout. The later [NFT removal](native-price-without-nft.md) changes that layout and its read ABI for the fresh generation; access, royalties and contribution authority remain separate.
 
 For factory creation the initial administrator is the factory and the bound
 artist is its caller. During staged installation, artist publication and profile
@@ -45,7 +43,7 @@ Re-running that finalizer after completion reverts. Direct artist-owned
 construction completes readiness before constructor return, for local fixtures
 and explicit deployments; a factory-owned staged shell does not.
 
-This preserves the existing seven-step factory installation journey. The
+This preserves the six-call factory installation journey after NFT removal. The
 factory installs all six ownership selectors, including the artist view and
 the pending/accept/cancel functions. The constructor ABI and creation bytecode
 change: deploy a matched fresh factory/runtime/initializer generation.

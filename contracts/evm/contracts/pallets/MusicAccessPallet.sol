@@ -4,7 +4,6 @@ pragma solidity ^0.8.28;
 import { LibDiamond } from '../libraries/LibDiamond.sol';
 import { LibMusicRegistry } from '../libraries/LibMusicRegistry.sol';
 import { LibMusicAccess } from '../libraries/LibMusicAccess.sol';
-import { LibMusicNFT } from '../libraries/LibMusicNFT.sol';
 
 /// @title MusicAccessPallet
 /// @notice Smart Pallet for access control queries and proof-of-personhood management.
@@ -27,7 +26,7 @@ import { LibMusicNFT } from '../libraries/LibMusicNFT.sol';
 ///         application. Registrar entry points remain declared for ABI stability;
 ///         the setter reverts.
 ///
-///         Storage: LibMusicAccess (owns), LibMusicRegistry (reads), LibMusicNFT (reads)
+///         Storage: LibMusicAccess (owns), LibMusicRegistry (reads)
 ///         Prefix:  musicAcc — avoids selector collisions with other pallets
 contract MusicAccessPallet {
   // -------------------------------------------------------------------------
@@ -76,9 +75,8 @@ contract MusicAccessPallet {
 
     if (!track.active) return false;
 
-    // Artist and current NFT owner always have access.
+    // The recorded artist retains access; listeners follow the release policy.
     if (listener == track.artist) return true;
-    if (LibMusicNFT.store().ownerOf[track.tokenId] == listener) return true;
 
     // Free: everyone may listen; the policy is the whole gate.
     if (track.accessMode == LibMusicRegistry.AccessMode.Free) return true;

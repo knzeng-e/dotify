@@ -125,7 +125,7 @@ export type CatalogTrack = {
 
 export type OnchainTrackRecord = {
   artist: `0x${string}`;
-  tokenId: bigint;
+
   title: string;
   artistName: string;
   description: string;

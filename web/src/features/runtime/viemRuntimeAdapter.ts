@@ -1,3 +1,4 @@
+import { assertClassicPrice } from './nativePrice';
 import { createPublicClient, encodeFunctionData, http, parseAbiItem, zeroAddress, type Abi, type Address, type Hash } from 'viem';
 import { SupportNotSubmittedError } from '../payments/supportPayment';
 import { mergeRoyaltyEvents, readNativeRoyaltyEvents, royaltyPaymentsFromEvents, type RoyaltyEvent } from './royaltyHistory';
@@ -262,6 +263,9 @@ export function createViemRuntimeReader(deps: ViemRuntimeReaderDeps): RuntimeRea
   const client = () => resolvePublicClient(deps);
 
   return {
+    async getNativeTokenDecimals(runtimeAddress) {
+      return Number(await client().readContract({ address: runtimeAddress, abi: musicRegistryAbi, functionName: 'musicRegNativeDecimals' }));
+    },
     ensureContract(address) {
       return client()
         .getCode({ address })
@@ -333,12 +337,12 @@ export function createViemRuntimeReader(deps: ViemRuntimeReaderDeps): RuntimeRea
       }
       return Promise.all(
         hashes.map(async (hash): Promise<RuntimeTrackSnapshot> => {
-          const [record] = (await client().readContract({
+          const record = (await client().readContract({
             address: runtimeAddress,
             abi: musicRegistryAbi,
             functionName: 'musicRegGetTrack',
             args: [hash]
-          })) as [OnchainTrackRecord, Address];
+          })) as OnchainTrackRecord;
 
           const splitCount = (await client()
             .readContract({
@@ -513,6 +517,8 @@ export function createViemRuntimeWriter(deps: ViemRuntimeWriterDeps): RuntimeWri
     },
 
     async registerTrack(runtimeAddress, registration) {
+      const decimals = Number(await client().readContract({ address: runtimeAddress, abi: musicRegistryAbi, functionName: 'musicRegNativeDecimals' }));
+      assertClassicPrice(registration.accessMode, registration.pricePlanck, decimals);
       const args = registerTrackArgs(registration);
       const overrides = await prepareRegisterTrackOverrides(client(), walletClient, runtimeAddress, args);
       return walletClient.writeContract({
@@ -533,8 +539,14 @@ export function createViemRuntimeWriter(deps: ViemRuntimeWriterDeps): RuntimeWri
       });
     },
 
-    payForAccess(intent) {
+    async payForAccess(intent) {
       assertNativeAccessPayment(intent);
+      try {
+        const decimals = Number(await client().readContract({ address: intent.runtimeAddress, abi: musicRegistryAbi, functionName: 'musicRegNativeDecimals' }));
+        assertClassicPrice(1, intent.amountPlanck, decimals);
+      } catch (error) {
+        throw new SupportNotSubmittedError(error);
+      }
       return walletClient.writeContract({
         address: intent.runtimeAddress,
         abi: musicRoyaltiesAbi,
@@ -553,7 +565,9 @@ export function createViemRuntimeWriter(deps: ViemRuntimeWriterDeps): RuntimeWri
       });
     },
 
-    setAccessMode(runtimeAddress, update: RuntimeAccessPolicyUpdate) {
+    async setAccessMode(runtimeAddress, update: RuntimeAccessPolicyUpdate) {
+      const decimals = Number(await client().readContract({ address: runtimeAddress, abi: musicRegistryAbi, functionName: 'musicRegNativeDecimals' }));
+      assertClassicPrice(update.accessMode, update.pricePlanck, decimals);
       return walletClient.writeContract({
         address: runtimeAddress,
         abi: musicRegistryAbi,

@@ -88,12 +88,6 @@ export const musicRegistryAbi = [
       },
       {
         "indexed": true,
-        "internalType": "uint256",
-        "name": "tokenId",
-        "type": "uint256"
-      },
-      {
-        "indexed": true,
         "internalType": "address",
         "name": "artist",
         "type": "address"
@@ -157,11 +151,6 @@ export const musicRegistryAbi = [
             "type": "address"
           },
           {
-            "internalType": "uint256",
-            "name": "tokenId",
-            "type": "uint256"
-          },
-          {
             "internalType": "string",
             "name": "title",
             "type": "string"
@@ -230,112 +219,6 @@ export const musicRegistryAbi = [
         "internalType": "struct LibMusicRegistry.TrackRecord",
         "name": "track",
         "type": "tuple"
-      },
-      {
-        "internalType": "address",
-        "name": "tokenOwner",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "tokenId",
-        "type": "uint256"
-      }
-    ],
-    "name": "musicRegGetTrackByTokenId",
-    "outputs": [
-      {
-        "components": [
-          {
-            "internalType": "address",
-            "name": "artist",
-            "type": "address"
-          },
-          {
-            "internalType": "uint256",
-            "name": "tokenId",
-            "type": "uint256"
-          },
-          {
-            "internalType": "string",
-            "name": "title",
-            "type": "string"
-          },
-          {
-            "internalType": "string",
-            "name": "artistName",
-            "type": "string"
-          },
-          {
-            "internalType": "string",
-            "name": "description",
-            "type": "string"
-          },
-          {
-            "internalType": "string",
-            "name": "imageRef",
-            "type": "string"
-          },
-          {
-            "internalType": "string",
-            "name": "audioRef",
-            "type": "string"
-          },
-          {
-            "internalType": "string",
-            "name": "metadataRef",
-            "type": "string"
-          },
-          {
-            "internalType": "string",
-            "name": "artistContractRef",
-            "type": "string"
-          },
-          {
-            "internalType": "uint16",
-            "name": "royaltyBps",
-            "type": "uint16"
-          },
-          {
-            "internalType": "enum LibMusicRegistry.AccessMode",
-            "name": "accessMode",
-            "type": "uint8"
-          },
-          {
-            "internalType": "uint128",
-            "name": "pricePlanck",
-            "type": "uint128"
-          },
-          {
-            "internalType": "enum LibMusicRegistry.PersonhoodLevel",
-            "name": "requiredPersonhood",
-            "type": "uint8"
-          },
-          {
-            "internalType": "uint64",
-            "name": "registeredAtBlock",
-            "type": "uint64"
-          },
-          {
-            "internalType": "bool",
-            "name": "active",
-            "type": "bool"
-          }
-        ],
-        "internalType": "struct LibMusicRegistry.TrackRecord",
-        "name": "track",
-        "type": "tuple"
-      },
-      {
-        "internalType": "address",
-        "name": "tokenOwner",
-        "type": "address"
       }
     ],
     "stateMutability": "view",
@@ -374,6 +257,19 @@ export const musicRegistryAbi = [
         "internalType": "bool",
         "name": "",
         "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "musicRegNativeDecimals",
+    "outputs": [
+      {
+        "internalType": "uint8",
+        "name": "",
+        "type": "uint8"
       }
     ],
     "stateMutability": "view",

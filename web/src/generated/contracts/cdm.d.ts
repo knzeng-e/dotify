@@ -26,7 +26,7 @@ declare module "@parity/product-sdk-contracts" {
                 initContract: { args: []; response: HexString };
                 installRuntimeStep: { args: []; response: number };
                 loupePallet: { args: []; response: HexString };
-                nftPallet: { args: []; response: HexString };
+                nativeTokenDecimals: { args: []; response: number };
                 ownershipPallet: { args: []; response: HexString };
                 pendingRuntimeOf: { args: [arg0: HexString]; response: HexString };
                 pendingRuntimeStageOf: { args: [arg0: HexString]; response: number };
@@ -38,10 +38,10 @@ declare module "@parity/product-sdk-contracts" {
         "@dotify/smart-runtime": {
             methods: {
                 musicRegDeactivate: { args: [contentHash: SizedHex<32>]; response: undefined };
-                musicRegGetTrack: { args: [contentHash: SizedHex<32>]; response: { track: { artist: HexString; tokenId: bigint; title: string; artistName: string; description: string; imageRef: string; audioRef: string; metadataRef: string; artistContractRef: string; royaltyBps: number; accessMode: number; pricePlanck: bigint; requiredPersonhood: number; registeredAtBlock: bigint; active: boolean }; tokenOwner: HexString } };
-                musicRegGetTrackByTokenId: { args: [tokenId: bigint]; response: { track: { artist: HexString; tokenId: bigint; title: string; artistName: string; description: string; imageRef: string; audioRef: string; metadataRef: string; artistContractRef: string; royaltyBps: number; accessMode: number; pricePlanck: bigint; requiredPersonhood: number; registeredAtBlock: bigint; active: boolean }; tokenOwner: HexString } };
+                musicRegGetTrack: { args: [contentHash: SizedHex<32>]; response: { artist: HexString; title: string; artistName: string; description: string; imageRef: string; audioRef: string; metadataRef: string; artistContractRef: string; royaltyBps: number; accessMode: number; pricePlanck: bigint; requiredPersonhood: number; registeredAtBlock: bigint; active: boolean } };
                 musicRegIsActive: { args: [contentHash: SizedHex<32>]; response: boolean };
                 musicRegIsRegistered: { args: [contentHash: SizedHex<32>]; response: boolean };
+                musicRegNativeDecimals: { args: []; response: number };
                 musicRegReactivate: { args: [contentHash: SizedHex<32>]; response: undefined };
                 musicRegRegister: { args: [reg: { contentHash: SizedHex<32>; title: string; artistName: string; description: string; imageRef: string; audioRef: string; metadataRef: string; artistContractRef: string; accessMode: number; pricePlanck: bigint; requiredPersonhood: number }, recipients: HexString[], bps: number[]]; response: undefined };
                 musicRegSetAccessMode: { args: [contentHash: SizedHex<32>, accessMode: number, pricePlanck: bigint, requiredPersonhood: number]; response: undefined };
@@ -70,13 +70,6 @@ declare module "@parity/product-sdk-contracts" {
                 musicAccPersonhoodLevel: { args: [account: HexString]; response: number };
                 musicAccSetPersonhoodLevel: { args: [arg0: HexString, arg1: number]; response: undefined };
                 setPersonhoodRegistrar: { args: [registrar: HexString]; response: undefined };
-                musicNFTApprove: { args: [to: HexString, tokenId: bigint]; response: undefined };
-                musicNFTBalanceOf: { args: [owner: HexString]; response: bigint };
-                musicNFTGetApproved: { args: [tokenId: bigint]; response: HexString };
-                musicNFTIsApprovedForAll: { args: [owner: HexString, operator: HexString]; response: boolean };
-                musicNFTOwnerOf: { args: [tokenId: bigint]; response: HexString };
-                musicNFTSetApprovalForAll: { args: [operator: HexString, approved: boolean]; response: undefined };
-                musicNFTTransfer: { args: [tokenId: bigint, to: HexString]; response: undefined };
             };
         };
     }

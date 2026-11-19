@@ -25,6 +25,16 @@
   },
   "items": [
     {
+      "id": "native-price-without-nft",
+      "doc": "docs/backlog/native-price-without-nft.md",
+      "issue": 493,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Now",
+      "note": "A07 exact native-compatible price policy and owner-requested NFT removal for a coordinated fresh generation; no deployment or old-state migration."
+    },
+    {
       "id": "runtime-artist-authority",
       "doc": "docs/backlog/runtime-artist-authority.md",
       "issue": 490,

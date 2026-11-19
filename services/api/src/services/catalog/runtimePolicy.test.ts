@@ -160,7 +160,7 @@ it('never masks a concurrent global failure with a later local error, and drains
 
 it('decodes the real release ABI at maximum metadata/split bounds and excludes malformed semantic values', async () => {
   const registry = parseAbi([
-    'function musicRegGetTrack(bytes32) view returns ((address artist, uint256 tokenId, string title, string artistName, string description, string imageRef, string audioRef, string metadataRef, string artistContractRef, uint16 royaltyBps, uint8 accessMode, uint128 pricePlanck, uint8 requiredPersonhood, uint64 registeredAtBlock, bool active) track, address tokenOwner)'
+    'function musicRegGetTrack(bytes32) view returns ((address artist, string title, string artistName, string description, string imageRef, string audioRef, string metadataRef, string artistContractRef, uint16 royaltyBps, uint8 accessMode, uint128 pricePlanck, uint8 requiredPersonhood, uint64 registeredAtBlock, bool active) track)'
   ]);
   const royalty = parseAbi([
     'function musicRoySplitCount(bytes32) view returns (uint256)',
@@ -169,7 +169,7 @@ it('decodes the real release ABI at maximum metadata/split bounds and excludes m
   const hash = `0x${'ab'.repeat(32)}` as const;
   const track = {
     artist: runtime,
-    tokenId: 1n,
+
     title: 'é'.repeat(400),
     artistName: 'a'.repeat(800),
     description: 'd'.repeat(8000),
@@ -189,7 +189,7 @@ it('decodes the real release ABI at maximum metadata/split bounds and excludes m
       const selector = data.slice(0, 10);
       const result =
         selector === toFunctionSelector(registry[0])
-          ? encodeFunctionResult({ abi: registry, functionName: 'musicRegGetTrack', result: [track, runtime] })
+          ? encodeFunctionResult({ abi: registry, functionName: 'musicRegGetTrack', result: track })
           : selector === toFunctionSelector(royalty[0])
             ? encodeFunctionResult({ abi: royalty, functionName: 'musicRoySplitCount', result: 16n })
             : encodeFunctionResult({ abi: royalty, functionName: 'musicRoySplitAt', result: [runtime, 625] });

@@ -34,7 +34,6 @@ async function fixture() {
     'DiamondLoupePallet',
     'OwnershipPallet',
     'MusicRegistryPallet',
-    'MusicNFTPallet',
     'MusicRoyaltiesPallet',
     'MusicAccessPallet',
     'MusicMetadataPallet'
@@ -49,7 +48,7 @@ async function fixture() {
     cuts.push({ facetAddress: facet.address, action: 0, functionSelectors });
   }
   expect(new Set(allSelectors).size).to.equal(allSelectors.length);
-  const runtime = await hre.viem.deployContract('SmartRuntime', [owner.account.address, owner.account.address, cuts, zeroAddress, '0x']);
+  const runtime = await hre.viem.deployContract('SmartRuntime', [owner.account.address, owner.account.address, 18, cuts, zeroAddress, '0x']);
   const registry = await hre.viem.getContractAt('MusicRegistryPallet', runtime.address, { client: { wallet: owner } });
   const royalties = await hre.viem.getContractAt('MusicRoyaltiesPallet', runtime.address, { client: { wallet: listener } });
   return { owner, listener, stranger, runtime, registry, royalties, client: await hre.viem.getPublicClient() };
@@ -66,11 +65,11 @@ describe('W38 bounded registrations and compatible upgrades', () => {
     metadataRef: 512,
     artistContractRef: 512
   })) {
-    it(`${field}: accepts the byte boundary and rejects one extra byte before minting`, async () => {
+    it(`${field}: accepts the byte boundary and rejects one extra byte before registration`, async () => {
       const { registry, owner } = await loadFixture(current);
       const valid = { ...registration(), [field]: 'é'.repeat(limit / 2) };
       await registry.write.musicRegRegister([valid, [owner.account.address], [10000]]);
-      expect((await registry.read.musicRegGetTrack([valid.contentHash]))[0][field as keyof typeof valid]).to.equal(valid[field as keyof typeof valid]);
+      expect((await registry.read.musicRegGetTrack([valid.contentHash]))[field as keyof typeof valid]).to.equal(valid[field as keyof typeof valid]);
       await rejects(
         registry.write.musicRegRegister([
           { ...valid, contentHash: hash('extra'), [field]: valid[field as keyof typeof valid] + 'x' },
@@ -128,7 +127,7 @@ describe('W38 bounded registrations and compatible upgrades', () => {
       if (kind === 'gas-consuming') expect(await royalties.read.musicRoyClaimable([recipients[0]])).to.equal(625n);
     });
   }
-  it('future artist-only module replacement preserves purchases, splits and NFT ownership', async () => {
+  it('future artist-only module replacement preserves purchases, splits and artist identity', async () => {
     const { owner, stranger, registry, royalties, runtime, listener } = await loadFixture(current);
     await registry.write.musicRegRegister([registration(), [owner.account.address], [10000]]);
     await royalties.write.musicRoyPayAccess([hash('one')], { value: 10000n });

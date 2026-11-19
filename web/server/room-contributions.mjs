@@ -16,7 +16,7 @@ import { privateKeyToAccount } from 'viem/accounts';
 const abi = parseAbi([
   'function musicGiftPolicy(bytes32) view returns ((uint64 version,uint64 startsAt,uint64 endsAt,uint16 hostBps,address roomAttestor,bytes32 campaign,string description,address[] recipients,uint16[] shares))',
   'function runtimeOf(address) view returns (address)',
-  'function musicRegGetTrack(bytes32) view returns ((address artist,uint256 tokenId,string title,string artistName,string description,string imageRef,string audioRef,string metadataRef,string artistContractRef,uint16 royaltyBps,uint8 accessMode,uint128 pricePlanck,uint8 requiredPersonhood,uint64 registeredAtBlock,bool active) track,address tokenOwner)',
+  'function musicRegGetTrack(bytes32) view returns ((address artist,string title,string artistName,string description,string imageRef,string audioRef,string metadataRef,string artistContractRef,uint16 royaltyBps,uint8 accessMode,uint128 pricePlanck,uint8 requiredPersonhood,uint64 registeredAtBlock,bool active) track)',
   'event ContributionReceived(bytes32 indexed id,bytes32 indexed contentHash,address indexed sender,uint256 amount,address host,bytes32 room,bytes32 campaign,bytes32 policy,uint64 timestamp)'
 ]);
 const contextType = {
@@ -47,7 +47,7 @@ export function createRoomContributions(config, dependencies = {}) {
     if (!isAddress(runtime) || !hashPattern.test(hash) || !isAddress(config.directory ?? ''))
       throw Object.assign(new Error('Unknown release.'), { code: 'INVALID_RELEASE' });
     const rpc = await chain();
-    const [track] = await rpc.readContract({ address: runtime, abi, functionName: 'musicRegGetTrack', args: [hash] });
+    const track = await rpc.readContract({ address: runtime, abi, functionName: 'musicRegGetTrack', args: [hash] });
     const registered = await rpc.readContract({ address: config.directory, abi, functionName: 'runtimeOf', args: [track.artist] });
     if (registered.toLowerCase() !== runtime.toLowerCase() || !track.active)
       throw Object.assign(new Error('The release could not be verified.'), { code: 'INVALID_RELEASE' });

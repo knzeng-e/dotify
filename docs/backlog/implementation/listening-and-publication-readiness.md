@@ -1,5 +1,16 @@
 # Publication, listening reliability and CASH — execution order
 
+## Exact-price and NFT-free checkpoint, 2026-11-19
+
+#492 / A03 is merged into `dev` at `ba2b8f92`. The owner selected
+[A07 and NFT removal / #493](../native-price-without-nft.md): exact prices for
+EVM/Substrate publication and payment, releases without token minting/ownership
+or holder access, and matched generated readers. The [candidate model](../../reference/native-price-without-nft.md)
+defines the breaking interface and native precision configuration. A04's NFT
+transfer route is removed rather than expanded. A05's access-policy decision,
+A06/A08, other remaining audit corrections and Revive/physical Host acceptance
+remain before the selected clean-generation rollout. No deployment/reset occurs.
+
 ## Artist authority checkpoint, 2026-11-19
 
 #489 / A09 is merged into `dev` at `2af6d093`, with the reviewed tree. The owner

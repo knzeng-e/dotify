@@ -154,7 +154,6 @@ function validateCatalog(catalog) {
     assertHexHash(item.hash, `${prefix}.hash`);
     assertHexAddress(item.runtimeAddress, `${prefix}.runtimeAddress`);
     assertHexAddress(item.artistAddress, `${prefix}.artistAddress`);
-    assertString(item.tokenId, `${prefix}.tokenId`);
     assertString(item.title, `${prefix}.title`);
     assertString(item.artist, `${prefix}.artist`);
     assertString(item.description, `${prefix}.description`);

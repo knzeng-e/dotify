@@ -27,7 +27,7 @@ function release(overrides: Partial<CatalogRelease> = {}): CatalogRelease {
     hash: HASH,
     runtimeAddress: RUNTIME,
     artistAddress: ARTIST,
-    tokenId: '1',
+
     title: 'First light',
     artist: 'Dotify Artist',
     description: 'A registered release.',
@@ -166,7 +166,7 @@ it('cold reindex isolates a runtime and preserves healthy independently verified
           calls.push(functionName);
           if (functionName === 'runtimeOf') return RUNTIME;
           if (functionName === 'runtimeArtist') return ARTIST;
-          if (functionName === 'musicRegGetTrack') return [{ artist: ARTIST, audioRef: release().audioRef, active: true }];
+          if (functionName === 'musicRegGetTrack') return { artist: ARTIST, audioRef: release().audioRef, active: true };
           if (functionName === 'musicAccCanAccess') return true;
           assert.fail(functionName);
         }

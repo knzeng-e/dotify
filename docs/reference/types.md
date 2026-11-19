@@ -445,7 +445,6 @@ runtime plus catalogue tracks where that wallet appears in royalty splits.
 ```typescript
 type OnchainTrackRecord = {
   artist: `0x${string}`;
-  tokenId: bigint;
   title: string;
   artistName: string;
   description: string;

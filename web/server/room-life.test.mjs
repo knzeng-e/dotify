@@ -14,7 +14,7 @@ const deps = {
   client: {
     getChainId: async () => 42,
     readContract: async ({ functionName }) =>
-      functionName === 'runtimeOf' ? address : [{ artist: address, active: true, title: 'Canonical title', artistName: 'Canonical artist' }]
+      functionName === 'runtimeOf' ? address : { artist: address, active: true, title: 'Canonical title', artistName: 'Canonical artist' }
   },
   fetch: async (_url, options) => ({ ok: options.headers.Authorization === 'Bearer valid', json: async () => ({ address, chainId: 42 }) })
 };
@@ -190,8 +190,8 @@ test('artist verification fails on wrong account, chain, inactive runtime and ch
   for (const override of [
     { fetch: async () => ({ ok: true, json: async () => ({ address: other, chainId: 42 }) }) },
     { fetch: async () => ({ ok: true, json: async () => ({ address, chainId: 1 }) }) },
-    { client: { ...deps.client, readContract: async ({ functionName }) => (functionName === 'runtimeOf' ? other : [{ artist: address, active: true }]) } },
-    { client: { ...deps.client, readContract: async () => [{ artist: address, active: false }] } }
+    { client: { ...deps.client, readContract: async ({ functionName }) => (functionName === 'runtimeOf' ? other : { artist: address, active: true }) } },
+    { client: { ...deps.client, readContract: async () => ({ artist: address, active: false }) } }
   ]) {
     await assert.rejects(() => createRoomContributions(config, { ...deps, ...override }).verifyArtist({ track }, 'valid'));
   }

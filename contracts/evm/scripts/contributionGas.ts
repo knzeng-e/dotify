@@ -27,6 +27,7 @@ async function main() {
   const runtime = await hre.viem.deployContract('SmartRuntime', [
     artist.account.address,
     artist.account.address,
+    18,
     facets.map(facet => ({ facetAddress: facet.address, action: 0, functionSelectors: selectors(facet.abi) })),
     zeroAddress,
     '0x'

@@ -10,7 +10,6 @@ export const PRODUCT_DEVNET_BOOTSTRAP_CATALOG: CatalogApiResponse = {
       hash: '0x66aae2bdd5859205f46c62291d93d6d5618e56201a507c2b9f5277823edafd35',
       runtimeAddress: '0x05C643A1eD0e75C8A3486410f13BC4597c2674D7',
       artistAddress: '0x2f6BF01a6708C927b288a53B9fE3f9edc689FF56',
-      tokenId: '1',
       title: 'Dotify-Bulletin-pilot-8s',
       artist: 'Thot Nzeng',
       description: 'Testing Bulletin Publishing',
@@ -42,7 +41,6 @@ export const PRODUCT_DEVNET_BOOTSTRAP_CATALOG: CatalogApiResponse = {
       hash: '0xda00c99152af2b9f057e92ae90a11741a0bd2ed29807806d25ccd833199f1eb3',
       runtimeAddress: '0xdcF6b75E4185E99a830878D044dC76372c556819',
       artistAddress: '0xC3571714248588C6E19cDECe2778B75341b2c288',
-      tokenId: '1',
       title: 'Adang Fobe',
       artist: 'Lord Ékomy Ndong ☥',
       description:

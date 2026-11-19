@@ -6,7 +6,6 @@
 //   contracts/evm/artifacts/contracts/pallets/MusicMetadataPallet.sol/MusicMetadataPallet.json
 //   contracts/evm/artifacts/contracts/pallets/MusicRoyaltiesPallet.sol/MusicRoyaltiesPallet.json
 //   contracts/evm/artifacts/contracts/pallets/MusicAccessPallet.sol/MusicAccessPallet.json
-//   contracts/evm/artifacts/contracts/pallets/MusicNFTPallet.sol/MusicNFTPallet.json
 
 export const SMART_RUNTIME_LIBRARY = '@dotify/smart-runtime';
 
@@ -97,12 +96,6 @@ export const smartRuntimeAbi = [
       },
       {
         "indexed": true,
-        "internalType": "uint256",
-        "name": "tokenId",
-        "type": "uint256"
-      },
-      {
-        "indexed": true,
         "internalType": "address",
         "name": "artist",
         "type": "address"
@@ -166,11 +159,6 @@ export const smartRuntimeAbi = [
             "type": "address"
           },
           {
-            "internalType": "uint256",
-            "name": "tokenId",
-            "type": "uint256"
-          },
-          {
             "internalType": "string",
             "name": "title",
             "type": "string"
@@ -239,112 +227,6 @@ export const smartRuntimeAbi = [
         "internalType": "struct LibMusicRegistry.TrackRecord",
         "name": "track",
         "type": "tuple"
-      },
-      {
-        "internalType": "address",
-        "name": "tokenOwner",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "tokenId",
-        "type": "uint256"
-      }
-    ],
-    "name": "musicRegGetTrackByTokenId",
-    "outputs": [
-      {
-        "components": [
-          {
-            "internalType": "address",
-            "name": "artist",
-            "type": "address"
-          },
-          {
-            "internalType": "uint256",
-            "name": "tokenId",
-            "type": "uint256"
-          },
-          {
-            "internalType": "string",
-            "name": "title",
-            "type": "string"
-          },
-          {
-            "internalType": "string",
-            "name": "artistName",
-            "type": "string"
-          },
-          {
-            "internalType": "string",
-            "name": "description",
-            "type": "string"
-          },
-          {
-            "internalType": "string",
-            "name": "imageRef",
-            "type": "string"
-          },
-          {
-            "internalType": "string",
-            "name": "audioRef",
-            "type": "string"
-          },
-          {
-            "internalType": "string",
-            "name": "metadataRef",
-            "type": "string"
-          },
-          {
-            "internalType": "string",
-            "name": "artistContractRef",
-            "type": "string"
-          },
-          {
-            "internalType": "uint16",
-            "name": "royaltyBps",
-            "type": "uint16"
-          },
-          {
-            "internalType": "enum LibMusicRegistry.AccessMode",
-            "name": "accessMode",
-            "type": "uint8"
-          },
-          {
-            "internalType": "uint128",
-            "name": "pricePlanck",
-            "type": "uint128"
-          },
-          {
-            "internalType": "enum LibMusicRegistry.PersonhoodLevel",
-            "name": "requiredPersonhood",
-            "type": "uint8"
-          },
-          {
-            "internalType": "uint64",
-            "name": "registeredAtBlock",
-            "type": "uint64"
-          },
-          {
-            "internalType": "bool",
-            "name": "active",
-            "type": "bool"
-          }
-        ],
-        "internalType": "struct LibMusicRegistry.TrackRecord",
-        "name": "track",
-        "type": "tuple"
-      },
-      {
-        "internalType": "address",
-        "name": "tokenOwner",
-        "type": "address"
       }
     ],
     "stateMutability": "view",
@@ -383,6 +265,19 @@ export const smartRuntimeAbi = [
         "internalType": "bool",
         "name": "",
         "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "musicRegNativeDecimals",
+    "outputs": [
+      {
+        "internalType": "uint8",
+        "name": "",
+        "type": "uint8"
       }
     ],
     "stateMutability": "view",
@@ -1729,216 +1624,6 @@ export const smartRuntimeAbi = [
       }
     ],
     "name": "setPersonhoodRegistrar",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "owner",
-        "type": "address"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "approved",
-        "type": "address"
-      },
-      {
-        "indexed": true,
-        "internalType": "uint256",
-        "name": "tokenId",
-        "type": "uint256"
-      }
-    ],
-    "name": "MusicNFTApproval",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "owner",
-        "type": "address"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "operator",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "bool",
-        "name": "approved",
-        "type": "bool"
-      }
-    ],
-    "name": "MusicNFTApprovalForAll",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "from",
-        "type": "address"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "to",
-        "type": "address"
-      },
-      {
-        "indexed": true,
-        "internalType": "uint256",
-        "name": "tokenId",
-        "type": "uint256"
-      }
-    ],
-    "name": "MusicNFTTransfer",
-    "type": "event"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "to",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "tokenId",
-        "type": "uint256"
-      }
-    ],
-    "name": "musicNFTApprove",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "owner",
-        "type": "address"
-      }
-    ],
-    "name": "musicNFTBalanceOf",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "tokenId",
-        "type": "uint256"
-      }
-    ],
-    "name": "musicNFTGetApproved",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "owner",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "operator",
-        "type": "address"
-      }
-    ],
-    "name": "musicNFTIsApprovedForAll",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "tokenId",
-        "type": "uint256"
-      }
-    ],
-    "name": "musicNFTOwnerOf",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "operator",
-        "type": "address"
-      },
-      {
-        "internalType": "bool",
-        "name": "approved",
-        "type": "bool"
-      }
-    ],
-    "name": "musicNFTSetApprovalForAll",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "tokenId",
-        "type": "uint256"
-      },
-      {
-        "internalType": "address",
-        "name": "to",
-        "type": "address"
-      }
-    ],
-    "name": "musicNFTTransfer",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"

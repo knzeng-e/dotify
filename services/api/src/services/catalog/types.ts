@@ -14,7 +14,7 @@ export const catalogReleaseSchema = z.object({
   hash: hashSchema,
   runtimeAddress: addressSchema,
   artistAddress: addressSchema,
-  tokenId: z.string().regex(/^\d+$/),
+
   title: z.string(),
   artist: z.string(),
   description: z.string(),

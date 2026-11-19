@@ -55,8 +55,7 @@ const RUNTIME_FACETS = [
   'pallets/MusicRegistryPallet.sol/MusicRegistryPallet.json',
   'pallets/MusicMetadataPallet.sol/MusicMetadataPallet.json',
   'pallets/MusicRoyaltiesPallet.sol/MusicRoyaltiesPallet.json',
-  'pallets/MusicAccessPallet.sol/MusicAccessPallet.json',
-  'pallets/MusicNFTPallet.sol/MusicNFTPallet.json'
+  'pallets/MusicAccessPallet.sol/MusicAccessPallet.json'
 ];
 
 const RUNTIME_LIBRARY = '@dotify/smart-runtime';

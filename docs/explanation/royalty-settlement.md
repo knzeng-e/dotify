@@ -156,8 +156,7 @@ uint256[] royaltyShares       // basis points per recipient (must sum to ≤ 10,
 The remainder after all splits is sent to the original artist address stored on
 the track record.
 Those recipients are stored at registration for the release's payment split.
-They are separate from the current track NFT owner and from the current
-SmartRuntime owner.
+They are separate from the technical administrator of the SmartRuntime.
 
 **Example:** A track with a 30 % collaborator split.
 
@@ -286,7 +285,7 @@ treating the money as received.
 
 On 18 November 2026 the owner chose a complete clean testnet redeployment after
 the audit corrections. The previous runtimes, releases, references, purchases,
-NFT state and pending test balances will not be imported. Historical contracts
+legacy token state and pending test balances will not be imported. Historical contracts
 and immutable storage objects may remain on-chain, but are retired from the
 active application. New releases require new runtime-bound identities and keys;
 old upload jobs and signing intents must not be replayed into the new generation.
