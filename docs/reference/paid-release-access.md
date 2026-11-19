@@ -74,3 +74,6 @@ Implementation: `contracts/evm/contracts/pallets/MusicAccessPallet.sol`,
 and `services/api/src/services/chainAccess.ts` (unchanged authority).
 [Scope and acceptance](../backlog/preserve-paid-release-access.md) track the
 bounded source correction; no deployment or live transaction occurs here.
+
+[Local A05 evidence](../backlog/implementation/evidence/paid-release-access-2026-11-20.md)
+binds the pre-change denial, paid transitions and key boundaries to the tested source.
