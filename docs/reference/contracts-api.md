@@ -182,6 +182,8 @@ admission limit. The directory is a standalone non-upgradeable contract, so corr
 bytecode belongs to the selected fresh generation, not a runtime facet upgrade.
 See the [deployment gate](../operations/deployment-configuration.md#directory-pagination-a08)
 and [scope](../backlog/bounded-contract-pagination.md).
+[Local A08 evidence](../backlog/implementation/evidence/bounded-contract-pagination-2026-11-19.md)
+records the reproduced overflow and complete contract/consumer traversals.
 
 | Parameter | Description           |
 | --------- | --------------------- |
