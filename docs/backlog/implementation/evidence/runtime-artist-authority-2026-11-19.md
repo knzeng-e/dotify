@@ -45,3 +45,25 @@ required by the [delivery gate](../../../operations/deployment-configuration.md#
 The API must not be deployed ahead of contracts exposing the new artist getter.
 Older runtimes and releases are not migration targets. A04/A06 and other audit
 corrections remain separate work before fresh-generation activation.
+
+## CI rehearsal correction
+
+The first PR #492 run failed in the
+[protected Bulletin publication rehearsal](https://github.com/knzeng-e/dotify/actions/runs/44430678556/job/135246954792).
+Its simulated RPC still lacked `runtimeArtist()`, so the real API correctly
+denied publication authority before encoding. The same `0 !== 1` encode-count
+failure was reproduced locally; this was a stale test model, not a relaxed
+production authorization requirement.
+
+Source `5c31a66349c6a30ae7225d489d877aa4b7954b2a` supplies the bound artist in
+that RPC model and requires canonical block arguments for every simulated
+contract read. The protected rehearsal then passed all nine tests, including
+a new conflicting-artist case: uploads and an entitled listener are denied,
+no additional key is derived, and restoring the artist restores upload
+authority. Formatting and whitespace checks passed. Production code and the
+earlier source-bound suite results above are unchanged.
+
+The adjacent `test:protected-canary` rehearsal also passed all nine tests with
+local loopback access. Its initial sandboxed invocation passed eight tests but
+could not open the socket test's `127.0.0.1` listener (`EPERM`); granting that
+local test access resolved the environment restriction without changing code.
