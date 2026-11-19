@@ -58,3 +58,22 @@ deployed interface. No old NFT/state import, catalog reset, key/nonce/receipt
 deletion, signature or live payment occurred. Arbitrary upgrade administration
 remains a trust boundary. A05 policy, A06/A08, remaining audit corrections and
 native/device delivery acceptance remain separate.
+
+## Studio approval roadmap review follow-up
+
+Source `9f2944210dc34529852d3108f16f60a018df0e90` addresses
+[the #494 review finding](https://github.com/knzeng-e/dotify/pull/494#discussion_r4634536650).
+The studio had retained an obsolete NFT roadmap entry after the factory stage
+was removed. Removing it aligns the displayed seven approvals (creation plus
+six installation/finalization calls) with the actual operations. Royalties,
+listening policy and finalization descriptions no longer shift by one step.
+
+Regression tests run the hook through fresh creation and resumption at stages
+4 and 6. They inspect the feedback at each simulated signature, the total
+approval count, confirmation waits and final transaction-hash association.
+All 1,257 frontend tests pass, including 13 targeted preparation/guard tests;
+the Web build and lint pass with the same existing bundle-size and two
+effect-dependency warnings. Test array indexing uses the repository's existing
+TypeScript target. Contract/API/signaling source is unchanged from the evidence
+above; those suites were not repeated for this UI-only correction. No live
+signature, deployment or native-device acceptance occurred.
