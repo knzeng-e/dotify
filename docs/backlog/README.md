@@ -1,5 +1,7 @@
 # Dotify Production Backlog
 
+The [relational-experience roadmap](relational-experience-roadmap.md) preserves the longer-range Rooms → Imprints → Resonance Gardens vision with explicit community checkpoints. It is **proposed design**, not another active work queue or a change to Project 5 priorities; the selected production-readiness sequence below remains authoritative.
+
 The [selected sequence](implementation/listening-and-publication-readiness.md#bounded-recovery-before-the-public-pilot)
 prioritizes publication latency, Room startup, lock-screen artwork and bounded
 CASH research. The owner has deferred the real independent release/key rehearsal
