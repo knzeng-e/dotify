@@ -33,6 +33,21 @@ snapshot is historical evidence, not a compatible NFT-free deployment. Existing
 secret custody, receipt history and nonce preservation duties remain; no CORS,
 mount, scaling or frontend-secret settings change in this source scope.
 
+## Personhood reader (A06)
+
+The [supported-evidence policy](../reference/personhood-status-policy.md) changes
+Access/Royalties bytecode while preserving ABI, storage, context and address.
+Include the corrected facets in the matched fresh generation; no environment,
+secret, CORS, mount or scaling setting changes in this source scope.
+
+Before presenting HumanFree as available, verify the target runtime exposes the
+expected precompile and exact declared response ABI, then retain commit-bound
+readback for known None, unavailable and unsupported/malformed evidence where
+the target test environment permits it. Confirm supported DIM1/DIM2 proof and
+address/context binding through the intended chain/Host. Local mock success
+must not substitute for real-proof or physical-device acceptance. Record
+unavailable capabilities as remaining gates; never enable a manual fallback.
+
 ## Establish the state first
 
 Record the candidate commit and affected components before changing settings.

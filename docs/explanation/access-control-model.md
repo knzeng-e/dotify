@@ -57,7 +57,9 @@ application context. The former manual registrar setter is retired and reverts.
 The source implements the gate, but usable end-to-end verification still depends
 on a supported chain/Host and the personhood proof it exposes. When that read is
 unavailable or unverified, access fails closed; a local fixture is not a live
-humanity proof.
+humanity proof. The [supported-evidence policy](../reference/personhood-status-policy.md)
+also refuses unknown tiers and malformed responses, keeping raw diagnostics,
+the typed getter and access decisions consistent.
 
 **When to choose Human free:**
 

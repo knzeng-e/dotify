@@ -17,6 +17,8 @@ pragma solidity ^0.8.28;
 interface IPersonhood {
   /// @param status       Personhood tier: 0 = None, 1 = Lite, 2 = Full. Tiers are
   ///                     incremental, so a future tier leaves these values unchanged.
+  ///                     Dotify supports only these declared tiers; a future value
+  ///                     requires explicit review rather than automatic admission.
   /// @param contextAlias Per-context 32-byte pseudonym derived from the ring membership
   ///                     proof. Unique per person per context, which is what prevents
   ///                     cross-application linkability. Zero when status is None.

@@ -32,8 +32,10 @@ an incompatible artist runtime from healthy catalogue discovery and key grants.
 [A09 / #488](finalized-key-authority.md) is merged in #489 and requires positive
 finalized and current evidence before irreversible key delivery. Merged [A03 / #490](runtime-artist-authority.md) separates stable artist
 authority from two-step technical administration.
-The owner then selected [A07 and NFT removal / #493](native-price-without-nft.md),
+[A07 and NFT removal / #493](native-price-without-nft.md) is merged in #494,
 with exact native-compatible prices and no token-based publication or access.
+Next, [A06 / #495](personhood-status-policy.md) aligns supported personhood
+diagnostics and access; A08 pagination and A05 remain separate.
 [Reader policy and recovery](../reference/catalog-runtime-isolation.md) define its
 boundaries. Other audit corrections remain before the fresh deployment.
 
