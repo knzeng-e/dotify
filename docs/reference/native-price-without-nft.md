@@ -5,6 +5,9 @@ following the owner's 19 November 2026 request. It supersedes NFT functionality
 in the earlier artist-runtime model. It is not a deployed or device-accepted
 generation.
 
+The [19 November local validation record](../backlog/implementation/evidence/native-price-without-nft-2026-11-19.md)
+binds the checks to the candidate source and final signaling fixtures.
+
 ## Price units and authority
 
 `pricePlanck` retains its historical ABI name but stores an unsigned 128-bit
