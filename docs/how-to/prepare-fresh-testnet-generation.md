@@ -66,6 +66,8 @@ same source. Publish the reviewed blobs to Bulletin and the two existing CDM
 names under their actual publisher; record exact finalized versions. Preserve
 the append-only CDM history and account nonces. Use the [Product runbook](../operations/product-devnet-deployment.md)
 for storage authorization, retention, signer handling and registry operations.
+Begin the maintenance window and exclude all account-sharing writers before
+those Bulletin publication operations; retain the final protected state first.
 
 Update `contracts/evm/cdm.json` only from those actual results. With the same
 explicit public deployer, run:
@@ -113,9 +115,11 @@ data or enable compact publication/recurring conservation as part of this cutove
 The development environment has no users to keep online. Use one maintenance
 interruption and the existing startup checks:
 
-1. Retain the finalized empty-directory core/CDM readback **before** creating an
-   artist. Stop old writers and preserve the final trust/quota state under the
+1. Stop old writers and preserve the final trust/quota state under the
    [cutover configuration](../operations/deployment-configuration.md#testnet-cutover-with-an-interruption).
+   Complete the CDM publication/readback with exclusive storage-account access.
+   Retain the finalized empty-directory core/CDM readback **before** creating an
+   artist.
 2. Have the artist wallet create its runtime and approve the seven installation/
    finalization calls against the new factory. These are contract calls; they do
    not require the publication API. Use a wallet interaction or an identified
