@@ -48,6 +48,23 @@ address/context binding through the intended chain/Host. Local mock success
 must not substitute for real-proof or physical-device acceptance. Record
 unavailable capabilities as remaining gates; never enable a manual fallback.
 
+## Paid release access (A05)
+
+The [A05 candidate](../reference/paid-release-access.md) changes Access facet
+bytecode and the paid-access promise, with unchanged ABI and storage. Include
+it with the owner-selected matched fresh contracts/API/clients. Do not deploy
+the new payment copy against an old facet that rejects earlier buyers under
+HumanFree. Verify exact candidate code/facet routes rather than ABI shape alone.
+
+In a separately authorized acceptance exercise, bind one actual purchase receipt
+to its chain/runtime/release/wallet, then verify active HumanFree access without
+personhood, independent unpaid denial, deactivation denial and reactivation
+without another payment. Verify signed individual/Room-host key delivery only
+with finalized/current positive authority, and denied anonymous public keys.
+Local mocks are not Revive settlement, real proof or physical Host acceptance.
+No new environment variable, secret, CORS, mount or scaling change is required.
+There is no old-generation import, refund mechanism or deployment in this scope.
+
 ## Directory pagination (A08)
 
 The [directory page candidate](../reference/contracts-api.md#directory-page-bounds-a08)

@@ -11,9 +11,10 @@ import { LibMusicAccess } from '../libraries/LibMusicAccess.sol';
 ///         Access logic:
 ///           1. Inactive track            → denied
 ///           2. Listener is original artist → granted
-///           3. HumanFree track           → granted if caller meets personhood level
-///           4. Classic track             → granted if caller has paid
+///           3. Prior paid grant          → granted across access-mode changes
+///           4. HumanFree track           → granted if caller meets personhood level
 ///           5. Free track                → granted
+///           6. Otherwise                 → denied
 ///
 ///         Personhood (DIM1, DIM2) is read from the Individuality precompile at
 ///         0x000000000000000000000000000000000A010000, in Dotify's own application
@@ -76,8 +77,10 @@ contract MusicAccessPallet {
 
     if (!track.active) return false;
 
-    // The recorded artist retains access; listeners follow the release policy.
+    // Active-release authorship and prior paid access are independent grants.
     if (listener == track.artist) return true;
+    // A Classic purchase survives later mode changes for this same release/account.
+    if (as_.paidAccess[contentHash][listener]) return true;
 
     // Free: everyone may listen; the policy is the whole gate.
     if (track.accessMode == LibMusicRegistry.AccessMode.Free) return true;
@@ -86,11 +89,12 @@ contract MusicAccessPallet {
       return LibMusicAccess.hasRequiredPersonhood(as_, listener, track.requiredPersonhood);
     }
 
-    // Classic
-    return as_.paidAccess[contentHash][listener];
+    // Unpaid Classic listeners have no grant.
+    return false;
   }
 
-  /// @notice Returns true if `listener` has paid for access to a Classic track.
+  /// @notice Returns the recorded Classic payment grant, preserved across mode changes
+  ///         and deactivation. Use musicAccCanAccess for current playable access.
   function musicAccHasPaid(bytes32 contentHash, address listener) external view returns (bool) {
     return LibMusicAccess.store().paidAccess[contentHash][listener];
   }

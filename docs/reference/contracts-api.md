@@ -285,8 +285,7 @@ Returns `true` if the listener is allowed full playback. Logic:
 ```
 track.active == false                          → false
 listener == original artist                    → true
-accessMode == classic
-  AND paidAccess[contentHash][listener] == true → true
+paidAccess[contentHash][listener] == true       → true
 accessMode == human-free
   AND supported Individuality level >= requiredPersonhood → true
 accessMode == free                             → true
@@ -302,7 +301,10 @@ function musicAccHasPaid(bytes32 contentHash, address listener)
     external view returns (bool)
 ```
 
-Returns whether the listener has paid for Classic-mode access. Does not evaluate personhood.
+Returns the recorded Classic paid grant, including after mode changes or
+deactivation. It does not evaluate personhood or current activity. For current
+access, use `musicAccCanAccess`: the [A05 rule](paid-release-access.md) preserves
+paid access across modes only while the release is active.
 
 ---
 

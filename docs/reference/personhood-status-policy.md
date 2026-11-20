@@ -32,9 +32,11 @@ The typed getter maps supported tiers explicitly, with no unchecked enum cast.
 Any future tier or response layout requires explicit protocol review.
 
 A required level of None still means no requirement. Registered HumanFree
-tracks require DIM1 or DIM2; unusable evidence denies both playback access and
-`musicRoyRecordListen`. Free access, verified Classic entitlements and the
-original artist's access are independent of this reader. The deprecated manual
+tracks require DIM1 or DIM2 for listeners without an independent grant. Unusable
+evidence denies the personhood path and `musicRoyRecordListen`. Under the
+[A05 rule](paid-release-access.md), a prior paid wallet retains playback access
+to the active release across modes, without asserting personhood. Free access
+and the original artist's access are also independent of this reader. The deprecated manual
 personhood setter remains disabled. This policy adds no identity collection,
 oracle or manual override.
 

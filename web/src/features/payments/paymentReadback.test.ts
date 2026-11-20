@@ -83,7 +83,8 @@ describe('runtime access payment read-back', () => {
 
   it('explains an inconsistent paid state', () => {
     expect(runtimeAccessPaymentReadbackError({ intent, listenerAddress, hasPaid: true, canAccess: false })).toMatch(/still denies playable access/);
-    expect(runtimeAccessPaymentReadbackError({ intent, listenerAddress, hasPaid: true, canAccess: false })).toMatch(/inactive|policy/);
+    expect(runtimeAccessPaymentReadbackError({ intent, listenerAddress, hasPaid: true, canAccess: false })).toMatch(/inactive|inconsistent/);
+    expect(runtimeAccessPaymentReadbackError({ intent, listenerAddress, hasPaid: true, canAccess: false })).toContain('without another payment');
     expect(runtimeAccessPaymentReadbackError({ intent, listenerAddress, hasPaid: false, canAccess: true })).toMatch(/not a paid Classic grant/);
     expect(runtimeAccessPaymentReadbackError({ intent, listenerAddress, hasPaid: true, canAccess: true })).toBeNull();
   });

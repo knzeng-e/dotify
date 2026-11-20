@@ -624,7 +624,7 @@ describe('Access model v2 - Free mode + musicRegSetAccessMode', () => {
     expect(await access.read.musicAccCanAccess([TRACK_HASH, other.account.address])).to.equal(false);
   });
 
-  it('documents the W04 policy table across Free, Classic, HumanFree, active, inactive, and paid states', async () => {
+  it('documents the A05 policy table across Free, Classic, HumanFree, active, inactive, and paid states', async () => {
     const PRICE = parseEther('0.5');
     const { artistRegistry, royalties, access, listener, other, royaltyRecip } = await withArtistRuntime();
 
@@ -665,7 +665,7 @@ describe('Access model v2 - Free mode + musicRegSetAccessMode', () => {
       { label: 'classic.active.paid', hasPaid: true, canAccess: true },
       { label: 'free.active.unpaid', hasPaid: false, canAccess: true },
       { label: 'free.active.previously-paid', hasPaid: true, canAccess: true },
-      { label: 'human-free.active.previously-paid-without-personhood', hasPaid: true, canAccess: false },
+      { label: 'human-free.active.previously-paid-without-personhood', hasPaid: true, canAccess: true },
       { label: 'human-free.active.previously-paid-with-personhood', hasPaid: true, canAccess: true },
       { label: 'classic.inactive.previously-paid', hasPaid: true, canAccess: false },
       { label: 'classic.reactivated.previously-paid', hasPaid: true, canAccess: true }

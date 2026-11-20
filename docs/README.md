@@ -1,5 +1,10 @@
 # Dotify documentation
 
+The [20 November A05 paid-access decision](reference/paid-release-access.md)
+keeps earlier buyers authorized across access-mode changes while the release
+remains active. It is a source candidate for the matched fresh generation;
+withdrawal, upgrade and availability boundaries remain explicit.
+
 The [18 November audit checkpoint](backlog/implementation/listening-and-publication-readiness.md#smart-runtime-audit-checkpoint-2026-11-18)
 puts payment/contract corrections before further CASH work. The merged
 [artist-runtime catalogue isolation](reference/catalog-runtime-isolation.md) is
@@ -10,7 +15,7 @@ Merged [NFT-free prices](reference/native-price-without-nft.md) provide exact
 EVM/native prices, without token minting or holder-based access.
 Merged [supported personhood handling](reference/personhood-status-policy.md)
 keeps unknown/malformed evidence closed and typed diagnostics non-reverting.
-The next [directory pagination correction](reference/contracts-api.md#directory-page-bounds-a08)
+Merged [directory pagination](reference/contracts-api.md#directory-page-bounds-a08)
 bounds individual responses without overflowing or skipping artists in supported readers.
 A complete fresh testnet generation follows the remaining audit fixes; no reset
 or deployment is recorded by this source change. Earlier dated checkpoints
@@ -111,6 +116,7 @@ including successful starts and physical locked-screen observations.
 
 ## Look something up
 
+- [Paid release access while active](reference/paid-release-access.md): mode changes, deactivation, signed keys and trust boundaries
 - [Directory page bounds](reference/contracts-api.md#directory-page-bounds-a08): maximum page size, cursor handling and compatible readers
 - [Supported personhood evidence](reference/personhood-status-policy.md): raw/typed diagnostics, unsupported tiers and fail-closed access
 - [Exact prices and NFT-free releases](reference/native-price-without-nft.md): native precision, record ABI and coordinated fresh-generation delivery

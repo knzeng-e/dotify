@@ -1,5 +1,13 @@
 # Dotify product memory
 
+## Paid-access decision, 2026-11-20
+
+The owner selected [A05](../reference/paid-release-access.md): earlier Classic
+buyers retain access across mode changes while the release is active. Artist
+deactivation still denies new access without erasing payment history. This is
+candidate source for the matched fresh generation, with no rollout or migration;
+see the reference for proof, upgrade and availability limits.
+
 ## NFT-free price candidate, 2026-11-19
 
 The owner selected [A07 and NFT removal](../backlog/native-price-without-nft.md)
