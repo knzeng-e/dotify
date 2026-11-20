@@ -61,3 +61,10 @@ abandoned old contracts cannot validate this new ABI or policy. Desktop needs
 separate evidence. Deployed clients keep their accepted versions; CASH remains
 disabled and #85/#406/#408 remain open. This integration performs no deployment,
 Host installation, live signature, musical upload, funded action or state reset.
+
+## Subsequent review-preparation record
+
+The [qualification follow-up](product-sdk-045-qualification-2026-11-20.md)
+records green integration CI, the separately discovered static-harness pin gap,
+its correction and the distinction between code review and stable promotion.
+The draft/pending statements above describe the initial integration checkpoint.

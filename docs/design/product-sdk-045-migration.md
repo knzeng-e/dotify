@@ -96,6 +96,8 @@ with its review package can be ready to review while named-device results remain
 pending. The journey harness checks the exact coordinated dependency family; its
 pin match is not Host compatibility evidence. With no physical evidence input,
 the report must still show the Host journey blocked and the Room journey not run.
+The [qualification-tooling follow-up](../backlog/implementation/evidence/product-sdk-045-qualification-2026-11-20.md)
+records the stale-pin failure, its correction and the identified local artifact.
 
 The [36 fixture checks](../../web/scripts/product-sdk-compat.test.mjs) bind exact
 account, username, message-signing, permission and Bulletin subscription bytes

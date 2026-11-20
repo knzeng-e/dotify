@@ -10,6 +10,8 @@ CASH stays disabled.
 The [20 November integration evidence](backlog/implementation/evidence/product-sdk-045-integration-2026-11-20.md)
 records the candidate after the audit's tested dev baseline, separately from
 pending physical Host acceptance.
+The [qualification follow-up](backlog/implementation/evidence/product-sdk-045-qualification-2026-11-20.md)
+records the corrected candidate checks and identified local build for review.
 
 The [20 November A05 paid-access decision](reference/paid-release-access.md)
 keeps earlier buyers authorized across access-mode changes while the release
