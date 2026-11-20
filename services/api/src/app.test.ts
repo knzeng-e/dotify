@@ -192,8 +192,9 @@ describe('Bulletin publisher activation boundary', () => {
       assert.equal((await app.inject({ method: 'GET', url: '/health' })).statusCode, 200);
       assert.equal((await app.inject({ method: 'POST', url: '/api/uploads-other' })).statusCode, 404);
       {
-        const payment = await app.inject({ method: 'GET', url: '/api/royalties/history' });
-        assert.notEqual(payment.json().code, 'PUBLICATION_PAUSED');
+        const payment = await app.inject({ method: 'POST', url: '/api/royalties/history', payload: {} });
+        assert.equal(payment.statusCode, 400);
+        assert.equal(payment.json().code, 'INVALID_HISTORY_QUERY');
       }
       {
         const key = await app.inject({ method: 'POST', url: '/api/tracks/keys/prepare', payload: {} });

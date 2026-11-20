@@ -558,6 +558,11 @@ describe('W36 real PostgreSQL / independent API processes', () => {
         assert.equal(((await status.json()) as { code: string }).code, 'PUBLICATION_PAUSED');
         assert.equal((await post(origin, '/api/auth/nonce', { address })).status, 200);
         assert.equal((await fetch(`${origin}/health`)).status, 200);
+        // Unlike upload mutations, financial reads still reach custody and
+        // their own validation even when the edge itself is paused.
+        const history = await post(origin, '/api/royalties/history', {});
+        assert.equal(history.status, 400);
+        assert.equal(((await history.json()) as { code: string }).code, 'INVALID_HISTORY_QUERY');
       }
       assert.equal((await post(custody.origin, '/api/uploads/authorize', {})).status, 403);
       const privateStatus = await fetch(`${custody.origin}/api/uploads/audio/jobs/saved`, { headers: { 'x-dotify-custody': custodyToken } });
