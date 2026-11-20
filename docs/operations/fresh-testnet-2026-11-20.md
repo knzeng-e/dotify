@@ -79,3 +79,24 @@ ordinary artist creation, bind a new unused content-key domain and reviewed
 Bulletin profile to that actual runtime. Native payouts and physical Runtime
 0.31 signing/listening remain separate acceptance gates under #484/#85; #317
 stays open and CASH stays disabled.
+
+## Publication-pause source validation
+
+The API correction and this initial deployment record are committed as
+`0f1dca183c8631129838561a2adc5199b273da14`. Local Node 22.13.1 checks pass:
+
+- 700 full API tests; the final focused 16-test run also passes after refining
+  diagnostic/readiness assertions and test formatting;
+- 17 real PostgreSQL 14.17 tests, including independent enabled/paused edge
+  processes forwarding to paused custody, private-auth refusal and unchanged
+  upload documents; the temporary loopback server was stopped afterwards;
+- API build and full API TypeScript checks;
+- 365 local Markdown link targets and structured core-receipt invariants,
+  including consecutive nonces, unique successful transactions and receipt-fee
+  sum matching the observed account debit.
+
+The underlying deployed source's
+[merged-dev quality run](https://github.com/knzeng-e/dotify/actions/runs/44770089188)
+also passes at `146fb446`. New-PR CI remains separate from these local checks.
+No paused-mode service activation, hosted namespace/policy change, production
+artifact delivery or physical-device acceptance is established by these tests.
