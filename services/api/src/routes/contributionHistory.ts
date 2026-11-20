@@ -15,19 +15,20 @@ export function createContributionHistoryRoutes(ledger: NativeContributionLedger
   return async (app: FastifyInstance) => {
     // A full 10,000-receipt history takes 100 pages. Allow four scheduled
     // refreshes/minute plus two full manual refreshes; retain an IP abuse bound.
-    app.post('/api/contributions/history', { config: { rateLimit: { max: 600, timeWindow: '1 minute' } } }, async (request, reply) => {
-      reply.header('Cache-Control', 'no-store');
-      const input = query.safeParse(request.body);
-      if (!input.success) return reply.code(400).send({ code: 'INVALID_HISTORY_QUERY', error: 'Choose valid artist accounts.', requestId: request.id });
-      if (!enabled)
-        return reply.code(503).send({ code: 'NATIVE_HISTORY_UNAVAILABLE', error: 'Native support history is not configured.', requestId: request.id });
-      try {
-        return await ledger.history(input.data.runtimes, input.data.offset, input.data.revision);
-      } catch {
-        return reply
-          .code(503)
-          .send({ code: 'NATIVE_HISTORY_UNAVAILABLE', error: 'Support history could not be read. Try refreshing again.', requestId: request.id });
-      }
-    });
+    for (const kind of ['contributions', 'royalties'] as const)
+      app.post(`/api/${kind}/history`, { config: { rateLimit: { max: 600, timeWindow: '1 minute' } } }, async (request, reply) => {
+        reply.header('Cache-Control', 'no-store');
+        const input = query.safeParse(request.body);
+        if (!input.success) return reply.code(400).send({ code: 'INVALID_HISTORY_QUERY', error: 'Choose valid artist accounts.', requestId: request.id });
+        if (!enabled)
+          return reply.code(503).send({ code: 'NATIVE_HISTORY_UNAVAILABLE', error: 'Native support history is not configured.', requestId: request.id });
+        try {
+          return await ledger.history(input.data.runtimes, input.data.offset, input.data.revision, kind);
+        } catch {
+          return reply
+            .code(503)
+            .send({ code: 'NATIVE_HISTORY_UNAVAILABLE', error: 'Support history could not be read. Try refreshing again.', requestId: request.id });
+        }
+      });
   };
 }

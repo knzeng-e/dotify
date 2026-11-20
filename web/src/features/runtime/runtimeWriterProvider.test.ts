@@ -27,6 +27,7 @@ const viemWriter = {
 };
 
 const productWriter = {
+  getRoyaltyReceiptWarning: vi.fn<NonNullable<RuntimeWritePort['getRoyaltyReceiptWarning']>>(),
   contributionCall: vi.fn<NonNullable<RuntimeWritePort['contributionCall']>>(async () => txHash),
   createRuntime: vi.fn(async () => txHash),
   installRuntimeStep: vi.fn(async () => txHash),
@@ -50,6 +51,7 @@ vi.mock('./productCdmRuntimeAdapter', () => ({
 afterEach(() => {
   vi.clearAllMocks();
   vi.unstubAllEnvs();
+  vi.unstubAllGlobals();
   vi.resetModules();
   vi.doUnmock('./productCdmContracts');
   vi.doUnmock('@parity/product-sdk/wallet');
@@ -109,6 +111,28 @@ describe('createRuntimeWriter', () => {
     const { createProductSignerManager } = await import('./runtimeWriterProvider');
     await expect(createProductSignerManager()).rejects.toThrow('Runtime 0.31.x');
     expect(SignerManager).not.toHaveBeenCalled();
+  });
+  it.each(['purchase', 'royalty-claim'])('preserves the Runtime gate before %s setup after receipt integration', async operation => {
+    vi.stubEnv('VITE_DOTIFY_RUNTIME_ADAPTER', 'product-cdm');
+    const { SignerManager, signerManager } = mockProductSigner();
+    transactionHost.mockRejectedValueOnce(new Error('Runtime 0.31.x required'));
+    const createProductCdmContracts = vi.fn();
+    vi.doMock('./productCdmContracts', () => ({ createProductCdmContracts }));
+    const getViemWalletClient = vi.fn();
+    const createRuntimeWriter = await loadProvider();
+    const writer = createRuntimeWriter({
+      ethRpcUrl: 'https://rpc.example',
+      getViemWalletClient,
+      config: { kind: 'product-cdm', productEnvironment: 'devnet' }
+    });
+    const request = operation === 'purchase' ? writer.payForAccess(accessIntent(42n)) : writer.claimRoyalty(runtime, productH160Address);
+    await expect(request).rejects.toThrow('Runtime 0.31.x');
+    expect(SignerManager).not.toHaveBeenCalled();
+    expect(signerManager.connect).not.toHaveBeenCalled();
+    expect(createProductCdmContracts).not.toHaveBeenCalled();
+    expect(productWriter.payForAccess).not.toHaveBeenCalled();
+    expect(productWriter.claimRoyalty).not.toHaveBeenCalled();
+    expect(getViemWalletClient).not.toHaveBeenCalled();
   });
   it('checks native receipts through the API without creating a host chain connection or signer', async () => {
     vi.stubEnv('VITE_DOTIFY_RUNTIME_ADAPTER', 'product-cdm');
@@ -219,7 +243,12 @@ describe('createRuntimeWriter', () => {
     expect(createProductCdmContracts).toHaveBeenCalledWith({ environment: 'devnet', signerManager });
     expect(verifyDeployment).toHaveBeenCalledTimes(1);
     expect(createProductCdmRuntimeWriter).toHaveBeenCalledTimes(1);
-    expect(createProductCdmRuntimeWriter).toHaveBeenCalledWith({ contracts: resolver, nativeTokenDecimals: 10, getPaymentSigner: expect.any(Function) });
+    expect(createProductCdmRuntimeWriter).toHaveBeenCalledWith({
+      contracts: resolver,
+      nativeTokenDecimals: 10,
+      getPaymentSigner: expect.any(Function),
+      onRoyaltyFinalized: expect.any(Function)
+    });
     expect(productWriter.createRuntime).toHaveBeenCalledWith(factory);
     expect(productWriter.payForAccess).toHaveBeenCalledWith(intent);
     expect(productWriter.claimRoyalty).toHaveBeenCalledWith(runtime, productH160Address);
@@ -237,6 +266,39 @@ describe('createRuntimeWriter', () => {
     expect(writer.contributionConfirmationMode).toBe('finalized-event');
     expect(createViemRuntimeWriter).not.toHaveBeenCalled();
     expect(getViemWalletClient).not.toHaveBeenCalled();
+  });
+
+  it('wires receipt-storage preflight and preserves the Product writer history warning', async () => {
+    vi.stubEnv('VITE_DOTIFY_RUNTIME_ADAPTER', 'product-cdm');
+    const stored = new Map<string, string>();
+    const setItem = vi.fn((key: string, value: string) => {
+      stored.set(key, value);
+    });
+    vi.stubGlobal('localStorage', { getItem: (key: string) => stored.get(key) ?? null, setItem });
+    mockProductSigner();
+    vi.doMock('./productCdmContracts', () => ({
+      createProductCdmContracts: vi.fn(async () => ({ resolver: {}, nativeTokenDecimals: 10, verifyDeployment: vi.fn(async () => undefined) }))
+    }));
+    vi.resetModules();
+    const createRuntimeWriter = await loadProvider();
+    const writer = createRuntimeWriter({
+      ethRpcUrl: 'https://rpc.example',
+      getViemWalletClient: vi.fn(),
+      nativeReceiptApiUrl: 'https://receipt-preflight.example',
+      config: { kind: 'product-cdm', productEnvironment: 'devnet' }
+    });
+    await writer.createRuntime(factory);
+    const { createProductCdmRuntimeWriter } = await import('./productCdmRuntimeAdapter');
+    const deps = vi.mocked(createProductCdmRuntimeWriter).mock.calls[0][0];
+    await deps.beforeRoyaltySubmit?.();
+    expect(setItem).toHaveBeenCalledOnce();
+    setItem.mockImplementationOnce(() => {
+      throw new Error('quota');
+    });
+    await expect(deps.beforeRoyaltySubmit?.()).rejects.toThrow('quota');
+    const warning = { message: 'History not saved', block: { number: 123 } };
+    productWriter.getRoyaltyReceiptWarning.mockReturnValueOnce(warning);
+    expect(writer.getRoyaltyReceiptWarning?.(txHash)).toEqual(warning);
   });
 
   it('marks a Product contract dry-run failure as not submitted', async () => {

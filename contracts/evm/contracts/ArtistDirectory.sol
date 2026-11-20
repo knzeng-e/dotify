@@ -15,6 +15,8 @@ contract ArtistDirectory {
   // State
   // -------------------------------------------------------------------------
 
+  uint256 private constant ARTIST_PAGE_SIZE = 100;
+
   address public immutable deployer;
   address public factory;
 
@@ -75,12 +77,14 @@ contract ArtistDirectory {
     return _artists[index];
   }
 
-  /// @notice Returns (artists[], runtimes[]) slices for pagination.
+  /// @notice Registration-order artist/runtime pairs, capped at 100 entries.
+  /// Out-of-range offsets and zero limits return empty arrays; large limits clamp.
   function artistsPage(uint256 offset, uint256 limit) external view returns (address[] memory artists, address[] memory runtimes) {
     uint256 total = _artists.length;
-    if (offset >= total) return (new address[](0), new address[](0));
-    uint256 end = offset + limit > total ? total : offset + limit;
-    uint256 len = end - offset;
+    if (offset >= total || limit == 0) return (new address[](0), new address[](0));
+    uint256 len = total - offset;
+    if (len > limit) len = limit;
+    if (len > ARTIST_PAGE_SIZE) len = ARTIST_PAGE_SIZE;
     artists = new address[](len);
     runtimes = new address[](len);
     for (uint256 i; i < len; i++) {

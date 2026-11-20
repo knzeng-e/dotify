@@ -7,7 +7,8 @@ Refs [W37 / #292](https://github.com/knzeng-e/dotify/issues/292).
 
 Keep the W36 elected writer and confirmed chain authority. Bound outstanding
 RPC requests across nested enumeration, release and royalty reads (default 8).
-Artist directory pages retain their existing 50-entry contract view. Hash and
+Artist directory reads request 50 entries per call. The [A08 contract page policy](../reference/contracts-api.md#directory-page-bounds-a08)
+caps each response independently of these indexer budgets. Hash and
 release work runs in bounded batches; no Multicall contract or JSON-RPC batch
 support is assumed on Product DevNet. W38 owns paged track views and contract
 bounds; W37 does not truncate rights data to meet a proposed future limit.
@@ -85,3 +86,10 @@ progress, so rollback requires a quiesced writer and a forced reindex before
 serving keys; it may be much slower. Never roll W36 shared trust state back to
 local state. No content keys, receipts, permanent encryption nonces, contracts,
 wallet protocol, permissions or room signaling change in W37.
+
+## A01 refinement, 2026-11-18
+
+The [artist-runtime isolation reference](../reference/catalog-runtime-isolation.md)
+defines the bounded source candidate for local execution/ABI failures, persisted
+exclusions and full-rescan repair. It refines failure handling without changing
+confirmed checkpoints, shared writer fencing or content/progress ownership.

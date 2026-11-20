@@ -344,6 +344,29 @@ describe('W36 real PostgreSQL / independent API processes', () => {
     assert.deepEqual(await y.load(), legacy);
     await x.asWriter(async () => x.save(snapshot));
   });
+  it('persists runtime exclusions across writer handover, compact reader reuse and process restart', async () => {
+    const x = new PostgresCatalogSnapshotStore(a),
+      y = new PostgresCatalogSnapshotStore(b);
+    const excluded: CatalogSnapshot = {
+      ...snapshot,
+      excludedRuntimes: [{ runtimeAddress: identity.directory, code: 'execution-failed', reason: 'Runtime interface unavailable.' }]
+    };
+    await x.asWriter(() => x.save(excluded));
+    const initial = await y.load();
+    await x.asWriter(() => x.saveProgress({ ...excluded, lastIndexedBlock: 11 }));
+    const compact = await y.load();
+    assert.equal(compact?.releases, initial?.releases);
+    assert.equal(compact?.excludedRuntimes, initial?.excludedRuntimes);
+    assert.deepEqual(compact?.excludedRuntimes, excluded.excludedRuntimes);
+    const restarted = await new PostgresCatalogSnapshotStore(b).load();
+    assert.equal(restarted?.lastIndexedBlock, 11);
+    assert.deepEqual(restarted?.excludedRuntimes, excluded.excludedRuntimes);
+    await x.asWriter(() => x.save({ ...snapshot, lastIndexedBlock: 12, excludedRuntimes: [] }));
+    const repaired = await y.load();
+    assert.deepEqual(repaired?.excludedRuntimes, []);
+    assert.notEqual(repaired?.releases, compact?.releases);
+    await x.asWriter(() => x.save(snapshot));
+  });
   it('does not combine an older header with newer arrays when concurrent catalog reads finish out of order', async () => {
     const x = new PostgresCatalogSnapshotStore(a),
       y = new PostgresCatalogSnapshotStore(b);

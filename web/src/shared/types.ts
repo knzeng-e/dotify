@@ -125,7 +125,7 @@ export type CatalogTrack = {
 
 export type OnchainTrackRecord = {
   artist: `0x${string}`;
-  tokenId: bigint;
+
   title: string;
   artistName: string;
   description: string;
@@ -338,6 +338,8 @@ export type RoyaltyPayment = {
   pendingTotalWei?: bigint;
   claimedAtMs?: number | null;
   claimTransactionHash?: `0x${string}`;
+  proofKind?: TransactionProofKind;
+  claimProofKind?: TransactionProofKind;
   paidAtMs: number | null;
   transactionHash: `0x${string}`;
   blockNumber: bigint;

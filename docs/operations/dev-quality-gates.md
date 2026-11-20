@@ -142,6 +142,16 @@ synthetic data, not the real Host bridge or key-delivery service. All fixture
 scripts end in `.test.ts` and are excluded from the production API build.
 Do not publish the fixture server or copy these local settings into Fly/Netlify.
 
+The WebKit compatibility Room case first requires measured source PCM after an
+explicit Play gesture and pauses the source before connecting the loopback
+guest. This avoids starting every WebKit audio/RTC consumer against an unprimed
+source. Chromium and Firefox retain their cold-capture path; pre-playing Firefox
+before attaching RTC shifts its reported final duration. Every engine must
+preserve Pause and media position during negotiation, then produce measured
+source and guest signal after explicit Play. Both RMS thresholds and the strict
+authenticated end-of-track check remain required; a moving clock or RTC counters
+alone cannot pass the case.
+
 The matrix's four intentional exclusions concern native HTTP-congestion cases
 and WebKit progressive capture energy. PCM decoding at all three qualities and
 compatibility guest-signal checks remain active on every engine/transport.

@@ -2,8 +2,36 @@
 
 The [coordinated SDK 0.45 candidate](design/product-sdk-045-migration.md) upgrades
 the Product family together and corrects legacy public-info decoding. Transaction
-signers require a verified 0.31.x Runtime; named-Host acceptance remains before
-deployment. Deployed clients retain their prior pins; CASH stays disabled.
+signers require a reported 0.31.x Runtime. The owner's new iPhone build 23
+configuration supplies a target for [device qualification](how-to/qualify-product-host-031.md),
+not a passed signing/media result. Deployed clients retain their prior pins;
+CASH stays disabled.
+
+The [20 November A05 paid-access decision](reference/paid-release-access.md)
+keeps earlier buyers authorized across access-mode changes while the release
+remains active. It is a source candidate for the matched fresh generation;
+withdrawal, upgrade and availability boundaries remain explicit.
+
+The [18 November audit checkpoint](backlog/implementation/listening-and-publication-readiness.md#smart-runtime-audit-checkpoint-2026-11-18)
+puts payment/contract corrections before further CASH work. The merged
+[artist-runtime catalogue isolation](reference/catalog-runtime-isolation.md) is
+followed by merged [finalized key authority](reference/finalized-key-authority.md).
+Merged [artist authority](reference/runtime-artist-authority.md)
+keeps artist identity separate from delegated technical administration.
+Merged [NFT-free prices](reference/native-price-without-nft.md) provide exact
+EVM/native prices, without token minting or holder-based access.
+Merged [supported personhood handling](reference/personhood-status-policy.md)
+keeps unknown/malformed evidence closed and typed diagnostics non-reverting.
+Merged [directory pagination](reference/contracts-api.md#directory-page-bounds-a08)
+bounds individual responses without overflowing or skipping artists in supported readers.
+A complete fresh testnet generation follows the remaining audit fixes; no reset
+or deployment is recorded by this source change. Earlier dated checkpoints
+below retain their own scope.
+
+The [17 November SDK/Host investigation](design/product-sdk-host-upgrade-decision-2026-11-17.md)
+retains the older phone/Desktop observations. The [20 November owner evidence](backlog/implementation/evidence/product-host-ios-031-2026-11-20.md)
+now starts qualification under #85/#483. Deployed pins are unchanged; CASH
+still awaits actual Host, amount-unit and settlement evidence.
 
 [The Bulletin Room baseline and repeat](backlog/implementation/evidence/bulletin-room-baseline-2026-11-17.md)
 succeed on Eskapade à engong with 1.807-s and 0.842-s media preparation. Owner
@@ -93,8 +121,21 @@ choose the reader, give each rule one home and keep evidence tied to its artifac
 For slow Room startup, [collect comparable listening reports](how-to/measure-room-startup.md),
 including successful starts and physical locked-screen observations.
 
+## Qualify the Product candidate
+
+[Runtime 0.31 iPhone procedure](how-to/qualify-product-host-031.md): bind the
+candidate, collect non-spending info, then separate identity, matched-generation
+media and native payment acceptance.
+
 ## Look something up
 
+- [Paid release access while active](reference/paid-release-access.md): mode changes, deactivation, signed keys and trust boundaries
+- [Directory page bounds](reference/contracts-api.md#directory-page-bounds-a08): maximum page size, cursor handling and compatible readers
+- [Supported personhood evidence](reference/personhood-status-policy.md): raw/typed diagnostics, unsupported tiers and fail-closed access
+- [Exact prices and NFT-free releases](reference/native-price-without-nft.md): native precision, record ABI and coordinated fresh-generation delivery
+- [Artist identity and administration](reference/runtime-artist-authority.md): stable publishing/profile authority and accepted administration transfer
+- [Finalized key authority](reference/finalized-key-authority.md): irreversible key grants and conservative current-state denials
+- [Artist-runtime catalogue isolation](reference/catalog-runtime-isolation.md): admission budgets, exclusions, freshness and repair
 - [Bulletin proof read coordination](adr/0058-coordinate-bulletin-proof-loads.md): avoid duplicate block downloads while retaining per-query checks
 - [Server Node runtime and offline reader packaging](reference/server-runtime.md)
 - [Environment variables](reference/environment-variables.md)
@@ -134,6 +175,8 @@ A screenshot or browser fixture is not proof of native signing, settlement,
 background audio or physical-device behavior.
 
 ## Direction and history
+
+The proposed [relational experiences](design/relational-experiences.md) unite Rooms, place-based Imprints and artist-authored Resonance Gardens. The [community-gated roadmap](backlog/relational-experience-roadmap.md) describes exploratory steps and their technical/human checkpoints **without replacing the selected production-readiness sequence** or GitHub Project 5 statuses.
 
 The [implementation plan](backlog/implementation/README.md) defines scope and
 sequence; [Project 5](https://github.com/users/knzeng-e/projects/5) owns live

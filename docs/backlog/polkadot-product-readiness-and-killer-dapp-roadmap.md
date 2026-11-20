@@ -1,5 +1,18 @@
 # Polkadot product readiness and killer dapp roadmap
 
+## New iPhone qualification target, 2026-11-20
+
+P1 · Product SDK · Now · Epic (#85).
+
+The [owner's screenshots](implementation/evidence/product-host-ios-031-2026-11-20.md)
+show Polkadot App 0.10.0 (23) with Runtime 0.31.0 configured and a native CASH
+screen. #85 / #483 now resumes qualification on that target, following the
+[device procedure](../how-to/qualify-product-host-031.md), with current dev's
+audit/payment fixes integrated. Actual `system.info`, identity/signing, native
+receipt/recovery and matched-generation media results remain unaccepted.
+Screenshots do not establish Dotify CASH support or units. #406 remains Next
+research and #408 Later research; no payment or service delivery occurs here.
+
 ## Coordinated SDK migration candidate — 2026-11-17
 
 The owner selects a direct current-family migration. The [SDK 0.45 candidate](../design/product-sdk-045-migration.md)

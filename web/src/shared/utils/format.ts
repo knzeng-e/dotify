@@ -1,4 +1,5 @@
-import { formatEther, parseEther } from 'viem';
+import { parseExactEvmAmount } from '../../features/runtime/nativePrice';
+import { formatEther } from 'viem';
 import type { AccessMode, CatalogTrack, PeerStatus, PlayerState } from '../types';
 
 export function formatTime(seconds: number) {
@@ -18,7 +19,7 @@ export function progressPercent(state: PlayerState | null) {
 // The contract field is still named pricePlanck for historical/Substrate
 // context, but Asset Hub EVM msg.value uses 18-decimal contract units.
 export function dotToPlanck(dot: string) {
-  return parseEther(dot.trim() || '0');
+  return parseExactEvmAmount(dot);
 }
 
 export function formatWeiAsDot(wei: bigint) {

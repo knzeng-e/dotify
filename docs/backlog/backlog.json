@@ -25,6 +25,76 @@
   },
   "items": [
     {
+      "id": "preserve-paid-release-access",
+      "doc": "docs/backlog/preserve-paid-release-access.md",
+      "issue": 499,
+      "kind": "work",
+      "priority": "P2",
+      "track": "Production spine",
+      "phase": "Now",
+      "note": "A05 owner decision: retain a prior Classic buyer’s access to the same active release across policy changes; deactivation still denies and preserves history. Matched fresh-generation source correction, with no deployment or old-state migration."
+    },
+    {
+      "id": "bounded-contract-pagination",
+      "doc": "docs/backlog/bounded-contract-pagination.md",
+      "issue": 497,
+      "kind": "work",
+      "priority": "P3",
+      "track": "Production spine",
+      "phase": "Now",
+      "note": "A08: subtraction-based artist pages capped at 100, compatible API/Web/Product readers and unchanged independent indexing budgets. Source correction for the selected fresh directory; no deployment or migration."
+    },
+    {
+      "id": "personhood-status-policy",
+      "doc": "docs/backlog/personhood-status-policy.md",
+      "issue": 495,
+      "kind": "work",
+      "priority": "P3",
+      "track": "Production spine",
+      "phase": "Now",
+      "note": "A06 bounded audit correction: supported personhood status, typed diagnostics and HumanFree access agree; malformed or unknown evidence denies without decoding/enum panic. No W17 activation or deployment."
+    },
+    {
+      "id": "native-price-without-nft",
+      "doc": "docs/backlog/native-price-without-nft.md",
+      "issue": 493,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Now",
+      "note": "A07 exact native-compatible price policy and owner-requested NFT removal for a coordinated fresh generation; no deployment or old-state migration."
+    },
+    {
+      "id": "runtime-artist-authority",
+      "doc": "docs/backlog/runtime-artist-authority.md",
+      "issue": 490,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Now",
+      "note": "A03: owner-confirmed administration-only transfer, stable artist publication/profile authority, two-step ownership and finalized/current API identity checks. Matched fresh contracts/API and generated bindings; no old-generation migration or deployment."
+    },
+    {
+      "id": "finalized-key-authority",
+      "doc": "docs/backlog/finalized-key-authority.md",
+      "issue": 488,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Now",
+      "note": "Audit A09: require finalized and current pinned authority for irreversible keys, with both-state cache identity and a retry-only pending-finality response. API/client source scope; exact endpoint acceptance and remaining audit corrections precede fresh deployment."
+    },
+    {
+      "id": "catalog-runtime-isolation",
+      "doc": "docs/backlog/catalog-runtime-isolation.md",
+      "issue": 486,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Now",
+      "note": "Audit A01: isolate deterministic runtime/ABI faults and bounded reader-policy excess from provider outages, atomically persist exclusions and recover by full rescan. Code scope only; matched API delivery, native acceptance and remaining audit fixes precede the owner-selected fresh testnet generation."
+    },
+    {
       "id": "bulletin-published-graph-backup",
       "doc": "docs/backlog/bulletin-published-graph-backup.md",
       "issue": 451,
@@ -92,7 +162,7 @@
       "priority": "P2",
       "track": "Product SDK",
       "phase": "Next",
-      "note": "Bounded reassessment candidate identifies caller-id/partial status in published TrUAPI 0.26.0, absent from pinned Host SDK 0.28.0/TrUAPI 0.25.0. Offline fault tests and dated no-go keep work tips unavailable pending matched shipped Host, exact units, durable recovery and artist-policy split/Room receipts. #85 compatibility is the next gate; no SDK upgrade, funded action or access grant. Canonical decision: docs/design/product-cash-tip-decision-2026-11-13.md."
+      "note": "Bounded reassessment candidate identifies caller-id/partial status in published TrUAPI 0.26.0, absent from pinned Host SDK 0.28.0/TrUAPI 0.25.0. Offline fault tests and dated no-go keep work tips unavailable pending matched shipped Host, exact units, durable recovery and artist-policy split/Room receipts. #85 compatibility is the next gate; no SDK upgrade, funded action or access grant. Canonical decision: docs/design/product-cash-tip-decision-2026-11-13.md. New owner iPhone 0.31 configuration evidence is recorded on 20 November; #85 owns actual Host qualification. Native CASH UI does not close support/unit/recovery/artist-policy gates."
     },
     {
       "id": "product-cash-access-settlement",
@@ -390,8 +460,8 @@
       "kind": "epic",
       "priority": "P1",
       "track": "Product SDK",
-      "phase": "Product feasibility",
-      "note": "Web/Product 0.1.84 delivers About-only public Host software labels. SDK 0.39.0 / Host SDK 0.28.0 / TrUAPI 0.25.0 pins are unchanged; actual named-Host labels, signing/media/location, wire and payment acceptance remain open. A version label is not capability proof. Canonical delivery: docs/backlog/implementation/evidence/product-0.1.84-rollout-2026-11-14.md."
+      "phase": "Now",
+      "note": "Owner-selected #85/#483 qualification on 20 November: iPhone screenshots show Polkadot App 0.10.0 (23) with Runtime 0.31.0 configured. Candidate SDK 0.45 integrates tested dev after #500; actual info/signing and matched-generation native/media acceptance remain pending. Deployed pins are unchanged; CASH stays disabled."
     },
     {
       "id": "catalog-read-model",
@@ -862,6 +932,16 @@
       "track": "Production spine",
       "phase": "Record",
       "note": "Completed code scope in #454, merged into tested dev 93e99042: explicit offline published-audio authentication with separately supplied trusted scope/digests and versioned keys. Generated coverage only; real independent recovery remains in #407. No transfer, deployment or writer authority."
+    },
+    {
+      "id": "native-payment-settlement-parity",
+      "doc": "docs/backlog/native-payment-settlement-parity.md",
+      "issue": 484,
+      "kind": "work",
+      "priority": "P1",
+      "track": "Production spine",
+      "phase": "Now",
+      "note": "Owner-requested correction before CASH: bounded relative native payout budgets, finalized Product royalty claims, verified native access/claim history, EVM/native deduplication and explicit beneficiary/self-payment presentation. Source candidate only; clean full testnet redeployment replaces old-state migration. Receipt preflight/post-finality warnings, runtime-recipient rejection and 34-entry payout isolation are included; remaining audit fixes, matched rollout and live Revive/Host acceptance remain separate."
     }
   ]
 }

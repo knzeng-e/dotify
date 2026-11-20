@@ -16,7 +16,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { getGatewayUrl, type ProtectedAudioUpload } from '../services/pinata';
 import { resolveEvmChain } from '../shared/config/contracts';
 import { hexToBytes } from '../shared/utils/crypto';
-import { formatWeiAsDot, normalizeDisplayText, shorten, shortenAddress } from '../shared/utils/format';
+import { normalizeDisplayText, shorten, shortenAddress } from '../shared/utils/format';
 import {
   isKeyServiceConfigured,
   requestContentKey,
@@ -1431,7 +1431,10 @@ export function useCatalog(deps: UseCatalogDeps) {
               ...buildClassicAccessVerifiedFeedback(receiptTrack, result.txHash, receiptAsset),
               proofKind: supportProofKind,
               facts: buildSupportFacts(receiptTrack, receiptAsset, 'confirmed'),
-              technicalFacts: buildSupportTechnicalFacts(receiptTrack, receiptAsset, 'confirmed')
+              technicalFacts: [
+                ...buildSupportTechnicalFacts(receiptTrack, receiptAsset, 'confirmed'),
+                ...(result.historyWarning ? [{ label: 'Payment history', value: result.historyWarning }] : [])
+              ]
             }
           : { tone: 'success', title: 'Listening access available', message: 'This account can already listen. No payment was sent.' }
       );
@@ -1514,7 +1517,7 @@ export function useCatalog(deps: UseCatalogDeps) {
         artistAddress: track.artist || artistAddress,
         audioRef: track.audioRef,
         imageRef,
-        priceDot: formatWeiAsDot(track.pricePlanck),
+        priceDot: formatEther(track.pricePlanck),
         pricePlanck: track.pricePlanck,
         localUrl,
         description: track.description,

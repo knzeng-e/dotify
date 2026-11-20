@@ -16,7 +16,7 @@ const legacyTxHash = `0x${'de'.repeat(32)}` as const;
 function baseTrackRecord(patch: Partial<OnchainTrackRecord> = {}): OnchainTrackRecord {
   return {
     artist,
-    tokenId: 1n,
+
     title: 'Runtime song',
     artistName: 'Runtime artist',
     description: 'On-chain description',
@@ -35,6 +35,31 @@ function baseTrackRecord(patch: Partial<OnchainTrackRecord> = {}): OnchainTrackR
 }
 
 describe('createViemRuntimeReader', () => {
+  it('reads all 207 directory entries across bounded Web pages without skipping the final page', async () => {
+    const entries = Array.from({ length: 207 }, (_, i) => ({
+      artist: `0x${(1000 + i).toString(16).padStart(40, '0')}` as const,
+      runtime: `0x${(2000 + i).toString(16).padStart(40, '0')}` as const
+    }));
+    const pages: bigint[][] = [];
+    const readContract = vi.fn(async ({ functionName, args }: { functionName: string; args: bigint[] }) => {
+      expect(functionName).toBe('artistsPage');
+      const [offset, limit] = args;
+      expect(limit > 0n && limit <= 100n).toBe(true);
+      pages.push(args);
+      const page = entries.slice(Number(offset), Number(offset + limit));
+      return [page.map(entry => entry.artist), page.map(entry => entry.runtime)];
+    });
+    const reader = createViemRuntimeReader({ ethRpcUrl: 'http://localhost:8545', publicClient: { readContract } as never });
+    await expect(reader.listArtistRuntimes(directory, 207n)).resolves.toEqual(entries);
+    expect(pages).toEqual([
+      [0n, 50n],
+      [50n, 50n],
+      [100n, 50n],
+      [150n, 50n],
+      [200n, 7n]
+    ]);
+  });
+
   it('paginates directory runtimes and filters zero-address entries', async () => {
     const readContract = vi.fn(async ({ functionName, args }: { functionName: string; args?: unknown[] }) => {
       if (functionName !== 'artistsPage') throw new Error(`unexpected ${functionName}`);
@@ -62,7 +87,7 @@ describe('createViemRuntimeReader', () => {
         case 'musicRegTrackHashesPage':
           return [hash];
         case 'musicRegGetTrack':
-          return [record, runtime];
+          return record;
         case 'musicRoySplitCount':
           return 1n;
         case 'musicRoySplitAt':
@@ -121,7 +146,7 @@ describe('createViemRuntimeReader', () => {
         case 'musicRegTrackHashesPage':
           return [hash];
         case 'musicRegGetTrack':
-          return [record, runtime];
+          return record;
         case 'musicRoySplitCount':
           return 10_000n;
         default:
@@ -172,6 +197,7 @@ describe('createViemRuntimeReader', () => {
     await expect(reader.listRoyaltyPaymentLogs(runtime, splitRecipient)).resolves.toEqual([
       {
         runtimeAddress: runtime,
+        proofKind: 'evm-transaction',
         trackHash: hash,
         listener,
         recipient: splitRecipient,
@@ -184,6 +210,7 @@ describe('createViemRuntimeReader', () => {
       },
       {
         runtimeAddress: runtime,
+        proofKind: 'evm-transaction',
         trackHash: hash,
         listener,
         recipient: splitRecipient,
@@ -196,7 +223,8 @@ describe('createViemRuntimeReader', () => {
         logIndex: 4
       }
     ]);
-    expect(getLogs).toHaveBeenCalledWith(expect.objectContaining({ args: { recipient: splitRecipient } }));
+    expect(getLogs).toHaveBeenCalledWith(expect.objectContaining({ toBlock: 'finalized' }));
+    expect(getLogs.mock.calls.every(([request]) => !('args' in request))).toBe(true);
   });
 
   it('reconciles claimable accrual rows after successful royalty claims', async () => {
@@ -239,6 +267,7 @@ describe('createViemRuntimeReader', () => {
     await expect(reader.listRoyaltyPaymentLogs(runtime, splitRecipient)).resolves.toMatchObject([
       {
         runtimeAddress: runtime,
+        proofKind: 'evm-transaction',
         trackHash: hash,
         listener,
         recipient: splitRecipient,
@@ -251,6 +280,7 @@ describe('createViemRuntimeReader', () => {
       },
       {
         runtimeAddress: runtime,
+        proofKind: 'evm-transaction',
         trackHash: hash,
         listener,
         recipient: splitRecipient,
@@ -302,6 +332,7 @@ describe('createViemRuntimeReader', () => {
     await expect(reader.listRoyaltyPaymentLogs(runtime, splitRecipient)).resolves.toEqual([
       {
         runtimeAddress: runtime,
+        proofKind: 'evm-transaction',
         trackHash: hash,
         listener,
         recipient: splitRecipient,
@@ -314,6 +345,7 @@ describe('createViemRuntimeReader', () => {
       },
       {
         runtimeAddress: runtime,
+        proofKind: 'evm-transaction',
         trackHash: hash,
         listener,
         recipient: splitRecipient,
@@ -364,7 +396,7 @@ describe('createViemRuntimeWriter', () => {
       estimatedFee: undefined,
       detail: expect.stringContaining('Fee estimate unavailable')
     });
-    expect(() => writer.payForAccess({ ...intent, rail: 'product-cash' } as never)).toThrow(/CASH settlement is not executable/);
+    await expect(writer.payForAccess({ ...intent, rail: 'product-cash' } as never)).rejects.toThrow(/CASH settlement is not executable/);
     expect(writeContract).not.toHaveBeenCalled();
   });
 
@@ -397,7 +429,7 @@ describe('createViemRuntimeWriter', () => {
     const writer = createViemRuntimeWriter({
       ethRpcUrl: 'http://localhost:8545',
       walletClient: { account: { address: artist }, getChainId, writeContract } as never,
-      publicClient: { estimateContractGas, getChainId, getGasPrice, waitForTransactionReceipt } as never
+      publicClient: { readContract: vi.fn(async () => 18), estimateContractGas, getChainId, getGasPrice, waitForTransactionReceipt } as never
     });
 
     await expect(writer.createRuntime(factory)).resolves.toBe(`${txHash}:createRuntime`);
@@ -460,7 +492,7 @@ describe('createViemRuntimeWriter', () => {
     const writer = createViemRuntimeWriter({
       ethRpcUrl: 'https://eth-rpc-testnet.polkadot.io/',
       walletClient: { account: { address: artist }, getChainId: vi.fn(async () => 1), writeContract } as never,
-      publicClient: { getChainId: vi.fn(async () => 420420417), estimateContractGas } as never
+      publicClient: { readContract: vi.fn(async () => 18), getChainId: vi.fn(async () => 420420417), estimateContractGas } as never
     });
 
     await expect(writer.registerTrack(runtime, runtimeRegistration())).rejects.toThrow(/Wallet is connected to chain 1/);

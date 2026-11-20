@@ -1,9 +1,10 @@
 // Read-only preparation for the owner-requested fresh testnet deployment.
 import hre from 'hardhat';
 import { formatEther, keccak256 } from 'viem';
-import { getDeployConfig, readDeployments } from './smartRuntime';
+import { getDeployConfig, nativeTokenDecimalsForDeployment, readDeployments } from './smartRuntime';
 async function main() {
   if (hre.network.name !== 'polkadotTestnet') throw new Error('Fresh-reset planning targets the existing test environment only');
+  const nativeTokenDecimals = nativeTokenDecimalsForDeployment();
   const cfg = await getDeployConfig(hre);
   const client = cfg.client?.public;
   const wallet = cfg.client?.wallet;
@@ -15,7 +16,6 @@ async function main() {
     'DiamondLoupePallet',
     'OwnershipPallet',
     'MusicRegistryPallet',
-    'MusicNFTPallet',
     'MusicRoyaltiesPallet',
     'MusicAccessPallet',
     'DotifyRuntimeInitializer',
@@ -29,11 +29,12 @@ async function main() {
     JSON.stringify({
       schema: 'dotify.fresh-deployment-plan.v1',
       chainId,
+      nativeTokenDecimals,
       deployer: wallet.account.address,
       balanceTestPas: formatEther(await client.getBalance({ address: wallet.account.address })),
       previous: readDeployments(),
       contracts: artifacts,
-      plannedTransactions: 11,
+      plannedTransactions: 10,
       oldDeploymentModified: false,
       oldIpfsContentDeleted: false
     })

@@ -4,7 +4,7 @@ import { prepareHostCompactMedia } from '../../src/features/catalog/bulletinComp
 import { readStreamingManifest, decryptStreamingMedia } from '../../src/features/catalog/streamingFormat';
 import { compatibilityMp4 } from '../../src/features/catalog/compatibilityMp4';
 import { registerAudioGain, forgetAudioGain, attachAudioNormalization, normalizedAudioCapture } from '../../src/features/player/audioNormalization';
-import { resumeHostAudioOutput, releaseHostAudioOutput } from '../../src/features/player/hostAudioOutput';
+import { pauseHostAudio, resumeHostAudioOutput, releaseHostAudioOutput } from '../../src/features/player/hostAudioOutput';
 import { audioOutputObservations } from '../../src/features/player/audioOutputLifecycle';
 import type { StreamingScope } from '../../src/features/catalog/streamingFormat';
 
@@ -190,6 +190,7 @@ export const harness = {
       )
     ),
   power,
+  pause: () => pauseHostAudio(audio),
   guestPower: () => power(guestAnalyser),
   seek: (seconds: number) => {
     audio.currentTime = seconds;

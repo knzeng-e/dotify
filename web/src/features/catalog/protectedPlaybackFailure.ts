@@ -36,7 +36,7 @@ export class ProtectedPlaybackError extends Error {
 // KEY_SERVICE_ERROR is the client fallback for a response without a typed code
 // (proxy 5xx, rate limit). The others are typed by services/api.
 const SERVICE_ERROR_CODES = new Set(['KEY_SERVICE_ERROR', 'RPC_UNAVAILABLE', 'CATALOG_UNAVAILABLE', 'SESSION_UNAVAILABLE']);
-const ACCESS_ERROR_CODES = new Set(['LISTENER_ACCESS_REQUIRED', 'HOST_ACCESS_REQUIRED', 'NOT_FREE']);
+const ACCESS_ERROR_CODES = new Set(['ACCESS_PENDING_FINALITY', 'LISTENER_ACCESS_REQUIRED', 'HOST_ACCESS_REQUIRED', 'NOT_FREE']);
 
 // Wallet-side refusal only. A server "denied" is an access answer, not this.
 const WALLET_REJECTION = /\b4001\b|user rejected|request rejected|cancell?ed/i;
@@ -96,7 +96,7 @@ export function protectedPlaybackFailureCopy(kind: ProtectedPlaybackFailureKind)
     case 'access-not-confirmed':
       return {
         title: 'Your access is still being confirmed',
-        message: 'Your account has access, but the confirmation has not reached the listening service yet. This usually clears within a minute.',
+        message: 'The listening service is waiting for confirmation. Try again shortly; no new payment is needed.',
         action: 'Try again'
       };
     case 'audio-unavailable':

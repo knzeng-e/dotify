@@ -14,6 +14,7 @@ import type { RuntimeAccessPolicyUpdate, RuntimeTrackRegistration, RuntimeWriteP
 import { createViemRuntimeWriter } from './viemRuntimeAdapter';
 import { readNativeContributionReceiptApi } from './nativeContributionReceiptApi';
 import { requireProductTransactionHost } from '../productHost/productTransactionHost';
+import { nativeRoyaltyReceipts } from './nativeRoyaltyReceipts';
 
 type ViemWalletClient = Awaited<ReturnType<typeof getWalletClient>>;
 
@@ -136,7 +137,7 @@ export async function createProductSignerManager(account?: ProductRuntimeSignerA
   return manager;
 }
 
-async function createProductCdmWriter(config: RuntimeAdapterConfig, productAccount?: ProductRuntimeSignerAccount): Promise<RuntimeWritePort> {
+async function createProductCdmWriter(config: RuntimeAdapterConfig, productAccount?: ProductRuntimeSignerAccount, apiUrl?: string): Promise<RuntimeWritePort> {
   if (!PRODUCT_CDM_ENABLED) {
     throw new Error(
       'This Dotify build was not built with VITE_DOTIFY_RUNTIME_ADAPTER=product-cdm, so the Product contract write adapter is not bundled. Rebuild with that flag to use it.'
@@ -156,6 +157,13 @@ async function createProductCdmWriter(config: RuntimeAdapterConfig, productAccou
       contracts: resolver,
       nativeTokenDecimals,
       getPaymentSigner: () => signerManager.getSigner(),
+      ...(apiUrl ? { beforeRoyaltySubmit: () => nativeRoyaltyReceipts.preflight(apiUrl) } : {}),
+      onRoyaltyFinalized: async (runtime, hash, block) => {
+        if (!apiUrl) return;
+        // Persist first. A failed API call must never trigger another payment.
+        await nativeRoyaltyReceipts.enqueue(apiUrl, { runtime, hash, block });
+        void nativeRoyaltyReceipts.flush(apiUrl, runtime).catch(() => {});
+      },
       ...(address && readAvailableBalance ? { readAvailableBalance: () => readAvailableBalance(address) } : {})
     });
   } catch (error) {
@@ -175,17 +183,24 @@ async function createProductCdmWriter(config: RuntimeAdapterConfig, productAccou
 export function createRuntimeWriter(deps: RuntimeWriterDeps): RuntimeWritePort {
   const config = deps.config ?? resolveRuntimeAdapterConfig(import.meta.env);
   let productPortPromise: Promise<RuntimeWritePort> | null = null;
+  let productPort: RuntimeWritePort | undefined;
 
   function portForWrite(): Promise<RuntimeWritePort> {
     if (config.kind === 'viem') return createViemWriter(deps);
-    productPortPromise ??= createProductCdmWriter(config, deps.productAccount).catch(error => {
-      productPortPromise = null;
-      throw error;
-    });
+    productPortPromise ??= createProductCdmWriter(config, deps.productAccount, deps.nativeReceiptApiUrl ?? import.meta.env.VITE_DOTIFY_API_URL)
+      .then(port => {
+        productPort = port;
+        return port;
+      })
+      .catch(error => {
+        productPortPromise = null;
+        throw error;
+      });
     return productPortPromise;
   }
 
   return {
+    getRoyaltyReceiptWarning: hash => productPort?.getRoyaltyReceiptWarning?.(hash),
     contributionConfirmationMode: config.kind === 'product-cdm' ? 'finalized-event' : 'evm-receipt',
     readFinalizedContributionLogs: async (hash, block) => {
       if (!PRODUCT_CDM_ENABLED || config.kind !== 'product-cdm') throw new Error('Native contribution receipts require the Product CDM profile.');

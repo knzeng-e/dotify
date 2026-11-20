@@ -760,3 +760,29 @@ it('returns a non-cacheable recovery offer only after metadata authorization and
   const next = await authorize(server, 'metadata', Buffer.byteLength(JSON.stringify(validManifest)));
   assert.equal(next.statusCode, 200);
 });
+
+it('A03 denies mismatched artist identity before issuing any upload capacity and allows a later verified artist retry', async () => {
+  let allowed = false,
+    issued = 0;
+  const authorizations = createUploadAuthorizationService({ epoch: 'A03', masterSecret: () => '11'.repeat(32) });
+  const issue = authorizations.issue.bind(authorizations);
+  authorizations.issue = input => {
+    issued++;
+    return issue(input);
+  };
+  const server = await buildApp({
+    routeDeps: {
+      authorizations,
+      checkArtistAuthority: async () =>
+        allowed ? { allowed: true, runtime: RUNTIME } : { allowed: false, code: 'ARTIST_IDENTITY_MISMATCH', reason: 'Select the artist account.' }
+    }
+  });
+  const denied = await authorize(server, 'audio', audioBytes.length);
+  assert.equal(denied.statusCode, 403);
+  assert.equal(denied.json().code, 'ARTIST_IDENTITY_MISMATCH');
+  assert.equal(denied.json().uploadAuthorization, undefined);
+  assert.equal(issued, 0);
+  allowed = true;
+  assert.equal((await authorize(server, 'audio', audioBytes.length)).statusCode, 200);
+  assert.equal(issued, 1);
+});

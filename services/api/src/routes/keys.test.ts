@@ -779,3 +779,43 @@ it('checks verdict freshness after the final asynchronous session verification',
   assert.equal(response.json().reason, 'RPC_UNAVAILABLE');
   assert.equal(derived, 0);
 });
+
+it('pending finality never derives a key or suggests repaying across signed, session, queue, Free and Room-host routes', async () => {
+  let derivations = 0;
+  const pending = { allowed: false as const, code: 'ACCESS_PENDING_FINALITY' as const, reason: 'Please wait and retry; no new payment is needed.' };
+  const server = await buildApp({
+    checkTrackAccess: async () => pending,
+    checkPublicAccess: async () => pending,
+    deriveContentKey: () => {
+      derivations++;
+      return { ok: true, contentKey: KEY };
+    }
+  });
+  for (const purpose of ['individual', 'room_host']) {
+    for (const payload of [baseBody({ purpose, ...releaseRequestFields() }), { sessionToken: 'a'.repeat(32), purpose, ...releaseRequestFields() }]) {
+      const response = await server.inject({ method: 'POST', url: `/api/tracks/${CONTENT_HASH}/key-request`, payload });
+      assert.equal(response.statusCode, 200);
+      const body = response.json();
+      assert.equal(body.reason, 'ACCESS_PENDING_FINALITY');
+      assert.equal(body.hostAction.type, 'none');
+      assert.equal(body.contentKey, undefined);
+    }
+  }
+  const free = await server.inject({ method: 'POST', url: `/api/tracks/${CONTENT_HASH}/free-key`, payload: releaseRequestFields() });
+  assert.equal(free.json().reason, 'ACCESS_PENDING_FINALITY');
+  assert.equal(free.json().contentKey, undefined);
+  const prepared = await server.inject({
+    method: 'POST',
+    url: '/api/tracks/keys/prepare',
+    payload: {
+      sessionToken: 'a'.repeat(32),
+      purpose: 'room_host',
+      tracks: [{ contentHash: CONTENT_HASH, ...releaseRequestFields() }]
+    }
+  });
+  assert.equal(prepared.statusCode, 200);
+  assert.equal(prepared.json().tracks[0].reason, 'ACCESS_PENDING_FINALITY');
+  assert.equal(prepared.json().tracks[0].hostAction.type, 'none');
+  assert.equal(prepared.json().tracks[0].contentKey, undefined);
+  assert.equal(derivations, 0);
+});

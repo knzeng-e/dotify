@@ -1,5 +1,16 @@
 # Product CASH work-tip feasibility
 
+## New iPhone qualification target, 2026-11-20
+
+The [owner's screenshots](implementation/evidence/product-host-ios-031-2026-11-20.md)
+show Polkadot App 0.10.0 (23) with Runtime 0.31.0 configured and a native CASH
+screen. #85 / #483 now resumes qualification on that target, following the
+[device procedure](../how-to/qualify-product-host-031.md), with current dev's
+audit/payment fixes integrated. Actual `system.info`, identity/signing, native
+receipt/recovery and matched-generation media results remain unaccepted.
+Screenshots do not establish Dotify CASH support or units. #406 remains Next
+research and #408 Later research; no payment or service delivery occurs here.
+
 Issue #406 · P2 · Product SDK · Next · Research. Workflow: Project 5.
 
 The owner reopens bounded CASH research on 2026-11-08, after publication/listening

@@ -3,7 +3,10 @@ import type { CatalogArtist, CatalogRelease, CatalogSnapshot } from './types.js'
 
 /** Content arrays are replaced, never mutated. Metadata-only checkpoints share
  * them, so HTTP requests and progress ticks do not rehash/rebuild the catalog. */
-const views = new WeakMap<CatalogRelease[], { artists: CatalogArtist[]; excluded: CatalogSnapshot['excludedReleases']; view: CatalogContent }>();
+const views = new WeakMap<
+  CatalogRelease[],
+  { artists: CatalogArtist[]; excluded: CatalogSnapshot['excludedReleases']; runtimes: CatalogSnapshot['excludedRuntimes']; view: CatalogContent }
+>();
 export type CatalogContent = {
   revision: string;
   byId: Map<string, CatalogRelease>;
@@ -14,14 +17,16 @@ export type CatalogContent = {
 };
 export function catalogContent(snapshot: CatalogSnapshot): CatalogContent {
   const cached = views.get(snapshot.releases);
-  if (cached?.artists === snapshot.artists && cached.excluded === snapshot.excludedReleases) return cached.view;
+  if (cached?.artists === snapshot.artists && cached.excluded === snapshot.excludedReleases && cached.runtimes === snapshot.excludedRuntimes)
+    return cached.view;
   const view: CatalogContent = {
     revision: createHash('sha256')
       .update(
         JSON.stringify({
           artists: snapshot.artists,
           releases: snapshot.releases,
-          ...(snapshot.excludedReleases?.length ? { excludedReleases: snapshot.excludedReleases } : {})
+          ...(snapshot.excludedReleases?.length ? { excludedReleases: snapshot.excludedReleases } : {}),
+          ...(snapshot.excludedRuntimes?.length ? { excludedRuntimes: snapshot.excludedRuntimes } : {})
         })
       )
       .digest('hex'),
@@ -45,6 +50,6 @@ export function catalogContent(snapshot: CatalogSnapshot): CatalogContent {
     }
     if (release.active) view.active.push(release);
   }
-  views.set(snapshot.releases, { artists: snapshot.artists, excluded: snapshot.excludedReleases, view });
+  views.set(snapshot.releases, { artists: snapshot.artists, excluded: snapshot.excludedReleases, runtimes: snapshot.excludedRuntimes, view });
   return view;
 }

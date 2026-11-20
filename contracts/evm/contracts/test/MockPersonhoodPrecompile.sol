@@ -20,6 +20,16 @@ contract MockPersonhoodPrecompile {
 
   // account => context => info
   mapping(address => mapping(bytes32 => PersonhoodInfo)) private _info;
+  bytes private _rawResponse;
+  bool private _rawEnabled;
+  bool private _rawReverts;
+
+  /// @notice TEST-ONLY arbitrary return bytes, including invalid ABI words.
+  function setRawResponse(bytes calldata response, bool reverts_) external {
+    _rawResponse = response;
+    _rawEnabled = true;
+    _rawReverts = reverts_;
+  }
 
   /// @notice Set the personhood reading returned for `account` in `context`.
   function setPersonhood(address account, bytes32 context, uint8 status, bytes32 contextAlias) external {
@@ -28,6 +38,13 @@ contract MockPersonhoodPrecompile {
 
   /// @notice Matches the real precompile's signature and return shape.
   function personhoodStatus(address account, bytes32 context) external view returns (PersonhoodInfo memory info) {
+    if (_rawEnabled) {
+      require(!_rawReverts, 'MockPersonhood: unavailable');
+      bytes memory response = _rawResponse;
+      assembly {
+        return(add(response, 32), mload(response))
+      }
+    }
     return _info[account][context];
   }
 }

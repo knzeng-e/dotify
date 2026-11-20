@@ -1,5 +1,23 @@
 # Publication, listening reliability and CASH — execution order
 
+## Runtime 0.31 qualification selected, 2026-11-20
+
+#500 is merged in tested `dev` `91da9589`. The owner now selects #85 / #483
+qualification before freezing the client for the clean generation. New
+[owner screenshots](evidence/product-host-ios-031-2026-11-20.md) show iPhone
+Polkadot App 0.10.0 (23), Runtime 0.31.0 configured and native CASH UI. The
+[updated candidate](../../design/product-sdk-045-migration.md) integrates dev;
+its first device gate is an actual non-spending info report, followed by named
+account/signature and matched-generation native/media acceptance.
+
+#85 is Now / Product SDK / P1. #406 stays Next / Research, pending real support,
+units, recovery and artist distribution. #408 stays Later / Research. Clean
+contract deployment preparation can progress alongside qualification; native
+payments and protected media must use matching contracts/API/clients. Publication,
+listening, recovery and pilot gates remain open. This selects source work and
+prepares a recipe, not a deployment or funded trial. Earlier dated checkpoints
+below retain their original observations.
+
 ## Coordinated SDK 0.45 candidate, 2026-11-17
 
 The owner selects a [single current-family migration](../../design/product-sdk-045-migration.md)
@@ -7,6 +25,83 @@ with legacy info correction and explicit transaction V2 compatibility checks.
 The candidate requires a named 0.31.x Host before transaction/promotion acceptance;
 known phone 0.26 and Desktop 0.29 cannot supply that gate. Deployed versions,
 CASH, compact activation and deferred recovery keep their existing boundaries.
+
+## Paid-access decision, 2026-11-20
+
+The owner selected [A05 / #499](../preserve-paid-release-access.md): preserve a
+prior Classic buyer's access to the same active release across mode changes;
+deactivation still denies new access and reactivation restores the grant.
+The [rule](../../reference/paid-release-access.md) separates paid entitlement from
+humanity proof, availability and upgrade authority. The branch initially started
+from tested `dev` `61007d85` and now integrates `dev` `1304dbb0`, which merged
+[A08 / #498](https://github.com/knzeng-e/dotify/pull/498). A05 remains under review
+in #500. Remaining native/physical, SDK/Host and recovery/pilot gates precede
+the selected fresh generation. No live payment, deployment or old-state
+migration occurs here.
+Earlier checkpoints retain their original scope.
+
+## Bounded directory checkpoint, 2026-11-19
+
+#496 / A06 is merged into `dev` at `61007d85` with all executed CI checks passing
+(the workflow's conditional live Project check was skipped). Next source scope:
+[A08 / #497](../bounded-contract-pagination.md), a bounded directory response and
+overflow-safe arithmetic with compatible API/Web/Product readers. Its
+[page reference](../../reference/contracts-api.md#directory-page-bounds-a08)
+defines cursor behavior and limits. A05's paid-policy decision and the remaining
+native/physical acceptance gates precede the matched fresh generation. No
+redeployment, migration, SDK/Host upgrade or CASH activation occurs here.
+Earlier checkpoints below retain their original scope.
+
+## Supported personhood checkpoint, 2026-11-19
+
+#494 / A07 and NFT removal is merged into `dev` at `9767cbb6`. The next bounded
+source correction is [A06 / #495](../personhood-status-policy.md): refuse unknown
+or malformed evidence without letting typed diagnostics revert. Its
+[reader policy](../../reference/personhood-status-policy.md) preserves supported
+tiers and independent Free/Classic/artist access. A08 pagination and A05's
+product decision remain next, before the selected matched fresh generation and
+native/physical acceptance. This does not activate W17 or deploy/reset state.
+Earlier checkpoints below retain their original scope.
+
+## Exact-price and NFT-free checkpoint, 2026-11-19
+
+#492 / A03 is merged into `dev` at `ba2b8f92`. The owner selected
+[A07 and NFT removal / #493](../native-price-without-nft.md): exact prices for
+EVM/Substrate publication and payment, releases without token minting/ownership
+or holder access, and matched generated readers. The [candidate model](../../reference/native-price-without-nft.md)
+defines the breaking interface and native precision configuration. A04's NFT
+transfer route is removed rather than expanded. A05's access-policy decision,
+A06/A08, other remaining audit corrections and Revive/physical Host acceptance
+remain before the selected clean-generation rollout. No deployment/reset occurs.
+
+## Artist authority checkpoint, 2026-11-19
+
+#489 / A09 is merged into `dev` at `2af6d093`, with the reviewed tree. The owner
+confirmed that administration transfer must not transfer artist identity.
+[A03 / #490](../runtime-artist-authority.md) now separates those roles, preserves
+artist publication/profile authority and requires recipient acceptance for
+administration. [Its model](../../reference/runtime-artist-authority.md) adds a
+fresh-generation compatibility gate; no API/contract deployment or old-state
+migration is performed. A04/A06 and other audit corrections, native acceptance,
+SDK/Host and recovery/pilot gates remain before activation.
+
+## Smart-runtime audit checkpoint, 2026-11-18
+
+The owner prioritized the payments and whole-contract audit before further CASH
+research. #485 is merged into `dev` at `2198a447`; the owner selected a complete
+fresh testnet generation after corrections, abandoning previous contracts,
+releases and references as active state. No redeployment/reset has occurred.
+
+[A01 / #486 runtime isolation](../catalog-runtime-isolation.md) is merged in #487
+at `6ca1f50c`; its tree matches the reviewed PR head. Next source scope:
+[A09 / #488 finalized key authority](../finalized-key-authority.md).
+Its [reader policy](../../reference/catalog-runtime-isolation.md) keeps a broken
+artist runtime from acquiring availability control over healthy discovery and
+key grants. A09 now requires finalized and current positive authority, with a
+retry-only pending response. Endpoint acceptance, other audit corrections and
+matching delivery remain before the [fresh-generation procedure](../../operations/deployment-configuration.md#native-payment-correction-candidate-484).
+The SDK/Host hold, CASH evidence and physical acceptance gates below still apply;
+this checkpoint supersedes their earlier immediate-work order.
 
 ## SDK/Host research checkpoint, 2026-11-17
 

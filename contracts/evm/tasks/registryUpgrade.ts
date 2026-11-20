@@ -46,13 +46,14 @@ type RuntimeAudit = {
   directoryArtist: Address;
   owner: Address;
   ownerMatchesDirectoryArtist: boolean;
+  runtimeArtist: Address;
+  artistMatchesDirectoryArtist: boolean;
   registerFacet: Address;
   registerFacetCodeHash: Hex | null;
   registerFacetMatchesSource: boolean;
   guard: GuardProbe;
   trackCount: string;
   foreignTrackHashes: Hex[];
-  transferredTokenHashes: Hex[];
   selectorRoutes: Array<RegistrySelector & { facet: Address; codeHash: Hex | null }>;
 };
 
@@ -66,7 +67,6 @@ type CatalogueSnapshot = {
   tracks: Array<{
     hash: Hex;
     record: unknown;
-    tokenOwner: Address;
     royaltySplits: Array<{ recipient: Address; bps: string }>;
     totalBps: string;
   }>;
@@ -207,7 +207,7 @@ task('registry:audit', 'Read-only audit of the configured registry facet and eve
         !isRegistryRuntimeSafe(
           {
             registerFacetMatchesSource: audit.registerFacetMatchesSource,
-            ownerMatchesDirectoryArtist: audit.ownerMatchesDirectoryArtist,
+            artistMatchesDirectoryArtist: audit.artistMatchesDirectoryArtist,
             guardStatus: audit.guard.status,
             foreignTrackCount: audit.foreignTrackHashes.length,
             selectorRoutes: audit.selectorRoutes
@@ -341,7 +341,7 @@ task('registry:deploy-facet', 'Compile or explicitly deploy only the corrected M
     console.log(formatJson(manifest));
   });
 
-task('registry:upgrade', 'Prepare, simulate, or explicitly apply the owner-only registration hotfix to one runtime')
+task('registry:upgrade', 'Prepare, simulate, or explicitly apply the artist-authorized registration facet to one runtime')
   .addParam('runtime', 'One SmartRuntime proxy address', undefined, types.string)
   .addParam('facet', 'Corrected MusicRegistryPallet address', undefined, types.string)
   .addFlag('execute', 'Broadcast the owner-signed selector replacement')
@@ -375,7 +375,7 @@ task('registry:upgrade', 'Prepare, simulate, or explicitly apply the owner-only 
     );
     console.log(formatJson(plan));
 
-    const currentProbe = await probeOwnerGuard(publicClient, runtime, source.abi, before.owner, capturedBlock.number);
+    const currentProbe = await probeArtistGuard(publicClient, runtime, source.abi, before.owner, capturedBlock.number);
     console.log(`\nCurrent outsider probe: ${currentProbe.status} — ${currentProbe.detail}`);
 
     if (plan.expectedOldFacet.toLowerCase() === targetFacet.toLowerCase()) {
@@ -471,7 +471,7 @@ task('registry:upgrade', 'Prepare, simulate, or explicitly apply the owner-only 
       const actual = getAddress(await loupe.read.facetAddress([preserved.selector], { blockNumber: finalizedReceipt.blockNumber }));
       if (actual !== preserved.facet) throw new Error(`Preserved selector ${preserved.name} moved from ${preserved.facet} to ${actual}.`);
     }
-    const afterProbe = await probeOwnerGuard(publicClient, runtime, source.abi, before.owner, finalizedReceipt.blockNumber);
+    const afterProbe = await probeArtistGuard(publicClient, runtime, source.abi, before.owner, finalizedReceipt.blockNumber);
     if (afterProbe.status !== 'protected') {
       throw new Error(`Post-upgrade outsider probe is ${afterProbe.status}: ${afterProbe.detail}`);
     }
@@ -950,6 +950,7 @@ async function auditRuntime(
   const loupe = await getReadContract(hre, publicClient, 'DiamondLoupePallet', runtime);
   const registry = await getReadContract(hre, publicClient, 'MusicRegistryPallet', runtime);
   const owner = getAddress(await ownership.read.owner({ blockNumber }));
+  const runtimeArtist = getAddress(await ownership.read.runtimeArtist({ blockNumber }));
   const selectorRoutes = [] as RuntimeAudit['selectorRoutes'];
   const facetCodeHashes = new Map<Address, Hex | null>();
   for (const selector of selectors) {
@@ -966,25 +967,24 @@ async function auditRuntime(
   const registerFacetCodeHash = await readCodeHash(publicClient, registerFacet, blockNumber);
   const trackCount = await registry.read.musicRegTrackCount({ blockNumber });
   const foreignTrackHashes = [] as Hex[];
-  const transferredTokenHashes = [] as Hex[];
   for (let index = 0n; index < trackCount; index += 1n) {
     const hash = await registry.read.musicRegTrackHashAtIndex([index], { blockNumber });
-    const [track, tokenOwner] = await registry.read.musicRegGetTrack([hash], { blockNumber });
-    if (getAddress(track.artist) !== owner) foreignTrackHashes.push(hash);
-    if (getAddress(tokenOwner) !== owner) transferredTokenHashes.push(hash);
+    const track = await registry.read.musicRegGetTrack([hash], { blockNumber });
+    if (getAddress(track.artist) !== runtimeArtist) foreignTrackHashes.push(hash);
   }
   return {
     runtime,
     directoryArtist,
     owner,
     ownerMatchesDirectoryArtist: owner === directoryArtist,
+    runtimeArtist,
+    artistMatchesDirectoryArtist: runtimeArtist === directoryArtist,
     registerFacet,
     registerFacetCodeHash,
     registerFacetMatchesSource: registerFacetCodeHash === correctedCodeHash,
-    guard: await probeOwnerGuard(publicClient, runtime, registryAbi, owner, blockNumber),
+    guard: await probeArtistGuard(publicClient, runtime, registryAbi, runtimeArtist, blockNumber),
     trackCount: trackCount.toString(),
     foreignTrackHashes,
-    transferredTokenHashes,
     selectorRoutes
   };
 }
@@ -999,12 +999,13 @@ async function readCatalogueSnapshot(
   const registry = await getReadContract(hre, publicClient, 'MusicRegistryPallet', runtime);
   const royalties = await getReadContract(hre, publicClient, 'MusicRoyaltiesPallet', runtime);
   const owner = getAddress(await ownership.read.owner({ blockNumber }));
+  const runtimeArtist = getAddress(await ownership.read.runtimeArtist({ blockNumber }));
   const trackCount = await registry.read.musicRegTrackCount({ blockNumber });
   const tracks: CatalogueSnapshot['tracks'] = [];
 
   for (let index = 0n; index < trackCount; index += 1n) {
     const hash = await registry.read.musicRegTrackHashAtIndex([index], { blockNumber });
-    const [record, tokenOwner] = await registry.read.musicRegGetTrack([hash], { blockNumber });
+    const record = await registry.read.musicRegGetTrack([hash], { blockNumber });
     const splitCount = await royalties.read.musicRoySplitCount([hash], { blockNumber });
     const royaltySplits: CatalogueSnapshot['tracks'][number]['royaltySplits'] = [];
     for (let splitIndex = 0n; splitIndex < splitCount; splitIndex += 1n) {
@@ -1014,7 +1015,6 @@ async function readCatalogueSnapshot(
     tracks.push({
       hash,
       record,
-      tokenOwner: getAddress(tokenOwner),
       royaltySplits,
       totalBps: (await royalties.read.musicRoyTotalBps([hash], { blockNumber })).toString()
     });
@@ -1229,19 +1229,19 @@ function buildTrackMigrationTransaction(abi: Abi, targetRuntime: Address, snapsh
   };
 }
 
-async function probeOwnerGuard(publicClient: PublicClient, runtime: Address, registryAbi: Abi, owner: Address, blockNumber: bigint): Promise<GuardProbe> {
+async function probeArtistGuard(publicClient: PublicClient, runtime: Address, registryAbi: Abi, artist: Address, blockNumber: bigint): Promise<GuardProbe> {
   const outsider =
-    owner.toLowerCase() === '0x000000000000000000000000000000000000dead'
+    artist.toLowerCase() === '0x000000000000000000000000000000000000dead'
       ? getAddress('0x0000000000000000000000000000000000000001')
       : getAddress('0x000000000000000000000000000000000000dEaD');
-  const contentHash = keccak256(toBytes(`dotify:registry-owner-guard-audit:${runtime.toLowerCase()}`));
+  const contentHash = keccak256(toBytes(`dotify:registry-artist-guard-audit:${runtime.toLowerCase()}`));
   const data = encodeFunctionData({
     abi: registryAbi,
     functionName: 'musicRegRegister',
     args: [
       {
         contentHash,
-        title: 'Registry owner guard audit',
+        title: 'Registry artist guard audit',
         artistName: 'Read-only outsider probe',
         description: 'This state-changing call is simulated with eth_call and is never broadcast.',
         imageRef: 'audit:image',
@@ -1262,8 +1262,8 @@ async function probeOwnerGuard(publicClient: PublicClient, runtime: Address, reg
     return { status: 'vulnerable', detail: 'Outsider registration simulation succeeded.' };
   } catch (error) {
     const detail = errorDetails(error);
-    return /LibDiamond: not owner/i.test(detail)
-      ? { status: 'protected', detail: 'Outsider simulation reverted with LibDiamond: not owner.' }
+    return /RuntimeArtist: not artist/i.test(detail)
+      ? { status: 'protected', detail: 'Outsider simulation reverted with RuntimeArtist: not artist.' }
       : { status: 'inconclusive', detail: firstLine(detail) };
   }
 }

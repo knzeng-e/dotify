@@ -16,6 +16,14 @@ fingerprint or proof of payment capability. In particular, the Host-native
 pinned Host SDK exposes only `Chain`; a constructed payment manager or a successful
 handshake cannot enable CASH. See the [CASH decision](../design/product-cash-tip-decision-2026-11-13.md).
 
+## Named iPhone target, 20 November 2026
+
+[Owner screenshots](../backlog/implementation/evidence/product-host-ios-031-2026-11-20.md)
+show native app build 23 with Runtime 0.31.0 configured. The next #85 record
+must come from the actual candidate's bounded `system.info` read. Do not fill in
+`runtimeVersion` from those screenshots, the build number or the CASH settings.
+See [device qualification](../how-to/qualify-product-host-031.md).
+
 ## Report fields
 
 **Technical details** displays the software labels when available. **Copy app

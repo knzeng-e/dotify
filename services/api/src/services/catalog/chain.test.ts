@@ -3,6 +3,42 @@ import assert from 'node:assert/strict';
 import type { PublicClient } from 'viem';
 import { ViemCatalogChainGateway } from './chain.js';
 
+it('keeps tiny native-compatible and EVM prices exact in catalog responses without token identifiers', async () => {
+  const runtime = '0x0000000000000000000000000000000000000001' as const;
+  const hash = `0x${'11'.repeat(32)}` as const;
+  let price = 100_000_000n;
+  const client = {
+    readContract: async ({ functionName }: { functionName: string }) => {
+      if (functionName === 'musicRoySplitCount') return 0n;
+      if (functionName === 'musicRegGetTrack')
+        return {
+          artist: runtime,
+          title: 'Tiny price',
+          artistName: 'Artist',
+          description: '',
+          imageRef: '',
+          audioRef: '',
+          metadataRef: '',
+          artistContractRef: '',
+          royaltyBps: 0,
+          accessMode: 1,
+          pricePlanck: price,
+          requiredPersonhood: 0,
+          registeredAtBlock: 1n,
+          active: true
+        };
+      throw new Error(`Unexpected ${functionName}`);
+    }
+  } as unknown as PublicClient;
+  const gateway = new ViemCatalogChainGateway({ rpcUrl: 'https://example.invalid', chainId: 42, directoryAddress: runtime, client });
+  const native = await gateway.readRelease(runtime, runtime, hash, 100);
+  assert.equal(native.priceWei, '100000000');
+  assert.equal(native.priceDot, '0.0000000001');
+  assert.equal('tokenId' in native, false);
+  price = 1n;
+  assert.equal((await gateway.readRelease(runtime, runtime, hash, 100)).priceDot, '0.000000000000000001');
+});
+
 it('indexes a metadata-only correction as a canonical release change', async () => {
   const runtime = '0x0000000000000000000000000000000000000001' as const;
   const hash = `0x${'11'.repeat(32)}` as const;
@@ -64,29 +100,26 @@ it('shares one RPC budget across nested track/split reads and pins every read to
       active--;
       if (functionName === 'musicRegTrackCount') return 20n;
       if (functionName === 'musicRoySplitCount') return 16n;
-      if (functionName === 'musicRegTrackHashesPage') return Array(20).fill(hash);
+      if (functionName === 'musicRegTrackHashesPage') return Array.from({ length: 20 }, (_, i) => `0x${(i + 1).toString(16).padStart(64, '0')}`);
       if (functionName === 'musicRoySplitAt') return [runtime, 500];
       if (functionName === 'musicRegGetTrack')
-        return [
-          {
-            artist: runtime,
-            tokenId: 1n,
-            title: 'Track',
-            artistName: 'Artist',
-            description: '',
-            imageRef: '',
-            audioRef: '',
-            metadataRef: '',
-            artistContractRef: '',
-            royaltyBps: 10000,
-            accessMode: 2,
-            pricePlanck: 0n,
-            requiredPersonhood: 1,
-            registeredAtBlock: 1n,
-            active: true
-          },
-          runtime
-        ];
+        return {
+          artist: runtime,
+
+          title: 'Track',
+          artistName: 'Artist',
+          description: '',
+          imageRef: '',
+          audioRef: '',
+          metadataRef: '',
+          artistContractRef: '',
+          royaltyBps: 10000,
+          accessMode: 2,
+          pricePlanck: 0n,
+          requiredPersonhood: 1,
+          registeredAtBlock: 1n,
+          active: true
+        };
       throw new Error(`Unexpected ${functionName}`);
     }
   } as unknown as PublicClient;
@@ -146,11 +179,34 @@ it('rejects excessive splits and UTF-8 metadata before requesting any split entr
       readContract: async ({ functionName }: { functionName: string }) => {
         if (functionName === 'musicRoySplitCount') return excess === 'splits' ? 17n : 1n;
         if (functionName === 'musicRegGetTrack')
-          return [{ title: 'é'.repeat(401), artistName: 'A', description: '', imageRef: '', audioRef: '', metadataRef: '', artistContractRef: '' }, runtime];
+          return { title: 'é'.repeat(401), artistName: 'A', description: '', imageRef: '', audioRef: '', metadataRef: '', artistContractRef: '' };
         assert.fail('No split enumeration for an out-of-bounds release');
       }
     } as unknown as PublicClient;
     const gateway = new ViemCatalogChainGateway({ rpcUrl: 'https://example.invalid', chainId: 42, directoryAddress: runtime, client });
     await assert.rejects(gateway.readRelease(runtime, runtime, hash, 100), excess === 'splits' ? /16-recipient/ : /title byte/);
   }
+});
+
+it('enumerates every artist in bounded directory pages at the same confirmed block', async () => {
+  const artists = Array.from({ length: 207 }, (_, i) => `0x${(1000 + i).toString(16).padStart(40, '0')}` as const);
+  const runtimes = artists.map((_, i) => `0x${(2000 + i).toString(16).padStart(40, '0')}` as const);
+  const pages: bigint[][] = [];
+  const block = 123n;
+  const client = {
+    readContract: async ({ functionName, args, blockNumber }: { functionName: string; args?: bigint[]; blockNumber?: bigint }) => {
+      assert.equal(blockNumber, block);
+      if (functionName === 'artistCount') return BigInt(artists.length);
+      assert.equal(functionName, 'artistsPage');
+      const [offset, limit] = args!;
+      assert.ok(limit > 0n && limit <= 100n);
+      pages.push([offset, limit]);
+      const start = Number(offset);
+      const end = start + Number(limit);
+      return [artists.slice(start, end), runtimes.slice(start, end)];
+    }
+  } as unknown as PublicClient;
+  const gateway = new ViemCatalogChainGateway({ rpcUrl: 'https://example.invalid', chainId: 42, directoryAddress: artists[0], client });
+  assert.deepEqual(await gateway.listArtists(Number(block)), artists.map((artistAddress, i) => ({ artistAddress, runtimeAddress: runtimes[i] })));
+  assert.deepEqual(pages, [[0n, 50n], [50n, 50n], [100n, 50n], [150n, 50n], [200n, 7n]]);
 });

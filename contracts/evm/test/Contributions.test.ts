@@ -24,6 +24,8 @@ async function fixture() {
   const access = await hre.viem.deployContract('MusicAccessPallet');
   const runtime = await hre.viem.deployContract('SmartRuntime', [
     artist.account.address,
+    artist.account.address,
+    18,
     [cut, registry, royalty, access].map(item => ({ facetAddress: item.address, action: 0, functionSelectors: selectors(item.abi) })),
     zeroAddress,
     '0x'
@@ -163,7 +165,7 @@ describe('Native gifts and tips', () => {
     const gift = { ...context, contentHash: zeroHash };
     const old = await gifts.read.musicGiftQuote([gift, 1000n]);
     const next = { ...policy, recipients: [cause.account.address], shares: [10000], campaign: hash };
-    await rejects(gifts.write.musicGiftSetPolicy([zeroHash, next], { account: donor.account }), 'not owner');
+    await rejects(gifts.write.musicGiftSetPolicy([zeroHash, next], { account: donor.account }), 'not artist');
     await gifts.write.musicGiftSetPolicy([zeroHash, next]);
     await rejects(gifts.write.musicGiftContribute([gift, old.digest, '0x'], { account: donor.account, value: 1000n }), 'ContributionDistributionChanged');
     const q = await gifts.read.musicGiftQuote([gift, 1000n]);
@@ -206,6 +208,53 @@ describe('Native gifts and tips', () => {
     await gifts.write.musicGiftContribute([ctx, q.digest, proof], { account: donor.account, value: amount });
     const after = await Promise.all([host, collaborator, cause].map(({ account }) => client.getBalance({ address: account.address })));
     expect(after.map((balance, i) => balance - before[i])).to.deep.equal([parseEther('2'), parseEther('2.4'), parseEther('5.6')]);
+  });
+  it('conserves a 34-entry Room quote with gas-consuming recipients and a late healthy artist remainder', async () => {
+    const { gifts, reg, context, host, attestor, donor, runtime, client, artist } = await loadFixture(fixture);
+    const burn = await hre.viem.deployContract('GasConsumingRoyaltyRecipient');
+    const work = keccak256(toBytes('maximum-fanout'));
+    const record = await reg.read.musicRegGetTrack([hash]);
+    const recipients = Array(16).fill(burn.address) as `0x${string}`[];
+    await reg.write.musicRegRegister([{ ...record, contentHash: work }, recipients, Array(16).fill(100)]);
+    await gifts.write.musicGiftSetPolicy([work, { ...policy, hostBps: 1000, roomAttestor: attestor.account.address, recipients, shares: Array(16).fill(500) }]);
+    const ctx = { ...context, contentHash: work, host: host.account.address, room: keccak256(toBytes('max-room')) };
+    const amount = 1000000n;
+    const q = await gifts.read.musicGiftQuote([ctx, amount]);
+    expect(q.recipients.length).to.equal(34);
+    expect(q.amounts.reduce((a, b) => a + b, 0n)).to.equal(amount);
+    const contextType = {
+      type: 'tuple',
+      components: [
+        { name: 'contentHash', type: 'bytes32' },
+        { name: 'intentId', type: 'bytes32' },
+        { name: 'host', type: 'address' },
+        { name: 'room', type: 'bytes32' },
+        { name: 'expiresAt', type: 'uint64' }
+      ]
+    } as const;
+    const digest = keccak256(
+      encodeAbiParameters(
+        [{ type: 'uint256' }, { type: 'address' }, { type: 'address' }, contextType, { type: 'uint256' }],
+        [BigInt(await client.getChainId()), runtime.address, donor.account.address, ctx, amount]
+      )
+    );
+    const proof = await attestor.signMessage({ message: { raw: digest } });
+    const artistBefore = await client.getBalance({ address: artist.account.address });
+    const hostBefore = await client.getBalance({ address: host.account.address });
+    await gifts.write.musicGiftContribute([ctx, q.digest, proof], { account: donor.account, value: amount, gas: 8000000n });
+    const id = keccak256(encodeAbiParameters([{ type: 'address' }, { type: 'bytes32' }], [donor.account.address, ctx.intentId]));
+    const debt = await gifts.read.musicGiftPending([id, burn.address]);
+    const artistPaid = (await client.getBalance({ address: artist.account.address })) - artistBefore;
+    const hostPaid = (await client.getBalance({ address: host.account.address })) - hostBefore;
+    expect(artistPaid).to.equal(q.amounts.at(-1));
+    expect(hostPaid).to.equal(q.amounts[0]);
+    expect(debt + artistPaid + hostPaid).to.equal(amount);
+    expect(await client.getBalance({ address: runtime.address })).to.equal(debt);
+    await burn.write.setBurnGas([false]);
+    await burn.write.claimContribution([runtime.address, id], { gas: 1000000n });
+    expect(await gifts.read.musicGiftPending([id, burn.address])).to.equal(0n);
+    expect(await client.getBalance({ address: burn.address })).to.equal(debt);
+    expect(await client.getBalance({ address: runtime.address })).to.equal(0n);
   });
   it('expires scheduled allocations and timestamps receipts using block time', async () => {
     const { gifts, context, donor, cause, client, artist } = await loadFixture(fixture);

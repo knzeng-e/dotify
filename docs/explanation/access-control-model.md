@@ -31,7 +31,9 @@ stable if the artist later changes the policy.
 
 Free is not cryptographic revocation. If a listener receives the key while the
 track is Free, they may keep it. A later flip to Classic or Human free stops
-future Dotify key requests; true revocation requires key rotation and a new CID.
+future Dotify key requests for listeners without another current grant. Prior
+paid access follows the [active-release entitlement rule](../reference/paid-release-access.md).
+True revocation of a disclosed key requires key rotation and a new CID.
 
 **When to choose Free:**
 
@@ -45,7 +47,7 @@ future Dotify key requests; true revocation requires key rotation and a new CID.
 
 > "This track is for people, not bots."
 
-In Human free mode, a listener unlocks full playback by proving they are a real
+In Human free mode, a listener without an existing paid grant unlocks full playback by proving they are a real
 human using **Polkadot Proof of Personhood (PoP)**. No payment is required. The
 artist sets which personhood level they require: `DIM1` or `DIM2`.
 
@@ -57,7 +59,9 @@ application context. The former manual registrar setter is retired and reverts.
 The source implements the gate, but usable end-to-end verification still depends
 on a supported chain/Host and the personhood proof it exposes. When that read is
 unavailable or unverified, access fails closed; a local fixture is not a live
-humanity proof.
+humanity proof. The [supported-evidence policy](../reference/personhood-status-policy.md)
+also refuses unknown tiers and malformed responses, keeping raw diagnostics,
+the typed getter and access decisions consistent.
 
 **When to choose Human free:**
 
@@ -84,13 +88,15 @@ Once a listener has paid for a track, their wallet is recorded on-chain as a
 Classic paid-access account. That record has no fixed expiry in the current
 runtime. It is not, however, a perpetual media availability guarantee:
 
-- inactive releases do not open, even for the original artist, NFT owner, or a
+- inactive releases do not open, even for the original artist or a
   previously paid wallet;
-- if the artist changes the release away from Classic, the paid record remains
-  visible but playback follows the current policy;
-- if the artist later reactivates the release or changes it back to Classic,
-  Dotify can verify the existing paid record again instead of asking for a
-  second payment.
+- while active, the paid wallet keeps access through Free or Human free mode
+  changes, including without personhood;
+- reactivation restores the same paid entitlement without a second payment.
+
+The [paid-access reference](../reference/paid-release-access.md) defines scope,
+proof separation and upgrade/availability limits. This is a source candidate
+for the matched fresh generation, not a deployment record.
 
 **When to choose Classic:**
 
@@ -125,11 +131,9 @@ inactive, access is denied for everyone. For an active track, the call returns
 ```txt
 listenerAddress == original artist
 OR
-listenerAddress == current track NFT owner
-OR
 accessMode == Free
 OR
-accessMode == Classic AND paidAccess[contentHash][listenerAddress] == true
+paidAccess[contentHash][listenerAddress] == true
 OR
 accessMode == HumanFree AND verified Individuality level meets requiredPersonhood
 ```
@@ -149,10 +153,6 @@ Dotify keeps several facts separate:
 - **Runtime owner**: the account returned by `owner()` on the SmartRuntime. This
   owner controls pallet upgrades through `diamondCut`, but ownership transfer
   does not rewrite `ArtistDirectory.runtimeOf(originalArtist)`.
-- **Track NFT owner**: the holder of the minted track NFT. The current NFT owner
-  has playback access while the release is active, but NFT transfer does not by
-  itself change the original artist field, runtime ownership, or stored royalty
-  beneficiaries.
 - **Royalty beneficiaries**: the recipients and basis-point shares stored when
   the release is registered. Classic payments use those stored splits; a payment
   receipt is evidence of settlement, not a guarantee that the media stays
@@ -205,8 +205,10 @@ encrypted tracks it includes the canonical release identity:
 
 The key service resolves that identity against the fresh confirmed catalog
 snapshot, then checks the directory mapping, track state and runtime policy
-concurrently at one observed canonical block hash before deriving a key. W34 uses a bounded,
-block-bound verdict cache and session-only queue preparation; see
+at both observed finalized and current canonical hashes before deriving a key.
+The [A09 policy](../reference/finalized-key-authority.md) denies unfinalized-only
+access with a retry response and no payment action; newer revocations still win.
+W34 retains a bounded verdict cache and session-only queue preparation; see
 [fast access boundaries](fast-access-preparation.md). It
 does not trust frontend runtime allowlists or scan unrelated runtimes for modern
 requests.

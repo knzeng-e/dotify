@@ -27,7 +27,7 @@ import { blockscoutBaseUrl } from '../utils/explorer';
 // Contract ABIs are generated from the Hardhat artifacts (run "npm run
 // generate:abis" in contracts/evm) and re-exported here so callers keep
 // importing them from one module. Do not hand-edit the files under src/generated.
-export { artistDirectoryAbi, artistRuntimeFactoryAbi, musicRegistryAbi, musicRoyaltiesAbi, musicAccessAbi, musicNFTAbi } from '../../generated/contracts';
+export { artistDirectoryAbi, artistRuntimeFactoryAbi, musicRegistryAbi, musicRoyaltiesAbi, musicAccessAbi } from '../../generated/contracts';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Dev accounts (local testing only — well-known Substrate keys)

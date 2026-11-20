@@ -16,7 +16,7 @@ function release(hash: string, overrides: Partial<CatalogRelease> = {}): Catalog
     hash,
     runtimeAddress: RUNTIME,
     artistAddress: ARTIST,
-    tokenId: '1',
+
     title: 'Catalog release',
     artist: 'Dotify Artist',
     description: 'Description',

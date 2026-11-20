@@ -4,7 +4,6 @@ pragma solidity ^0.8.28;
 import { LibMusicRegistry } from '../libraries/LibMusicRegistry.sol';
 import { LibMusicRoyalties } from '../libraries/LibMusicRoyalties.sol';
 import { LibMusicAccess } from '../libraries/LibMusicAccess.sol';
-import { LibMusicNFT } from '../libraries/LibMusicNFT.sol';
 import { LibReentrancyGuard } from '../libraries/LibReentrancyGuard.sol';
 import { MusicContributionsPallet } from './MusicContributionsPallet.sol';
 
@@ -23,7 +22,7 @@ import { MusicContributionsPallet } from './MusicContributionsPallet.sol';
 ///         caller's personhood level and emits an event without charging anything.
 ///
 ///         Storage: LibMusicRoyalties (owns), LibMusicRegistry (reads),
-///                  LibMusicAccess (writes paidAccess), LibMusicNFT (reads owner)
+///                  LibMusicAccess (writes paidAccess)
 ///         Prefix:  musicRoy — avoids selector collisions with other pallets
 contract MusicRoyaltiesPallet is MusicContributionsPallet {
   // -------------------------------------------------------------------------
@@ -88,7 +87,7 @@ contract MusicRoyaltiesPallet is MusicContributionsPallet {
 
     uint256 refund = msg.value - price;
     if (refund > 0) {
-      bool refunded = LibMusicRoyalties.trySendNative(msg.sender, refund);
+      bool refunded = LibMusicRoyalties.tryClaimNative(msg.sender, refund);
       require(refunded, 'MusicRoyalties: refund failed');
       emit MusicRoyRefunded(contentHash, msg.sender, refund);
     }
@@ -113,7 +112,7 @@ contract MusicRoyaltiesPallet is MusicContributionsPallet {
     amount = LibMusicRoyalties.takeClaimable(royaltyStore, recipient);
     require(amount > 0, 'MusicRoyalties: nothing to claim');
 
-    settled = LibMusicRoyalties.trySendNative(recipient, amount);
+    settled = LibMusicRoyalties.tryClaimNative(recipient, amount);
     if (settled) {
       emit MusicRoyRoyaltyClaimed(recipient, amount);
       return (amount, true);

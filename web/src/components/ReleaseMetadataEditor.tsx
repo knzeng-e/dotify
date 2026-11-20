@@ -69,7 +69,7 @@ export function ReleaseMetadataEditor({ track: initialTrack, onClose }: { track:
     let submitted = false;
     try {
       const client = getPublicClient(wallet.ethRpcUrl);
-      const [record] = await client.readContract({ address: runtime, abi: musicRegistryAbi, functionName: 'musicRegGetTrack', args: [track.hash] });
+      const record = await client.readContract({ address: runtime, abi: musicRegistryAbi, functionName: 'musicRegGetTrack', args: [track.hash] });
       if (record.artist.toLowerCase() !== account.toLowerCase() || record.metadataRef !== track.metadataRef)
         throw new Error('The artist account or release record changed. Reopen the editor.');
       if (!title.trim() || title.trim().length > 200 || story.length > 2000)
@@ -105,7 +105,7 @@ export function ReleaseMetadataEditor({ track: initialTrack, onClose }: { track:
       submitted = true;
       setStatus('Waiting for confirmation. Do not submit again.');
       await writer.waitForTransaction(hash);
-      const [saved] = await client.readContract({ address: runtime, abi: musicRegistryAbi, functionName: 'musicRegGetTrack', args: [track.hash] });
+      const saved = await client.readContract({ address: runtime, abi: musicRegistryAbi, functionName: 'musicRegGetTrack', args: [track.hash] });
       if (saved.metadataRef !== `ipfs://${cid}` || saved.title !== next.track.title || saved.description !== next.track.description)
         throw new Error('The approved correction is not visible from the read network yet. Refresh this release before trying again.');
       await catalog.refreshCatalogFromRegistry(track.hash, { fresh: true });

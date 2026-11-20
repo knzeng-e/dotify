@@ -239,6 +239,13 @@ export function ReleasesTab({
           )}
 
           {mode === 'rights' && (
+            <p className='release-split-note'>
+              Previous buyers keep access when you change these settings. Deactivating the release stops new listening access; reactivating it restores their
+              paid access.
+            </p>
+          )}
+
+          {mode === 'rights' && (
             <form className='release-access-editor' onSubmit={handleAccessSubmit}>
               <label className='release-editor-field'>
                 <span>Access mode</span>
@@ -306,7 +313,6 @@ export function ReleasesTab({
               <EndpointRow label='Registered block' value={selectedRelease.registeredAtBlock ? selectedRelease.registeredAtBlock.toString() : 'unknown'} />
               <EndpointRow label='Encrypted audio' value={selectedRelease.encrypted ? 'yes' : 'no'} />
               <EndpointRow label='Status' value={selectedReleaseActive ? 'active' : 'inactive'} />
-              <EndpointRow label='Track NFT' value='Current owner receives active-track access; policy control does not move with the NFT.' />
               <EndpointRow label='Content hash' value={<code className='release-ref-code'>{selectedRelease.hash}</code>} />
               <EndpointRow
                 label='Directory runtime'

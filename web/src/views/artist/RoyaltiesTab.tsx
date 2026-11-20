@@ -1,11 +1,12 @@
 import { ChevronDown, Disc3, Wallet } from 'lucide-react';
 import { EndpointRow } from '../../shared/ui/EndpointRow';
-import { getBlockscoutAddressUrl, getBlockscoutBlockUrl, getBlockscoutTxUrl } from '../../shared/utils/explorer';
+import { getBlockscoutAddressUrl, getBlockscoutBlockUrl, getTransactionProofUrl } from '../../shared/utils/explorer';
 import { formatPaymentDate, formatWeiAsDot, shorten } from '../../shared/utils/format';
 import type { CatalogTrack, RoyaltyPayment, RoyaltyRuntimeSummary } from '../../shared/types';
 import type { ReleaseEarnings } from '../../features/artist-studio/earnings';
 import type { EarningsSummaryProps } from './EarningsSummary';
 import { ReleaseEarningsList } from './ReleaseEarningsList';
+import { NativeRoyaltyRecovery } from './NativeRoyaltyRecovery';
 
 export type RoyaltiesTabProps = {
   royaltyPayments: RoyaltyPayment[];
@@ -77,6 +78,7 @@ export function RoyaltiesTab({
         </section>
       )}
       <section className='royalties-panel'>
+        <NativeRoyaltyRecovery key={artistRuntimeAddress ?? 'collaborations'} onSynced={earnings.onRefresh} />
         <div className='royalty-toolbar'>
           <h2>Payment history</h2>
           <div className='royalty-toolbar-actions'>
@@ -182,7 +184,12 @@ export function RoyaltiesTab({
                         value={
                           <div className='endpoint-link-stack'>
                             <code>{shorten(payment.trackHash, 18)}</code>
-                            <a className='verify-link' href={getBlockscoutTxUrl(payment.transactionHash)} target='_blank' rel='noreferrer'>
+                            <a
+                              className='verify-link'
+                              href={getTransactionProofUrl(payment.transactionHash, payment.proofKind)}
+                              target='_blank'
+                              rel='noreferrer'
+                            >
                               Source event
                             </a>
                           </div>
@@ -191,7 +198,7 @@ export function RoyaltiesTab({
                       <EndpointRow
                         label='Transaction receipt'
                         value={
-                          <a className='verify-link' href={getBlockscoutTxUrl(payment.transactionHash)} target='_blank' rel='noreferrer'>
+                          <a className='verify-link' href={getTransactionProofUrl(payment.transactionHash, payment.proofKind)} target='_blank' rel='noreferrer'>
                             {shorten(payment.transactionHash, 14)}
                           </a>
                         }
@@ -208,7 +215,12 @@ export function RoyaltiesTab({
                         <EndpointRow
                           label='Claim receipt'
                           value={
-                            <a className='verify-link' href={getBlockscoutTxUrl(payment.claimTransactionHash)} target='_blank' rel='noreferrer'>
+                            <a
+                              className='verify-link'
+                              href={getTransactionProofUrl(payment.claimTransactionHash, payment.claimProofKind)}
+                              target='_blank'
+                              rel='noreferrer'
+                            >
                               {shorten(payment.claimTransactionHash, 14)}
                             </a>
                           }
@@ -247,7 +259,7 @@ export function RoyaltiesTab({
           </div>
           <div>
             <strong>Open accounting</strong>
-            <span>Settled and claimable amounts are separate receipts, each linked back to Blockscout.</span>
+            <span>Settled and claimable amounts are separate receipts, each linked to its EVM or native proof.</span>
           </div>
         </div>
       </details>

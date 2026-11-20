@@ -1,37 +1,26 @@
 # Smart Contracts API Reference
 
-All contracts are deployed on **Paseo Asset Hub** (`chainId 420420417`). Source lives in `Dotify/contracts/evm/contracts/`.
+This reference includes the source candidate for the next clean **Paseo Asset
+Hub** generation (`chainId 420420417`). Contracts live under
+`contracts/evm/contracts/`; generated bindings are the exact interface source.
+A source merge does not establish deployed bytecode or device acceptance.
 
-Classic unlock payments settle through the runtime's native EVM `msg.value`
-rail. The frontend fetches the connected EVM `chainId`, then derives the
-displayed native asset from an explicit Polkadot Hub metadata table because
-standard EVM JSON-RPC does not expose a native-currency symbol/decimals method.
-The current Product DevNet/Paseo runtime rail displays `PAS`; a DOT-backed
-Polkadot Hub EVM chain displays `DOT`.
+The owner selected a complete fresh testnet generation after the audit fixes,
+abandoning older contracts/releases/references as active state. A03 changes the
+runtime constructor, stable artist identity and administration transfer; see
+[the role model](runtime-artist-authority.md) and the
+[fresh-generation gate](../operations/deployment-configuration.md#native-payment-correction-candidate-484).
+Tracked `deployments.json` addresses do not automatically implement this
+candidate. No reset or deployment is performed by this source change.
 
-> **Pre-fix deployment warning (2026-07-12):** this reference describes the
-> current source contract. The configured Paseo factory and indexed runtimes
-> still use the registry facet deployed before `musicRegRegister` became
-> runtime-owner-only. The caller rule below is therefore not true on those
-> addresses yet. Existing artist owners must hotfix the registration selector,
-> and the system also needs a corrected factory/directory generation plus
-> catalog migration before publication is production-safe. See the
-> [registry remediation runbook](../operations/registry-facet-remediation.md).
+Classic unlock payments use native EVM `msg.value`; ordinary Web uses EVM units
+and Product submission converts to the connected chain's native precision.
+[Native payment settlement](../backlog/native-payment-settlement-parity.md)
+retains its target-runtime and device acceptance gates.
 
-**Configured deployments:**
-
-- `ArtistRuntimeFactory`: see `deployments.json`
-- `ArtistDirectory`: see `deployments.json`
-- `DotifyRuntimeInitializer`: see `deployments.json`
-
-Do not use a full system redeploy for a live-runtime facet hotfix. Follow the
-owner-led remediation runbook; its tooling never rewrites active address files.
-The repository does not yet contain the candidate-only deployment and catalog
-import tooling required for a new system generation. The existing
-`npm run deploy:testnet` command rewrites both `deployments.json` and
-`web/src/shared/config/deployments.ts`; do not use it as a candidate deployment
-command. Build and validate the migration tooling described in the runbook
-before any separately approved active-address cutover.
+The earlier [one-selector registry remediation](../operations/registry-facet-remediation.md)
+is historical tooling, not a migration into A03. ABI bindings are authoritative;
+the [NFT-free price candidate](native-price-without-nft.md) changes the record ABI and Classic price policy.
 
 ---
 
@@ -80,10 +69,9 @@ Installs the next pending bootstrap stage for `msg.sender`.
 | `1` | Install `DiamondLoupePallet` |
 | `2` | Install `OwnershipPallet` |
 | `3` | Install `MusicRegistryPallet` |
-| `4` | Install `MusicNFTPallet` |
-| `5` | Install `MusicRoyaltiesPallet` |
-| `6` | Install `MusicAccessPallet` |
-| `7` | Initialise access registrar, transfer ownership to the artist, register in `ArtistDirectory` |
+| `4` | Install `MusicRoyaltiesPallet` |
+| `5` | Install `MusicAccessPallet` |
+| `6` | Initialise access registrar, transfer ownership to the artist, register in `ArtistDirectory` |
 
 When the final step completes, `pendingRuntimeOf[msg.sender]` is cleared and
 `ArtistDirectory.runtimeOf(msg.sender)` becomes the runtime address.
@@ -157,7 +145,45 @@ function artistsPage(uint256 offset, uint256 limit)
     returns (address[] memory artists, address[] memory runtimes)
 ```
 
-Returns a paginated slice of artists and their runtime addresses. Used by the frontend to build the catalog in batches of 50.
+Returns paired artist/runtime arrays in registration order. API and standalone
+Web readers request 50 entries per call; Product defaults to 50. Audit tooling
+requests at most 100. The function signature and return ABI are unchanged.
+
+### Directory page bounds (A08)
+
+The source candidate returns at most **100 pairs** per call, matching the
+existing track-page maximum. With `total = artistCount()`:
+
+| Input | Returned length |
+| --- | --- |
+| `limit == 0`, empty directory or `offset >= total` | 0 in both arrays |
+| Otherwise | `min(limit, 100, total - offset)` |
+
+The calculation subtracts only after checking the offset and never adds the
+untrusted limit. `offset = 1, limit = uint256.max` therefore returns a bounded
+page instead of an arithmetic panic. Maximum offsets also return empty arrays.
+Both arrays have the same length and each runtime belongs to the artist at the
+same index. Registration, count, lookup and indexed reads retain their behavior.
+
+The API pins enumeration to its selected confirmed block. Direct Web/Product
+readers retain their existing unpinned queries; this correction does not add
+snapshot isolation there. For a coherent snapshot, use one block throughout.
+Either request at
+most 100 entries and advance by that request, or advance by the actual returned
+length; do not request 1,000 then advance 1,000 after receiving only 100.
+`createProductCdmRuntimeReader` accepts `directoryPageSize` from 1 through 100
+(default 50); invalid configuration raises a `RangeError` before querying.
+API/Web fixed 50-entry requests and tooling's 100-entry requests remain valid.
+
+This bounds one contract response, not the total artist count, catalogue memory
+or provider load. Existing independent RPC concurrency, replay/address batches
+and per-runtime read budgets still apply; this correction adds no catalogue-wide
+admission limit. The directory is a standalone non-upgradeable contract, so corrected
+bytecode belongs to the selected fresh generation, not a runtime facet upgrade.
+See the [deployment gate](../operations/deployment-configuration.md#directory-pagination-a08)
+and [scope](../backlog/bounded-contract-pagination.md).
+[Local A08 evidence](../backlog/implementation/evidence/bounded-contract-pagination-2026-11-19.md)
+records the reproduced overflow and complete contract/consumer traversals.
 
 | Parameter | Description           |
 | --------- | --------------------- |
@@ -174,44 +200,25 @@ Returns a paginated slice of artists and their runtime addresses. Used by the fr
 
 Tracks the on-chain record of every registered release. All state lives in the artist's own SmartRuntime.
 
-### `musicRegRegister(TrackData calldata data, address[] calldata royaltyRecipients, uint256[] calldata royaltyShares)`
+### `musicRegRegister(TrackRegistration reg, address[] recipients, uint16[] bps)`
 
 ```solidity
-struct TrackData {
-    bytes32 contentHash;
-    string title;
-    string artistName;
-    string description;
-    string imageRef;
-    string audioRef;
-    string metadataRef;
-    string artistContractRef;
-    uint256 royaltyBps;
-    uint8 accessMode;         // 0 = human-free, 1 = classic
-    uint256 pricePlanck;       // Historical name; value is 18-decimal EVM contract units.
-    uint8 requiredPersonhood; // 0 = none, 1 = DIM1, 2 = DIM2
-}
-
 function musicRegRegister(
-    TrackData calldata data,
-    address[] calldata royaltyRecipients,
-    uint256[] calldata royaltyShares
+    TrackRegistration calldata reg,
+    address[] calldata recipients,
+    uint16[] calldata bps
 ) external
 ```
 
-Registers a new track. Mints an NFT via `MusicNFTPallet` and stores royalty splits in `MusicRoyaltiesPallet`.
+The bound artist registers a new content hash after bootstrap readiness, mints
+fixes its royalty split without minting a token. Technical administration alone cannot
+publish. The exact tuple fields and event signature are in the
+[generated registry ABI](../../web/src/generated/contracts/musicRegistry.ts).
 
-**Caller must be in current source:** Runtime owner (the artist). This is
-contract-tested locally, including a one-selector state-preserving hotfix, but
-not yet deployed to the configured Paseo runtimes; see the warning above.
-
-**Reverts if:**
-
-- `contentHash` is already registered and active.
-- `royaltyRecipients.length != royaltyShares.length`.
-- Sum of `royaltyShares` exceeds 10,000 bps.
-
-**Emits:** `MusicTrackRegistered(bytes32 indexed contentHash, address indexed artist, uint256 tokenId)`
+Metadata and recipient limits are enforced by `LibMusicBounds` and
+`LibMusicRoyalties.storeSplits`. An already registered hash cannot be reused,
+even if its record is inactive. `TrackRegistered` records the original artist;
+a later administration transfer does not rewrite it.
 
 ---
 
@@ -221,9 +228,10 @@ not yet deployed to the configured Paseo runtimes; see the warning above.
 function musicRegDeactivate(bytes32 contentHash) external
 ```
 
-Marks a track as inactive. Deactivated tracks are excluded from catalog queries.
+Marks a track inactive without deleting its record or payment history. Inactive
+policy denies new key grants; ordinary active discovery filters it out.
 
-**Caller must be:** Runtime owner.
+**Caller must be:** the recorded original track artist.
 
 ---
 
@@ -277,11 +285,9 @@ Returns `true` if the listener is allowed full playback. Logic:
 ```
 track.active == false                          → false
 listener == original artist                    → true
-listener == owner(tokenId)                     → true
-accessMode == classic
-  AND paidAccess[contentHash][listener] == true → true
+paidAccess[contentHash][listener] == true       → true
 accessMode == human-free
-  AND Individuality level >= requiredPersonhood → true
+  AND supported Individuality level >= requiredPersonhood → true
 accessMode == free                             → true
 otherwise                                     → false
 ```
@@ -295,7 +301,21 @@ function musicAccHasPaid(bytes32 contentHash, address listener)
     external view returns (bool)
 ```
 
-Returns whether the listener has paid for Classic-mode access. Does not evaluate personhood.
+Returns the recorded Classic paid grant, including after mode changes or
+deactivation. It does not evaluate personhood or current activity. For current
+access, use `musicAccCanAccess`: the [A05 rule](paid-release-access.md) preserves
+paid access across modes only while the release is active.
+
+---
+
+### Personhood diagnostics and predicates
+
+`musicAccPersonhoodInfo(address)` returns `(uint8 status, bytes32 contextAlias,
+bool live)`; `musicAccPersonhoodLevel(address)` returns the supported typed level.
+`musicAccHasPersonhood(address, PersonhoodLevel)` checks a supported requirement.
+The [reader policy](personhood-status-policy.md) defines the response table and
+failure cases. A nonzero raw diagnostic status alone never grants access;
+unsupported or malformed responses produce a typed None without enum panic.
 
 ---
 
@@ -401,41 +421,14 @@ Records a completed listen event for a Human free track (analytics only, no paym
 
 ---
 
-## MusicNFTPallet
+## Native-compatible price policy
 
-**File:** `contracts/pallets/MusicNFTPallet.sol`
-
-ERC-721-style NFT per track. Each registered track mints one NFT to the artist.
-The current NFT owner has playback access while the release is active. NFT
-transfer does not rewrite the original artist field, SmartRuntime ownership, or
-royalty beneficiaries.
-
-### `ownerOf(uint256 tokenId)`
-
-```solidity
-function ownerOf(uint256 tokenId) external view returns (address)
-```
-
----
-
-### `balanceOf(address owner)`
-
-```solidity
-function balanceOf(address owner) external view returns (uint256)
-```
-
----
-
-### `transferFrom(address from, address to, uint256 tokenId)`
-
-```solidity
-function transferFrom(address from, address to, uint256 tokenId) external
-```
-
-Transfers track ownership (NFT). For Human free tracks, `to` must have the
-required personhood level.
-
----
+`musicRegNativeDecimals()` returns the generation's native Balance precision.
+Classic registration and policy edits require a positive uint128 EVM price
+that is divisible by `10 ** (18 - nativeDecimals)`. Prices remain 18-decimal
+EVM integers; the historical `pricePlanck` name does not change their unit.
+See [exact prices and NFT removal](native-price-without-nft.md) for the
+constructor, getter/event changes, supported precision and delivery boundary.
 
 ## Core Diamond pallets
 
@@ -451,33 +444,24 @@ Introspection: `facets()`, `facetFunctionSelectors(address)`, `facetAddresses()`
 
 ### `OwnershipPallet`
 
-`owner()` — returns the current runtime owner.
-`transferOwnership(address newOwner)` — transfers runtime ownership.
+The generated [ownership ABI](../../web/src/generated/contracts/runtimeOwnership.ts)
+exposes `owner()`, `runtimeArtist()` and `pendingOwner()`. `transferOwnership`
+offers administration; only the pending recipient's `acceptOwnership` completes
+it. The current owner can `cancelOwnershipTransfer`. Artist identity, authorship,
+publication and recipients do not move. See the
+[canonical role and bootstrap model](runtime-artist-authority.md).
 
 ---
 
 ## Price conversion
 
-The Solidity field is still named `pricePlanck` for historical/Substrate
-context, but the active EVM path stores prices directly as 18-decimal native
-token units. The frontend uses viem's `parseEther()` and `formatEther()` helpers
-for display and `msg.value`; the payment symbol comes from the configured EVM
-chain's native currency (`PAS` on chain `420420417`).
+The historical `pricePlanck` field stores 18-decimal EVM values. Decimal input
+is parsed exactly by `dotToPlanck()` / `parseExactEvmAmount()` and prices are
+formatted without truncation. EVM writers send that integer as `msg.value`;
+Product converts only the extrinsic's native `Revive.call.value`. ABI price
+arguments are never rescaled. The configured currency symbol is independent
+of native Balance precision.
 
-| Format                         | Example                   |
-| ------------------------------ | ------------------------- |
-| Native display amount                    | `0.5`                     |
-| Stored value / EVM `msg.value`           | `500_000_000_000_000_000` |
-| Paseo `Revive.call.value` (10 decimals)   | `5_000_000_000`           |
-
-Frontend conversion: `src/utils/format.ts` → `dotToPlanck()` for input and
-`formatWeiAsDot()` for display. The `dotToPlanck()` function name is legacy; it
-returns 18-decimal EVM contract units via `parseEther()`.
-
-The viem adapter sends the stored value directly as EVM `msg.value`. The Product
-CDM adapter submits a native `pallet-revive` extrinsic instead, so it reads the
-connected chain's `tokenDecimals` and divides only `Revive.call.value` by
-`10^(18 - tokenDecimals)`. The pallet expands that native Balance back to the
-same 18-decimal EVM value before contract execution. The adapter rejects values
-that cannot be represented exactly; stored `pricePlanck` ABI arguments are never
-rescaled.
+Publication and policy edits enforce the generation's native precision in both
+writers and the registry. See [exact price units and limits](native-price-without-nft.md#price-units-and-authority)
+for the authoritative conversion rule, supported decimals and failure policy.

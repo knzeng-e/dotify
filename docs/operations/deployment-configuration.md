@@ -5,6 +5,82 @@ encoder or signaling delivery. It identifies what to compare and what evidence
 to retain. Component runbooks contain the actual publication and maintenance
 procedures; this guide does not authorize or execute a delivery.
 
+## Native price and NFT removal (#493)
+
+The [#493 candidate model](../reference/native-price-without-nft.md) changes
+creation bytecode, registry storage/getter/event ABI, bootstrap stages and catalog
+fields. Deliver it only as the selected matched fresh generation, after the
+remaining audit corrections and authorized cutover. Do not update the API or
+clients against earlier contracts and do not install this registry over old state.
+
+Before a signing/deployment command, set `DOTIFY_NATIVE_TOKEN_DECIMALS` to the
+verified native Balance precision (0..18). For the 10-decimal native preset,
+use `10`, not the EVM currency metadata's `18`. Keep the value in the reviewed
+plan and deployment manifest; finalized factory readback must match. Verify a
+new artist runtime reports the same `musicRegNativeDecimals()` and the Product
+adapter agrees. Missing or mismatched precision must stop publication/signing.
+
+Read back the new NFT-free selector inventory and record ABI, absent ERC-721
+interface, six installation calls and bound artist/administrator roles. Check
+minimum valid Classic price, a refused nonrepresentable price/edit, exact price
+display and real native settlement/access through both writers. Local EVM tests
+are not Revive weight, recipient-settlement or physical Host acceptance.
+
+Regenerate API/Web ABIs, Product CDM bindings and candidate metadata from the
+same compiler artifacts. Replace finalized CDM versions/addresses only during
+the separately authorized fresh publication/readback. The retained earlier CDM
+snapshot is historical evidence, not a compatible NFT-free deployment. Existing
+secret custody, receipt history and nonce preservation duties remain; no CORS,
+mount, scaling or frontend-secret settings change in this source scope.
+
+## Personhood reader (A06)
+
+The [supported-evidence policy](../reference/personhood-status-policy.md) changes
+Access/Royalties bytecode while preserving ABI, storage, context and address.
+Include the corrected facets in the matched fresh generation; no environment,
+secret, CORS, mount or scaling setting changes in this source scope.
+
+Before presenting HumanFree as available, verify the target runtime exposes the
+expected precompile and exact declared response ABI, then retain commit-bound
+readback for known None, unavailable and unsupported/malformed evidence where
+the target test environment permits it. Confirm supported DIM1/DIM2 proof and
+address/context binding through the intended chain/Host. Local mock success
+must not substitute for real-proof or physical-device acceptance. Record
+unavailable capabilities as remaining gates; never enable a manual fallback.
+
+## Paid release access (A05)
+
+The [A05 candidate](../reference/paid-release-access.md) changes Access facet
+bytecode and the paid-access promise, with unchanged ABI and storage. Include
+it with the owner-selected matched fresh contracts/API/clients. Do not deploy
+the new payment copy against an old facet that rejects earlier buyers under
+HumanFree. Verify exact candidate code/facet routes rather than ABI shape alone.
+
+In a separately authorized acceptance exercise, bind one actual purchase receipt
+to its chain/runtime/release/wallet, then verify active HumanFree access without
+personhood, independent unpaid denial, deactivation denial and reactivation
+without another payment. Verify signed individual/Room-host key delivery only
+with finalized/current positive authority, and denied anonymous public keys.
+Local mocks are not Revive settlement, real proof or physical Host acceptance.
+No new environment variable, secret, CORS, mount or scaling change is required.
+There is no old-generation import, refund mechanism or deployment in this scope.
+
+## Directory pagination (A08)
+
+The [directory page candidate](../reference/contracts-api.md#directory-page-bounds-a08)
+changes `ArtistDirectory` bytecode, with the same ABI and storage layout. The
+directory is not a runtime facet and cannot be upgraded through `diamondCut`.
+Include the corrected directory and its bound factory in the selected matched
+fresh generation. No old-state import or deployment occurs in this source scope.
+
+During separately authorized readback, verify the directory/factory binding,
+registration-order pairs, zero/end offsets and a large-limit call. Retain a
+complete multi-page read at one confirmed block; API/Web request 50 and Product
+configuration must stay in 1..100. Existing per-runtime and indexing budgets
+remain independent. No new environment variable, credential, CORS origin,
+storage mount or scaling change is required. Local Hardhat tests are not native
+provider cost or physical Host acceptance.
+
 ## Establish the state first
 
 Record the candidate commit and affected components before changing settings.
@@ -99,6 +175,117 @@ hosted build runtime against `web/package.json`; the source change does not
 update a Netlify dashboard, server image or deployment.
 
 ## Hosted surfaces
+
+### Artist authority candidate (#490)
+
+[The A03 role model](../reference/runtime-artist-authority.md) requires a matched
+fresh SmartRuntime/factory/initializer generation and all six ownership selectors.
+The runtime constructor now takes an independent artist argument. After staged
+artist-signed completion, read back `runtimeArtist == directory artist`, readiness
+via successful artist publication, `owner == artist` and zero pending owner.
+Subsequent administration delegation requires explicit pending acceptance.
+
+Regenerate Web/API ABIs from the compiled artifacts. The API now checks the
+runtime artist in finalized/current state for uploads and keys; missing getters
+fail closed. Do not ship this API ahead of compatible contracts or use a
+one-selector legacy facet hotfix as migration. Deploy/activate only through the
+owner-selected fresh-generation procedure after remaining audit corrections.
+No new environment variable, mount, secret, origin or scaling is introduced.
+
+Before activation validate actual Revive creation/resource bounds, recipient
+acceptance/cancel, normal artist publication and profile gifts after delegation,
+historical paid access and matched API/client behavior. Upgrade administration
+still permits arbitrary code and is a trust boundary. Source tests do not
+perform a deployment, artist-identity migration or active-state reset.
+
+### Finalized key authority candidate (#488)
+
+[The A09 policy](../reference/finalized-key-authority.md) requires true finalized
+block observations and EIP-1898 canonical historical reads on every configured
+primary/fallback EVM endpoint. There is no latest/confirmation-count fallback.
+Accept the exact Revive provider behavior before delivery; an unsupported or
+unavailable finalized view denies new keys. No RPC switch, new variable, mount,
+CORS origin, secret or scaling change is made by this source correction.
+
+Deliver matching API/client artifacts so `ACCESS_PENDING_FINALITY` offers retry
+without another unlock/payment. Validate an unfinalized-only entitlement denies,
+a finalized entitlement grants only while current policy permits it, and a newer
+deactivation blocks it. Exercise signed/session/Free/queue/Room-host requests,
+RPC outage, cache changes and retry without paying again. Observe the extra
+cold proof work and hosted quotas before claiming first-sound acceptance.
+Already delivered keys are not recalled. Contract, key/nonce and receipt formats
+do not change, so no state migration/reset is required by A09. Rolling the API
+back restores the prior latest-only disclosure risk and is not a secure fallback.
+The fresh-generation procedure below remains separate after other audit fixes.
+
+### Catalogue runtime isolation candidate (#486)
+
+[The A01 source candidate](../reference/catalog-runtime-isolation.md) adds optional
+schema-1 runtime exclusion diagnostics and bounded artist reads. No environment
+variable, mount, origin, secret or scaling change is introduced. It is not
+recorded as deployed or native-accepted.
+
+For its later delivery, quiesce catalogue writers, retain a paired base/checkpoint
+backup (or the shared namespace backup), and install matching API writer/reader
+artifacts on every replica before resuming indexing. An older binary ignores
+runtime diagnostics and must not remain an elected writer. Force a confirmed
+reindex with the matched version, then verify healthy releases, exclusion count,
+full diagnostic persistence, global-RPC failure metadata and denied keys for an
+excluded runtime. Confirm fresh healthy key checks still read directory/track/
+access independently. Repeat after reader restart and writer handover.
+
+On rollback, quiesce writers and force a coherent reindex before allowing keys;
+do not let an older writer use a filtered snapshot as a complete inventory.
+Never delete protected key/receipt state to repair a catalogue diagnostic. Exact
+Revive resource-budget acceptance remains a deployment gate. The owner-selected
+fresh-generation reset below remains a separate reviewed operation after all
+required audit fixes; this source change does not perform it.
+
+### Native payment correction candidate (#484)
+
+The owner selected a **complete fresh testnet generation on 18 November 2026**.
+The old contracts, releases, references, purchases, NFTs and pending test balances
+are abandoned as active application state. This replaces the earlier facet-only
+migration plan for [the payment correction](../backlog/native-payment-settlement-parity.md).
+This is a planned procedure; no deployment or reset is recorded here.
+
+1. Finish the system-audit corrections and freeze a tested source commit before
+   preparing deployment transactions. Review a versioned manifest for the fresh
+   directory, factory, initializer, facets and artist runtimes, with chain ID,
+   compiler settings, addresses and bytecode hashes. Verify any optional metadata
+   and contribution facets needed by the selected product flows are included.
+2. Prepare a coherent new active scope across contract configuration, API
+   catalogue/checkpoints, native receipt history, client bootstrap/catalogue and
+   runtime-bound release/key references. Provision clean generation-specific
+   journals/queues and retire old active jobs, admissions and saved receipt
+   lookups. Preserve dated audit evidence separately. Old on-chain/storage
+   objects are not claimed to be deleted. Do not replay old pending writes or
+   reset a reused account's chain nonce.
+3. Deploy and read back the new manifest before switching its references. Keep
+   one custody writer, `PASEO_ASSET_HUB_NATIVE_RPC`, `DOTIFY_CHAIN_ID=420420417`
+   and durable `NATIVE_CONTRIBUTION_SNAPSHOT_PATH`; bind its active history to
+   the new generation. The version-1 schema can retain both contribution and
+   royalty events. Its path belongs on the custody volume, not an edge filesystem.
+4. Deliver matching custody/edge receipt endpoints before enabling clients.
+   Edges proxy `/api/payments` and `/api/royalties` with contribution routes.
+   Verify royalty-history reads and reject caller-supplied logs/targets at
+   `/api/payments/native-receipt`. Keep API/RPC configuration coherent and
+   publish fresh Bulletin releases with new runtime-bound identities and keys.
+   No new environment variable, CORS origin, mount type or scaling is introduced
+   by the payment code itself; exact fresh state paths/configuration still need
+   a reviewed deployment manifest.
+5. Verify native payout, failed-recipient claims, refund isolation and maximum
+   fan-out on the exact target Revive artifact. On physical Product Host, verify
+   finality, beneficiary balance, receipt links, API outage/reload/sync repair,
+   and pre-submit storage rejection. A post-finality storage failure must retain
+   the hash/block and continue balance/access verification, with a separate
+   history warning. Never repay merely to repair history. Accept publication,
+   solo/Room listening, track changes and lock-screen artwork against the new
+   release generation. SDK #483 and CASH keep their separate compatibility gates.
+6. Back up the new generation's expanded receipt journal before delivery and
+   retain it across rollback within that generation. Roll clients and APIs back
+   coherently; do not restore an empty journal or silently reconnect the new
+   client to the abandoned generation. Old-testnet debt migration is not required.
 
 These links describe tracked candidate settings, not a readback of dashboards.
 Read exact origins, addresses and scaling values from the reviewed commit rather
@@ -211,6 +398,14 @@ after a clean install. Transaction validation requires a named Runtime 0.31.x
 Host; a passing build on an older phone/Desktop is insufficient. Record native
 PAS approval/receipt recovery and protected listening before promotion. This
 candidate changes no hosted variable, network, storage or service setting.
+
+The [20 November phone evidence](../backlog/implementation/evidence/product-host-ios-031-2026-11-20.md)
+provides a build-23 / Runtime-0.31 configuration target. Use the
+[qualification procedure](../how-to/qualify-product-host-031.md) for the initial
+non-spending info record. Functional contract/media/payment acceptance must use
+the audit's matching fresh contracts/API/client generation; the old ABI is not
+an interchangeable validation target. Record the exact candidate artifact and
+reviewed delivery context before requesting a device test.
 
 Follow [Product publication](product-devnet-deployment.md) for package identity,
 retention checks, budget, signer handling, readback and rollback. Record the

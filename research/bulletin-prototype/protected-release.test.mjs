@@ -61,6 +61,7 @@ function runtimeModel() {
   let block = 102;
   let unavailable = false;
   let active = true;
+  let runtimeArtist = ARTIST;
   let registeredRef;
   let stale = false;
   const entitled = new Set();
@@ -71,14 +72,15 @@ function runtimeModel() {
     },
     async readContract(input) {
       if (unavailable) throw new Error('simulated RPC unavailable');
+      assert.ok(input.blockHash && input.requireCanonical, 'Access must read a canonical block');
       if (input.functionName === 'runtimeOf') {
         assert.equal(input.address, DIRECTORY);
         return input.args[0].toLowerCase() === ARTIST ? RUNTIME : `0x${'00'.repeat(20)}`;
       }
-      assert.ok(input.blockHash && input.requireCanonical, 'Access must read a canonical block');
       assert.equal(input.address, RUNTIME);
+      if (input.functionName === 'runtimeArtist') return runtimeArtist;
       assert.equal(input.args[0], candidate.hash);
-      if (input.functionName === 'musicRegGetTrack') return [{ artist: ARTIST, audioRef: registeredRef, active }, ARTIST];
+      if (input.functionName === 'musicRegGetTrack') return { artist: ARTIST, audioRef: registeredRef, active };
       if (input.functionName === 'musicAccCanAccess') return entitled.has(input.args[1].toLowerCase());
       throw new Error('Unexpected RPC read');
     }
@@ -135,7 +137,7 @@ function runtimeModel() {
         encrypted: true,
         sourceBlock: block,
         accessMode: 'classic',
-        tokenId: '1',
+
         title: 'Generated protected chord',
         artist: 'Generated artist model',
         description: 'Offline synthetic rehearsal',
@@ -171,6 +173,10 @@ function runtimeModel() {
     },
     replaceRef(value) {
       registeredRef = value;
+      block++;
+    },
+    replaceArtist(value) {
+      runtimeArtist = value;
       block++;
     },
     stale(value) {
@@ -554,6 +560,20 @@ test('protected release: custody retry, canonical signed access, selective Bulle
     none(replaced, 200);
     assert.equal(replaced.json().reason, 'RELEASE_IDENTITY_MISMATCH');
     c.model.replaceRef(release.audioRef);
+  });
+  await t.test('a conflicting runtime artist denies uploads and an entitled listener without deriving a key', async () => {
+    c.model.replaceArtist(wallet.address);
+    try {
+      const authority = await c.model.access.checkArtistAuthority(ARTIST);
+      assert.equal(authority.allowed, false);
+      assert.equal(authority.code, 'ARTIST_IDENTITY_MISMATCH');
+      const mismatch = await api.request(await signedRequest(product, c.scope, release));
+      none(mismatch, 200);
+      assert.equal(mismatch.json().reason, 'RELEASE_IDENTITY_MISMATCH');
+    } finally {
+      c.model.replaceArtist(ARTIST);
+    }
+    assert.deepEqual(await c.model.access.checkArtistAuthority(ARTIST), { allowed: true, runtime: RUNTIME });
   });
   await t.test('revocation denies a previously authorized listener and room host', async () => {
     c.model.revoke(wallet.address);

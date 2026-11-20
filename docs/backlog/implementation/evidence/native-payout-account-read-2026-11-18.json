@@ -1,0 +1,19 @@
+{
+  "observedAt": "2026-11-18T00:43:05.276Z",
+  "chainId": 420420417,
+  "block": {
+    "number": "15888157",
+    "hash": "0xafdfc55e501f760bc20577743bba4966fdc21bac8cdb2ba2f722ef5a27539893"
+  },
+  "helperSha256": "d2d10183b18ef6f050dadb6742045833789208147363ba15ed46edefed198b92",
+  "rows": [
+    {
+      "address": "0xC3571714248588C6E19cDECe2778B75341b2c288",
+      "nativeAccount": "5GUq4mo4fVDKF9ZhQwGyBAhciuF2vXJ8N6fxXS6bKC77N6US"
+    },
+    {
+      "address": "0x2f6BF01a6708C927b288a53B9fE3f9edc689FF56",
+      "nativeAccount": "5G7KWbnCUoi1qKvjygWn3JvZNm1b3Z5hzq8V48KpXnpJrNFz"
+    }
+  ]
+}

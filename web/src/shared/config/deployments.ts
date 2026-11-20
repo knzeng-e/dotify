@@ -8,7 +8,6 @@ export const deployments = {
     loupePallet: '0xb2961675ff8066f29787589aa854ac98f88bc58f',
     ownershipPallet: '0x37050b785e4eddc8eab34507227970b8ea3a969d',
     registryPallet: '0x01de2f2528ec24d2a783c192418db0826176f835',
-    nftPallet: '0x8e599ffab61430e8f3dfa9523f6ac27ffe4ccb6f',
     royaltiesPallet: '0xec86dfcc51b76e952e24a302f64c8a304568447b',
     accessPallet: '0x2b9318a20e149179859ebc28fc80db507962f559'
   }

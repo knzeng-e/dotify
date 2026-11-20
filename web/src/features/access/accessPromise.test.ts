@@ -67,6 +67,17 @@ describe('access promise copy', () => {
     expect(`${gate.message} ${gate.hint}`).not.toMatch(/runtime|registry|chain|EVM/i);
   });
 
+  it('lets HumanFree listeners check a previous purchase without offering another payment', () => {
+    const release = track({ accessMode: 'human-free', personhoodLevel: 'DIM2', priceDot: '0', pricePlanck: 0n });
+    const connect = buildAccessGate({ track: release, connected: false, nativePaymentAsset });
+    expect(connect.actionType).toBe('signin');
+    expect(connect.message).toContain('including any previous purchase');
+    const denied = buildAccessGate({ track: release, connected: true, nativePaymentAsset });
+    expect(denied.actionType).toBe('personhood');
+    expect(denied.hint).toContain('account they paid with');
+    expect(denied.hint).toContain('No new payment');
+  });
+
   it('builds a Classic receipt with amount, conditions, and recipient disclosure', () => {
     const receipt = buildClassicAccessReceipt(track(), nativePaymentAsset);
 
@@ -76,6 +87,10 @@ describe('access promise copy', () => {
       {
         label: 'Playback condition',
         value: 'Full listening opens after payment is confirmed and the access check passes'
+      },
+      {
+        label: 'Access after changes',
+        value: 'Your paid access stays valid through access-setting changes while this release is active'
       },
       {
         label: 'Availability',
@@ -106,6 +121,7 @@ describe('access promise copy', () => {
 
     expect(success.title).toBe('Access verified');
     expect(success.message).toContain('while the release remains available');
+    expect(success.message).toContain('paid access is kept when access settings change');
     expect(success.facts).toContainEqual({ label: 'Amount', value: '0.5 PAS' });
     expect(success.facts).toEqual(expect.arrayContaining([expect.objectContaining({ label: 'Settlement', value: expect.stringContaining('claim') })]));
     expect(unverified).toContain('payment was included');

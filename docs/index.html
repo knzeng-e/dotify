@@ -1438,7 +1438,7 @@
         </p>
       </section>
 
-      <p class="shell">The <a href="design/product-sdk-045-migration.md">coordinated SDK 0.45 candidate</a> upgrades the Product family together and corrects legacy public-info decoding. Transaction V2 requires a verified Runtime 0.31.x before signing; the known iPhone 0.26 and Desktop 0.29 remain outside that transaction target. Named-device signing and listening acceptance are required before deployment. Existing deployed clients retain their accepted versions, and CASH remains disabled.</p>
+      <p class="shell">The <a href="design/product-sdk-045-migration.md">coordinated SDK 0.45 candidate</a> upgrades the Product family together and corrects legacy public-info decoding. Transaction V2 requires a verified Runtime 0.31.x before signing; the owner’s iPhone screenshots now show app build 23 with Runtime 0.31.0 configured, providing a new <a href="how-to/qualify-product-host-031.md">qualification target</a>. Actual Host info, named-device signing and matched-generation listening acceptance remain required; the older Desktop observation stays separate. Existing deployed clients retain their accepted versions, and CASH remains disabled.</p>
       <p class="shell">A <a href="design/product-cash-tip-decision-2026-11-13.md">dated CASH payment reassessment</a> tests interrupted-payment recovery and identifies a coherent published SDK family to investigate, while keeping artist-controlled distribution explicit. Published APIs and bundled Desktop declarations do not prove active Host payment support. CASH work tips await matched Host, amount-unit and settlement evidence; existing PAS support remains available.</p>
 
       <section class="section section-rule" id="listening" aria-labelledby="listening-title">
@@ -1531,6 +1531,13 @@
                 <p>
                   Dotify's active contract model gives each artist a personal SmartRuntime instead of placing every catalog decision inside one platform-owned
                   contract. A cacheable backend read model makes discovery fast while those runtimes remain the source of truth.
+                  The <a href="reference/contracts-api.md#directory-page-bounds-a08">directory pagination candidate</a> bounds each discovery response while preserving artist/runtime pairing and independent indexing budgets.
+                  The <a href="reference/catalog-runtime-isolation.md">runtime-isolation source candidate</a> excludes incompatible artist contracts from discovery
+                  while retaining independent access checks for healthy releases; matching API delivery and native acceptance remain ahead.
+                  A separate <a href="reference/finalized-key-authority.md">key-authority candidate</a> requires access in both finalized and current chain state,
+                  offering a retry without another payment while confirmation is pending.
+                  The <a href="reference/runtime-artist-authority.md">artist-authority candidate</a> keeps publishing rights and profile beneficiaries with the artist
+                  when technical administration is delegated through an accepted transfer. It requires a matched fresh contract/API generation.
                 </p>
               </dd>
             </div>
@@ -1540,7 +1547,9 @@
                 <h3>Doors the artist can define</h3>
                 <p>
                   Free and paid Classic access are explicit product policies. Classic support records wallet access without promising perpetual media
-                  availability. Human-free access remains future work until real, privacy-respecting Proof of Personhood is integrated.
+                  availability. The <a href="reference/paid-release-access.md">paid-access candidate</a> keeps earlier buyers authorized through access-setting changes while the release is active;
+                  the artist can still withdraw it. Human-free access for new listeners remains future work until real, privacy-respecting Proof of Personhood is integrated.
+                  The <a href="reference/personhood-status-policy.md">candidate access policy</a> refuses unsupported or malformed identity evidence rather than treating it as a stronger proof.
                 </p>
               </dd>
             </div>
@@ -1553,7 +1562,7 @@
                   experience. Classic payments now move through an explicit native runtime intent, while Product CASH remains a separate settlement rail until
                   the cross-chain receipt model is verified. Recipient transfers are gas-bounded: failed recipient shares stay claimable in the runtime instead
                   of blocking the listener's access. The artist review step names the controller, support amount, split recipients, and catalog read-back before
-                  any publication signature. Payment receipts, NFT ownership, runtime ownership, and royalty beneficiaries remain distinct facts.
+                  any publication signature. The fresh-generation candidate removes NFTs and checks exact native-compatible prices. Payment receipts, technical administration and royalty beneficiaries remain distinct facts.
                 </p>
               </dd>
             </div>
@@ -1670,11 +1679,14 @@
                 <code>Revive.call</code> value, preserving the 18-decimal Solidity price while preventing accidental overpayment requests. Ordinary Web uses
                 viem, while the tracked Product release explicitly uses <code>product-cdm</code> on DevNet. Product writes fail closed on Product public-key / pallet-revive H160 mismatch, poll post-payment access
                 read-back before success, preserve transaction receipts when verification fails, and expose runtime royalty claims through the shared writer
-                port. Product payment hashes now open as native Paseo Asset Hub extrinsics instead of dead EVM explorer links. Claimable balances remain
+                port. The payment correction checks receipt storage before submission and preserves finalized hashes when history saving fails.
+                The next testnet delivery is planned as a complete fresh contract generation after the audit corrections, with new releases and references;
+                previous testnet state will not be migrated. Deployment and device acceptance remain ahead.
+                Product payment hashes now open as native Paseo Asset Hub extrinsics instead of dead EVM explorer links. Claimable balances remain
                 readable, while complete cross-device Product settlement history still needs native <code>Revive.ContractEmitted</code>
                 indexing. Product gift/tip confirmation reads native events from a bounded, read-only API archive and verifies the exact finalized transaction block;
                 the Ethereum log index does not expose native calls, and the host bridge cannot read historical receipts directly. Interrupted support can be checked again without another payment. Native gifts and work tips have dedicated dated receipts,
-                direct artist-chosen allocations and optional room-host sharing from the whole tip before the remainder follows the work's rights split. Activation requires owner-approved runtime upgrades and
+                direct artist-chosen allocations and optional room-host sharing from the whole tip before the remainder follows the work's rights split. Activation follows the planned fresh runtime generation and
                 Product device validation; campaign references identify contributions without certifying charitable impact.
                 The explicit Product support build waits for native payment finalization. A Product Web CDM transaction now has host-signed evidence. Desktop
                 signing and CDM-installed runtime packages still need validation before considering CDM as default; CASH remains disabled until settlement
@@ -1757,6 +1769,8 @@
                 only when available. The artist workspace separates Overview, Releases, Earnings and Rights &amp; support, while gifts remain distinct from listening access.
                 The artist dashboard leads with the artist's received share, separates listening payments, gifts and tips, and shows real dated activity and
                 per-release value. Verified native support receipts are saved by the API for cross-device history; earlier unsynced native payments may be absent.
+                A payment correction candidate adds native listening and claim receipts, explicit payout accounts and self-payment labels.
+                Its relative transfer budgets retain recipient isolation; matched delivery and artist-signed runtime upgrades require separate live acceptance before activation or CASH.
                 The next room-life increment adds live release-matched rooms to the artist Overview and lets artists choose an ordinary visit or an
                 explicitly announced, registry-verified welcome. Counts describe connected sessions, not historical or unique-human listens.
                 Room conversation gains temporary typing indicators, discreet activity, replies, mentions and a host-pinned message, with no notification sound
@@ -1879,6 +1893,18 @@
                 Staking-based subscription, ambassador rewards, community music awards, and richer social memory stay behind the production spine. They become
                 candidates only after first sound is reliable, real Humanity / Individuality is privacy-reviewed, and provenance, consent, payment, and
                 anti-abuse boundaries are documented.
+              </p>
+            </li>
+            <li>
+              <p class="horizon-label">Exploratory direction — not a release commitment</p>
+              <h3>From live Rooms to Imprints and Resonance Gardens</h3>
+              <p>
+                Reliable shared listening comes first. Optional musical rituals and consented memories may deepen Rooms; future place-based Imprints could
+                let people leave songs and poems across distance; artist-authored Resonance Gardens might later let relationships transform works over time.
+                Each step needs technical and community acceptance, artist rights, voluntary participation and accessible alternatives. No QR installation,
+                location tracking, NFT, augmented reality or feature rollout is implied.
+                <a class="text-link" href="design/relational-experiences.md">Read the experience vision</a>
+                and <a class="text-link" href="backlog/relational-experience-roadmap.md">proposed community-gated roadmap</a>.
               </p>
             </li>
           </ol>

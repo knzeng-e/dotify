@@ -1,7 +1,21 @@
+import { musicRegistryAbi } from '../../generated/musicRegistry.js';
 import { CatalogBoundsError } from './bounds.js';
 import { musicRegistryPageAbi } from '../../generated/musicRegistryPage.js';
-import { createPublicClient, formatEther, http, parseAbiItem, type Address, type Hash, type PublicClient } from 'viem';
+import {
+  createPublicClient,
+  decodeFunctionResult,
+  encodeFunctionData,
+  formatEther,
+  http,
+  parseAbiItem,
+  type Abi,
+  type Address,
+  type Hash,
+  type PublicClient
+} from 'viem';
+import { CatalogRuntimeReadError, classifyRuntimeError, fetchRuntimeRpc, mapRuntimeReads, runtimeReadPolicy } from './runtimePolicy.js';
 import { concurrencyGate, mapConcurrent } from './concurrency.js';
+import { catalogReleaseSchema } from './types.js';
 import type { CatalogChainGateway, CatalogChange, CatalogChangeSet, CatalogRelease, DirectoryArtist } from './types.js';
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
@@ -25,46 +39,6 @@ const artistDirectoryAbi = [
     outputs: [
       { name: 'artists', type: 'address[]' },
       { name: 'runtimes', type: 'address[]' }
-    ],
-    stateMutability: 'view'
-  }
-] as const;
-
-const musicRegistryAbi = [
-  {
-    type: 'function',
-    name: 'musicRegTrackCount',
-    inputs: [],
-    outputs: [{ name: '', type: 'uint256' }],
-    stateMutability: 'view'
-  },
-  {
-    type: 'function',
-    name: 'musicRegGetTrack',
-    inputs: [{ name: 'contentHash', type: 'bytes32' }],
-    outputs: [
-      {
-        name: 'track',
-        type: 'tuple',
-        components: [
-          { name: 'artist', type: 'address' },
-          { name: 'tokenId', type: 'uint256' },
-          { name: 'title', type: 'string' },
-          { name: 'artistName', type: 'string' },
-          { name: 'description', type: 'string' },
-          { name: 'imageRef', type: 'string' },
-          { name: 'audioRef', type: 'string' },
-          { name: 'metadataRef', type: 'string' },
-          { name: 'artistContractRef', type: 'string' },
-          { name: 'royaltyBps', type: 'uint16' },
-          { name: 'accessMode', type: 'uint8' },
-          { name: 'pricePlanck', type: 'uint128' },
-          { name: 'requiredPersonhood', type: 'uint8' },
-          { name: 'registeredAtBlock', type: 'uint64' },
-          { name: 'active', type: 'bool' }
-        ]
-      },
-      { name: 'tokenOwner', type: 'address' }
     ],
     stateMutability: 'view'
   }
@@ -95,7 +69,7 @@ const musicRoyaltiesAbi = [
 
 const artistRegisteredEvent = parseAbiItem('event ArtistRegistered(address indexed artist, address indexed runtime)');
 const trackRegisteredEvent = parseAbiItem(
-  'event TrackRegistered(bytes32 indexed contentHash, uint256 indexed tokenId, address indexed artist, string title, uint8 accessMode, uint128 pricePlanck, uint8 requiredPersonhood)'
+  'event TrackRegistered(bytes32 indexed contentHash, address indexed artist, string title, uint8 accessMode, uint128 pricePlanck, uint8 requiredPersonhood)'
 );
 const trackDeactivatedEvent = parseAbiItem('event TrackDeactivated(bytes32 indexed contentHash, address indexed artist)');
 const trackMetadataUpdatedEvent = parseAbiItem('event TrackMetadataUpdated(bytes32 indexed contentHash, address indexed artist, string metadataRef)');
@@ -106,7 +80,7 @@ const trackAccessModeChangedEvent = parseAbiItem(
 
 type OnchainTrack = {
   artist: Address;
-  tokenId: bigint;
+
   title: string;
   artistName: string;
   description: string;
@@ -133,9 +107,7 @@ function personhoodLevel(value: number): CatalogRelease['personhoodLevel'] {
 }
 
 function formatNativeAmount(value: bigint): string {
-  const [whole = '0', fraction = ''] = formatEther(value).split('.');
-  const trimmedFraction = fraction.replace(/0+$/, '').slice(0, 9);
-  return trimmedFraction ? `${whole}.${trimmedFraction}` : whole;
+  return formatEther(value);
 }
 
 function asBlockNumber(value: bigint | null): number {
@@ -149,6 +121,8 @@ export class ViemCatalogChainGateway implements CatalogChainGateway {
   readonly identity;
   private readonly client: PublicClient;
   private readonly rpc;
+  private readonly rpcUrl;
+  private readonly injectedClient;
   private readonly concurrency;
   private readonly logBlockRange;
   private readonly addressBatchSize;
@@ -162,6 +136,8 @@ export class ViemCatalogChainGateway implements CatalogChainGateway {
     logBlockRange?: number;
     addressBatchSize?: number;
   }) {
+    this.rpcUrl = options.rpcUrl;
+    this.injectedClient = options.client;
     this.concurrency = options.concurrency ?? 8;
     this.logBlockRange = options.logBlockRange ?? 1000;
     this.addressBatchSize = options.addressBatchSize ?? 100;
@@ -219,63 +195,62 @@ export class ViemCatalogChainGateway implements CatalogChainGateway {
     return entries;
   }
 
-  async listTrackHashes(runtimeAddress: `0x${string}`, blockNumber?: number): Promise<`0x${string}`[]> {
-    const count = (await this.rpc(() =>
-      this.client.readContract({
-        blockNumber: blockNumber === undefined ? undefined : BigInt(blockNumber),
-        address: runtimeAddress,
-        abi: musicRegistryAbi,
-        functionName: 'musicRegTrackCount'
-      })
-    )) as bigint;
+  async listTrackHashes(runtimeAddress: `0x${string}`, blockNumber?: number, signal?: AbortSignal): Promise<`0x${string}`[]> {
+    const count = (await this.readRuntime(runtimeAddress, signal, {
+      blockNumber: blockNumber === undefined ? undefined : BigInt(blockNumber),
+      address: runtimeAddress,
+      abi: musicRegistryAbi,
+      functionName: 'musicRegTrackCount'
+    })) as bigint;
 
-    if (count > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error('Catalog track count is not safely representable');
+    if (count > BigInt(runtimeReadPolicy.maxTracks)) throw new CatalogRuntimeReadError(runtimeAddress, 'track-limit');
     if (count === 0n) return [];
     const hashes: Hash[] = [];
     for (let offset = 0n; offset < count; offset += 100n) {
       const limit = count - offset < 100n ? count - offset : 100n;
-      const page = await this.rpc(() =>
-        this.client.readContract({
-          address: runtimeAddress,
-          blockNumber: blockNumber === undefined ? undefined : BigInt(blockNumber),
-          abi: musicRegistryPageAbi,
-          functionName: 'musicRegTrackHashesPage',
-          args: [offset, limit]
-        })
-      );
-      if (page.length !== Number(limit)) throw new Error('Catalog track page has an unexpected length');
+      const page = (await this.readRuntime(runtimeAddress, signal, {
+        address: runtimeAddress,
+        blockNumber: blockNumber === undefined ? undefined : BigInt(blockNumber),
+        abi: musicRegistryPageAbi,
+        functionName: 'musicRegTrackHashesPage',
+        args: [offset, limit]
+      })) as Hash[];
+      if (page.length !== Number(limit)) throw new CatalogRuntimeReadError(runtimeAddress, 'invalid-output');
       hashes.push(...page);
     }
+    if (new Set(hashes.map(hash => hash.toLowerCase())).size !== hashes.length) throw new CatalogRuntimeReadError(runtimeAddress, 'invalid-output');
     return hashes;
   }
 
-  async readRelease(artistAddress: `0x${string}`, runtimeAddress: `0x${string}`, contentHash: `0x${string}`, blockNumber?: number): Promise<CatalogRelease> {
-    const [[track], splitCount] = (await mapConcurrent<() => Promise<unknown>, unknown>(
+  async readRelease(
+    artistAddress: `0x${string}`,
+    runtimeAddress: `0x${string}`,
+    contentHash: `0x${string}`,
+    blockNumber?: number,
+    signal?: AbortSignal
+  ): Promise<CatalogRelease> {
+    const [track, splitCount] = (await mapRuntimeReads<() => Promise<unknown>, unknown>(
       [
         () =>
-          this.rpc(() =>
-            this.client.readContract({
-              blockNumber: blockNumber === undefined ? undefined : BigInt(blockNumber),
-              address: runtimeAddress,
-              abi: musicRegistryAbi,
-              functionName: 'musicRegGetTrack',
-              args: [contentHash]
-            })
-          ),
+          this.readRuntime(runtimeAddress, signal, {
+            blockNumber: blockNumber === undefined ? undefined : BigInt(blockNumber),
+            address: runtimeAddress,
+            abi: musicRegistryAbi,
+            functionName: 'musicRegGetTrack',
+            args: [contentHash]
+          }),
         () =>
-          this.rpc(() =>
-            this.client.readContract({
-              blockNumber: blockNumber === undefined ? undefined : BigInt(blockNumber),
-              address: runtimeAddress,
-              abi: musicRoyaltiesAbi,
-              functionName: 'musicRoySplitCount',
-              args: [contentHash]
-            })
-          )
+          this.readRuntime(runtimeAddress, signal, {
+            blockNumber: blockNumber === undefined ? undefined : BigInt(blockNumber),
+            address: runtimeAddress,
+            abi: musicRoyaltiesAbi,
+            functionName: 'musicRoySplitCount',
+            args: [contentHash]
+          })
       ],
       2,
       call => call()
-    )) as [[OnchainTrack, Address], bigint];
+    )) as [OnchainTrack, bigint];
 
     // Bound subsequent RPC work before allocating or walking untrusted splits.
     // Do not silently truncate rights or metadata from a malformed or artist-modified runtime.
@@ -293,19 +268,17 @@ export class ViemCatalogChainGateway implements CatalogChainGateway {
         throw new CatalogBoundsError(`Catalog release ${contentHash} exceeds the ${field} byte limit`);
     }
 
-    const royaltySplits = await mapConcurrent(
+    const royaltySplits = await mapRuntimeReads(
       Array.from({ length: Number(splitCount) }, (_, index) => index),
       this.concurrency,
       async index => {
-        const [recipient, bps] = (await this.rpc(() =>
-          this.client.readContract({
-            blockNumber: blockNumber === undefined ? undefined : BigInt(blockNumber),
-            address: runtimeAddress,
-            abi: musicRoyaltiesAbi,
-            functionName: 'musicRoySplitAt',
-            args: [contentHash, BigInt(index)]
-          })
-        )) as [Address, number];
+        const [recipient, bps] = (await this.readRuntime(runtimeAddress, signal, {
+          blockNumber: blockNumber === undefined ? undefined : BigInt(blockNumber),
+          address: runtimeAddress,
+          abi: musicRoyaltiesAbi,
+          functionName: 'musicRoySplitAt',
+          args: [contentHash, BigInt(index)]
+        })) as [Address, number];
         return {
           label: index === 0 ? 'Primary recipient' : `Split ${index + 1}`,
           recipient,
@@ -315,12 +288,12 @@ export class ViemCatalogChainGateway implements CatalogChainGateway {
     );
 
     const registeredAtBlock = Number(track.registeredAtBlock);
-    return {
+    const release = {
       id: `${runtimeAddress}:${contentHash}`,
       hash: contentHash,
       runtimeAddress,
       artistAddress: track.artist || artistAddress,
-      tokenId: track.tokenId.toString(),
+
       title: track.title,
       artist: track.artistName,
       description: track.description,
@@ -341,6 +314,58 @@ export class ViemCatalogChainGateway implements CatalogChainGateway {
       registeredAtBlock,
       sourceBlock: registeredAtBlock
     };
+    if (
+      ![0, 1, 2].includes(Number(track.accessMode)) ||
+      ![0, 1, 2].includes(Number(track.requiredPersonhood)) ||
+      !Number.isSafeInteger(registeredAtBlock) ||
+      !catalogReleaseSchema.safeParse(release).success
+    )
+      throw new CatalogRuntimeReadError(runtimeAddress, 'invalid-output');
+    return release;
+  }
+
+  private async readRuntime(
+    runtime: `0x${string}`,
+    owner: AbortSignal | undefined,
+    parameters: { address: Address; abi: Abi; functionName: string; args?: readonly unknown[]; blockNumber?: bigint }
+  ): Promise<unknown> {
+    const signal = owner ?? new AbortController().signal;
+    try {
+      return await this.rpc(async () => {
+        signal.throwIfAborted();
+        if (this.injectedClient) return this.injectedClient.readContract(parameters);
+        const client = createPublicClient({
+          transport: http(this.rpcUrl, {
+            retryCount: 0,
+            timeout: runtimeReadPolicy.callTimeoutMs,
+            maxResponseBodySize: runtimeReadPolicy.maxResponseBytes,
+            fetchFn: (input, init) => fetchRuntimeRpc(input, init, signal)
+          })
+        });
+        const { data } = await client.call({
+          to: runtime,
+          data: encodeFunctionData(parameters),
+          blockNumber: parameters.blockNumber,
+          gas: runtimeReadPolicy.gas
+        });
+        // Everything thrown by the decoder belongs to this returned ABI payload.
+        // Encoding and RPC errors remain outside this boundary.
+        try {
+          return decodeFunctionResult({ ...parameters, data: data ?? '0x' });
+        } catch {
+          throw new CatalogRuntimeReadError(runtime, 'invalid-output');
+        }
+      });
+    } catch (error) {
+      // An elapsed budget must not relabel an unrelated concurrent provider
+      // error. Only the actual owner cancellation becomes a local deadline.
+      const seen = new Set<unknown>();
+      for (let cause = error; cause instanceof Error && !seen.has(cause); cause = cause.cause) {
+        if (signal.aborted && cause === signal.reason) throw new CatalogRuntimeReadError(runtime, 'scan-deadline');
+        seen.add(cause);
+      }
+      throw classifyRuntimeError(runtime, error);
+    }
   }
 
   async getChanges(fromBlock: number, toBlock: number, runtimeAddresses: `0x${string}`[]): Promise<CatalogChangeSet> {

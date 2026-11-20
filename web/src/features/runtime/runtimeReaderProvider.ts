@@ -81,6 +81,7 @@ export function createRuntimeReader(deps: RuntimeReaderDeps): RuntimeReadPort {
   }
 
   return {
+    getNativeTokenDecimals: (...args) => portForRead().then(port => port.getNativeTokenDecimals(...args)),
     ensureContract: (...args) => portForRead().then(port => port.ensureContract(...args)),
     resolveArtistRuntime: (...args) => portForRead().then(port => port.resolveArtistRuntime(...args)),
     getArtistCount: (...args) => portForRead().then(port => port.getArtistCount(...args)),

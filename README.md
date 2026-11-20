@@ -86,7 +86,7 @@ are not exposed through those aggregates.
 | Access mode | Individual listening                                                                                                                              |
 | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Free        | No wallet required; the API verifies that the release is public.                                                                                  |
-| Classic     | The runtime checks paid access. Payments use its configured native asset, currently PAS on the test network.                                      |
+| Classic     | Paid access survives later mode changes while the release is active ([A05 candidate](docs/reference/paid-release-access.md)). Payments use its configured native asset, currently PAS on the test network.                                      |
 | Human free  | Access depends on a verified personhood requirement. End-to-end availability depends on the chain and Host; it is not a universal sign-in option. |
 
 Room access is different: the **host** must have permission to play the track;

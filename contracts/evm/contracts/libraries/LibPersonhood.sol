@@ -20,8 +20,8 @@ import { IPersonhood } from '../interfaces/IPersonhood.sol';
 library LibPersonhood {
   /// @dev Fixed precompile address. `pallet-revive` left-shifts the user-defined
   ///      `AddressMatcher::Fixed(0x0A01)` index by 16 bits to form this suffix.
-  ///      Verified live on EVM chain 420420417 (Paseo Asset Hub, para 1000): a call
-  ///      returns a 64-byte PersonhoodInfo, where absent addresses return empty.
+  ///      This integration expects a 64-byte PersonhoodInfo. Target deployment
+  ///      must verify the address, supported ABI and real-proof availability.
   address internal constant PERSONHOOD_PRECOMPILE = 0x000000000000000000000000000000000a010000;
 
   /// @dev Dotify's application context. Fixed forever: changing it re-pseudonymises
@@ -33,9 +33,10 @@ library LibPersonhood {
   uint8 internal constant STATUS_FULL = 2;
 
   /// @notice Read personhood for `account` in Dotify's context.
-  /// @return status  Personhood tier, or 0 when the precompile is unavailable.
-  /// @return alias_  Per-context pseudonym, zero when status is 0.
-  /// @return live    True when the precompile answered with a decodable struct.
+  /// @return status  Supported tier, or an unsupported uint8 diagnostic tier.
+  ///                 Unavailable/malformed evidence returns 0.
+  /// @return alias_  Per-context pseudonym; zero for unusable evidence.
+  /// @return live    True only for a supported, correctly encoded response.
   ///
   /// @dev Deliberately a low-level staticcall rather than a typed call. The precompile
   ///      declares `HAS_CONTRACT_INFO = false`, so its `extcodesize` can be zero, and
@@ -44,22 +45,35 @@ library LibPersonhood {
   ///      Hardhat node — resolve to "not live" instead of reverting every access query.
   ///
   ///      `live` is returned rather than swallowed so callers can distinguish "this
-  ///      person has no personhood" from "this chain cannot answer". Those are the same
-  ///      decision (deny) but not the same diagnosis, and conflating them is how a
-  ///      misconfigured deployment gets mistaken for an empty user base.
+  ///      person has no personhood" from unusable evidence (unavailable, malformed
+  ///      or unsupported). Both deny a personhood gate. An unsupported uint8 tier
+  ///      remains diagnostic, but its alias must not be treated as verified.
   function readStatus(address account) internal view returns (uint8 status, bytes32 alias_, bool live) {
     bytes memory callData = abi.encodeWithSelector(IPersonhood.personhoodStatus.selector, account, DOTIFY_CONTEXT);
 
     (bool ok, bytes memory returnData) = PERSONHOOD_PRECOMPILE.staticcall(callData);
 
     // A call to an address with no code succeeds with empty returndata, so success
-    // alone proves nothing. Only a full struct counts as an answer.
-    if (!ok || returnData.length < 64) {
+    // alone proves nothing. The declared ABI is exactly two static words.
+    // Do not accept a changed response layout as if it were the old protocol.
+    if (!ok || returnData.length != 64) {
       return (STATUS_NONE, bytes32(0), false);
     }
 
-    IPersonhood.PersonhoodInfo memory info = abi.decode(returnData, (IPersonhood.PersonhoodInfo));
-    return (info.status, info.contextAlias, true);
+    // abi.decode(uint8) reverts for a dirty status word. Inspect the full word
+    // before narrowing so malformed evidence denies rather than panicking.
+    uint256 statusWord;
+    bytes32 contextAlias;
+    assembly {
+      statusWord := mload(add(returnData, 32))
+      contextAlias := mload(add(returnData, 64))
+    }
+    if (statusWord > type(uint8).max) return (STATUS_NONE, bytes32(0), false);
+    status = uint8(statusWord);
+    // A new ordinal is not permission to infer a stronger verified identity.
+    // Retain the diagnostic tier, but never expose its alias as usable evidence.
+    if (status > STATUS_FULL) return (status, bytes32(0), false);
+    return (status, contextAlias, true);
   }
 
   /// @notice True when `account` holds at least `requiredStatus` in Dotify's context.
@@ -67,6 +81,7 @@ library LibPersonhood {
   ///      admitting everyone. Product invariant — ambiguous access decisions fail closed.
   function hasStatus(address account, uint8 requiredStatus) internal view returns (bool) {
     if (requiredStatus == STATUS_NONE) return true;
+    if (requiredStatus > STATUS_FULL) return false;
     (uint8 status, , bool live) = readStatus(account);
     if (!live) return false;
     return status >= requiredStatus;

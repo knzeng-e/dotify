@@ -1,5 +1,7 @@
 # Dotify Production Backlog
 
+The [relational-experience roadmap](relational-experience-roadmap.md) preserves the longer-range Rooms → Imprints → Resonance Gardens vision with explicit community checkpoints. It is **proposed design**, not another active work queue or a change to Project 5 priorities; the selected production-readiness sequence below remains authoritative.
+
 The [selected sequence](implementation/listening-and-publication-readiness.md#bounded-recovery-before-the-public-pilot)
 prioritizes publication latency, Room startup, lock-screen artwork and bounded
 CASH research. The owner has deferred the real independent release/key rehearsal
@@ -13,6 +15,39 @@ Current execution and code/deployment boundaries are in the
 The #407 compact delivery/admission and synthetic AAC checks are documented there;
 physical-device and recovery acceptance remain before activation. Dated entries below
 retain their original checkpoints.
+
+## Paid-access decision, 2026-11-20
+
+[A05 / #499](preserve-paid-release-access.md) implements the owner's selected
+active-release paid entitlement across policy changes, with deactivation and
+payment history preserved. [The reference](../reference/paid-release-access.md)
+defines the boundaries. [A08 / #498](https://github.com/knzeng-e/dotify/pull/498)
+is merged in `dev` `1304dbb0` and integrated into #500; A05 review and matched
+fresh-generation native acceptance remain before rollout. No deployment or old-state import is performed.
+
+## Native payment correction candidate, 2026-11-18
+
+The owner requested native PAS payment verification before further CASH work.
+[#484](native-payment-settlement-parity.md) adds bounded relative payout budgets,
+finalized Product royalty claims, verified native royalty history and clear
+beneficiary/self-payment presentation. The [bounded audit](implementation/evidence/payment-settlement-audit-2026-11-17.md)
+proves settlement for nine historical payments; it does not clear every payment.
+The owner selected a complete fresh testnet generation after the audit fixes,
+replacing the earlier facet-only plan; previous releases/references are abandoned
+as active state. Matched delivery and native Revive/Host acceptance remain ahead.
+
+[A01 / #486](catalog-runtime-isolation.md) is merged in #487: isolate
+an incompatible artist runtime from healthy catalogue discovery and key grants.
+[A09 / #488](finalized-key-authority.md) is merged in #489 and requires positive
+finalized and current evidence before irreversible key delivery. Merged [A03 / #490](runtime-artist-authority.md) separates stable artist
+authority from two-step technical administration.
+[A07 and NFT removal / #493](native-price-without-nft.md) is merged in #494,
+with exact native-compatible prices and no token-based publication or access.
+[A06 / #495](personhood-status-policy.md) is merged in #496, aligning supported
+personhood diagnostics and access. Next, [A08 / #497](bounded-contract-pagination.md)
+bounds directory pages; A05 remains a separate product decision.
+[Reader policy and recovery](../reference/catalog-runtime-isolation.md) define its
+boundaries. Other audit corrections remain before the fresh deployment.
 
 ## Listening security review, 2026-11-11
 

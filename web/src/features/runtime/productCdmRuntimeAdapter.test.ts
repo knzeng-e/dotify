@@ -25,7 +25,7 @@ const txHash = `0x${'cd'.repeat(32)}` as const;
 function baseTrackRecord(patch: Partial<OnchainTrackRecord> = {}): OnchainTrackRecord {
   return {
     artist,
-    tokenId: 1n,
+
     title: 'Product runtime song',
     artistName: 'Product runtime artist',
     description: 'CDM-backed description',
@@ -111,6 +111,62 @@ describe('createProductCdmRuntimeContractResolver', () => {
 });
 
 describe('createProductCdmRuntimeReader', () => {
+  it.each([undefined, 100n])('reads the complete Product directory with page size %s', async directoryPageSize => {
+    const entries = Array.from({ length: 207 }, (_, i) => ({
+      artist: `0x${(1000 + i).toString(16).padStart(40, '0')}` as const,
+      runtime: `0x${(2000 + i).toString(16).padStart(40, '0')}` as const
+    }));
+    const pages: bigint[][] = [];
+    const artistsPage = {
+      query: vi.fn(async (...args: unknown[]) => {
+        const [offset, limit] = args as [bigint, bigint];
+        expect(limit > 0n && limit <= 100n).toBe(true);
+        pages.push([offset, limit]);
+        const page = entries.slice(Number(offset), Number(offset + limit));
+        return { success: true as const, value: [page.map(entry => entry.artist), page.map(entry => entry.runtime)] };
+      })
+    };
+    const reader = createProductCdmRuntimeReader({
+      directoryPageSize,
+      contracts: {
+        getDirectoryContract: () => ({ artistsPage }),
+        getFactoryContract: () => ({}),
+        getRuntimeContract: () => ({})
+      }
+    });
+    await expect(reader.listArtistRuntimes(directory, 207n)).resolves.toEqual(entries);
+    expect(pages).toEqual(
+      directoryPageSize === 100n
+        ? [
+            [0n, 100n],
+            [100n, 100n],
+            [200n, 7n]
+          ]
+        : [
+            [0n, 50n],
+            [50n, 50n],
+            [100n, 50n],
+            [150n, 50n],
+            [200n, 7n]
+          ]
+    );
+  });
+
+  it.each([0n, -1n, 101n, (1n << 256n) - 1n])('rejects unsupported directory page size %s before querying', directoryPageSize => {
+    const getDirectoryContract = vi.fn(() => ({}));
+    expect(() =>
+      createProductCdmRuntimeReader({
+        directoryPageSize,
+        contracts: {
+          getDirectoryContract,
+          getFactoryContract: () => ({}),
+          getRuntimeContract: () => ({})
+        }
+      })
+    ).toThrow('Directory page size must be between 1 and 100.');
+    expect(getDirectoryContract).not.toHaveBeenCalled();
+  });
+
   it('paginates directory runtimes and filters zero-address entries', async () => {
     const artistsPage = {
       query: vi.fn(async (offset: unknown) => {
@@ -158,7 +214,7 @@ describe('createProductCdmRuntimeReader', () => {
     const runtimeContract: ProductCdmContractHandle = {
       musicRegTrackCount: queryMethod(1n),
       musicRegTrackHashesPage: queryMethod([hash]),
-      musicRegGetTrack: queryMethod([record, runtime]),
+      musicRegGetTrack: queryMethod(record),
       musicRoySplitCount: queryMethod(2n),
       musicRoySplitAt
     };
@@ -203,7 +259,7 @@ describe('createProductCdmRuntimeReader', () => {
         getRuntimeContract: () => ({
           musicRegTrackCount: queryMethod(1n),
           musicRegTrackHashesPage: queryMethod([hash]),
-          musicRegGetTrack: queryMethod({ track: record, tokenOwner: artist }),
+          musicRegGetTrack: queryMethod({ track: record }),
           musicRoySplitCount: queryMethod(1n),
           musicRoySplitAt: queryMethod({ recipient: splitRecipient, bps: 2500 })
         })
@@ -326,6 +382,7 @@ describe('createProductCdmRuntimeWriter', () => {
         getDirectoryContract: () => ({}),
         getFactoryContract: () => ({ createRuntime, installRuntimeStep }),
         getRuntimeContract: () => ({
+          musicRegNativeDecimals: queryMethod(10),
           musicRegRegister,
           musicRoyPayAccess,
           musicRoyClaim,
@@ -349,7 +406,7 @@ describe('createProductCdmRuntimeWriter', () => {
         metadataRef: 'ipfs://metadata',
         artistContractRef: 'dotify:self-certified',
         accessMode: 1,
-        pricePlanck: 1n,
+        pricePlanck: 100_000_000n,
         requiredPersonhood: 0,
         royaltyRecipients: [artist],
         royaltyShares: [10_000]
@@ -381,7 +438,7 @@ describe('createProductCdmRuntimeWriter', () => {
     expect(createRuntime.tx).toHaveBeenCalledWith({ waitFor: 'finalized' });
     expect(installRuntimeStep.tx).toHaveBeenCalledWith({ waitFor: 'finalized' });
     expect(musicRoyPayAccess.tx).toHaveBeenCalledWith(hash, { value: 30_000_000_000n, waitFor: 'finalized' });
-    expect(musicRoyClaim.tx).toHaveBeenCalledWith(splitRecipient);
+    expect(musicRoyClaim.tx).toHaveBeenCalledWith(splitRecipient, { waitFor: 'finalized' });
     expect(musicGiftContribute.tx).toHaveBeenCalledWith(hash, { value: 42_000_000_000n, waitFor: 'finalized' });
     expect(writer.contributionConfirmationMode).toBe('finalized-event');
     expect(musicRegSetAccessMode.tx).toHaveBeenCalledWith(hash, 2, 0n, 1);
@@ -438,3 +495,80 @@ describe('createProductCdmRuntimeWriter', () => {
     await expect(badHashWriter.createRuntime(factory)).rejects.toThrow(ProductCdmRuntimeError);
   });
 });
+
+it('does not publish a claim receipt before finalized tx resolution and preserves the verified block', async () => {
+  let finish!: (value: { ok: true; value: { ok: true; txHash: string; block: { number: number; index: number; hash: string } } }) => void;
+  const tx = vi.fn(
+    () =>
+      new Promise<{ ok: true; value: { ok: true; txHash: string; block: { number: number; index: number; hash: string } } }>(resolve => {
+        finish = resolve;
+      })
+  );
+  const onRoyaltyFinalized = vi.fn();
+  const writer = createProductCdmRuntimeWriter({
+    nativeTokenDecimals: 10,
+    onRoyaltyFinalized,
+    contracts: { getDirectoryContract: () => ({}), getFactoryContract: () => ({}), getRuntimeContract: () => ({ musicRoyClaim: { tx } }) }
+  });
+  const claim = writer.claimRoyalty(runtime, splitRecipient);
+  expect(onRoyaltyFinalized).not.toHaveBeenCalled();
+  expect(tx).toHaveBeenCalledWith(splitRecipient, { waitFor: 'finalized' });
+  finish({ ok: true, value: { ok: true, txHash, block: { number: 123, index: 2, hash } } });
+  await expect(claim).resolves.toBe(txHash);
+  expect(onRoyaltyFinalized).toHaveBeenCalledExactlyOnceWith(runtime, txHash, { number: 123, index: 2, hash });
+});
+
+for (const kind of ['payment', 'claim'] as const) {
+  it(`preserves a finalized ${kind} hash/block when its history callback rejects`, async () => {
+    const block = { number: 123, index: 2, hash };
+    const tx = vi.fn(async () => ({ ok: true as const, value: { ok: true, txHash, block } }));
+    const writer = createProductCdmRuntimeWriter({
+      nativeTokenDecimals: 10,
+      onRoyaltyFinalized: vi.fn().mockRejectedValue(new Error('quota')),
+      contracts: {
+        getDirectoryContract: () => ({}),
+        getFactoryContract: () => ({}),
+        getRuntimeContract: () => ({ musicRoyClaim: { tx }, musicRoyPayAccess: { tx } })
+      }
+    });
+    const result =
+      kind === 'claim'
+        ? writer.claimRoyalty(runtime, splitRecipient)
+        : writer.payForAccess(
+            createNativeRuntimeAccessPaymentIntent({
+              runtimeAddress: runtime,
+              contentHash: hash,
+              amountPlanck: 100000000n,
+              asset: DOTIFY_FALLBACK_NATIVE_RUNTIME_ASSET
+            })
+          );
+    await expect(result).resolves.toBe(txHash);
+    expect(writer.getRoyaltyReceiptWarning?.(txHash)).toMatchObject({ block, message: expect.stringContaining('finalized') });
+    expect(tx).toHaveBeenCalledOnce();
+  });
+  it(`does not submit a ${kind} when receipt preflight fails`, async () => {
+    const tx = vi.fn();
+    const writer = createProductCdmRuntimeWriter({
+      nativeTokenDecimals: 10,
+      beforeRoyaltySubmit: vi.fn().mockRejectedValue(new Error('queue full')),
+      contracts: {
+        getDirectoryContract: () => ({}),
+        getFactoryContract: () => ({}),
+        getRuntimeContract: () => ({ musicRoyClaim: { tx }, musicRoyPayAccess: { tx } })
+      }
+    });
+    const result =
+      kind === 'claim'
+        ? writer.claimRoyalty(runtime, splitRecipient)
+        : writer.payForAccess(
+            createNativeRuntimeAccessPaymentIntent({
+              runtimeAddress: runtime,
+              contentHash: hash,
+              amountPlanck: 100000000n,
+              asset: DOTIFY_FALLBACK_NATIVE_RUNTIME_ASSET
+            })
+          );
+    await expect(result).rejects.toMatchObject({ name: 'SupportNotSubmittedError', message: 'queue full' });
+    expect(tx).not.toHaveBeenCalled();
+  });
+}

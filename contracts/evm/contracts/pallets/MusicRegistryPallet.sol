@@ -2,17 +2,17 @@
 pragma solidity ^0.8.28;
 
 import { LibMusicBounds } from '../libraries/LibMusicBounds.sol';
-import { LibDiamond } from '../libraries/LibDiamond.sol';
+import { LibRuntimeArtist } from '../libraries/LibRuntimeArtist.sol';
 import { LibMusicRegistry } from '../libraries/LibMusicRegistry.sol';
-import { LibMusicNFT } from '../libraries/LibMusicNFT.sol';
+import { LibNativePrice } from '../libraries/LibNativePrice.sol';
 import { LibMusicRoyalties } from '../libraries/LibMusicRoyalties.sol';
 
 /// @title MusicRegistryPallet
 /// @notice Smart Pallet for registering and deactivating music tracks on the
-///         Dotify rights registry.  Each track registration mints a unique NFT
-///         representing the artist's ownership deed and locks in royalty splits.
+///         Dotify rights registry. Registration binds the original artist and
+///         fixes royalty splits without creating a transferable token.
 ///
-///         Storage: LibMusicRegistry, LibMusicNFT, LibMusicRoyalties
+///         Storage: LibMusicRegistry, LibMusicRoyalties
 ///         Prefix:  musicReg — avoids selector collisions with other pallets
 contract MusicRegistryPallet {
   // -------------------------------------------------------------------------
@@ -39,7 +39,6 @@ contract MusicRegistryPallet {
 
   event TrackRegistered(
     bytes32 indexed contentHash,
-    uint256 indexed tokenId,
     address indexed artist,
     string title,
     LibMusicRegistry.AccessMode accessMode,
@@ -62,30 +61,22 @@ contract MusicRegistryPallet {
   // Write functions
   // -------------------------------------------------------------------------
 
-  /// @notice Register a new music track and mint the artist's ownership NFT.
+  /// @notice Register a new music track and its artist-controlled access policy.
   /// @param reg  Track metadata and access configuration.
   /// @param recipients  Royalty recipient addresses (at least one required).
   /// @param bps         Basis points for each recipient; must sum to ≤ 10 000.
   function musicRegRegister(TrackRegistration calldata reg, address[] calldata recipients, uint16[] calldata bps) external {
-    LibDiamond.enforceIsContractOwner();
+    LibRuntimeArtist.enforceArtist();
 
     LibMusicRegistry.Storage storage rs = LibMusicRegistry.store();
     _validateRegistration(rs, reg);
 
     uint16 totalBps = LibMusicRoyalties.storeSplits(LibMusicRoyalties.store(), reg.contentHash, recipients, bps);
 
-    // Auto-increment token id; nextTokenId starts at 0 in uninitialised storage,
-    // so we pre-increment to keep token IDs starting at 1.
-    rs.nextTokenId += 1;
-    uint256 tokenId = rs.nextTokenId;
-
-    LibMusicNFT.mint(LibMusicNFT.store(), msg.sender, tokenId);
-    rs.tokenIdToHash[tokenId] = reg.contentHash;
     rs.trackHashes.push(reg.contentHash);
 
     LibMusicRegistry.TrackRecord storage track = rs.tracks[reg.contentHash];
     track.artist = msg.sender;
-    track.tokenId = tokenId;
     track.title = reg.title;
     track.artistName = reg.artistName;
     track.description = reg.description;
@@ -100,7 +91,7 @@ contract MusicRegistryPallet {
     track.registeredAtBlock = uint64(block.number);
     track.active = true;
 
-    emit TrackRegistered(reg.contentHash, tokenId, msg.sender, reg.title, reg.accessMode, track.pricePlanck, track.requiredPersonhood);
+    emit TrackRegistered(reg.contentHash, msg.sender, reg.title, reg.accessMode, track.pricePlanck, track.requiredPersonhood);
   }
 
   /// @notice Change a track's access policy without re-uploading or re-pinning
@@ -163,19 +154,15 @@ contract MusicRegistryPallet {
   // View functions
   // -------------------------------------------------------------------------
 
-  function musicRegGetTrack(bytes32 contentHash) external view returns (LibMusicRegistry.TrackRecord memory track, address tokenOwner) {
+  function musicRegGetTrack(bytes32 contentHash) external view returns (LibMusicRegistry.TrackRecord memory track) {
     LibMusicRegistry.Storage storage rs = LibMusicRegistry.store();
     LibMusicRegistry.requireExists(rs, contentHash);
-    track = rs.tracks[contentHash];
-    tokenOwner = LibMusicNFT.store().ownerOf[track.tokenId];
+    return rs.tracks[contentHash];
   }
 
-  function musicRegGetTrackByTokenId(uint256 tokenId) external view returns (LibMusicRegistry.TrackRecord memory track, address tokenOwner) {
-    LibMusicRegistry.Storage storage rs = LibMusicRegistry.store();
-    bytes32 contentHash = rs.tokenIdToHash[tokenId];
-    require(contentHash != bytes32(0), 'MusicRegistry: token not found');
-    track = rs.tracks[contentHash];
-    tokenOwner = LibMusicNFT.store().ownerOf[tokenId];
+  /// @notice Native Balance decimals for exact Classic publication/payment values.
+  function musicRegNativeDecimals() external view returns (uint8) {
+    return LibNativePrice.nativeDecimals();
   }
 
   function musicRegIsRegistered(bytes32 contentHash) external view returns (bool) {
@@ -237,9 +224,10 @@ contract MusicRegistryPallet {
     LibMusicRegistry.AccessMode accessMode,
     uint128 pricePlanck,
     LibMusicRegistry.PersonhoodLevel requiredPersonhood
-  ) private pure {
+  ) private view {
     if (accessMode == LibMusicRegistry.AccessMode.Classic) {
       require(pricePlanck > 0, 'MusicRegistry: Classic requires price');
+      LibNativePrice.validate(pricePlanck);
     } else if (accessMode == LibMusicRegistry.AccessMode.HumanFree) {
       require(requiredPersonhood != LibMusicRegistry.PersonhoodLevel.None, 'MusicRegistry: HumanFree requires personhood level');
     }

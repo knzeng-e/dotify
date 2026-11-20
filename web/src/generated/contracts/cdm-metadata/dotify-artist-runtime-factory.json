@@ -1,7 +1,7 @@
 {
   "name": "@dotify/artist-runtime-factory",
   "description": "Deploys one artist-owned SmartRuntime per artist and registers it in the artist directory.",
-  "readme": "# @dotify/artist-runtime-factory\n\nDeploys a SmartRuntime for an artist and registers it in `@dotify/artist-directory`.\n\nA runtime is a diamond: music registry, royalties, access, and NFT pallets are\ninstalled as facets, and the artist is set as its owner. Because each artist owns\ntheir own runtime, catalog, access policy, and royalty splits stay under the\nartist's control rather than the platform's.\n\nCreation is staged - `createRuntime()` then `installRuntimeStep()` until\n`pendingRuntimeStageOf(artist)` reports completion - so that installation fits\nwithin block limits.",
+  "readme": "# @dotify/artist-runtime-factory\n\nDeploys a SmartRuntime for an artist and registers it in `@dotify/artist-directory`.\n\nA runtime is a diamond: music registry, royalties and access pallets are\ninstalled as facets, and the artist is set as its owner. Because each artist owns\ntheir own runtime, catalog, access policy, and royalty splits stay under the\nartist's control rather than the platform's.\n\nCreation is staged - `createRuntime()` then `installRuntimeStep()` until\n`pendingRuntimeStageOf(artist)` reports completion - so that installation fits\nwithin block limits.",
   "abi": [
     {
       "inputs": [
@@ -37,11 +37,6 @@
         },
         {
           "internalType": "address",
-          "name": "_nftPallet",
-          "type": "address"
-        },
-        {
-          "internalType": "address",
           "name": "_royaltiesPallet",
           "type": "address"
         },
@@ -49,6 +44,11 @@
           "internalType": "address",
           "name": "_accessPallet",
           "type": "address"
+        },
+        {
+          "internalType": "uint8",
+          "name": "_nativeTokenDecimals",
+          "type": "uint8"
         }
       ],
       "stateMutability": "nonpayable",
@@ -210,12 +210,12 @@
     },
     {
       "inputs": [],
-      "name": "nftPallet",
+      "name": "nativeTokenDecimals",
       "outputs": [
         {
-          "internalType": "address",
+          "internalType": "uint8",
           "name": "",
-          "type": "address"
+          "type": "uint8"
         }
       ],
       "stateMutability": "view",

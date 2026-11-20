@@ -16,7 +16,7 @@ function setup() {
         ? { hostBps: 1000, startsAt: 0n, endsAt: 0n, roomAttestor: address }
         : functionName === 'runtimeOf'
           ? address
-          : [{ artist: address, active: true, title: 'Work' }]
+          : { artist: address, active: true, title: 'Work' }
   };
   const service = createRoomContributions(config, { client, signer: account, fetch: async () => ({ ok: true, json: async () => ({ address, chainId: 42 }) }) });
   const room = { hostId: 'host', track: { hash, runtimeAddress: address } };
@@ -109,7 +109,7 @@ test('a fresh unique catalog release repairs missing room attribution before quo
         ? { hostBps: 1000, startsAt: 0n, endsAt: 0n, roomAttestor: address }
         : functionName === 'runtimeOf'
           ? address
-          : [{ artist: address, active: true, title: 'Work' }]
+          : { artist: address, active: true, title: 'Work' }
   };
   const requests = [];
   const service = createRoomContributions(config, {
@@ -146,7 +146,7 @@ test('room attribution recovery fails closed for stale, inactive, mismatched and
     const service = createRoomContributions(config, {
       client: {
         getChainId: async () => 42,
-        readContract: async ({ functionName }) => (functionName === 'runtimeOf' ? address : [{ artist: address, active: true }])
+        readContract: async ({ functionName }) => (functionName === 'runtimeOf' ? address : { artist: address, active: true })
       },
       signer: account,
       fetch: async () => ({ ok: response.ok, json: async () => response.body })
@@ -164,7 +164,7 @@ test('room attribution recovery never overwrites a track that changed during ver
   const service = createRoomContributions(config, {
     client: {
       getChainId: async () => 42,
-      readContract: async ({ functionName }) => (functionName === 'runtimeOf' ? address : [{ artist: address, active: true }])
+      readContract: async ({ functionName }) => (functionName === 'runtimeOf' ? address : { artist: address, active: true })
     },
     signer: account,
     fetch: async () => catalog

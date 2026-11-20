@@ -1,5 +1,13 @@
 # Product SDK/Host upgrade decision — 17 November 2026
 
+## Subsequent owner observation, 20 November 2026
+
+The [new iPhone screenshots](../backlog/implementation/evidence/product-host-ios-031-2026-11-20.md)
+show build 23 with Runtime 0.31.0 configured. #85/#483 resumes qualification of
+the coordinated candidate against current dev. This supersedes the old phone
+configuration as the next target; it does not turn the dated synthetic results
+below into actual signing/payment acceptance. CASH still has its separate gates.
+
 **Hold the default upgrade to SDK 0.45.0; keep CASH work tips no-go.** The latest
 SDK builds and passes Dotify's unit suite, but its protocol differs from the
 owner's phone and the latest inspected Desktop archive. A real codec experiment

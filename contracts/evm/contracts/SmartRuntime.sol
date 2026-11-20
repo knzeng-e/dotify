@@ -2,6 +2,8 @@
 pragma solidity ^0.8.28;
 
 import { IERC165 } from './interfaces/IERC165.sol';
+import { LibNativePrice } from './libraries/LibNativePrice.sol';
+import { LibRuntimeArtist } from './libraries/LibRuntimeArtist.sol';
 import { LibDiamond } from './libraries/LibDiamond.sol';
 import { IDiamondCut } from './interfaces/IDiamondCut.sol';
 import { IDiamondLoupe } from './interfaces/IDiamondLoupe.sol';
@@ -25,10 +27,22 @@ contract SmartRuntime {
   // -------------------------------------------------------------------------
 
   /// @param owner         The initial owner (controls `diamondCut` upgrades).
+  /// @param artist        Stable publication and profile identity, independent of owner.
+  /// @param nativeTokenDecimals Native payment Balance precision (0..18).
   /// @param initialCuts   The first set of Smart Pallets to register.
   /// @param init          Optional initialisation contract (delegatecalled once).
   /// @param initCalldata  Calldata passed to `init`.
-  constructor(address owner, IDiamondCut.FacetCut[] memory initialCuts, address init, bytes memory initCalldata) payable {
+  constructor(
+    address owner,
+    address artist,
+    uint8 nativeTokenDecimals,
+    IDiamondCut.FacetCut[] memory initialCuts,
+    address init,
+    bytes memory initCalldata
+  ) payable {
+    require(owner != address(0), 'SmartRuntime: zero administrator');
+    LibRuntimeArtist.initialize(artist);
+    LibNativePrice.initialize(nativeTokenDecimals);
     LibDiamond.setContractOwner(owner);
 
     // Mark ERC-165 interfaces supported by the core Smart Runtime
@@ -38,6 +52,9 @@ contract SmartRuntime {
     ds.supportedInterfaces[type(IDiamondLoupe).interfaceId] = true;
 
     LibDiamond.diamondCut(initialCuts, init, initCalldata);
+    // Direct artist-owned construction is complete at constructor return. A
+    // factory-owned staged runtime remains unpublished until its finalizer.
+    if (owner == artist) LibRuntimeArtist.store().ready = true;
   }
 
   // -------------------------------------------------------------------------

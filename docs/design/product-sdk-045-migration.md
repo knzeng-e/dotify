@@ -1,10 +1,13 @@
 # Coordinated Product SDK 0.45 migration
 
 This candidate upgrades the Product SDK family together, rather than shipping
-intermediate 0.40 and 0.44 profiles. **It is not eligible for deployment yet:**
-transactions require a named, accepted TrUAPI 0.31.x Host. The owner's phone
-reports 0.26; the inspected Desktop 0.9.4 archive bundles 0.29. Existing deployed
-clients keep their earlier SDK and accepted behavior until promotion.
+intermediate 0.40 and 0.44 profiles. It remains a qualification candidate:
+transactions require a named, accepted TrUAPI 0.31.x Host. The owner's
+[20 November screenshots](../backlog/implementation/evidence/product-host-ios-031-2026-11-20.md)
+show Polkadot App 0.10.0 (23) with Runtime 0.31.0 configured. This replaces the
+older phone configuration as the next test target; actual info/signing/media
+acceptance is still pending. Desktop 0.9.4's inspected 0.29 bundle is separate.
+Existing deployed clients keep their accepted versions until promotion.
 
 The [earlier investigation](product-sdk-host-upgrade-decision-2026-11-17.md)
 explains the original hold. The owner now selects a coordinated candidate and
@@ -69,6 +72,20 @@ Bulletin-read wire shapes, but their transactions are deliberately unavailable
 in this candidate. Rewriting V2 to V1 automatically would hide an unsupported
 signing contract. Requiring an accepted 0.31 Host is the chosen alternative.
 
+## Integration and qualification, 20 November 2026
+
+The candidate integrates tested `dev` `91da9589` after merged #500, preserving
+the audit corrections, NFT-free bindings and native payment receipt work.
+`runtimeWriterProvider` keeps both the Runtime preflight and royalty-journal
+callbacks. Purchase and royalty-claim regressions verify an unsupported Host
+fails before signer/contract construction or browser-wallet fallback.
+
+Follow the [device qualification procedure](../how-to/qualify-product-host-031.md).
+First collect non-spending Host info on an identified candidate. Contract/media
+and paid-access acceptance then requires the matched fresh generation; do not
+use old deployed records as if they had the new ABI or A05 rule. This source
+integration changes no deployed network, stored key, Host setting or CASH gate.
+
 ## Evidence and promotion
 
 The [36 fixture checks](../../web/scripts/product-sdk-compat.test.mjs) bind exact
@@ -84,7 +101,7 @@ PAS transaction/receipt recovery, protected Bulletin listening, Room/lock/artwor
 and the standalone Web path. Follow [deployment configuration](../operations/deployment-configuration.md#product-devnet-frontend).
 No Host is installed, paired or upgraded by changing npm dependencies.
 
-CASH's latest manager now declares caller-chosen IDs and partial status. The
+SDK 0.45's CASH manager declares caller-chosen IDs and partial status. The
 [work-tip decision](product-cash-tip-decision-2026-11-13.md) still owns durable
 intent recovery and artist-policy settlement. Current [official money guidance](https://developers.polkadot.com/apps/architecture/money/)
 places CASH behind Host Coinage services and distinguishes it from PAS; it does

@@ -1,3 +1,5 @@
+import { assertClassicPrice } from '../features/runtime/nativePrice';
+import { nativeRoyaltyApiUrl } from '../features/runtime/nativePaymentHistory';
 import { audioReferenceForMetadata } from '../shared/utils/protectedAudio';
 import { preparePublicationAssets } from '../features/uploads/preparePublicationAssets';
 import { PreparedReleaseRecoveryError, type PreparedRelease } from '../features/artist-studio/preparedReleaseRecovery';
@@ -89,10 +91,6 @@ const runtimeBootstrapSteps = [
   {
     label: 'Open your music record',
     detail: 'Prepare a public record for your tracks, artwork, stories, and listening choices.'
-  },
-  {
-    label: 'Attach ownership to music',
-    detail: 'Let each track carry an ownership record that can move with the work.'
   },
   {
     label: 'Define how value flows',
@@ -299,9 +297,17 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
     onPublished: deps.onReleasePublished
   });
 
-  // Earnings use public EVM events, including in Product builds. This reader
+  // Earnings combine public EVM events with verified native receipts. This reader
   // cannot sign, grant access, or replace the configured contract writer.
-  const royaltyHistoryReader = useMemo(() => createViemRuntimeReader({ ethRpcUrl }), [ethRpcUrl]);
+  const nativeHistoryApiUrl = nativeRoyaltyApiUrl();
+  const royaltyHistoryReader = useMemo(
+    () =>
+      createViemRuntimeReader({
+        ethRpcUrl,
+        nativeHistoryApiUrl
+      }),
+    [ethRpcUrl, nativeHistoryApiUrl]
+  );
   const royaltyScope = JSON.stringify([
     activeEvmAddress.toLowerCase(),
     currentChainId,
@@ -743,6 +749,8 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
                 ...(log.pendingTotalWei !== undefined ? { pendingTotalWei: log.pendingTotalWei } : {}),
                 ...(log.claimedAtMs !== undefined ? { claimedAtMs: log.claimedAtMs } : {}),
                 ...(log.claimTransactionHash !== undefined ? { claimTransactionHash: log.claimTransactionHash } : {}),
+                proofKind: log.proofKind,
+                claimProofKind: log.claimProofKind,
                 paidAtMs: log.paidAtMs,
                 transactionHash: log.transactionHash,
                 blockNumber: log.blockNumber,
@@ -939,6 +947,13 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
         runtimeAddress = resolvedRuntime;
       }
 
+      if (!isArtistPublishE2e && runtimeAddress) {
+        assertClassicPrice(
+          encodeAccessMode(accessMode),
+          dotToPlanck(priceDotForAccessMode(accessMode, priceDot)),
+          await runtimeReader.getNativeTokenDecimals(runtimeAddress)
+        );
+      }
       setRightsStatus('Preparing your music…');
       publicationStage = 'assets';
       setPublicationFeedback({
@@ -1432,6 +1447,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
     }
 
     setIsClaimingRoyalties(true);
+    let lastTxHash: `0x${string}` | undefined;
     try {
       const summaries = await readRoyaltyRuntimeSummaries();
       const claimTargets = summaries.filter(
@@ -1469,7 +1485,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
       }
 
       const runtimeWriter = getRuntimeWriter();
-      let lastTxHash: `0x${string}` | undefined;
+      const historyWarnings: { hash: `0x${string}`; block?: number }[] = [];
       const unresolvedRuntimes: string[] = [];
       const unreadableRuntimes: string[] = [];
 
@@ -1482,6 +1498,8 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
       for (const target of claimTargets) {
         const txHash = await runtimeWriter.claimRoyalty(target.runtimeAddress, activeEvmAddress);
         lastTxHash = txHash;
+        const warning = runtimeWriter.getRoyaltyReceiptWarning?.(txHash);
+        if (warning) historyWarnings.push({ hash: txHash, block: warning.block?.number });
         setTransactionFeedback({
           tone: 'pending',
           title: 'Royalty claim submitted',
@@ -1489,7 +1507,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
           txHash
         });
         await runtimeWriter.waitForTransaction(txHash);
-        const remainingClaimableWei = await runtimeReader.getRoyaltyClaimable(target.runtimeAddress, activeEvmAddress).catch(() => null);
+        const remainingClaimableWei = await royaltyHistoryReader.getRoyaltyClaimable(target.runtimeAddress, activeEvmAddress).catch(() => null);
         if (remainingClaimableWei === null) {
           unreadableRuntimes.push(target.runtimeAddress);
         } else if (remainingClaimableWei > 0n) {
@@ -1532,13 +1550,19 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
 
       setTransactionFeedback({
         tone: 'success',
-        title: 'Royalties claimed',
-        message: 'All known pending royalty balances were cleared.',
+        title: historyWarnings.length ? 'Royalties claimed; history needs attention' : 'Royalties claimed',
+        message: historyWarnings.length
+          ? 'All known pending balances were cleared. Keep these receipts: history could not be saved; sync it without submitting another claim.'
+          : 'All known pending royalty balances were cleared.',
+        technicalFacts: historyWarnings.map(warning => ({
+          label: warning.block === undefined ? 'Finalized receipt' : `Finalized receipt · block ${warning.block}`,
+          value: warning.hash
+        })),
         txHash: lastTxHash
       });
     } catch (claimError) {
       const message = claimError instanceof Error ? claimError.message : 'Royalty claim failed';
-      setTransactionFeedback({ tone: 'error', title: 'Royalty claim failed', message });
+      setTransactionFeedback({ tone: 'error', title: lastTxHash ? 'Some royalty claims need checking' : 'Royalty claim failed', message, txHash: lastTxHash });
     } finally {
       setIsClaimingRoyalties(false);
     }

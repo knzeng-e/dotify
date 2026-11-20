@@ -4,6 +4,7 @@ import { combineEarningsSources, summarizeContributionEarnings } from '../../fea
 import type { ContributionHistoryState } from '../../features/donations/useContributionHistory';
 import { formatWeiAsDot } from '../../shared/utils/format';
 import type { EarningsSummaryProps } from './EarningsSummary';
+import { PayoutAccount } from './PayoutAccount';
 
 export function ArtistEarningsSummary({
   earnings: access,
@@ -100,6 +101,7 @@ export function ArtistEarningsSummary({
           )}
         </div>
       </dl>
+      <PayoutAccount />
       <div className='dashboard-source-heading'>
         <h3>Where your income comes from</h3>
         {onDetails && (
@@ -122,7 +124,8 @@ export function ArtistEarningsSummary({
         <summary>What these figures include</summary>
         <p>
           Received is your settled share, including collaborations and host tips. Total generated also includes amounts distributed to collaborators, hosts and
-          other beneficiaries. These are payment records, not your current wallet balance.
+          other beneficiaries. Transfers back to the sender are included: they do not increase that sender's wallet balance, and network fees still apply. These
+          are payment records, not your current wallet balance.
         </p>
         <p>
           Listening, gifts and tips are checked every 15 seconds while this space is visible. Delayed updates retain the last reading. An unavailable source is
@@ -130,7 +133,7 @@ export function ArtistEarningsSummary({
         </p>
         {history.coverage === 'verified-receipts' && (
           <p>
-            Product support includes receipts verified and saved by Dotify. Native listening payments and earlier unsynced support may be missing. Network fees
+            Product listening payments, claims and support include receipts verified and saved by Dotify. Earlier unsynced payments may be missing. Network fees
             and older direct transfers are excluded.
           </p>
         )}
