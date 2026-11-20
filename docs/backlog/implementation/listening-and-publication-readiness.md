@@ -1,5 +1,18 @@
 # Publication, listening reliability and CASH — execution order
 
+## Matched fresh generation preparation, 2026-11-20
+
+#483 is merged on `dev` `e109968a`, with the same tree as tested `b284260b`.
+The owner now selects [#317 fresh-generation preparation](../fresh-testnet-streaming-cutover.md)
+in Now / Production spine / P1. Complete default metadata installation,
+signer-free core planning and exact finalized readback precede the coordinated
+contracts/API/client cutover. [The procedure](../../how-to/prepare-fresh-testnet-generation.md)
+owns that sequence. Source changes do not deploy or erase active state.
+
+#85 keeps actual named-Host qualification; native payment and matched-generation
+listening acceptance remain open. #406 stays Next and #408 Later. The earlier
+dated observations and audit decisions below retain their original scope.
+
 ## Runtime 0.31 qualification selected, 2026-11-20
 
 #500 is merged in tested `dev` `91da9589`. The owner now selects #85 / #483

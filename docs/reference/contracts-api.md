@@ -71,7 +71,8 @@ Installs the next pending bootstrap stage for `msg.sender`.
 | `3` | Install `MusicRegistryPallet` |
 | `4` | Install `MusicRoyaltiesPallet` |
 | `5` | Install `MusicAccessPallet` |
-| `6` | Initialise access registrar, transfer ownership to the artist, register in `ArtistDirectory` |
+| `6` | Install `MusicMetadataPallet` for artist-controlled corrections |
+| `7` | Initialise access registrar, transfer ownership to the artist, register in `ArtistDirectory` |
 
 When the final step completes, `pendingRuntimeOf[msg.sender]` is cleared and
 `ArtistDirectory.runtimeOf(msg.sender)` becomes the runtime address.
@@ -210,7 +211,7 @@ function musicRegRegister(
 ) external
 ```
 
-The bound artist registers a new content hash after bootstrap readiness, mints
+The bound artist registers a new content hash after bootstrap readiness and
 fixes its royalty split without minting a token. Technical administration alone cannot
 publish. The exact tuple fields and event signature are in the
 [generated registry ABI](../../web/src/generated/contracts/musicRegistry.ts).

@@ -1,5 +1,23 @@
 # Clean testnet catalog and streaming cutover
 
+## Fresh generation preparation selected, 2026-11-20
+
+P1 · Production spine · Now · Work (#317).
+
+After merged #483 / `dev` `e109968a`, the owner selected preparation of the
+complete clean contracts/API/client generation. The [procedure](../how-to/prepare-fresh-testnet-generation.md)
+separates the public plan, complete core deployment/readback, coherent service
+and client scope, and actual native/device acceptance. Earlier delivery below
+is historical and is not the target generation for the audited NFT-free ABI.
+
+The preparation candidate includes `MusicMetadataPallet` in new factories,
+deployment/verification and the client approval sequence. It also removes the
+private-key requirement from read-only planning and checks all core bytecodes,
+bindings, native precision, empty directory and exact finalized CDM versions.
+Actual deployment, state cutover, Product publication and new-generation
+acceptance remain open. No old releases/references are imported, no testnet
+transaction is submitted by this source preparation, and CASH remains separate.
+
 ## Execution alignment, 2026-11-09
 
 Issue #317 stays open in **Next** as supporting acceptance. The [selected execution order](implementation/listening-and-publication-readiness.md) gives #407 publication latency, #395 Room startup and #388 artwork priority. The coordinated cutover is delivered; candidate-bound audio/access/value-flow evidence remains. No new empty-catalog reset or migration is requested.

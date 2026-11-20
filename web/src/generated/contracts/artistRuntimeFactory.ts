@@ -45,6 +45,11 @@ export const artistRuntimeFactoryAbi = [
         "type": "address"
       },
       {
+        "internalType": "address",
+        "name": "_metadataPallet",
+        "type": "address"
+      },
+      {
         "internalType": "uint8",
         "name": "_nativeTokenDecimals",
         "type": "uint8"
@@ -197,6 +202,19 @@ export const artistRuntimeFactoryAbi = [
   {
     "inputs": [],
     "name": "loupePallet",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "metadataPallet",
     "outputs": [
       {
         "internalType": "address",

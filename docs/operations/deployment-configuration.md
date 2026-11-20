@@ -21,7 +21,7 @@ new artist runtime reports the same `musicRegNativeDecimals()` and the Product
 adapter agrees. Missing or mismatched precision must stop publication/signing.
 
 Read back the new NFT-free selector inventory and record ABI, absent ERC-721
-interface, six installation calls and bound artist/administrator roles. Check
+interface, seven installation calls and bound artist/administrator roles. Check
 minimum valid Classic price, a refused nonrepresentable price/edit, exact price
 display and real native settlement/access through both writers. Local EVM tests
 are not Revive weight, recipient-settlement or physical Host acceptance.
@@ -243,6 +243,16 @@ required audit fixes; this source change does not perform it.
 
 ### Native payment correction candidate (#484)
 
+For the owner-selected 20 November preparation after merged SDK #483, follow
+[Prepare a coherent fresh testnet generation](../how-to/prepare-fresh-testnet-generation.md).
+New factories now require `metadataPallet` and use seven install/finalize calls
+after creation. Read-only plan/readback commands require the explicit public
+`DOTIFY_DEPLOYER_ADDRESS`, alongside verified `DOTIFY_NATIVE_TOKEN_DECIMALS`;
+they do not need a signer. The v2 readback verifies exact code/bindings and the
+recorded CDM versions, including versions above seven. These are candidate tools,
+not replacement addresses or deployed settings. Existing CDM/deployment records
+remain historical until new finalized receipts are retained.
+
 The owner selected a **complete fresh testnet generation on 18 November 2026**.
 The old contracts, releases, references, purchases, NFTs and pending test balances
 are abandoned as active application state. This replaces the earlier facet-only
@@ -252,8 +262,8 @@ This is a planned procedure; no deployment or reset is recorded here.
 1. Finish the system-audit corrections and freeze a tested source commit before
    preparing deployment transactions. Review a versioned manifest for the fresh
    directory, factory, initializer, facets and artist runtimes, with chain ID,
-   compiler settings, addresses and bytecode hashes. Verify any optional metadata
-   and contribution facets needed by the selected product flows are included.
+   compiler settings, addresses and bytecode hashes. Include the default metadata
+   implementation; royalties already includes the contribution selectors.
 2. Prepare a coherent new active scope across contract configuration, API
    catalogue/checkpoints, native receipt history, client bootstrap/catalogue and
    runtime-bound release/key references. Provision clean generation-specific

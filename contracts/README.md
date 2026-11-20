@@ -44,10 +44,14 @@ remaining audit and target Revive/physical Host acceptance. Follow the
 before using any signing/deployment command. No prior contract, release, claim
 or key domain is migrated by this source change.
 
-`createRuntime()` creates a shell owned by the factory. Six subsequent
+`createRuntime()` creates a shell owned by the factory. Seven subsequent
 `installRuntimeStep()` calls install the remaining facets and atomically finish
 artist-bound readiness, administration and directory membership. There is no
 NFT installation step. Local EVM success does not establish native weight limits.
+
+Metadata correction is installed by default before finalization. Follow the
+[fresh-generation procedure](../docs/how-to/prepare-fresh-testnet-generation.md)
+for the public-address-only plan and exact source/CDM readback.
 
 `deployments.json` still identifies the earlier deployment until an authorized
 fresh rollout replaces it. `contracts/evm/cdm.json` is a finalized historical CDM

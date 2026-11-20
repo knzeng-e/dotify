@@ -11,6 +11,7 @@ import { MusicRegistryPallet } from './pallets/MusicRegistryPallet.sol';
 import { MusicRoyaltiesPallet } from './pallets/MusicRoyaltiesPallet.sol';
 import { MusicContributionsPallet } from './pallets/MusicContributionsPallet.sol';
 import { MusicAccessPallet } from './pallets/MusicAccessPallet.sol';
+import { MusicMetadataPallet } from './pallets/MusicMetadataPallet.sol';
 
 /// @title ArtistRuntimeFactory
 /// @notice Deploys a personal SmartRuntime for each Dotify artist.
@@ -56,6 +57,7 @@ contract ArtistRuntimeFactory {
   address public immutable registryPallet;
   address public immutable royaltiesPallet;
   address public immutable accessPallet;
+  address public immutable metadataPallet;
   uint8 public immutable nativeTokenDecimals;
 
   // -------------------------------------------------------------------------
@@ -85,6 +87,7 @@ contract ArtistRuntimeFactory {
   /// @param _registryPallet MusicRegistryPallet implementation address.
   /// @param _royaltiesPallet MusicRoyaltiesPallet implementation address.
   /// @param _accessPallet    MusicAccessPallet implementation address.
+  /// @param _metadataPallet  MusicMetadataPallet implementation address.
   constructor(
     address _directory,
     address _initContract,
@@ -94,6 +97,7 @@ contract ArtistRuntimeFactory {
     address _registryPallet,
     address _royaltiesPallet,
     address _accessPallet,
+    address _metadataPallet,
     uint8 _nativeTokenDecimals
   ) {
     require(_nativeTokenDecimals <= 18, 'Factory: unsupported native decimals');
@@ -106,6 +110,7 @@ contract ArtistRuntimeFactory {
     registryPallet = _registryPallet;
     royaltiesPallet = _royaltiesPallet;
     accessPallet = _accessPallet;
+    metadataPallet = _metadataPallet;
   }
 
   // -------------------------------------------------------------------------
@@ -157,6 +162,11 @@ contract ArtistRuntimeFactory {
       _installCut(runtime, accessPallet, _musicAccessSelectors());
       completedStage = 6;
     } else if (stage == 6) {
+      bytes4[] memory selectors = new bytes4[](1);
+      selectors[0] = MusicMetadataPallet.musicRegUpdateMetadata.selector;
+      _installCut(runtime, metadataPallet, selectors);
+      completedStage = 7;
+    } else if (stage == 7) {
       IDiamondCut.FacetCut[] memory cuts = new IDiamondCut.FacetCut[](0);
       IDiamondCut(runtime).diamondCut(cuts, initContract, abi.encodeWithSignature('initializeFor(address)', msg.sender));
       // The artist-signed creation finalizer binds initial administration before publication.

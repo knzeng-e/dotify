@@ -15,6 +15,7 @@ async function deployTaskFixture() {
   const registryPallet = await hre.viem.deployContract('MusicRegistryPallet');
   const royaltiesPallet = await hre.viem.deployContract('MusicRoyaltiesPallet');
   const accessPallet = await hre.viem.deployContract('MusicAccessPallet');
+  const metadataPallet = await hre.viem.deployContract('MusicMetadataPallet');
   const initializer = await hre.viem.deployContract('DotifyRuntimeInitializer');
   const directory = await hre.viem.deployContract('ArtistDirectory');
   const factory = await hre.viem.deployContract('ArtistRuntimeFactory', [
@@ -26,13 +27,14 @@ async function deployTaskFixture() {
     registryPallet.address,
     royaltiesPallet.address,
     accessPallet.address,
+    metadataPallet.address,
     18
   ]);
   await directory.write.setFactory([factory.address]);
 
   const ownerFactory = await hre.viem.getContractAt('ArtistRuntimeFactory', factory.address, { client: { wallet: owner } });
   await ownerFactory.write.createRuntime();
-  for (let step = 0; step < 6; step += 1) await ownerFactory.write.installRuntimeStep();
+  for (let step = 0; step < 7; step += 1) await ownerFactory.write.installRuntimeStep();
   const runtime = getAddress(await factory.read.runtimeOf([owner.account.address]));
 
   return { owner, other, publicClient, directory, factory, royaltiesPallet, runtime };

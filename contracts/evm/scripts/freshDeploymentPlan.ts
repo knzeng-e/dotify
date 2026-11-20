@@ -1,42 +1,39 @@
 // Read-only preparation for the owner-requested fresh testnet deployment.
 import hre from 'hardhat';
-import { formatEther, keccak256 } from 'viem';
-import { getDeployConfig, nativeTokenDecimalsForDeployment, readDeployments } from './smartRuntime';
+import { execFileSync } from 'node:child_process';
+import { formatEther } from 'viem';
+import { nativeTokenDecimalsForDeployment, POLKADOT_TESTNET_CHAIN, readDeployments } from './smartRuntime';
+import { freshArtifactInventory, freshDeploymentAccount, FRESH_CORE_TRANSACTION_COUNT } from './freshDeployment';
 async function main() {
   if (hre.network.name !== 'polkadotTestnet') throw new Error('Fresh-reset planning targets the existing test environment only');
   const nativeTokenDecimals = nativeTokenDecimalsForDeployment();
-  const cfg = await getDeployConfig(hre);
-  const client = cfg.client?.public;
-  const wallet = cfg.client?.wallet;
-  if (!client || !wallet?.account) throw new Error('A configured deployment signer is required');
+  const deployer = freshDeploymentAccount(process.env.DOTIFY_DEPLOYER_ADDRESS);
+  const client = await hre.viem.getPublicClient({ chain: POLKADOT_TESTNET_CHAIN });
   const chainId = await client.getChainId();
   if (chainId !== 420420417) throw new Error('Unexpected chain; no reset is prepared');
-  const contracts = [
-    'DiamondCutPallet',
-    'DiamondLoupePallet',
-    'OwnershipPallet',
-    'MusicRegistryPallet',
-    'MusicRoyaltiesPallet',
-    'MusicAccessPallet',
-    'DotifyRuntimeInitializer',
-    'ArtistDirectory',
-    'ArtistRuntimeFactory'
-  ];
-  const artifacts = await Promise.all(
-    contracts.map(async name => ({ name, creationCodeHash: keccak256((await hre.artifacts.readArtifact(name)).bytecode as `0x${string}`) }))
-  );
+  const artifacts = await freshArtifactInventory(hre);
+  const block = await client.getBlock({ blockTag: 'finalized' });
   console.log(
     JSON.stringify({
-      schema: 'dotify.fresh-deployment-plan.v1',
+      schema: 'dotify.fresh-deployment-plan.v2',
+      source: {
+        commit: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
+        clean: execFileSync('git', ['status', '--porcelain=v1', '--untracked-files=all'], { encoding: 'utf8' }).trim().length === 0
+      },
       chainId,
       nativeTokenDecimals,
-      deployer: wallet.account.address,
-      balanceTestPas: formatEther(await client.getBalance({ address: wallet.account.address })),
+      deployer,
+      finalizedBlock: { number: String(block.number), hash: block.hash },
+      nonce: await client.getTransactionCount({ address: deployer, blockTag: 'pending' }),
+      balanceTestPas: formatEther(await client.getBalance({ address: deployer, blockNumber: block.number })),
       previous: readDeployments(),
       contracts: artifacts,
-      plannedTransactions: 10,
+      plannedTransactions: FRESH_CORE_TRANSACTION_COUNT,
+      transactionScope: 'Core creations and directory wiring only; excludes CDM, storage, clients and artist bootstrap',
+      signingAuthority: 'none',
+      nativeAndHostAcceptance: 'pending',
       oldDeploymentModified: false,
-      oldIpfsContentDeleted: false
+      oldStorageObjectsDeleted: false
     })
   );
 }
