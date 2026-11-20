@@ -64,11 +64,11 @@ identifier or second token-owner result. Web, API, signaling and Product readers
 use that shape; API registry bindings come from compiler artifacts. Catalog
 release responses and bootstrap fixtures no longer contain `tokenId`.
 
-The factory takes six facet addresses (cut, loupe, ownership, registry,
-royalties, access), followed by native decimals, after directory and initializer.
+The fresh factory takes seven facet addresses (cut, loupe, ownership, registry,
+royalties, access, metadata), followed by native decimals, after directory and initializer.
 `SmartRuntime(owner, artist, nativeTokenDecimals, cuts, init, calldata)` binds
-artist and precision independently. After `createRuntime`, six installation
-calls finish the runtime: loupe, ownership, registry, royalties, access and
+artist and precision independently. After `createRuntime`, seven installation
+calls finish the runtime: loupe, ownership, registry, royalties, access, metadata and
 artist-signed finalization. The former NFT stage is absent.
 
 An active release grants access to its recorded artist, to everyone in Free,

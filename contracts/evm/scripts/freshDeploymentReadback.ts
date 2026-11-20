@@ -1,7 +1,10 @@
 // Public, finalized readback only. Never signs or changes deployed state.
 import hre from 'hardhat';
-import { createPublicClient, http, type Abi } from 'viem';
+import { createPublicClient, http } from 'viem';
 import { POLKADOT_TESTNET_CHAIN, readDeployments } from './smartRuntime';
+import { freshCdmPackages, freshDeploymentAccount, inspectFreshSystem } from './freshDeployment';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 const abi = [
   {
     type: 'function',
@@ -28,36 +31,27 @@ async function main() {
   if ((await client.getChainId()) !== 420420417) throw new Error('Unexpected chain');
   const block = await client.getBlock({ blockTag: 'finalized' });
   const record = readDeployments();
-  const factoryAbi = (await hre.artifacts.readArtifact('ArtistRuntimeFactory')).abi as Abi;
-  const nativeTokenDecimals = Number(
-    await client.readContract({ address: record.factory, abi: factoryAbi, functionName: 'nativeTokenDecimals', blockNumber: block.number })
-  );
-  if (record.nativeTokenDecimals === undefined || nativeTokenDecimals !== record.nativeTokenDecimals)
-    throw new Error('Factory native precision does not match the explicit deployment manifest');
+  const system = await inspectFreshSystem(hre, client, record, block.number, freshDeploymentAccount(process.env.DOTIFY_DEPLOYER_ADDRESS));
+  const cdm = JSON.parse(readFileSync(resolve(__dirname, '../cdm.json'), 'utf8'));
+  if (cdm.registry?.toLowerCase() !== '0x05662b3dbd5dd9f2ff92d67630477e84b0b37c1f') throw new Error('Unexpected CDM registry');
   const matches = [];
-  for (const [name, address] of [
-    ['@dotify/artist-directory', record.directory],
-    ['@dotify/artist-runtime-factory', record.factory]
-  ] as const) {
-    const versions = [];
-    for (let version = 0; version < 8; version++) {
-      const result = await client.readContract({
-        address: '0x05662b3dbd5dd9f2ff92d67630477e84b0b37c1f',
-        abi,
-        functionName: 'getAddressAtVersion',
-        args: [name, version],
-        blockNumber: block.number
-      });
-      if (result.isSome && result.value.toLowerCase() === address.toLowerCase()) versions.push(version);
-    }
-    if (!versions.length) throw new Error('New address is not finalized in the CDM registry');
-    matches.push({ name, address, versions });
+  for (const { name, address, version } of freshCdmPackages(cdm, record)) {
+    const result = await client.readContract({
+      address: '0x05662b3dbd5dd9f2ff92d67630477e84b0b37c1f',
+      abi,
+      functionName: 'getAddressAtVersion',
+      args: [name, version],
+      blockNumber: block.number
+    });
+    if (!result.isSome || result.value.toLowerCase() !== address.toLowerCase())
+      throw new Error('Exact new address/version is not finalized in the CDM registry');
+    matches.push({ name, address, version });
   }
   console.log(
     JSON.stringify({
-      schema: 'dotify.fresh-cdm-readback.v1',
+      schema: 'dotify.fresh-cdm-readback.v2',
       chainId: 420420417,
-      nativeTokenDecimals,
+      ...system,
       blockNumber: Number(block.number),
       blockHash: block.hash,
       packages: matches

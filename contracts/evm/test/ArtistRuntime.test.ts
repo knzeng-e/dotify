@@ -112,6 +112,7 @@ async function deployDotifySystemFixture() {
   const registryPallet = await hre.viem.deployContract('MusicRegistryPallet');
   const royaltiesPallet = await hre.viem.deployContract('MusicRoyaltiesPallet');
   const accessPallet = await hre.viem.deployContract('MusicAccessPallet');
+  const metadataPallet = await hre.viem.deployContract('MusicMetadataPallet');
   const initializer = await hre.viem.deployContract('DotifyRuntimeInitializer');
 
   // Deploy directory and factory
@@ -125,6 +126,7 @@ async function deployDotifySystemFixture() {
     registryPallet.address,
     royaltiesPallet.address,
     accessPallet.address,
+    metadataPallet.address,
     18
   ]);
 
@@ -144,6 +146,7 @@ async function deployDotifySystemFixture() {
     registryPallet,
     royaltiesPallet,
     accessPallet,
+    metadataPallet,
     accessArtifact,
     registryArtifact,
     deployer,
@@ -163,7 +166,7 @@ async function createArtistRuntime(
 ) {
   const factoryAsArtist = await hre.viem.getContractAt('ArtistRuntimeFactory', factory.address, { client: { wallet: artist } });
   await factoryAsArtist.write.createRuntime();
-  for (let i = 0; i < 6; i++) {
+  for (let i = 0; i < 7; i++) {
     await factoryAsArtist.write.installRuntimeStep();
   }
 
@@ -232,7 +235,7 @@ describe('ArtistRuntimeFactory — createRuntime()', () => {
     expect(await factory.read.pendingRuntimeStageOf([artistA.account.address])).to.equal(1);
     expect(await directory.read.runtimeOf([artistA.account.address])).to.equal(ZERO_ADDR);
 
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 7; i++) {
       await factoryAsA.write.installRuntimeStep();
     }
 
@@ -346,14 +349,6 @@ describe('Artist SmartRuntime — music pallets', () => {
     const runtime = await createArtistRuntime(ctx.factory, ctx.artistA);
     const registry = await hre.viem.getContractAt('MusicRegistryPallet', runtime, { client: { wallet: ctx.artistA } });
     await registry.write.musicRegRegister([sampleRegistration(), [ctx.royaltyRecip.account.address], [10000]]);
-    const facet = await hre.viem.deployContract('MusicMetadataPallet');
-    const artifact = await hre.artifacts.readArtifact('MusicMetadataPallet');
-    const cut = await hre.viem.getContractAt('DiamondCutPallet', runtime, { client: { wallet: ctx.artistA } });
-    await cut.write.diamondCut([
-      [{ facetAddress: facet.address, action: FacetCutAction.Add, functionSelectors: selectorsFromAbi(artifact.abi) }],
-      ZERO_ADDR,
-      '0x'
-    ]);
     const metadata = await hre.viem.getContractAt('MusicMetadataPallet', runtime, { client: { wallet: ctx.artistA } });
     return { ...ctx, runtime, registry, metadata };
   }
@@ -1508,7 +1503,7 @@ describe('A03 artist identity and technical administration', () => {
     await expectRevertMessage(oldCut.write.diamondCut([[], ZERO_ADDR, '0x']), 'not owner');
     const newCut = await hre.viem.getContractAt('DiamondCutPallet', f.runtime, { client: { wallet: f.artistB } });
     const facet = await hre.viem.deployContract('MusicMetadataPallet');
-    await newCut.write.diamondCut([[{ facetAddress: facet.address, action: 0, functionSelectors: selectorsFromAbi(facet.abi) }], ZERO_ADDR, '0x']);
+    await newCut.write.diamondCut([[{ facetAddress: facet.address, action: 1, functionSelectors: selectorsFromAbi(facet.abi) }], ZERO_ADDR, '0x']);
     const metadata = await hre.viem.getContractAt('MusicMetadataPallet', f.runtime, { client: { wallet: f.artistA } });
     const args = [TRACK_HASH, 'Updated title', 'Updated story', 'paseo-bulletin:new', sampleRegistration().metadataRef] as const;
     await expectRevertMessage(metadata.write.musicRegUpdateMetadata(args, { account: f.artistB.account }), 'not artist');
@@ -1577,7 +1572,7 @@ describe('A03 artist identity and technical administration', () => {
     const registry = await hre.viem.getContractAt('MusicRegistryPallet', runtime, { client: { wallet: f.artistA } });
     await expectRevertMessage(registry.write.musicRegRegister([sampleRegistration(), [f.artistA.account.address], [10000]]), 'bootstrap pending');
     expect(await f.directory.read.runtimeOf([f.artistA.account.address])).to.equal(ZERO_ADDR);
-    for (let step = 0; step < 3; step++) await factory.write.installRuntimeStep();
+    for (let step = 0; step < 4; step++) await factory.write.installRuntimeStep();
     expect((await ownership.read.owner()).toLowerCase()).to.equal(f.artistA.account.address.toLowerCase());
     expect((await f.directory.read.runtimeOf([f.artistA.account.address])).toLowerCase()).to.equal(runtime.toLowerCase());
     await registry.write.musicRegRegister([sampleRegistration(), [f.artistA.account.address], [10000]]);

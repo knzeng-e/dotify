@@ -101,6 +101,10 @@ const runtimeBootstrapSteps = [
     detail: 'Enable free, paid, and human-free access choices for each track.'
   },
   {
+    label: 'Care for your release details',
+    detail: 'Keep the ability to correct titles, stories, and artwork without replacing a release.'
+  },
+  {
     label: 'Own the artist space',
     detail: 'Make your artist account responsible for the whole space and its releases.'
   }

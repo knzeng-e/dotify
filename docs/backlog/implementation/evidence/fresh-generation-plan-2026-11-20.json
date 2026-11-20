@@ -1,0 +1,77 @@
+{
+  "schema": "dotify.fresh-deployment-plan.v2",
+  "source": {
+    "commit": "6a1076d9aa50d7402f2fd99f36277271161fee55",
+    "clean": true
+  },
+  "chainId": 420420417,
+  "nativeTokenDecimals": 10,
+  "deployer": "0xC3571714248588C6E19cDECe2778B75341b2c288",
+  "finalizedBlock": {
+    "number": "15997893",
+    "hash": "0xcd1b47a69ea185a37700373701c7718cf5d6ff6bd0476e5ca446a57c81389166"
+  },
+  "nonce": 485,
+  "balanceTestPas": "9841.21355471999",
+  "previous": {
+    "factory": "0x61dd19a0d4f6bd21c6ffa4a7a9d9e771af95bb13",
+    "directory": "0x79b21cad3848a3019edee17b089142282f4a13a3",
+    "initializer": "0x400d13d1fbae31f4c5885c9da468f1dcdbd1b240",
+    "pallets": {
+      "cutPallet": "0x49c70513cde2b386e59b153cc9f9c1f75b753c01",
+      "loupePallet": "0xb2961675ff8066f29787589aa854ac98f88bc58f",
+      "ownershipPallet": "0x37050b785e4eddc8eab34507227970b8ea3a969d",
+      "registryPallet": "0x01de2f2528ec24d2a783c192418db0826176f835",
+      "royaltiesPallet": "0xec86dfcc51b76e952e24a302f64c8a304568447b",
+      "accessPallet": "0x2b9318a20e149179859ebc28fc80db507962f559"
+    }
+  },
+  "contracts": [
+    {
+      "name": "DiamondCutPallet",
+      "creationCodeHash": "0x5fedb395b3590019c81c14b1e0bd5bc21dbcc80deca0daa4dcccfedf3e2082d6"
+    },
+    {
+      "name": "DiamondLoupePallet",
+      "creationCodeHash": "0x63d6eb97a3495a9ca3e83d81fdb34727248ca92f34e4de8f0303bb0f0cb281eb"
+    },
+    {
+      "name": "OwnershipPallet",
+      "creationCodeHash": "0xa0a8b85581635acec56a6612321ad940533e365b3e4b19f150a2e855f8bdf857"
+    },
+    {
+      "name": "MusicRegistryPallet",
+      "creationCodeHash": "0x701e92f698c0125a8c0fb1e82a0051d9b8d7467c7d82d5dc73b44a49688f182e"
+    },
+    {
+      "name": "MusicRoyaltiesPallet",
+      "creationCodeHash": "0xa4bbc8f7f900d9db3e0dd8accd1869c5dfbdb612c666e3bd125757a97b39bde2"
+    },
+    {
+      "name": "MusicAccessPallet",
+      "creationCodeHash": "0x31648a78bfaefb73fa96df6442b559334247ef526b910e9d33576e905fefbff7"
+    },
+    {
+      "name": "MusicMetadataPallet",
+      "creationCodeHash": "0x36fe42a9a193463f5cb6b80f5f2966a75764e721c00884d5a300163529301257"
+    },
+    {
+      "name": "DotifyRuntimeInitializer",
+      "creationCodeHash": "0xd10a6205c0a3ad7e7a2b570e63fd929a6864a04202b3cf053728459824768bcd"
+    },
+    {
+      "name": "ArtistDirectory",
+      "creationCodeHash": "0x8f80bd12637d6369b5e3cce4a01c931379a48295566dd24aefeb4dadb2526c55"
+    },
+    {
+      "name": "ArtistRuntimeFactory",
+      "creationCodeHash": "0x8fd7ff01d8eee447a0d735f677c2ec67fa1fb998711c075abd71ade6f364cde6"
+    }
+  ],
+  "plannedTransactions": 11,
+  "transactionScope": "Core creations and directory wiring only; excludes CDM, storage, clients and artist bootstrap",
+  "signingAuthority": "none",
+  "nativeAndHostAcceptance": "pending",
+  "oldDeploymentModified": false,
+  "oldStorageObjectsDeleted": false
+}

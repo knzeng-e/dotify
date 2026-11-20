@@ -70,7 +70,7 @@ function publicationDeps(overrides: Partial<UseArtistConsoleDeps> = {}): UseArti
 }
 
 describe('publication preparation ownership', () => {
-  it.each([0, 4, 6])('describes the actual seven-approval bootstrap when starting at stage %i', async initialStage => {
+  it.each([0, 4, 6, 7])('describes the actual eight-approval bootstrap when starting at stage %i', async initialStage => {
     const address = '0x0000000000000000000000000000000000000002';
     const labels = [
       'Claim your artist space',
@@ -79,6 +79,7 @@ describe('publication preparation ownership', () => {
       'Open your music record',
       'Define how value flows',
       'Choose listening conditions',
+      'Care for your release details',
       'Own the artist space'
     ];
     let stage = initialStage;
@@ -105,13 +106,13 @@ describe('publication preparation ownership', () => {
     });
     runtime.installRuntimeStep.mockImplementation(async () => {
       const prompt = feedback[feedback.length - 1]!;
-      expect(prompt.message).toBe(`Approval ${stage + 1}/7: ${prompt.steps![stage].detail}`);
+      expect(prompt.message).toBe(`Approval ${stage + 1}/8: ${prompt.steps![stage].detail}`);
       expect(prompt.steps!.map(step => step.label)).toEqual(labels);
       expect(prompt.steps![stage].status).toBe('active');
       expect(prompt.steps![stage].label).toBe(labels[stage]);
       signedStages.push(stage);
       const hash = hashFor(stage);
-      complete = stage === 6;
+      complete = stage === 7;
       stage += 1;
       return hash;
     });
@@ -124,14 +125,14 @@ describe('publication preparation ownership', () => {
       renderToStaticMarkup(<Harness />);
       await captured.current!.registerArtist();
       expect(feedback[feedback.length - 1]?.title).toBe('Artist registered');
-      expect(signedStages).toEqual(Array.from({ length: 7 - Math.max(1, initialStage) }, (_, index) => Math.max(1, initialStage) + index));
+      expect(signedStages).toEqual(Array.from({ length: 8 - Math.max(1, initialStage) }, (_, index) => Math.max(1, initialStage) + index));
       expect(runtime.createRuntime).toHaveBeenCalledTimes(initialStage === 0 ? 1 : 0);
       expect(runtime.waitForTransaction).toHaveBeenCalledTimes(signedStages.length + (initialStage === 0 ? 1 : 0));
       const steps = feedback[feedback.length - 1]!.steps!;
-      expect(steps).toHaveLength(7);
+      expect(steps).toHaveLength(8);
       expect(steps.every(step => step.status === 'complete')).toBe(true);
       for (const signed of signedStages) expect(steps[signed].txHash).toBe(hashFor(signed));
-      if (initialStage === 0) expect(feedback[0].message).toContain('7 clear approvals');
+      if (initialStage === 0) expect(feedback[0].message).toContain('8 clear approvals');
       else expect(feedback[0].steps![initialStage].label).toBe(labels[initialStage]);
       expect(JSON.stringify(feedback)).not.toMatch(/Attach ownership to music|ownership record that can move/);
     } finally {

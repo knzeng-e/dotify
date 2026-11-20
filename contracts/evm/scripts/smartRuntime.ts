@@ -1,7 +1,7 @@
 import type { HardhatRuntimeEnvironment } from 'hardhat/types';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { defineChain } from 'viem';
+import { defineChain, getAddress, isAddress } from 'viem';
 
 const ROOT_DIR = path.resolve(__dirname, '../../..');
 
@@ -24,7 +24,8 @@ const PALLET_CONTRACTS = [
   ['ownershipPallet', 'OwnershipPallet'],
   ['registryPallet', 'MusicRegistryPallet'],
   ['royaltiesPallet', 'MusicRoyaltiesPallet'],
-  ['accessPallet', 'MusicAccessPallet']
+  ['accessPallet', 'MusicAccessPallet'],
+  ['metadataPallet', 'MusicMetadataPallet']
 ] as const;
 
 type PalletDeploymentKey = (typeof PALLET_CONTRACTS)[number][0];
@@ -83,7 +84,7 @@ export async function getDeployConfig(hre: HardhatRuntimeEnvironment) {
   return { client: { public: publicClient, wallet } };
 }
 
-export async function buildFactoryConstructorArguments(_hre: HardhatRuntimeEnvironment, deployments: SmartRuntimeDeployments): Promise<readonly unknown[]> {
+export async function buildFactoryConstructorArguments(_hre: HardhatRuntimeEnvironment, deployments: Omit<SmartRuntimeDeployments, 'factory'>) {
   return [
     deployments.directory,
     deployments.initializer,
@@ -93,6 +94,7 @@ export async function buildFactoryConstructorArguments(_hre: HardhatRuntimeEnvir
     deployments.pallets.registryPallet,
     deployments.pallets.royaltiesPallet,
     deployments.pallets.accessPallet,
+    deployments.pallets.metadataPallet,
     deployments.nativeTokenDecimals
   ] as const;
 }
@@ -110,7 +112,8 @@ export const deployments = {
     ownershipPallet: '${data.pallets.ownershipPallet}',
     registryPallet: '${data.pallets.registryPallet}',
     royaltiesPallet: '${data.pallets.royaltiesPallet}',
-    accessPallet: '${data.pallets.accessPallet}'
+    accessPallet: '${data.pallets.accessPallet}',
+    metadataPallet: '${data.pallets.metadataPallet}'
   }
 } as const;
 
@@ -136,7 +139,7 @@ export async function hydrateDeploymentsFromChain(hre: HardhatRuntimeEnvironment
   const cfg = await getDeployConfig(hre);
   const factory = await hre.viem.getContractAt('ArtistRuntimeFactory', record.factory, cfg);
 
-  const [directory, initializer, cutPallet, loupePallet, ownershipPallet, registryPallet, royaltiesPallet, accessPallet, nativeTokenDecimals] =
+  const [directory, initializer, cutPallet, loupePallet, ownershipPallet, registryPallet, royaltiesPallet, accessPallet, metadataPallet, nativeTokenDecimals] =
     await Promise.all([
       factory.read.directory(),
       factory.read.initContract(),
@@ -146,21 +149,23 @@ export async function hydrateDeploymentsFromChain(hre: HardhatRuntimeEnvironment
       factory.read.registryPallet(),
       factory.read.royaltiesPallet(),
       factory.read.accessPallet(),
+      factory.read.metadataPallet(),
       factory.read.nativeTokenDecimals()
     ]);
 
   return {
     nativeTokenDecimals: record.nativeTokenDecimals ?? Number(nativeTokenDecimals),
-    factory: record.factory,
-    directory: record.directory ?? directory,
-    initializer: record.initializer ?? initializer,
+    factory: deploymentAddress(record.factory),
+    directory: deploymentAddress(record.directory ?? directory),
+    initializer: deploymentAddress(record.initializer ?? initializer),
     pallets: {
-      cutPallet: record.pallets.cutPallet ?? cutPallet,
-      loupePallet: record.pallets.loupePallet ?? loupePallet,
-      ownershipPallet: record.pallets.ownershipPallet ?? ownershipPallet,
-      registryPallet: record.pallets.registryPallet ?? registryPallet,
-      royaltiesPallet: record.pallets.royaltiesPallet ?? royaltiesPallet,
-      accessPallet: record.pallets.accessPallet ?? accessPallet
+      cutPallet: deploymentAddress(record.pallets.cutPallet ?? cutPallet),
+      loupePallet: deploymentAddress(record.pallets.loupePallet ?? loupePallet),
+      ownershipPallet: deploymentAddress(record.pallets.ownershipPallet ?? ownershipPallet),
+      registryPallet: deploymentAddress(record.pallets.registryPallet ?? registryPallet),
+      royaltiesPallet: deploymentAddress(record.pallets.royaltiesPallet ?? royaltiesPallet),
+      accessPallet: deploymentAddress(record.pallets.accessPallet ?? accessPallet),
+      metadataPallet: deploymentAddress(record.pallets.metadataPallet ?? metadataPallet)
     }
   };
 }
@@ -218,6 +223,11 @@ export async function verifySmartRuntimeSystem(
       label: 'DotifyRuntimeInitializer',
       address: deployments.initializer,
       contract: 'contracts/DotifyRuntimeInitializer.sol:DotifyRuntimeInitializer'
+    },
+    {
+      label: 'MusicMetadataPallet',
+      address: deployments.pallets.metadataPallet,
+      contract: 'contracts/pallets/MusicMetadataPallet.sol:MusicMetadataPallet'
     },
     {
       label: 'ArtistDirectory',
@@ -347,8 +357,14 @@ function hasCompleteDeployments(record: SmartRuntimeDeploymentRecord): record is
     record.pallets.ownershipPallet &&
     record.pallets.registryPallet &&
     record.pallets.royaltiesPallet &&
-    record.pallets.accessPallet
+    record.pallets.accessPallet &&
+    record.pallets.metadataPallet
   );
 }
 
 export { PALLET_CONTRACTS, type PalletContractName };
+
+function deploymentAddress(value: unknown): `0x${string}` {
+  if (typeof value !== 'string' || !isAddress(value)) throw new Error('Factory returned an invalid implementation address');
+  return getAddress(value);
+}

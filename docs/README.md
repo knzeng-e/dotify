@@ -1,5 +1,10 @@
 # Dotify documentation
 
+After SDK #483 merged into `dev`, the owner selected [fresh-generation preparation](how-to/prepare-fresh-testnet-generation.md).
+The candidate completes default artist metadata setup and prepares exact core
+and CDM checks before a coordinated contracts/API/client delivery. It does not
+record a deployment, state reset or new-device acceptance.
+
 The [coordinated SDK 0.45 candidate](design/product-sdk-045-migration.md) upgrades
 the Product family together and corrects legacy public-info decoding. Transaction
 signers require a reported 0.31.x Runtime. The owner's new iPhone build 23

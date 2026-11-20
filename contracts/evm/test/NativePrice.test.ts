@@ -29,7 +29,15 @@ async function rejects(call: Promise<unknown>, fragment: string) {
 async function system(decimals = 10) {
   const [artist, listener] = await hre.viem.getWalletClients();
   const facets = [];
-  for (const name of ['DiamondCutPallet', 'DiamondLoupePallet', 'OwnershipPallet', 'MusicRegistryPallet', 'MusicRoyaltiesPallet', 'MusicAccessPallet'])
+  for (const name of [
+    'DiamondCutPallet',
+    'DiamondLoupePallet',
+    'OwnershipPallet',
+    'MusicRegistryPallet',
+    'MusicRoyaltiesPallet',
+    'MusicAccessPallet',
+    'MusicMetadataPallet'
+  ])
     facets.push(await hre.viem.deployContract(name));
   const directory = await hre.viem.deployContract('ArtistDirectory');
   const initializer = await hre.viem.deployContract('DotifyRuntimeInitializer');
@@ -41,7 +49,7 @@ async function system(decimals = 10) {
   ] as never);
   await directory.write.setFactory([factory.address]);
   await factory.write.createRuntime();
-  for (let i = 0; i < 6; i++) await factory.write.installRuntimeStep();
+  for (let i = 0; i < 7; i++) await factory.write.installRuntimeStep();
   const runtime = await factory.read.runtimeOf([artist.account.address]);
   const registry = await hre.viem.getContractAt('MusicRegistryPallet', runtime);
   return { artist, listener, factory, runtime, registry };

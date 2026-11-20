@@ -221,8 +221,8 @@
       "kind": "work",
       "priority": "P1",
       "track": "Production spine",
-      "phase": "Next",
-      "note": "Supporting acceptance after the selected #407 → #395 → #388 sequence; delivered code is retained and the issue stays open. Fresh contracts/CDM v2 and coordinated API/signaling/encoder/Web/Product cutover deployed on 2026-10-22. #323 fixes native bootstrap; #326 and published Product 0.1.60 (#327) update Host compatibility. Owner reports successful artist setup/publication; candidate-bound audio/access/value-flow evidence remains open. Preserve later custody and nonce history."
+      "phase": "Now",
+      "note": "Owner-selected fresh-generation preparation on 20 November after merged SDK #483: complete default metadata bootstrap, public-address-only plan, exact source/factory/directory/CDM readback and matched API/client cutover procedure. The earlier October cutover is historical; no old active state is imported. Source preparation only; deployment, new Bulletin publication and native/physical acceptance remain open."
     },
     {
       "id": "mobile-form-continuity",

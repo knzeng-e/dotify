@@ -26,6 +26,7 @@ declare module "@parity/product-sdk-contracts" {
                 initContract: { args: []; response: HexString };
                 installRuntimeStep: { args: []; response: number };
                 loupePallet: { args: []; response: HexString };
+                metadataPallet: { args: []; response: HexString };
                 nativeTokenDecimals: { args: []; response: number };
                 ownershipPallet: { args: []; response: HexString };
                 pendingRuntimeOf: { args: [arg0: HexString]; response: HexString };
