@@ -79,6 +79,9 @@ the audit corrections, NFT-free bindings and native payment receipt work.
 `runtimeWriterProvider` keeps both the Runtime preflight and royalty-journal
 callbacks. Purchase and royalty-claim regressions verify an unsupported Host
 fails before signer/contract construction or browser-wallet fallback.
+The [integration record](../backlog/implementation/evidence/product-sdk-045-integration-2026-11-20.md)
+binds the resulting source and automated checks; earlier dated results retain
+their own scope.
 
 Follow the [device qualification procedure](../how-to/qualify-product-host-031.md).
 First collect non-spending Host info on an identified candidate. Contract/media

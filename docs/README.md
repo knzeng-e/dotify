@@ -7,6 +7,10 @@ configuration supplies a target for [device qualification](how-to/qualify-produc
 not a passed signing/media result. Deployed clients retain their prior pins;
 CASH stays disabled.
 
+The [20 November integration evidence](backlog/implementation/evidence/product-sdk-045-integration-2026-11-20.md)
+records the candidate after the audit's tested dev baseline, separately from
+pending physical Host acceptance.
+
 The [20 November A05 paid-access decision](reference/paid-release-access.md)
 keeps earlier buyers authorized across access-mode changes while the release
 remains active. It is a source candidate for the matched fresh generation;
