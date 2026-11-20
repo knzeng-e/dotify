@@ -1,5 +1,13 @@
 # Dotify Production Backlog
 
+The [fresh core checkpoint](../operations/fresh-testnet-2026-11-20.md) records
+the actual #317 testnet deployment from merged #501. Coordinated CDM/services/
+client activation and native/device acceptance remain ahead. The selected
+development cutover accepts an interruption: artist-wallet runtime creation,
+Bulletin configuration, then matched service/client startup. The
+[selected sequence](implementation/listening-and-publication-readiness.md)
+owns the execution order.
+
 The [relational-experience roadmap](relational-experience-roadmap.md) preserves the longer-range Rooms → Imprints → Resonance Gardens vision with explicit community checkpoints. It is **proposed design**, not another active work queue or a change to Project 5 priorities; the selected production-readiness sequence below remains authoritative.
 
 The [selected sequence](implementation/listening-and-publication-readiness.md#bounded-recovery-before-the-public-pilot)

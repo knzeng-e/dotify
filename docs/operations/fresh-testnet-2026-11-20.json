@@ -1,0 +1,204 @@
+{
+  "schema": "dotify.fresh-core-readback.v1",
+  "source": "146fb446765ea796d3bbbd7b42a36bd93d105a3c",
+  "chainId": 420420417,
+  "blockNumber": "16001109",
+  "blockHash": "0x3ac009543073e18e1aa5e865ec29971e3c56d58687654512f2e56e10fe4a246d",
+  "deployments": {
+    "nativeTokenDecimals": 10,
+    "pallets": {
+      "cutPallet": "0x0288876e073fc6817c9502e5fbe58cd16e0867d3",
+      "loupePallet": "0x56a0942f8ab8e2823cd26196e804d0caa0e2dd79",
+      "ownershipPallet": "0x33d8f0a0f07031282d22197f0e201c36ac9df48d",
+      "registryPallet": "0x63d292526a26bc97177738601c243262adc63fe5",
+      "royaltiesPallet": "0xef2069a5c8feeb7b811e829b107766d2365ecfb4",
+      "accessPallet": "0x46b14bf579df388719856d04c22fffb6813d90ad",
+      "metadataPallet": "0x80c427decf74f14945e7d6a94a36d6d22b811405"
+    },
+    "initializer": "0x2532718ccaa3720e01e68c5783ba86bb6620ee36",
+    "directory": "0x8af1531278831fe92689558f7b6cae92fc682ca4",
+    "factory": "0xe2199c16ea32402dd2bdc3730afba49ad5cd83f5"
+  },
+  "checks": {
+    "nativeTokenDecimals": 10,
+    "artistCount": "0",
+    "deployer": "0xC3571714248588C6E19cDECe2778B75341b2c288",
+    "verifiedImplementations": [
+      "DiamondCutPallet",
+      "DiamondLoupePallet",
+      "OwnershipPallet",
+      "MusicRegistryPallet",
+      "MusicRoyaltiesPallet",
+      "MusicAccessPallet",
+      "MusicMetadataPallet",
+      "DotifyRuntimeInitializer",
+      "ArtistDirectory",
+      "ArtistRuntimeFactory"
+    ]
+  },
+  "coreExecution": {
+    "account": "0xc3571714248588c6e19cdece2778b75341b2c288",
+    "transactionCount": 11,
+    "gasLimitPerTransaction": "2000000",
+    "gasPriceWei": "1000000000000",
+    "maxGasFeeWei": "22000000000000000000",
+    "observedAccountDebitWei": "8101176000000000000",
+    "transactions": [
+      {
+        "index": 0,
+        "label": "DiamondCutPallet",
+        "nonce": 485,
+        "hash": "0x0a4b6bbe05cb1dc7ca6016885faa2b26f039359d68577452915426e2bffc6ff8",
+        "blockNumber": "16001030",
+        "blockHash": "0x71974df60527e22844e5da11ce1eb0d7f12ae8d1345aa5a02afb3393c729ec9f",
+        "gasUsed": "808700",
+        "effectiveGasPrice": "1000000000000",
+        "status": "success",
+        "contractAddress": "0x0288876e073fc6817c9502e5fbe58cd16e0867d3"
+      },
+      {
+        "index": 1,
+        "label": "DiamondLoupePallet",
+        "nonce": 486,
+        "hash": "0xfc7ead142f483b0fc5383627cdead773eb9693b27ea551576e198e5178b4cd69",
+        "blockNumber": "16001031",
+        "blockHash": "0xff9bb9f58d8648f48012a7c18fdbf5dab79e5894da9ffab2f9061acd69e38734",
+        "gasUsed": "757270",
+        "effectiveGasPrice": "1000000000000",
+        "status": "success",
+        "contractAddress": "0x56a0942f8ab8e2823cd26196e804d0caa0e2dd79"
+      },
+      {
+        "index": 2,
+        "label": "OwnershipPallet",
+        "nonce": 487,
+        "hash": "0x77b40efc1663725c1eaa1b5ca0ac04310ed973a8766e9aeba00922211084b4a1",
+        "blockNumber": "16001032",
+        "blockHash": "0x44425ddd73c529e2258fa74d41d1f4a83ba0ecd672a97a61e5d8002e3e7fad8e",
+        "gasUsed": "744467",
+        "effectiveGasPrice": "1000000000000",
+        "status": "success",
+        "contractAddress": "0x33d8f0a0f07031282d22197f0e201c36ac9df48d"
+      },
+      {
+        "index": 3,
+        "label": "MusicRegistryPallet",
+        "nonce": 488,
+        "hash": "0x80c50b7dd182330e3d73dd9f0ba0b05366569363559f6a3f0b84d15ae61fcb98",
+        "blockNumber": "16001033",
+        "blockHash": "0xce337396a5203cd9b0d188f589ed1724e7f9f85b0ef6f73a46fdcc02be966fc8",
+        "gasUsed": "896435",
+        "effectiveGasPrice": "1000000000000",
+        "status": "success",
+        "contractAddress": "0x63d292526a26bc97177738601c243262adc63fe5"
+      },
+      {
+        "index": 4,
+        "label": "MusicRoyaltiesPallet",
+        "nonce": 489,
+        "hash": "0xf7c8662eee4aefbe091c1a4ac79889beda207598f1d9b00a5c3735c510b91e0a",
+        "blockNumber": "16001034",
+        "blockHash": "0xc03981b569bcc79745f23086d629d98eb9d29d774c377fa23a81d7ec00d5440b",
+        "gasUsed": "948513",
+        "effectiveGasPrice": "1000000000000",
+        "status": "success",
+        "contractAddress": "0xef2069a5c8feeb7b811e829b107766d2365ecfb4"
+      },
+      {
+        "index": 5,
+        "label": "MusicAccessPallet",
+        "nonce": 490,
+        "hash": "0xc5fb611408f4ec305c4f18c6de583b397adc85c636ebb783cb92eba5325a0703",
+        "blockNumber": "16001035",
+        "blockHash": "0xd1d63b401cf0b3a4d6cc5fe9fa32088ed732dd7dbf1b24fdb530583c18e25db5",
+        "gasUsed": "756982",
+        "effectiveGasPrice": "1000000000000",
+        "status": "success",
+        "contractAddress": "0x46b14bf579df388719856d04c22fffb6813d90ad"
+      },
+      {
+        "index": 6,
+        "label": "MusicMetadataPallet",
+        "nonce": 491,
+        "hash": "0x72f5593acdb92a4481a7b6cc49dba1168200259cc801a43c49ed36eb7262af2d",
+        "blockNumber": "16001036",
+        "blockHash": "0x0039d21ee84a089e02c2338171363c18d9733b007e1ec43ce70f826493d0abde",
+        "gasUsed": "762462",
+        "effectiveGasPrice": "1000000000000",
+        "status": "success",
+        "contractAddress": "0x80c427decf74f14945e7d6a94a36d6d22b811405"
+      },
+      {
+        "index": 7,
+        "label": "DotifyRuntimeInitializer",
+        "nonce": 492,
+        "hash": "0x58a8a2289bce552d2f4cbca6e747c15730630c613e7c34cc0f756d468c40d99c",
+        "blockNumber": "16001037",
+        "blockHash": "0xdd18f6ac03a4dc5339ddd330b251daa690dc7532506c6f4107936f468f160081",
+        "gasUsed": "736973",
+        "effectiveGasPrice": "1000000000000",
+        "status": "success",
+        "contractAddress": "0x2532718ccaa3720e01e68c5783ba86bb6620ee36"
+      },
+      {
+        "index": 8,
+        "label": "ArtistDirectory",
+        "nonce": 493,
+        "hash": "0x91f164d56c3f3316c90177ac5e32b7821341c28462e098fa550bebc85a312605",
+        "blockNumber": "16001038",
+        "blockHash": "0xbe7f6ca6b79133bf585b117a2a3c11fb5162cff9d3b7144bbfce81e0cf49cfd7",
+        "gasUsed": "756356",
+        "effectiveGasPrice": "1000000000000",
+        "status": "success",
+        "contractAddress": "0x8af1531278831fe92689558f7b6cae92fc682ca4"
+      },
+      {
+        "index": 9,
+        "label": "ArtistRuntimeFactory",
+        "nonce": 494,
+        "hash": "0x0bb9969ba553e6adbba0b47cd8cb2b17678ac24132c6645bb4f85c796d5944a6",
+        "blockNumber": "16001039",
+        "blockHash": "0xc80cee1be4f63c9ed985e490088095709f2570fce2c805dab07b073676c49bd6",
+        "gasUsed": "929162",
+        "effectiveGasPrice": "1000000000000",
+        "status": "success",
+        "contractAddress": "0xe2199c16ea32402dd2bdc3730afba49ad5cd83f5"
+      },
+      {
+        "index": 10,
+        "label": "setFactory",
+        "nonce": 495,
+        "hash": "0x5e90ee0563407297f0fd7ddb4d4d4fc475a8fe427dfa4b3ba2a0d5928d5b348b",
+        "blockNumber": "16001109",
+        "blockHash": "0x3ac009543073e18e1aa5e865ec29971e3c56d58687654512f2e56e10fe4a246d",
+        "gasUsed": "3856",
+        "effectiveGasPrice": "1000000000000",
+        "status": "success"
+      }
+    ]
+  },
+  "sourceVerification": {
+    "explorer": "https://blockscout-testnet.polkadot.io",
+    "contractsVerified": [
+      "DiamondCutPallet",
+      "DiamondLoupePallet",
+      "OwnershipPallet",
+      "MusicRegistryPallet",
+      "MusicRoyaltiesPallet",
+      "MusicAccessPallet",
+      "MusicMetadataPallet",
+      "DotifyRuntimeInitializer",
+      "ArtistDirectory",
+      "ArtistRuntimeFactory"
+    ]
+  },
+  "activation": {
+    "cdm": "pending",
+    "apiAndSignaling": "unchanged-old-generation",
+    "webAndProduct": "unchanged-old-generation",
+    "artistRuntimeCreated": false,
+    "musicPublished": false,
+    "nativePaymentAcceptance": false,
+    "physicalHostAcceptance": false
+  }
+}

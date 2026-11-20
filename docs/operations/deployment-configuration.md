@@ -243,6 +243,12 @@ required audit fixes; this source change does not perform it.
 
 ### Native payment correction candidate (#484)
 
+The [20 November core checkpoint](fresh-testnet-2026-11-20.md) records the new
+eleven-transaction testnet deployment, finalized bytecode/binding checks and ten
+explorer source verifications from `dev` `146fb446`. CDM, services and clients
+still use the earlier generation. Core deployment alone is not activation or
+native value-flow acceptance.
+
 For the owner-selected 20 November preparation after merged SDK #483, follow
 [Prepare a coherent fresh testnet generation](../how-to/prepare-fresh-testnet-generation.md).
 New factories now require `metadataPallet` and use seven install/finalize calls
@@ -257,7 +263,8 @@ The owner selected a **complete fresh testnet generation on 18 November 2026**.
 The old contracts, releases, references, purchases, NFTs and pending test balances
 are abandoned as active application state. This replaces the earlier facet-only
 migration plan for [the payment correction](../backlog/native-payment-settlement-parity.md).
-This is a planned procedure; no deployment or reset is recorded here.
+The core checkpoint above begins this procedure; active-state cutover and
+new-generation acceptance remain ahead.
 
 1. Finish the system-audit corrections and freeze a tested source commit before
    preparing deployment transactions. Review a versioned manifest for the fresh
@@ -296,6 +303,35 @@ This is a planned procedure; no deployment or reset is recorded here.
    retain it across rollback within that generation. Roll clients and APIs back
    coherently; do not restore an empty journal or silently reconnect the new
    client to the abandoned generation. Old-testnet debt migration is not required.
+
+### Testnet cutover with an interruption
+
+The owner-selected development cutover accepts a maintenance interruption.
+Archive the empty-directory finalized core/CDM readback before artist onboarding.
+Creating the runtime calls the new factory through the artist's wallet and does
+not require a publication API. Bind the publisher to the actual completed runtime
+before starting custody. The [procedure](../how-to/prepare-fresh-testnet-generation.md#review-one-contractapiclient-configuration)
+owns this sequence; the existing publisher startup preflight remains mandatory.
+
+Drain active work and stop all old writers before the final state capture.
+Preserve session epoch/revocations, live auth nonces and upload reservations/usage
+in the new PostgreSQL namespace during one operator transaction, retaining the
+old namespace as evidence. Do not import its catalog/checkpoint or old receipt
+lookups. Explicitly adapt and verify runtime row policies for the new namespace;
+the deployed `dotify`-only policy does not admit another name. Keep one custody
+owner, protected volume backups and all nonce/key/retention history. Retiring a
+release does not replenish storage or upload budgets.
+
+After artist-wallet creation and finalized runtime readback, prepare its unused
+content-key domain and bounded Bulletin policy, preserving every previous secret
+and account obligation. Start one matched custody with its normal preflight,
+then matching edges and signaling against fresh receipt/catalog paths and the
+new shared identity. Freeze the actual new-generation API catalog for the
+identified Web/Product delivery. No releases are expected yet; any indexed
+artist must belong to the new directory. The earlier empty-artist observation
+remains a pre-onboarding checkpoint. If startup fails, keep the affected service
+stopped and reconcile its configuration and journals. No recurring renewal or
+musical allowance is granted by this procedure.
 
 These links describe tracked candidate settings, not a readback of dashboards.
 Read exact origins, addresses and scaling values from the reviewed commit rather
