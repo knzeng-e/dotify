@@ -16,6 +16,18 @@ function response(value: unknown) {
 afterEach(() => vi.useRealTimers());
 
 describe('Host software report allowlist', () => {
+  it('retains a bounded reported Runtime but never invents one for legacy labels', () => {
+    expect(sanitizeHostSoftwareObservation({ status: 'reported', ...info, truapiVersion: '0.31.0' })).toEqual({
+      status: 'reported',
+      ...info,
+      runtimeVersion: '0.31.0'
+    });
+    expect(sanitizeHostSoftwareObservation({ status: 'reported', ...info, truapiVersion: '' })).toEqual({ status: 'reported', ...info });
+    expect(sanitizeHostSoftwareObservation({ status: 'reported', ...info, runtimeVersion: 'https://private.example' })).toEqual({
+      status: 'reported',
+      ...info
+    });
+  });
   it('owns only bounded public software fields and strips unrelated data', () => {
     expect(sanitizeHostSoftwareObservation({ status: 'reported', ...info, account: 'PRIVATE', permissions: ['PRIVATE'], payment: 'PRIVATE' })).toEqual({
       status: 'reported',

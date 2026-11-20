@@ -12,6 +12,8 @@ const productH160Address = '0x9999999999999999999999999999999999999999' as const
 const differentProductH160Address = '0x8888888888888888888888888888888888888888' as const;
 const nativeReceiptApi = vi.hoisted(() => vi.fn(async () => []));
 vi.mock('./nativeContributionReceiptApi', () => ({ readNativeContributionReceiptApi: nativeReceiptApi }));
+const transactionHost = vi.hoisted(() => vi.fn(async () => {}));
+vi.mock('../productHost/productTransactionHost', () => ({ requireProductTransactionHost: transactionHost }));
 
 const viemWriter = {
   createRuntime: vi.fn(async () => txHash),
@@ -103,6 +105,35 @@ function accessIntent(amountPlanck: bigint) {
 }
 
 describe('createRuntimeWriter', () => {
+  it('refuses an incompatible Host before creating or connecting its transaction signer', async () => {
+    const { SignerManager } = mockProductSigner();
+    transactionHost.mockRejectedValueOnce(new Error('Runtime 0.31.x required'));
+    const { createProductSignerManager } = await import('./runtimeWriterProvider');
+    await expect(createProductSignerManager()).rejects.toThrow('Runtime 0.31.x');
+    expect(SignerManager).not.toHaveBeenCalled();
+  });
+  it.each(['purchase', 'royalty-claim'])('preserves the Runtime gate before %s setup after receipt integration', async operation => {
+    vi.stubEnv('VITE_DOTIFY_RUNTIME_ADAPTER', 'product-cdm');
+    const { SignerManager, signerManager } = mockProductSigner();
+    transactionHost.mockRejectedValueOnce(new Error('Runtime 0.31.x required'));
+    const createProductCdmContracts = vi.fn();
+    vi.doMock('./productCdmContracts', () => ({ createProductCdmContracts }));
+    const getViemWalletClient = vi.fn();
+    const createRuntimeWriter = await loadProvider();
+    const writer = createRuntimeWriter({
+      ethRpcUrl: 'https://rpc.example',
+      getViemWalletClient,
+      config: { kind: 'product-cdm', productEnvironment: 'devnet' }
+    });
+    const request = operation === 'purchase' ? writer.payForAccess(accessIntent(42n)) : writer.claimRoyalty(runtime, productH160Address);
+    await expect(request).rejects.toThrow('Runtime 0.31.x');
+    expect(SignerManager).not.toHaveBeenCalled();
+    expect(signerManager.connect).not.toHaveBeenCalled();
+    expect(createProductCdmContracts).not.toHaveBeenCalled();
+    expect(productWriter.payForAccess).not.toHaveBeenCalled();
+    expect(productWriter.claimRoyalty).not.toHaveBeenCalled();
+    expect(getViemWalletClient).not.toHaveBeenCalled();
+  });
   it('checks native receipts through the API without creating a host chain connection or signer', async () => {
     vi.stubEnv('VITE_DOTIFY_RUNTIME_ADAPTER', 'product-cdm');
     const { SignerManager, signerManager } = mockProductSigner();

@@ -1,5 +1,31 @@
 # Publication, listening reliability and CASH — execution order
 
+## Runtime 0.31 qualification selected, 2026-11-20
+
+#500 is merged in tested `dev` `91da9589`. The owner now selects #85 / #483
+qualification before freezing the client for the clean generation. New
+[owner screenshots](evidence/product-host-ios-031-2026-11-20.md) show iPhone
+Polkadot App 0.10.0 (23), Runtime 0.31.0 configured and native CASH UI. The
+[updated candidate](../../design/product-sdk-045-migration.md) integrates dev;
+its first device gate is an actual non-spending info report, followed by named
+account/signature and matched-generation native/media acceptance.
+
+#85 is Now / Product SDK / P1. #406 stays Next / Research, pending real support,
+units, recovery and artist distribution. #408 stays Later / Research. Clean
+contract deployment preparation can progress alongside qualification; native
+payments and protected media must use matching contracts/API/clients. Publication,
+listening, recovery and pilot gates remain open. This selects source work and
+prepares a recipe, not a deployment or funded trial. Earlier dated checkpoints
+below retain their original observations.
+
+## Coordinated SDK 0.45 candidate, 2026-11-17
+
+The owner selects a [single current-family migration](../../design/product-sdk-045-migration.md)
+with legacy info correction and explicit transaction V2 compatibility checks.
+The candidate requires a named 0.31.x Host before transaction/promotion acceptance;
+known phone 0.26 and Desktop 0.29 cannot supply that gate. Deployed versions,
+CASH, compact activation and deferred recovery keep their existing boundaries.
+
 ## Paid-access decision, 2026-11-20
 
 The owner selected [A05 / #499](../preserve-paid-release-access.md): preserve a

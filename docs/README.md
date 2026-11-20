@@ -1,5 +1,18 @@
 # Dotify documentation
 
+The [coordinated SDK 0.45 candidate](design/product-sdk-045-migration.md) upgrades
+the Product family together and corrects legacy public-info decoding. Transaction
+signers require a reported 0.31.x Runtime. The owner's new iPhone build 23
+configuration supplies a target for [device qualification](how-to/qualify-product-host-031.md),
+not a passed signing/media result. Deployed clients retain their prior pins;
+CASH stays disabled.
+
+The [20 November integration evidence](backlog/implementation/evidence/product-sdk-045-integration-2026-11-20.md)
+records the candidate after the audit's tested dev baseline, separately from
+pending physical Host acceptance.
+The [qualification follow-up](backlog/implementation/evidence/product-sdk-045-qualification-2026-11-20.md)
+records the corrected candidate checks and identified local build for review.
+
 The [20 November A05 paid-access decision](reference/paid-release-access.md)
 keeps earlier buyers authorized across access-mode changes while the release
 remains active. It is a source candidate for the matched fresh generation;
@@ -21,10 +34,10 @@ A complete fresh testnet generation follows the remaining audit fixes; no reset
 or deployment is recorded by this source change. Earlier dated checkpoints
 below retain their own scope.
 
-The [SDK/Host update decision](design/product-sdk-host-upgrade-decision-2026-11-17.md)
-holds the default SDK 0.45 upgrade after an offline codec comparison against the
-phone/Desktop protocol observations. App pins stay unchanged; CASH awaits actual
-Host, amount-unit and settlement evidence.
+The [17 November SDK/Host investigation](design/product-sdk-host-upgrade-decision-2026-11-17.md)
+retains the older phone/Desktop observations. The [20 November owner evidence](backlog/implementation/evidence/product-host-ios-031-2026-11-20.md)
+now starts qualification under #85/#483. Deployed pins are unchanged; CASH
+still awaits actual Host, amount-unit and settlement evidence.
 
 [The Bulletin Room baseline and repeat](backlog/implementation/evidence/bulletin-room-baseline-2026-11-17.md)
 succeed on Eskapade à engong with 1.807-s and 0.842-s media preparation. Owner
@@ -113,6 +126,12 @@ choose the reader, give each rule one home and keep evidence tied to its artifac
 
 For slow Room startup, [collect comparable listening reports](how-to/measure-room-startup.md),
 including successful starts and physical locked-screen observations.
+
+## Qualify the Product candidate
+
+[Runtime 0.31 iPhone procedure](how-to/qualify-product-host-031.md): bind the
+candidate, collect non-spending info, then separate identity, matched-generation
+media and native payment acceptance.
 
 ## Look something up
 

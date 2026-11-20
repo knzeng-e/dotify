@@ -4,6 +4,7 @@ import { existsSync, mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 
 import {
   EXPECTED_PRODUCT_DEVNET,
@@ -11,7 +12,8 @@ import {
   evaluateProductCdmSmokeEvidence,
   extractProductAppVersion,
   gitCommit,
-  parseEnvFile
+  parseEnvFile,
+  readProductDevnetSnapshot
 } from './product-devnet-journey-harness.mjs';
 
 const ADDRESS = '0x1111111111111111111111111111111111111111';
@@ -278,6 +280,46 @@ test('local static gates can pass while missing live host evidence remains block
   );
   assert.equal(report.productSmokeGates[0].id, 'product-cdm-live-unlock');
   assert.equal(report.productSmokeGates[0].status, 'blocked');
+});
+
+test('the committed SDK candidate passes static qualification without inventing live Host evidence', () => {
+  const snapshot = readProductDevnetSnapshot(fileURLToPath(new URL('../../', import.meta.url)));
+  const report = buildProductDevnetJourneyReport({ snapshot, productSmokeEvidence: null, roomEvidence: null, commit: CANDIDATE_SHA });
+  assert.deepEqual(
+    report.staticGates.filter(gate => gate.status !== 'pass'),
+    []
+  );
+  assert.equal(report.summary.status, 'blocked');
+  assert.equal(report.productSmokeGates[0].status, 'blocked');
+  assert.equal(report.roomGates[0].status, 'not-run');
+  assert.match(report.staticGates.find(gate => gate.id === 'host-wire-compatibility').detail, /acceptance remains separate/);
+});
+
+test('the abandoned SDK dependency family cannot qualify as the 0.45 candidate', () => {
+  const snapshot = staticSnapshot();
+  const oldVersions = {
+    '@parity/product-sdk': '0.39.0',
+    '@parity/product-sdk-host': '0.28.0',
+    '@parity/product-sdk-statement-store': '0.7.3',
+    '@parity/product-sdk-tx': '0.5.3',
+    '@parity/truapi': '0.25.0'
+  };
+  for (const [name, version] of Object.entries(oldVersions)) snapshot.webPackageLock.packages[`node_modules/${name}`].version = version;
+  snapshot.webPackageJson.overrides['@parity/truapi'] = '0.25.0';
+  const report = buildProductDevnetJourneyReport({ snapshot, productSmokeEvidence: null, roomEvidence: null, commit: CANDIDATE_SHA });
+  assert.equal(report.summary.status, 'fail');
+  assert.deepEqual(
+    report.staticGates
+      .filter(gate => gate.status === 'fail')
+      .map(gate => gate.id)
+      .sort(),
+    [
+      'host-wire-compatibility',
+      ...Object.keys(oldVersions)
+        .filter(name => name !== '@parity/truapi')
+        .map(name => `package:${name}`)
+    ].sort()
+  );
 });
 
 test('static gates reject a mnemonic expanded into Product deploy arguments', () => {

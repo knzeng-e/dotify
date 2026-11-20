@@ -137,6 +137,14 @@ jobs:
       - name: Run signaling tests
         run: npm run test:signal
 
+      - name: Build the production signaling image
+        timeout-minutes: 5
+        run: docker build --file Dockerfile.signal --tag dotify-signal-ci:check .
+
+      - name: Verify isolated non-root signaling image startup
+        timeout-minutes: 1
+        run: node scripts/signal-image-smoke.mjs dotify-signal-ci:check
+
   product-host-codecs:
     name: W16 / Product Host codec matrix
     runs-on: ubuntu-latest

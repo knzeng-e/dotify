@@ -52,8 +52,8 @@ test('product-initiated handshake negotiates the supported codec with a raw host
 
 test('protocol pin includes the schema, not only codec 3', () => {
   assert.equal(TRUAPI_CODEC_VERSION, 3);
-  // TrUAPI 0.26 also calls itself codec 3, but has a different incompatible schema.
-  assert.equal(TRUAPI_WIRE_SCHEMA_HASH, '3c45e49b26c1ab97');
+  // The upstream 0.31 schema is pinned independently of our info-only decoder patch.
+  assert.equal(TRUAPI_WIRE_SCHEMA_HASH, 'cebcc89a5e45bbd3');
 });
 
 test('a raw codec-3 account response preserves the product scope, index and public key', async () => {
@@ -100,7 +100,7 @@ test('a codec-3 account denial remains a denial without inventing an account', a
   }
 });
 
-test('software-info read uses only the pinned system method and decodes public Host labels', async () => {
+test('info-only compatibility patch preserves legacy public labels without inferring a Runtime', async () => {
   const host = wireHost();
   const transport = createTransport(host.provider);
   try {
@@ -115,7 +115,7 @@ test('software-info read uses only the pinned system method and decodes public H
     host.receive([...request.slice(0, -4), 1, 3, 1, 0, 0, 3, ...text('Polkadot Desktop'), ...text('0.1.4-rc.3')]);
     const result = await lookup;
     assert.equal(result.isOk(), true);
-    assert.deepEqual(result.value, { platform: 'Desktop', name: 'Polkadot Desktop', version: '0.1.4-rc.3' });
+    assert.deepEqual(result.value, { platform: 'Desktop', name: 'Polkadot Desktop', version: '0.1.4-rc.3', truapiVersion: '' });
     assert.equal(host.sent.length, 1);
   } finally {
     transport.dispose();

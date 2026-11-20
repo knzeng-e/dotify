@@ -1,7 +1,7 @@
 /** Public software labels reported by the Host, never identity/access authority. */
 export type HostSoftwareObservation =
   | { status: 'pending' | 'unavailable' | 'timeout' }
-  | { status: 'reported'; platform: 'Web' | 'Android' | 'Ios' | 'Desktop' | 'Cli' | 'Unknown'; name: string; version: string };
+  | { status: 'reported'; platform: 'Web' | 'Android' | 'Ios' | 'Desktop' | 'Cli' | 'Unknown'; name: string; version: string; runtimeVersion?: string };
 
 type InfoResult = { match: (ok: (value: unknown) => void, error: (error: unknown) => void) => PromiseLike<unknown> };
 type InfoSystem = { info: (options: { signal: AbortSignal }) => InfoResult };
@@ -17,13 +17,22 @@ function label(value: unknown): string | undefined {
 
 function reportedSoftware(input: unknown): HostSoftwareObservation | undefined {
   if (!input || typeof input !== 'object') return;
-  // Read only the three declared fields. Do not spread arbitrary Host data.
-  const { platform, name: rawName, version: rawVersion } = input as Record<string, unknown>;
+  // Public labels only. Runtime selects the transaction wire family, never an
+  // account, permission, payment capability or entitlement.
+  const { platform, name: rawName, version: rawVersion, runtimeVersion, truapiVersion } = input as Record<string, unknown>;
   if (typeof platform !== 'string' || !platforms.has(platform)) return;
   const name = label(rawName);
   const version = label(rawVersion);
   if (!name || !version) return;
-  return { status: 'reported', platform: platform as Extract<HostSoftwareObservation, { status: 'reported' }>['platform'], name, version };
+  const runtime = runtimeVersion ?? truapiVersion;
+  const safeRuntime = typeof runtime === 'string' && runtime.length <= 32 && /^\d+\.\d+\.\d+(?:-[a-zA-Z0-9.-]+)?$/.test(runtime) ? runtime : undefined;
+  return {
+    status: 'reported',
+    platform: platform as Extract<HostSoftwareObservation, { status: 'reported' }>['platform'],
+    name,
+    version,
+    ...(safeRuntime ? { runtimeVersion: safeRuntime } : {})
+  };
 }
 
 /** Re-allowlist at export too; extra Host fields and raw errors cannot escape. */

@@ -42,7 +42,10 @@ set.
   YAML syntax.
 - Web checks run formatting, lint, unit tests, production-env smoke, and the
   ordinary Vite build.
-- Signaling checks run the Socket.IO signaling test suite.
+- Signaling checks run the Socket.IO signaling test suite, build the actual
+  `web/Dockerfile.signal` production image and check non-root startup plus health
+  in a disposable container with no external network or published port. This
+  catches install-time lifecycle/COPY failures that source tests cannot detect.
 - API checks run typecheck and the Fastify service test suite.
 - EVM checks run Solidity formatting, compile, tests, ABI generation, and a
   generated-binding drift guard that fails on tracked or untracked output

@@ -391,6 +391,28 @@ a device check.
 
 ### Product DevNet frontend
 
+The [SDK 0.45 migration candidate](../design/product-sdk-045-migration.md) is not
+promoted. Its install-time public-info workaround requires normal npm lifecycle
+scripts (or its explicit manual patch command). Run `npm run test:product-sdk-compat`
+after a clean install. Transaction validation requires a named Runtime 0.31.x
+Host; a passing build on an older phone/Desktop is insufficient. Record native
+PAS approval/receipt recovery and protected listening before promotion. This
+candidate changes no hosted variable, network, storage or service setting.
+
+The [20 November phone evidence](../backlog/implementation/evidence/product-host-ios-031-2026-11-20.md)
+provides a build-23 / Runtime-0.31 configuration target. Use the
+[qualification procedure](../how-to/qualify-product-host-031.md) for the initial
+non-spending info record. Functional contract/media/payment acceptance must use
+the audit's matching fresh contracts/API/client generation; the old ABI is not
+an interchangeable validation target. Record the exact candidate artifact and
+reviewed delivery context before requesting a device test.
+
+The signer-free candidate workflow also runs the journey harness against the
+reviewed SDK dependency family. Include its regressions in
+`npm run test:product-deploy-environment`; keep missing device evidence blocked.
+These automated checks establish source readiness only. Human review,
+qualification delivery and stable promotion retain their separate gates.
+
 Follow [Product publication](product-devnet-deployment.md) for package identity,
 retention checks, budget, signer handling, readback and rollback. Record the
 commit, app version and executable CID. A completed upload alone is not proof
@@ -410,6 +432,13 @@ authorize scaling the writer. A machine restart is not a recovery strategy for
 an uncertain publication result.
 
 ### Fly signaling
+
+The signaling image installs only production dependencies with
+`npm ci --omit=dev --ignore-scripts`. Its server/shared JavaScript runtime has
+no frontend Host-codec consumer or installation-hook requirement; it does not
+copy or run the frontend patch. Ordinary frontend installs still apply the
+patch. The signaling CI gate now builds this image and verifies isolated
+non-root startup/health before a delivery is eligible. No hosted setting changes.
 
 Check the API/runtime bindings and frontend protocol compatibility before
 updating signaling. Rooms and chat use process memory. Follow the reviewed

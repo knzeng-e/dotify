@@ -162,7 +162,7 @@
       "priority": "P2",
       "track": "Product SDK",
       "phase": "Next",
-      "note": "Bounded reassessment candidate identifies caller-id/partial status in published TrUAPI 0.26.0, absent from pinned Host SDK 0.28.0/TrUAPI 0.25.0. Offline fault tests and dated no-go keep work tips unavailable pending matched shipped Host, exact units, durable recovery and artist-policy split/Room receipts. #85 compatibility is the next gate; no SDK upgrade, funded action or access grant. Canonical decision: docs/design/product-cash-tip-decision-2026-11-13.md."
+      "note": "Bounded reassessment candidate identifies caller-id/partial status in published TrUAPI 0.26.0, absent from pinned Host SDK 0.28.0/TrUAPI 0.25.0. Offline fault tests and dated no-go keep work tips unavailable pending matched shipped Host, exact units, durable recovery and artist-policy split/Room receipts. #85 compatibility is the next gate; no SDK upgrade, funded action or access grant. Canonical decision: docs/design/product-cash-tip-decision-2026-11-13.md. New owner iPhone 0.31 configuration evidence is recorded on 20 November; #85 owns actual Host qualification. Native CASH UI does not close support/unit/recovery/artist-policy gates."
     },
     {
       "id": "product-cash-access-settlement",
@@ -460,8 +460,8 @@
       "kind": "epic",
       "priority": "P1",
       "track": "Product SDK",
-      "phase": "Product feasibility",
-      "note": "Web/Product 0.1.84 delivers About-only public Host software labels. SDK 0.39.0 / Host SDK 0.28.0 / TrUAPI 0.25.0 pins are unchanged; actual named-Host labels, signing/media/location, wire and payment acceptance remain open. A version label is not capability proof. Canonical delivery: docs/backlog/implementation/evidence/product-0.1.84-rollout-2026-11-14.md."
+      "phase": "Now",
+      "note": "Owner-selected #85/#483 qualification on 20 November: iPhone screenshots show Polkadot App 0.10.0 (23) with Runtime 0.31.0 configured. Candidate SDK 0.45 integrates tested dev after #500; actual info/signing and matched-generation native/media acceptance remain pending. Deployed pins are unchanged; CASH stays disabled."
     },
     {
       "id": "catalog-read-model",

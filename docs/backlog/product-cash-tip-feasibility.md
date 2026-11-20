@@ -1,5 +1,16 @@
 # Product CASH work-tip feasibility
 
+## New iPhone qualification target, 2026-11-20
+
+The [owner's screenshots](implementation/evidence/product-host-ios-031-2026-11-20.md)
+show Polkadot App 0.10.0 (23) with Runtime 0.31.0 configured and a native CASH
+screen. #85 / #483 now resumes qualification on that target, following the
+[device procedure](../how-to/qualify-product-host-031.md), with current dev's
+audit/payment fixes integrated. Actual `system.info`, identity/signing, native
+receipt/recovery and matched-generation media results remain unaccepted.
+Screenshots do not establish Dotify CASH support or units. #406 remains Next
+research and #408 Later research; no payment or service delivery occurs here.
+
 Issue #406 · P2 · Product SDK · Next · Research. Workflow: Project 5.
 
 The owner reopens bounded CASH research on 2026-11-08, after publication/listening
@@ -7,6 +18,14 @@ reliability. This supersedes the October scheduling deferral for this new scope;
 the September W16 result remains dated evidence, not a claim about newer Hosts.
 Coordinate #85 compatibility and #229 native contribution policy; do not reopen
 or duplicate their delivered adapter and native PAS work.
+
+## Coordinated SDK candidate, 2026-11-17
+
+The [current-family migration](../design/product-sdk-045-migration.md) now prepares
+SDK 0.45/Host SDK 0.34/TrUAPI 0.31 together. Legacy info decoding is corrected;
+transaction V2 requires an accepted 0.31.x Host. Its CASH declaration inspector
+recognizes caller-ID recovery, but actual support, units, durable status and
+artist-policy settlement keep work tips no-go. Nothing is deployed or funded.
 
 ## SDK/Host update investigation, 2026-11-17
 
@@ -38,10 +57,10 @@ compatibility decision; no payment or dependency upgrade is enabled here.
   Installed Desktop and ordinary Web need separate capability decisions. A newer
   npm version is not proof that the installed distribution implements it.
 - Verify CASH asset/network and integer amount units from authoritative sources.
-  The former [PCF money architecture URL](https://docs.polkadotcommunity.foundation/architecture/money/)
-  redirects to the general developer home as of 17 November; it supplies no new
-  executable unit specification. Preserve the earlier dated interpretation, but
-  obtain current authoritative payment/unit evidence before implementing CASH.
+  [Current money guidance](https://developers.polkadot.com/apps/architecture/money/)
+  places CASH behind Host Coinage services, separate from native PAS fees. It
+  supplies architectural context, not the named Host's executable integer unit
+  contract. Bind current authoritative payment/unit evidence before implementing CASH.
 - Compare a direct gift with a work tip. A direct transfer cannot silently replace
   collaborator/beneficiary splits, optional host share or verified room attribution.
   Choose an honest supported boundary or record the missing external mechanism.
