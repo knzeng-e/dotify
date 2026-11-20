@@ -91,6 +91,12 @@ integration changes no deployed network, stored key, Host setting or CASH gate.
 
 ## Evidence and promotion
 
+Code review and runtime promotion are separate gates. A tested source candidate
+with its review package can be ready to review while named-device results remain
+pending. The journey harness checks the exact coordinated dependency family; its
+pin match is not Host compatibility evidence. With no physical evidence input,
+the report must still show the Host journey blocked and the Room journey not run.
+
 The [36 fixture checks](../../web/scripts/product-sdk-compat.test.mjs) bind exact
 account, username, message-signing, permission and Bulletin subscription bytes
 across 0.25/0.26/0.29/0.31. They also preserve cancellation/denial, prove the V2
