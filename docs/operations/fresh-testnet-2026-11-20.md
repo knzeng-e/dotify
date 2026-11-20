@@ -64,39 +64,31 @@ namespace. A different directory cannot reuse it unchanged. The existing
 operator `fly-user` connection resolves to `schema_admin`; this inspection ran
 inside a rolled-back read-only transaction. No role was created or broadened.
 
-The next source correction provides `ARTIST_PUBLICATION_MODE=paused`. It lets
-the new empty generation start without opening the retired publisher, queue or
-signer while ordinary artist onboarding remains available. The
-[configuration reference](deployment-configuration.md#fresh-generation-publication-pause)
-defines activation and preservation boundaries. This mode is **not yet deployed**.
+The owner-selected next step accepts a development maintenance interruption:
+create the artist runtime with its wallet, configure its Bulletin publisher,
+then start the matched services and clients. The existing publisher preflight
+remains mandatory. The [configuration reference](deployment-configuration.md#testnet-cutover-with-an-interruption)
+defines activation and preservation boundaries.
 
 Remaining delivery is exact CDM metadata retention/versions, a separate
 generation-specific API namespace and receipt/catalog paths, matched signaling,
-empty authoritative bootstrap and an identified Web/Product release. Existing
-session revocations, replay protection, quota usage, content secrets, account
+authoritative new-generation bootstrap and an identified Web/Product release.
+Existing session revocations, replay protection, quota usage, content secrets, account
 nonces and retention obligations must survive the quiesced cutover. After
 ordinary artist creation, bind a new unused content-key domain and reviewed
 Bulletin profile to that actual runtime. Native payouts and physical Runtime
 0.31 signing/listening remain separate acceptance gates under #484/#85; #317
 stays open and CASH stays disabled.
 
-## Publication-pause source validation
+## Validation boundary
 
-The API correction and this initial deployment record are committed as
-`0f1dca183c8631129838561a2adc5199b273da14`. Local Node 22.13.1 checks pass:
-
-- 700 full API tests; the final focused 16-test run also passes after refining
-  diagnostic/readiness assertions and test formatting;
-- 17 real PostgreSQL 14.17 tests, including independent enabled/paused edge
-  processes forwarding to paused custody, private-auth refusal and unchanged
-  upload documents; the temporary loopback server was stopped afterwards;
-- API build and full API TypeScript checks;
-- 365 local Markdown link targets and structured core-receipt invariants,
-  including consecutive nonces, unique successful transactions and receipt-fee
-  sum matching the observed account debit.
-
-The underlying deployed source's
+The deployed source's
 [merged-dev quality run](https://github.com/knzeng-e/dotify/actions/runs/44770089188)
-also passes at `146fb446`. New-PR CI remains separate from these local checks.
-No paused-mode service activation, hosted namespace/policy change, production
-artifact delivery or physical-device acceptance is established by these tests.
+passes at `146fb446`. The public receipt manifest is retained unchanged; its
+successful unique transactions, consecutive nonces and receipt-fee sum can be
+checked independently against the observed account debit. This documentation
+change leaves API code, tests and configuration identical to that merged source.
+API build/typecheck and the 14 existing startup/configuration checks pass after
+that comparison. Local documentation links/anchors and public receipt invariants
+are checked separately. New-PR checks do not establish a hosted namespace/policy change, application
+delivery or physical-device acceptance.

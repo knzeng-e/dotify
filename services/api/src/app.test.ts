@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { afterEach, describe, it } from 'node:test';
-import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
+import type { FastifyInstance } from 'fastify';
 import { config } from './config.js';
 import { buildApp } from './app.js';
 
@@ -138,79 +138,6 @@ describe('bounded proxy identity diagnostics', () => {
 
 
 describe('Bulletin publisher activation boundary', () => {
-  it('pauses every upload path before parsing or storage work on a combined instance', async () => {
-    const previous = {
-      API_ROLE: config.API_ROLE,
-      ARTIST_PUBLICATION_MODE: config.ARTIST_PUBLICATION_MODE,
-      STREAMING_AUDIO_STORAGE: config.STREAMING_AUDIO_STORAGE,
-      PUBLIC_ASSET_STORAGE: config.PUBLIC_ASSET_STORAGE,
-      STREAMING_WORKER_URL: config.STREAMING_WORKER_URL,
-      STREAMING_WORKER_TOKEN: config.STREAMING_WORKER_TOKEN,
-      BULLETIN_PUBLICATION_PROFILE: config.BULLETIN_PUBLICATION_PROFILE,
-      CUSTODY_SERVICE_URL: config.CUSTODY_SERVICE_URL,
-      CUSTODY_SERVICE_TOKEN: config.CUSTODY_SERVICE_TOKEN,
-      UPLOAD_GLOBAL_CONCURRENCY: config.UPLOAD_GLOBAL_CONCURRENCY
-    };
-    try {
-      Object.assign(config, {
-        API_ROLE: 'combined',
-        UPLOAD_GLOBAL_CONCURRENCY: 2,
-        ARTIST_PUBLICATION_MODE: 'paused',
-        STREAMING_AUDIO_STORAGE: 'bulletin',
-        PUBLIC_ASSET_STORAGE: 'bulletin',
-        // Both would fail initialization if the retired publisher were opened.
-        STREAMING_WORKER_URL: 'https://encoder.example/invalid',
-        STREAMING_WORKER_TOKEN: 'offline-test-worker-token'.repeat(2),
-        BULLETIN_PUBLICATION_PROFILE: '/never-opened/retired-profile.json',
-        CUSTODY_SERVICE_URL: 'http://127.0.0.1:1',
-        CUSTODY_SERVICE_TOKEN: 'offline-test-custody-token'.repeat(2)
-      });
-      app = await buildApp({ logging: false, apiOrigins: ['https://dotify.example'] });
-      const routes = [
-        ['POST', '/authorize'],
-        ['POST', '/audio'],
-        ['POST', '/cover'],
-        ['POST', '/metadata'],
-        ['GET', '/audio/jobs/saved'],
-        ['POST', '/audio/jobs/saved/retry'],
-        ['POST', '/audio/jobs/saved/discard']
-      ] as const;
-      for (const [method, path] of routes) {
-        const response: LightMyRequestResponse = await app!.inject({
-          method,
-          url: `/api/uploads${path}?source=old-draft`,
-          headers: { origin: 'https://dotify.example', ...(method === 'POST' ? { 'content-type': 'application/json' } : {}) },
-          // Invalid JSON proves the early refusal precedes body parsing.
-          ...(method === 'POST' ? { payload: '{' } : {})
-        });
-        assert.equal(response.statusCode, 503, path);
-        assert.equal(response.json().code, 'PUBLICATION_PAUSED');
-        assert.equal(response.headers['cache-control'], 'no-store');
-        assert.equal(response.headers['access-control-allow-origin'], 'https://dotify.example');
-        assert(!response.body.includes('retired-profile'));
-      }
-      assert.equal((await app.inject({ method: 'GET', url: '/health' })).statusCode, 200);
-      assert.equal((await app.inject({ method: 'POST', url: '/api/uploads-other' })).statusCode, 404);
-      {
-        const payment = await app.inject({ method: 'POST', url: '/api/royalties/history', payload: {} });
-        assert.equal(payment.statusCode, 400);
-        assert.equal(payment.json().code, 'INVALID_HISTORY_QUERY');
-      }
-      {
-        const key = await app.inject({ method: 'POST', url: '/api/tracks/keys/prepare', payload: {} });
-        assert.equal(key.statusCode, 400);
-        assert.notEqual(key.json().code, 'PUBLICATION_PAUSED');
-      }
-      await app.close();
-      app = null;
-      // Restarting enabled must run the ordinary publisher preflight again.
-      config.ARTIST_PUBLICATION_MODE = 'enabled';
-      await assert.rejects(buildApp({ logging: false }), /Invalid isolated worker endpoint/);
-    } finally {
-      Object.assign(config, previous);
-    }
-  });
-
   it('rejects an invalid worker before opening publication custody or its signer', async () => {
     const previous = {
       API_ROLE: config.API_ROLE,

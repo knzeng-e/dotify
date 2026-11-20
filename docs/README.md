@@ -3,10 +3,10 @@
 The [20 November fresh core checkpoint](operations/fresh-testnet-2026-11-20.md)
 records ten finalized, explorer-verified contracts and their directory wiring
 from `dev` `146fb446`. The active CDM/API/client set has not switched. The
-[cutover procedure](how-to/prepare-fresh-testnet-generation.md) now includes an
-explicit publication-pause candidate so an empty directory can start before a
-new artist supplies its runtime-bound Bulletin profile. Native/device acceptance
-remains open.
+[cutover procedure](how-to/prepare-fresh-testnet-generation.md) uses a maintenance
+interruption: create the artist runtime with the artist wallet, configure its
+Bulletin publisher, then start the matched services and clients. Native/device
+acceptance remains open.
 
 The [coordinated SDK 0.45 candidate](design/product-sdk-045-migration.md) upgrades
 the Product family together and corrects legacy public-info decoding. Transaction

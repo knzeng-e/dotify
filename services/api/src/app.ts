@@ -83,20 +83,15 @@ export type BuildAppOptions = {
 };
 
 export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyInstance> {
-  // Capture the startup mode: resuming requires a restart and the complete
-  // ordinary publisher preflight, never a request-time toggle.
-  const publicationPaused = config.ARTIST_PUBLICATION_MODE === 'paused';
-  if (!publicationPaused) {
-    if (config.STREAMING_AUDIO_STORAGE === 'bulletin') {
-      if (config.API_ROLE === 'edge' || (config.NODE_ENV === 'production' && config.API_ROLE !== 'custody'))
-        throw new Error('Bulletin publication belongs to the private custody role');
-      if (!config.STREAMING_WORKER_URL || !config.STREAMING_WORKER_TOKEN || !config.BULLETIN_PUBLICATION_PROFILE)
-        throw new Error('Bulletin publication requires an explicit profile and isolated worker');
-    } else if (config.BULLETIN_PUBLICATION_PROFILE) throw new Error('Select Bulletin audio storage explicitly before configuring its profile');
-    if (config.PUBLIC_ASSET_STORAGE === 'bulletin' && config.STREAMING_AUDIO_STORAGE !== 'bulletin')
-      throw new Error('Bulletin public assets require the same private audio publisher and an explicit asset policy');
-    if (config.PUBLIC_ASSET_STORAGE !== 'bulletin' && config.BULLETIN_PUBLIC_ASSET_POLICY) throw new Error('Select Bulletin public assets explicitly');
-  }
+  if (config.STREAMING_AUDIO_STORAGE === 'bulletin') {
+    if (config.API_ROLE === 'edge' || (config.NODE_ENV === 'production' && config.API_ROLE !== 'custody'))
+      throw new Error('Bulletin publication belongs to the private custody role');
+    if (!config.STREAMING_WORKER_URL || !config.STREAMING_WORKER_TOKEN || !config.BULLETIN_PUBLICATION_PROFILE)
+      throw new Error('Bulletin publication requires an explicit profile and isolated worker');
+  } else if (config.BULLETIN_PUBLICATION_PROFILE) throw new Error('Select Bulletin audio storage explicitly before configuring its profile');
+  if (config.PUBLIC_ASSET_STORAGE === 'bulletin' && config.STREAMING_AUDIO_STORAGE !== 'bulletin')
+    throw new Error('Bulletin public assets require the same private audio publisher and an explicit asset policy');
+  if (config.PUBLIC_ASSET_STORAGE !== 'bulletin' && config.BULLETIN_PUBLIC_ASSET_POLICY) throw new Error('Select Bulletin public assets explicitly');
   await assertSharedState();
   const serverOptions: FastifyServerOptions = {
     bodyLimit: 1024 * 1024,
@@ -154,19 +149,6 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       if (config.API_ROLE === 'custody' && custodyRoute && !custodyTokenMatches(request.headers['x-dotify-custody'], config.CUSTODY_SERVICE_TOKEN!))
         return reply.code(403).send({ code: 'PRIVATE_SERVICE', error: 'Use the Dotify application to continue.' });
       if (custodyRoute || pathname.startsWith('/api/tracks') || pathname.startsWith('/api/auth') || pathname === '/health/ready') await assertSharedState();
-    });
-  }
-
-  // Runs after CORS/private custody checks, before body parsing, capability
-  // admission or proxying. Also closes saved-job retry/discard/status routes.
-  if (publicationPaused) {
-    app.addHook('onRequest', async (request, reply) => {
-      const route = request.routeOptions.url;
-      if (route === '/api/uploads' || route?.startsWith('/api/uploads/'))
-        return reply.header('Cache-Control', 'no-store').code(503).send({
-          code: 'PUBLICATION_PAUSED',
-          error: 'Artist publishing is temporarily paused. Keep your draft and try again later.'
-        });
     });
   }
 
@@ -246,9 +228,9 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       });
       app.addHook('onClose', release);
     }
-    if (!publicationPaused && Boolean(config.STREAMING_WORKER_URL) !== Boolean(config.STREAMING_WORKER_TOKEN))
+    if (Boolean(config.STREAMING_WORKER_URL) !== Boolean(config.STREAMING_WORKER_TOKEN))
       throw new Error('Configure both the isolated streaming worker URL and token');
-    if (!publicationPaused && config.STREAMING_WORKER_URL && config.STREAMING_WORKER_TOKEN) {
+    if (config.STREAMING_WORKER_URL && config.STREAMING_WORKER_TOKEN) {
       if (config.NODE_ENV === 'production' && process.getuid?.() !== 1000)
         throw new Error('Streaming activation requires the reviewed non-root UID 1000 API image');
       if (config.UPLOAD_GLOBAL_CONCURRENCY > 2) throw new Error('Streaming publication requires UPLOAD_GLOBAL_CONCURRENCY at most 2');

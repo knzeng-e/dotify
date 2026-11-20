@@ -50,11 +50,7 @@ const tokens = (key = secret, previous?: string) =>
   createSessionTokenService({ epoch: identity.sessionEpoch, masterSecret: () => key, previousSecret: () => previous });
 const post = (origin: string, path: string, body: unknown) =>
   fetch(`${origin}${path}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
-async function api(
-  role: 'edge' | 'custody',
-  custodyOrigin = 'http://127.0.0.1:1',
-  publicationMode: 'enabled' | 'paused' = 'enabled'
-): Promise<{ origin: string; stop: () => Promise<void> }> {
+async function api(role: 'edge' | 'custody', custodyOrigin = 'http://127.0.0.1:1'): Promise<{ origin: string; stop: () => Promise<void> }> {
   const child = fork(new URL('./api.fixture.ts', import.meta.url), [], {
     execArgv: ['--import', 'tsx'],
     stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
@@ -72,10 +68,6 @@ async function api(
       DOTIFY_DIRECTORY_ADDRESS: identity.directory,
       DOTIFY_CHAIN_ID: String(identity.chainId),
       PASEO_ASSET_HUB_RPC: undefined,
-      ARTIST_PUBLICATION_MODE: publicationMode,
-      STREAMING_AUDIO_STORAGE: role === 'custody' && publicationMode === 'paused' ? 'bulletin' : 'pinata',
-      PUBLIC_ASSET_STORAGE: role === 'custody' && publicationMode === 'paused' ? 'bulletin' : 'pinata',
-      BULLETIN_PUBLICATION_PROFILE: role === 'custody' && publicationMode === 'paused' ? '/never-opened/retired-profile.json' : undefined,
       STREAMING_WORKER_URL: undefined,
       STREAMING_WORKER_TOKEN: undefined
     }
@@ -538,39 +530,6 @@ describe('W36 real PostgreSQL / independent API processes', () => {
       await restored.close();
       await a.pool.query(`DROP DATABASE ${database}`);
       await rm(directory, { recursive: true, force: true });
-    }
-  });
-
-  it('keeps publication paused on custody and edges without bypassing private access or consuming upload state', async () => {
-    const custody = await api('custody', undefined, 'paused');
-    const edge = await api('edge', custody.origin);
-    const pausedEdge = await api('edge', custody.origin, 'paused');
-    try {
-      const before = await a.pool.query("SELECT value FROM dotify_state_documents WHERE namespace=$1 AND name='uploads-v1'", [namespace]);
-      for (const origin of [edge.origin, pausedEdge.origin]) {
-        for (const path of ['/authorize', '/audio', '/cover', '/metadata', '/audio/jobs/saved/retry', '/audio/jobs/saved/discard']) {
-          const response = await post(origin, `/api/uploads${path}`, {});
-          assert.equal(response.status, 503);
-          assert.equal(((await response.json()) as { code: string }).code, 'PUBLICATION_PAUSED');
-          assert.equal(response.headers.get('cache-control'), 'no-store');
-        }
-        const status = await fetch(`${origin}/api/uploads/audio/jobs/saved`);
-        assert.equal(((await status.json()) as { code: string }).code, 'PUBLICATION_PAUSED');
-        assert.equal((await post(origin, '/api/auth/nonce', { address })).status, 200);
-        assert.equal((await fetch(`${origin}/health`)).status, 200);
-        // Unlike upload mutations, financial reads still reach custody and
-        // their own validation even when the edge itself is paused.
-        const history = await post(origin, '/api/royalties/history', {});
-        assert.equal(history.status, 400);
-        assert.equal(((await history.json()) as { code: string }).code, 'INVALID_HISTORY_QUERY');
-      }
-      assert.equal((await post(custody.origin, '/api/uploads/authorize', {})).status, 403);
-      const privateStatus = await fetch(`${custody.origin}/api/uploads/audio/jobs/saved`, { headers: { 'x-dotify-custody': custodyToken } });
-      assert.equal(((await privateStatus.json()) as { code: string }).code, 'PUBLICATION_PAUSED');
-      const after = await a.pool.query("SELECT value FROM dotify_state_documents WHERE namespace=$1 AND name='uploads-v1'", [namespace]);
-      assert.deepEqual(after.rows, before.rows);
-    } finally {
-      await Promise.all([edge.stop(), pausedEdge.stop(), custody.stop()]);
     }
   });
 

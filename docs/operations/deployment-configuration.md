@@ -304,15 +304,14 @@ new-generation acceptance remain ahead.
    coherently; do not restore an empty journal or silently reconnect the new
    client to the abandoned generation. Old-testnet debt migration is not required.
 
-### Fresh-generation publication pause
+### Testnet cutover with an interruption
 
-The source candidate `ARTIST_PUBLICATION_MODE=paused` provides an explicit
-empty-generation bootstrap boundary; it is not recorded as installed on Fly.
-Set it on custody **and every public edge** during the coordinated new-generation
-delivery. Keep custody's provider selections `bulletin`; do not select Pinata or
-reuse an old runtime just to satisfy publisher startup. The paused process does
-not open a publisher/profile/queue/signer and every upload route refuses before
-body parsing or proxying. See the [environment contract](../reference/environment-variables.md#artist_publication_mode).
+The owner-selected development cutover accepts a maintenance interruption.
+Archive the empty-directory finalized core/CDM readback before artist onboarding.
+Creating the runtime calls the new factory through the artist's wallet and does
+not require a publication API. Bind the publisher to the actual completed runtime
+before starting custody. The [procedure](../how-to/prepare-fresh-testnet-generation.md#review-one-contractapiclient-configuration)
+owns this sequence; the existing publisher startup preflight remains mandatory.
 
 Drain active work and stop all old writers before the final state capture.
 Preserve session epoch/revocations, live auth nonces and upload reservations/usage
@@ -323,14 +322,16 @@ the deployed `dotify`-only policy does not admit another name. Keep one custody
 owner, protected volume backups and all nonce/key/retention history. Retiring a
 release does not replenish storage or upload budgets.
 
-Start matched services against the new empty directory, fresh catalog/receipt
-paths and new shared identity, then publish the matched empty-bootstrap client.
-Ordinary artist wallet onboarding supplies the actual new runtime. Only after
-that readback prepare its unused content-key domain and bounded Bulletin policy,
-preserving every previous secret and account obligation. Restart custody with
-`enabled` first, complete its startup preflight, then enable matching edges. If
-activation fails, remain paused; do not restore an abandoned publisher or reset
-its ledgers. The mode neither schedules renewal nor grants musical allowance.
+After artist-wallet creation and finalized runtime readback, prepare its unused
+content-key domain and bounded Bulletin policy, preserving every previous secret
+and account obligation. Start one matched custody with its normal preflight,
+then matching edges and signaling against fresh receipt/catalog paths and the
+new shared identity. Freeze the actual new-generation API catalog for the
+identified Web/Product delivery. No releases are expected yet; any indexed
+artist must belong to the new directory. The earlier empty-artist observation
+remains a pre-onboarding checkpoint. If startup fails, keep the affected service
+stopped and reconcile its configuration and journals. No recurring renewal or
+musical allowance is granted by this procedure.
 
 These links describe tracked candidate settings, not a readback of dashboards.
 Read exact origins, addresses and scaling values from the reviewed commit rather

@@ -7,10 +7,11 @@ P1 · Production spine · Now · Work (#317).
 The [20 November core checkpoint](../operations/fresh-testnet-2026-11-20.md)
 now records actual ten-contract creation, wiring, finalized bytecode/binding
 readback and complete explorer source verification from merged `dev` `146fb446`.
-Active CDM/services/clients remain on the earlier generation. The next source
-slice supplies an explicit publication pause for empty-directory onboarding;
-it opens no retired queue or signer. Coordinated namespace/receipt/catalog/client
-delivery, ordinary artist creation and native/device acceptance remain open.
+Active CDM/services/clients remain on the earlier generation. The selected
+development cutover accepts an interruption: create the artist runtime with the
+artist wallet, configure its Bulletin publisher, then start the matched services
+and clients. Coordinated namespace/receipt/catalog/client delivery and
+native/device acceptance remain open.
 
 After merged #483 / `dev` `e109968a`, the owner selected preparation of the
 complete clean contracts/API/client generation. The [procedure](../how-to/prepare-fresh-testnet-generation.md)

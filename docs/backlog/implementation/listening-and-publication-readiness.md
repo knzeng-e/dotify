@@ -4,10 +4,11 @@
 
 Merged #501 / `dev` `146fb446` is now the source of the
 [deployed and finalized fresh core](../../operations/fresh-testnet-2026-11-20.md).
-The next #317 slice provides explicit publication suspension while the new empty
-generation awaits ordinary artist onboarding. CDM, service namespace, receipts,
-empty client bootstrap and identified delivery must switch coherently; they
-have not switched at this core checkpoint. Native/Host acceptance remains open.
+The next #317 operation accepts a development maintenance interruption: create
+the artist runtime through its wallet, configure its Bulletin publisher, then
+start the matched services and clients. CDM, service namespace, receipts,
+new-generation bootstrap and identified delivery must agree; they have not
+switched at this core checkpoint. Native/Host acceptance remains open.
 
 #483 is merged on `dev` `e109968a`, with the same tree as tested `b284260b`.
 The owner now selects [#317 fresh-generation preparation](../fresh-testnet-streaming-cutover.md)

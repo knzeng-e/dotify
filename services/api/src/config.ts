@@ -190,7 +190,6 @@ const envSchema = z.object({
   NATIVE_CONTRIBUTION_SNAPSHOT_PATH: z.string().default('.data/native-contributions.json'),
   STREAMING_WORKER_URL: z.string().url().optional(),
   STREAMING_WORKER_TOKEN: z.string().min(32).optional(),
-  ARTIST_PUBLICATION_MODE: z.enum(['enabled', 'paused']).default('enabled'),
   STREAMING_AUDIO_STORAGE: z.enum(['pinata', 'bulletin']).default('pinata'),
   BULLETIN_PUBLICATION_PROFILE: optionalNonEmptyString,
   PUBLIC_ASSET_STORAGE: z.enum(['pinata', 'bulletin']).default('pinata'),

@@ -2,9 +2,9 @@
 
 The [fresh core checkpoint](../operations/fresh-testnet-2026-11-20.md) records
 the actual #317 testnet deployment from merged #501. Coordinated CDM/services/
-client activation and native/device acceptance remain ahead. An explicit
-publication-pause candidate prepares empty-directory onboarding without opening
-the retired publisher; it grants no musical allowance. The
+client activation and native/device acceptance remain ahead. The selected
+development cutover accepts an interruption: artist-wallet runtime creation,
+Bulletin configuration, then matched service/client startup. The
 [selected sequence](implementation/listening-and-publication-readiness.md)
 owns the execution order.
 

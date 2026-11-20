@@ -55,7 +55,7 @@ it('readiness does not demand a Pinata key on edges or a fully Bulletin custody 
         'tsx',
         '--input-type=module',
         '-e',
-        "const {createDiagnostics}=await import('./src/services/diagnostics.ts'); const report=await createDiagnostics({getChainId:async()=>420420417,readArtistCount:async()=>0n,getCode:async()=>undefined,now:()=>0})();console.log(JSON.stringify({...report.checks.pinata,ready:report.ready,status:report.status}));"
+        "const {createDiagnostics}=await import('./src/services/diagnostics.ts'); const report=await createDiagnostics({getChainId:async()=>420420417,readArtistCount:async()=>0n,getCode:async()=>undefined,now:()=>0})();console.log(JSON.stringify(report.checks.pinata));"
       ],
       {
         env: { ...process.env, PINATA_JWT: '', API_ROLE: 'combined', STREAMING_AUDIO_STORAGE: 'pinata', PUBLIC_ASSET_STORAGE: 'pinata', ...values },
@@ -73,28 +73,4 @@ it('readiness does not demand a Pinata key on edges or a fully Bulletin custody 
   const mixed = run({ STREAMING_AUDIO_STORAGE: 'bulletin' });
   assert.equal(mixed.status, 0, mixed.stderr);
   assert.equal(JSON.parse(mixed.stdout).ok, false);
-  const paused = run({
-    ARTIST_PUBLICATION_MODE: 'paused',
-    PINATA_JWT: 'synthetic-unused-credential',
-    CONTENT_KEY_MASTER_SECRET: 'aa'.repeat(32),
-    PASEO_ASSET_HUB_RPC: 'https://offline-rpc.example',
-    DOTIFY_DIRECTORY_ADDRESS: `0x${'11'.repeat(20)}`
-  });
-  assert.equal(paused.status, 0, paused.stderr);
-  const diagnostic = JSON.parse(paused.stdout);
-  assert.equal(diagnostic.ok, false);
-  assert.equal(diagnostic.ready, true);
-  assert.equal(diagnostic.status, 'degraded');
-  assert.match(diagnostic.detail, /explicitly paused/);
-  assert(!diagnostic.detail.includes('synthetic-unused-credential'));
-});
-
-it('publication mode rejects misspellings rather than accidentally enabling a publisher', () => {
-  for (const value of ['false', '', 'pause', 'PAUSED']) {
-    const result = check({ ARTIST_PUBLICATION_MODE: value });
-    assert.equal(result.status, 1);
-    assert.match(result.stderr, /ARTIST_PUBLICATION_MODE/);
-  }
-  assert.equal(check({ ARTIST_PUBLICATION_MODE: 'paused' }).status, 0);
-  assert.equal(check({ ARTIST_PUBLICATION_MODE: 'enabled' }).status, 0);
 });

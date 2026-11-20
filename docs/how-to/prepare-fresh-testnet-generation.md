@@ -92,7 +92,7 @@ acceptance. Archive the dated readback before creating a new artist.
 
 ## Review one contract/API/client configuration
 
-Prepare this table with actual values before the quiet-window cutover:
+Prepare this table with actual values before the development maintenance window:
 
 | Component | Values that must agree |
 | --- | --- |
@@ -110,28 +110,33 @@ Do not copy old runtime-bound encrypted releases, pending writes, grants or rece
 lookups into the new active generation. Do not use an old custody writer with new
 data or enable compact publication/recurring conservation as part of this cutover.
 
-An old populated API must not seed the new Product bootstrap. After the API is
-bound to the new empty directory, retain its authoritative catalog JSON and
-verify `items` and `artists` are empty. Generate the frozen bootstrap from that
-reviewed JSON with `generate:product-catalog-bootstrap -- --input <file> --strict`;
-this avoids a second mutable API fetch. Review/commit the snapshot, then run
-deployment guards, Web/Product builds and signer-free candidate validation.
-Keep an explicit new delivery identity; the retained tracked old appVersion is
-not a new release.
+The development environment has no users to keep online. Use one maintenance
+interruption and the existing startup checks:
 
-Deliver matching API/custody/signaling/client components in the reviewed quiet
-window and independently read back their served identities/configuration. A
-rollback must restore a complete matching component set and preserve the latest
-nonce and protected state; returning old releases to active use is outside the
-owner's selected clean-generation scope.
+1. Retain the finalized empty-directory core/CDM readback **before** creating an
+   artist. Stop old writers and preserve the final trust/quota state under the
+   [cutover configuration](../operations/deployment-configuration.md#testnet-cutover-with-an-interruption).
+2. Have the artist wallet create its runtime and approve the seven installation/
+   finalization calls against the new factory. These are contract calls; they do
+   not require the publication API. Use a wallet interaction or an identified
+   qualification client bound to the new factory/CDM generation. Retain finality,
+   recorded artist, owner and readiness evidence for that actual runtime.
+3. Prepare its new content-key domain and bounded Bulletin profile, then start
+   one matching custody process with the existing publisher preflight. Start
+   matching edges and signaling with the new namespace, directory and factory.
+4. Retain the authoritative new-generation API catalog JSON. Verify `items` is
+   empty and any artist entries resolve through the new directory. Onboarding
+   may now have added the first artist; the zero-artist check belongs to step 1.
+   Generate the frozen bootstrap from that reviewed JSON using
+   `generate:product-catalog-bootstrap -- --input <file> --strict`, avoiding a
+   second mutable API fetch. Review/commit it, run deployment guards and builds,
+   and deliver an explicitly identified Web/Product release. The retained old
+   appVersion is not a new delivery identity.
 
-For empty-directory onboarding, use the source candidate's explicit
-[`ARTIST_PUBLICATION_MODE=paused`](../operations/deployment-configuration.md#fresh-generation-publication-pause)
-on custody and edges. This removes the circular requirement to configure a
-publisher for an artist runtime that does not exist yet. Ordinary wallet
-onboarding remains available; no retired queue or signer is opened. Activation
-requires that real runtime, a new content-key domain and a bounded Bulletin
-profile, followed by enabled-mode startup preflight.
+Independently read back the served component identities/configuration. A rollback
+must restore a complete matching component set and preserve the latest nonce
+and protected state. Returning old releases to active use is outside the owner's
+selected clean-generation scope.
 
 ## Accept the new generation
 
