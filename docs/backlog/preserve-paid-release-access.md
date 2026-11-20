@@ -3,8 +3,9 @@
 Issue: [#499](https://github.com/knzeng-e/dotify/issues/499).
 
 Priority: P2. Track: Production spine. Phase: Now. Type: Work.
-Base: tested dev `61007d851f1ea1e3aefcaa5eb2ac85eb965a7139` after #496.
-A08/#498 is a separate open PR and is not merged by this work.
+Initial base: tested dev `61007d851f1ea1e3aefcaa5eb2ac85eb965a7139` after #496.
+Integration, 20 November 2026: `dev` `1304dbb0` after merged A08/#498.
+#500 now includes that accepted base; A05 remains a separate change for review.
 
 ## Owner decision, 20 November 2026
 
@@ -38,6 +39,6 @@ See the [authoritative paid-access rule](../reference/paid-release-access.md).
 
 This source correction targets the selected clean testnet generation. No live
 upgrade, payment, deployment, old-state import, migration, storage reset or merge
-of another PR. Existing keys cannot be recalled; anonymous Room guests still
+of #500 into dev. Existing keys cannot be recalled; anonymous Room guests still
 receive media rather than content keys. Native Revive/physical Host, real
 personhood, SDK/CASH and recovery/pilot gates remain separate.

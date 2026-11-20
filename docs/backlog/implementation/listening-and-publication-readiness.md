@@ -6,12 +6,25 @@ The owner selected [A05 / #499](../preserve-paid-release-access.md): preserve a
 prior Classic buyer's access to the same active release across mode changes;
 deactivation still denies new access and reactivation restores the grant.
 The [rule](../../reference/paid-release-access.md) separates paid entitlement from
-humanity proof, availability and upgrade authority. This source branch starts
-from tested `dev` `61007d85`; [A08 / #498](https://github.com/knzeng-e/dotify/pull/498)
-is a separate open PR. Both corrected sources and remaining native/physical,
-SDK/Host and recovery/pilot gates precede the selected fresh generation. No
-PR merge, live payment, deployment or old-state migration occurs here.
+humanity proof, availability and upgrade authority. The branch initially started
+from tested `dev` `61007d85` and now integrates `dev` `1304dbb0`, which merged
+[A08 / #498](https://github.com/knzeng-e/dotify/pull/498). A05 remains under review
+in #500. Remaining native/physical, SDK/Host and recovery/pilot gates precede
+the selected fresh generation. No live payment, deployment or old-state
+migration occurs here.
 Earlier checkpoints retain their original scope.
+
+## Bounded directory checkpoint, 2026-11-19
+
+#496 / A06 is merged into `dev` at `61007d85` with all executed CI checks passing
+(the workflow's conditional live Project check was skipped). Next source scope:
+[A08 / #497](../bounded-contract-pagination.md), a bounded directory response and
+overflow-safe arithmetic with compatible API/Web/Product readers. Its
+[page reference](../../reference/contracts-api.md#directory-page-bounds-a08)
+defines cursor behavior and limits. A05's paid-policy decision and the remaining
+native/physical acceptance gates precede the matched fresh generation. No
+redeployment, migration, SDK/Host upgrade or CASH activation occurs here.
+Earlier checkpoints below retain their original scope.
 
 ## Supported personhood checkpoint, 2026-11-19
 

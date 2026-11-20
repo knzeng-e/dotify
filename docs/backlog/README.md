@@ -22,8 +22,8 @@ retain their original checkpoints.
 active-release paid entitlement across policy changes, with deactivation and
 payment history preserved. [The reference](../reference/paid-release-access.md)
 defines the boundaries. [A08 / #498](https://github.com/knzeng-e/dotify/pull/498)
-is separate; source review and matched fresh-generation native acceptance remain
-before rollout. No deployment or old-state import is performed.
+is merged in `dev` `1304dbb0` and integrated into #500; A05 review and matched
+fresh-generation native acceptance remain before rollout. No deployment or old-state import is performed.
 
 ## Native payment correction candidate, 2026-11-18
 
@@ -43,8 +43,9 @@ finalized and current evidence before irreversible key delivery. Merged [A03 / #
 authority from two-step technical administration.
 [A07 and NFT removal / #493](native-price-without-nft.md) is merged in #494,
 with exact native-compatible prices and no token-based publication or access.
-Next, [A06 / #495](personhood-status-policy.md) aligns supported personhood
-diagnostics and access; A08 pagination and A05 remain separate.
+[A06 / #495](personhood-status-policy.md) is merged in #496, aligning supported
+personhood diagnostics and access. Next, [A08 / #497](bounded-contract-pagination.md)
+bounds directory pages; A05 remains a separate product decision.
 [Reader policy and recovery](../reference/catalog-runtime-isolation.md) define its
 boundaries. Other audit corrections remain before the fresh deployment.
 

@@ -111,6 +111,62 @@ describe('createProductCdmRuntimeContractResolver', () => {
 });
 
 describe('createProductCdmRuntimeReader', () => {
+  it.each([undefined, 100n])('reads the complete Product directory with page size %s', async directoryPageSize => {
+    const entries = Array.from({ length: 207 }, (_, i) => ({
+      artist: `0x${(1000 + i).toString(16).padStart(40, '0')}` as const,
+      runtime: `0x${(2000 + i).toString(16).padStart(40, '0')}` as const
+    }));
+    const pages: bigint[][] = [];
+    const artistsPage = {
+      query: vi.fn(async (...args: unknown[]) => {
+        const [offset, limit] = args as [bigint, bigint];
+        expect(limit > 0n && limit <= 100n).toBe(true);
+        pages.push([offset, limit]);
+        const page = entries.slice(Number(offset), Number(offset + limit));
+        return { success: true as const, value: [page.map(entry => entry.artist), page.map(entry => entry.runtime)] };
+      })
+    };
+    const reader = createProductCdmRuntimeReader({
+      directoryPageSize,
+      contracts: {
+        getDirectoryContract: () => ({ artistsPage }),
+        getFactoryContract: () => ({}),
+        getRuntimeContract: () => ({})
+      }
+    });
+    await expect(reader.listArtistRuntimes(directory, 207n)).resolves.toEqual(entries);
+    expect(pages).toEqual(
+      directoryPageSize === 100n
+        ? [
+            [0n, 100n],
+            [100n, 100n],
+            [200n, 7n]
+          ]
+        : [
+            [0n, 50n],
+            [50n, 50n],
+            [100n, 50n],
+            [150n, 50n],
+            [200n, 7n]
+          ]
+    );
+  });
+
+  it.each([0n, -1n, 101n, (1n << 256n) - 1n])('rejects unsupported directory page size %s before querying', directoryPageSize => {
+    const getDirectoryContract = vi.fn(() => ({}));
+    expect(() =>
+      createProductCdmRuntimeReader({
+        directoryPageSize,
+        contracts: {
+          getDirectoryContract,
+          getFactoryContract: () => ({}),
+          getRuntimeContract: () => ({})
+        }
+      })
+    ).toThrow('Directory page size must be between 1 and 100.');
+    expect(getDirectoryContract).not.toHaveBeenCalled();
+  });
+
   it('paginates directory runtimes and filters zero-address entries', async () => {
     const artistsPage = {
       query: vi.fn(async (offset: unknown) => {

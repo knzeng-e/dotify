@@ -35,6 +35,31 @@ function baseTrackRecord(patch: Partial<OnchainTrackRecord> = {}): OnchainTrackR
 }
 
 describe('createViemRuntimeReader', () => {
+  it('reads all 207 directory entries across bounded Web pages without skipping the final page', async () => {
+    const entries = Array.from({ length: 207 }, (_, i) => ({
+      artist: `0x${(1000 + i).toString(16).padStart(40, '0')}` as const,
+      runtime: `0x${(2000 + i).toString(16).padStart(40, '0')}` as const
+    }));
+    const pages: bigint[][] = [];
+    const readContract = vi.fn(async ({ functionName, args }: { functionName: string; args: bigint[] }) => {
+      expect(functionName).toBe('artistsPage');
+      const [offset, limit] = args;
+      expect(limit > 0n && limit <= 100n).toBe(true);
+      pages.push(args);
+      const page = entries.slice(Number(offset), Number(offset + limit));
+      return [page.map(entry => entry.artist), page.map(entry => entry.runtime)];
+    });
+    const reader = createViemRuntimeReader({ ethRpcUrl: 'http://localhost:8545', publicClient: { readContract } as never });
+    await expect(reader.listArtistRuntimes(directory, 207n)).resolves.toEqual(entries);
+    expect(pages).toEqual([
+      [0n, 50n],
+      [50n, 50n],
+      [100n, 50n],
+      [150n, 50n],
+      [200n, 7n]
+    ]);
+  });
+
   it('paginates directory runtimes and filters zero-address entries', async () => {
     const readContract = vi.fn(async ({ functionName, args }: { functionName: string; args?: unknown[] }) => {
       if (functionName !== 'artistsPage') throw new Error(`unexpected ${functionName}`);
