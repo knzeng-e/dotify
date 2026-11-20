@@ -6,6 +6,11 @@ source preparation is not evidence that contracts, services or a Product were
 delivered. The [configuration reference](../operations/deployment-configuration.md#native-payment-correction-candidate-484)
 owns state preservation and native acceptance boundaries.
 
+The [20 November core checkpoint](../operations/fresh-testnet-2026-11-20.md)
+records an actual complete core deployment and finalized readback. Reconcile
+against that manifest before planning any further creation; the active CDM/API/
+client set has not yet switched to it.
+
 ## Freeze the source and prepare the public plan
 
 Start from current tested `dev`. Run the contract tests and regenerate Web/API
@@ -119,6 +124,14 @@ window and independently read back their served identities/configuration. A
 rollback must restore a complete matching component set and preserve the latest
 nonce and protected state; returning old releases to active use is outside the
 owner's selected clean-generation scope.
+
+For empty-directory onboarding, use the source candidate's explicit
+[`ARTIST_PUBLICATION_MODE=paused`](../operations/deployment-configuration.md#fresh-generation-publication-pause)
+on custody and edges. This removes the circular requirement to configure a
+publisher for an artist runtime that does not exist yet. Ordinary wallet
+onboarding remains available; no retired queue or signer is opened. Activation
+requires that real runtime, a new content-key domain and a bounded Bulletin
+profile, followed by enabled-mode startup preflight.
 
 ## Accept the new generation
 

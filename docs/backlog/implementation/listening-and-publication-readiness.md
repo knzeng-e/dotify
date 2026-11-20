@@ -2,6 +2,13 @@
 
 ## Matched fresh generation preparation, 2026-11-20
 
+Merged #501 / `dev` `146fb446` is now the source of the
+[deployed and finalized fresh core](../../operations/fresh-testnet-2026-11-20.md).
+The next #317 slice provides explicit publication suspension while the new empty
+generation awaits ordinary artist onboarding. CDM, service namespace, receipts,
+empty client bootstrap and identified delivery must switch coherently; they
+have not switched at this core checkpoint. Native/Host acceptance remains open.
+
 #483 is merged on `dev` `e109968a`, with the same tree as tested `b284260b`.
 The owner now selects [#317 fresh-generation preparation](../fresh-testnet-streaming-cutover.md)
 in Now / Production spine / P1. Complete default metadata installation,

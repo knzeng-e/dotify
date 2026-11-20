@@ -868,6 +868,34 @@ change older ciphertext.
 
 ---
 
+### `ARTIST_PUBLICATION_MODE`
+
+| Property | Value |
+| --- | --- |
+| **Type** | `enabled` or `paused` |
+| **Required** | No |
+| **Default** | `enabled` |
+
+Server-only startup mode on custody and public edges. `paused` returns
+`503 PUBLICATION_PAUSED` with `Cache-Control: no-store` on every `/api/uploads`
+route, including authorization, asset writes and saved-job status/retry/discard.
+The refusal precedes body parsing, upload-capability consumption and proxying;
+private custody authentication and shared-state identity checks still apply.
+No streaming worker, publication profile, queue or storage signer is opened, and
+there is no Pinata fallback. Existing encrypted files and permanent ledgers are
+neither cleared nor migrated. This is not a cancellation command for an active
+process: quiesce/drain before restarting into the mode.
+
+Sessions, catalog/media/key access, runtime creation, contribution/royalty receipt
+routes and their ordinary authorization retain their own boundaries. Liveness
+stays available; listening readiness is independent. The existing storage
+diagnostic reports the explicit pause as degraded, without claiming uploads
+are ready. A restart with `enabled` re-runs ordinary provider/worker/profile
+preflight; it does not authorize a new artist, quota or musical write. See the
+[cutover procedure](../operations/deployment-configuration.md#fresh-generation-publication-pause).
+
+---
+
 ### `PINATA_JWT`
 
 | Property     | Value               |

@@ -243,6 +243,12 @@ required audit fixes; this source change does not perform it.
 
 ### Native payment correction candidate (#484)
 
+The [20 November core checkpoint](fresh-testnet-2026-11-20.md) records the new
+eleven-transaction testnet deployment, finalized bytecode/binding checks and ten
+explorer source verifications from `dev` `146fb446`. CDM, services and clients
+still use the earlier generation. Core deployment alone is not activation or
+native value-flow acceptance.
+
 For the owner-selected 20 November preparation after merged SDK #483, follow
 [Prepare a coherent fresh testnet generation](../how-to/prepare-fresh-testnet-generation.md).
 New factories now require `metadataPallet` and use seven install/finalize calls
@@ -257,7 +263,8 @@ The owner selected a **complete fresh testnet generation on 18 November 2026**.
 The old contracts, releases, references, purchases, NFTs and pending test balances
 are abandoned as active application state. This replaces the earlier facet-only
 migration plan for [the payment correction](../backlog/native-payment-settlement-parity.md).
-This is a planned procedure; no deployment or reset is recorded here.
+The core checkpoint above begins this procedure; active-state cutover and
+new-generation acceptance remain ahead.
 
 1. Finish the system-audit corrections and freeze a tested source commit before
    preparing deployment transactions. Review a versioned manifest for the fresh
@@ -296,6 +303,34 @@ This is a planned procedure; no deployment or reset is recorded here.
    retain it across rollback within that generation. Roll clients and APIs back
    coherently; do not restore an empty journal or silently reconnect the new
    client to the abandoned generation. Old-testnet debt migration is not required.
+
+### Fresh-generation publication pause
+
+The source candidate `ARTIST_PUBLICATION_MODE=paused` provides an explicit
+empty-generation bootstrap boundary; it is not recorded as installed on Fly.
+Set it on custody **and every public edge** during the coordinated new-generation
+delivery. Keep custody's provider selections `bulletin`; do not select Pinata or
+reuse an old runtime just to satisfy publisher startup. The paused process does
+not open a publisher/profile/queue/signer and every upload route refuses before
+body parsing or proxying. See the [environment contract](../reference/environment-variables.md#artist_publication_mode).
+
+Drain active work and stop all old writers before the final state capture.
+Preserve session epoch/revocations, live auth nonces and upload reservations/usage
+in the new PostgreSQL namespace during one operator transaction, retaining the
+old namespace as evidence. Do not import its catalog/checkpoint or old receipt
+lookups. Explicitly adapt and verify runtime row policies for the new namespace;
+the deployed `dotify`-only policy does not admit another name. Keep one custody
+owner, protected volume backups and all nonce/key/retention history. Retiring a
+release does not replenish storage or upload budgets.
+
+Start matched services against the new empty directory, fresh catalog/receipt
+paths and new shared identity, then publish the matched empty-bootstrap client.
+Ordinary artist wallet onboarding supplies the actual new runtime. Only after
+that readback prepare its unused content-key domain and bounded Bulletin policy,
+preserving every previous secret and account obligation. Restart custody with
+`enabled` first, complete its startup preflight, then enable matching edges. If
+activation fails, remain paused; do not restore an abandoned publisher or reset
+its ledgers. The mode neither schedules renewal nor grants musical allowance.
 
 These links describe tracked candidate settings, not a readback of dashboards.
 Read exact origins, addresses and scaling values from the reviewed commit rather

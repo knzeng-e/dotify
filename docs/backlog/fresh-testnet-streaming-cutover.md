@@ -4,6 +4,14 @@
 
 P1 · Production spine · Now · Work (#317).
 
+The [20 November core checkpoint](../operations/fresh-testnet-2026-11-20.md)
+now records actual ten-contract creation, wiring, finalized bytecode/binding
+readback and complete explorer source verification from merged `dev` `146fb446`.
+Active CDM/services/clients remain on the earlier generation. The next source
+slice supplies an explicit publication pause for empty-directory onboarding;
+it opens no retired queue or signer. Coordinated namespace/receipt/catalog/client
+delivery, ordinary artist creation and native/device acceptance remain open.
+
 After merged #483 / `dev` `e109968a`, the owner selected preparation of the
 complete clean contracts/API/client generation. The [procedure](../how-to/prepare-fresh-testnet-generation.md)
 separates the public plan, complete core deployment/readback, coherent service
@@ -14,9 +22,10 @@ The preparation candidate includes `MusicMetadataPallet` in new factories,
 deployment/verification and the client approval sequence. It also removes the
 private-key requirement from read-only planning and checks all core bytecodes,
 bindings, native precision, empty directory and exact finalized CDM versions.
-Actual deployment, state cutover, Product publication and new-generation
-acceptance remain open. No old releases/references are imported, no testnet
-transaction is submitted by this source preparation, and CASH remains separate.
+That source preparation itself submitted no transaction. The later core
+checkpoint above records the actual deployment; state cutover, Product
+publication and new-generation acceptance remain open. No old releases or
+references are imported, and CASH remains separate.
 The [source-bound evidence and public plan](implementation/evidence/fresh-generation-preparation-2026-11-20.md)
 record automated results and the actual read-only chain observation.
 
