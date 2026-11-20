@@ -145,7 +145,45 @@ function artistsPage(uint256 offset, uint256 limit)
     returns (address[] memory artists, address[] memory runtimes)
 ```
 
-Returns a paginated slice of artists and their runtime addresses. Used by the frontend to build the catalog in batches of 50.
+Returns paired artist/runtime arrays in registration order. API and standalone
+Web readers request 50 entries per call; Product defaults to 50. Audit tooling
+requests at most 100. The function signature and return ABI are unchanged.
+
+### Directory page bounds (A08)
+
+The source candidate returns at most **100 pairs** per call, matching the
+existing track-page maximum. With `total = artistCount()`:
+
+| Input | Returned length |
+| --- | --- |
+| `limit == 0`, empty directory or `offset >= total` | 0 in both arrays |
+| Otherwise | `min(limit, 100, total - offset)` |
+
+The calculation subtracts only after checking the offset and never adds the
+untrusted limit. `offset = 1, limit = uint256.max` therefore returns a bounded
+page instead of an arithmetic panic. Maximum offsets also return empty arrays.
+Both arrays have the same length and each runtime belongs to the artist at the
+same index. Registration, count, lookup and indexed reads retain their behavior.
+
+The API pins enumeration to its selected confirmed block. Direct Web/Product
+readers retain their existing unpinned queries; this correction does not add
+snapshot isolation there. For a coherent snapshot, use one block throughout.
+Either request at
+most 100 entries and advance by that request, or advance by the actual returned
+length; do not request 1,000 then advance 1,000 after receiving only 100.
+`createProductCdmRuntimeReader` accepts `directoryPageSize` from 1 through 100
+(default 50); invalid configuration raises a `RangeError` before querying.
+API/Web fixed 50-entry requests and tooling's 100-entry requests remain valid.
+
+This bounds one contract response, not the total artist count, catalogue memory
+or provider load. Existing independent RPC concurrency, replay/address batches
+and per-runtime read budgets still apply; this correction adds no catalogue-wide
+admission limit. The directory is a standalone non-upgradeable contract, so corrected
+bytecode belongs to the selected fresh generation, not a runtime facet upgrade.
+See the [deployment gate](../operations/deployment-configuration.md#directory-pagination-a08)
+and [scope](../backlog/bounded-contract-pagination.md).
+[Local A08 evidence](../backlog/implementation/evidence/bounded-contract-pagination-2026-11-19.md)
+records the reproduced overflow and complete contract/consumer traversals.
 
 | Parameter | Description           |
 | --------- | --------------------- |

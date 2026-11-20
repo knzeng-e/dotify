@@ -7,7 +7,8 @@ Refs [W37 / #292](https://github.com/knzeng-e/dotify/issues/292).
 
 Keep the W36 elected writer and confirmed chain authority. Bound outstanding
 RPC requests across nested enumeration, release and royalty reads (default 8).
-Artist directory pages retain their existing 50-entry contract view. Hash and
+Artist directory reads request 50 entries per call. The [A08 contract page policy](../reference/contracts-api.md#directory-page-bounds-a08)
+caps each response independently of these indexer budgets. Hash and
 release work runs in bounded batches; no Multicall contract or JSON-RPC batch
 support is assumed on Product DevNet. W38 owns paged track views and contract
 bounds; W37 does not truncate rights data to meet a proposed future limit.

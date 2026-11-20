@@ -48,6 +48,22 @@ address/context binding through the intended chain/Host. Local mock success
 must not substitute for real-proof or physical-device acceptance. Record
 unavailable capabilities as remaining gates; never enable a manual fallback.
 
+## Directory pagination (A08)
+
+The [directory page candidate](../reference/contracts-api.md#directory-page-bounds-a08)
+changes `ArtistDirectory` bytecode, with the same ABI and storage layout. The
+directory is not a runtime facet and cannot be upgraded through `diamondCut`.
+Include the corrected directory and its bound factory in the selected matched
+fresh generation. No old-state import or deployment occurs in this source scope.
+
+During separately authorized readback, verify the directory/factory binding,
+registration-order pairs, zero/end offsets and a large-limit call. Retain a
+complete multi-page read at one confirmed block; API/Web request 50 and Product
+configuration must stay in 1..100. Existing per-runtime and indexing budgets
+remain independent. No new environment variable, credential, CORS origin,
+storage mount or scaling change is required. Local Hardhat tests are not native
+provider cost or physical Host acceptance.
+
 ## Establish the state first
 
 Record the candidate commit and affected components before changing settings.

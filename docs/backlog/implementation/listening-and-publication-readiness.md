@@ -1,5 +1,17 @@
 # Publication, listening reliability and CASH — execution order
 
+## Bounded directory checkpoint, 2026-11-19
+
+#496 / A06 is merged into `dev` at `61007d85` with all executed CI checks passing
+(the workflow's conditional live Project check was skipped). Next source scope:
+[A08 / #497](../bounded-contract-pagination.md), a bounded directory response and
+overflow-safe arithmetic with compatible API/Web/Product readers. Its
+[page reference](../../reference/contracts-api.md#directory-page-bounds-a08)
+defines cursor behavior and limits. A05's paid-policy decision and the remaining
+native/physical acceptance gates precede the matched fresh generation. No
+redeployment, migration, SDK/Host upgrade or CASH activation occurs here.
+Earlier checkpoints below retain their original scope.
+
 ## Supported personhood checkpoint, 2026-11-19
 
 #494 / A07 and NFT removal is merged into `dev` at `9767cbb6`. The next bounded

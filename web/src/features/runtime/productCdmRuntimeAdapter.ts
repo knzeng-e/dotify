@@ -78,6 +78,7 @@ export type ProductCdmRuntimeContractResolver = {
 
 export type ProductCdmRuntimeAdapterDeps = {
   contracts: ProductCdmRuntimeContractResolver;
+  /** Directory contract pages support 1..100 entries; defaults to 50. */
   directoryPageSize?: bigint;
 };
 
@@ -196,6 +197,7 @@ export function createProductCdmRuntimeContractResolver(input: {
 
 export function createProductCdmRuntimeReader(deps: ProductCdmRuntimeAdapterDeps): RuntimeReadPort {
   const pageSize = deps.directoryPageSize ?? 50n;
+  if (pageSize < 1n || pageSize > 100n) throw new RangeError('Directory page size must be between 1 and 100.');
 
   return {
     async getNativeTokenDecimals(runtimeAddress) {

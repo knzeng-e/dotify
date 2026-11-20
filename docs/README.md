@@ -8,8 +8,10 @@ Merged [artist authority](reference/runtime-artist-authority.md)
 keeps artist identity separate from delegated technical administration.
 Merged [NFT-free prices](reference/native-price-without-nft.md) provide exact
 EVM/native prices, without token minting or holder-based access.
-The next [supported personhood correction](reference/personhood-status-policy.md)
+Merged [supported personhood handling](reference/personhood-status-policy.md)
 keeps unknown/malformed evidence closed and typed diagnostics non-reverting.
+The next [directory pagination correction](reference/contracts-api.md#directory-page-bounds-a08)
+bounds individual responses without overflowing or skipping artists in supported readers.
 A complete fresh testnet generation follows the remaining audit fixes; no reset
 or deployment is recorded by this source change. Earlier dated checkpoints
 below retain their own scope.
@@ -109,6 +111,7 @@ including successful starts and physical locked-screen observations.
 
 ## Look something up
 
+- [Directory page bounds](reference/contracts-api.md#directory-page-bounds-a08): maximum page size, cursor handling and compatible readers
 - [Supported personhood evidence](reference/personhood-status-policy.md): raw/typed diagnostics, unsupported tiers and fail-closed access
 - [Exact prices and NFT-free releases](reference/native-price-without-nft.md): native precision, record ABI and coordinated fresh-generation delivery
 - [Artist identity and administration](reference/runtime-artist-authority.md): stable publishing/profile authority and accepted administration transfer

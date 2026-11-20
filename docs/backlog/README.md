@@ -34,8 +34,9 @@ finalized and current evidence before irreversible key delivery. Merged [A03 / #
 authority from two-step technical administration.
 [A07 and NFT removal / #493](native-price-without-nft.md) is merged in #494,
 with exact native-compatible prices and no token-based publication or access.
-Next, [A06 / #495](personhood-status-policy.md) aligns supported personhood
-diagnostics and access; A08 pagination and A05 remain separate.
+[A06 / #495](personhood-status-policy.md) is merged in #496, aligning supported
+personhood diagnostics and access. Next, [A08 / #497](bounded-contract-pagination.md)
+bounds directory pages; A05 remains a separate product decision.
 [Reader policy and recovery](../reference/catalog-runtime-isolation.md) define its
 boundaries. Other audit corrections remain before the fresh deployment.
 
