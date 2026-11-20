@@ -70,7 +70,7 @@ this qualification, and no Completed callback grants a listening entitlement.
 Retain separate outcomes for Host info, account/signature, native payment/repair
 and media/Room journeys, bound to the exact candidate and device. Automated source
 checks and a complete review package allow #483 to become ready for code review;
-physical Host acceptance gates promotion and delivery, not that review status.
+physical Host acceptance gates stable promotion, not that review status.
 An isolated qualification delivery still needs an identified artifact and its
 reviewed delivery context. Desktop and ordinary Web require their own evidence;
 do not carry iPhone acceptance across distributions.

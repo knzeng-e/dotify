@@ -410,8 +410,8 @@ reviewed delivery context before requesting a device test.
 The signer-free candidate workflow also runs the journey harness against the
 reviewed SDK dependency family. Include its regressions in
 `npm run test:product-deploy-environment`; keep missing device evidence blocked.
-Passing source review permits review/merge of the candidate, while qualification
-delivery and stable promotion retain the separate gates in the procedure.
+These automated checks establish source readiness only. Human review,
+qualification delivery and stable promotion retain their separate gates.
 
 Follow [Product publication](product-devnet-deployment.md) for package identity,
 retention checks, budget, signer handling, readback and rollback. Record the
