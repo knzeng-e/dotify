@@ -17,6 +17,8 @@ bindings, native precision, empty directory and exact finalized CDM versions.
 Actual deployment, state cutover, Product publication and new-generation
 acceptance remain open. No old releases/references are imported, no testnet
 transaction is submitted by this source preparation, and CASH remains separate.
+The [source-bound evidence and public plan](implementation/evidence/fresh-generation-preparation-2026-11-20.md)
+record automated results and the actual read-only chain observation.
 
 ## Execution alignment, 2026-11-09
 
