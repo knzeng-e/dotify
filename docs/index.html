@@ -1682,8 +1682,9 @@
                 read-back before success, preserve transaction receipts when verification fails, and expose runtime royalty claims through the shared writer
                 port. The payment correction checks receipt storage before submission and preserves finalized hashes when history saving fails.
                 The <a href="operations/fresh-testnet-2026-11-20.md">20 November fresh core checkpoint</a> records the complete audited contract
-                generation, finalized and explorer-verified. The coordinated service/client switch and new releases remain ahead;
-                previous testnet application state will not be imported. The development cutover accepts an interruption while the artist's new
+                generation, finalized and explorer-verified. The <a href="operations/fresh-cdm-2026-11-21.md">21 November checkpoint</a>
+                adds finalized Bulletin metadata and exact CDM version 4; the old custody publisher is stopped for maintenance.
+                The coordinated service/client switch and new releases remain ahead; previous testnet application state will not be imported. The development cutover accepts an interruption while the artist's new
                 runtime and Bulletin publisher are configured before matched service/client startup. Native payment and device acceptance remain separate gates.
                 Product payment hashes now open as native Paseo Asset Hub extrinsics instead of dead EVM explorer links. Claimable balances remain
                 readable, while complete cross-device Product settlement history still needs native <code>Revive.ContractEmitted</code>

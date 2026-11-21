@@ -1,8 +1,9 @@
 # Dotify Production Backlog
 
-The [fresh core checkpoint](../operations/fresh-testnet-2026-11-20.md) records
-the actual #317 testnet deployment from merged #501. Coordinated CDM/services/
-client activation and native/device acceptance remain ahead. The selected
+The [metadata/CDM checkpoint](../operations/fresh-cdm-2026-11-21.md) records
+finalized Bulletin metadata and exact version 4 for the #317 fresh core.
+Coordinated service/client activation and native/device acceptance remain ahead;
+the old custody publisher is stopped for maintenance. The selected
 development cutover accepts an interruption: artist-wallet runtime creation,
 Bulletin configuration, then matched service/client startup. The
 [selected sequence](implementation/listening-and-publication-readiness.md)

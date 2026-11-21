@@ -1,5 +1,16 @@
 # Publication, listening reliability and CASH — execution order
 
+## Metadata/CDM checkpoint, 2026-11-21
+
+The [fresh core's Bulletin metadata and CDM version 4](../../operations/fresh-cdm-2026-11-21.md)
+are finalized and read back; its pre-onboarding directory is empty. #317 remains
+Now / Production spine / P1. The old custody publisher is stopped for maintenance,
+with protected history retained. Prepare the identified Polkadot-app qualification
+client for the owner's artist account, then complete artist onboarding, the new
+key/profile domain and matched service/client activation. Hosted APIs, bootstrap
+and delivered clients have not switched. Native/Host acceptance remains open;
+CASH stays separate.
+
 ## Matched fresh generation preparation, 2026-11-20
 
 Merged #501 / `dev` `146fb446` is now the source of the

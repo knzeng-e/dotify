@@ -1,5 +1,16 @@
 # Clean testnet catalog and streaming cutover
 
+## Metadata/CDM finalized, 2026-11-21
+
+The [checkpoint](../operations/fresh-cdm-2026-11-21.md) records both Bulletin
+metadata stores and exact CDM version 4 for the fresh core. The finalized
+pre-onboarding archive verifies zero artists and all code/bindings. Source
+manifests match the new core; hosted APIs/clients have not switched and the old
+custody publisher remains stopped. The owner selected the Polkadot application
+artist account. An identified qualification client, artist-signed onboarding,
+new publisher/key scope and coordinated service/client delivery remain before
+new-generation acceptance. #317 stays open.
+
 ## Fresh generation preparation selected, 2026-11-20
 
 P1 · Production spine · Now · Work (#317).

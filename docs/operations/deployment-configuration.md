@@ -245,9 +245,11 @@ required audit fixes; this source change does not perform it.
 
 The [20 November core checkpoint](fresh-testnet-2026-11-20.md) records the new
 eleven-transaction testnet deployment, finalized bytecode/binding checks and ten
-explorer source verifications from `dev` `146fb446`. CDM, services and clients
-still use the earlier generation. Core deployment alone is not activation or
-native value-flow acceptance.
+explorer source verifications from `dev` `146fb446`. The
+[21 November checkpoint](fresh-cdm-2026-11-21.md) adds finalized Bulletin metadata,
+exact CDM version 4 and matching source manifests. Hosted services and clients
+have not switched; the old custody publisher is stopped. This is not activation
+or native value-flow acceptance.
 
 For the owner-selected 20 November preparation after merged SDK #483, follow
 [Prepare a coherent fresh testnet generation](../how-to/prepare-fresh-testnet-generation.md).
@@ -256,8 +258,9 @@ after creation. Read-only plan/readback commands require the explicit public
 `DOTIFY_DEPLOYER_ADDRESS`, alongside verified `DOTIFY_NATIVE_TOKEN_DECIMALS`;
 they do not need a signer. The v2 readback verifies exact code/bindings and the
 recorded CDM versions, including versions above seven. These are candidate tools,
-not replacement addresses or deployed settings. Existing CDM/deployment records
-remain historical until new finalized receipts are retained.
+not evidence of API/client delivery. The tracked CDM/deployment records now bind
+the finalized fresh core; a client using them still requires a coherent hosted
+generation or an explicitly identified qualification context.
 
 The owner selected a **complete fresh testnet generation on 18 November 2026**.
 The old contracts, releases, references, purchases, NFTs and pending test balances
