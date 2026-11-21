@@ -1,0 +1,300 @@
+{
+  "schema": "dotify.host-qualification-delivery.v1",
+  "date": "2026-11-21",
+  "status": "published-and-independently-verified",
+  "physicalHostAccepted": false,
+  "source": "5de0b31e573e11b7d98e2d4717cbe6bce29ae6bf",
+  "appVersion": [
+    0,
+    1,
+    89
+  ],
+  "productId": "dotify-test01.dot",
+  "purpose": "host-info-only",
+  "sourceQualityRun": "https://github.com/knzeng-e/dotify/actions/runs/44931601058",
+  "approval": {
+    "planCommit": "ecda96e4a0b1f52b85d758f1e383aa884fb00241",
+    "plan": "host-info-0.1.89-publication-plan-2026-11-21.json",
+    "explicitOwnerAuthorization": true,
+    "authorizedAt": "2026-11-21T18:17:50.406Z",
+    "scopeConsumed": true,
+    "additionalWriteAuthority": false
+  },
+  "artifact": {
+    "carBytes": 270940,
+    "carSha256": "b741a1329e6f9c1d8d3b71d4e516b917573440edf90816545f5c4d7172d66ea0",
+    "storageCid": "bafybeib6pnxpldxmxn5efu5duzd2gv2iyoim3bnuvosehm3tpxqn2satzi",
+    "directoryCid": "bafybeiam34y7upkqah7e53hrimek44dfa3smkfsrf627j3slmmxek4n3wu",
+    "previousStorageCid": "bafybeielip24ywdkjeu6bvi47oqg4gevb5uoms4f3rapbjg2tnqx4gjop4"
+  },
+  "buildConfigurationDigest": "f4cfbb6b0af3776d7e5be22efaf962236dedc2c559c871e9519ee2dffa3ba024",
+  "sdk": {
+    "product": "0.45.0",
+    "host": "0.34.0",
+    "truapi": "0.31.0"
+  },
+  "bulletin": {
+    "genesis": "0xe101f0fa4627d29a257645e02be86d80378fea1a2bf8fa6a918d150ebc760a59",
+    "account": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+    "initialNonce": 2155,
+    "finalNonce": 2160,
+    "operations": [
+      {
+        "cid": "bafkreifidmlq665b3nbtmctxrcusxmodhbzozuzn55s35mo5ghug6dti4m",
+        "bytes": 2417,
+        "action": "store",
+        "nonce": 2155,
+        "receipt": {
+          "block": 1747162,
+          "index": 0,
+          "expiresAt": 1948762
+        },
+        "final": {
+          "block": 1747162,
+          "blockHash": "0x97aa3d0fdb188fb4998218636e3e3e8fa0f7f0243cfdf04626d5d264fc02b77b",
+          "txHash": "0xef408cf99046f3a524931897729a616b70a213b8a7f28691581b74b9ed89d340"
+        }
+      },
+      {
+        "cid": "bafkreihahngcjvgugrcw75oyjzeziw45tyfj4ocxtsa6pxok6dbzw6jfuy",
+        "bytes": 265926,
+        "action": "store",
+        "nonce": 2156,
+        "receipt": {
+          "block": 1747167,
+          "index": 0,
+          "expiresAt": 1948767
+        },
+        "final": {
+          "block": 1747167,
+          "blockHash": "0x938da99f2da5f3d387bec109364919724a4b45e714c3e5235cd3629ad0a4144d",
+          "txHash": "0x1113c8761bc8e873bbffc1ea1394a30780536ff12fa0e59f42eb22e184d2bd8a"
+        }
+      },
+      {
+        "cid": "bafkreibu6nlswjudduw4kqzvelk7a5n6n2ojmmcqenvy7ehcew4klgyrpm",
+        "bytes": 2597,
+        "action": "store",
+        "nonce": 2157,
+        "receipt": {
+          "block": 1747172,
+          "index": 0,
+          "expiresAt": 1948772
+        },
+        "final": {
+          "block": 1747172,
+          "blockHash": "0xbad45138044e400bb4e06cd5939eb88bb79c2d65c9fdf72f8d47b81a71a8019e",
+          "txHash": "0x644668e0cdca4284a1bf1684c95cb4715fec28a222db986581cd6155f6a09717"
+        }
+      },
+      {
+        "cid": "bafybeib6pnxpldxmxn5efu5duzd2gv2iyoim3bnuvosehm3tpxqn2satzi",
+        "bytes": 154,
+        "action": "store",
+        "nonce": 2158,
+        "receipt": {
+          "block": 1747177,
+          "index": 0,
+          "expiresAt": 1948777
+        },
+        "final": {
+          "block": 1747177,
+          "blockHash": "0x3e622f6ef80afe65d10f92c079afede306401ba38744d9fc6caca3e118b15c9c",
+          "txHash": "0x7dbd771a587d661063afc841df6b73060005387d90d3b594afb83831b7764518"
+        }
+      },
+      {
+        "cid": "bafk2bzacebh4rknk6x7zl4pul7t3ff7y2pglpk5x4q2k3nxnql5ebizvgluxk",
+        "bytes": 35949,
+        "action": "renew",
+        "nonce": 2159,
+        "receipt": {
+          "block": 1747182,
+          "index": 0,
+          "expiresAt": 1948782
+        },
+        "final": {
+          "block": 1747182,
+          "blockHash": "0xc6a5c9de797ee2ddbc66bdb2b9f5ecb5cc9ffd9f40b85c0103839cc28a3b34f6",
+          "txHash": "0xca9c49e47d555babf95a3f31aa2b0925fc346c236082c82335ee1489c4640bcc"
+        }
+      }
+    ],
+    "totalBytes": 307043,
+    "stores": 4,
+    "renewals": 1,
+    "earliestExpiry": 1948762,
+    "readback": {
+      "head": 1747207,
+      "hash": "0x54346a520fc34ff4cd653377063ad53f87d6a35ad12966a9049397b5de9ef27f",
+      "authorization": {
+        "present": true,
+        "valid": true,
+        "expiresAt": 1831359,
+        "remainingTransactions": 4873,
+        "remainingBytes": "877200584",
+        "remainingRenewBytes": "865402089"
+      },
+      "nonce": 2160
+    },
+    "futureReserveAfter": {
+      "transactions": 2378,
+      "bytes": 604674406
+    }
+  },
+  "dotns": {
+    "nativeGenesis": "0xd6eec26135305a8ad257a20d003357284c8aa03d0bdb2b357ab0a22371e11ef2",
+    "h160": "0xe3e3a0916d27c5174313f16e1507a286985a8ac8",
+    "initialNonce": 502,
+    "finalNonce": 504,
+    "signatureCount": 2,
+    "nativeDecimals": 10,
+    "contractCallValue": "0",
+    "nativeDebit": "150967638",
+    "nativeDebitPAS": "0.0150967638",
+    "maxFeeTotalPAS": "0.10",
+    "maxAggregateStorageDepositPAS": "4.00",
+    "extrinsics": [
+      {
+        "nonce": 502,
+        "block": 16046764,
+        "blockHash": "0xad1139f6e4704d6153112f73019efa213101b6c77c0c3176d5bda594ffce75ff",
+        "extrinsicIndex": 2,
+        "txHash": "0xec4227c009dbb45c23118bf3168a7732a2694c2280d4c230a36668ffb7063d39",
+        "callDataMatches": true,
+        "feePaid": {
+          "who": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+          "actualFee": "90785830",
+          "tip": "0"
+        },
+        "eventTypes": [
+          "Balances.Withdraw",
+          "Revive.ContractEmitted",
+          "Utility.ItemCompleted",
+          "Revive.ContractEmitted",
+          "Utility.ItemCompleted",
+          "Utility.BatchCompleted",
+          "Balances.Deposit",
+          "Balances.Deposit",
+          "TransactionPayment.TransactionFeePaid",
+          "System.ExtrinsicSuccess"
+        ]
+      },
+      {
+        "nonce": 503,
+        "block": 16046782,
+        "blockHash": "0xd694ca4295d7a916557f7a98096cdfda404b3411bb5d03fbe442e5aaf9b4f6de",
+        "extrinsicIndex": 2,
+        "txHash": "0x8bc6997b994e49912df829595440723c56b7e032647491e08d22b7a46d4f0eb1",
+        "callDataMatches": true,
+        "feePaid": {
+          "who": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+          "actualFee": "60181808",
+          "tip": "0"
+        },
+        "eventTypes": [
+          "Balances.Withdraw",
+          "Revive.ContractEmitted",
+          "Utility.ItemCompleted",
+          "Revive.ContractEmitted",
+          "Utility.ItemCompleted",
+          "Utility.BatchCompleted",
+          "Balances.Deposit",
+          "Balances.Deposit",
+          "TransactionPayment.TransactionFeePaid",
+          "System.ExtrinsicSuccess"
+        ]
+      }
+    ],
+    "independentFinalizedReadback": {
+      "block": 16046826,
+      "hash": "0x7a90610c4a0f094ce7c4d2cb7b2ef466c851a1a556f37d2906d3cb14577ab11e"
+    },
+    "records": {
+      "dotify-test01.dot": {
+        "owner": "0xe3e3a0916d27c5174313f16E1507a286985a8Ac8",
+        "contenthash": "0xe301017012203e7b6ef58eecbb7a42d3a3a647a35748c390cd85b4aba443b3737de0dd4813ca",
+        "record": "{\"$v\":1,\"displayName\":\"Dotify qualification\",\"description\":\"Read-only Host information before fresh artist onboarding.\",\"icon\":{\"cid\":\"bafk2bzacebh4rknk6x7zl4pul7t3ff7y2pglpk5x4q2k3nxnql5ebizvgluxk\",\"format\":\"png\"}}"
+      },
+      "app.dotify-test01.dot": {
+        "owner": "0xe3e3a0916d27c5174313f16E1507a286985a8Ac8",
+        "contenthash": "0xe301017012203e7b6ef58eecbb7a42d3a3a647a35748c390cd85b4aba443b3737de0dd4813ca",
+        "record": "{\"$v\":1,\"kind\":\"app\",\"appVersion\":[0,1,89]}"
+      }
+    },
+    "separateLabUnchanged": true,
+    "totalActualFee": "150967638",
+    "totalActualFeePAS": "0.0150967638",
+    "feeEventVerificationAt": "2026-11-21T18:31:35.839Z",
+    "feeTotalWithinApprovedCap": true
+  },
+  "verification": {
+    "observedAt": "2026-11-21T18:25:31.729Z",
+    "outerBlocksByteCompared": 5,
+    "carBlocksVerified": 10,
+    "filesByteCompared": 7,
+    "files": [
+      {
+        "path": ".bulletin-deploy/manifest.json",
+        "bytes": 2320,
+        "sha256": "777c8757560498557c61c12928f22848656b143d2e01a2020f34fa3fe5879c64"
+      },
+      {
+        "path": "assets/index-BIYdm7PI.js",
+        "bytes": 107591,
+        "sha256": "da90ab047505c51ff5ca8c929adccd821800c320aabd8829e1d3457c812c9e28"
+      },
+      {
+        "path": "assets/product-icon-BNSQIQn6.svg",
+        "bytes": 2511,
+        "sha256": "06a2baf2936da7f801b01ffba7817d0572dab49b5c0f8d53821028c32750e2e7"
+      },
+      {
+        "path": "assets/qualification-BelFucnQ.css",
+        "bytes": 4418,
+        "sha256": "5924e389fde9f416e1566130cf5710bcc08b1f84e51236803ba9bcedf2cf2a8f"
+      },
+      {
+        "path": "assets/qualification-_RnDcS5T.js",
+        "bytes": 151252,
+        "sha256": "7e3dd75d9b9cd9b9a8676b6d809a479817352b9916e681dc59c16e92ca99cd6c"
+      },
+      {
+        "path": "index.html",
+        "bytes": 588,
+        "sha256": "19169855ba778e38dc6ad6a1dbbca4eb8de1187dc4a65c17e6ebec284b5019db"
+      },
+      {
+        "path": "qualification-build.json",
+        "bytes": 1238,
+        "sha256": "e051dbe931668e00c20b125a56f98a047c527c15be19884c482512d7f5209e51"
+      }
+    ],
+    "servedVersionMatches": true,
+    "servedSourceMatches": true,
+    "nativeCallsMatchApprovedBytes": true,
+    "hostConfigurationMatches": true,
+    "hostCheckedAt": "2026-11-21T18:26:29.138Z"
+  },
+  "maintenance": {
+    "snapshotId": "vs_3j5m0LmzyeVf9zxqVj0O",
+    "snapshotRetentionDays": 14,
+    "originalConfigurationRestored": true,
+    "publisherStopped": true,
+    "publisherLockReleased": true,
+    "protectedMetadataUnchanged": true,
+    "permanentNonceHistoryUnchanged": true,
+    "admissionArchivesUnchanged": true,
+    "seedExported": false
+  },
+  "activation": {
+    "nativeQualificationPublished": true,
+    "webChanged": false,
+    "hostedApisChanged": false,
+    "oldPublisherActivated": false,
+    "artistRuntimeCreated": false,
+    "newKeyProfileActivated": false,
+    "cashEnabled": false
+  },
+  "completedAt": "2026-11-21T18:22:40.264Z"
+}

@@ -1,19 +1,19 @@
 # Publication, listening reliability and CASH — execution order
 
-## First Host reading isolated, 2026-11-21
+## Read-only Host client delivered, 2026-11-21
 
-Merged #503 records the actual fresh-core/CDM checkpoint. The next #85 candidate
-is an [isolated read-only client](../../operations/host-info-qualification-client.md)
-for the actual Runtime reading before artist onboarding. It excludes old catalogue
-and account/signing/API paths and has separate 0.1.89 packaging. This prepares
-source, not a published or device-accepted client. Native publication/readback
-must supply a concrete artifact before asking the owner for its report. #317's
-new artist/key/profile and coordinated services/client activation stay pending.
+The [native 0.1.89 delivery](../../operations/host-info-0.1.89-delivery-2026-11-21.md)
+now publishes the isolated Host-info reader from merged/tested `5de0b31e` (#504).
+Five Bulletin operations and two zero-value DotNS batches finalized within the
+explicitly approved plan; independent receipts and byte/source readback pass.
+The old publisher remains stopped and protected history is unchanged.
 
-The [exact 0.1.89 publication plan](../../operations/host-info-0.1.89-publication-plan-2026-11-21.md)
-is now prepared and signer-free checked. Automatic approval review requires
-explicit authorization of its bounded blockchain writes. No native publication
-or artist onboarding has occurred; custody is restored and stopped.
+The next #85 gate is the real iPhone `system.info` report from this exact client.
+It contains no catalogue/account/signing/API path. Account mapping and artist
+onboarding need a later identified context; #317's new key/profile and coordinated
+services/client activation remain pending. Native publication is not physical
+Host, artist-payment or media acceptance. The operation's write authority is
+consumed; CASH stays disabled.
 
 ## Metadata/CDM checkpoint, 2026-11-21
 

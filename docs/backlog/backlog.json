@@ -461,7 +461,7 @@
       "priority": "P1",
       "track": "Product SDK",
       "phase": "Now",
-      "note": "Merged #504 prepares the read-only SDK 0.45 Host-info client. The exact 0.1.89 publication plan is verified without signing; automatic review requires explicit authorization of its five Bulletin operations and two DotNS calls. Native delivery and actual system.info precede Polkadot artist onboarding; matched services/native media remain under #317/#484. CASH stays disabled."
+      "note": "Native read-only Host-info 0.1.89 is published from merged/tested 5de0b31e (#504) within the explicitly approved five-operation Bulletin/two-signature DotNS scope. Independent records and byte/source checks pass; old custody stays stopped. Actual iPhone system.info precedes Polkadot artist account/onboarding. Matched services/native media remain under #317/#484; CASH disabled. Write authority consumed."
     },
     {
       "id": "catalog-read-model",

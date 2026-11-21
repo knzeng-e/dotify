@@ -1,7 +1,7 @@
 {
   "schema": "dotify.host-qualification-approval-plan.v1",
   "date": "2026-11-21",
-  "status": "awaiting-explicit-authorization",
+  "status": "executed-within-approved-scope",
   "source": "5de0b31e573e11b7d98e2d4717cbe6bce29ae6bf",
   "qualityRun": "https://github.com/knzeng-e/dotify/actions/runs/44931601058",
   "sourceTreeMatchesTestedPrHead": "e92f6d27bce66dd09347e33af2f7f82b5c9f70ba",
@@ -224,7 +224,6 @@
     "carBlocksVerified": 10,
     "filesByteCompared": 7,
     "outerProductBlocksVerified": 5,
-    "profileHash": "941c719d68de4c96d39a9a1affcf1fcd365608853b3b07477fa2cb000015eb8a",
     "guardTestsPassed": 2,
     "custodyPapiVersion": "3.3.0",
     "remoteCheck": "ready-no-signing",
@@ -243,12 +242,16 @@
     "artistRuntimeCreated": false,
     "newKeyProfileActivated": false,
     "cashEnabled": false,
-    "nativeCandidatePublished": false,
+    "nativeCandidatePublished": true,
     "physicalHostAccepted": false
   },
   "approvalBlock": {
     "source": "automatic approval review",
     "action": "execute exact Bulletin/DotNS application publication",
-    "reason": "Irreversible paid blockchain writes publishing/modifying a service require explicit authorization of the exact operation."
-  }
+    "reason": "Irreversible paid blockchain writes publishing/modifying a service require explicit authorization of the exact operation.",
+    "resolvedBy": "Explicit owner approval of the recorded limits before execution",
+    "resolved": true
+  },
+  "preparedStatus": "awaiting-explicit-authorization",
+  "executionRecord": "host-info-0.1.89-delivery-2026-11-21.json"
 }

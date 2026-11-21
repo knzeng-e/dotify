@@ -1,19 +1,17 @@
 # Polkadot product readiness and killer dapp roadmap
 
-## Isolated Host-info candidate, 2026-11-21
+## Native read-only Host-info client delivered, 2026-11-21
 
-The [read-only qualification client](../operations/host-info-qualification-client.md)
-is prepared from merged #503's source tree for the first #85 iPhone gate. It
-reuses the installed SDK's bounded `system.info` reader and has no catalogue,
-account, signer or chain-adapter entry. Separate 0.1.89 packaging is candidate
-configuration; exact native publication and named-device observation remain
-before account/onboarding qualification. #85 stays open; #317's matched services,
-artist runtime and native/media gates remain separate.
+The [0.1.89 delivery](../operations/host-info-0.1.89-delivery-2026-11-21.md) publishes
+merged/tested source `5de0b31e` (#504) through the explicitly approved bounded
+Bulletin/DotNS plan. Finalized records, all stored blocks and reconstructed
+files/source are independently verified. The old publisher remains stopped.
 
-The [exact publication plan](../operations/host-info-0.1.89-publication-plan-2026-11-21.md)
-now binds merged source, five Bulletin operations and two bounded DotNS calls.
-The actual custody environment passes the signer-free check; explicit operation
-authorization, native publication and physical Host observation are pending.
+The reader makes only an explicit bounded `system.info` request. The next #85
+gate is its actual iPhone Runtime report, not an inference from screenshots or
+this successful publication. Account mapping and onboarding need a later
+identified context; #85 stays open and #317's matched services/artist/native/media
+gates remain. CASH stays disabled; no further write authority is granted.
 
 ## New iPhone qualification target, 2026-11-20
 

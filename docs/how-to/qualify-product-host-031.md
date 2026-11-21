@@ -4,14 +4,18 @@ Use this procedure for #85 / #483. The owner's [20 November screenshots](../back
 show Polkadot App 0.10.0 (23) with Runtime 0.31.0 configured. They make a target
 available for testing; the checks below still need actual device results.
 
-## Read-only candidate preparation, 2026-11-21
+## Identified read-only delivery, 2026-11-21
 
-The [isolated Host-info client](../operations/host-info-qualification-client.md)
+The [native 0.1.89 delivery](../operations/host-info-0.1.89-delivery-2026-11-21.md)
 provides the first non-spending reading without the old catalogue, account or
-publication services. Its separate 0.1.89 configuration is not a delivered app.
-An exact native publication record and verified served bytes are still required
-before the phone steps below. Account/signing/onboarding follow the wire record;
-this client does not request those actions.
+publication services. Product `dotify-test01.dot` resolves the verified reader
+from source `5de0b31e573e11b7d98e2d4717cbe6bce29ae6bf`. In Polkadot Dev, reopen
+Dotify or use Debug → Open SPA with that Product name. Confirm **Host
+qualification** and footer **Source 5de0b31e · clean build**. A stale listener
+page or another source is a mismatch: report it and stop.
+
+Account/signing/onboarding follow the wire record; this client requests none of
+those actions. Its publication does not supply an actual device observation.
 
 ## Prepare an identified candidate
 

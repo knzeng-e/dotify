@@ -1,18 +1,17 @@
 # Host-info 0.1.89 — exact publication plan, 21 November 2026
 
-The native qualification candidate is built and verified, but **not published**.
-Explicit authorization of the operations below is pending after automatic
-approval review refused the execution. No chain call or private signing was
-performed. An isolated maintenance check and a custody-volume snapshot were
-completed; the original machine configuration is restored with the old
-publisher stopped.
+The owner approved this exact scope and it was **executed within its limits**.
+The [delivery record](host-info-0.1.89-delivery-2026-11-21.md) owns actual receipts,
+byte verification and the physical Host gate still pending. This document retains
+the original prepared values and caps; the initial unsigned plan is preserved
+at commit `ecda96e4a0b1f52b85d758f1e383aa884fb00241`.
 
 This advances [#85](../backlog/polkadot-product-readiness-and-killer-dapp-roadmap.md)
 before [#317](../backlog/fresh-testnet-streaming-cutover.md). The
 [structured plan](host-info-0.1.89-publication-plan-2026-11-21.json) contains exact
 CIDs, byte hashes, records, encoded native calls, nonces and caps. It is a review
-record, not an executable approval or a delivery receipt. The reusable client
-boundary remains in [Host-info qualification](host-info-qualification-client.md).
+record, not a reusable execution approval or a substitute for the delivery
+receipt. The reusable client boundary remains in [Host-info qualification](host-info-qualification-client.md).
 
 ## Candidate and resulting behavior
 
@@ -26,7 +25,7 @@ boundary remains in [Host-info qualification](host-info-qualification-client.md)
 | Storage CID | `bafybeib6pnxpldxmxn5efu5duzd2gv2iyoim3bnuvosehm3tpxqn2satzi` |
 | Previous native app | 0.1.88; CID `bafybeielip24ywdkjeu6bvi47oqg4gevb5uoms4f3rapbjg2tnqx4gjop4` |
 
-Publishing would replace the development Product's app entry with the isolated
+The approved publication replaced the development Product's app entry with the isolated
 reader. Opening it requests no account or transaction. Its explicit **Read app
 information** action reads bounded public `system.info`; **Copy support report**
 exports the actual observation and source/configuration identity. It contains
@@ -110,20 +109,20 @@ copies were retained. The old publisher remains stopped.
 
 ## Authorization and post-publication gates
 
-Automatic approval review rejected the attempted execution because paid,
-irreversible blockchain writes that publish/modify a service had not received
-explicit authorization for this exact operation. The execution command did not
-start. Approval must name this candidate and the bounded scope above; merging
-this plan alone does not execute it.
+Automatic approval review initially rejected execution because paid,
+irreversible blockchain writes had not received explicit authorization of this
+exact scope. That command did not start. The owner then explicitly approved
+0.1.89 within these limits, and the operation completed once. This authority is
+consumed; merging this plan does not authorize another publication.
 
-After approval, repeat fresh Host configuration, ownership, quota, nonce and
-unsigned private-state checks. A hash-bound, short-lived permit admits only the
-reviewed calls. Every signing intent is durably recorded before one signature;
-unknown outcomes stop for reconciliation without automatic resubmission. Restore
-the original machine configuration with the old publisher stopped afterwards.
+The execution repeated fresh Host configuration, ownership, quota, nonce and
+unsigned private-state checks. A short-lived hash-bound permit admitted only
+the reviewed calls; durable one-shot intents preceded signing. The original
+machine configuration is restored with the publisher stopped. The linked
+[delivery record](host-info-0.1.89-delivery-2026-11-21.md) records finalized receipts
+and independent stored-byte/native-call checks.
 
-Then independently verify finalized storage receipts, all block bytes, the CAR,
-DotNS owner/text/content hashes and actual served version/source. Only that
-named native delivery can precede the [iPhone procedure](../how-to/qualify-product-host-031.md).
+The identified native reader can now precede the [iPhone procedure](../how-to/qualify-product-host-031.md).
 Actual Host info, account mapping, artist-signed onboarding, matched services and
-native value/media acceptance remain open. No phone action is requested yet.
+native value/media acceptance remain open. Any later operation needs its own
+scope and current checks; this plan is not a renewal scheduler.
