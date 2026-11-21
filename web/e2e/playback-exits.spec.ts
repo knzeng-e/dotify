@@ -254,6 +254,8 @@ test('new release preparation cannot replace an active room source in the artist
   await page.getByRole('button', { name: 'You', exact: true }).click();
   await page.getByRole('button', { name: /^Open .* Studio$/i }).click();
   await page.getByRole('tab', { name: 'Releases', exact: true }).click();
+  await expect(page.getByText('New artist profiles and releases are paused.', { exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'New release', exact: true })).toBeEnabled();
   await page.getByRole('button', { name: 'New release', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Your room is still live' })).toBeVisible();
   await expect(page.getByTestId('artist-audio-input')).toHaveCount(0);
