@@ -3,7 +3,7 @@ import { readProductHostInfo, type HostSoftwareObservation } from './productHost
 
 const pending: HostSoftwareObservation = { status: 'pending' };
 
-/** Only About's explicit open enables this bounded, non-account Host read. */
+/** Only an explicit user action enables this bounded, non-account Host read. */
 export function useProductHostInfo(enabled: boolean): HostSoftwareObservation | undefined {
   const [observation, setObservation] = useState<HostSoftwareObservation>();
   useEffect(() => {

@@ -371,6 +371,11 @@ jobs:
           CATALOG_API_URL: http://127.0.0.1:9
         run: npm run build:product-devnet
 
+      - name: Verify read-only qualification build
+        run: |
+          npm run test:qualification
+          npm run build:qualification
+
       - name: Build native Product support profile
         env:
           VITE_DOTIFY_RUNTIME_ADAPTER: product-cdm
@@ -463,6 +468,9 @@ jobs:
       - name: Verify Product host identity
         working-directory: web
         run: npx playwright test --config playwright.product-identity.config.ts --project=chromium --workers=2
+
+      - name: Verify read-only Host qualification
+        run: npx playwright test --config playwright.qualification.config.ts --workers=2
 
       - name: Verify incomplete sign-out recovery
         working-directory: web

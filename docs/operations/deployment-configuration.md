@@ -243,6 +243,12 @@ required audit fixes; this source change does not perform it.
 
 ### Native payment correction candidate (#484)
 
+The [Host-info qualification client](host-info-qualification-client.md) has a
+separate read-only entry/build/configuration. Preparing it does not change the
+normal Product executable, API settings or stopped custody state. Native
+publication, serving/source evidence and the actual phone report precede artist
+onboarding and the matched application switch.
+
 The [20 November core checkpoint](fresh-testnet-2026-11-20.md) records the new
 eleven-transaction testnet deployment, finalized bytecode/binding checks and ten
 explorer source verifications from `dev` `146fb446`. The

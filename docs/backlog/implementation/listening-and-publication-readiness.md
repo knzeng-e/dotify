@@ -1,5 +1,15 @@
 # Publication, listening reliability and CASH — execution order
 
+## First Host reading isolated, 2026-11-21
+
+Merged #503 records the actual fresh-core/CDM checkpoint. The next #85 candidate
+is an [isolated read-only client](../../operations/host-info-qualification-client.md)
+for the actual Runtime reading before artist onboarding. It excludes old catalogue
+and account/signing/API paths and has separate 0.1.89 packaging. This prepares
+source, not a published or device-accepted client. Native publication/readback
+must supply a concrete artifact before asking the owner for its report. #317's
+new artist/key/profile and coordinated services/client activation stay pending.
+
 ## Metadata/CDM checkpoint, 2026-11-21
 
 The [fresh core's Bulletin metadata and CDM version 4](../../operations/fresh-cdm-2026-11-21.md)

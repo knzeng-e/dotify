@@ -461,7 +461,7 @@
       "priority": "P1",
       "track": "Product SDK",
       "phase": "Now",
-      "note": "Owner-selected #85/#483 qualification on 20 November: iPhone screenshots show Polkadot App 0.10.0 (23) with Runtime 0.31.0 configured. Candidate SDK 0.45 integrates tested dev after #500; actual info/signing and matched-generation native/media acceptance remain pending. Deployed pins are unchanged; CASH stays disabled."
+      "note": "The 21 November read-only Host-info candidate uses SDK 0.45 in a separate 0.1.89 build after merged #503. Native publication and an actual system.info report precede Polkadot artist-account onboarding; screenshots are not wire acceptance. Matching fresh services/client and native/media acceptance remain pending under #317/#484. CASH stays disabled."
     },
     {
       "id": "catalog-read-model",

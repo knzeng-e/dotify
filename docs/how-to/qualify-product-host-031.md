@@ -4,6 +4,15 @@ Use this procedure for #85 / #483. The owner's [20 November screenshots](../back
 show Polkadot App 0.10.0 (23) with Runtime 0.31.0 configured. They make a target
 available for testing; the checks below still need actual device results.
 
+## Read-only candidate preparation, 2026-11-21
+
+The [isolated Host-info client](../operations/host-info-qualification-client.md)
+provides the first non-spending reading without the old catalogue, account or
+publication services. Its separate 0.1.89 configuration is not a delivered app.
+An exact native publication record and verified served bytes are still required
+before the phone steps below. Account/signing/onboarding follow the wire record;
+this client does not request those actions.
+
 ## Prepare an identified candidate
 
 Use the reviewed #483 artifact built from the recorded source commit, with SDK

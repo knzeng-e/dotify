@@ -55,7 +55,10 @@
 		"codegen": "papi generate",
 		"preview": "vite preview --host 0.0.0.0 --port 4273",
 		"postinstall": "node scripts/patch-truapi-info.mjs",
-		"test:product-sdk-compat": "node --test scripts/product-sdk-compat.test.mjs"
+		"test:product-sdk-compat": "node --test scripts/product-sdk-compat.test.mjs",
+		"build:qualification": "tsc -b && node scripts/build-qualification.mjs",
+		"test:qualification": "node --test scripts/qualification-profile.test.mjs && vitest run src/qualification/report.test.ts src/features/productHost/productHostInfo.test.ts",
+		"dev:qualification": "vite --config scripts/qualification-vite.mjs --host 127.0.0.1 --port 5278"
 	},
 	"dependencies": {
 		"@parity/product-sdk": "0.45.0",

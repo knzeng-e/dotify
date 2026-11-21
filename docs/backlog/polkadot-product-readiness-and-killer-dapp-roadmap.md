@@ -1,5 +1,15 @@
 # Polkadot product readiness and killer dapp roadmap
 
+## Isolated Host-info candidate, 2026-11-21
+
+The [read-only qualification client](../operations/host-info-qualification-client.md)
+is prepared from merged #503's source tree for the first #85 iPhone gate. It
+reuses the installed SDK's bounded `system.info` reader and has no catalogue,
+account, signer or chain-adapter entry. Separate 0.1.89 packaging is candidate
+configuration; exact native publication and named-device observation remain
+before account/onboarding qualification. #85 stays open; #317's matched services,
+artist runtime and native/media gates remain separate.
+
 ## New iPhone qualification target, 2026-11-20
 
 P1 · Product SDK · Now · Epic (#85).
