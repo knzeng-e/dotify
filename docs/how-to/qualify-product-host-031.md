@@ -15,12 +15,14 @@ this client does not request those actions.
 
 ## Prepare an identified candidate
 
-Use the reviewed #483 artifact built from the recorded source commit, with SDK
-0.45 / Host SDK 0.34 / TrUAPI 0.31 and its verified info decoder patch. Bind the
-qualification link/artifact to its build SHA, app/product identity and delivery
-record. The operator must provide that concrete candidate before requesting a
-phone test. A build from a different commit or the previously delivered client
-cannot stand in for this candidate.
+For the first wire reading, use the isolated Host-info candidate described
+above. It carries SDK 0.45 / Host SDK 0.34 / TrUAPI 0.31 and the reviewed #483 info
+decoder patch. Bind the qualification link/artifact to its source SHA,
+configuration digest, app/product identity and native delivery record. The
+operator must provide that concrete candidate before requesting a phone test.
+A build from a different commit or the previously delivered client cannot stand
+in for this candidate. Later account/listening checks need their own identified
+full-application context; the read-only client contains no account actions.
 
 Keep qualification separate from the stable app. Any hosted/Bulletin delivery
 follows the [Product publication procedure](../operations/product-devnet-deployment.md)
@@ -29,12 +31,17 @@ publish an artifact, install the Host or authorize a transaction.
 
 ## First record: no spending or musical upload
 
-1. Open the identified candidate on the named iPhone. Open About and copy its
-   support report before another relaunch. No wallet is needed for this read.
-2. Retain its `buildSha` and `hostSoftware` observation. A successful 0.31
-   observation reports `platform: Ios`, the Host's actual application labels and
-   `runtimeVersion: 0.31.0` (or another explicitly reviewed 0.31 patch). Record
-   actual values, not a reconstruction from screenshots.
+1. Open the identified read-only candidate on the named iPhone. Tap **Read app
+   information** once, then **Copy support report** before another relaunch.
+   **View support report** provides a selectable fallback if copying fails.
+   No wallet is needed for this read.
+2. Retain the `dotify.host-qualification.v1` report's `build.source`,
+   `build.configDigest`, `build.appVersion` and `hostSoftware` observation. A
+   successful 0.31 observation reports `platform: Ios`, the Host's actual
+   application labels and `runtimeVersion: 0.31.0` (or another explicitly reviewed
+   0.31 patch). Record actual values, not a reconstruction from screenshots.
+   The full listener's About report is a separate format; it does not replace
+   this isolated candidate's source-bound record.
 3. If Runtime is absent, older, malformed, unavailable or timed out, retain that
    report and stop the qualification. Do not infer Runtime from app build 23.
    This result does not authorize transaction setup or a second signing attempt.
