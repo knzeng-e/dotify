@@ -5,6 +5,9 @@ The NFT-free core is **deployed, finalized and explorer-verified** on chain
 (#501; the same contract artifacts as the tested preparation). This is the core
 checkpoint for [#317](../backlog/fresh-testnet-streaming-cutover.md), not an
 activated API/client generation or native-payment/device acceptance.
+The later [21 November checkpoint](fresh-cdm-2026-11-21.md) records Bulletin
+metadata, exact CDM version 4 and stopped-publisher maintenance. Statements below
+about the earlier active CDM describe this 20 November checkpoint.
 
 The [structured public record](fresh-testnet-2026-11-20.json) contains all eleven
 transaction hashes, successful receipts, addresses, gas observations and the

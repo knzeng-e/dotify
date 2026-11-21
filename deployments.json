@@ -1,13 +1,15 @@
 {
-  "factory": "0x61dd19a0d4f6bd21c6ffa4a7a9d9e771af95bb13",
-  "directory": "0x79b21cad3848a3019edee17b089142282f4a13a3",
-  "initializer": "0x400d13d1fbae31f4c5885c9da468f1dcdbd1b240",
+  "nativeTokenDecimals": 10,
   "pallets": {
-    "cutPallet": "0x49c70513cde2b386e59b153cc9f9c1f75b753c01",
-    "loupePallet": "0xb2961675ff8066f29787589aa854ac98f88bc58f",
-    "ownershipPallet": "0x37050b785e4eddc8eab34507227970b8ea3a969d",
-    "registryPallet": "0x01de2f2528ec24d2a783c192418db0826176f835",
-    "royaltiesPallet": "0xec86dfcc51b76e952e24a302f64c8a304568447b",
-    "accessPallet": "0x2b9318a20e149179859ebc28fc80db507962f559"
-  }
+    "cutPallet": "0x0288876e073fc6817c9502e5fbe58cd16e0867d3",
+    "loupePallet": "0x56a0942f8ab8e2823cd26196e804d0caa0e2dd79",
+    "ownershipPallet": "0x33d8f0a0f07031282d22197f0e201c36ac9df48d",
+    "registryPallet": "0x63d292526a26bc97177738601c243262adc63fe5",
+    "royaltiesPallet": "0xef2069a5c8feeb7b811e829b107766d2365ecfb4",
+    "accessPallet": "0x46b14bf579df388719856d04c22fffb6813d90ad",
+    "metadataPallet": "0x80c427decf74f14945e7d6a94a36d6d22b811405"
+  },
+  "initializer": "0x2532718ccaa3720e01e68c5783ba86bb6620ee36",
+  "directory": "0x8af1531278831fe92689558f7b6cae92fc682ca4",
+  "factory": "0xe2199c16ea32402dd2bdc3730afba49ad5cd83f5"
 }

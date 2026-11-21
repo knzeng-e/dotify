@@ -5,6 +5,11 @@ import type { AccessMode, CatalogTrack, PersonhoodLevel } from '../shared/types'
 
 export const isArtistPublishE2e = import.meta.env.VITE_E2E_ARTIST_PUBLISH === 'true';
 
+// SPA navigation removes fixture query parameters when opening /artists.
+// Keep the explicitly selected fixture active for this document, just like the
+// mock wallet initialized from that URL. A fresh document starts a new context.
+const initiallyRequested = isArtistPublishE2e && typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('e2eArtist');
+
 export type ArtistPublishE2eScenario =
   | 'happy'
   | 'missing-wallet'
@@ -130,7 +135,7 @@ export function resetArtistPublishE2eState() {
 
 export function isArtistPublishE2eScenarioRequested() {
   if (!isArtistPublishE2e || typeof window === 'undefined') return false;
-  return new URLSearchParams(window.location.search).has('e2eArtist');
+  return initiallyRequested || new URLSearchParams(window.location.search).has('e2eArtist');
 }
 
 export function shouldAutoConnectArtistPublishE2eWallet() {

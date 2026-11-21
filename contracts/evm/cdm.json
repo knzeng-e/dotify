@@ -1,12 +1,12 @@
 {
   "dependencies": {
-    "@dotify/artist-directory": 3,
-    "@dotify/artist-runtime-factory": 3
+    "@dotify/artist-directory": 4,
+    "@dotify/artist-runtime-factory": 4
   },
   "contracts": {
     "@dotify/artist-directory": {
-      "version": 3,
-      "address": "0x79b21cad3848a3019edee17b089142282f4a13a3",
+      "version": 4,
+      "address": "0x8af1531278831fe92689558f7b6cae92fc682ca4",
       "abi": [
         {
           "inputs": [],
@@ -186,8 +186,8 @@
       "metadataCid": "bafk2bzacebcem3sk7msybseyhx3rmqybdqo2t2pdypvmnvyn2idaibe6xx4pq"
     },
     "@dotify/artist-runtime-factory": {
-      "version": 3,
-      "address": "0x61dd19a0d4f6bd21c6ffa4a7a9d9e771af95bb13",
+      "version": 4,
+      "address": "0xe2199c16ea32402dd2bdc3730afba49ad5cd83f5",
       "abi": [
         {
           "inputs": [
@@ -223,11 +223,6 @@
             },
             {
               "internalType": "address",
-              "name": "_nftPallet",
-              "type": "address"
-            },
-            {
-              "internalType": "address",
               "name": "_royaltiesPallet",
               "type": "address"
             },
@@ -235,6 +230,16 @@
               "internalType": "address",
               "name": "_accessPallet",
               "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "_metadataPallet",
+              "type": "address"
+            },
+            {
+              "internalType": "uint8",
+              "name": "_nativeTokenDecimals",
+              "type": "uint8"
             }
           ],
           "stateMutability": "nonpayable",
@@ -396,12 +401,25 @@
         },
         {
           "inputs": [],
-          "name": "nftPallet",
+          "name": "metadataPallet",
           "outputs": [
             {
               "internalType": "address",
               "name": "",
               "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "nativeTokenDecimals",
+          "outputs": [
+            {
+              "internalType": "uint8",
+              "name": "",
+              "type": "uint8"
             }
           ],
           "stateMutability": "view",
@@ -504,7 +522,7 @@
           "type": "function"
         }
       ],
-      "metadataCid": "bafk2bzaceabgw5kefjrqqazehtdfhz7qepzauovsy7zussxmulmvscihaozra"
+      "metadataCid": "bafk2bzacebxorcvatfdseg7yuw4ynxkgcc4hebdn76ksnlmt2zcv4t7ckqpo2"
     }
   },
   "registry": "0x05662b3dbd5dd9f2ff92d67630477e84b0b37c1f"
