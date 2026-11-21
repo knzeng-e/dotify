@@ -1,8 +1,9 @@
 # Dotify documentation
 
-The [20 November fresh core checkpoint](operations/fresh-testnet-2026-11-20.md)
-records ten finalized, explorer-verified contracts and their directory wiring
-from `dev` `146fb446`. The active CDM/API/client set has not switched. The
+The [21 November metadata/CDM checkpoint](operations/fresh-cdm-2026-11-21.md)
+records Bulletin metadata and exact version 4 for the ten-contract
+[fresh core](operations/fresh-testnet-2026-11-20.md). Hosted APIs and clients have
+not switched; the old custody publisher is stopped for maintenance. The
 [cutover procedure](how-to/prepare-fresh-testnet-generation.md) uses a maintenance
 interruption: create the artist runtime with the artist wallet, configure its
 Bulletin publisher, then start the matched services and clients. Native/device

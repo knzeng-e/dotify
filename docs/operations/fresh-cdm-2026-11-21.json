@@ -1,0 +1,228 @@
+{
+  "schema": "dotify.fresh-cdm-checkpoint.v1",
+  "date": "2026-11-21",
+  "operatorSource": "92ae78d9f30758f666b04d3023bd59a05c854cd7",
+  "coreSource": "146fb446765ea796d3bbbd7b42a36bd93d105a3c",
+  "chainId": 420420417,
+  "registry": "0x05662b3dbd5dd9f2ff92d67630477e84b0b37c1f",
+  "publisher": "0xc3571714248588c6e19cdece2778b75341b2c288",
+  "bulletin": {
+    "genesis": "0xe101f0fa4627d29a257645e02be86d80378fea1a2bf8fa6a918d150ebc760a59",
+    "account": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+    "operations": [
+      {
+        "name": "@dotify/artist-directory",
+        "cid": "bafk2bzacebcem3sk7msybseyhx3rmqybdqo2t2pdypvmnvyn2idaibe6xx4pq",
+        "bytes": 4468,
+        "nonce": 2153,
+        "receipt": {
+          "cid": "bafk2bzacebcem3sk7msybseyhx3rmqybdqo2t2pdypvmnvyn2idaibe6xx4pq",
+          "bytes": 4468,
+          "block": 1737797,
+          "index": 0,
+          "expiresAt": 1939397,
+          "finalized": true
+        }
+      },
+      {
+        "name": "@dotify/artist-runtime-factory",
+        "cid": "bafk2bzacebxorcvatfdseg7yuw4ynxkgcc4hebdn76ksnlmt2zcv4t7ckqpo2",
+        "bytes": 8010,
+        "nonce": 2154,
+        "receipt": {
+          "cid": "bafk2bzacebxorcvatfdseg7yuw4ynxkgcc4hebdn76ksnlmt2zcv4t7ckqpo2",
+          "bytes": 8010,
+          "block": 1737802,
+          "index": 0,
+          "expiresAt": 1939402,
+          "finalized": true
+        }
+      }
+    ],
+    "totalBytes": 12478,
+    "finalNonce": 2155,
+    "independentReadback": {
+      "head": {
+        "hash": "0xfb550a4ddfa2f22d7155033878ccfb705ff89466ea4c0cd77c1b3d437859776d",
+        "number": 1737806,
+        "parent": "0x11351c94b6ffb5cd90fa73246a8e11a616894faeaa1373b130aa0fb4f0a4a01d",
+        "hasNewRuntime": false
+      },
+      "nonce": 2155,
+      "authorization": {
+        "expires_at": 1831359,
+        "bytes_allowance": "900000000",
+        "bytes_used": "22528322",
+        "bytes_permanent_used": "34561962",
+        "transactions_allowance": 5000,
+        "transactions_used": 122
+      },
+      "blobs": [
+        {
+          "name": "@dotify/artist-directory",
+          "file": "dotify-artist-directory.json",
+          "cid": "bafk2bzacebcem3sk7msybseyhx3rmqybdqo2t2pdypvmnvyn2idaibe6xx4pq",
+          "bytes": 4468,
+          "receipt": {
+            "block": 1737797,
+            "index": 0,
+            "expiresAt": 1939397,
+            "retained": true
+          }
+        },
+        {
+          "name": "@dotify/artist-runtime-factory",
+          "file": "dotify-artist-runtime-factory.json",
+          "cid": "bafk2bzacebxorcvatfdseg7yuw4ynxkgcc4hebdn76ksnlmt2zcv4t7ckqpo2",
+          "bytes": 8010,
+          "receipt": {
+            "block": 1737802,
+            "index": 0,
+            "expiresAt": 1939402,
+            "retained": true
+          }
+        }
+      ]
+    },
+    "futureRenewalReserve": {
+      "transactions": 2373,
+      "bytes": 604367363
+    }
+  },
+  "cdm": {
+    "transactions": [
+      {
+        "name": "@dotify/artist-directory",
+        "address": "0x8af1531278831fe92689558f7b6cae92fc682ca4",
+        "metadataCid": "bafk2bzacebcem3sk7msybseyhx3rmqybdqo2t2pdypvmnvyn2idaibe6xx4pq",
+        "newVersion": 4,
+        "nonce": 496,
+        "hash": "0x089b2c21747bfb144ae39353edd73ab4c6d4e537e4209fc878f8d115bd3905d4",
+        "finalizedAt": {
+          "number": "16019057",
+          "hash": "0x2299a61981c3d12258ab8be484524e5ff9227292130f1c6b7315a2e1eba7c24d"
+        },
+        "receipt": {
+          "status": "success",
+          "blockNumber": "16019055",
+          "blockHash": "0xa815a9df7bf07f81a153df456c3af5f9091538f580d8ff94e503e14efb9e6eef",
+          "transactionHash": "0x089b2c21747bfb144ae39353edd73ab4c6d4e537e4209fc878f8d115bd3905d4",
+          "gasUsed": "14159",
+          "effectiveGasPrice": "1000000000000"
+        },
+        "transaction": {
+          "from": "0xc3571714248588c6e19cdece2778b75341b2c288",
+          "to": "0x05662b3dbd5dd9f2ff92d67630477e84b0b37c1f",
+          "nonce": "0x1f0",
+          "gas": "0x7a120",
+          "gasPrice": "0xe8d4a51000",
+          "value": "0x0"
+        }
+      },
+      {
+        "name": "@dotify/artist-runtime-factory",
+        "address": "0xe2199c16ea32402dd2bdc3730afba49ad5cd83f5",
+        "metadataCid": "bafk2bzacebxorcvatfdseg7yuw4ynxkgcc4hebdn76ksnlmt2zcv4t7ckqpo2",
+        "newVersion": 4,
+        "nonce": 497,
+        "hash": "0xbe981f0b7a925d516e0ebf7ae8295ce96b2180fdea345d51316f17606f41c281",
+        "finalizedAt": {
+          "number": "16019072",
+          "hash": "0x84af24383e022fcd5808e753322c7f455e99509e9250e91938af7d3cdba657b0"
+        },
+        "receipt": {
+          "status": "success",
+          "blockNumber": "16019071",
+          "blockHash": "0xd2e92db8fc83fd0bbef2cb7c080503d7dc5339dbcdcc7d1fb8eb081956e00b57",
+          "transactionHash": "0xbe981f0b7a925d516e0ebf7ae8295ce96b2180fdea345d51316f17606f41c281",
+          "gasUsed": "14159",
+          "effectiveGasPrice": "1000000000000"
+        },
+        "transaction": {
+          "from": "0xc3571714248588c6e19cdece2778b75341b2c288",
+          "to": "0x05662b3dbd5dd9f2ff92d67630477e84b0b37c1f",
+          "nonce": "0x1f1",
+          "gas": "0x7a120",
+          "gasPrice": "0xe8d4a51000",
+          "value": "0x0"
+        }
+      }
+    ],
+    "finalNonce": 498,
+    "gasLimitPerTransaction": "500000",
+    "gasPriceWei": "1000000000000",
+    "maxFeeWei": "1000000000000000000",
+    "observedDebitWei": "28318000000000000",
+    "finalizedMetadataReadback": {
+      "blockNumber": 16019090,
+      "blockHash": "0x57cbe3784d4f90be683b02cc01d2e9220e89f23bd6e2735eff5be9e68d0b565b",
+      "packages": [
+        {
+          "name": "@dotify/artist-directory",
+          "version": 4,
+          "versionCount": 5,
+          "address": "0x8aF1531278831FE92689558f7B6Cae92fc682CA4",
+          "metadataCid": "bafk2bzacebcem3sk7msybseyhx3rmqybdqo2t2pdypvmnvyn2idaibe6xx4pq"
+        },
+        {
+          "name": "@dotify/artist-runtime-factory",
+          "version": 4,
+          "versionCount": 5,
+          "address": "0xE2199C16ea32402dD2BDc3730aFBa49ad5cD83F5",
+          "metadataCid": "bafk2bzacebxorcvatfdseg7yuw4ynxkgcc4hebdn76ksnlmt2zcv4t7ckqpo2"
+        }
+      ]
+    }
+  },
+  "finalizedEmptyCoreReadback": {
+    "schema": "dotify.fresh-cdm-readback.v2",
+    "chainId": 420420417,
+    "nativeTokenDecimals": 10,
+    "artistCount": "0",
+    "deployer": "0xC3571714248588C6E19cDECe2778B75341b2c288",
+    "verifiedImplementations": [
+      "DiamondCutPallet",
+      "DiamondLoupePallet",
+      "OwnershipPallet",
+      "MusicRegistryPallet",
+      "MusicRoyaltiesPallet",
+      "MusicAccessPallet",
+      "MusicMetadataPallet",
+      "DotifyRuntimeInitializer",
+      "ArtistDirectory",
+      "ArtistRuntimeFactory"
+    ],
+    "blockNumber": 16019090,
+    "blockHash": "0x57cbe3784d4f90be683b02cc01d2e9220e89f23bd6e2735eff5be9e68d0b565b",
+    "packages": [
+      {
+        "name": "@dotify/artist-directory",
+        "address": "0x8af1531278831fe92689558f7b6cae92fc682ca4",
+        "version": 4
+      },
+      {
+        "name": "@dotify/artist-runtime-factory",
+        "address": "0xe2199c16ea32402dd2bdc3730afba49ad5cd83f5",
+        "version": 4
+      }
+    ]
+  },
+  "maintenance": {
+    "custody": "original configuration restored; publisher stopped",
+    "volumeSnapshot": "created and verified after publisher stop",
+    "snapshotRetentionDays": 14,
+    "protectedMetadataUnchanged": true,
+    "admissionArchivesUnchanged": true,
+    "oldApiAndSignal": "not reconfigured; new generation not activated",
+    "finalQuiescedDatabaseTrustCapture": false,
+    "encryptionNonceHistoryUnchanged": true
+  },
+  "acceptance": {
+    "artistRuntimeCreated": false,
+    "clientDelivered": false,
+    "newApiGenerationActivated": false,
+    "nativePayoutsAccepted": false,
+    "physicalHostAccepted": false,
+    "cashEnabled": false
+  }
+}

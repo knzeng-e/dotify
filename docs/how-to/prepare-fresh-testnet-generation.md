@@ -8,8 +8,10 @@ owns state preservation and native acceptance boundaries.
 
 The [20 November core checkpoint](../operations/fresh-testnet-2026-11-20.md)
 records an actual complete core deployment and finalized readback. Reconcile
-against that manifest before planning any further creation; the active CDM/API/
-client set has not yet switched to it.
+against that manifest before planning any further creation. The
+[21 November metadata/CDM checkpoint](../operations/fresh-cdm-2026-11-21.md)
+records exact version 4 and the pre-onboarding empty-core readback; hosted
+APIs/clients have not switched and the old custody publisher is stopped.
 
 ## Freeze the source and prepare the public plan
 
@@ -24,10 +26,10 @@ npm --prefix web run generate:cdm-metadata
 ```
 
 Review and commit generated changes. Generation is local; it does not publish
-metadata or update a registry. The retained `deployments.json` and
-`contracts/evm/cdm.json` continue to name the earlier deployment until actual new
-receipts and finalized registry readback supply new addresses/versions. Candidate
-factory metadata is not proof that that earlier address implements the new ABI.
+metadata or update a registry. Before publication, retain the earlier `deployments.json` and
+`contracts/evm/cdm.json` until actual new receipts and finalized registry readback
+supply new addresses/versions. Candidate factory metadata is not proof that an
+earlier address implements the new ABI.
 
 Set `DOTIFY_DEPLOYER_ADDRESS` to the reviewed public H160 account and
 `DOTIFY_NATIVE_TOKEN_DECIMALS` to the verified native Balance precision. The
