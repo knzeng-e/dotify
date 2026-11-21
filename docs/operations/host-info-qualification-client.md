@@ -9,7 +9,9 @@ The [21 November native delivery](host-info-0.1.89-delivery-2026-11-21.md) publi
 Product `dotify-test01.dot`, app **0.1.89**, from merged source `5de0b31e`. Its
 actual DotNS records and Bulletin bytes are independently verified. It replaces
 the native development app entry with this reader; ordinary Web remains on its
-previous delivery. Physical Host qualification is still pending. Do not infer
+previous delivery. The [iPhone Host-info record](../backlog/implementation/evidence/host-info-ios-0.1.89-2026-11-22.md)
+passes the first method/Runtime gate; account, signing and media gates remain
+pending. Do not infer
 an installed version from a checked-in deployment configuration.
 
 The [exact publication plan](host-info-0.1.89-publication-plan-2026-11-21.md) records

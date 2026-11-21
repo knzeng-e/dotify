@@ -2,8 +2,9 @@
 
 The [native Host-info 0.1.89 delivery](host-info-0.1.89-delivery-2026-11-21.md)
 replaces the development Product app entry with the isolated reader from source
-`5de0b31e`. It is not the full listener/API switch; its actual iPhone report is
-pending. The approved publication scope is consumed and the old publisher stays
+`5de0b31e`. The [actual iPhone report](../backlog/implementation/evidence/host-info-ios-0.1.89-2026-11-22.md)
+accepts its Host-info/Runtime gate. Account/signing and the full listener/API
+switch remain pending. The approved publication scope is consumed and the old publisher stays
 stopped. Ordinary Web remains on its prior delivery.
 
 The [0.1.88 delivery record](../backlog/implementation/evidence/product-0.1.88-rollout-2026-11-15.md)

@@ -1,9 +1,10 @@
 # Dotify documentation
 
 The [native Host-info 0.1.89 delivery](operations/host-info-0.1.89-delivery-2026-11-21.md)
-is independently verified from source `5de0b31e`. The next #85 gate is an actual
-iPhone Runtime report; the reader does not connect the artist account or activate
-the new generation's services.
+is independently verified from source `5de0b31e`. The [iPhone report](backlog/implementation/evidence/host-info-ios-0.1.89-2026-11-22.md)
+accepts the first Host-info/Runtime gate. Next is the artist account mapping in
+a separately identified context; the reader has no account action and does not
+activate the new generation's services.
 
 The [21 November metadata/CDM checkpoint](operations/fresh-cdm-2026-11-21.md)
 records Bulletin metadata and exact version 4 for the ten-contract

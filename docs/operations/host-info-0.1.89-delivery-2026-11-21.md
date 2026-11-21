@@ -1,6 +1,9 @@
 # Native Host-info 0.1.89 delivery — 21 November 2026
 
-**Published and independently verified; physical Host qualification is pending.**
+**Published and independently verified; the first iPhone Host-info gate passes.**
+The [22 November device record](../backlog/implementation/evidence/host-info-ios-0.1.89-2026-11-22.md)
+accepts `system.info` / Runtime 0.31.0 on this exact client. Account, signing,
+payment and media acceptance remain pending.
 `dotify-test01.dot` now publishes the isolated **Dotify qualification** app
 `0.1.89` from merged source `5de0b31e573e11b7d98e2d4717cbe6bce29ae6bf` (#504).
 This temporarily replaces the native development listener with the public
@@ -96,7 +99,8 @@ selectable report is under **View support report** if copying fails. Check its
 signature, transaction or music playback is needed.
 
 Follow the [device procedure](../how-to/qualify-product-host-031.md) for actual
-values and failure handling. A real source-bound `system.info` observation is
-the next gate. Account mapping, fresh-factory artist approvals, matched services,
+values and failure handling. The [source-bound iPhone observation](../backlog/implementation/evidence/host-info-ios-0.1.89-2026-11-22.md)
+now passes this first gate; the handoff above is retained as its procedure.
+Account mapping, fresh-factory artist approvals, matched services,
 native beneficiary settlement and protected listening/Room acceptance remain
 open. Publishing this reader accepts none of those journeys.

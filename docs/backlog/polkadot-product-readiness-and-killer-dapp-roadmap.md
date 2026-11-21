@@ -1,5 +1,15 @@
 # Polkadot product readiness and killer dapp roadmap
 
+## First iPhone Host-info gate accepted, 2026-11-22
+
+The [source-bound 0.1.89 report](implementation/evidence/host-info-ios-0.1.89-2026-11-22.md) matches delivered
+source `5de0b31e` and reports Polkadot App 0.10.0 (23) / Runtime 0.31.0.
+Only the non-spending `system.info` / version gate passes. Next is the selected
+Polkadot artist account mapping in a separately identified context, followed by
+fresh-factory prerequisites and artist-signed onboarding. Account/signing,
+settlement and matched media acceptance remain open; #85 / #317 stay open and
+CASH stays disabled. Earlier dated checkpoints retain their original scope.
+
 ## Native read-only Host-info client delivered, 2026-11-21
 
 The [0.1.89 delivery](../operations/host-info-0.1.89-delivery-2026-11-21.md) publishes

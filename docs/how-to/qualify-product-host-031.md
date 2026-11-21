@@ -2,7 +2,9 @@
 
 Use this procedure for #85 / #483. The owner's [20 November screenshots](../backlog/implementation/evidence/product-host-ios-031-2026-11-20.md)
 show Polkadot App 0.10.0 (23) with Runtime 0.31.0 configured. They make a target
-available for testing; the checks below still need actual device results.
+available for testing. The [22 November support report](../backlog/implementation/evidence/host-info-ios-0.1.89-2026-11-22.md)
+now accepts the first Host-info/Runtime gate on the identified 0.1.89 iPhone
+client; subsequent account, signing, payment and listening gates remain open.
 
 ## Identified read-only delivery, 2026-11-21
 
@@ -15,7 +17,8 @@ qualification** and footer **Source 5de0b31e · clean build**. A stale listener
 page or another source is a mismatch: report it and stop.
 
 Account/signing/onboarding follow the wire record; this client requests none of
-those actions. Its publication does not supply an actual device observation.
+those actions. The linked device record supplies the separate actual observation;
+publication alone does not establish device acceptance.
 
 ## Prepare an identified candidate
 

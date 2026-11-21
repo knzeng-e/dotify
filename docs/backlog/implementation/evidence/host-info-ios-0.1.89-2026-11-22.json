@@ -1,0 +1,30 @@
+{
+  "schema": "dotify.host-qualification.v1",
+  "purpose": "host-info-only",
+  "build": {
+    "source": "5de0b31e573e11b7d98e2d4717cbe6bce29ae6bf",
+    "clean": true,
+    "configDigest": "f4cfbb6b0af3776d7e5be22efaf962236dedc2c559c871e9519ee2dffa3ba024",
+    "productId": "dotify-test01.dot",
+    "appVersion": "0.1.89",
+    "sdk": {
+      "product": "0.45.0",
+      "host": "0.34.0",
+      "truapi": "0.31.0"
+    }
+  },
+  "requestedAt": "2026-11-21T23:44:08.316Z",
+  "hostSoftware": {
+    "status": "reported",
+    "platform": "Ios",
+    "name": "Polkadot App",
+    "version": "0.10.0 (23)",
+    "runtimeVersion": "0.31.0"
+  },
+  "boundary": {
+    "accountRequested": false,
+    "signingRequested": false,
+    "chainQueried": false,
+    "applicationApiContacted": false
+  }
+}
