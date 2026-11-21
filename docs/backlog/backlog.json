@@ -461,7 +461,7 @@
       "priority": "P1",
       "track": "Product SDK",
       "phase": "Now",
-      "note": "The 21 November read-only Host-info candidate uses SDK 0.45 in a separate 0.1.89 build after merged #503. Native publication and an actual system.info report precede Polkadot artist-account onboarding; screenshots are not wire acceptance. Matching fresh services/client and native/media acceptance remain pending under #317/#484. CASH stays disabled."
+      "note": "Merged #504 prepares the read-only SDK 0.45 Host-info client. The exact 0.1.89 publication plan is verified without signing; automatic review requires explicit authorization of its five Bulletin operations and two DotNS calls. Native delivery and actual system.info precede Polkadot artist onboarding; matched services/native media remain under #317/#484. CASH stays disabled."
     },
     {
       "id": "catalog-read-model",

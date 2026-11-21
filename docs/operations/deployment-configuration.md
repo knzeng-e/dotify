@@ -244,7 +244,8 @@ required audit fixes; this source change does not perform it.
 ### Native payment correction candidate (#484)
 
 The [Host-info qualification client](host-info-qualification-client.md) has a
-separate read-only entry/build/configuration. Preparing it does not change the
+separate read-only entry/build/configuration. Its [exact publication plan](host-info-0.1.89-publication-plan-2026-11-21.md) awaits explicit
+authorization of the bounded chain writes. Preparing it does not change the
 normal Product executable, API settings or stopped custody state. Native
 publication, serving/source evidence and the actual phone report precede artist
 onboarding and the matched application switch.

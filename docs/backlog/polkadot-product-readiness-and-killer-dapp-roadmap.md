@@ -10,6 +10,11 @@ configuration; exact native publication and named-device observation remain
 before account/onboarding qualification. #85 stays open; #317's matched services,
 artist runtime and native/media gates remain separate.
 
+The [exact publication plan](../operations/host-info-0.1.89-publication-plan-2026-11-21.md)
+now binds merged source, five Bulletin operations and two bounded DotNS calls.
+The actual custody environment passes the signer-free check; explicit operation
+authorization, native publication and physical Host observation are pending.
+
 ## New iPhone qualification target, 2026-11-20
 
 P1 · Product SDK · Now · Epic (#85).

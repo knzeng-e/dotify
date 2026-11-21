@@ -10,6 +10,11 @@ source, not a published or device-accepted client. Native publication/readback
 must supply a concrete artifact before asking the owner for its report. #317's
 new artist/key/profile and coordinated services/client activation stay pending.
 
+The [exact 0.1.89 publication plan](../../operations/host-info-0.1.89-publication-plan-2026-11-21.md)
+is now prepared and signer-free checked. Automatic approval review requires
+explicit authorization of its bounded blockchain writes. No native publication
+or artist onboarding has occurred; custody is restored and stopped.
+
 ## Metadata/CDM checkpoint, 2026-11-21
 
 The [fresh core's Bulletin metadata and CDM version 4](../../operations/fresh-cdm-2026-11-21.md)

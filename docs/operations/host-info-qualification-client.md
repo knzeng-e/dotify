@@ -11,6 +11,10 @@ Host result. The separate candidate configuration names Product
 The ordinary deployment configuration and delivered 0.1.88 app are unchanged.
 Do not infer an installed version from either checked-in configuration.
 
+The [21 November exact publication plan](host-info-0.1.89-publication-plan-2026-11-21.md)
+records the prepared native artifact, finite quotas and pending explicit
+authorization. No native delivery or device result has occurred.
+
 ## Build and identify the candidate
 
 From a clean, reviewed checkout:
