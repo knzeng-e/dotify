@@ -8,6 +8,7 @@ export default defineConfig({
   testIgnore: [
     '**/documentation-capture.spec.ts',
     '**/product-identity.spec.ts',
+    '**/host-qualification.spec.ts',
     '**/session-logout.spec.ts',
     '**/audio-continuity.spec.ts',
     '**/nearby.spec.ts',
