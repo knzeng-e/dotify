@@ -6,7 +6,9 @@ The [bounded native proof](../../reference/native-factory-readback.md) replaces
 EVM-only pending discovery on Paseo Asset Hub: reviewed factory bytecode,
 canonical native/EVM block binding and zero native persistent storage must agree.
 Missing or nonempty native state remains unverified. This source step prepares
-#317 onboarding without changing the old publication attestation. Identified
+#317 onboarding without changing the old publication attestation. The [source-bound readback](evidence/native-factory-prerequisites-2026-11-23.md)
+passes at finalized block 16,099,062 with zero native storage and exact core/CDM
+bindings. Identified
 signer control, artist approvals, coherent services and native/value/media
 acceptance remain separate; no publication or transaction is authorized.
 

@@ -7,8 +7,9 @@ consumed; custody is restored/stopped and protected history is preserved. The
 public-address snapshot and [device procedure](how-to/qualify-product-host-031.md).
 The [owner's account report](backlog/implementation/evidence/host-account-ios-0.1.90-2026-11-22.md) now
 accepts sharing/choice, and a separate finalized native read matches the existing
-Revive mapping. Next are signer control and fresh-factory prerequisites; artist
-onboarding and matched services remain separate.
+Revive mapping. The [native factory readback](backlog/implementation/evidence/native-factory-prerequisites-2026-11-23.md)
+now passes at its captured block. Signer control, artist onboarding and matched
+services remain separate.
 
 The earlier [0.1.89 iPhone report](backlog/implementation/evidence/host-info-ios-0.1.89-2026-11-22.md)
 accepts only Host info / Runtime 0.31.0. The prior

@@ -1,0 +1,99 @@
+{
+  "schema": "dotify.native-factory-prerequisites.v1",
+  "source": "770c6e878d4588c5acd4ae8487c137f822d8d5ed",
+  "chainId": 420420417,
+  "scope": "read-only-pre-onboarding-empty-factory",
+  "registryAudit": {
+    "blockHash": "0x634f3ff1feabb13c3655a3a3fcce0605224de0a5df606dd06705e3632e28b72b",
+    "blockNumber": "16099062",
+    "chainId": 420420417,
+    "configuredCodeHash": "0xd660f736eb9e30073b9b8efe0e676ce5efd0619f63727cc16b3238b495396100",
+    "configuredFacet": "0x63d292526A26bC97177738601c243262ADc63fe5",
+    "configuredFacetMatchesSource": true,
+    "correctedSourceCodeHash": "0xd660f736eb9e30073b9b8efe0e676ce5efd0619f63727cc16b3238b495396100",
+    "directory": "0x8aF1531278831FE92689558f7B6Cae92fc682CA4",
+    "directoryFactory": "0xE2199C16ea32402dD2BDc3730aFBa49ad5cD83F5",
+    "directoryFactoryMatches": true,
+    "factory": "0xE2199C16ea32402dD2BDc3730aFBa49ad5cD83F5",
+    "factoryDirectory": "0x8aF1531278831FE92689558f7B6Cae92fc682CA4",
+    "factoryDirectoryMatches": true,
+    "finalizedRuntimeCount": 0,
+    "pendingDiscovery": {
+      "method": "revive-empty-storage",
+      "nativeProof": {
+        "evmBlockHash": "0x634f3ff1feabb13c3655a3a3fcce0605224de0a5df606dd06705e3632e28b72b",
+        "factory": "0xE2199C16ea32402dD2BDc3730aFBa49ad5cD83F5",
+        "factoryCodeHash": "0x4e5146050a4b80b238107dc3f559123b45c8547df5a99d63af3fbf7f561dfaad",
+        "genesis": "0xd6eec26135305a8ad257a20d003357284c8aa03d0bdb2b357ab0a22371e11ef2",
+        "method": "revive-empty-storage",
+        "nativeBlockHash": "0x80f6f6ae83094f8f7365e8d3beac36f7fe8b969aea8ee3b6009f664d33757cf1",
+        "nativeBlockNumber": "16099062",
+        "storageBytes": 0,
+        "storageItems": 0
+      },
+      "status": "complete"
+    },
+    "pendingRuntimes": [],
+    "runtimes": [],
+    "schema": "dotify.registry-audit.v2"
+  },
+  "freshCoreCdmReadback": {
+    "schema": "dotify.fresh-cdm-readback.v3",
+    "chainId": 420420417,
+    "nativeTokenDecimals": 10,
+    "artistCount": "0",
+    "deployer": "0xC3571714248588C6E19cDECe2778B75341b2c288",
+    "verifiedImplementations": [
+      "DiamondCutPallet",
+      "DiamondLoupePallet",
+      "OwnershipPallet",
+      "MusicRegistryPallet",
+      "MusicRoyaltiesPallet",
+      "MusicAccessPallet",
+      "MusicMetadataPallet",
+      "DotifyRuntimeInitializer",
+      "ArtistDirectory",
+      "ArtistRuntimeFactory"
+    ],
+    "pendingRuntimeProof": {
+      "method": "revive-empty-storage",
+      "genesis": "0xd6eec26135305a8ad257a20d003357284c8aa03d0bdb2b357ab0a22371e11ef2",
+      "nativeBlockNumber": "16099062",
+      "nativeBlockHash": "0x80f6f6ae83094f8f7365e8d3beac36f7fe8b969aea8ee3b6009f664d33757cf1",
+      "evmBlockHash": "0x634f3ff1feabb13c3655a3a3fcce0605224de0a5df606dd06705e3632e28b72b",
+      "factory": "0xe2199c16ea32402dd2bdc3730afba49ad5cd83f5",
+      "factoryCodeHash": "0x4e5146050a4b80b238107dc3f559123b45c8547df5a99d63af3fbf7f561dfaad",
+      "storageItems": 0,
+      "storageBytes": 0
+    },
+    "blockNumber": 16099062,
+    "blockHash": "0x634f3ff1feabb13c3655a3a3fcce0605224de0a5df606dd06705e3632e28b72b",
+    "packages": [
+      {
+        "name": "@dotify/artist-directory",
+        "address": "0x8af1531278831fe92689558f7b6cae92fc682ca4",
+        "version": 4
+      },
+      {
+        "name": "@dotify/artist-runtime-factory",
+        "address": "0xe2199c16ea32402dd2bdc3730afba49ad5cd83f5",
+        "version": 4
+      }
+    ]
+  },
+  "validation": {
+    "contractTestsPassed": 153,
+    "contractFormatting": "passed",
+    "generatedAbiDrift": false,
+    "fullTypecheck": "181 baseline diagnostics; same normalized diagnostics on base 50f3c003 with identical installed dependencies; no added diagnostics"
+  },
+  "boundaries": {
+    "signerUsed": false,
+    "transactionsSubmitted": 0,
+    "artistRuntimeCreated": false,
+    "publicationAttestationChanged": false,
+    "servicesActivated": false,
+    "signerControlVerified": false,
+    "cashEnabled": false
+  }
+}

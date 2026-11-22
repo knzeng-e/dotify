@@ -5,7 +5,8 @@
 The [native readback reference](../reference/native-factory-readback.md) adds a
 bounded empty-storage proof tied to reviewed code and one finalized native/EVM
 block pair. EVM logs alone cannot establish complete pending discovery on Revive.
-This source step leaves the old publication attestation and signer/onboarding,
+The [source-bound readback](implementation/evidence/native-factory-prerequisites-2026-11-23.md)
+passes at block 16,099,062. This source step leaves the old publication attestation and signer/onboarding,
 service, value and media gates open. No fresh creation or delivery occurs.
 
 ## Artist account choice and native mapping accepted, 2026-11-22
