@@ -1,5 +1,15 @@
 # Polkadot product readiness and killer dapp roadmap
 
+## Account-address qualification candidate, 2026-11-22
+
+After merged #505, the [separate 0.1.90 source candidate](../operations/host-account-qualification-client.md)
+requests the Product account only after supported Host info and an explicit
+user gesture. It records public SS58/H160 derivation and optional owner
+acknowledgement, not chain mapping or signer control. No new publication,
+artist runtime, service activation or transaction is performed. Physical
+account acceptance and fresh-factory/native discovery remain before onboarding;
+#85 / #317 stay open and CASH stays disabled.
+
 ## First iPhone Host-info gate accepted, 2026-11-22
 
 The [source-bound 0.1.89 report](implementation/evidence/host-info-ios-0.1.89-2026-11-22.md) matches delivered

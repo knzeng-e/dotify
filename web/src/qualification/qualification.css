@@ -283,3 +283,17 @@ textarea:focus-visible {
     }
   }
 }
+
+.qualification-confirm {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 20px 0;
+}
+.qualification-confirm input {
+  accent-color: #0c2b46;
+  margin-top: 4px;
+  flex-shrink: 0;
+}

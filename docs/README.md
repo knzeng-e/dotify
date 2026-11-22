@@ -1,5 +1,10 @@
 # Dotify documentation
 
+The [account qualification candidate](operations/host-account-qualification-client.md)
+prepares explicit Product account consent and public Substrate/EVM addresses.
+It is not deployed; signing, native chain mapping and artist onboarding remain
+separate from the accepted 0.1.89 Host-info record.
+
 The [native Host-info 0.1.89 delivery](operations/host-info-0.1.89-delivery-2026-11-21.md)
 is independently verified from source `5de0b31e`. The [iPhone report](backlog/implementation/evidence/host-info-ios-0.1.89-2026-11-22.md)
 accepts the first Host-info/Runtime gate. Next is the artist account mapping in

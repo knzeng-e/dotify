@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 export const QUALIFICATION_PRODUCT_ID = 'dotify-test01.dot';
 export const QUALIFICATION_APP_VERSION = [0, 1, 89];
 
+export const ACCOUNT_QUALIFICATION_APP_VERSION = [0, 1, 90];
+
 export function assertQualificationBuild(identity, env) {
   assert.match(identity.gitSha, /^[a-f0-9]{40}$/, 'Qualification requires a source commit');
   assert.equal(identity.clean, true, 'Commit the qualification source before building its artifact');
@@ -12,7 +14,9 @@ export function assertQualificationBuild(identity, env) {
   }
 }
 
-export function assertQualificationGraph(outputs) {
+export function assertQualificationGraph(outputs, purpose = 'host-info-only') {
+  assert.ok(['host-info-only', 'host-account-addresses-only'].includes(purpose), 'Unknown qualification purpose');
+  const account = purpose === 'host-account-addresses-only';
   const rendered = outputs.flatMap(output => output.output ?? []).filter(item => item.type === 'chunk');
   const allowedApplication = new Set([
     'qualification/main.tsx',
@@ -22,6 +26,8 @@ export function assertQualificationGraph(outputs) {
     'features/productHost/productHostInfo.ts',
     'features/productHost/useProductHostInfo.ts'
   ]);
+  if (account)
+    for (const path of ['account-main.tsx', 'AccountQualification.tsx', 'account.ts', 'accountReport.ts']) allowedApplication.add(`qualification/${path}`);
   const forbiddenDependency = /\/node_modules\/@parity\/(?:product-sdk-descriptors|product-sdk-host\/dist\/testing)/;
   for (const chunk of rendered) {
     for (const [id, module] of Object.entries(chunk.modules)) {
@@ -34,5 +40,9 @@ export function assertQualificationGraph(outputs) {
       );
     }
   }
-  assert.ok(rendered.some(chunk => Object.keys(chunk.modules).some(id => id.endsWith('/src/qualification/HostQualification.tsx'))));
+  assert.ok(
+    rendered.some(chunk =>
+      Object.keys(chunk.modules).some(id => id.endsWith(`/src/qualification/${account ? 'AccountQualification' : 'HostQualification'}.tsx`))
+    )
+  );
 }

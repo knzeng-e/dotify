@@ -22,6 +22,7 @@ test('rendered application, runtime and fake Host capabilities cannot enter the 
   ];
   assertQualificationGraph(graph('/web/src/features/productHost/productHostInfo.ts'));
   for (const id of [
+    '/web/src/qualification/account.ts',
     '/web/src/App.tsx',
     '/web/src/hooks/useWallet.ts',
     '/web/src/features/runtime/productCdmRuntimeAdapter.ts',
@@ -35,4 +36,31 @@ test('rendered application, runtime and fake Host capabilities cannot enter the 
   ])
     assert.throws(() => assertQualificationGraph(graph(id)), id);
   assertQualificationGraph(graph('/web/src/services/catalog.ts', 0));
+});
+
+test('account qualification has a distinct entry and never opens the listener/runtime/testing graph', () => {
+  const graph = id => [
+    {
+      output: [
+        {
+          type: 'chunk',
+          modules: {
+            '/web/src/qualification/AccountQualification.tsx': { renderedLength: 1 },
+            [id]: { renderedLength: 1 }
+          }
+        }
+      ]
+    }
+  ];
+  assertQualificationGraph(graph('/web/src/qualification/account.ts'), 'host-account-addresses-only');
+  assert.throws(() => assertQualificationGraph(graph('/web/src/qualification/account.ts')));
+  for (const id of [
+    '/web/src/App.tsx',
+    '/web/src/hooks/useWallet.ts',
+    '/web/src/features/runtime/runtimeWriterProvider.ts',
+    '/web/src/features/productHost/productHost.ts',
+    '/web/node_modules/@parity/product-sdk-host/dist/testing.js'
+  ])
+    assert.throws(() => assertQualificationGraph(graph(id), 'host-account-addresses-only'));
+  assert.throws(() => assertQualificationGraph(graph('/web/src/qualification/account.ts'), 'signing'));
 });
