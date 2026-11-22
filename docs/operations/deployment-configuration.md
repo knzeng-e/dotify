@@ -243,6 +243,15 @@ required audit fixes; this source change does not perform it.
 
 ### Native payment correction candidate (#484)
 
+The [bounded 0.1.90 publication plan](host-account-0.1.90-publication-plan-2026-11-22.md) proposes replacing only
+the native info-reader entry with the account qualification page. It requires
+new explicit approval for temporary idle custody maintenance, one fresh 14-day
+volume snapshot, five Bulletin operations and two DotNS batches. It is not
+executed: original custody configuration/stopped state and 0.1.89 are preserved.
+The carried conservation floor remains 2,378 operations / 604,674,406 bytes;
+the planned future floor is 2,383 / 605,097,938. No scheduler, service startup,
+new key/profile, artist runtime, Web deployment or CASH activation is admitted.
+
 The [separate account-address qualification profile](host-account-qualification-client.md)
 adds a clean `build:account-qualification` output for candidate 0.1.90, with
 fixed Product/index/prefix in its digest. It changes no hosted settings, endpoint,

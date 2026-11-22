@@ -1,5 +1,18 @@
 # Publication, listening reliability and CASH — execution order
 
+## Exact account-client delivery plan prepared, 2026-11-22
+
+Merged #506 / `dev` `ecba4ea0` is frozen as the [0.1.90 native plan](../../operations/host-account-0.1.90-publication-plan-2026-11-22.md).
+Offline CAR/byte checks, public Host/ownership/quota reads and local PAPI 3 call
+round-trips/fee estimates pass. Five Bulletin operations (423,532 bytes) and two
+zero-value native DotNS batches are planned; no blockchain write is performed.
+Automatic review blocks temporary remote custody changes until explicit approval
+of this new scope. The original configuration and stopped state are unchanged;
+actual custody readiness and publication remain pending. Do not repeat the
+0.1.89 phone test or request account action before identified delivery.
+#85 / #317 stay open; native mapping, signing, factory prerequisites, matched
+services/value/media acceptance and disabled CASH retain their separate gates.
+
 ## Account-address qualification candidate, 2026-11-22
 
 After merged #505, the [separate 0.1.90 source candidate](../../operations/host-account-qualification-client.md)

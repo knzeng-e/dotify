@@ -1,5 +1,9 @@
 # Deploy Dotify To Product DevNet
 
+The [0.1.90 account-client plan](host-account-0.1.90-publication-plan-2026-11-22.md) is prepared from merged
+`ecba4ea0`, but is not delivered. Its new custody maintenance and finite
+Bulletin/DotNS scope require explicit approval; 0.1.89 remains served.
+
 The [native Host-info 0.1.89 delivery](host-info-0.1.89-delivery-2026-11-21.md)
 replaces the development Product app entry with the isolated reader from source
 `5de0b31e`. The [actual iPhone report](../backlog/implementation/evidence/host-info-ios-0.1.89-2026-11-22.md)

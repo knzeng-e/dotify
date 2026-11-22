@@ -1,5 +1,12 @@
 # Public-account qualification client
 
+The [exact native publication plan](host-account-0.1.90-publication-plan-2026-11-22.md)
+now binds the 0.1.90 artifact from merged `ecba4ea0`, five Bulletin operations and
+two DotNS signatures. It is unexecuted: explicit authorization is needed for
+temporary custody maintenance and this new paid publication. Public/offline
+checks pass; actual custody-environment readiness remains pending after the
+automatic review blocked its command before startup. No new phone action yet.
+
 Use this isolated candidate for #85 after the accepted
 [iPhone Host-info observation](../backlog/implementation/evidence/host-info-ios-0.1.89-2026-11-22.md).
 It prepares Product **0.1.90**, purpose `host-account-addresses-only`, for
