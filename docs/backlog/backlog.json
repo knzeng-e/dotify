@@ -461,7 +461,7 @@
       "priority": "P1",
       "track": "Product SDK",
       "phase": "Now",
-      "note": "The 21 November read-only Host-info candidate uses SDK 0.45 in a separate 0.1.89 build after merged #503. Native publication and an actual system.info report precede Polkadot artist-account onboarding; screenshots are not wire acceptance. Matching fresh services/client and native/media acceptance remain pending under #317/#484. CASH stays disabled."
+      "note": "Native read-only Host-info 0.1.89 is published from merged/tested 5de0b31e (#504) within the explicitly approved five-operation Bulletin/two-signature DotNS scope. Independent records and byte/source checks pass; old custody stays stopped. The source-bound 22 November iPhone report passes system.info / Runtime 0.31.0 only. Next is separately identified Polkadot artist account mapping before onboarding. Matched services/native media remain under #317/#484; CASH disabled. Write authority consumed."
     },
     {
       "id": "catalog-read-model",

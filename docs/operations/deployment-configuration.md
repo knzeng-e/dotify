@@ -243,11 +243,13 @@ required audit fixes; this source change does not perform it.
 
 ### Native payment correction candidate (#484)
 
-The [Host-info qualification client](host-info-qualification-client.md) has a
-separate read-only entry/build/configuration. Preparing it does not change the
-normal Product executable, API settings or stopped custody state. Native
-publication, serving/source evidence and the actual phone report precede artist
-onboarding and the matched application switch.
+The [native Host-info 0.1.89 delivery](host-info-0.1.89-delivery-2026-11-21.md)
+publishes the separate reader from source `5de0b31e`, with actual Bulletin/DotNS
+readback. This changes the native development app entry only; ordinary Web and
+API settings stay unchanged, and the old custody publisher is restored/stopped.
+The [actual iPhone wire report](../backlog/implementation/evidence/host-info-ios-0.1.89-2026-11-22.md)
+passes the first Host-info/Runtime gate; account/onboarding and the matched
+application switch remain pending. The completed publication scope grants no future write.
 
 The [20 November core checkpoint](fresh-testnet-2026-11-20.md) records the new
 eleven-transaction testnet deployment, finalized bytecode/binding checks and ten

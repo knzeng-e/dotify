@@ -5,11 +5,18 @@ It isolates the installed SDK's public `system.info` reading from the listener
 app, catalogue, wallet, chain adapters and hosted services. It does not depend
 on the retired catalogue or the still-unprepared new publication API.
 
-This is **candidate source and packaging**, not a delivered Product or a physical
-Host result. The separate candidate configuration names Product
-`dotify-test01.dot`, app version **0.1.89**, and `dist-qualification`.
-The ordinary deployment configuration and delivered 0.1.88 app are unchanged.
-Do not infer an installed version from either checked-in configuration.
+The [21 November native delivery](host-info-0.1.89-delivery-2026-11-21.md) publishes
+Product `dotify-test01.dot`, app **0.1.89**, from merged source `5de0b31e`. Its
+actual DotNS records and Bulletin bytes are independently verified. It replaces
+the native development app entry with this reader; ordinary Web remains on its
+previous delivery. The [iPhone Host-info record](../backlog/implementation/evidence/host-info-ios-0.1.89-2026-11-22.md)
+passes the first method/Runtime gate; account, signing and media gates remain
+pending. Do not infer
+an installed version from a checked-in deployment configuration.
+
+The [exact publication plan](host-info-0.1.89-publication-plan-2026-11-21.md) records
+the finite approved scope, which is now consumed. Later publication must use
+its own current scope and checks.
 
 ## Build and identify the candidate
 
@@ -58,8 +65,8 @@ An identified native delivery record must precede the phone request. Use the
 [Product publication procedure](product-devnet-deployment.md) to review the exact
 clean artifact, CAR/block graph, finite storage/renewal scope, account nonces,
 DotNS owner and bounded writes. Carry at least the retention floor recorded in
-the [CDM checkpoint](fresh-cdm-2026-11-21.md); preserve the stopped custody writer
-and all protected history. Do not invoke the standard full-app build or reuse
+the [0.1.89 delivery](host-info-0.1.89-delivery-2026-11-21.md), plus any later
+obligations; preserve the stopped custody writer and all protected history. Do not invoke the standard full-app build or reuse
 an earlier publication journal to publish this separate candidate.
 
 The [reviewed iOS Open SPA implementation](https://github.com/paritytech/trinity-user-agents/blob/main/hosts/ios/polkadot-app/Modules/DebugSettings/DebugSettingsWireframe.swift)

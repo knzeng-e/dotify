@@ -1,8 +1,10 @@
 # Dotify documentation
 
-The [read-only Host-info candidate](operations/host-info-qualification-client.md)
-is the first #85 reading before new artist onboarding. Its separate 0.1.89
-configuration is prepared; native publication and a named-device report remain.
+The [native Host-info 0.1.89 delivery](operations/host-info-0.1.89-delivery-2026-11-21.md)
+is independently verified from source `5de0b31e`. The [iPhone report](backlog/implementation/evidence/host-info-ios-0.1.89-2026-11-22.md)
+accepts the first Host-info/Runtime gate. Next is the artist account mapping in
+a separately identified context; the reader has no account action and does not
+activate the new generation's services.
 
 The [21 November metadata/CDM checkpoint](operations/fresh-cdm-2026-11-21.md)
 records Bulletin metadata and exact version 4 for the ten-contract
