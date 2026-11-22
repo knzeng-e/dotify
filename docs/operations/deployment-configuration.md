@@ -251,8 +251,10 @@ pass, histories are preserved and original runtime configuration/stopped state
 are restored (with operational reconciliation metadata). Preserve the new
 conservation floor **2,383 operations / 605,097,938 bytes**. The operation's
 authority is consumed; no recurring renewal, old publisher startup, new key/profile,
-artist runtime, Web/API or CASH activation is included. The account report,
-native mapping and signer control are separate pending gates.
+artist runtime, Web/API or CASH activation is included. The [named iPhone report](../backlog/implementation/evidence/host-account-ios-0.1.90-2026-11-22.md)
+now accepts account sharing/choice, with a separate matching finalized native
+mapping read. Signer control and fresh-factory prerequisites remain before
+onboarding; no new mapping registration or funded action is requested here.
 
 The [account profile](host-account-qualification-client.md) uses a clean
 `build:account-qualification` output with fixed Product/index/prefix in its digest.

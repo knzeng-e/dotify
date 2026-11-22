@@ -51,6 +51,14 @@ or artist authority. This report authorizes no transaction or access grant.
 
 ## Account and listening acceptance
 
+The [22 November account report](../backlog/implementation/evidence/host-account-ios-0.1.90-2026-11-22.md)
+now accepts explicit sharing and the owner's intended Product account on the
+0.1.90 iPhone client. A separate finalized operator read matches the existing
+Revive mapping to the same key, so no new mapping registration is needed for
+that observation. This is not signer-control proof. Do not repeat the account
+check; provide an identified signing context and fresh-factory prerequisites
+before later message/transaction or artist-creation requests.
+
 After the wire record passes, use an identified qualification context with the
 intended product ID and derivation index. With explicit ordinary account consent,
 check that the connected Product account/public-key-to-H160 mapping is the

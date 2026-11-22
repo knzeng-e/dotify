@@ -1,6 +1,10 @@
 # Native account qualification 0.1.90 delivery — 22 November 2026
 
-**Published and independently verified; physical account acceptance is pending.**
+**Published and independently verified; account sharing and owner choice pass.**
+The [iPhone observation](../backlog/implementation/evidence/host-account-ios-0.1.90-2026-11-22.md) matches
+this exact artifact, and a separate finalized native read confirms the existing
+Revive mapping to the same key. Signer control, onboarding and media/payment
+acceptance remain pending.
 Product `dotify-test01.dot` now serves the isolated account qualification page
 from merged #506, source `ecba4ea0`. It replaces only the prior 0.1.89 native
 info reader. Ordinary Web/APIs and the retired stopped publisher are unchanged.
@@ -51,7 +55,12 @@ historical. All seven operations finalized once; no uncertain pending journal re
 The operation's authority is now consumed, with no recurring renewal allowance.
 This snapshot does not establish the separate PostgreSQL/independent-recovery gate.
 
-## Next iPhone observation
+## Recorded iPhone handoff
+
+The [owner's actual report](../backlog/implementation/evidence/host-account-ios-0.1.90-2026-11-22.md) now
+passes this account-choice gate. The original steps below explain the recorded
+handoff; no repetition is requested. The client report keeps chain verification
+false, since only the later operator read queried the native chain.
 
 In Polkadot Dev, reopen Dotify (or Debug → Open SPA → `dotify-test01.dot`).
 Confirm **Account qualification** and **Source `ecba4ea0` · clean build**.

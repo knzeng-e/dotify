@@ -5,8 +5,10 @@ independently verified from source `ecba4ea0`. Its exact finite approval is
 consumed; custody is restored/stopped and protected history is preserved. The
 [client reference](operations/host-account-qualification-client.md) explains the
 public-address snapshot and [device procedure](how-to/qualify-product-host-031.md).
-The next gate is the owner's actual Product account report; native mapping,
-signing, artist onboarding and matched services remain separate.
+The [owner's account report](backlog/implementation/evidence/host-account-ios-0.1.90-2026-11-22.md) now
+accepts sharing/choice, and a separate finalized native read matches the existing
+Revive mapping. Next are signer control and fresh-factory prerequisites; artist
+onboarding and matched services remain separate.
 
 The earlier [0.1.89 iPhone report](backlog/implementation/evidence/host-info-ios-0.1.89-2026-11-22.md)
 accepts only Host info / Runtime 0.31.0. The prior

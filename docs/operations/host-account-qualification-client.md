@@ -5,8 +5,10 @@ purpose `host-account-addresses-only`, from merged source `ecba4ea0` at
 `dotify-test01.dot`. It replaces the earlier native info-only page. All five
 Bulletin operations and both native DotNS batches finalized within the new
 approved scope; independent bytes/records/fees and restored/stopped custody pass.
-That operation's authority is consumed. Physical account, native mapping and
-signer-control acceptance remain pending.
+That operation's authority is consumed. The [named iPhone report](../backlog/implementation/evidence/host-account-ios-0.1.90-2026-11-22.md)
+now accepts account sharing/owner choice and consistent local addresses. A
+separate finalized native read matches the existing Revive mapping; signer
+control and subsequent acceptance remain pending.
 
 Use this client after the accepted
 [iPhone Host-info observation](../backlog/implementation/evidence/host-info-ios-0.1.89-2026-11-22.md).

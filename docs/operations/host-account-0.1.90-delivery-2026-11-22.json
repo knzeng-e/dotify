@@ -3,7 +3,7 @@
   "date": "2026-11-22",
   "status": "published-and-independently-verified",
   "physicalHostAccepted": false,
-  "physicalHostAcceptanceScope": "Account qualification not yet observed on device; prior 0.1.89 system.info acceptance remains separate.",
+  "physicalHostAcceptanceScope": "Account sharing/owner choice and separate finalized native mapping now pass; signing/payment/media acceptance remains pending.",
   "source": "ecba4ea0465fba154de65a7db7232be62f854acb",
   "appVersion": [
     0,
@@ -345,5 +345,20 @@
     "newKeyProfileActivated": false,
     "cashEnabled": false
   },
-  "completedAt": "2026-11-22T15:51:51.739Z"
+  "completedAt": "2026-11-22T15:51:51.739Z",
+  "accountDeviceObservation": {
+    "accepted": true,
+    "scope": "explicit-account-sharing-owner-choice-and-address-consistency",
+    "evidence": "../backlog/implementation/evidence/host-account-ios-0.1.90-2026-11-22.json",
+    "requestedAt": "2026-11-22T20:22:11.167Z",
+    "ownerConfirmed": true
+  },
+  "nativeAccountMappingObservation": {
+    "present": true,
+    "matches": true,
+    "block": 16093142,
+    "blockHash": "0x6e3a87cb13cf3302bad1ae6fa54fb271aa666f3ad22638cb917994c1c43039c5",
+    "readOnly": true,
+    "evidence": "../backlog/implementation/evidence/host-account-ios-0.1.90-2026-11-22.json"
+  }
 }
