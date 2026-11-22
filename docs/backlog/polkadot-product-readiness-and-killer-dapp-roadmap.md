@@ -1,5 +1,58 @@
 # Polkadot product readiness and killer dapp roadmap
 
+## Artist account choice and native mapping accepted, 2026-11-22
+
+The [source-bound 0.1.90 iPhone report](implementation/evidence/host-account-ios-0.1.90-2026-11-22.md) matches delivered
+`ecba4ea0`, and the owner confirms the intended Product account (index 0).
+Local SS58/H160 derivations match its key. A separate read at finalized native
+block 16,093,142 finds an existing `Revive.OriginalAccount` mapping to that same
+key. No new registration, signer or transaction was used. The raw report is
+retained privately; public evidence binds its digest/account fingerprint.
+Next are an identified signer-control context and native-aware fresh-factory
+attestation/pending-runtime prerequisites before artist approvals. No repeat
+account test or funded action is requested. #85 / #317 and matching service,
+value/media gates remain open; CASH stays disabled.
+
+## Native account client delivered, 2026-11-22
+
+The [verified 0.1.90 delivery](../operations/host-account-0.1.90-delivery-2026-11-22.md) serves source `ecba4ea0`.
+Five Bulletin operations / 423,532 bytes and two zero-value native DotNS batches
+finalized within the explicit new approval. Exact-source CI, actual custody
+unsigned checks, independent bytes/records/fee readback and restored/stopped
+custody pass. Fly's earlier idle update applied late; the snapshot was reused
+and the prior blocker below is historical. The authority is now consumed.
+Preserve the new future floor: 2,383 operations / 605,097,938 bytes. Next is the
+owner's physical Product-account report. Native mapping, signer control,
+fresh-factory/onboarding, services/value/media remain separate; #85 / #317 stay
+open and CASH stays disabled. No new artist runtime or musical write is included.
+
+## Approved account-client operation blocked by Fly, 2026-11-22
+
+The owner approved plan #507 after green exact-source `ecba4ea0` CI. Its
+[execution record](../operations/host-account-0.1.90-execution-blocker-2026-11-22.md) shows one completed 14-day snapshot,
+then repeated Fly HTTP 408 on stopped-machine idle updates. Metadata recovery
+returned the original runtime configuration/stopped state. No lease remains;
+no private signer was loaded, permit/journal created or blockchain write sent.
+The native entry is still 0.1.89; no phone account test is requested yet.
+Resolve the in-place Fly update failure, reuse the snapshot and repeat fresh
+checks before the remaining approved finite publication. The snapshot allowance
+is used; previous 0.1.89 authority stays consumed. #85 / #317, fresh-factory/native
+mapping/signing/services/value/media gates remain open; CASH stays disabled.
+Earlier same-day preparation entries retain their historical scope.
+
+## Exact account-client delivery plan prepared, 2026-11-22
+
+Merged #506 / `dev` `ecba4ea0` is frozen as the [0.1.90 native plan](../operations/host-account-0.1.90-publication-plan-2026-11-22.md).
+Offline CAR/byte checks, public Host/ownership/quota reads and local PAPI 3 call
+round-trips/fee estimates pass. Five Bulletin operations (423,532 bytes) and two
+zero-value native DotNS batches are planned; no blockchain write is performed.
+Automatic review blocks temporary remote custody changes until explicit approval
+of this new scope. The original configuration and stopped state are unchanged;
+actual custody readiness and publication remain pending. Do not repeat the
+0.1.89 phone test or request account action before identified delivery.
+#85 / #317 stay open; native mapping, signing, factory prerequisites, matched
+services/value/media acceptance and disabled CASH retain their separate gates.
+
 ## Account-address qualification candidate, 2026-11-22
 
 After merged #505, the [separate 0.1.90 source candidate](../operations/host-account-qualification-client.md)

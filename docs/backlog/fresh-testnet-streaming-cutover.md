@@ -1,5 +1,18 @@
 # Clean testnet catalog and streaming cutover
 
+## Artist account choice and native mapping accepted, 2026-11-22
+
+The [source-bound 0.1.90 iPhone report](implementation/evidence/host-account-ios-0.1.90-2026-11-22.md) matches delivered
+`ecba4ea0`, and the owner confirms the intended Product account (index 0).
+Local SS58/H160 derivations match its key. A separate read at finalized native
+block 16,093,142 finds an existing `Revive.OriginalAccount` mapping to that same
+key. No new registration, signer or transaction was used. The raw report is
+retained privately; public evidence binds its digest/account fingerprint.
+Next are an identified signer-control context and native-aware fresh-factory
+attestation/pending-runtime prerequisites before artist approvals. No repeat
+account test or funded action is requested. #85 / #317 and matching service,
+value/media gates remain open; CASH stays disabled.
+
 ## First iPhone Host-info gate accepted, 2026-11-22
 
 The [source-bound 0.1.89 report](implementation/evidence/host-info-ios-0.1.89-2026-11-22.md) matches delivered

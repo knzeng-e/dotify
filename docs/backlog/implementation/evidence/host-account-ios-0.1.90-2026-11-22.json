@@ -1,0 +1,78 @@
+{
+  "schema": "dotify.account-qualification-device-evidence.v1",
+  "date": "2026-11-22",
+  "status": "account-choice-and-address-mapping-accepted",
+  "purpose": "host-account-addresses-only",
+  "build": {
+    "source": "ecba4ea0465fba154de65a7db7232be62f854acb",
+    "clean": true,
+    "configDigest": "77a32db5e6922eee4bcad23a618d91b2abf6cb5a78fc7df68c9d0bc8d2950705",
+    "productId": "dotify-test01.dot",
+    "appVersion": "0.1.90",
+    "sdk": {
+      "product": "0.45.0",
+      "host": "0.34.0",
+      "truapi": "0.31.0"
+    }
+  },
+  "requestedAt": "2026-11-22T20:22:11.167Z",
+  "accountRequestedAt": "2026-11-22T20:22:14.115Z",
+  "hostSoftware": {
+    "status": "reported",
+    "platform": "Ios",
+    "name": "Polkadot App",
+    "version": "0.10.0 (23)",
+    "runtimeVersion": "0.31.0"
+  },
+  "accountContext": {
+    "productId": "dotify-test01.dot",
+    "derivationIndex": 0,
+    "ss58Prefix": 42
+  },
+  "accountSummary": {
+    "status": "reported",
+    "ownerConfirmed": true,
+    "publicKeySha256": "f033680e6ef4b801d178e6c3f3a5e0f0edc95d76dc2edf12d1220281af754492",
+    "localSs58Matches": true,
+    "localH160Matches": true,
+    "addressMappingReported": "local-sdk-derivation-only"
+  },
+  "deviceDeclaredBoundary": {
+    "accountRequested": true,
+    "signingRequested": false,
+    "chainQueried": false,
+    "applicationApiContacted": false,
+    "chainMappingVerified": false,
+    "signerControlVerified": false,
+    "artistRuntimeCreated": false
+  },
+  "reportCanonicalSha256": "4b0cdb12281b49e56e5c0c4886eff4cef3a46456e9b9c9e9ffe0110fac1237c9",
+  "fullReportRetainedPrivately": true,
+  "nativeReadback": {
+    "observedAt": "2026-11-22T20:28:11.641Z",
+    "genesis": "0xd6eec26135305a8ad257a20d003357284c8aa03d0bdb2b357ab0a22371e11ef2",
+    "block": 16093142,
+    "blockHash": "0x6e3a87cb13cf3302bad1ae6fa54fb271aa666f3ad22638cb917994c1c43039c5",
+    "reviveMappingPresent": true,
+    "reviveMappingMatches": true,
+    "networkWrites": 0,
+    "signerUsed": false
+  },
+  "acceptedGates": [
+    "named-client Host info and Runtime",
+    "explicit Product account sharing",
+    "local SS58 and H160 consistency",
+    "owner account choice",
+    "finalized Revive OriginalAccount matches public key"
+  ],
+  "remainingGates": {
+    "signerControlVerified": false,
+    "messageSignatureVerified": false,
+    "transactionSignatureVerified": false,
+    "freshFactoryPrerequisitesVerified": false,
+    "artistRuntimeCreated": false,
+    "paymentSettlementAccepted": false,
+    "matchedListeningAccepted": false,
+    "cashEnabled": false
+  }
+}

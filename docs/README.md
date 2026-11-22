@@ -1,15 +1,19 @@
 # Dotify documentation
 
-The [account qualification candidate](operations/host-account-qualification-client.md)
-prepares explicit Product account consent and public Substrate/EVM addresses.
-It is not deployed; signing, native chain mapping and artist onboarding remain
-separate from the accepted 0.1.89 Host-info record.
+The [native account qualification 0.1.90 delivery](operations/host-account-0.1.90-delivery-2026-11-22.md) is
+independently verified from source `ecba4ea0`. Its exact finite approval is
+consumed; custody is restored/stopped and protected history is preserved. The
+[client reference](operations/host-account-qualification-client.md) explains the
+public-address snapshot and [device procedure](how-to/qualify-product-host-031.md).
+The [owner's account report](backlog/implementation/evidence/host-account-ios-0.1.90-2026-11-22.md) now
+accepts sharing/choice, and a separate finalized native read matches the existing
+Revive mapping. Next are signer control and fresh-factory prerequisites; artist
+onboarding and matched services remain separate.
 
-The [native Host-info 0.1.89 delivery](operations/host-info-0.1.89-delivery-2026-11-21.md)
-is independently verified from source `5de0b31e`. The [iPhone report](backlog/implementation/evidence/host-info-ios-0.1.89-2026-11-22.md)
-accepts the first Host-info/Runtime gate. Next is the artist account mapping in
-a separately identified context; the reader has no account action and does not
-activate the new generation's services.
+The earlier [0.1.89 iPhone report](backlog/implementation/evidence/host-info-ios-0.1.89-2026-11-22.md)
+accepts only Host info / Runtime 0.31.0. The prior
+[provider blocker](operations/host-account-0.1.90-execution-blocker-2026-11-22.md)
+was resolved through the late idle update; its support draft is historical.
 
 The [21 November metadata/CDM checkpoint](operations/fresh-cdm-2026-11-21.md)
 records Bulletin metadata and exact version 4 for the ten-contract
