@@ -1,11 +1,12 @@
 # Public-account qualification client
 
-The [exact native publication plan](host-account-0.1.90-publication-plan-2026-11-22.md)
-now binds the 0.1.90 artifact from merged `ecba4ea0`, five Bulletin operations and
-two DotNS signatures. It is unexecuted: explicit authorization is needed for
-temporary custody maintenance and this new paid publication. Public/offline
-checks pass; actual custody-environment readiness remains pending after the
-automatic review blocked its command before startup. No new phone action yet.
+The [exact native plan](host-account-0.1.90-publication-plan-2026-11-22.md) is now
+explicitly approved, but [Fly's idle-update HTTP 408 blocks execution](host-account-0.1.90-execution-blocker-2026-11-22.md)
+before signing. One fresh 14-day snapshot completed; the machine is stopped with
+its original runtime configuration. No account page is delivered, no private
+signer loaded and no blockchain write performed. Reuse that snapshot on recovery;
+its allowance is already used. The earlier approval rejection is resolved.
+No new phone action yet.
 
 Use this isolated candidate for #85 after the accepted
 [iPhone Host-info observation](../backlog/implementation/evidence/host-info-ios-0.1.89-2026-11-22.md).

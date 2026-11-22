@@ -1,0 +1,114 @@
+{
+  "schema": "dotify.host-qualification-execution-blocker.v1",
+  "observedAt": "2026-11-22T15:40:28.416085+00:00",
+  "status": "authorized-blocked-before-signing",
+  "source": "ecba4ea0465fba154de65a7db7232be62f854acb",
+  "planCommit": "4903f9b5dc8d3aafa9d5f2777799dcb1ff31c370",
+  "plan": "host-account-0.1.90-publication-plan-2026-11-22.json",
+  "sourceQualityRun": "https://github.com/knzeng-e/dotify/actions/runs/45035106617",
+  "sourceQuality": "success",
+  "ownerAuthorizationRecordedAt": "2026-11-22T15:16:10.589162+00:00",
+  "snapshot": {
+    "id": "vs_kAge1Jea58GCKoAalV13",
+    "status": "created",
+    "created_at": "2026-11-22T15:21:50Z",
+    "retention_days": 14
+  },
+  "snapshotAllowanceUsed": 1,
+  "blocker": {
+    "provider": "Fly.io",
+    "action": "update stopped custody machine to idle command",
+    "httpStatus": 408,
+    "initialRequestId": "01M81XNDBMGP47FWHGR5TRRS1E-cdg",
+    "initialTraceId": "9dd3e8f2df78c20654f086952146bc4e",
+    "laterErrors": [
+      {
+        "observedAt": "2026-11-22T15:33:59.818931+00:00",
+        "command": "Fly machine update",
+        "httpStatus": 408,
+        "requestIds": [
+          "01M81Y73GNG6W1KX0ED74TSJQY-cdg"
+        ],
+        "traceIds": [
+          "04f634d876e31dd3bd5715a251fa15da"
+        ]
+      },
+      {
+        "observedAt": "2026-11-22T15:35:59.670655+00:00",
+        "command": "Fly machine update",
+        "httpStatus": 408,
+        "requestIds": [
+          "01M81YARKK3ZAF5Q2748V9DM9T-cdg"
+        ],
+        "traceIds": [
+          "a9bede7210288803c267b79208003aa6"
+        ]
+      }
+    ],
+    "sameMachineMetadataReconciliationSucceeded": true,
+    "idleCommandUpdateSucceeded": false
+  },
+  "custody": {
+    "app": "dotify-custody",
+    "machine": "e82d13d0c61238",
+    "volume": "vol_491jo391o8leqe5r",
+    "state": "stopped",
+    "originalRuntimeConfigMatches": true,
+    "comparedConfigSections": [
+      "env",
+      "init",
+      "guest",
+      "mounts",
+      "checks",
+      "image",
+      "restart",
+      "dns"
+    ],
+    "platformMetadataChanged": true,
+    "platformMetadataChange": "temporary reconciliation label; no runtime configuration change",
+    "activeLeasePresent": false,
+    "originalProgramStarted": false,
+    "unsignedReadinessPerformed": false,
+    "protectedFilesComparedThisAttempt": false,
+    "privateSignerLoaded": false,
+    "seedExported": false
+  },
+  "blockchain": {
+    "bulletin": {
+      "head": 1759824,
+      "hash": "0xb83ad4bc94d41523952ae2d76ef9b0fe2aee62f368b62d8e0e531a832880bc92",
+      "authorization": {
+        "present": true,
+        "valid": true,
+        "expiresAt": 1831359,
+        "remainingTransactions": 4873,
+        "remainingBytes": "877200584",
+        "remainingRenewBytes": "865402089"
+      },
+      "nonce": 2160
+    },
+    "assetHubNonce": 504,
+    "nativeNonceReadAt": "2026-11-22T15:38:17.873Z",
+    "oldAppVersion": [
+      0,
+      1,
+      89
+    ],
+    "oldStorageCid": "bafybeib6pnxpldxmxn5efu5duzd2gv2iyoim3bnuvosehm3tpxqn2satzi",
+    "storedNewBlocks": 0,
+    "dotnsSignatures": 0,
+    "executionPermitCreated": false,
+    "publicationJournalCreated": false,
+    "newCandidatePublished": false
+  },
+  "remaining": {
+    "scopeConsumed": false,
+    "newSnapshotAllowed": false,
+    "mustReuseSnapshotId": "vs_kAge1Jea58GCKoAalV13",
+    "mustRepeatFreshChecks": true,
+    "mustNotStartOldPublisher": true,
+    "mustNotExportKeys": true,
+    "artistRuntimeCreated": false,
+    "cashEnabled": false
+  }
+}

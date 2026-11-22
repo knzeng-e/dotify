@@ -1,8 +1,10 @@
 # Deploy Dotify To Product DevNet
 
 The [0.1.90 account-client plan](host-account-0.1.90-publication-plan-2026-11-22.md) is prepared from merged
-`ecba4ea0`, but is not delivered. Its new custody maintenance and finite
-Bulletin/DotNS scope require explicit approval; 0.1.89 remains served.
+`ecba4ea0`, but is not delivered. Its new maintenance/publication scope is
+approved; [Fly HTTP 408 blocks the idle update](host-account-0.1.90-execution-blocker-2026-11-22.md) before any
+signing. One snapshot completed, custody is stopped with original runtime
+configuration, and 0.1.89 remains served. Do not create a second snapshot on retry.
 
 The [native Host-info 0.1.89 delivery](host-info-0.1.89-delivery-2026-11-21.md)
 replaces the development Product app entry with the isolated reader from source

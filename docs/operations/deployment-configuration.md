@@ -244,10 +244,13 @@ required audit fixes; this source change does not perform it.
 ### Native payment correction candidate (#484)
 
 The [bounded 0.1.90 publication plan](host-account-0.1.90-publication-plan-2026-11-22.md) proposes replacing only
-the native info-reader entry with the account qualification page. It requires
-new explicit approval for temporary idle custody maintenance, one fresh 14-day
-volume snapshot, five Bulletin operations and two DotNS batches. It is not
-executed: original custody configuration/stopped state and 0.1.89 are preserved.
+the native info-reader entry with the account qualification page. The owner
+approved temporary idle custody maintenance, one 14-day snapshot, five Bulletin
+operations and two DotNS batches. The [attempt](host-account-0.1.90-execution-blocker-2026-11-22.md) completed that
+snapshot, then Fly HTTP 408 blocked idle updates before signing. Custody is
+stopped with the original runtime configuration and a reconciliation metadata
+label; 0.1.89 is preserved. Reuse the snapshot on recovery; no further creation
+is authorized within its already-used allowance.
 The carried conservation floor remains 2,378 operations / 604,674,406 bytes;
 the planned future floor is 2,383 / 605,097,938. No scheduler, service startup,
 new key/profile, artist runtime, Web deployment or CASH activation is admitted.

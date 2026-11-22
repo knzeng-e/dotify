@@ -2,8 +2,9 @@
 
 The [bounded 0.1.90 delivery plan](../operations/host-account-0.1.90-publication-plan-2026-11-22.md) is prepared
 from merged #506. It is not delivered; request the next account report only after
-independent native publication/readback. Its custody/publication scope needs
-new explicit approval, separate from the consumed 0.1.89 operation.
+independent native publication/readback. Its custody/publication scope is now
+explicitly approved, but [Fly blocks idle startup before signing](../operations/host-account-0.1.90-execution-blocker-2026-11-22.md).
+The snapshot is complete and must be reused; native 0.1.89 remains served.
 
 The [separate account-address candidate](../operations/host-account-qualification-client.md)
 prepares the next step after merged #505. Its 0.1.90 source is not yet delivered;

@@ -2,8 +2,10 @@
 
 The [native account-client publication plan](operations/host-account-0.1.90-publication-plan-2026-11-22.md)
 identifies the frozen 0.1.90 artifact and finite maintenance/storage/signature
-scope. It awaits explicit approval; custody remains stopped and 0.1.89 stays
-served. No physical account/signing result or fresh runtime is claimed.
+scope. The owner approved it; [Fly machine-update HTTP 408](operations/host-account-0.1.90-execution-blocker-2026-11-22.md)
+blocks it before signing. The snapshot completed once, custody is stopped with
+original runtime configuration, and 0.1.89 stays served. No account/signing result
+or fresh artist runtime is claimed.
 
 The [account qualification candidate](operations/host-account-qualification-client.md)
 prepares explicit Product account consent and public Substrate/EVM addresses.

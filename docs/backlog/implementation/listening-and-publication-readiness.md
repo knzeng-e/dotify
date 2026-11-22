@@ -1,5 +1,19 @@
 # Publication, listening reliability and CASH — execution order
 
+## Approved account-client operation blocked by Fly, 2026-11-22
+
+The owner approved plan #507 after green exact-source `ecba4ea0` CI. Its
+[execution record](../../operations/host-account-0.1.90-execution-blocker-2026-11-22.md) shows one completed 14-day snapshot,
+then repeated Fly HTTP 408 on stopped-machine idle updates. Metadata recovery
+returned the original runtime configuration/stopped state. No lease remains;
+no private signer was loaded, permit/journal created or blockchain write sent.
+The native entry is still 0.1.89; no phone account test is requested yet.
+Resolve the in-place Fly update failure, reuse the snapshot and repeat fresh
+checks before the remaining approved finite publication. The snapshot allowance
+is used; previous 0.1.89 authority stays consumed. #85 / #317, fresh-factory/native
+mapping/signing/services/value/media gates remain open; CASH stays disabled.
+Earlier same-day preparation entries retain their historical scope.
+
 ## Exact account-client delivery plan prepared, 2026-11-22
 
 Merged #506 / `dev` `ecba4ea0` is frozen as the [0.1.90 native plan](../../operations/host-account-0.1.90-publication-plan-2026-11-22.md).

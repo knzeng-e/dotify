@@ -1,7 +1,7 @@
 {
   "schema": "dotify.host-qualification-approval-plan.v1",
   "date": "2026-11-22",
-  "status": "awaiting-explicit-authorization",
+  "status": "authorized-blocked-before-signing",
   "source": "ecba4ea0465fba154de65a7db7232be62f854acb",
   "qualityRun": "https://github.com/knzeng-e/dotify/actions/runs/45035106617",
   "sourceTreeMatchesTestedPrHead": "f196cd73bf90d6e2b2ccae1e822af35b81893699",
@@ -287,13 +287,16 @@
       "independent finalized bytes/records/fee verification",
       "restore original machine configuration and stop it"
     ],
-    "oldPublisherMayStart": false
+    "oldPublisherMayStart": false,
+    "completedSnapshotId": "vs_kAge1Jea58GCKoAalV13",
+    "snapshotAllowanceUsed": 1
   },
   "approvalBlock": {
     "action": "temporary custody configuration/start for unsigned readiness",
     "rejectedBeforeProcessStart": true,
     "reason": "Explicit 0.1.90 authorization is required for remote custody changes because disruption or incorrect restoration is possible.",
-    "resolutionRequired": "Explicit approval of this new bounded maintenance/publication scope; 0.1.89 authority is consumed."
+    "resolutionRequired": "Explicit approval of this new bounded maintenance/publication scope; 0.1.89 authority is consumed.",
+    "resolvedBy": "Explicit owner approval of plan 507 before snapshot and maintenance"
   },
   "activation": {
     "nativeCandidatePublished": false,
@@ -304,9 +307,13 @@
     "cashEnabled": false
   },
   "authorization": {
-    "approved": false,
+    "approved": true,
     "prior0189ScopeConsumed": true,
     "newMusicalAllowance": 0,
-    "additionalWriteAuthority": false
-  }
+    "additionalWriteAuthority": false,
+    "recordedAt": "2026-11-22T15:16:10.589162+00:00",
+    "scopeConsumed": false
+  },
+  "preparedStatus": "awaiting-explicit-authorization",
+  "executionAttempt": "host-account-0.1.90-execution-blocker-2026-11-22.json"
 }
