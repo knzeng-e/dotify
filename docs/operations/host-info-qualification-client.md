@@ -18,6 +18,10 @@ The [exact publication plan](host-info-0.1.89-publication-plan-2026-11-21.md) re
 the finite approved scope, which is now consumed. Later publication must use
 its own current scope and checks.
 
+The [separate account-address candidate](host-account-qualification-client.md)
+prepares the subsequent explicit account check without changing this delivered
+info-only reader or claiming signer/chain authority.
+
 ## Build and identify the candidate
 
 From a clean, reviewed checkout:

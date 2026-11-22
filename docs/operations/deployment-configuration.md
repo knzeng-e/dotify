@@ -243,6 +243,12 @@ required audit fixes; this source change does not perform it.
 
 ### Native payment correction candidate (#484)
 
+The [separate account-address qualification profile](host-account-qualification-client.md)
+adds a clean `build:account-qualification` output for candidate 0.1.90, with
+fixed Product/index/prefix in its digest. It changes no hosted settings, endpoint,
+key profile or delivered client. Its public addresses are locally derived;
+native chain mapping and signer control remain later checks.
+
 The [native Host-info 0.1.89 delivery](host-info-0.1.89-delivery-2026-11-21.md)
 publishes the separate reader from source `5de0b31e`, with actual Bulletin/DotNS
 readback. This changes the native development app entry only; ordinary Web and

@@ -26,3 +26,6 @@ contracts/**/artifacts/
 contracts/**/cache/
 contracts/**/coverage/
 contracts/**/typechain-types/
+
+# Isolated public-account qualification artifact.
+web/dist-account-qualification/

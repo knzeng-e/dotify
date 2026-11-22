@@ -371,10 +371,11 @@ jobs:
           CATALOG_API_URL: http://127.0.0.1:9
         run: npm run build:product-devnet
 
-      - name: Verify read-only qualification build
+      - name: Verify isolated qualification builds
         run: |
           npm run test:qualification
           npm run build:qualification
+          npm run build:account-qualification
 
       - name: Build native Product support profile
         env:

@@ -1,5 +1,9 @@
 # Qualify the Runtime 0.31 iPhone candidate
 
+The [separate account-address candidate](../operations/host-account-qualification-client.md)
+prepares the next step after merged #505. Its 0.1.90 source is not yet delivered;
+the existing 0.1.89 page has no account action. No repeat info-only test is needed.
+
 Use this procedure for #85 / #483. The owner's [20 November screenshots](../backlog/implementation/evidence/product-host-ios-031-2026-11-20.md)
 show Polkadot App 0.10.0 (23) with Runtime 0.31.0 configured. They make a target
 available for testing. The [22 November support report](../backlog/implementation/evidence/host-info-ios-0.1.89-2026-11-22.md)
