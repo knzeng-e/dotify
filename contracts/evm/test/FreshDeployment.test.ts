@@ -3,7 +3,14 @@ import hre from 'hardhat';
 import { loadFixture } from '@nomicfoundation/hardhat-network-helpers';
 import { getAddress, toFunctionSelector, zeroAddress } from 'viem';
 import { deploySmartRuntimeSystem } from '../scripts/deploySystem';
-import { FRESH_CORE_TRANSACTION_COUNT, freshArtifactInventory, freshCdmPackages, freshDeploymentAccount, inspectFreshSystem } from '../scripts/freshDeployment';
+import {
+  FRESH_CORE_TRANSACTION_COUNT,
+  freshArtifactInventory,
+  freshCdmPackages,
+  freshDeploymentAccount,
+  inspectFreshSystem,
+  reviewedFactoryCodeHash
+} from '../scripts/freshDeployment';
 
 async function system() {
   const deployments = await deploySmartRuntimeSystem(hre, 10, {});
@@ -33,6 +40,14 @@ describe('Fresh generation preparation', () => {
     const inventory = await freshArtifactInventory(hre);
     expect(inventory).to.have.length(10);
     expect(FRESH_CORE_TRANSACTION_COUNT).to.equal(11);
+  });
+
+  it('binds the native empty-storage check to factory code, not just its registry getter', async () => {
+    const { deployments, client } = await loadFixture(system);
+    const block = await client.getBlockNumber();
+    expect(await reviewedFactoryCodeHash(hre, client, deployments.factory, block)).to.match(/^0x[0-9a-f]{64}$/);
+    await rejects(reviewedFactoryCodeHash(hre, client, deployments.directory, block), 'does not match the reviewed source');
+    await rejects(reviewedFactoryCodeHash(hre, client, zeroAddress, block), 'does not match the reviewed source');
   });
 
   it('installs metadata before transferring administration and publishing the artist', async () => {

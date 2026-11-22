@@ -106,7 +106,7 @@ describe('Registry remediation Hardhat tasks', () => {
     }
 
     expect(taskExitCode).not.to.equal(2);
-    const reportText = output.find(value => value.includes('"schema": "dotify.registry-audit.v1"'));
+    const reportText = output.find(value => value.includes('"schema": "dotify.registry-audit.v2"'));
     expect(reportText).to.be.a('string');
     const report = JSON.parse(reportText!) as {
       blockHash: string;
@@ -135,6 +135,44 @@ describe('Registry remediation Hardhat tasks', () => {
     expect(report.runtimes[0].selectorRoutes).to.have.lengthOf(11);
   });
 
+  it('fails closed on Revive without native evidence even when EVM event discovery would pass', async () => {
+    const { directory, factory, publicClient } = await deployTaskFixture();
+    const output: string[] = [];
+    const previousLog = console.log,
+      previousError = console.error,
+      previousExit = process.exitCode;
+    const getPublicClient = hre.viem.getPublicClient;
+    const previousRpc = process.env.DOTIFY_NATIVE_RPC;
+    const client = {
+      ...publicClient,
+      getChainId: async () => 420420417,
+      getLogs: async () => {
+        throw new Error('EVM logs must not be consulted');
+      }
+    };
+    hre.viem.getPublicClient = (async () => client) as typeof hre.viem.getPublicClient;
+    delete process.env.DOTIFY_NATIVE_RPC;
+    console.log = (...values: unknown[]) => output.push(values.map(String).join(' '));
+    console.error = () => undefined;
+    process.exitCode = undefined;
+    try {
+      await hre.run('registry:audit', { factory: factory.address, directory: directory.address });
+      const report = JSON.parse(output.find(value => value.includes('"schema": "dotify.registry-audit.v2"'))!);
+      expect(report.configuredFacetMatchesSource).to.equal(true);
+      expect(report.pendingDiscovery.status).to.equal('unavailable');
+      expect(report.pendingDiscovery.detail).to.include('DOTIFY_NATIVE_RPC');
+      expect(report.pendingRuntimes).to.deep.equal([]);
+      expect(process.exitCode).to.equal(2);
+    } finally {
+      hre.viem.getPublicClient = getPublicClient;
+      console.log = previousLog;
+      console.error = previousError;
+      process.exitCode = previousExit;
+      if (previousRpc === undefined) delete process.env.DOTIFY_NATIVE_RPC;
+      else process.env.DOTIFY_NATIVE_RPC = previousRpc;
+    }
+  });
+
   it('audits delegated administration against the stable artist instead of treating the new administrator as a foreign author', async () => {
     const { owner, other, publicClient, factory, directory, runtime } = await deployTaskFixture();
     const ownership = await hre.viem.getContractAt('OwnershipPallet', runtime, { client: { wallet: owner } });
@@ -153,7 +191,7 @@ describe('Registry remediation Hardhat tasks', () => {
       console.log = previous;
       process.exitCode = previousExit;
     }
-    const report = JSON.parse(output.find(line => line.includes('"schema": "dotify.registry-audit.v1"'))!);
+    const report = JSON.parse(output.find(line => line.includes('"schema": "dotify.registry-audit.v2"'))!);
     expect(report.runtimes[0].ownerMatchesDirectoryArtist).to.equal(false);
     expect(report.runtimes[0].artistMatchesDirectoryArtist).to.equal(true);
     expect(report.runtimes[0].foreignTrackHashes).to.deep.equal([]);

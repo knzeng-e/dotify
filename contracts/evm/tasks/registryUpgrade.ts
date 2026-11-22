@@ -33,6 +33,9 @@ import {
   type RegistrySelector
 } from '../scripts/registryUpgrade';
 
+import { reviewedFactoryCodeHash } from '../scripts/freshDeployment';
+import { readNativeEmptyFactoryProof, type NativeEmptyFactoryProof } from '../scripts/nativeFactoryAudit';
+
 const PENDING_RUNTIME_PAGE_SIZE = 25_000n;
 const HARDHAT_FIRST_ACCOUNT_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80' as const;
 
@@ -59,7 +62,10 @@ type RuntimeAudit = {
 
 type PendingRuntime = { artist: Address; runtime: Address; stage: number };
 
-type PendingDiscovery = { status: 'complete'; deploymentBlock: string; runtimes: PendingRuntime[] } | { status: 'unavailable'; detail: string; runtimes: [] };
+type PendingDiscovery =
+  | { status: 'complete'; method: 'evm-factory-events'; deploymentBlock: string; runtimes: PendingRuntime[] }
+  | { status: 'complete'; method: 'revive-empty-storage'; nativeProof: NativeEmptyFactoryProof; runtimes: [] }
+  | { status: 'unavailable'; detail: string; runtimes: [] };
 
 type CatalogueSnapshot = {
   owner: Address;
@@ -127,7 +133,8 @@ const bootstrapStartedEvent = parseAbiItem('event ArtistRuntimeBootstrapStarted(
 task('registry:audit', 'Read-only audit of the configured registry facet and every finalized or pending runtime')
   .addOptionalParam('factory', 'ArtistRuntimeFactory address; defaults to deployments.json', '', types.string)
   .addOptionalParam('directory', 'ArtistDirectory address; defaults to deployments.json', '', types.string)
-  .setAction(async (args: { factory: string; directory: string }, hre) => {
+  .addOptionalParam('nativeRpc', 'Native Asset Hub WebSocket endpoint; required on chain 420420417', '', types.string)
+  .setAction(async (args: { factory: string; directory: string; nativeRpc: string }, hre) => {
     await hre.run('compile');
     const publicClient = await getPublicClient(hre);
     const chainId = await publicClient.getChainId();
@@ -164,7 +171,14 @@ task('registry:audit', 'Read-only audit of the configured registry facet and eve
       );
     }
 
-    const pendingDiscovery = await discoverPendingRuntimes(hre, publicClient, factoryAddress, capturedBlock.number);
+    const pendingDiscovery = await discoverPendingRuntimes(
+      hre,
+      publicClient,
+      factoryAddress,
+      capturedBlock,
+      chainId,
+      args.nativeRpc || process.env.DOTIFY_NATIVE_RPC || ''
+    );
     const pendingAudits = [] as Array<{ artist: Address; runtime: Address; stage: number; audit?: RuntimeAudit }>;
     for (const entry of pendingDiscovery.runtimes) {
       pendingAudits.push({
@@ -177,7 +191,7 @@ task('registry:audit', 'Read-only audit of the configured registry facet and eve
     }
 
     const report = {
-      schema: 'dotify.registry-audit.v1',
+      schema: 'dotify.registry-audit.v2',
       chainId,
       blockNumber: capturedBlock.number.toString(),
       blockHash: capturedBlock.hash,
@@ -193,10 +207,7 @@ task('registry:audit', 'Read-only audit of the configured registry facet and eve
       configuredFacetMatchesSource: configuredCodeHash === source.codeHash,
       finalizedRuntimeCount: entries.length,
       runtimes: runtimeAudits,
-      pendingDiscovery: {
-        status: pendingDiscovery.status,
-        ...(pendingDiscovery.status === 'complete' ? { deploymentBlock: pendingDiscovery.deploymentBlock } : { detail: pendingDiscovery.detail })
-      },
+      pendingDiscovery: (({ runtimes: _runtimes, ...evidence }) => evidence)(pendingDiscovery),
       pendingRuntimes: pendingAudits
     };
 
@@ -1285,9 +1296,17 @@ async function discoverPendingRuntimes(
   hre: HardhatRuntimeEnvironment,
   publicClient: PublicClient,
   factoryAddress: Address,
-  latestBlock: bigint
+  block: { number: bigint; hash: Hex },
+  chainId: number,
+  nativeRpc: string
 ): Promise<PendingDiscovery> {
   try {
+    if (chainId === POLKADOT_TESTNET_CHAIN.id) {
+      const factoryCodeHash = await reviewedFactoryCodeHash(hre, publicClient, factoryAddress, block.number);
+      const nativeProof = await readNativeEmptyFactoryProof({ rpcUrl: nativeRpc, block, factory: factoryAddress, factoryCodeHash });
+      return { status: 'complete', method: 'revive-empty-storage', nativeProof, runtimes: [] };
+    }
+    const latestBlock = block.number;
     const deploymentBlock = await findDeploymentBlock(publicClient, factoryAddress, latestBlock);
     const started = new Map<Address, Address>();
     for (let fromBlock = deploymentBlock; fromBlock <= latestBlock; fromBlock += PENDING_RUNTIME_PAGE_SIZE) {
@@ -1309,7 +1328,7 @@ async function discoverPendingRuntimes(
         stage: Number(await factory.read.pendingRuntimeStageOf([artist], { blockNumber: latestBlock }))
       });
     }
-    return { status: 'complete', deploymentBlock: deploymentBlock.toString(), runtimes: pending };
+    return { status: 'complete', method: 'evm-factory-events', deploymentBlock: deploymentBlock.toString(), runtimes: pending };
   } catch (error) {
     return { status: 'unavailable', detail: firstLine(errorDetails(error)), runtimes: [] };
   }

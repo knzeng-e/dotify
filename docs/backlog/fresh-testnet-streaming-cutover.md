@@ -1,5 +1,13 @@
 # Clean testnet catalog and streaming cutover
 
+## Native factory prerequisite candidate, 2026-11-23
+
+The [native readback reference](../reference/native-factory-readback.md) adds a
+bounded empty-storage proof tied to reviewed code and one finalized native/EVM
+block pair. EVM logs alone cannot establish complete pending discovery on Revive.
+This source step leaves the old publication attestation and signer/onboarding,
+service, value and media gates open. No fresh creation or delivery occurs.
+
 ## Artist account choice and native mapping accepted, 2026-11-22
 
 The [source-bound 0.1.90 iPhone report](implementation/evidence/host-account-ios-0.1.90-2026-11-22.md) matches delivered

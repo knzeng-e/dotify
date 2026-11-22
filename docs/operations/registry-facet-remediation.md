@@ -85,7 +85,7 @@ track coverage, and catalog-cutover evidence. A missing field fails closed.
 ```bash
 cd contracts/evm
 npm run compile
-npm run registry:audit:testnet
+DOTIFY_NATIVE_RPC=wss://asset-hub-paseo-rpc.n.dwellir.com npm run registry:audit:testnet
 ```
 
 Compile from the reviewed source before trusting any artifact hash. Repeat the
@@ -100,13 +100,16 @@ The command:
 - pins all reads to one block and checks the configured facet bytecode;
 - checks that the factory and directory point to each other;
 - enumerates finalized runtimes from `ArtistDirectory`;
-- discovers pending runtimes from factory events;
+- on Paseo Asset Hub, requires the [native empty-factory proof](../reference/native-factory-readback.md);
+  on ordinary EVM networks, discovers pending runtimes from factory events;
 - verifies directory artist/runtime ownership and all ten live registry routes;
 - audits track artists against the runtime owner;
 - simulates outsider registration using `eth_call` only.
 
-Pending-runtime discovery is mandatory and fails closed when the RPC cannot
-serve the historical reads or event range. Exit code `2` is expected while the
+Pending-runtime discovery is mandatory. Registry audit v2 fails closed when
+native state cannot establish empty storage, or ordinary EVM historical reads
+and event ranges are unavailable. Nonempty native factory storage requires a
+separate native inventory; it never falls back to EVM-only event discovery. Exit code `2` is expected while the
 configured factory, pairing, pending-runtime evidence, or any runtime remains
 unsafe. Preserve the JSON output as pre-change evidence.
 
@@ -230,7 +233,7 @@ npx hardhat vars delete PRIVATE_KEY
 ## 6. Re-audit existing runtimes
 
 ```bash
-npm run registry:audit:testnet
+DOTIFY_NATIVE_RPC=wss://asset-hub-paseo-rpc.n.dwellir.com npm run registry:audit:testnet
 ```
 
 Expected intermediate result:

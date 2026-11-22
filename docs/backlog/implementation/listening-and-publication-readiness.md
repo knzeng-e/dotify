@@ -1,5 +1,15 @@
 # Publication, listening reliability and CASH — execution order
 
+## Native factory prerequisite candidate, 2026-11-23
+
+The [bounded native proof](../../reference/native-factory-readback.md) replaces
+EVM-only pending discovery on Paseo Asset Hub: reviewed factory bytecode,
+canonical native/EVM block binding and zero native persistent storage must agree.
+Missing or nonempty native state remains unverified. This source step prepares
+#317 onboarding without changing the old publication attestation. Identified
+signer control, artist approvals, coherent services and native/value/media
+acceptance remain separate; no publication or transaction is authorized.
+
 ## Artist account choice and native mapping accepted, 2026-11-22
 
 The [source-bound 0.1.90 iPhone report](evidence/host-account-ios-0.1.90-2026-11-22.md) matches delivered

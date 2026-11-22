@@ -75,23 +75,26 @@ Update `contracts/evm/cdm.json` only from those actual results. With the same
 explicit public deployer, run:
 
 ```sh
-npm --prefix contracts/evm run fresh:readback:testnet
+DOTIFY_NATIVE_RPC=wss://asset-hub-paseo-rpc.n.dwellir.com \
+  npm --prefix contracts/evm run fresh:readback:testnet
 ```
 
-The v2 readback checks at one finalized block:
+The v3 readback checks at one finalized block:
 
 - all ten deployed bytecodes against compiler output, masking only the compiler's
   declared immutable slots;
 - the factory's directory, initializer, seven facet addresses and native precision,
   plus the directory's factory/deployer binding;
-- zero finalized artists before cutover; this is not enumeration of unknown
-  pending artist shells;
+- zero finalized artists and a [native empty-factory proof](../reference/native-factory-readback.md),
+  binding native/EVM block identity, reviewed factory code and zero persistent
+  storage to exclude unfinished artist shells;
 - each exact address/version pair in the recorded CDM snapshot, without searching
   a small version range or accepting another historical match.
 
 Getter comparisons separately bind the masked immutable values. Missing metadata,
 wrong precision, different code, wrong bindings, a populated directory or mismatched
-CDM versions stop the readback. A local EVM rehearsal is not native Revive or Host
+CDM versions stop the readback. An unavailable native endpoint or nonempty
+factory storage also stops it; an empty EVM event range cannot substitute. A local EVM rehearsal is not native Revive or Host
 acceptance. Archive the dated readback before creating a new artist.
 
 ## Review one contract/API/client configuration

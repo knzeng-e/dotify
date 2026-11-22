@@ -115,3 +115,14 @@ export function freshCdmPackages(snapshot: unknown, record: SmartRuntimeDeployme
     return { name, address, version };
   });
 }
+
+/** Bind native empty-storage evidence to the exact reviewed factory implementation. */
+export async function reviewedFactoryCodeHash(hre: HardhatRuntimeEnvironment, client: PublicClient, factory: Address, blockNumber: bigint): Promise<Hex> {
+  const artifact = await hre.artifacts.readArtifact('ArtistRuntimeFactory');
+  const build = await hre.artifacts.getBuildInfo(`${artifact.sourceName}:ArtistRuntimeFactory`);
+  const references = build?.output.contracts[artifact.sourceName]?.ArtistRuntimeFactory?.evm.deployedBytecode.immutableReferences;
+  const code = await client.getCode({ address: factory, blockNumber });
+  if (!code || code === '0x' || !references || !matchesReviewedCode(code, artifact.deployedBytecode as Hex, references))
+    throw new Error('Factory bytecode does not match the reviewed source; native empty-storage evidence is insufficient');
+  return keccak256(code);
+}

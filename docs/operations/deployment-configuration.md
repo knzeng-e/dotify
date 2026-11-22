@@ -5,6 +5,17 @@ encoder or signaling delivery. It identifies what to compare and what evidence
 to retain. Component runbooks contain the actual publication and maintenance
 procedures; this guide does not authorize or execute a delivery.
 
+## Native fresh-factory audit (#317)
+
+Read-only factory qualification now requires `DOTIFY_NATIVE_RPC`, a native
+Asset Hub WebSocket endpoint, in the operator shell running the contract tools.
+The registry task also accepts `--native-rpc`. The [proof reference](../reference/native-factory-readback.md)
+defines pinned genesis, finalized native/EVM block binding, code and empty-storage
+requirements, failure behavior and output schema versions. Missing native proof
+must stop the readback; it does not update a client attestation or activate a
+service. No hosted environment variable, CORS, storage mount, scaling or secret
+setting changes with this operator-only source change.
+
 ## Native price and NFT removal (#493)
 
 The [#493 candidate model](../reference/native-price-without-nft.md) changes
