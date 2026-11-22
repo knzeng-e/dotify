@@ -1,0 +1,85 @@
+{
+  "schema": "dotify.account-qualification-source-evidence.v1",
+  "recordedAt": "2026-11-22T00:34:03.499089+00:00",
+  "source": "4fbd60fafa54a403575063f116084834ee3deaaa",
+  "base": "3ae5626c4c56a0cbb9a83911529d34602a2d20cb",
+  "status": "source-and-local-artifact-verified-not-published",
+  "artifact": {
+    "schema": "dotify.host-qualification-artifact.v1",
+    "source": "4fbd60fafa54a403575063f116084834ee3deaaa",
+    "clean": true,
+    "configDigest": "dcc5deeb247f7c5a7e6bfa39926b105511e5b52bdc0556d12dfd8dd7dfd8d0d1",
+    "productId": "dotify-test01.dot",
+    "appVersion": [
+      0,
+      1,
+      90
+    ],
+    "purpose": "host-account-addresses-only",
+    "sdk": {
+      "product": "0.45.0",
+      "host": "0.34.0",
+      "truapi": "0.31.0"
+    },
+    "files": [
+      {
+        "path": "assets/account-qualification-1N23q9y6.js",
+        "bytes": 154849,
+        "sha256": "5e7ba9512ee877d74f7c4ec06e219ab00f8b419185c0f76eaf6a9449fb905f73"
+      },
+      {
+        "path": "assets/account-qualification-Dy0zvEyw.css",
+        "bytes": 4610,
+        "sha256": "8b4f19f615de43e775e86fd82169b89f3c98148985dbb6e26ee3e49df017b051"
+      },
+      {
+        "path": "assets/index-D940jXBX.js",
+        "bytes": 3066,
+        "sha256": "61fa4da42ee90d7e7911e8cc2b00e8e6a13911581c52fe98a8e4724cff3c4b02"
+      },
+      {
+        "path": "assets/index-DxJE5c5P.js",
+        "bytes": 192842,
+        "sha256": "62ffaa298e00be2dcd410601e9c6e9505ac358abe83bd0a42ab629fa7c5bd2f4"
+      },
+      {
+        "path": "assets/product-icon-BNSQIQn6.svg",
+        "bytes": 2511,
+        "sha256": "06a2baf2936da7f801b01ffba7817d0572dab49b5c0f8d53821028c32750e2e7"
+      },
+      {
+        "path": "assets/sha3-CdAZpObR.js",
+        "bytes": 23196,
+        "sha256": "e7fcf7762891f116bb186d0ee78aad8aaf061d425d5b9a0f192c29902d489a0b"
+      },
+      {
+        "path": "index.html",
+        "bytes": 607,
+        "sha256": "030109285c6c3cde5b661e01494e021f78d86cbdfe98bfc41f33abe1d2eb7e7f"
+      }
+    ]
+  },
+  "artifactManifestSha256": "27f985d8bf5aca90c292416463d11fd6b973a0936203fb335ed0367dac8642ce",
+  "servedFileCountExcludingBuildManifest": 7,
+  "servedBytesExcludingBuildManifest": 381681,
+  "validation": {
+    "unitTests": 38,
+    "profileTests": 3,
+    "chromiumWebkitScenarios": 14,
+    "typecheck": true,
+    "lintErrors": 0,
+    "existingAppHookWarnings": 2,
+    "formatCheck": true,
+    "hostInfoBuild": true,
+    "accountBuild": true,
+    "artifactHashesVerified": true
+  },
+  "limits": {
+    "published": false,
+    "physicalAccountAccepted": false,
+    "signingVerified": false,
+    "nativeMappingVerified": false,
+    "artistRuntimeCreated": false,
+    "cashEnabled": false
+  }
+}

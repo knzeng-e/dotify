@@ -6,6 +6,9 @@ It prepares Product **0.1.90**, purpose `host-account-addresses-only`, for
 `dotify-test01.dot`. It is source preparation, not a delivered Product or a
 physical account/signing result. The delivered 0.1.89 reader remains unchanged.
 
+The [source-bound local evidence](../backlog/implementation/evidence/host-account-qualification-2026-11-22.md)
+records the clean artifact and scoped checks; it is not a phone result.
+
 ## What the account check establishes
 
 The user first requests the bounded Host-info reading. Only a supported Runtime
