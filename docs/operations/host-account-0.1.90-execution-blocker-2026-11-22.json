@@ -1,7 +1,7 @@
 {
   "schema": "dotify.host-qualification-execution-blocker.v1",
   "observedAt": "2026-11-22T15:40:28.416085+00:00",
-  "status": "authorized-blocked-before-signing",
+  "status": "historical-blocker-resolved",
   "source": "ecba4ea0465fba154de65a7db7232be62f854acb",
   "planCommit": "4903f9b5dc8d3aafa9d5f2777799dcb1ff31c370",
   "plan": "host-account-0.1.90-publication-plan-2026-11-22.json",
@@ -101,7 +101,8 @@
     "publicationJournalCreated": false,
     "newCandidatePublished": false
   },
-  "remaining": {
+  "observedStatus": "authorized-blocked-before-signing",
+  "remainingAtObservation": {
     "scopeConsumed": false,
     "newSnapshotAllowed": false,
     "mustReuseSnapshotId": "vs_kAge1Jea58GCKoAalV13",
@@ -110,5 +111,15 @@
     "mustNotExportKeys": true,
     "artistRuntimeCreated": false,
     "cashEnabled": false
+  },
+  "resolution": {
+    "completedAt": "2026-11-22T15:51:51.739Z",
+    "receipt": "host-account-0.1.90-delivery-2026-11-22.json",
+    "approvedIdleUpdateAppliedLate": true,
+    "exactIdleConfigVerifiedBeforeStart": true,
+    "exclusiveMachineLeaseUsed": true,
+    "snapshotReused": true,
+    "newCandidatePublished": true,
+    "scopeConsumed": true
   }
 }

@@ -1,5 +1,12 @@
 # Account 0.1.90 execution blocked before signing — 22 November 2026
 
+**Resolved later the same day.** Fly applied the approved idle update after its
+408 response. The exact idle state was verified and started under an exclusive
+lease; the same single snapshot was reused. The
+[verified delivery](host-account-0.1.90-delivery-2026-11-22.md) records completed publication and restored,
+stopped custody. The earlier observations and unsent support draft below are
+historical, not the current handoff or a request to contact support.
+
 **The owner approved the exact plan, but 0.1.90 is not published.** Source
 `ecba4ea0465fba154de65a7db7232be62f854acb` has green full CI and its frozen
 artifact is intact. Fly's machine-update API repeatedly returns **HTTP 408**

@@ -243,31 +243,23 @@ required audit fixes; this source change does not perform it.
 
 ### Native payment correction candidate (#484)
 
-The [bounded 0.1.90 publication plan](host-account-0.1.90-publication-plan-2026-11-22.md) proposes replacing only
-the native info-reader entry with the account qualification page. The owner
-approved temporary idle custody maintenance, one 14-day snapshot, five Bulletin
-operations and two DotNS batches. The [attempt](host-account-0.1.90-execution-blocker-2026-11-22.md) completed that
-snapshot, then Fly HTTP 408 blocked idle updates before signing. Custody is
-stopped with the original runtime configuration and a reconciliation metadata
-label; 0.1.89 is preserved. Reuse the snapshot on recovery; no further creation
-is authorized within its already-used allowance.
-The carried conservation floor remains 2,378 operations / 604,674,406 bytes;
-the planned future floor is 2,383 / 605,097,938. No scheduler, service startup,
-new key/profile, artist runtime, Web deployment or CASH activation is admitted.
+The [verified native account 0.1.90 delivery](host-account-0.1.90-delivery-2026-11-22.md) serves source
+`ecba4ea0` through the development Product entry. One fresh 14-day snapshot,
+five Bulletin operations and two zero-value native DotNS batches completed
+within the new approved scope. Actual custody/independent-byte/record/fee checks
+pass, histories are preserved and original runtime configuration/stopped state
+are restored (with operational reconciliation metadata). Preserve the new
+conservation floor **2,383 operations / 605,097,938 bytes**. The operation's
+authority is consumed; no recurring renewal, old publisher startup, new key/profile,
+artist runtime, Web/API or CASH activation is included. The account report,
+native mapping and signer control are separate pending gates.
 
-The [separate account-address qualification profile](host-account-qualification-client.md)
-adds a clean `build:account-qualification` output for candidate 0.1.90, with
-fixed Product/index/prefix in its digest. It changes no hosted settings, endpoint,
-key profile or delivered client. Its public addresses are locally derived;
-native chain mapping and signer control remain later checks.
-
-The [native Host-info 0.1.89 delivery](host-info-0.1.89-delivery-2026-11-21.md)
-publishes the separate reader from source `5de0b31e`, with actual Bulletin/DotNS
-readback. This changes the native development app entry only; ordinary Web and
-API settings stay unchanged, and the old custody publisher is restored/stopped.
-The [actual iPhone wire report](../backlog/implementation/evidence/host-info-ios-0.1.89-2026-11-22.md)
-passes the first Host-info/Runtime gate; account/onboarding and the matched
-application switch remain pending. The completed publication scope grants no future write.
+The [account profile](host-account-qualification-client.md) uses a clean
+`build:account-qualification` output with fixed Product/index/prefix in its digest.
+Its public addresses are locally derived, not chain or signer proof. The earlier
+[0.1.89 info report](../backlog/implementation/evidence/host-info-ios-0.1.89-2026-11-22.md)
+accepts only the first Host-info/Runtime gate. Functional contract/media/payment
+acceptance still needs the matching fresh generation below.
 
 The [20 November core checkpoint](fresh-testnet-2026-11-20.md) records the new
 eleven-transaction testnet deployment, finalized bytecode/binding checks and ten

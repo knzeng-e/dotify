@@ -1,5 +1,18 @@
 # Polkadot product readiness and killer dapp roadmap
 
+## Native account client delivered, 2026-11-22
+
+The [verified 0.1.90 delivery](../operations/host-account-0.1.90-delivery-2026-11-22.md) serves source `ecba4ea0`.
+Five Bulletin operations / 423,532 bytes and two zero-value native DotNS batches
+finalized within the explicit new approval. Exact-source CI, actual custody
+unsigned checks, independent bytes/records/fee readback and restored/stopped
+custody pass. Fly's earlier idle update applied late; the snapshot was reused
+and the prior blocker below is historical. The authority is now consumed.
+Preserve the new future floor: 2,383 operations / 605,097,938 bytes. Next is the
+owner's physical Product-account report. Native mapping, signer control,
+fresh-factory/onboarding, services/value/media remain separate; #85 / #317 stay
+open and CASH stays disabled. No new artist runtime or musical write is included.
+
 ## Approved account-client operation blocked by Fly, 2026-11-22
 
 The owner approved plan #507 after green exact-source `ecba4ea0` CI. Its

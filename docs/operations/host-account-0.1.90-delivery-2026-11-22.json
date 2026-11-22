@@ -1,0 +1,349 @@
+{
+  "schema": "dotify.host-qualification-delivery.v1",
+  "date": "2026-11-22",
+  "status": "published-and-independently-verified",
+  "physicalHostAccepted": false,
+  "physicalHostAcceptanceScope": "Account qualification not yet observed on device; prior 0.1.89 system.info acceptance remains separate.",
+  "source": "ecba4ea0465fba154de65a7db7232be62f854acb",
+  "appVersion": [
+    0,
+    1,
+    90
+  ],
+  "productId": "dotify-test01.dot",
+  "purpose": "host-account-addresses-only",
+  "sourceQualityRun": "https://github.com/knzeng-e/dotify/actions/runs/45035106617",
+  "approval": {
+    "planCommit": "4903f9b5dc8d3aafa9d5f2777799dcb1ff31c370",
+    "plan": "host-account-0.1.90-publication-plan-2026-11-22.json",
+    "explicitOwnerAuthorization": true,
+    "recordedAt": "2026-11-22T15:16:10.589162+00:00",
+    "scopeConsumed": true,
+    "additionalWriteAuthority": false
+  },
+  "artifact": {
+    "carBytes": 387429,
+    "carSha256": "2a7605eb925f33779668103db1feea7b8c9b488517d22f61de7b19ef0a2fabcd",
+    "directoryCid": "bafybeicgazzxntx5xrduzgnkc2yjyufzg5twactvetcxfac5f5o6fxbsmu",
+    "storageCid": "bafybeiasoflsyem37mufbzttqns7ayx4rdnr4vbtia6jdy4mpr6c4oegvi",
+    "previousStorageCid": "bafybeib6pnxpldxmxn5efu5duzd2gv2iyoim3bnuvosehm3tpxqn2satzi"
+  },
+  "buildConfigurationDigest": "77a32db5e6922eee4bcad23a618d91b2abf6cb5a78fc7df68c9d0bc8d2950705",
+  "sdk": {
+    "product": "0.45.0",
+    "host": "0.34.0",
+    "truapi": "0.31.0"
+  },
+  "bulletin": {
+    "genesis": "0xe101f0fa4627d29a257645e02be86d80378fea1a2bf8fa6a918d150ebc760a59",
+    "account": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+    "initialNonce": 2160,
+    "finalNonce": 2165,
+    "operations": [
+      {
+        "cid": "bafkreic7nctotrct7eaoqtceur4gl5zfkwdzn7n6px2x7esk36rrue74oy",
+        "bytes": 3021,
+        "action": "store",
+        "nonce": 2160,
+        "receipt": {
+          "block": 1759934,
+          "index": 0,
+          "expiresAt": 1961534
+        },
+        "final": {
+          "block": 1759934,
+          "blockHash": "0x13d9b53caafc185c9c034203c7bd4c89bd93a9265d82a009188591c045be9698",
+          "txHash": "0xe6c7d5d0cc88f5a28f675a5aeffccc4f2a45345da363b37332d12b5b0113e99b"
+        }
+      },
+      {
+        "cid": "bafkreihnhvftff7rash6gtl2bzvtz7m4fscruclkjnjf7kmgwtttamzp3i",
+        "bytes": 381305,
+        "action": "store",
+        "nonce": 2161,
+        "receipt": {
+          "block": 1759939,
+          "index": 0,
+          "expiresAt": 1961539
+        },
+        "final": {
+          "block": 1759939,
+          "blockHash": "0x2990a991a1fc959b7a15fb8bc717e79c51bfa8931f1bca1b2247a19bc68824ca",
+          "txHash": "0x2abea1d962016e902a3cb47ffbbcc638cbf10057d1000be51785245df2ee52fb"
+        }
+      },
+      {
+        "cid": "bafkreib3skcm3kbuk6jys5pjwhxea37lyjhstfvmbcolxcy7nn7brmc3my",
+        "bytes": 3103,
+        "action": "store",
+        "nonce": 2162,
+        "receipt": {
+          "block": 1759945,
+          "index": 0,
+          "expiresAt": 1961545
+        },
+        "final": {
+          "block": 1759945,
+          "blockHash": "0xec9e61b2e844841be666b3b220743172d1ffe0548212f66e6bac58d2f6b8b8d1",
+          "txHash": "0xbe37d91e6f263617dcba7d65d8e8a042178f42f55bbe9a1c7b7bd1032e879cd5"
+        }
+      },
+      {
+        "cid": "bafybeiasoflsyem37mufbzttqns7ayx4rdnr4vbtia6jdy4mpr6c4oegvi",
+        "bytes": 154,
+        "action": "store",
+        "nonce": 2163,
+        "receipt": {
+          "block": 1759951,
+          "index": 0,
+          "expiresAt": 1961551
+        },
+        "final": {
+          "block": 1759951,
+          "blockHash": "0x508d96061a889887abd69d8d3a90a8e4c144c9646c01ab6a8808653a85460511",
+          "txHash": "0x6bcf37a1e9f09aead8e0c6a1a4150fbb4d4b26b280d73a4d5a1e2ff32e3a894d"
+        }
+      },
+      {
+        "cid": "bafk2bzacebh4rknk6x7zl4pul7t3ff7y2pglpk5x4q2k3nxnql5ebizvgluxk",
+        "bytes": 35949,
+        "action": "renew",
+        "nonce": 2164,
+        "receipt": {
+          "block": 1759956,
+          "index": 0,
+          "expiresAt": 1961556
+        },
+        "final": {
+          "block": 1759956,
+          "blockHash": "0xd8ce11ff8d5a110482857b0751cf3458168a07eae768a0d41f0acd3cf3458462",
+          "txHash": "0x6607a85f8a588c20c2a5fe7c9056f80d47c24b06ba1ceaee35db83b72bbe9e99"
+        }
+      }
+    ],
+    "totalBytes": 423532,
+    "stores": 4,
+    "renewals": 1,
+    "readback": {
+      "head": 1759990,
+      "hash": "0xdc98d8e332161645ff3288640c4c9c11597bebb3a1833aa9086f170f68b17327",
+      "authorization": {
+        "present": true,
+        "valid": true,
+        "expiresAt": 1831359,
+        "remainingTransactions": 4868,
+        "remainingBytes": "876813001",
+        "remainingRenewBytes": "865366140"
+      },
+      "nonce": 2165
+    },
+    "futureReserveAfter": {
+      "transactions": 2383,
+      "bytes": 605097938
+    }
+  },
+  "dotns": {
+    "nativeGenesis": "0xd6eec26135305a8ad257a20d003357284c8aa03d0bdb2b357ab0a22371e11ef2",
+    "h160": "0xe3e3a0916d27c5174313f16e1507a286985a8ac8",
+    "initialNonce": 504,
+    "finalNonce": 506,
+    "signatureCount": 2,
+    "nativeDecimals": 10,
+    "contractCallValue": "0",
+    "extrinsics": [
+      {
+        "nonce": 504,
+        "block": 16084932,
+        "blockHash": "0x5c7fe07364ff143ffd0cb303c8d42d9d598b6f8bbfd210b0ab572fcc20546eea",
+        "extrinsicIndex": 2,
+        "txHash": "0xa182e32f34c639e197601243fd0f39d0d0cf3303aaa163ec2e8c3774a9c17411",
+        "callDataMatches": true,
+        "feePaid": {
+          "who": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+          "actualFee": "90785830",
+          "tip": "0"
+        },
+        "eventTypes": [
+          "Balances.Withdraw",
+          "Revive.ContractEmitted",
+          "Utility.ItemCompleted",
+          "Revive.ContractEmitted",
+          "Utility.ItemCompleted",
+          "Utility.BatchCompleted",
+          "Balances.Deposit",
+          "Balances.Deposit",
+          "TransactionPayment.TransactionFeePaid",
+          "System.ExtrinsicSuccess"
+        ]
+      },
+      {
+        "nonce": 505,
+        "block": 16084946,
+        "blockHash": "0xdd3fe4ab204fa1b0d96c84c5658810cb0aabb392f20987ed115f3eaa34304918",
+        "extrinsicIndex": 2,
+        "txHash": "0x670bdfde3a868a9aabc43d59a2760fafcc7a1e44e25d5e408d24243bfbc5b64c",
+        "callDataMatches": true,
+        "feePaid": {
+          "who": "5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca",
+          "actualFee": "60181808",
+          "tip": "0"
+        },
+        "eventTypes": [
+          "Balances.Withdraw",
+          "Revive.ContractEmitted",
+          "Utility.ItemCompleted",
+          "Revive.ContractEmitted",
+          "Utility.ItemCompleted",
+          "Utility.BatchCompleted",
+          "Balances.Deposit",
+          "Balances.Deposit",
+          "TransactionPayment.TransactionFeePaid",
+          "System.ExtrinsicSuccess"
+        ]
+      }
+    ],
+    "totalActualFee": "150967638",
+    "totalActualFeePAS": "0.0150967638",
+    "nativeNetDebit": "150967638",
+    "nativeNetDebitPAS": "0.0150967638",
+    "feeEventVerificationAt": "2026-11-22T15:56:41.914Z",
+    "feeTotalWithinApprovedCap": true,
+    "records": {
+      "dotify-test01.dot": {
+        "owner": "0xe3e3a0916d27c5174313f16E1507a286985a8Ac8",
+        "contenthash": "0xe301017012201271572c119bfb2850e6738365f062fc88db1e5433403c91e38c7c7c2e3886aa",
+        "record": "{\"$v\":1,\"displayName\":\"Dotify qualification\",\"description\":\"Public account addresses before fresh artist onboarding.\",\"icon\":{\"cid\":\"bafk2bzacebh4rknk6x7zl4pul7t3ff7y2pglpk5x4q2k3nxnql5ebizvgluxk\",\"format\":\"png\"}}"
+      },
+      "app.dotify-test01.dot": {
+        "owner": "0xe3e3a0916d27c5174313f16E1507a286985a8Ac8",
+        "contenthash": "0xe301017012201271572c119bfb2850e6738365f062fc88db1e5433403c91e38c7c7c2e3886aa",
+        "record": "{\"$v\":1,\"kind\":\"app\",\"appVersion\":[0,1,90]}"
+      },
+      "dotify-bulletin-lab.dot": {
+        "owner": "0xe3e3a0916d27c5174313f16E1507a286985a8Ac8",
+        "contenthash": "0xe30101701220431f7ac8486f5e9b7f5778e58d65daa485eff8bdaf26ff8d81f086ac8a567e2a",
+        "record": "{\"$v\":1,\"displayName\":\"Dotify First note lab\",\"description\":\"Generated 64-second audio continuity diagnostic. No artist music, wallet or payment.\",\"icon\":{\"cid\":\"bafk2bzacebh4rknk6x7zl4pul7t3ff7y2pglpk5x4q2k3nxnql5ebizvgluxk\",\"format\":\"png\"}}"
+      },
+      "app.dotify-bulletin-lab.dot": {
+        "owner": "0xe3e3a0916d27c5174313f16E1507a286985a8Ac8",
+        "contenthash": "0xe30101701220431f7ac8486f5e9b7f5778e58d65daa485eff8bdaf26ff8d81f086ac8a567e2a",
+        "record": "{\"$v\":1,\"kind\":\"app\",\"appVersion\":[0,3,1]}"
+      }
+    },
+    "separateLabUnchanged": true
+  },
+  "verification": {
+    "observedAt": "2026-11-22T15:54:16.939Z",
+    "outerBlocksByteCompared": 5,
+    "carBlocksVerified": 12,
+    "files": [
+      {
+        "path": ".bulletin-deploy/manifest.json",
+        "bytes": 2924,
+        "sha256": "3cdeccc0a531be21da9ce82e63ef19fec462f4361dc2c8f67a5feedc0e9dd566"
+      },
+      {
+        "path": "assets/account-qualification-D5EKsq4t.js",
+        "bytes": 154849,
+        "sha256": "2603f3025d21edc62a17d2bc039537f8b1c774e81217c09ed01e98417aa48c67"
+      },
+      {
+        "path": "assets/account-qualification-Dy0zvEyw.css",
+        "bytes": 4610,
+        "sha256": "8b4f19f615de43e775e86fd82169b89f3c98148985dbb6e26ee3e49df017b051"
+      },
+      {
+        "path": "assets/index-D940jXBX.js",
+        "bytes": 3066,
+        "sha256": "61fa4da42ee90d7e7911e8cc2b00e8e6a13911581c52fe98a8e4724cff3c4b02"
+      },
+      {
+        "path": "assets/index-DxJE5c5P.js",
+        "bytes": 192842,
+        "sha256": "62ffaa298e00be2dcd410601e9c6e9505ac358abe83bd0a42ab629fa7c5bd2f4"
+      },
+      {
+        "path": "assets/product-icon-BNSQIQn6.svg",
+        "bytes": 2511,
+        "sha256": "06a2baf2936da7f801b01ffba7817d0572dab49b5c0f8d53821028c32750e2e7"
+      },
+      {
+        "path": "assets/sha3-CdAZpObR.js",
+        "bytes": 23196,
+        "sha256": "e7fcf7762891f116bb186d0ee78aad8aaf061d425d5b9a0f192c29902d489a0b"
+      },
+      {
+        "path": "index.html",
+        "bytes": 607,
+        "sha256": "470462cdf80fc5c7c350ca196945ac332a7e6a158228a25e3b4b633384ffc483"
+      },
+      {
+        "path": "qualification-build.json",
+        "bytes": 1585,
+        "sha256": "18cd9b0fb2ce9178d27f4534f23093a3ff919545123fccebb8a0c68015b26b46"
+      }
+    ],
+    "nativeExtrinsics": [
+      {
+        "nonce": 504,
+        "block": 16084932,
+        "blockHash": "0x5c7fe07364ff143ffd0cb303c8d42d9d598b6f8bbfd210b0ab572fcc20546eea",
+        "extrinsicIndex": 2,
+        "txHash": "0xa182e32f34c639e197601243fd0f39d0d0cf3303aaa163ec2e8c3774a9c17411",
+        "callDataMatches": true
+      },
+      {
+        "nonce": 505,
+        "block": 16084946,
+        "blockHash": "0xdd3fe4ab204fa1b0d96c84c5658810cb0aabb392f20987ed115f3eaa34304918",
+        "extrinsicIndex": 2,
+        "txHash": "0x670bdfde3a868a9aabc43d59a2760fafcc7a1e44e25d5e408d24243bfbc5b64c",
+        "callDataMatches": true
+      }
+    ],
+    "hostConfigurationMatches": true,
+    "hostConfigurationCheckedAt": "2026-11-22T15:55:11.385Z"
+  },
+  "maintenance": {
+    "snapshotId": "vs_kAge1Jea58GCKoAalV13",
+    "snapshotRetentionDays": 14,
+    "originalConfigurationRestored": true,
+    "publisherStopped": true,
+    "publisherLockReleased": true,
+    "protectedMetadataUnchanged": true,
+    "permanentNonceHistoryUnchanged": true,
+    "admissionArchivesUnchanged": true,
+    "seedExported": false,
+    "unsignedCustodyReadiness": {
+      "status": "ready-no-signing",
+      "source": "ecba4ea0465fba154de65a7db7232be62f854acb",
+      "bulletinNonce": 2160,
+      "assetHubNonce": 504,
+      "blocks": 5,
+      "bytes": 423532,
+      "dotnsSignatures": 2,
+      "feeQuotes": [
+        "106022823",
+        "65471955"
+      ],
+      "futureReserveAfter": {
+        "transactions": 2383,
+        "bytes": 605097938
+      },
+      "networkWrites": 0,
+      "signerUsed": false
+    },
+    "completedAt": "2026-11-22T15:52:06.692269+00:00",
+    "providerRecovery": "HTTP 408 idle update applied late; exact idle state verified before start under an exclusive machine lease; one snapshot reused."
+  },
+  "activation": {
+    "nativeQualificationPublished": true,
+    "webChanged": false,
+    "hostedApisChanged": false,
+    "oldPublisherActivated": false,
+    "artistRuntimeCreated": false,
+    "newKeyProfileActivated": false,
+    "cashEnabled": false
+  },
+  "completedAt": "2026-11-22T15:51:51.739Z"
+}

@@ -1,14 +1,14 @@
 # Account 0.1.90 — exact native publication plan, 22 November 2026
 
-**Explicitly authorized; blocked before signing by Fly machine-update HTTP 408.**
-The [attempt record](host-account-0.1.90-execution-blocker-2026-11-22.md) owns the completed snapshot, original
-stopped configuration and unchanged 0.1.89/nonces. No blockchain write occurred.
-The initial unexecuted plan remains at commit `4903f9b5`; values and caps below
-are retained. The owner has since approved that exact scope. The snapshot
-allowance is used; reuse it rather than repeating the prospective creation step.
-The earlier approval rejection below is historical and resolved.
+**Executed within the approved scope; independently verified.** The
+[delivery receipt](host-account-0.1.90-delivery-2026-11-22.md) owns actual outcomes and the next device handoff.
+The approved idle update applied late after Fly's 408 response; the same snapshot
+was reused and all seven operations finalized once. The earlier blocked
+checkpoint is historical. This operation's authority is consumed. Original
+prepared values/caps and prospective steps below are retained as history;
+initial unexecuted source is commit `4903f9b5dc8d3aafa9d5f2777799dcb1ff31c370`.
 
-Original preparation:  This plan makes the next #85 iPhone account
+Original preparation: This plan makes the next #85 iPhone account
 check reviewable after merged #506 and the accepted 0.1.89 Host-info record.
 The [structured plan](host-account-0.1.90-publication-plan-2026-11-22.json)
 binds exact artifact bytes/CIDs, native calls, nonces, maintenance and spend caps.

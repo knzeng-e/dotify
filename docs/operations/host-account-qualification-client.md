@@ -1,21 +1,17 @@
 # Public-account qualification client
 
-The [exact native plan](host-account-0.1.90-publication-plan-2026-11-22.md) is now
-explicitly approved, but [Fly's idle-update HTTP 408 blocks execution](host-account-0.1.90-execution-blocker-2026-11-22.md)
-before signing. One fresh 14-day snapshot completed; the machine is stopped with
-its original runtime configuration. No account page is delivered, no private
-signer loaded and no blockchain write performed. Reuse that snapshot on recovery;
-its allowance is already used. The earlier approval rejection is resolved.
-No new phone action yet.
+The [verified native delivery](host-account-0.1.90-delivery-2026-11-22.md) serves Product **0.1.90**,
+purpose `host-account-addresses-only`, from merged source `ecba4ea0` at
+`dotify-test01.dot`. It replaces the earlier native info-only page. All five
+Bulletin operations and both native DotNS batches finalized within the new
+approved scope; independent bytes/records/fees and restored/stopped custody pass.
+That operation's authority is consumed. Physical account, native mapping and
+signer-control acceptance remain pending.
 
-Use this isolated candidate for #85 after the accepted
+Use this client after the accepted
 [iPhone Host-info observation](../backlog/implementation/evidence/host-info-ios-0.1.89-2026-11-22.md).
-It prepares Product **0.1.90**, purpose `host-account-addresses-only`, for
-`dotify-test01.dot`. It is source preparation, not a delivered Product or a
-physical account/signing result. The delivered 0.1.89 reader remains unchanged.
-
 The [source-bound local evidence](../backlog/implementation/evidence/host-account-qualification-2026-11-22.md)
-records the clean artifact and scoped checks; it is not a phone result.
+records automated checks separately from delivery and device evidence.
 
 ## What the account check establishes
 
@@ -87,9 +83,9 @@ These mocked accounts are not physical Host evidence.
 
 ## Device handoff and remaining gates
 
-Do not ask for another phone report until a reviewed, source-identified account
-artifact is delivered under its own publication scope. The consumed 0.1.89 plan
-is not authority to publish 0.1.90. Follow the
+The source-identified account artifact is independently delivered under its own
+completed scope; use the exact identity in its delivery record above. Neither
+completed 0.1.89 nor 0.1.90 approval permits another publication. Follow the
 [qualification procedure](../how-to/qualify-product-host-031.md#account-and-listening-acceptance)
 for ordinary account consent and the owner-selected artist account. Compare the
 reported public addresses with that intended Product account before acknowledging

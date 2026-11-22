@@ -1,17 +1,12 @@
 # Deploy Dotify To Product DevNet
 
-The [0.1.90 account-client plan](host-account-0.1.90-publication-plan-2026-11-22.md) is prepared from merged
-`ecba4ea0`, but is not delivered. Its new maintenance/publication scope is
-approved; [Fly HTTP 408 blocks the idle update](host-account-0.1.90-execution-blocker-2026-11-22.md) before any
-signing. One snapshot completed, custody is stopped with original runtime
-configuration, and 0.1.89 remains served. Do not create a second snapshot on retry.
-
-The [native Host-info 0.1.89 delivery](host-info-0.1.89-delivery-2026-11-21.md)
-replaces the development Product app entry with the isolated reader from source
-`5de0b31e`. The [actual iPhone report](../backlog/implementation/evidence/host-info-ios-0.1.89-2026-11-22.md)
-accepts its Host-info/Runtime gate. Account/signing and the full listener/API
-switch remain pending. The approved publication scope is consumed and the old publisher stays
-stopped. Ordinary Web remains on its prior delivery.
+The [verified 0.1.90 account-client delivery](host-account-0.1.90-delivery-2026-11-22.md) replaces only the
+native info-reader entry with the explicit public-account check, from source
+`ecba4ea0`. Custody is restored/stopped and the finite publication authority is
+consumed. Ordinary Web/APIs keep their existing generation; the actual phone
+account report is the next gate. The earlier
+[0.1.89 delivery](host-info-0.1.89-delivery-2026-11-21.md) and its accepted info
+report remain historical evidence, separate from account/signing acceptance.
 
 The [0.1.88 delivery record](../backlog/implementation/evidence/product-0.1.88-rollout-2026-11-15.md)
 identifies the 2026-11-15 served clients and remaining phone acceptance. Earlier

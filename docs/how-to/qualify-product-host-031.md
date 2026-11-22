@@ -1,71 +1,53 @@
 # Qualify the Runtime 0.31 iPhone candidate
 
-The [bounded 0.1.90 delivery plan](../operations/host-account-0.1.90-publication-plan-2026-11-22.md) is prepared
-from merged #506. It is not delivered; request the next account report only after
-independent native publication/readback. Its custody/publication scope is now
-explicitly approved, but [Fly blocks idle startup before signing](../operations/host-account-0.1.90-execution-blocker-2026-11-22.md).
-The snapshot is complete and must be reused; native 0.1.89 remains served.
-
-The [separate account-address candidate](../operations/host-account-qualification-client.md)
-prepares the next step after merged #505. Its 0.1.90 source is not yet delivered;
-the existing 0.1.89 page has no account action. No repeat info-only test is needed.
-
-Use this procedure for #85 / #483. The owner's [20 November screenshots](../backlog/implementation/evidence/product-host-ios-031-2026-11-20.md)
-show Polkadot App 0.10.0 (23) with Runtime 0.31.0 configured. They make a target
-available for testing. The [22 November support report](../backlog/implementation/evidence/host-info-ios-0.1.89-2026-11-22.md)
-now accepts the first Host-info/Runtime gate on the identified 0.1.89 iPhone
-client; subsequent account, signing, payment and listening gates remain open.
+The [verified account delivery](../operations/host-account-0.1.90-delivery-2026-11-22.md) provides app
+**0.1.90**, source `ecba4ea0465fba154de65a7db7232be62f854acb`, Product
+`dotify-test01.dot`. It replaces the info-only native development page; it does
+not activate the full listener/API generation. The
+[client reference](../operations/host-account-qualification-client.md) owns its
+bounded behavior, report privacy and failure boundaries.
 
 ## Identified read-only delivery, 2026-11-21
 
-The [native 0.1.89 delivery](../operations/host-info-0.1.89-delivery-2026-11-21.md)
-provides the first non-spending reading without the old catalogue, account or
-publication services. Product `dotify-test01.dot` resolves the verified reader
-from source `5de0b31e573e11b7d98e2d4717cbe6bce29ae6bf`. In Polkadot Dev, reopen
-Dotify or use Debug → Open SPA with that Product name. Confirm **Host
-qualification** and footer **Source 5de0b31e · clean build**. A stale listener
-page or another source is a mismatch: report it and stop.
-
-Account/signing/onboarding follow the wire record; this client requests none of
-those actions. The linked device record supplies the separate actual observation;
-publication alone does not establish device acceptance.
+The earlier [0.1.89 delivery](../operations/host-info-0.1.89-delivery-2026-11-21.md)
+and [actual iPhone report](../backlog/implementation/evidence/host-info-ios-0.1.89-2026-11-22.md)
+accept `system.info` / Runtime 0.31.0 on Polkadot App 0.10.0 (23). They are
+historical evidence; do not repeat that old page test or infer account/signing
+support from it. The delivered account context below owns the next check.
 
 ## Prepare an identified candidate
 
-For the first wire reading, use the isolated Host-info candidate described
-above. It carries SDK 0.45 / Host SDK 0.34 / TrUAPI 0.31 and the reviewed #483 info
-decoder patch. Bind the qualification link/artifact to its source SHA,
-configuration digest, app/product identity and native delivery record. The
-operator must provide that concrete candidate before requesting a phone test.
-A build from a different commit or the previously delivered client cannot stand
-in for this candidate. Later account/listening checks need their own identified
-full-application context; the read-only client contains no account actions.
+Before requesting device evidence, source/Product/app identity, configuration
+digest, SDK pins and native CID must agree with the delivery receipt.
+For delivered 0.1.90, reopen Dotify in Polkadot Dev or use Debug → Open SPA →
+`dotify-test01.dot`. Confirm **Account qualification** and **Source ecba4ea0 ·
+clean build**. A stale info-only page or another source is a mismatch: retain
+what is visible and stop. Later signing/listening needs its own matching context.
+This client contains no signing, catalogue, chain or application-service flows.
 
-Keep qualification separate from the stable app. Any hosted/Bulletin delivery
-follows the [Product publication procedure](../operations/product-devnet-deployment.md)
-with its reviewed artifact, scope and budget. Preparing this procedure does not
-publish an artifact, install the Host or authorize a transaction.
+Any later hosted/Bulletin delivery follows the
+[Product publication procedure](../operations/product-devnet-deployment.md)
+under its own reviewed scope. Completed publication approval is not reusable.
 
 ## First record: no spending or musical upload
 
-1. Open the identified read-only candidate on the named iPhone. Tap **Read app
-   information** once, then **Copy support report** before another relaunch.
-   **View support report** provides a selectable fallback if copying fails.
-   No wallet is needed for this read.
-2. Retain the `dotify.host-qualification.v1` report's `build.source`,
-   `build.configDigest`, `build.appVersion` and `hostSoftware` observation. A
-   successful 0.31 observation reports `platform: Ios`, the Host's actual
-   application labels and `runtimeVersion: 0.31.0` (or another explicitly reviewed
-   0.31 patch). Record actual values, not a reconstruction from screenshots.
-   The full listener's About report is a separate format; it does not replace
-   this isolated candidate's source-bound record.
-3. If Runtime is absent, older, malformed, unavailable or timed out, retain that
-   report and stop the qualification. Do not infer Runtime from app build 23.
-   This result does not authorize transaction setup or a second signing attempt.
+1. Tap **Read app information** once. Only Runtime 0.31.x enables the account
+   action. On absent/older/malformed/timed-out info, retain **Copy support report**
+   and stop; do not infer Runtime from a native app build number.
+2. Tap **Share my Dotify account** once and use ordinary Host consent for the
+   selected artist account. No message or transaction signature is requested.
+3. Compare the public Substrate/EVM addresses with the intended Product account.
+   Other Products/derivation indices can differ from a main wallet. Check the
+   acknowledgement only if this is the account you intend for your artist space.
+4. Retain **Copy support report** before retry/relaunch. Review the public
+   key/addresses included before sharing. **View support report** allows manual
+   selection if copying fails. Denial, malformed response, timeout or account
+   mismatch stops this gate.
 
-The collector only reads bounded public `system.info` labels. A successful
-report establishes that method on this named build; it does not prove signing,
-CASH, native transaction execution or audio continuity.
+The `dotify.account-qualification.v1` report binds source/configuration/app/SDK,
+actual Host info, requested Product/index/prefix and a public address snapshot.
+Owner acknowledgement records a choice, not signer control, native chain mapping
+or artist authority. This report authorizes no transaction or access grant.
 
 ## Account and listening acceptance
 

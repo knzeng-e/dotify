@@ -1,7 +1,7 @@
 {
   "schema": "dotify.host-qualification-approval-plan.v1",
   "date": "2026-11-22",
-  "status": "authorized-blocked-before-signing",
+  "status": "executed-within-approved-scope",
   "source": "ecba4ea0465fba154de65a7db7232be62f854acb",
   "qualityRun": "https://github.com/knzeng-e/dotify/actions/runs/45035106617",
   "sourceTreeMatchesTestedPrHead": "f196cd73bf90d6e2b2ccae1e822af35b81893699",
@@ -296,10 +296,10 @@
     "rejectedBeforeProcessStart": true,
     "reason": "Explicit 0.1.90 authorization is required for remote custody changes because disruption or incorrect restoration is possible.",
     "resolutionRequired": "Explicit approval of this new bounded maintenance/publication scope; 0.1.89 authority is consumed.",
-    "resolvedBy": "Explicit owner approval of plan 507 before snapshot and maintenance"
+    "resolvedBy": "Explicit owner approval of plan 507 before maintenance or signing"
   },
   "activation": {
-    "nativeCandidatePublished": false,
+    "nativeCandidatePublished": true,
     "webChanged": false,
     "apisChanged": false,
     "artistRuntimeCreated": false,
@@ -312,8 +312,10 @@
     "newMusicalAllowance": 0,
     "additionalWriteAuthority": false,
     "recordedAt": "2026-11-22T15:16:10.589162+00:00",
-    "scopeConsumed": false
+    "scopeConsumed": true
   },
   "preparedStatus": "awaiting-explicit-authorization",
-  "executionAttempt": "host-account-0.1.90-execution-blocker-2026-11-22.json"
+  "executionAttempt": "host-account-0.1.90-execution-blocker-2026-11-22.json",
+  "statusBeforeCompletion": "authorized-blocked-before-signing",
+  "executionReceipt": "host-account-0.1.90-delivery-2026-11-22.json"
 }
