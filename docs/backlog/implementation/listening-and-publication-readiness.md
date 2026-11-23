@@ -1,5 +1,16 @@
 # Publication, listening reliability and CASH — execution order
 
+## Real selected-artist readback, 2026-11-23
+
+The [clean-source observation](evidence/artist-prerequisites-2026-11-23.md) accepts the intended
+account's existing mapping and absent pending/registered runtime at block
+16,102,263. The candidate isolates PAPI 3.3.0 for the operator and resolves native
+to canonical Ethereum block identity; the frontend dependency stays unchanged.
+A separate recompiled ten-contract/core/CDM read passes. Global native pending
+discovery, publication attestation, signer control and onboarding remain open;
+no runtime, service/client activation or funded action occurs.
+
+
 ## Selected-artist prerequisite reader candidate, 2026-11-23
 
 The [read-only operator candidate](../../how-to/check-artist-onboarding-prerequisites.md) checks the intended

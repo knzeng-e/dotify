@@ -33,12 +33,29 @@ nonzero without emitting a successful report.
 
 ## Interpret the result
 
-The reader selects one finalized native block, verifies the Paseo Asset Hub
-genesis and the existing `Revive.OriginalAccount` mapping, and requires the EVM
-provider to return that same block number/hash on chain 420420417. Providers that
-cannot supply matching canonical references are refused. All contract/code/CDM
-reads are pinned to this explicit block. Missing mapping is a failure, with no
-padded fallback or automatic mapping registration.
+The operator script uses the separately pinned `polkadot-api-operator` alias
+(PAPI 3.3.0), not the frontend's PAPI 1.23 line. The real Runtime refused the
+legacy codec for `Revive.OriginalAccount`. This is an operator-only dependency;
+it neither upgrades the application adapter nor establishes Host compatibility.
+
+The reader verifies Paseo Asset Hub genesis before looking up the artist,
+holds one finalized native block while reading its existing
+`Revive.OriginalAccount` mapping, and releases it on success, failure or abort.
+Missing mapping is a failure without address fallback or automatic registration.
+
+Native and Ethereum block hashes are different identities. On chain 420420417,
+the reader calls `eth_getBlockByHash` with the native hash, using Revive's
+[documented native-hash resolution](https://paritytech.github.io/polkadot-sdk/master/src/pallet_revive_eth_rpc/client.rs.html).
+That result must have the selected native height and the same Ethereum hash as
+the canonical `eth_getBlockByNumber` result. Equal heights alone never suffice.
+Missing resolution, malformed hashes or disagreement stops the report. All
+contract/code/CDM reads use that finalized height. This still trusts both RPCs;
+it is not independent cryptographic verification of the bridge.
+
+Report schema `dotify.artist-onboarding-prerequisites.v2` keeps `blockHash` as
+the native hash and adds `evmBlockHash` and an explicit resolution binding.
+Do not interpret either hash as the other, or promote the older synthetic-only
+v1 checks into real endpoint acceptance.
 
 It checks all seven factory facet bindings, initializer/directory pairing,
 native precision, nonempty code at all ten core addresses, and both exact CDM
@@ -70,8 +87,12 @@ before artist approvals. The [fresh-generation procedure](prepare-fresh-testnet-
 owns later key/profile, services and client activation. #85/#317 and physical
 value/media acceptance remain open; CASH stays disabled.
 
-Implementation: `web/scripts/artist-onboarding-prerequisites.mjs` contains the
+Implementation: `web/scripts/operator-native-snapshot.mjs` owns the isolated
+native codec and block-hold lifetime. `web/scripts/artist-onboarding-prerequisites.mjs` contains the
 state checks; `web/scripts/check-artist-onboarding.mjs` connects the installed
 SDK/PAPI and generated CDM ABIs. Deterministic tests exercise absent, pending and
 registered artists plus mapping, block, binding, code, CDM and state failures.
 These fixtures are not live-chain or physical Host acceptance.
+
+The [23 November clean-source observation](../backlog/implementation/evidence/artist-prerequisites-2026-11-23.md)
+records a real selected-artist success separately from the remaining gates.
