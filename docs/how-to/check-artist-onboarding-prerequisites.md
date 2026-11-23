@@ -93,3 +93,6 @@ state checks; `web/scripts/check-artist-onboarding.mjs` connects the installed
 SDK/PAPI and generated CDM ABIs. Deterministic tests exercise absent, pending and
 registered artists plus mapping, block, binding, code, CDM and state failures.
 These fixtures are not live-chain or physical Host acceptance.
+
+The [23 November clean-source observation](../backlog/implementation/evidence/artist-prerequisites-2026-11-23.md)
+records a real selected-artist success separately from the remaining gates.
