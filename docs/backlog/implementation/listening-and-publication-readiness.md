@@ -1,11 +1,20 @@
 # Publication, listening reliability and CASH — execution order
 
+## Owner decision, 23 November 2026
+
+The [development reset policy](../../how-to/prepare-fresh-testnet-generation.md#development-reset-policy) supersedes earlier
+preservation, migration and global pending-runtime discovery prerequisites.
+Start each development generation with empty application state. Keep selected
+artist state reconciliation and interrupted creation recovery in the onboarding
+flow. Historical checkpoints below record their original scope.
+
+
 ## Full fresh-core bytecode readback, 2026-11-23
 
 The [exact readback](evidence/fresh-core-bytecode-2026-11-23.md) verifies the ten
 deployed contracts including embedded constructor values, with both version-4
-CDM bindings at one finalized block. Native pending-runtime discovery remains
-open before updating the publication attestation.
+CDM bindings at one finalized block. Apply the development reset policy when
+preparing the fresh-generation publication attestation.
 
 ## Real selected-artist readback, 2026-11-23
 

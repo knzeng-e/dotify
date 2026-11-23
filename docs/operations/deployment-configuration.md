@@ -336,18 +336,17 @@ not require a publication API. Bind the publisher to the actual completed runtim
 before starting custody. The [procedure](../how-to/prepare-fresh-testnet-generation.md#review-one-contractapiclient-configuration)
 owns this sequence; the existing publisher startup preflight remains mandatory.
 
-Drain active work and stop all old writers before the final state capture.
-Preserve session epoch/revocations, live auth nonces and upload reservations/usage
-in the new PostgreSQL namespace during one operator transaction, retaining the
-old namespace as evidence. Do not import its catalog/checkpoint or old receipt
-lookups. Explicitly adapt and verify runtime row policies for the new namespace;
-the deployed `dotify`-only policy does not admit another name. Keep one custody
-owner, protected volume backups and all nonce/key/retention history. Retiring a
-release does not replenish storage or upload budgets.
+Stop old writers and apply the
+[development reset policy](../how-to/prepare-fresh-testnet-generation.md#development-reset-policy).
+Initialize a new empty PostgreSQL namespace with fresh authentication state,
+catalogue/checkpoints, receipt journals, admission records and queues. Verify
+that retired sessions and grants cannot authorize requests in the new namespace.
+Explicitly adapt and verify runtime row policies for the new namespace; the
+deployed `dotify`-only policy does not admit another name. Keep one custody writer.
+Account nonces and incurred storage obligations must follow current chain state.
 
 After artist-wallet creation and finalized runtime readback, prepare its unused
-content-key domain and bounded Bulletin policy, preserving every previous secret
-and account obligation. Start one matched custody with its normal preflight,
+content-key domain and bounded Bulletin policy. Start one matched custody with its normal preflight,
 then matching edges and signaling against fresh receipt/catalog paths and the
 new shared identity. Freeze the actual new-generation API catalog for the
 identified Web/Product delivery. No releases are expected yet; any indexed
@@ -638,7 +637,9 @@ uses explicit public native/EVM RPC endpoints and the tracked deployment/CDM
 files. It introduces no environment variable, hosted setting, secret or storage
 mount. Direct finalized factory reads cover only the selected artist; a successful
 report does not update publication quarantine or establish global pending-runtime
-coverage. Full deployment attestation and identified signing remain separate.
+coverage. For development resets, global discovery is outside the onboarding
+prerequisites under the reset policy. Deployment attestation and identified
+signing remain required.
 
 The operator reader's PAPI 3.3.0 alias is separate from the frontend dependency.
 Its v2 report resolves native-to-Ethereum block identity before pinned reads;
