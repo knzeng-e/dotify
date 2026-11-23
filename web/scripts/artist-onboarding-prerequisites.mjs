@@ -33,7 +33,14 @@ export async function inspectArtistOnboarding({ publicKey, deployment, packages 
   assert.ok(same(anchor.mappedPublicKey, publicKey), 'The finalized native mapping does not match the selected Product key');
   assert.equal(await call(deps.chainId), 420420417, 'Unexpected EVM chain');
   const block = await call(deps.block, anchor.number);
-  assert.ok(same(block.hash, anchor.hash) && block.number === BigInt(anchor.number), 'Native and EVM block references disagree');
+  // Revive Ethereum hashes differ from native hashes. Resolve the native hash
+  // through the RPC's documented native-hash lookup, then compare with its
+  // canonical by-number result. Never accept equal heights alone.
+  const resolved = await call(deps.blockByNativeHash, anchor.hash);
+  assert.ok(
+    block && resolved && hash(block.hash) && same(resolved.hash, block.hash) && block.number === BigInt(anchor.number) && resolved.number === block.number,
+    'Native and EVM block references disagree'
+  );
   const read = (target, name, args = []) => call(deps.read, target, name, args, BigInt(anchor.number));
   const code = async target => {
     const bytes = await call(deps.code, target, BigInt(anchor.number));
@@ -70,11 +77,13 @@ export async function inspectArtistOnboarding({ publicKey, deployment, packages 
   const runtime = pending !== zeroAddress ? pending : registered !== zeroAddress ? registered : null;
   if (runtime) codeHashes[runtime] = await code(runtime);
   return {
-    schema: 'dotify.artist-onboarding-prerequisites.v1',
+    schema: 'dotify.artist-onboarding-prerequisites.v2',
     chainId: 420420417,
     genesis: anchor.genesis,
     blockNumber: anchor.number,
     blockHash: anchor.hash,
+    evmBlockHash: block.hash,
+    blockReferenceBinding: 'native-hash-resolved-and-canonical-number-matched',
     // Deliberately omit the raw public key, mapping and native balance.
     accountFingerprint: deps.fingerprint(publicKey),
     artist,

@@ -5,6 +5,7 @@ import { inspectArtistOnboarding, ASSET_HUB_GENESIS } from './artist-onboarding-
 const addr = n => `0x${n.toString(16).padStart(40, '0')}`;
 const key = `0x${'ab'.repeat(32)}`,
   blockHash = `0x${'cd'.repeat(32)}`;
+const evmBlockHash = `0x${'ef'.repeat(32)}`;
 for (const args of [
   [],
   ['--public-key', 'PRIVATE_INVALID_INPUT'],
@@ -50,7 +51,8 @@ function fixture() {
     hashCode: () => blockHash,
     nativeSnapshot: async () => anchor,
     chainId: async () => 420420417,
-    block: async () => ({ number: 123n, hash: blockHash }),
+    block: async () => ({ number: 123n, hash: evmBlockHash }),
+    blockByNativeHash: async () => ({ number: 123n, hash: evmBlockHash }),
     code: async (target, block) => {
       calls.push(['code', target, block]);
       return '0x1234';
@@ -78,6 +80,9 @@ function fixture() {
 test('absent native artist: pins all contract/CDM/code reads and never claims global discovery or signing', async () => {
   const f = fixture();
   const report = await inspectArtistOnboarding(f.input, f.deps);
+  assert.equal(report.blockHash, blockHash);
+  assert.equal(report.evmBlockHash, evmBlockHash);
+  assert.notEqual(report.blockHash, report.evmBlockHash);
   assert.equal(report.state, 'absent');
   assert.equal(report.remainingApprovals, 8);
   assert.equal(report.boundaries.globalPendingDiscoveryComplete, false);
@@ -159,6 +164,30 @@ for (const [name, mutate] of [
     'divergent block',
     f => {
       f.deps.block = async () => ({ number: 123n, hash: key });
+    }
+  ],
+  [
+    'missing native-hash resolution',
+    f => {
+      f.deps.blockByNativeHash = async () => null;
+    }
+  ],
+  [
+    'divergent resolved height',
+    f => {
+      f.deps.blockByNativeHash = async () => ({ number: 122n, hash: evmBlockHash });
+    }
+  ],
+  [
+    'divergent canonical height',
+    f => {
+      f.deps.block = async () => ({ number: 124n, hash: evmBlockHash });
+    }
+  ],
+  [
+    'missing canonical hash',
+    f => {
+      f.deps.block = async () => ({ number: 123n, hash: null });
     }
   ],
   [

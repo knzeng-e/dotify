@@ -1,0 +1,45 @@
+{
+  "schema": "dotify.artist-prerequisites-observation.v1",
+  "recordedAt": "2026-11-23T01:37:58.491281+00:00",
+  "source": "bd4e8950a46b27b2622685a0e4cfbbcf6b16982e",
+  "clean": true,
+  "privateReportSha256": "d5d453bcb0763996b8d1af38da0faf319c60cb7b9c9c0991be77e7d1aa7d9635",
+  "accountFingerprint": "f033680e6ef4b801d178e6c3f3a5e0f0edc95d76dc2edf12d1220281af754492",
+  "chainId": 420420417,
+  "genesis": "0xd6eec26135305a8ad257a20d003357284c8aa03d0bdb2b357ab0a22371e11ef2",
+  "blockNumber": 16102263,
+  "nativeBlockHash": "0x17f7f4095ac3d03d35819534c22c40719af7e3a65797a03fa96da5858883a072",
+  "evmBlockHash": "0x779a5e045d584fca4ceca86d6a8611b397cb992b5c5f23eebd834225a5f81dd5",
+  "blockReferenceBinding": "native-hash-resolved-and-canonical-number-matched",
+  "factory": "0xe2199c16ea32402dd2bdc3730afba49ad5cd83f5",
+  "directory": "0x8af1531278831fe92689558f7b6cae92fc682ca4",
+  "nativeTokenDecimals": 10,
+  "packages": [
+    {
+      "name": "@dotify/artist-directory",
+      "address": "0x8af1531278831fe92689558f7b6cae92fc682ca4",
+      "version": 4
+    },
+    {
+      "name": "@dotify/artist-runtime-factory",
+      "address": "0xe2199c16ea32402dd2bdc3730afba49ad5cd83f5",
+      "version": 4
+    }
+  ],
+  "state": "absent",
+  "runtimePresent": false,
+  "completedStage": 0,
+  "remainingApprovals": 8,
+  "boundaries": {
+    "selectedArtistOnly": true,
+    "nativeMappingVerified": true,
+    "globalPendingDiscoveryComplete": false,
+    "reviewedBytecodeVerified": false,
+    "signerControlVerified": false,
+    "runtimeAuthorityVerified": false,
+    "publicationEnabled": false,
+    "transactionSubmitted": false
+  },
+  "networkWrites": 0,
+  "signerUsed": false
+}

@@ -639,3 +639,9 @@ files. It introduces no environment variable, hosted setting, secret or storage
 mount. Direct finalized factory reads cover only the selected artist; a successful
 report does not update publication quarantine or establish global pending-runtime
 coverage. Full deployment attestation and identified signing remain separate.
+
+The operator reader's PAPI 3.3.0 alias is separate from the frontend dependency.
+Its v2 report resolves native-to-Ethereum block identity before pinned reads;
+see the [reader procedure](../how-to/check-artist-onboarding-prerequisites.md).
+This changes the local operator dependency/setup, not any deployed component,
+service namespace, key profile or publication setting.
