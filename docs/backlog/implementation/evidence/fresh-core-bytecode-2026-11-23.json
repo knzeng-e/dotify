@@ -1,0 +1,86 @@
+{
+  "sourceCommit": "ee4df712d49c17ac2172db63e7f2836d6018c122",
+  "schema": "dotify.fresh-cdm-readback.v2",
+  "chainId": 420420417,
+  "nativeTokenDecimals": 10,
+  "artistCount": "0",
+  "deployer": "0xC3571714248588C6E19cDECe2778B75341b2c288",
+  "verifiedImplementations": [
+    "DiamondCutPallet",
+    "DiamondLoupePallet",
+    "OwnershipPallet",
+    "MusicRegistryPallet",
+    "MusicRoyaltiesPallet",
+    "MusicAccessPallet",
+    "MusicMetadataPallet",
+    "DotifyRuntimeInitializer",
+    "ArtistDirectory",
+    "ArtistRuntimeFactory"
+  ],
+  "implementationCodeHashes": [
+    {
+      "name": "DiamondCutPallet",
+      "address": "0x0288876e073fc6817c9502e5fbe58cd16e0867d3",
+      "codeHash": "0x4eb14617ebea61dd35a6535314dccd8a41f57bce8aeb60f7fe87c9bb3f5da0da"
+    },
+    {
+      "name": "DiamondLoupePallet",
+      "address": "0x56a0942f8ab8e2823cd26196e804d0caa0e2dd79",
+      "codeHash": "0xc98039a3b251c975f74f55bd94778ba00a9ca1f22ddc7c2ce29e91aa06b38425"
+    },
+    {
+      "name": "OwnershipPallet",
+      "address": "0x33d8f0a0f07031282d22197f0e201c36ac9df48d",
+      "codeHash": "0x1413371ab57a13a55d38194df3c149a83dec095f4d795de52f1317a3ed4486a0"
+    },
+    {
+      "name": "MusicRegistryPallet",
+      "address": "0x63d292526a26bc97177738601c243262adc63fe5",
+      "codeHash": "0xd660f736eb9e30073b9b8efe0e676ce5efd0619f63727cc16b3238b495396100"
+    },
+    {
+      "name": "MusicRoyaltiesPallet",
+      "address": "0xef2069a5c8feeb7b811e829b107766d2365ecfb4",
+      "codeHash": "0xc2f3e6d7590773f9c1b4003549d956d1b707a42a8d0290874e68039c820cb744"
+    },
+    {
+      "name": "MusicAccessPallet",
+      "address": "0x46b14bf579df388719856d04c22fffb6813d90ad",
+      "codeHash": "0x6d2a46ef57d7e089e5f0a4a81b25d9f929331dbee6f873bc8e112b4f65bf3094"
+    },
+    {
+      "name": "MusicMetadataPallet",
+      "address": "0x80c427decf74f14945e7d6a94a36d6d22b811405",
+      "codeHash": "0x1198bab8ded5b401c16f29d216855e8eb1ded8067fc1e11d1bf0fac2f147fe0a"
+    },
+    {
+      "name": "DotifyRuntimeInitializer",
+      "address": "0x2532718ccaa3720e01e68c5783ba86bb6620ee36",
+      "codeHash": "0xc5e0ac0fb5cb7c479e1d5c59d599a0b3fe827807e63e4a66fee17d43eaafc581"
+    },
+    {
+      "name": "ArtistDirectory",
+      "address": "0x8af1531278831fe92689558f7b6cae92fc682ca4",
+      "codeHash": "0x5682d9798a3e51e3b36a6a27080f51b7eb64682b75cbb69a24907c97bc85dc17"
+    },
+    {
+      "name": "ArtistRuntimeFactory",
+      "address": "0xe2199c16ea32402dd2bdc3730afba49ad5cd83f5",
+      "codeHash": "0x4e5146050a4b80b238107dc3f559123b45c8547df5a99d63af3fbf7f561dfaad"
+    }
+  ],
+  "blockNumber": 16129661,
+  "blockHash": "0xfbc36a07ce4ab26569730fc5745dd13029bc4f781567c4b7e6c9ed6e4bf0d30d",
+  "packages": [
+    {
+      "name": "@dotify/artist-directory",
+      "address": "0x8af1531278831fe92689558f7b6cae92fc682ca4",
+      "version": 4
+    },
+    {
+      "name": "@dotify/artist-runtime-factory",
+      "address": "0xe2199c16ea32402dd2bdc3730afba49ad5cd83f5",
+      "version": 4
+    }
+  ]
+}

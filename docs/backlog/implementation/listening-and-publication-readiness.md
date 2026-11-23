@@ -1,5 +1,12 @@
 # Publication, listening reliability and CASH — execution order
 
+## Full fresh-core bytecode readback, 2026-11-23
+
+The [exact readback](evidence/fresh-core-bytecode-2026-11-23.md) verifies the ten
+deployed contracts including embedded constructor values, with both version-4
+CDM bindings at one finalized block. Native pending-runtime discovery remains
+open before updating the publication attestation.
+
 ## Real selected-artist readback, 2026-11-23
 
 The [clean-source observation](evidence/artist-prerequisites-2026-11-23.md) accepts the intended
