@@ -25,6 +25,7 @@ type ListenViewProps = {
   roomGuest: boolean;
   onOpenArtist: (artistName: string) => void;
   onJoinRoom: (roomId: string) => void;
+  onBrowseRooms: () => void;
   onStartRoom: (track?: CatalogTrack) => void;
 };
 
@@ -44,6 +45,7 @@ export function ListenView({
   roomGuest,
   onOpenArtist,
   onJoinRoom,
+  onBrowseRooms,
   onStartRoom
 }: ListenViewProps) {
   const totalListening = openRooms.reduce((total, room) => total + roomPresenceCount(room.listenerCount, true), 0);
@@ -108,9 +110,12 @@ export function ListenView({
         <div className='live-empty'>
           <span className='live-empty-mark' aria-hidden='true' />
           <div>
-            <strong>Find a shared listening moment.</strong>
-            <span>Use Nearby in Rooms, join with a link, or open a room and invite someone.</span>
+            <strong>Find people to listen with</strong>
+            <span>Explore open rooms or join someone with an invite link.</span>
           </div>
+          <button className='secondary-action live-empty-action' type='button' onClick={onBrowseRooms}>
+            Explore rooms <ArrowRight size={16} aria-hidden='true' />
+          </button>
         </div>
       )}
     </section>

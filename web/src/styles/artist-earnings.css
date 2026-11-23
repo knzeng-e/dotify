@@ -429,22 +429,8 @@
   padding-block: 0;
   align-content: start;
 }
-.studio-release-search {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  padding: 0.7rem 0.8rem;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  margin: 0.75rem 0;
-  color: var(--muted);
-}
-.studio-release-search input {
-  min-width: 0;
-  width: 100%;
-  background: transparent;
-  border: 0;
-  color: var(--ink);
+.release-list-panel .music-search {
+  margin-block: 0.75rem;
 }
 .artist-console .release-tab {
   padding: 0.65rem 0.5rem;

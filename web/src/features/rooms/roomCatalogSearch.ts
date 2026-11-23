@@ -1,18 +1,12 @@
+import { normalizeCatalogText, searchCatalog } from '../catalog/searchCatalog';
 import type { CatalogTrack } from '../../shared/types';
 import { REQUEST_TEXT_MAX_LENGTH } from '../../shared/social';
 
-const normalize = (value: string) =>
-  value
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/\s+[—·]\s+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-
 export function searchRoomCatalog(tracks: CatalogTrack[], query: string): CatalogTrack[] {
-  const words = normalize(query).split(/\s+/).filter(Boolean);
-  return tracks.filter(track => track.active !== false && words.every(word => normalize(`${track.title} ${track.artist}`).includes(word)));
+  return searchCatalog(
+    tracks.filter(track => track.active !== false),
+    query
+  );
 }
 
 // Requests remain bounded text on the existing signaling protocol. A text
@@ -31,6 +25,7 @@ export function roomTrackRequestText(track: CatalogTrack): string {
 }
 
 export function resolveRequestedTrack(tracks: CatalogTrack[], text: string): CatalogTrack | null {
-  const matches = tracks.filter(track => track.active !== false && normalize(roomTrackRequestText(track)) === normalize(text));
+  const request = normalizeCatalogText(text);
+  const matches = tracks.filter(track => track.active !== false && normalizeCatalogText(roomTrackRequestText(track)) === request);
   return matches.length === 1 ? matches[0] : null;
 }
