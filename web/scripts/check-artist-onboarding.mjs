@@ -35,13 +35,8 @@ async function main() {
     if (entry.version !== snapshot.dependencies[name]) throw new Error('Inconsistent CDM version');
     return { name, address: entry.address, version: entry.version };
   });
-  const [{ createClient }, { getWsProvider }, address, viem] = await Promise.all([
-    import('polkadot-api'),
-    import('polkadot-api/ws-provider'),
-    import('@parity/product-sdk/address'),
-    import('viem')
-  ]);
-  const native = createClient(getWsProvider(values['native-ws']));
+  const [nativeReader, address, viem] = await Promise.all([import('./operator-native-snapshot.mjs'), import('@parity/product-sdk/address'), import('viem')]);
+  const native = nativeReader.createOperatorNativeClient(values['native-ws']);
   const evm = viem.createPublicClient({ transport: viem.http(values['evm-http'], { timeout: 10_000, retryCount: 0 }) });
   const abis = Object.values(snapshot.contracts).flatMap(entry => entry.abi);
   const registryAbi = viem.parseAbi(['function getAddressAtVersion(string name, uint32 version) view returns ((bool isSome, address value))']);
@@ -64,21 +59,14 @@ async function main() {
           deriveH160: key => address.deriveH160(viem.hexToBytes(key)),
           fingerprint: key => digest(Buffer.from(key.slice(2).toLowerCase(), 'hex')),
           hashCode: viem.keccak256,
-          async nativeSnapshot(artist) {
-            const spec = await native.getChainSpecData();
-            controller.signal.throwIfAborted();
-            const block = await native.getFinalizedBlock();
-            controller.signal.throwIfAborted();
-            const mapped = await native.getUnsafeApi().query.Revive.OriginalAccount.getValue(artist, { at: block.hash, signal: controller.signal });
-            return {
-              genesis: spec.genesisHash,
-              number: block.number,
-              hash: block.hash,
-              mappedPublicKey: mapped ? viem.toHex(address.ss58Decode(mapped).publicKey) : null
-            };
-          },
+          nativeSnapshot: artist =>
+            nativeReader.readOperatorNativeSnapshot(native, artist, {
+              signal: controller.signal,
+              decodePublicKey: mapped => viem.toHex(address.ss58Decode(mapped).publicKey)
+            }),
           chainId: () => evm.getChainId(),
           block: number => evm.getBlock({ blockNumber: BigInt(number) }),
+          blockByNativeHash: blockHash => evm.getBlock({ blockHash }),
           read: (target, functionName, args, blockNumber) => evm.readContract({ address: target, abi: abis, functionName, args, blockNumber }),
           code: (target, blockNumber) => evm.getCode({ address: target, blockNumber }),
           cdm: (name, version, blockNumber) =>
