@@ -80,8 +80,8 @@ npm --prefix contracts/evm run fresh:readback:testnet
 
 The v2 readback checks at one finalized block:
 
-- all ten deployed bytecodes against compiler output, masking only the compiler's
-  declared immutable slots;
+- all ten deployed bytecodes against compiler output with each declared immutable
+  slot filled from the reviewed manifest and explicit deployer address;
 - the factory's directory, initializer, seven facet addresses and native precision,
   plus the directory's factory/deployer binding;
 - zero finalized artists before cutover; this is not enumeration of unknown
@@ -89,7 +89,8 @@ The v2 readback checks at one finalized block:
 - each exact address/version pair in the recorded CDM snapshot, without searching
   a small version range or accepting another historical match.
 
-Getter comparisons separately bind the masked immutable values. Missing metadata,
+The report includes the deployed bytecode hash for each address. Getter comparisons
+independently confirm the factory and directory bindings. Missing metadata,
 wrong precision, different code, wrong bindings, a populated directory or mismatched
 CDM versions stop the readback. A local EVM rehearsal is not native Revive or Host
 acceptance. Archive the dated readback before creating a new artist.
