@@ -4,20 +4,34 @@
   gap: 1.75rem;
 }
 .listen-home-focused > .now-intro {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
   grid-row: auto;
   order: 0;
-  gap: 0.5rem 2rem;
+  gap: 0.8rem 2rem;
+  padding: clamp(1rem, 3vw, 2.5rem);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-lg);
+  background:
+    repeating-radial-gradient(circle at 93% 130%, transparent 0 12px, var(--action-soft) 13px, transparent 14px 23px),
+    linear-gradient(110deg, var(--night) 35%, var(--night-soft));
 }
 .listen-home-focused .now-intro h1 {
   max-width: none;
+  margin: 0;
   font-size: var(--text-display-sm);
-  margin-top: 0.3rem;
   line-height: 1.1;
 }
 .listen-home-focused .now-intro-copy {
-  border: 0;
-  padding: 0;
+  max-width: 36rem;
   margin-top: var(--space-2);
+  padding: 0;
+  border: 0;
+  color: var(--ink-soft);
+  font-size: var(--text-base);
+  line-height: 1.5;
 }
 .listen-home-focused > .catalogue-section {
   order: 1;
@@ -25,18 +39,6 @@
 }
 .listen-home-focused > .live-section {
   order: 1;
-}
-.listen-home-focused > .now-intro {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: end;
-  justify-content: space-between;
-}
-.listen-home-focused .now-intro-copy {
-  max-width: 36rem;
-  color: var(--ink-soft);
-  font-size: var(--text-base);
-  line-height: 1.5;
 }
 .presence-summary {
   color: var(--ink-soft);
@@ -56,6 +58,9 @@
   padding: 1rem;
   min-height: 0;
 }
+.live-empty-action {
+  margin-inline-start: auto;
+}
 .catalogue-grid .artist-text-button {
   min-height: var(--touch-target);
 }
@@ -63,8 +68,11 @@
   .listen-home-focused {
     gap: 1rem;
   }
-  .listen-home-focused .now-intro .eyebrow {
-    display: none;
+  .listen-home-focused .live-empty {
+    flex-wrap: wrap;
+  }
+  .live-empty > div {
+    flex: 1 1 12rem;
   }
   .listen-home-focused .now-intro-copy {
     margin-top: 0.35rem;
@@ -158,10 +166,6 @@
   padding-inline: 1rem;
 }
 
-.listen-home-focused .now-intro h1 {
-  font-size: var(--text-display-sm);
-  line-height: 1.1;
-}
 .recent-listening {
   min-width: 0;
   order: 3;

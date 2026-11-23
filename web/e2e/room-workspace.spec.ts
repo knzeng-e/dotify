@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
-async function hostRoom(page: Page) {
-  await page.goto('/?e2eRoom=public');
+async function hostRoom(page: Page, wideCatalog = false) {
+  await page.goto(wideCatalog ? '/?e2eRoom=public&e2eCatalog=wide' : '/?e2eRoom=public');
   await page.getByRole('button', { name: 'Open a room', exact: true }).click();
   const setup = page.getByRole('dialog', { name: 'Open a room', exact: true });
   // At 320px the picker scrolls inside an entering sheet. Wait for its finite
@@ -85,6 +85,28 @@ async function expectConversationFits(page: Page) {
   expect(bounds.composerBottom).toBeLessThanOrEqual(bounds.bottom + 1);
   expect(bounds.scrollWidth).toBeLessThanOrEqual(bounds.width);
 }
+
+test('a host can browse past the first six tracks and refine the queue search', async ({ page }) => {
+  await hostRoom(page, true);
+  await page.getByRole('button', { name: /Queue/ }).click();
+  const browse = page.getByRole('button', { name: 'Browse catalog' });
+  await browse.click();
+  const results = page.locator('.room-track-results');
+  const firstTrack = await results.getByRole('button').first().getAttribute('aria-label');
+  await expect(results.getByRole('button')).toHaveCount(6);
+  await page.getByRole('button', { name: 'Next results' }).click();
+  await expect(results.getByRole('button', { name: firstTrack!, exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Previous results' }).click();
+  await expect(results.getByRole('button').first()).toHaveAttribute('aria-label', firstTrack!);
+  await page.getByRole('textbox', { name: 'Find a track to add next' }).fill('7 sélection');
+  await expect(results.getByRole('button')).toHaveCount(1);
+  await expect(results).toContainText('Session selection 7');
+  await browse.click();
+  await expect(browse).toHaveAttribute('aria-expanded', 'false');
+  await expect(page.getByRole('textbox', { name: 'Find a track to add next' })).toHaveValue('7 sélection');
+  await browse.click();
+  await expect(results.getByRole('button')).toHaveCount(1);
+});
 
 for (const [width, height] of [
   [320, 568],

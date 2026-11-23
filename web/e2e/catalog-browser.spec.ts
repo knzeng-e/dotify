@@ -27,12 +27,13 @@ for (const width of [390, 1440]) {
     await expect(page.getByTestId('track-card')).toHaveCount(13);
     await page.getByRole('button', { name: 'Show as a row', exact: true }).click();
     const search = page.getByRole('searchbox', { name: 'Find a track or artist' });
-    await search.fill('sélection 7');
+    await search.fill('7 sélectión');
     await expect(page.getByTestId('track-card')).toHaveCount(1);
     await expect(catalog).toContainText('Session selection 7');
     await search.fill('nothing matching');
     await expect(catalog).toContainText('No tracks match');
     await page.getByRole('button', { name: 'Clear music search' }).click();
+    await expect(search).toBeFocused();
     await expect(page.getByTestId('track-card')).toHaveCount(13);
     await catalog.scrollIntoViewIfNeeded();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -47,6 +48,12 @@ for (const width of [390, 1440]) {
     await expect(page.getByTestId('locked-player-state')).toBeVisible();
   });
 }
+
+test('the empty Rooms section leads directly to room discovery', async ({ page }) => {
+  await page.goto('/?e2eRoom=public');
+  await page.getByRole('button', { name: 'Explore rooms' }).click();
+  await expect(page.locator('.rooms-landing-focused')).toBeVisible();
+});
 
 test.describe('Turkish browser locale', () => {
   test.use({ locale: 'tr-TR' });

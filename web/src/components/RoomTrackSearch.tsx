@@ -1,8 +1,10 @@
-import { ChevronDown, Music2, Plus, Search } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight, Music2, Plus, Search } from 'lucide-react';
 import { useId, useMemo, useState } from 'react';
 import type { CatalogTrack } from '../shared/types';
 import { searchRoomCatalog } from '../features/rooms/roomCatalogSearch';
 import { CoverImage } from './CoverImage';
+
+const PAGE_SIZE = 6;
 
 export function RoomTrackSearch({
   tracks,
@@ -24,9 +26,14 @@ export function RoomTrackSearch({
   selected?: boolean;
 }) {
   const id = useId();
-  const [browse, setBrowse] = useState(false);
-  const showResults = !selected && (Boolean(query.trim()) || browse);
+  const [expanded, setExpanded] = useState(() => Boolean(query.trim()));
+  const [page, setPage] = useState(0);
+  const showResults = !selected && expanded;
   const matches = useMemo(() => (showResults ? searchRoomCatalog(tracks, query) : []), [tracks, query, showResults]);
+  const lastPage = Math.max(0, Math.ceil(matches.length / PAGE_SIZE) - 1);
+  const currentPage = Math.min(page, lastPage);
+  const first = currentPage * PAGE_SIZE;
+  const pageTracks = matches.slice(first, first + PAGE_SIZE);
   return (
     <div className='room-track-search'>
       <label className='sr-only' htmlFor={id}>
@@ -39,7 +46,8 @@ export function RoomTrackSearch({
           className='field'
           value={query}
           onChange={event => {
-            setBrowse(false);
+            setPage(0);
+            setExpanded(Boolean(event.target.value.trim()));
             onQueryChange(event.target.value);
           }}
           placeholder={label}
@@ -52,10 +60,11 @@ export function RoomTrackSearch({
           disabled={disabled}
           aria-label='Browse catalog'
           aria-expanded={showResults}
-          aria-controls={`${id}-results`}
+          aria-controls={showResults ? `${id}-results` : undefined}
           onClick={() => {
-            if (query.trim()) onQueryChange('');
-            setBrowse(value => !value);
+            setPage(0);
+            if (selected) onQueryChange('');
+            setExpanded(!showResults);
           }}
         >
           <ChevronDown size={18} aria-hidden='true' />
@@ -63,14 +72,15 @@ export function RoomTrackSearch({
       </div>
       {showResults && (
         <>
-          <ul id={`${id}-results`} className='room-track-results' aria-label={`${label} results`}>
-            {matches.slice(0, 6).map(track => (
+          <ul id={`${id}-results`} className='room-track-results' key={currentPage} aria-label={`${label} results`}>
+            {pageTracks.map(track => (
               <li key={track.id}>
                 <button
                   type='button'
                   disabled={disabled}
                   onClick={() => {
-                    setBrowse(false);
+                    setPage(0);
+                    setExpanded(false);
                     onPick(track);
                   }}
                   aria-label={`${action} ${track.title} by ${track.artist}`}
@@ -85,13 +95,23 @@ export function RoomTrackSearch({
               </li>
             ))}
           </ul>
-          <p className='room-track-search-hint' role='status'>
-            {matches.length === 0
-              ? 'No matching track in the available catalog. Try another title or artist.'
-              : matches.length > 6
-                ? `Showing 6 of ${matches.length} tracks. Type a title or artist to narrow the list.`
-                : 'Choose a track from the catalog.'}
-          </p>
+          <div className='room-search-footer'>
+            <p className='room-track-search-hint' role='status'>
+              {matches.length
+                ? `${first + 1}–${first + pageTracks.length} of ${matches.length} ${matches.length === 1 ? 'track' : 'tracks'}`
+                : 'No matching track in the available catalog. Try another title or artist.'}
+            </p>
+            {lastPage > 0 && (
+              <div className='room-search-pages' role='group' aria-label='Catalog result pages'>
+                <button type='button' disabled={disabled || currentPage === 0} aria-label='Previous results' onClick={() => setPage(currentPage - 1)}>
+                  <ChevronLeft size={18} aria-hidden='true' />
+                </button>
+                <button type='button' disabled={disabled || currentPage === lastPage} aria-label='Next results' onClick={() => setPage(currentPage + 1)}>
+                  <ChevronRight size={18} aria-hidden='true' />
+                </button>
+              </div>
+            )}
+          </div>
         </>
       )}
     </div>

@@ -720,6 +720,29 @@
   width: 100%;
   padding-left: 2.6rem;
 }
+.room-track-browse[aria-expanded='true'] svg {
+  transform: rotate(180deg);
+}
+.room-search-footer, .room-search-pages {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.room-search-footer {
+  justify-content: space-between;
+}
+.room-search-pages button {
+  display: grid;
+  place-items: center;
+  width: var(--touch-target);
+  height: var(--touch-target);
+  border-radius: var(--radius-sm);
+  background: var(--surface-soft);
+  color: var(--ink);
+}
+.room-search-pages button:disabled {
+  opacity: 0.4;
+}
 .room-track-results {
   list-style: none;
   margin: 0.5rem 0 0;

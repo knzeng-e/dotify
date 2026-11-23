@@ -1,5 +1,7 @@
+import { MusicSearchField } from '../../shared/ui/MusicSearchField';
+import { searchCatalog } from '../../features/catalog/searchCatalog';
 import { useEffect, useState, type FormEvent } from 'react';
-import { Library, Play, Power, PowerOff, Save, Search, ShieldCheck, Pencil } from 'lucide-react';
+import { Library, Play, Power, PowerOff, Save, ShieldCheck, Pencil } from 'lucide-react';
 import { ReleaseMetadataEditor } from '../../components/ReleaseMetadataEditor';
 import { CoverImage } from '../../components/CoverImage';
 import { EndpointRow } from '../../shared/ui/EndpointRow';
@@ -52,7 +54,7 @@ export function ReleasesTab({
 }: ReleasesTabProps) {
   const [search, setSearch] = useState('');
   const [editing, setEditing] = useState<CatalogTrack | null>(null);
-  const visibleTracks = artistTracks.filter(track => track.title.toLocaleLowerCase().includes(search.toLocaleLowerCase()));
+  const visibleTracks = searchCatalog(artistTracks, search);
   const selectedRelease = visibleTracks.find(track => track.id === selectedReleaseId) ?? visibleTracks[0] ?? null;
   const selectedEarnings = earnings.find(row => row.track.id === selectedRelease?.id);
   const runtimeAddress = selectedRelease ? runtimeAddressFromTrackId(selectedRelease) : null;
@@ -92,15 +94,12 @@ export function ReleasesTab({
       <aside className='doc-panel releases-panel release-list-panel'>
         {editing && <ReleaseMetadataEditor key={editing.id} track={editing} onClose={() => setEditing(null)} />}
         <PanelTitle icon={Library} title='My releases' meta={`${artistTracks.length} releases`} />
-        <label className='studio-release-search'>
-          <Search size={17} aria-hidden='true' />
-          <input type='search' value={search} onChange={event => setSearch(event.target.value)} placeholder='Search releases' aria-label='Search releases' />
-        </label>
+        <MusicSearchField label='Search releases' clearLabel='Clear release search' value={search} onChange={setSearch} />
         <div
           className='release-tabs'
-          role={artistTracks.length ? 'tablist' : undefined}
-          aria-label={artistTracks.length ? 'Published releases' : undefined}
-          aria-orientation={artistTracks.length ? 'vertical' : undefined}
+          role={visibleTracks.length ? 'tablist' : undefined}
+          aria-label={visibleTracks.length ? 'Published releases' : undefined}
+          aria-orientation={visibleTracks.length ? 'vertical' : undefined}
         >
           {visibleTracks.length > 0 ? (
             visibleTracks.map(track => {
@@ -153,7 +152,9 @@ export function ReleasesTab({
               );
             })
           ) : (
-            <div className='studio-empty'>{search ? 'No releases match this search.' : 'No published releases for this artist account yet.'}</div>
+            <div className='studio-empty' role='status'>
+              {search ? 'No releases match this search.' : 'No published releases for this artist account yet.'}
+            </div>
           )}
         </div>
       </aside>

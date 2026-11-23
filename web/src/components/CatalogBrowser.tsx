@@ -1,4 +1,6 @@
-import { ArrowLeft, ArrowRight, GalleryHorizontal, Info, LayoutGrid, Library, Search, X } from 'lucide-react';
+import { MusicSearchField } from '../shared/ui/MusicSearchField';
+import { searchCatalog } from '../features/catalog/searchCatalog';
+import { ArrowLeft, ArrowRight, GalleryHorizontal, Info, LayoutGrid, Library, Search } from 'lucide-react';
 import { useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type MutableRefObject } from 'react';
 import { TrackArtworkButton } from './TrackArtworkButton';
 import { DotBirth } from './DotBirth';
@@ -24,12 +26,6 @@ type CatalogBrowserProps = {
   roomGuest: boolean;
   onOpenArtist: (artist: string) => void;
 };
-
-const fold = (value: string) =>
-  value
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase();
 
 export function CatalogBrowser({
   journey,
@@ -65,10 +61,7 @@ export function CatalogBrowser({
   };
   const [edges, setEdges] = useState({ start: true, end: true });
   const listRef = useRef<HTMLDivElement>(null);
-  const tracks = useMemo(() => {
-    const term = fold(query.trim());
-    return catalogTracks.filter(track => fold(`${track.title} ${track.artist}`).includes(term));
-  }, [catalogTracks, query]);
+  const tracks = useMemo(() => searchCatalog(catalogTracks, query), [catalogTracks, query]);
   const trackIds = tracks.map(track => track.id).join('|');
   useLayoutEffect(() => {
     const list = listRef.current;
@@ -128,22 +121,7 @@ export function CatalogBrowser({
   return (
     <div className='catalog-browser'>
       <div className='catalog-browser-tools'>
-        <div className='catalog-search'>
-          <Search size={18} aria-hidden='true' />
-          <input
-            className='field'
-            type='search'
-            aria-label='Find a track or artist'
-            placeholder='Find a track or artist'
-            value={query}
-            onChange={event => setQuery(event.target.value)}
-          />
-          {query && (
-            <button type='button' aria-label='Clear music search' onClick={() => setQuery('')}>
-              <X size={18} />
-            </button>
-          )}
-        </div>
+        <MusicSearchField label='Find a track or artist' clearLabel='Clear music search' value={query} onChange={setQuery} />
         <div className='catalog-browse-actions'>
           <button
             className='catalog-view-toggle'
@@ -158,6 +136,7 @@ export function CatalogBrowser({
             }}
           >
             {showAll ? <GalleryHorizontal size={18} /> : <LayoutGrid size={18} />}
+            <span>{showAll ? 'Row' : 'Grid'}</span>
           </button>
           {!showAll && (
             <div className='catalog-row-controls' role='group' aria-label='Browse tracks'>
@@ -172,7 +151,7 @@ export function CatalogBrowser({
         </div>
       </div>
       <p className='catalog-results-count' role='status' hidden={!query}>
-        {query ? `${tracks.length} matching tracks` : null}
+        {query ? `${tracks.length} matching ${tracks.length === 1 ? 'track' : 'tracks'}` : null}
       </p>
       <div
         ref={listRef}
@@ -223,15 +202,6 @@ export function CatalogBrowser({
                 />
                 <div className='catalogue-card-copy'>
                   <button
-                    className='catalogue-details-trigger'
-                    type='button'
-                    aria-label={`About ${title}`}
-                    title='About this release'
-                    onClick={() => setDetailsTrack(track)}
-                  >
-                    <Info size={18} />
-                  </button>
-                  <button
                     className='catalogue-card-open'
                     type='button'
                     data-testid='track-card-open'
@@ -255,9 +225,20 @@ export function CatalogBrowser({
                   >
                     {artist}
                   </button>
-                  <span className='catalogue-card-access' data-access={accessGranted ? 'open' : 'locked'} aria-hidden='true'>
-                    {catalogAccessShortLabel(track, hasCatalogAccess, nativePaymentSymbol)}
-                  </span>
+                  <div className='catalogue-card-footer'>
+                    <span className='catalogue-card-access' data-access={accessGranted ? 'open' : 'locked'} aria-hidden='true'>
+                      {catalogAccessShortLabel(track, hasCatalogAccess, nativePaymentSymbol)}
+                    </span>
+                    <button
+                      className='catalogue-details-trigger'
+                      type='button'
+                      aria-label={`About ${title}`}
+                      title='About this release'
+                      onClick={() => setDetailsTrack(track)}
+                    >
+                      <Info size={18} />
+                    </button>
+                  </div>
                 </div>
               </article>
             );

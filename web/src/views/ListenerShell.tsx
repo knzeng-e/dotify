@@ -355,6 +355,7 @@ export function ListenerShell() {
                     roomGuest={isRoomGuest}
                     onOpenArtist={handleOpenArtistProfile}
                     onJoinRoom={handleJoinRoomRequest}
+                    onBrowseRooms={() => handleNavSelect('rooms')}
                     onStartRoom={showCreateRoom}
                   />
                 )}
