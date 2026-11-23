@@ -108,6 +108,9 @@ jobs:
       - name: Product deployment guard tests (offline)
         run: npm run test:product-deploy-environment
 
+      - name: Artist onboarding prerequisite tests (offline)
+        run: npm run test:artist-prerequisites
+
       - name: Build
         run: npm run build
 

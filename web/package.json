@@ -59,6 +59,8 @@
 		"build:qualification": "tsc -b && node scripts/build-qualification.mjs",
 		"build:account-qualification": "tsc -b && node scripts/build-qualification.mjs --account",
 		"test:qualification": "node --test scripts/qualification-profile.test.mjs && vitest run src/qualification/report.test.ts src/qualification/account.test.ts src/features/productHost/productHostInfo.test.ts",
+		"test:artist-prerequisites": "node --test scripts/artist-onboarding-prerequisites.test.mjs",
+		"check:artist-prerequisites": "node scripts/check-artist-onboarding.mjs",
 		"dev:qualification": "vite --config scripts/qualification-vite.mjs --host 127.0.0.1 --port 5278"
 	},
 	"dependencies": {

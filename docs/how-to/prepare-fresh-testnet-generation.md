@@ -122,7 +122,11 @@ interruption and the existing startup checks:
    Complete the CDM publication/readback with exclusive storage-account access.
    Retain the finalized empty-directory core/CDM readback **before** creating an
    artist.
-2. Have the artist wallet create its runtime and approve the seven installation/
+2. First run the [selected-artist prerequisite check](check-artist-onboarding-prerequisites.md)
+   to inspect the intended account's mapping and pending/registered state. Its
+   report does not replace global discovery, reviewed-bytecode attestation or
+   identified signer control. Complete those gates before approvals.
+   Have the artist wallet create its runtime and approve the seven installation/
    finalization calls against the new factory. These are contract calls; they do
    not require the publication API. Use a wallet interaction or an identified
    qualification client bound to the new factory/CDM generation. Retain finality,

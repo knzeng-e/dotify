@@ -7,6 +7,7 @@ import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { execFile, fork, type ChildProcess } from 'node:child_process';
 import { once } from 'node:events';
+import { setTimeout as delay } from 'node:timers/promises';
 import Fastify from 'fastify';
 import { privateKeyToAccount } from 'viem/accounts';
 import { PostgresState, SharedStateUnavailableError } from './postgres.js';
@@ -129,6 +130,18 @@ after(async () => {
   await a.pool.query('DELETE FROM dotify_state_identity WHERE namespace=$1', [namespace]);
   await Promise.all([a.close(), b.close()]);
 });
+
+// The client error and PostgreSQL's backend cleanup have separate clocks.
+// Observe server-side lock release before asking another writer to take over.
+async function waitForAdvisoryLockRelease(pid: number): Promise<void> {
+  const deadline = Date.now() + 5000;
+  while (Date.now() < deadline) {
+    const locks = await b.pool.query("SELECT 1 FROM pg_locks WHERE pid=$1 AND locktype='advisory'", [pid]);
+    if (!locks.rowCount) return;
+    await delay(10);
+  }
+  assert.fail('The terminated backend must release its advisory locks before takeover');
+}
 
 describe('W36 real PostgreSQL / independent API processes', () => {
   it('imports identity and refuses a mismatched deployment or destructive reinitialization', async () => {
@@ -445,16 +458,7 @@ describe('W36 real PostgreSQL / independent API processes', () => {
       [a.lockId('catalog-writer')]
     );
     await b.pool.query('SELECT pg_terminate_backend($1)', [owner.rows[0].pid]);
-    // Termination is asynchronous: observe lock cleanup before asserting takeover.
-    let released = false;
-    for (let attempt = 0; attempt < 100; attempt++) {
-      const locks = await b.pool.query("SELECT 1 FROM pg_locks WHERE pid=$1 AND locktype='advisory'", [owner.rows[0].pid]);
-      if (!locks.rowCount) {
-        released = true;
-        break;
-      }
-    }
-    assert.ok(released, 'The terminated backend must release its advisory locks');
+    await waitForAdvisoryLockRelease(owner.rows[0].pid);
 
     const takeover = await replacement.asWriter(async () => replacement.save({ ...snapshot, lastIndexedBlock: 12 }));
     assert.equal(takeover.elected, true);
@@ -484,6 +488,7 @@ describe('W36 real PostgreSQL / independent API processes', () => {
       })
     ]);
     await release();
+    await waitForAdvisoryLockRelease(lock.rows[0].pid);
     const takeover = await b.holdExclusive('test-custody', () => {});
     await takeover();
   });

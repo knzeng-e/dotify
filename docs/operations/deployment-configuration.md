@@ -630,3 +630,12 @@ The [published-audio authentication command](bulletin-published-audio-check.md)
 is an explicit offline operator tool with separate private plan/key paths and
 trusted digests. It adds no hosted route, environment setting, volume, secret
 installation or startup action. Ordinary media still refuses original archives.
+
+## Selected-artist onboarding prerequisite reader
+
+The [read-only candidate procedure](../how-to/check-artist-onboarding-prerequisites.md)
+uses explicit public native/EVM RPC endpoints and the tracked deployment/CDM
+files. It introduces no environment variable, hosted setting, secret or storage
+mount. Direct finalized factory reads cover only the selected artist; a successful
+report does not update publication quarantine or establish global pending-runtime
+coverage. Full deployment attestation and identified signing remain separate.

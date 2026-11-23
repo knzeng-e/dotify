@@ -217,3 +217,5 @@ Older design notes and dated evidence retain their historical scope; use the
 current plan and code before treating an old proposal as current behavior.
 
 [Public project page](index.html) · [Presentation](presentation/dotify-showcase-2026.pdf) · [Product specification](../spec.md)
+
+- [Check one Product artist before onboarding](how-to/check-artist-onboarding-prerequisites.md) — read-only mapping, exact CDM and pending-runtime state; no publication authority.
