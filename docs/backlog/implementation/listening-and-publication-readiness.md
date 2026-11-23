@@ -1,5 +1,17 @@
 # Publication, listening reliability and CASH — execution order
 
+## Selected-artist prerequisite reader candidate, 2026-11-23
+
+The [read-only operator candidate](../../how-to/check-artist-onboarding-prerequisites.md) checks the intended
+Product key's existing native mapping and direct pending/registered factory
+state at one finalized native/EVM block, with exact CDM and core bindings.
+It distinguishes absent, pending and registered artists without EVM event-log
+absence assumptions. This is one artist's state, not global pending discovery,
+reviewed-bytecode attestation, signer control or publication activation. Those
+remaining prerequisites still precede artist approvals; #85/#317 remain open.
+No live check, delivery, service switch or funded action is recorded here.
+
+
 ## Artist account choice and native mapping accepted, 2026-11-22
 
 The [source-bound 0.1.90 iPhone report](evidence/host-account-ios-0.1.90-2026-11-22.md) matches delivered
