@@ -345,7 +345,9 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
   const artistPublicationSafety = resolveConfiguredArtistPublicationSafety({
     explicitE2e: import.meta.env.DEV && isArtistPublishE2eScenarioRequested(),
     rpcUrl: ethRpcUrl,
-    currentChainId
+    currentChainId,
+    configuredFactory: factoryAddress,
+    configuredDirectory: directoryAddress
   });
   const artistPublicationQuarantined = artistPublicationSafety.quarantined;
   const artistRegistrationConfigured = Boolean(factoryAddress && directoryAddress);

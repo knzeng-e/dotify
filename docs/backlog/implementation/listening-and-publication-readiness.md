@@ -1,5 +1,14 @@
 # Publication, listening reliability and CASH — execution order
 
+## Fresh-generation publication attestation candidate
+
+The client publication guard now binds the actual factory and directory it
+receives to the [reviewed fresh-core report](evidence/fresh-core-bytecode-2026-11-23.md).
+Tests tie the attestation to the registry bytecode hash and exact version-4
+CDM bindings. Simulated creation and interrupted setup at stages 4, 6 and 7
+target that same factory. Physical signer control, artist approvals and the
+matched service/client cutover remain to be verified.
+
 ## Owner decision, 23 November 2026
 
 The [development reset policy](../../how-to/prepare-fresh-testnet-generation.md#development-reset-policy) supersedes earlier

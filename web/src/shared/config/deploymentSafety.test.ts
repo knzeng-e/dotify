@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { ARTIST_PUBLICATION_QUARANTINE_MESSAGE, isLoopbackRpcUrl, resolveArtistPublicationSafety, validateProductionEnvironment } from './deploymentSafety';
+import readback from '../../../../docs/backlog/implementation/evidence/fresh-core-bytecode-2026-11-23.json';
+import cdm from '../../generated/contracts/cdm.json';
+import { deployments } from './deployments';
+import {
+  ARTIST_PUBLICATION_QUARANTINE_MESSAGE,
+  isLoopbackRpcUrl,
+  registryOwnerGuardAttestation,
+  resolveArtistPublicationSafety,
+  resolveConfiguredArtistPublicationSafety,
+  validateProductionEnvironment
+} from './deploymentSafety';
 import type { ArtistPublicationSafetyInput } from './deploymentSafety';
 
 const safeInput: ArtistPublicationSafetyInput = {
@@ -40,6 +50,42 @@ describe('isLoopbackRpcUrl', () => {
 
   it.each(['https://eth-rpc-testnet.polkadot.io/', 'https://rpc.example/', 'not a url'])('rejects public or invalid RPC %s', rpcUrl => {
     expect(isLoopbackRpcUrl(rpcUrl)).toBe(false);
+  });
+});
+
+describe('the configured publication attestation', () => {
+  it('binds the client addresses and CDM to the finalized fresh-core evidence', () => {
+    const attestation = registryOwnerGuardAttestation;
+    const registry = readback.implementationCodeHashes.find(entry => entry.name === 'MusicRegistryPallet');
+    expect(registry?.address).toBe(deployments.pallets.registryPallet);
+    expect(attestation).toMatchObject({
+      chainId: readback.chainId,
+      auditedBlock: readback.blockNumber,
+      auditedBlockHash: readback.blockHash,
+      correctedRegistryCodeHash: registry?.codeHash,
+      futureFactoryRegistryCodeHash: registry?.codeHash
+    });
+    expect(attestation.factory).toBe(deployments.factory);
+    expect(attestation.directory).toBe(deployments.directory);
+    for (const { name, address, version } of readback.packages) {
+      const key = name as keyof typeof cdm.contracts;
+      expect(cdm.contracts[key]).toMatchObject({ address, version });
+      expect(cdm.dependencies[key]).toBe(version);
+    }
+  });
+
+  it('accepts the attested generation and quarantines a different target or chain', () => {
+    const input = {
+      explicitE2e: false,
+      rpcUrl: 'https://eth-rpc-testnet.polkadot.io/',
+      currentChainId: readback.chainId,
+      configuredFactory: deployments.factory,
+      configuredDirectory: deployments.directory
+    };
+    expect(resolveConfiguredArtistPublicationSafety(input)).toEqual({ quarantined: false, reason: '' });
+    expect(resolveConfiguredArtistPublicationSafety({ ...input, configuredFactory: input.configuredDirectory }).quarantined).toBe(true);
+    expect(resolveConfiguredArtistPublicationSafety({ ...input, configuredDirectory: undefined }).quarantined).toBe(true);
+    expect(resolveConfiguredArtistPublicationSafety({ ...input, currentChainId: null }).quarantined).toBe(true);
   });
 });
 
