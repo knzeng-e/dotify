@@ -1,5 +1,13 @@
 # Publication, listening reliability and CASH — execution order
 
+## Service reset candidate after the first artist runtime
+
+Product 0.1.91 was delivered and the artist setup screen completed on the phone.
+A finalized Paseo read found the runtime registered and owned by the recorded
+artist. The [managed PostgreSQL reset](../../operations/shared-api-state.md#reset-a-managed-development-namespace)
+prepares the empty generation and changes the managed runtime policy in one
+transaction. Hosted activation and the first release remain ahead.
+
 ## Fresh-generation publication attestation candidate
 
 The client publication guard now binds the actual factory and directory it

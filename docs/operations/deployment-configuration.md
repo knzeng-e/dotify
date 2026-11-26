@@ -341,8 +341,9 @@ Stop old writers and apply the
 Initialize a new empty PostgreSQL namespace with fresh authentication state,
 catalogue/checkpoints, receipt journals, admission records and queues. Verify
 that retired sessions and grants cannot authorize requests in the new namespace.
-Explicitly adapt and verify runtime row policies for the new namespace; the
-deployed `dotify`-only policy does not admit another name. Keep one custody writer.
+Use the [managed-namespace cutover command](shared-api-state.md#reset-a-managed-development-namespace)
+to move the deployed runtime row policies to the new namespace in the same
+transaction as initialization. Keep one custody writer.
 Account nonces and incurred storage obligations must follow current chain state.
 
 After artist-wallet creation and finalized runtime readback, prepare its unused
