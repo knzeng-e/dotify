@@ -1,6 +1,7 @@
 import { assertClassicPrice } from '../features/runtime/nativePrice';
 import { nativeRoyaltyApiUrl } from '../features/runtime/nativePaymentHistory';
 import { audioReferenceForMetadata } from '../shared/utils/protectedAudio';
+import { PublicationCapacityError, publicationCapacityFeedback } from '../features/uploads/publicationCapacity';
 import { preparePublicationAssets } from '../features/uploads/preparePublicationAssets';
 import { PreparedReleaseRecoveryError, type PreparedRelease } from '../features/artist-studio/preparedReleaseRecovery';
 import { audioPreparationLabel, AudioPreparationError, AudioPreparationPending } from '../features/uploads/streamingPreparation';
@@ -1262,6 +1263,20 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
       preparingAssets = false;
       const message = registrationError instanceof Error ? registrationError.message : 'Registration failed';
       setRightsStatus(message);
+      if (registrationError instanceof PublicationCapacityError && !submittedRegistrationTxHash) {
+        setPublicationFeedback({
+          tone: 'error',
+          ...publicationCapacityFeedback(registrationError, { runtimeAddress, contentHash: fileHash }),
+          recoveryAction: {
+            label: 'Check capacity and retry',
+            run: () => {
+              void latestRegisterRights.current();
+            }
+          },
+          steps: buildReleasePublicationRoadmap(publicationStage)
+        });
+        return;
+      }
       const pending = registrationError instanceof AudioPreparationPending && !submittedRegistrationTxHash;
       setPublicationFeedback({
         tone: pending ? 'pending' : 'error',

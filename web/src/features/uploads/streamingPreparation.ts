@@ -1,3 +1,5 @@
+import { parsePublicationCapacity, PublicationCapacityError } from './publicationCapacity';
+
 export class AudioPreparationError extends Error {
   constructor(
     message: string,
@@ -21,7 +23,7 @@ type Job = {
   progress?: AudioPreparationProgress;
   reason?: string;
   attempts?: number;
-  failure?: { stage?: string; storageStatus?: number };
+  failure?: { stage?: string; storageStatus?: number; capacity?: unknown };
   id: string;
   state: AudioPreparationPhase;
   result?: { ref: string; runtimeAddress: string; contentHash: string; keyVersion: string };
@@ -109,6 +111,7 @@ export async function waitForAudioPreparation(input: {
         try {
           job = (await input.request(id, true)) as Job;
         } catch (error) {
+          if (error instanceof PublicationCapacityError) throw error;
           const code = (error as { code?: string })?.code ?? '';
           throw new AudioPreparationError(
             error instanceof Error ? error.message : 'Preparation could not resume.',
@@ -118,6 +121,8 @@ export async function waitForAudioPreparation(input: {
         }
         continue;
       }
+      const capacity = parsePublicationCapacity(job.failure?.capacity);
+      if (capacity) throw capacity;
       throw new AudioPreparationError(
         needsAdmission
           ? 'New release publishing is not enabled for this audio yet. Your draft is safe. Please contact the Dotify operator before trying again.'

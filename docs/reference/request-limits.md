@@ -37,3 +37,23 @@ Private journals and persisted schemas are outside this network-body guard.
 The guard mitigates request amplification independently of the validator. The
 [#432 candidate](api-schema-compatibility.md) replaces Zod 3 with patched Zod 4
 while retaining these limits; a source update is not a deployment record.
+
+
+## Artist upload limits
+
+The [upload routes](../../services/api/src/routes/uploads.ts) enforce ceilings
+of 50 MiB for audio, 5 MiB for covers and 50 KiB for release metadata. The
+[media checks](../../services/api/src/services/mediaValidation.ts) recognize MP3,
+WAV, FLAC, M4A, AAC, Ogg and WebM audio, and JPEG, PNG, WebP and GIF artwork.
+The [streaming encoder](../../services/api/src/services/streamingTranscoder.ts)
+also checks decodability and a 15-minute duration ceiling.
+
+File limits, temporary upload windows, Dotify release slots, and finalized
+Bulletin authorization are independent. The authenticated routes return a
+capacity conflict as HTTP 409 with code `STREAMING_PUBLICATION_CAPACITY`.
+An accepted audio job can report the same detail under `failure.capacity` in
+its owner-scoped status. Refill details contain only a public Bulletin account,
+network genesis, and a finalized minimum expiry or shortfall. Byte counts are
+decimal strings. If the shortfall covers only the retained renewal reserve,
+`retainedOnly` is true. The slot response gives no Bulletin grant details.
+See [resume after a capacity stop](../operations/bulletin-artist-publication.md#resume-after-a-capacity-stop).

@@ -80,7 +80,7 @@ it('inspects without changes, then grants one exact new release while preserving
   assert.equal(state.releases.length, 3);
   assert.equal(admissionExtensions(state).length, 1);
   assert.deepEqual(state.releases.slice(0, 2), c.before.releases);
-  await assert.rejects(restarted.claim(scope('55'), 'audio'), PublicationAdmissionError);
+  await assert.rejects(restarted.claim(scope('55'), 'audio'), { code: 'STREAMING_PUBLICATION_CAPACITY', capacity: { kind: 'release-slots' } });
   await assert.rejects(restarted.claim(scope('44'), 'cover', 'other-root'), PublicationAdmissionError);
   await assert.rejects(restarted.check(scope('44'), `0x${'99'.repeat(20)}`), PublicationAdmissionError);
   await assert.rejects(restarted.check({ ...scope('44'), keyVersion: 'dotify-content-key-v3' }), PublicationAdmissionError);
@@ -236,7 +236,7 @@ it('allows later separately reviewed grants only with a new checkpoint and retai
   const after = await restarted.validate();
   assert.equal(admissionExtensions(after).length, 2);
   assert.deepEqual(after.releases.slice(0, 3), state.releases);
-  await assert.rejects(restarted.claim(scope('66'), 'audio'), PublicationAdmissionError);
+  await assert.rejects(restarted.claim(scope('66'), 'audio'), { code: 'STREAMING_PUBLICATION_CAPACITY', capacity: { kind: 'release-slots' } });
   assert.deepEqual(await load(join(c.profile.directory, admissionArchive(admissionDigest(state)))), state);
 });
 
@@ -265,7 +265,7 @@ it('does not let an extended identity consume an unused original slot', async t 
   await a.claim(scope('44'), 'audio');
   await a.claim(scope('11'), 'audio');
   await a.claim(scope('22'), 'audio');
-  await assert.rejects(a.claim(scope('55'), 'audio'), PublicationAdmissionError);
+  await assert.rejects(a.claim(scope('55'), 'audio'), { code: 'STREAMING_PUBLICATION_CAPACITY', capacity: { kind: 'release-slots' } });
   assert.equal((await a.validate()).releases.length, 3);
 });
 

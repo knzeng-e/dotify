@@ -308,13 +308,22 @@ test('missing ownership/journals, unsafe state permissions and stale writer lock
 
 test('quota/authorization and all-children retention are checked before readiness', async t => {
   const c = await fixture(t);
+  const available = { ...c.transport.authorization };
   c.transport.authorization.remainingTransactions = c.graph.blocks.length * 2 - 1;
-  await assert.rejects(c.store.pin(c.files, c.job, signal()), /quota/);
+  c.transport.authorization.remainingBytes = c.graph.bytes - 2;
+  c.transport.authorization.remainingRenewBytes = c.graph.bytes - 3;
+  await assert.rejects(c.store.pin(c.files, c.job, signal()), {
+    code: 'STREAMING_PUBLICATION_CAPACITY',
+    capacity: { ...identity, kind: 'bulletin-quota', transactions: 1, storageBytes: '2', renewalBytes: '3' }
+  });
   assert.equal(c.transport.writes.length, 0);
-  c.transport.authorization.remainingTransactions = 8192;
-  c.transport.authorization.expiresAt = c.transport.head + 50;
-  await assert.rejects(c.store.pin(c.files, c.job, signal()), /expiring/);
-  c.transport.authorization.expiresAt = 100000;
+  c.transport.authorization = { ...available, expiresAt: c.transport.head + 50 };
+  await assert.rejects(c.store.pin(c.files, c.job, signal()), {
+    code: 'STREAMING_PUBLICATION_CAPACITY',
+    capacity: { ...identity, kind: 'bulletin-authorization', minimumExpiryBlock: c.transport.head + budget.minimumLifetimeBlocks + 1 }
+  });
+  assert.equal(c.transport.writes.length, 0);
+  c.transport.authorization = available;
   const store = c.transport.store.bind(c.transport);
   c.transport.store = async (block, intent) => {
     const receipt = await store(block, intent);

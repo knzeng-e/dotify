@@ -1,3 +1,4 @@
+import { PublicationCapacityError } from './publicationCapacity';
 import { describe, it, expect, vi } from 'vitest';
 import { waitForAudioPreparation, AudioPreparationError, AudioPreparationPending, audioPreparationLabel } from './streamingPreparation';
 const id = '12345678-1234-4234-8234-123456789abc';
@@ -38,6 +39,26 @@ const ready = {
     keyVersion: 'dotify-content-key-v2'
   }
 };
+it('keeps the same audio job available for an explicit retry after a storage refill', async () => {
+  const capacity = {
+    kind: 'bulletin-quota',
+    account: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY',
+    genesis: `0x${'ab'.repeat(32)}`,
+    transactions: 2,
+    storageBytes: '1024',
+    renewalBytes: '0'
+  };
+  const job = { id, state: 'failed', attempts: 0, failure: { stage: 'storage', capacity } };
+  const request = vi.fn().mockResolvedValue(ready);
+  const discard = vi.fn();
+  const input = { job, storageKey: 'refill', request, discard };
+  await expect(waitForAudioPreparation(input)).rejects.toBeInstanceOf(PublicationCapacityError);
+  expect(request).not.toHaveBeenCalled();
+  await expect(waitForAudioPreparation({ ...input, retryFailed: true })).resolves.toEqual(ready.result);
+  expect(request).toHaveBeenCalledExactlyOnceWith(id, true);
+  expect(discard).not.toHaveBeenCalled();
+});
+
 describe('artist streaming preparation', () => {
   it('reports real phases and finishes without re-uploading the master', async () => {
     const states: string[] = [];

@@ -1,5 +1,6 @@
 import { PreparedReleaseConflictError } from './services/bulletinMetadataRepair.js';
 import { checkUnregisteredRelease } from './services/unregisteredRelease.js';
+import { PublicationCapacityError } from './services/publicationAdmission.js';
 import { PublicAssetStorageError } from './services/bulletinPublicAssets.js';
 import { createPublicAssetRoutes } from './routes/publicAssets.js';
 import { sharedState, assertSharedState } from './services/sharedState/index.js';
@@ -264,7 +265,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
           try {
             return await publication.pinAsset!(files, kind, owner, signal);
           } catch (error) {
-            if (error instanceof PreparedReleaseConflictError) throw error;
+            if (error instanceof PreparedReleaseConflictError || error instanceof PublicationCapacityError) throw error;
             throw new PublicAssetStorageError();
           }
         };

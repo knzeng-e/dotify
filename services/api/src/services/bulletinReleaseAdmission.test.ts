@@ -39,7 +39,7 @@ it('atomically reserves whole releases across parts/restarts, never refunds, and
     raced.map(r => r.status),
     ['fulfilled', 'rejected']
   );
-  await assert.rejects(b.claim(scope('33'), 'audio'), PublicationAdmissionError);
+  await assert.rejects(b.claim(scope('33'), 'audio'), { code: 'STREAMING_PUBLICATION_CAPACITY', capacity: { kind: 'release-slots' } });
   const entries = (await b.validate()).releases;
   assert.equal(entries.length, 2);
   assert.equal(entries[0].audio, audio);
@@ -114,5 +114,5 @@ it('keeps concurrent preflights and inventory snapshots coherent with whole-rele
   const state = await admission.validate();
   assert.equal(state.releases.length, 2);
   for (const entry of state.releases) assert.ok(entry.audio && entry.cover && entry.metadata);
-  await assert.rejects(admission.claim(scope('33'), 'audio'), PublicationAdmissionError);
+  await assert.rejects(admission.claim(scope('33'), 'audio'), { code: 'STREAMING_PUBLICATION_CAPACITY', capacity: { kind: 'release-slots' } });
 });

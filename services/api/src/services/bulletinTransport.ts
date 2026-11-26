@@ -1,6 +1,7 @@
 // RPC-backed Bulletin reads and exact receipt verification. No endpoint or signer
 // is chosen here. The optional writer is supplied by the separately owned client.
 import assert from 'node:assert/strict';
+import { requireBulletinAuthorization } from './publicationAdmission.js';
 import { createDeadline } from './deadline.js';
 import { Bytes, Option, u32 } from '@polkadot-api/substrate-bindings';
 import { CID } from 'multiformats/cid';
@@ -44,6 +45,7 @@ async function readPair<A, B>(first: () => Promise<A>, second: () => Promise<B>)
 export function createBulletinRpcTransport(options: {
   identity: BulletinStoreIdentity;
   request: BulletinRpc;
+  minimumLifetimeBlocks?: number;
   submit?: (block: BulletinBlock, intent: BulletinWriteIntent, signal: AbortSignal) => Promise<BulletinSubmissionReceipt>;
 }): BulletinMediaTransport {
   const identity = identitySchema.parse(options.identity);
@@ -157,6 +159,8 @@ export function createBulletinRpcTransport(options: {
       within(signal, async s => {
         const context = await snapshot(s);
         const raw = await runtime(context, 'BulletinTransactionStorageApi', 'account_authorization', [identity.account], s);
+        // The runtime Option decodes to undefined when this account has no grant.
+        if (raw === undefined) requireBulletinAuthorization(identity, 0, context.head + (options.minimumLifetimeBlocks ?? 100) + 1);
         const auth = z
           .object({
             expires_at: integer,

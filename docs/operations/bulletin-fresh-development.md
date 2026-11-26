@@ -53,8 +53,12 @@ account-sharing writers are excluded and pending submissions reconciled. Put the
 reviewed nonce floor into the request. Keep every existing account obligation in
 `profile.priorRenewalReserve`; at the 0.1.80 record the conservative floor was
 431 transactions / 150,484,205 bytes. Recheck subsequent history; do not lower it
-because the local queue is empty. Per-part/global caps must cover measured real
-artist graphs plus retries; preparation does not authorize musical writes.
+because the local queue is empty. Use representative graphs and a bounded
+allowance for audio, cover and metadata, with room for retries and reservations
+for renewal. Review the number of ordinary release slots and per-part and
+aggregate caps against the finalized account authorization. A slot may be used
+for any compatible source from a listed artist space within those caps. The
+initial profile does not require a first track, cover or audio fingerprint.
 
 ## Initialize once
 
@@ -83,8 +87,8 @@ a new reviewed absent destination after understanding the cause.
 
 ## Install and test after review
 
-Prepare the exact maintenance, matched Web/Product/API rollout and musical write
-budget before requesting operational approval. Use existing services and the
+Prepare the exact maintenance, matched Web/Product/API rollout and bounded
+storage envelope before requesting operational approval. Use existing services and the
 existing signer. Install the new content master through private secret input,
 merging the new version into `CONTENT_KEY_MASTER_SECRETS` while retaining old
 version secrets/`CONTENT_KEY_MASTER_SECRET` for existing catalogue reads. Set
@@ -110,8 +114,10 @@ clients from #410 or later so cover requests carry their release content hash.
 The runtime/catalogue/wallet protocol is unchanged. Do not run the old publisher
 alongside the new owner of the same Bulletin account.
 
-Then use ordinary New release: artist-selected source, cover/details, wallet
-approval, catalogue readback and audible Web/Desktop/phone checks. Do not use an
+Then use ordinary New release with an artist-selected source, cover and details.
+Verify wallet approval, catalogue readback and audible playback on Web,
+Desktop and phone. Exercise the [refill and retry flow](bulletin-artist-publication.md#resume-after-a-capacity-stop)
+against an intentionally limited test allowance before live acceptance. Do not use an
 old saved test draft as the new acceptance case. Record actual timings, stores,
 bytes, retries and retention. No automatic renewal is scheduled.
 

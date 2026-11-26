@@ -11,6 +11,7 @@ import { blake2b } from '@noble/hashes/blake2';
 import { createUploadRoutes, type UploadRouteDeps } from './uploads.js';
 import { createUploadAuthorizationService } from '../services/uploadAuthorizations.js';
 import { RELEASE_BOUND_CONTENT_KEY_VERSION } from '../services/keyVault.js';
+import { PublicationCapacityError } from '../services/publicationAdmission.js';
 import { PinataError } from '../services/pinata.js';
 
 const ADDRESS = '0x1111111111111111111111111111111111111111' as const;
@@ -686,6 +687,34 @@ it('refuses audio publication without a streaming worker instead of producing an
   assert.equal(response.statusCode, 503);
   assert.equal(response.json().code, 'STREAMING_UNAVAILABLE');
   assert.equal(response.json().ref, undefined);
+});
+
+it('returns private refill details for an authorized cover and releases its upload reservation', async () => {
+  const capacity = {
+    kind: 'bulletin-quota' as const,
+    account: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY',
+    genesis: `0x${'ab'.repeat(32)}`,
+    transactions: 1,
+    storageBytes: '6',
+    renewalBytes: '0'
+  };
+  const server = await buildApp({
+    authorizationOptions: { principalByteLimit: pngBytes.length, principalConcurrencyLimit: 1 },
+    publicAssets: async () => {
+      throw new PublicationCapacityError(capacity);
+    }
+  });
+  const grant = (await authorize(server, 'cover', pngBytes.length)).json().uploadAuthorization;
+  const cover = await server.inject({
+    method: 'POST',
+    url: '/api/uploads/cover',
+    headers: multipartHeaders(grant),
+    payload: multipartFile('cover', 'cover.png', 'image/png', pngBytes, audioHash)
+  });
+  assert.equal(cover.statusCode, 409);
+  assert.equal(cover.headers['cache-control'], 'no-store');
+  assert.deepEqual(cover.json().capacity, capacity);
+  assert.equal((await authorize(server, 'cover', pngBytes.length)).statusCode, 200);
 });
 
 it('routes authorized public assets to Bulletin without touching Pinata and returns usable immutable paths', async () => {

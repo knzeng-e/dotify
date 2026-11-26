@@ -1,4 +1,5 @@
 import { BadgeCheck, Disc3, FileAudio, Library, Plus, RefreshCw, Trash2, Upload } from 'lucide-react';
+import { isBackendConfigured } from '../../services/pinata';
 import { CoverImage } from '../../components/CoverImage';
 import { PanelTitle } from '../../shared/ui/PanelTitle';
 import { accessModeLabelFromState, shorten } from '../../shared/utils/format';
@@ -106,6 +107,7 @@ export function NewReleaseTab({
   onRemoveRoyaltySplit,
   onRegisterRights
 }: NewReleaseTabProps) {
+  const hosted = isBackendConfigured();
   const releaseStepIndex = RELEASE_STEPS.findIndex(step => step.id === releaseStep);
   const totalRoyaltyBps = royaltySplitTotal(royaltyBps, additionalRoyaltySplits);
   const remainingRoyaltyBps = royaltySplitRemaining(royaltyBps, additionalRoyaltySplits);
@@ -171,7 +173,8 @@ export function NewReleaseTab({
                 {assetAction === 'audio' ? 'Preparing audio…' : 'Add audio'}
                 <input
                   type='file'
-                  accept='audio/*'
+                  accept={hosted ? 'audio/*,.mp3,.wav,.flac,.m4a,.aac,.ogg,.opus,.webm' : 'audio/*'}
+                  aria-describedby={hosted ? 'artist-audio-formats' : undefined}
                   data-testid='artist-audio-input'
                   onChange={onHandleAudioFile}
                   disabled={assetAction !== 'idle' || artistStudioLocked}
@@ -182,7 +185,8 @@ export function NewReleaseTab({
                 {assetAction === 'cover' ? 'Preparing cover…' : 'Add cover image'}
                 <input
                   type='file'
-                  accept='image/*'
+                  accept={hosted ? 'image/jpeg,image/png,image/webp,image/gif,.jpg,.jpeg,.png,.webp,.gif' : 'image/*'}
+                  aria-describedby={hosted ? 'artist-cover-formats' : undefined}
                   data-testid='artist-cover-input'
                   onChange={onHandleCoverFile}
                   disabled={assetAction !== 'idle' || artistStudioLocked}
@@ -191,12 +195,20 @@ export function NewReleaseTab({
             </div>
             <div className='asset-readiness'>
               <div>
-                <strong>{audioSource ? 'Audio ready' : 'Audio missing'}</strong>
-                <span>{fileHash ? shorten(fileHash, 18) : 'Add an audio file to start your release.'}</span>
+                <strong>{audioSource ? (hosted ? 'Audio selected' : 'Audio ready') : 'Audio missing'}</strong>
+                {hosted ? (
+                  <span id='artist-audio-formats'>MP3, WAV, FLAC, M4A, AAC, Ogg or WebM · up to 50 MiB and 15 minutes</span>
+                ) : (
+                  <span>{fileHash ? shorten(fileHash, 18) : 'Add an audio file to start your release.'}</span>
+                )}
               </div>
               <div>
-                <strong>{coverCID || coverSource.startsWith('blob:') ? 'Cover ready' : 'Generated cover'}</strong>
-                <span>{coverCID ? shorten(coverCID, 18) : 'You can add your own cover before publishing.'}</span>
+                <strong>{coverCID || coverSource.startsWith('blob:') ? (hosted ? 'Cover selected' : 'Cover ready') : 'Generated cover'}</strong>
+                {hosted ? (
+                  <span id='artist-cover-formats'>JPEG, PNG, WebP or GIF · up to 5 MiB</span>
+                ) : (
+                  <span>{coverCID ? shorten(coverCID, 18) : 'You can add your own cover before publishing.'}</span>
+                )}
               </div>
             </div>
           </div>

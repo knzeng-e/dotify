@@ -2,7 +2,7 @@ import type { ArtistTab, CatalogTrack } from '../../shared/types';
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { hashFileWithBytes } from '../../shared/utils/hash';
 import { deployments } from '../../shared/config/deployments';
-import { isBackendConfigured, protectedAudioUploadToCID, uploadFileToPinata, uploadProtectedAudio, type BackendUploadIdentity } from '../../services/pinata';
+import { isBackendConfigured, protectedAudioUploadToCID, uploadFileToPinata, uploadProtectedAudio } from '../../services/pinata';
 import { buildDraftTrackInfo, nextTitleFromUpload, uploadStatusMessage } from '../../features/uploads/uploadModel';
 import {
   artistStudioLocked as deriveArtistStudioLocked,
@@ -93,7 +93,7 @@ export function ArtistConsole() {
     releaseStep,
     setReleaseStep
   } = useReleaseForm();
-  const { connectedWallet, activeEvmAddress, expectedChainId, getActiveWalletClient } = useWalletContext();
+  const { connectedWallet, activeEvmAddress } = useWalletContext();
   const catalog = useCatalogContext();
   const session = useSessionContext();
   const { artistConsole, totalRoyaltyWei } = useArtistStudio();
@@ -179,18 +179,16 @@ export function ArtistConsole() {
   const onSetReleaseActive = artistConsole.setReleaseActive;
   const onSetExpandedRoyaltyPaymentId = artistConsole.setExpandedRoyaltyPaymentId;
 
-  async function getUploadIdentity(): Promise<BackendUploadIdentity | undefined> {
-    if (!isBackendConfigured()) return undefined;
-    if (!connectedWallet) throw new Error('Connect your artist account before uploading release assets.');
-    const chainId = expectedChainId ?? connectedWallet.chainId;
-    if (!chainId) throw new Error('Confirm the artist network before uploading release assets.');
-    if (connectedWallet.keyRequestSigner) return { chainId, signer: connectedWallet.keyRequestSigner };
-    return { chainId, walletClient: await getActiveWalletClient() };
-  }
-
   async function handleAudioFile(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
+
+    const hosted = isBackendConfigured();
+    if (hosted && file.size > 50 * 1024 * 1024) {
+      artistConsole.setRightsStatus('Choose an audio file up to 50 MiB.');
+      event.target.value = '';
+      return;
+    }
 
     catalog.cancelPlaybackPreparation();
     setAssetAction('audio');
@@ -206,14 +204,13 @@ export function ArtistConsole() {
       setDurationSeconds(await measureAudioDuration(nextUrl));
 
       catalog.setAudioSource(nextUrl);
-      if (isBackendConfigured() && catalog.fileHash !== result.hash) {
+      if (hosted && catalog.fileHash !== result.hash) {
         catalog.coverUploadRef.current = null;
         catalog.setCoverCID('');
       }
       catalog.setFileHash(result.hash);
       setTitle(nextTitle);
       catalog.setSelectedTrackId('draft-upload');
-      artistConsole.setRightsStatus(uploadStatusMessage('audio', 'uploading'));
 
       const trackInfoObj = buildDraftTrackInfo({
         title: nextTitle,
@@ -227,11 +224,13 @@ export function ArtistConsole() {
       });
       catalog.setTrackInfo(trackInfoObj);
       session.socketEmit('room:track', trackInfoObj);
-      const uploadIdentity = await getUploadIdentity();
+      if (hosted) {
+        artistConsole.setRightsStatus('Audio added to your draft');
+        return;
+      }
 
-      // Production: raw audio goes to the backend, which encrypts server-side
-      // with the master-secret-derived key. Demo: browser-side encryption.
-      const uploadPromise = uploadProtectedAudio({ bytes: result.bytes, name: file.name, mime: file.type }, result.hash, uploadIdentity)
+      artistConsole.setRightsStatus(uploadStatusMessage('audio', 'uploading'));
+      const uploadPromise = uploadProtectedAudio({ bytes: result.bytes, name: file.name, mime: file.type }, result.hash)
         .then(audioUpload => {
           catalog.setAudioCID(protectedAudioUploadToCID(audioUpload));
           artistConsole.setRightsStatus(uploadStatusMessage('audio', 'uploaded'));
@@ -253,6 +252,12 @@ export function ArtistConsole() {
   async function handleCoverFile(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
+    const hosted = isBackendConfigured();
+    if (hosted && file.size > 5 * 1024 * 1024) {
+      artistConsole.setRightsStatus('Choose a cover image up to 5 MiB.');
+      event.target.value = '';
+      return;
+    }
     setAssetAction('cover');
     artistConsole.setRightsStatus(uploadStatusMessage('cover', 'preparing'));
     catalog.setCoverCID('');
@@ -263,19 +268,12 @@ export function ArtistConsole() {
       catalog.objectUrlsRef.current.add(nextUrl);
       catalog.setCoverSource(nextUrl);
       setCoverFile(file);
-      if (isBackendConfigured() && !catalog.fileHash) {
-        artistConsole.setRightsStatus('Cover ready for your release');
+      if (hosted) {
+        artistConsole.setRightsStatus('Cover added to your draft');
         return;
       }
       artistConsole.setRightsStatus(uploadStatusMessage('cover', 'uploading'));
-      const uploadIdentity = await getUploadIdentity();
-
-      const uploadPromise = uploadFileToPinata(
-        file,
-        file.name,
-        { app: 'dotify', type: 'cover' },
-        { ...uploadIdentity!, contentHash: catalog.fileHash ?? undefined }
-      )
+      const uploadPromise = uploadFileToPinata(file, file.name, { app: 'dotify', type: 'cover' })
         .then(cid => {
           if (catalog.coverUploadRef.current !== uploadPromise) return cid;
           catalog.setCoverCID(cid);

@@ -8,7 +8,7 @@ import { initializeStreamingJobs, StreamingJobs, type StreamingJobDeps } from '.
 import { decryptStreamingObject, parseStreamingManifest, verifyStreamingManifest } from './streamingFormat.js';
 import { packStreamingBundle, unpackStreamingBundle } from './streamingBundle.js';
 import { PinataError } from './pinata.js';
-import { PublicationAdmissionError } from './publicationAdmission.js';
+import { PublicationAdmissionError, PublicationCapacityError } from './publicationAdmission.js';
 import { createStreamingWorkerClient } from './streamingWorkerClient.js';
 const owner = `0x${'12'.repeat(20)}`,
   runtime = `0x${'34'.repeat(20)}`,
@@ -110,6 +110,49 @@ describe('durable streaming publications', () => {
       assert((await readdir(path.join(directory, 'jobs', job.id))).length > 0);
       await restored.stop();
     }));
+  it('retries after repeated quota failures without re-encoding or consuming the retry budget', async () =>
+    fixture(async (_directory, deps) => {
+      const capacity = {
+        kind: 'bulletin-quota' as const,
+        account: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY',
+        genesis: `0x${'ab'.repeat(32)}`,
+        transactions: 2,
+        storageBytes: '0',
+        renewalBytes: '255'
+      };
+      let refilled = false;
+      let transcodes = 0;
+      const jobs = new StreamingJobs({
+        ...deps,
+        transcode: async () => {
+          transcodes++;
+          return encoded;
+        },
+        pin: async () => {
+          if (!refilled) throw new PublicationCapacityError(capacity);
+          return cid;
+        }
+      });
+      await jobs.start(false);
+      try {
+        const job = await jobs.enqueue(input);
+        const view = () => jobs.get(job.id, owner, scope.chainId);
+        for (let check = 0; check < 4; check++) {
+          await jobs.runNext();
+          assert.deepEqual(view()?.failure, { stage: 'storage', capacity });
+          assert.equal(view()?.attempts, 0);
+          assert.equal(jobs.get(job.id, runtime, scope.chainId), null);
+          await jobs.retry(job.id, owner, scope.chainId);
+        }
+        refilled = true;
+        await jobs.runNext();
+        assert.equal(view()?.state, 'ready');
+        assert.equal(transcodes, 1);
+      } finally {
+        await jobs.stop();
+      }
+    }));
+
   it('deduplicates admission, persists ciphertext only and publishes authenticated objects', async () =>
     fixture(async (directory, deps) => {
       let pins = 0;

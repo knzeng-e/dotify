@@ -8,6 +8,23 @@ import { createBulletinProofCache, BULLETIN_PROOF_CACHE_BYTES, type BulletinProo
 import { createBulletinProofLoads, BULLETIN_PROOF_LOADS, BULLETIN_PROOF_WAITERS } from './bulletinProofLoads.js';
 const signal = () => new AbortController().signal;
 
+test('a finalized missing authorization returns refill details for the configured account', async () => {
+  const f = rpcFixture();
+  const entry = codecs.builder.buildRuntimeCall('BulletinTransactionStorageApi', 'account_authorization');
+  const transport = createBulletinRpcTransport({
+    identity: fixture.identity,
+    minimumLifetimeBlocks: 250,
+    request: (method, params, s) =>
+      method === 'state_call' && params[0] === 'BulletinTransactionStorageApi_account_authorization'
+        ? Promise.resolve(bulletinHex(entry.value.enc(undefined)))
+        : f.request(method, params, s)
+  });
+  await assert.rejects(transport.status(signal()), {
+    code: 'STREAMING_PUBLICATION_CAPACITY',
+    capacity: { ...fixture.identity, kind: 'bulletin-authorization', minimumExpiryBlock: f.state.head + 251 }
+  });
+});
+
 test('completed block proof reuse still refreshes canonical mapping, retention and each nonce query', async () => {
   const f = rpcFixture();
   const eventsKey = codecs.builder.buildStorage('System', 'Events').keys.enc();
