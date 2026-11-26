@@ -259,7 +259,10 @@ test('retained-publication reserves reduce the actual writer allowance before an
   const effective = await session.transport.status(signal());
   assert.equal(effective.authorization.remainingTransactions, 0);
   assert.equal(effective.authorization.remainingRenewBytes, 0n);
-  await assert.rejects(session.transport.store(block, intent, signal()), /quota does not cover/);
+  await assert.rejects(session.transport.store(block, intent, signal()), {
+    code: 'STREAMING_PUBLICATION_CAPACITY',
+    capacity: { ...identity, kind: 'bulletin-quota', transactions: 1, storageBytes: '0', renewalBytes: '0' }
+  });
   assert.equal(c.subscriptions, 0);
   assert.equal(session.attemptedTransactions, 0);
   session.close();
