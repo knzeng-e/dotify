@@ -39,7 +39,7 @@ export function assertQualificationGraph(outputs, purpose = 'host-info-only') {
       'features/runtime/productCdmContracts.ts',
       'features/runtime/productCdmStorageDeposit.ts',
       'features/runtime/productCdmRuntimeAdapter.ts',
-      'features/runtime/runtimeWriterProvider.ts',
+      'features/runtime/productRuntimeSigner.ts',
       'features/productHost/productTransactionHost.ts',
       'shared/config/deploymentSafety.ts',
       'shared/config/deployments.ts',

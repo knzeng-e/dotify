@@ -4,7 +4,7 @@ import { deployments } from '../shared/config/deployments';
 import { registryOwnerGuardAttestation } from '../shared/config/deploymentSafety';
 import { createProductCdmContracts } from '../features/runtime/productCdmContracts';
 import type { ProductCdmContractHandle } from '../features/runtime/productCdmRuntimeAdapter';
-import { createProductSignerManager } from '../features/runtime/runtimeWriterProvider';
+import { createProductSignerManager } from '../features/runtime/productRuntimeSigner';
 import { ACCOUNT_DERIVATION_INDEX, ACCOUNT_PRODUCT_ID, type AccountObservation } from './account';
 
 const genesis = '0xd6eec26135305a8ad257a20d003357284c8aa03d0bdb2b357ab0a22371e11ef2';
@@ -115,7 +115,9 @@ export async function openArtistOnboarding(account: Extract<AccountObservation, 
       if (best.stage !== state.stage || best.runtime !== state.runtime) {
         throw new Error('An artist transaction is awaiting finality. Check again once the wallet has confirmed it.');
       }
-      if (!(await contracts.isAccountMapped(account.substrateAddress))) {
+      const mapped = await contracts.readMappedAccount(account.evmAddress, finalized);
+      const { ss58Decode } = await import('@parity/product-sdk/address');
+      if (!mapped || toHex(ss58Decode(mapped).publicKey) !== account.publicKey) {
         throw new Error('Could not confirm the existing Paseo account mapping. No mapping transaction was requested.');
       }
       const calldata = encodeFunctionData({ abi: artistRuntimeFactoryAbi, functionName: nextMethod(state.stage) });

@@ -23,6 +23,7 @@ export function ArtistOnboarding() {
   const [hostRequested, setHostRequested] = useState(false);
   const host = useProductHostInfo(hostRequested);
   const [busy, setBusy] = useState(false);
+  const [accountVerified, setAccountVerified] = useState(false);
   const [status, setStatus] = useState('');
   const [preview, setPreview] = useState<ArtistPreview>();
   const [lastHash, setLastHash] = useState<string>();
@@ -78,6 +79,7 @@ export function ArtistOnboarding() {
         return;
       }
       session.current = opened;
+      setAccountVerified(true);
     }
     const next = await session.current.preview();
     if (!signal.aborted) show(next);
@@ -89,6 +91,7 @@ export function ArtistOnboarding() {
     setPreview(undefined);
     const result = await session.current.approve(reviewed, () => {
       signal.throwIfAborted();
+      if (savedStage() !== null) throw new Error('Another approval is unresolved. Check Polkadot before retrying.');
       localStorage.setItem(pendingKey, String(reviewed.state.stage));
     });
     if (signal.aborted) return;
@@ -126,7 +129,7 @@ export function ArtistOnboarding() {
           )}
           {compatible && preview?.status !== 'ready' && (
             <button className='qualification-secondary' type='button' disabled={busy} onClick={() => void run(check)}>
-              {session.current ? 'Check finalized artist state' : 'Verify artist account and read Paseo'}
+              {accountVerified ? 'Check finalized artist state' : 'Verify artist account and read Paseo'}
             </button>
           )}
           {busy && <p role='status'>Waiting for Polkadot…</p>}

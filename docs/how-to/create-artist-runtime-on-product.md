@@ -22,7 +22,7 @@ review the artifact and its publication costs before delivery.
    key with the fingerprint from the accepted account report, then checks the
    Host signer against that same key.
 2. Review the finalized artist state on Paseo. The build simulates the next
-   call and displays the peak refundable storage deposit required to execute
+   call and displays the peak storage deposit required to execute
    it. Review the network fee separately on the wallet screen. Open the
    wallet only if the operation and cost are acceptable.
 3. After finality, check Paseo again to review the next step. Creation has one

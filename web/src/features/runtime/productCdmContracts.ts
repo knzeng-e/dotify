@@ -101,7 +101,7 @@ export type ProductCdmContracts = {
   resolver: ProductCdmRuntimeContractResolver;
   finalizedHash: () => Promise<`0x${string}`>;
   dryRunCall: ReturnType<ContractsModule['createContractRuntimeFromClient']>['dryRunCall'];
-  isAccountMapped: (address: string) => Promise<boolean>;
+  readMappedAccount: (address: Address, at: `0x${string}`) => Promise<string | undefined>;
   /** Native Balance precision read from the connected Product chain spec. */
   nativeTokenDecimals: number;
   readAvailableBalance: (address: string) => Promise<bigint>;
@@ -246,9 +246,11 @@ export async function createProductCdmContracts(
       return hash as `0x${string}`;
     },
     dryRunCall: (...args) => runtime.dryRunCall(...args),
-    isAccountMapped: async address => {
-      const result = await contracts.isContractAccountMapped(runtime, address);
-      return result.ok && result.value;
+    readMappedAccount: async (address, at) => {
+      const mapping: unknown = await client.raw.assetHub.getUnsafeApi().query.Revive.OriginalAccount.getValue(address, { at });
+      if (typeof mapping === 'string') return mapping;
+      if (mapping == null) return undefined;
+      throw new ProductCdmRuntimeError('Paseo returned an invalid account mapping.');
     },
     destroy: () => client.destroy()
   };
