@@ -44,6 +44,22 @@ describe('isLoopbackRpcUrl', () => {
 });
 
 describe('resolveArtistPublicationSafety', () => {
+  it('accepts an attested empty development generation without historical pending discovery', () => {
+    const fresh = {
+      ...safeInput,
+      protectedRuntimeCount: 0,
+      totalRuntimeCount: 0,
+      ownerMatchedTrackCount: 0,
+      totalTrackCount: 0,
+      pendingRuntimeDiscoveryComplete: false,
+      pendingRuntimeCount: 0
+    };
+    expect(resolveArtistPublicationSafety(fresh)).toEqual({ quarantined: false, reason: '' });
+    expectQuarantined({ ...fresh, configuredFactory: '0x3333333333333333333333333333333333333333' });
+    expectQuarantined({ ...fresh, futureFactoryUsesOwnerGuard: false });
+    expectQuarantined({ ...fresh, catalogCutoverReady: false });
+  });
+
   it('preserves an explicitly requested E2E artist flow', () => {
     expect(
       resolveArtistPublicationSafety({

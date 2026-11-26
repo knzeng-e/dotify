@@ -81,9 +81,11 @@ its current artist/administrator, installed selectors or media readiness.
 This is selected-artist discovery only: `globalPendingDiscoveryComplete`,
 `reviewedBytecodeVerified`, `runtimeAuthorityVerified`, `signerControlVerified`
 and `publicationEnabled` remain false. It must not populate the checked-in
-publication attestation or lift quarantine. Full native-aware global discovery,
-reviewed factory attestation and an identified signer-control client remain
-before artist approvals. The [fresh-generation procedure](prepare-fresh-testnet-generation.md)
+publication attestation or lift quarantine. For development resets, the
+[reset policy](prepare-fresh-testnet-generation.md#development-reset-policy)
+requires reviewed factory/CDM bindings and identified signer control before
+approvals. Global historical discovery is outside that path; the selected
+artist state check supports interrupted creation recovery. The [fresh-generation procedure](prepare-fresh-testnet-generation.md)
 owns later key/profile, services and client activation. #85/#317 and physical
 value/media acceptance remain open; CASH stays disabled.
 

@@ -1,5 +1,5 @@
 import type { HardhatRuntimeEnvironment } from 'hardhat/types';
-import { getAddress, isAddress, keccak256, zeroAddress, type Abi, type Address, type Hex, type PublicClient } from 'viem';
+import { getAddress, isAddress, keccak256, padHex, toHex, zeroAddress, type Abi, type Address, type Hex, type PublicClient } from 'viem';
 import { PALLET_CONTRACTS, type SmartRuntimeDeploymentRecord, type SmartRuntimeDeployments } from './smartRuntime';
 
 export const FRESH_CONTRACT_NAMES = [
@@ -60,35 +60,53 @@ export async function inspectFreshSystem(
     [deployments.directory, 'ArtistDirectory'],
     [deployments.factory, 'ArtistRuntimeFactory']
   ] as const;
+  const factoryImmutables = { ...expected, nativeTokenDecimals: toHex(deployments.nativeTokenDecimals) };
+  const directoryImmutables = { deployer: expectedDeployer };
+  const implementationCodeHashes = [];
   for (const [address, name] of implementations) {
     const code = await client.getCode({ address, blockNumber });
     const artifact = await hre.artifacts.readArtifact(name);
     const build = await hre.artifacts.getBuildInfo(`${artifact.sourceName}:${name}`);
-    const references = build?.output.contracts[artifact.sourceName]?.[name]?.evm.deployedBytecode.immutableReferences;
-    if (!code || code === '0x' || !references || !matchesReviewedCode(code, artifact.deployedBytecode as Hex, references))
-      throw new Error(`${name} bytecode does not match the reviewed source`);
+    const compiled = build?.output.contracts[artifact.sourceName]?.[name]?.evm.deployedBytecode;
+    const ast = build?.output.sources[artifact.sourceName]?.ast as SolidityNode | undefined;
+    const immutables = name === 'ArtistRuntimeFactory' ? factoryImmutables : name === 'ArtistDirectory' ? directoryImmutables : {};
+    const expectedCode = compiled && ast && bindImmutables(compiled.object, compiled.immutableReferences, ast, name, immutables);
+    if (!code || code === '0x' || !expectedCode || code.toLowerCase() !== expectedCode.toLowerCase())
+      throw new Error(`${name} bytecode does not match the reviewed source and immutable bindings`);
+    implementationCodeHashes.push({ name, address, codeHash: keccak256(code) });
   }
   return {
     nativeTokenDecimals: deployments.nativeTokenDecimals,
     artistCount: '0',
     deployer,
-    verifiedImplementations: implementations.map(([, name]) => name)
+    verifiedImplementations: implementations.map(([, name]) => name),
+    implementationCodeHashes
   };
 }
 
-/** Mask only compiler-declared immutable slots; their values are checked through getters above. */
-function matchesReviewedCode(actual: Hex, expected: Hex, references: Record<string, { start: number; length: number }[]>) {
-  if (actual.length !== expected.length) return false;
-  let normalizedActual: string = actual;
-  let normalizedExpected: string = expected;
-  for (const { start, length } of Object.values(references).flat()) {
-    const offset = 2 + start * 2;
-    const end = offset + length * 2;
-    if (!Number.isInteger(start) || !Number.isInteger(length) || start < 0 || length <= 0 || end > actual.length) return false;
-    normalizedActual = normalizedActual.slice(0, offset) + '0'.repeat(length * 2) + normalizedActual.slice(end);
-    normalizedExpected = normalizedExpected.slice(0, offset) + '0'.repeat(length * 2) + normalizedExpected.slice(end);
+type SolidityNode = { id: number; nodeType: string; name?: string; mutability?: string; nodes?: SolidityNode[] };
+type ImmutableReferences = Record<string, { start: number; length: number }[]>;
+
+/** Reconstruct the deployed bytes from the compiler template and explicit constructor values. */
+function bindImmutables(template: string, references: ImmutableReferences | undefined, ast: SolidityNode, contractName: string, expected: Record<string, Hex>) {
+  if (!references) return null;
+  const contract = ast.nodes?.find(node => node.nodeType === 'ContractDefinition' && node.name === contractName);
+  if (!contract?.nodes) return null;
+  const declarations = contract.nodes.filter(node => node.nodeType === 'VariableDeclaration' && node.mutability === 'immutable');
+  if (declarations.length !== Object.keys(expected).length || declarations.length !== Object.keys(references).length) return null;
+
+  let deployed = template;
+  for (const { id, name } of declarations) {
+    if (!name || !Object.hasOwn(expected, name) || !references[id]?.length) return null;
+    const word = padHex(expected[name], { size: 32 }).slice(2);
+    for (const { start, length } of references[id]) {
+      const offset = start * 2;
+      const end = offset + length * 2;
+      if (!Number.isInteger(start) || start < 0 || length !== 32 || template.slice(offset, end) !== '0'.repeat(64)) return null;
+      deployed = deployed.slice(0, offset) + word + deployed.slice(end);
+    }
   }
-  return normalizedActual.toLowerCase() === normalizedExpected.toLowerCase();
+  return `0x${deployed}`;
 }
 
 /** Exact finalized versions, never a search for any historical matching address. */

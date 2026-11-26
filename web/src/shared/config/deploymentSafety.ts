@@ -100,9 +100,7 @@ export function resolveArtistPublicationSafety(input: ArtistPublicationSafetyInp
     input.auditedBlock > 0 &&
     auditedBlockHashComplete &&
     input.factoryDirectoryPairingVerified &&
-    input.pendingRuntimeDiscoveryComplete &&
-    Number.isSafeInteger(input.pendingRuntimeCount) &&
-    input.pendingRuntimeCount === 0;
+    (freshCatalogCutover || (input.pendingRuntimeDiscoveryComplete && Number.isSafeInteger(input.pendingRuntimeCount) && input.pendingRuntimeCount === 0));
   const safe =
     chainMatches &&
     addressesMatch &&

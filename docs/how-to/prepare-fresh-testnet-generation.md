@@ -4,7 +4,28 @@ Use this procedure for #317 after the owner-selected full redeployment and
 merged audit/SDK corrections. It prepares a reviewable deployment and cutover;
 source preparation is not evidence that contracts, services or a Product were
 delivered. The [configuration reference](../operations/deployment-configuration.md#native-payment-correction-candidate-484)
-owns state preservation and native acceptance boundaries.
+owns active configuration and native acceptance boundaries.
+
+## Development reset policy
+
+The owner confirmed on 23 November 2026 that each development reset starts with
+a fresh application generation. Retired test runtimes, releases, purchases,
+claims, sessions and application histories have no migration or restoration
+requirement. Global discovery of unfinished historical runtimes is outside
+the onboarding prerequisites for this reset.
+
+Verify the new core, exact CDM bindings and the intended artist's signer before
+onboarding. Query that artist's current factory state on every creation/retry.
+If creation has finalized but installation was interrupted, resume the recorded
+runtime and stage. If submission has an uncertain outcome, reconcile finalized
+state before requesting another approval. These checks belong to the normal
+error and recovery path for the new generation.
+
+Initialize the new application namespace empty and stop retired writers. Start
+fresh authentication sessions and generation-specific receipts, queues and key
+domains. A reset must not permit an old session or grant to authorize the new
+generation. Chain-managed nonces, append-only registries and already incurred
+storage obligations follow their network rules when an account is reused.
 
 The [20 November core checkpoint](../operations/fresh-testnet-2026-11-20.md)
 records an actual complete core deployment and finalized readback. Reconcile
@@ -69,7 +90,7 @@ names under their actual publisher; record exact finalized versions. Preserve
 the append-only CDM history and account nonces. Use the [Product runbook](../operations/product-devnet-deployment.md)
 for storage authorization, retention, signer handling and registry operations.
 Begin the maintenance window and exclude all account-sharing writers before
-those Bulletin publication operations; retain the final protected state first.
+those Bulletin publication operations.
 
 Update `contracts/evm/cdm.json` only from those actual results. With the same
 explicit public deployer, run:
@@ -80,16 +101,16 @@ npm --prefix contracts/evm run fresh:readback:testnet
 
 The v2 readback checks at one finalized block:
 
-- all ten deployed bytecodes against compiler output, masking only the compiler's
-  declared immutable slots;
+- all ten deployed bytecodes against compiler output with each declared immutable
+  slot filled from the reviewed manifest and explicit deployer address;
 - the factory's directory, initializer, seven facet addresses and native precision,
   plus the directory's factory/deployer binding;
-- zero finalized artists before cutover; this is not enumeration of unknown
-  pending artist shells;
+- zero finalized artists before the first onboarding;
 - each exact address/version pair in the recorded CDM snapshot, without searching
   a small version range or accepting another historical match.
 
-Getter comparisons separately bind the masked immutable values. Missing metadata,
+The report includes the deployed bytecode hash for each address. Getter comparisons
+independently confirm the factory and directory bindings. Missing metadata,
 wrong precision, different code, wrong bindings, a populated directory or mismatched
 CDM versions stop the readback. A local EVM rehearsal is not native Revive or Host
 acceptance. Archive the dated readback before creating a new artist.
@@ -104,28 +125,25 @@ Prepare this table with actual values before the development maintenance window:
 | CDM snapshot and generated Product bindings | Exact new addresses, finalized versions and published metadata bytes/CIDs |
 | Edge and custody API | `DOTIFY_DIRECTORY_ADDRESS`, `DOTIFY_FACTORY_ADDRESS`, chain ID and EVM/native RPCs; matching receipt endpoints |
 | Signaling | `SIGNAL_CONTRIBUTION_DIRECTORY` equals the new directory |
-| Active custody state | New generation-specific catalog/receipt/queue/admission scope; one writer; independently retained old evidence and required secrets/nonce history |
+| Active custody state | New generation-specific catalog/receipt/queue/admission scope; one writer; empty new application state and chain-current account nonces |
 | Web and Product | Matching source/configuration, reviewed app/product identity and empty new-generation bootstrap |
 
-The [deployment configuration](../operations/deployment-configuration.md#native-payment-correction-candidate-484)
-defines what is retired as active application state and what must be preserved.
-Do not delete old on-chain/storage objects or reset a reused writer's nonce.
-Do not copy old runtime-bound encrypted releases, pending writes, grants or receipt
-lookups into the new active generation. Do not use an old custody writer with new
-data or enable compact publication/recurring conservation as part of this cutover.
+Apply the development reset policy above and the
+[deployment configuration](../operations/deployment-configuration.md#testnet-cutover-with-an-interruption)
+to the new component set.
 
 The development environment has no users to keep online. Use one maintenance
 interruption and the existing startup checks:
 
-1. Stop old writers and preserve the final trust/quota state under the
+1. Stop old writers and initialize the empty new application namespace under the
    [cutover configuration](../operations/deployment-configuration.md#testnet-cutover-with-an-interruption).
    Complete the CDM publication/readback with exclusive storage-account access.
    Retain the finalized empty-directory core/CDM readback **before** creating an
    artist.
 2. First run the [selected-artist prerequisite check](check-artist-onboarding-prerequisites.md)
    to inspect the intended account's mapping and pending/registered state. Its
-   report does not replace global discovery, reviewed-bytecode attestation or
-   identified signer control. Complete those gates before approvals.
+   report supports creation/retry recovery. Verify the reviewed bytecode/CDM
+   bindings and identified signer before approvals.
    Have the artist wallet create its runtime and approve the seven installation/
    finalization calls against the new factory. These are contract calls; they do
    not require the publication API. Use a wallet interaction or an identified
@@ -143,10 +161,8 @@ interruption and the existing startup checks:
    and deliver an explicitly identified Web/Product release. The retained old
    appVersion is not a new delivery identity.
 
-Independently read back the served component identities/configuration. A rollback
-must restore a complete matching component set and preserve the latest nonce
-and protected state. Returning old releases to active use is outside the owner's
-selected clean-generation scope.
+Independently read back the served component identities/configuration. Resolve a
+failed startup against the selected new generation before resuming onboarding.
 
 ## Accept the new generation
 

@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import hre from 'hardhat';
 import { loadFixture } from '@nomicfoundation/hardhat-network-helpers';
-import { getAddress, toFunctionSelector, zeroAddress } from 'viem';
+import { getAddress, keccak256, toFunctionSelector, zeroAddress } from 'viem';
 import { deploySmartRuntimeSystem } from '../scripts/deploySystem';
 import { FRESH_CORE_TRANSACTION_COUNT, freshArtifactInventory, freshCdmPackages, freshDeploymentAccount, inspectFreshSystem } from '../scripts/freshDeployment';
 
@@ -30,6 +30,13 @@ describe('Fresh generation preparation', () => {
     expect(result.artistCount).to.equal('0');
     expect(result.nativeTokenDecimals).to.equal(10);
     expect(result.verifiedImplementations).to.include('MusicMetadataPallet');
+    expect(result.implementationCodeHashes).to.have.length(10);
+    const factoryCode = await client.getCode({ address: deployments.factory });
+    expect(result.implementationCodeHashes.find(entry => entry.name === 'ArtistRuntimeFactory')).to.deep.equal({
+      name: 'ArtistRuntimeFactory',
+      address: deployments.factory,
+      codeHash: keccak256(factoryCode!)
+    });
     const inventory = await freshArtifactInventory(hre);
     expect(inventory).to.have.length(10);
     expect(FRESH_CORE_TRANSACTION_COUNT).to.equal(11);

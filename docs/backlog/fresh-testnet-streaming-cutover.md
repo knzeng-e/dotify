@@ -1,5 +1,14 @@
 # Clean testnet catalog and streaming cutover
 
+## Owner decision, 23 November 2026
+
+The [development reset policy](../how-to/prepare-fresh-testnet-generation.md#development-reset-policy) supersedes earlier
+preservation, migration and global pending-runtime discovery prerequisites.
+Start each development generation with empty application state. Keep selected
+artist state reconciliation and interrupted creation recovery in the onboarding
+flow. Historical checkpoints below record their original scope.
+
+
 ## Real selected-artist readback, 2026-11-23
 
 The [clean-source observation](implementation/evidence/artist-prerequisites-2026-11-23.md) accepts the intended
