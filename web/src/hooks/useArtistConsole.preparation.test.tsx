@@ -1,3 +1,4 @@
+import { deployments } from '../shared/config/deployments';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { useArtistConsole, type UseArtistConsoleDeps } from './useArtistConsole';
@@ -89,8 +90,8 @@ describe('publication preparation ownership', () => {
     const signedStages: number[] = [];
     const hashFor = (index: number) => `0x${(index + 1).toString(16).padStart(64, '0')}` as const;
     const deps = publicationDeps({
-      factoryAddress: '0x0000000000000000000000000000000000000003',
-      directoryAddress: '0x0000000000000000000000000000000000000004',
+      factoryAddress: deployments.factory,
+      directoryAddress: deployments.directory,
       setTransactionFeedback: value => {
         const next = typeof value === 'function' ? value(feedback[feedback.length - 1] ?? null) : value;
         if (next) feedback.push(next);
@@ -127,6 +128,8 @@ describe('publication preparation ownership', () => {
       expect(feedback[feedback.length - 1]?.title).toBe('Artist registered');
       expect(signedStages).toEqual(Array.from({ length: 8 - Math.max(1, initialStage) }, (_, index) => Math.max(1, initialStage) + index));
       expect(runtime.createRuntime).toHaveBeenCalledTimes(initialStage === 0 ? 1 : 0);
+      if (initialStage === 0) expect(runtime.createRuntime).toHaveBeenCalledWith(deployments.factory);
+      expect(runtime.installRuntimeStep.mock.calls).toEqual(signedStages.map(() => [deployments.factory]));
       expect(runtime.waitForTransaction).toHaveBeenCalledTimes(signedStages.length + (initialStage === 0 ? 1 : 0));
       const steps = feedback[feedback.length - 1]!.steps!;
       expect(steps).toHaveLength(8);

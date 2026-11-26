@@ -1,19 +1,18 @@
-import { deployments } from './deployments';
-
+// Source and deployed-bytecode evidence: docs/backlog/implementation/evidence/fresh-core-bytecode-2026-11-23.json.
 export const registryOwnerGuardAttestation = {
   chainId: 420420417,
-  factory: '0x61dd19a0d4f6bd21c6ffa4a7a9d9e771af95bb13',
-  directory: '0x79b21cad3848a3019edee17b089142282f4a13a3',
-  auditedBlock: 15040310,
-  auditedBlockHash: '0xc392855f9388a607a139d12ac489e04a03a4bd773a003173cf609de7a3f39f7b',
+  factory: '0xe2199c16ea32402dd2bdc3730afba49ad5cd83f5',
+  directory: '0x8af1531278831fe92689558f7b6cae92fc682ca4',
+  auditedBlock: 16129661,
+  auditedBlockHash: '0xfbc36a07ce4ab26569730fc5745dd13029bc4f781567c4b7e6c9ed6e4bf0d30d',
   factoryDirectoryPairingVerified: true,
   existingRuntimeCoverage: { protected: 0, total: 0 },
   existingTrackAudit: { ownerMatched: 0, total: 0 },
-  pendingRuntimeDiscoveryComplete: true,
+  pendingRuntimeDiscoveryComplete: false,
   pendingRuntimeCount: 0,
   futureFactoryUsesOwnerGuard: true,
-  correctedRegistryCodeHash: '0x5c1185f92f443499a94143221e45db2f3c13e5490bc61a5b668b2204f7f7b9f4',
-  futureFactoryRegistryCodeHash: '0x5c1185f92f443499a94143221e45db2f3c13e5490bc61a5b668b2204f7f7b9f4',
+  correctedRegistryCodeHash: '0xd660f736eb9e30073b9b8efe0e676ce5efd0619f63727cc16b3238b495396100',
+  futureFactoryRegistryCodeHash: '0xd660f736eb9e30073b9b8efe0e676ce5efd0619f63727cc16b3238b495396100',
   catalogCutoverReady: true
 } as const;
 
@@ -118,12 +117,12 @@ export function resolveConfiguredArtistPublicationSafety(input: {
   explicitE2e: boolean;
   rpcUrl: string;
   currentChainId: number | null;
+  configuredFactory: string | undefined;
+  configuredDirectory: string | undefined;
 }): ArtistPublicationSafety {
   return resolveArtistPublicationSafety({
     ...input,
     expectedChainId: registryOwnerGuardAttestation.chainId,
-    configuredFactory: deployments.factory,
-    configuredDirectory: deployments.directory,
     attestedFactory: registryOwnerGuardAttestation.factory,
     attestedDirectory: registryOwnerGuardAttestation.directory,
     auditedBlock: registryOwnerGuardAttestation.auditedBlock,
