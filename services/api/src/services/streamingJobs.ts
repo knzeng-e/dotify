@@ -27,13 +27,14 @@ import { initializeStreamingNonceLedger, StreamingNonceLedger, STREAM_NONCE_SCHE
 import { encodeStreamingRelease } from './streamingEncoder.js';
 import type { EncodedStreamingAudio } from './streamingTranscoder.js';
 import { PinataError, type PinataFile } from './pinata.js';
-import { PublicationAdmissionError } from './publicationAdmission.js';
+import { PublicationAdmissionError, PublicationCapacityError, type PublicationCapacity } from './publicationAdmission.js';
 const MAX_QUEUED = 4,
   MAX_SOURCE_BYTES = 200 * 1024 * 1024,
   RETENTION_MS = 7 * 24 * 60 * 60_000;
 type StreamingFailure = {
   stage: 'authority' | 'key' | 'encoding' | 'encryption' | 'validation' | 'storage' | 'persistence';
   storageStatus?: number;
+  capacity?: PublicationCapacity;
 };
 export type StreamingJobView = Pick<StreamingJob, 'id' | 'state' | 'attempts' | 'updatedAt' | 'reason'> & {
   progress?: BulletinPublicationProgress;
@@ -497,7 +498,11 @@ export class StreamingJobs {
       const failure = { stage, ...(error instanceof PinataError && error.providerStatus ? { storageStatus: error.providerStatus } : {}) };
       if (!signal.aborted) this.deps.onFailure?.({ jobId: job.id, ...failure });
       await this.exclusive(async () => {
-        this.failures.set(job.id, failure);
+        const capacity = error instanceof PublicationCapacityError ? error.capacity : undefined;
+        // Refill can take multiple checks. Storage still enforces the durable
+        // nonce journal and its own cumulative submission limits on every retry.
+        if (capacity) job.attempts--;
+        this.failures.set(job.id, capacity ? { ...failure, capacity } : failure);
         job.state = signal.aborted ? 'queued' : 'failed';
         job.reason = error instanceof PublicationAdmissionError ? 'PUBLICATION_NOT_ADMITTED' : job.attempts >= 3 ? 'RETRY_LIMIT' : 'PREPARATION_FAILED';
         job.updatedAt = this.now();

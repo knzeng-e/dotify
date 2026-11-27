@@ -28,7 +28,7 @@ import { assertPublicationBinding, readBulletinPublisherProfile, type BulletinPu
 import { pinFilesToPinata, type PinataFile } from './pinata.js';
 import { parseStreamingManifest } from './streamingFormat.js';
 import type { StreamingScope } from './streamingFormat.js';
-import { PublicationAdmissionError } from './publicationAdmission.js';
+import { PublicationAdmissionError, PublicationCapacityError, requireBulletinAuthorization } from './publicationAdmission.js';
 import { releaseJob as releaseJobForReference } from './bulletinReleaseAdmission.js';
 import { createReleasePublication, verifyReleaseDependencies } from './bulletinReleasePublication.js';
 import { buildBulletinMediaGraph } from './bulletinGraph.js';
@@ -152,6 +152,28 @@ export async function createStreamingPublicationStore(
     signer?.dispose();
     await unlock();
   };
+  // Check the finalized public state before loading a private signer.
+  const preflight = async (signal: AbortSignal) => {
+    const reserve = await retainedPublicationReserve(profile);
+    const session = selected.openSession(profile, null, reserve);
+    try {
+      assert.ok(session.transport.genesis === profile.genesis && session.transport.account === profile.account, 'Publication transport identity changed');
+      const state = await session.transport.status(signal);
+      assert.ok(Number.isSafeInteger(state.authorization.expiresAt) && Number.isSafeInteger(state.head), 'Invalid Bulletin authorization status');
+      requireBulletinAuthorization(profile, state.authorization.expiresAt, state.head + profile.budget.minimumLifetimeBlocks + 1);
+    } finally {
+      session.close();
+    }
+  };
+  const loadSigner = async () => {
+    await options.validateBeforeSigner?.();
+    const loaded = await selected.loadSigner(profile);
+    if (loaded.account !== profile.account) {
+      loaded.dispose();
+      throw new Error('Publication signer identity changed');
+    }
+    signer = loaded;
+  };
   try {
     await releases?.validate();
     if (assetPolicy) {
@@ -164,19 +186,16 @@ export async function createStreamingPublicationStore(
         assert.ok(jobs.filter(job => job.generation === publicAssetGeneration('metadata')).length <= 1, 'Metadata repair permit missing');
       }
     }
-    // Read-only preflight before opening the private key. Startup never signs.
-    const reserve = await retainedPublicationReserve(profile);
-    const preflight = selected.openSession(profile, null, reserve);
+    let canLoadSigner = true;
     try {
-      const state = await preflight.transport.status(AbortSignal.timeout(30_000));
-      assert.ok(preflight.transport.genesis === profile.genesis && preflight.transport.account === profile.account, 'Publication transport identity changed');
-      assert.ok(state.authorization.expiresAt > state.head + profile.budget.minimumLifetimeBlocks, 'Bulletin authorization is expiring');
-    } finally {
-      preflight.close();
+      await preflight(AbortSignal.timeout(30_000));
+    } catch (error) {
+      if (!releases || options.validateBeforeSigner || !(error instanceof PublicationCapacityError)) throw error;
+      // Keep the hosted API responsive so an authenticated artist can see
+      // the refill requirement even if quota was already low at startup.
+      canLoadSigner = false;
     }
-    await options.validateBeforeSigner?.();
-    signer = await selected.loadSigner(profile);
-    assert.equal(signer.account, profile.account, 'Publication signer identity changed');
+    if (canLoadSigner) await loadSigner();
   } catch (error) {
     await release();
     throw error;
@@ -241,6 +260,11 @@ export async function createStreamingPublicationStore(
         const pipeline = await releases.pipeline(graph!.scope);
         finishPrepare?.();
         finishPrepare = undefined;
+        if (!signer) {
+          await preflight(signal);
+          signal.throwIfAborted();
+          await loadSigner();
+        }
         const session = selected.openSession({ ...profile, budget }, signer!, reserve, timings);
         activeSession = session;
         try {
@@ -355,7 +379,9 @@ export async function createStreamingPublicationStore(
       if (releases) {
         const state = await idleInventories();
         if (state?.owner.activeJob && state.owner.activeJob !== name && !activeSession) throw new PublicationAdmissionError();
-        return releases.check(scope, name, owner);
+        await releases.check(scope, name, owner);
+        if (!signer) await preflight(AbortSignal.timeout(30_000));
+        return;
       }
       assertAudioAdmission(scope, (await inventories(profile)).jobs, name);
     },

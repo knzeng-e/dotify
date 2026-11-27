@@ -7,6 +7,7 @@ import { verifyBulletinBlock, BULLETIN_GRAPH_MAX } from './bulletinGraph.js';
 import { BULLETIN_FINALITY_MS } from './bulletinLimits.js';
 import { watchFinalized } from './bulletinFinality.js';
 import { timedBulletinTransport, type PublicationTimings } from './bulletinTiming.js';
+import { requireBulletinAuthorization, requireBulletinQuota } from './publicationAdmission.js';
 import { createBulletinReadLane } from './bulletinReadLane.js';
 
 import type { PolkadotClient } from 'polkadot-api';
@@ -25,7 +26,7 @@ export function createPapiMediaTransport({
   client: Pick<PolkadotClient, '_request' | 'destroy' | 'getUnsafeApi'>;
   identity: BulletinStoreIdentity;
   signer?: Pick<BulletinSigner, 'account' | 'createTransaction'> | null;
-  budget: { maxBytes: number; maxTransactions: number };
+  budget: { maxBytes: number; maxTransactions: number; minimumLifetimeBlocks?: number };
   reserved?: { transactions: number; bytes: number };
   timings?: PublicationTimings;
 }) {
@@ -93,11 +94,12 @@ export function createPapiMediaTransport({
           assert.ok(attempts < allowance.maxTransactions && bytes + block.bytes.length <= allowance.maxBytes, 'Bulletin live session allowance exhausted');
           const status = await transport.status(signal);
           const outstanding = [...issued.values()].filter(entry => entry.block === null || entry.block > status.head);
-          assert.ok(
-            status.authorization.expiresAt > status.head + 100 &&
-              status.authorization.remainingTransactions >= outstanding.length + 1 &&
-              status.authorization.remainingBytes >= BigInt(block.bytes.length + outstanding.reduce((sum, entry) => sum + entry.bytes, 0)),
-            'Bulletin quota does not cover outstanding reservations'
+          requireBulletinAuthorization(identity, status.authorization.expiresAt, status.head + 101);
+          requireBulletinQuota(
+            identity,
+            outstanding.length + 1 - status.authorization.remainingTransactions,
+            BigInt(block.bytes.length + outstanding.reduce((sum, entry) => sum + entry.bytes, 0)) - BigInt(status.authorization.remainingBytes),
+            0n
           );
           issued.set(intent.nonce, { bytes: block.bytes.length, block: null });
           attempts++;
@@ -133,7 +135,8 @@ export function createPapiMediaTransport({
         }
       }
     : undefined;
-  const base = createBulletinRpcTransport({ identity, request, ...(submit ? { submit } : {}) });
+  const minimumLifetimeBlocks = budget.minimumLifetimeBlocks ?? 100;
+  const base = createBulletinRpcTransport({ identity, request, minimumLifetimeBlocks, ...(submit ? { submit } : {}) });
   const raw = timings ? timedBulletinTransport(base, timings) : base;
   const floor = { ...reserved };
   assert.ok(
@@ -144,9 +147,10 @@ export function createPapiMediaTransport({
     ...raw,
     async status(signal) {
       const status = await raw.status(signal);
+      requireBulletinAuthorization(identity, status.authorization.expiresAt, status.head + minimumLifetimeBlocks + 1);
       const tx = status.authorization.remainingTransactions - floor.transactions;
       const bytes = BigInt(status.authorization.remainingRenewBytes) - BigInt(floor.bytes);
-      assert.ok(tx >= 0 && bytes >= 0n, 'Bulletin quota cannot cover retained publications');
+      requireBulletinQuota(identity, -tx, 0n, -bytes, { retainedOnly: true });
       return { ...status, authorization: { ...status.authorization, remainingTransactions: tx, remainingRenewBytes: bytes } };
     }
   };

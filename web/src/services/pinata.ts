@@ -1,4 +1,5 @@
 import { parsePreparedRelease, PreparedReleaseRecoveryError } from '../features/artist-studio/preparedReleaseRecovery';
+import { parsePublicationCapacity, PublicationCapacityError } from '../features/uploads/publicationCapacity';
 import { bulletinAssetUrl, fetchBulletinPublicAsset } from './bulletinPublicAssets';
 import {
   AudioPreparationPending,
@@ -200,6 +201,7 @@ export async function fetchAssetRef(assetRef: string, options: GatewayReadOption
 
 export type BackendUploadErrorBody = {
   code?: unknown;
+  capacity?: unknown;
   error?: unknown;
   issues?: Array<{
     path?: unknown;
@@ -247,13 +249,19 @@ export function formatBackendUploadError(body: BackendUploadErrorBody | null | u
   return issues.length > 0 ? `${message}: ${issues.join('; ')}` : message;
 }
 
-async function parseBackendError(res: Response, fallback: string): Promise<string> {
-  try {
-    const body = (await res.json()) as BackendUploadErrorBody;
-    return formatBackendUploadError(body, fallback);
-  } catch {
-    return fallback;
+function backendUploadError(body: BackendUploadErrorBody | null, fallback: string): Error {
+  if (body?.code === 'STREAMING_PUBLICATION_CAPACITY') {
+    const error = parsePublicationCapacity(body.capacity);
+    if (error) return error;
   }
+  if (body?.code === 'UPLOAD_PRINCIPAL_QUOTA_EXCEEDED' || body?.code === 'UPLOAD_GLOBAL_QUOTA_EXCEEDED')
+    return new PublicationCapacityError({ kind: 'upload-window' });
+  return new Error(formatBackendUploadError(body, fallback));
+}
+
+async function parseBackendError(res: Response, fallback: string): Promise<Error> {
+  const body = (await res.json().catch(() => null)) as BackendUploadErrorBody | null;
+  return backendUploadError(body, fallback);
 }
 
 async function requestUploadAuthorization(identity: BackendUploadIdentity | undefined, purpose: BackendUploadPurpose, bytes: number): Promise<string> {
@@ -285,8 +293,7 @@ async function requestUploadAuthorization(identity: BackendUploadIdentity | unde
     if (sessionToken) res = await requestAuthorization(sessionToken);
   }
   if (!res.ok) {
-    const msg = await parseBackendError(res, `Upload authorization failed (${res.status})`);
-    throw new Error(msg);
+    throw await parseBackendError(res, `Upload authorization failed (${res.status})`);
   }
   const data = (await res.json()) as { uploadAuthorization?: unknown };
   if (typeof data.uploadAuthorization !== 'string' || !data.uploadAuthorization) {
@@ -331,7 +338,7 @@ export async function uploadAudioToBackend(rawFile: File, contentHash: string, i
     }
     if (!response.ok) {
       const body = (await response.json().catch(() => null)) as BackendUploadErrorBody | null;
-      throw Object.assign(new Error(formatBackendUploadError(body, 'Audio preparation could not be checked. Please try again.')), {
+      throw Object.assign(backendUploadError(body, 'Audio preparation could not be checked. Please try again.'), {
         status: response.status,
         code: typeof body?.code === 'string' ? body.code : undefined
       });
@@ -385,8 +392,7 @@ export async function uploadAudioToBackend(rawFile: File, contentHash: string, i
   });
 
   if (!res.ok) {
-    const msg = await parseBackendError(res, `Audio upload failed (${res.status})`);
-    throw new Error(msg);
+    throw await parseBackendError(res, `Audio upload failed (${res.status})`);
   }
 
   const responseBody: unknown = await res.json();
@@ -431,8 +437,7 @@ export async function uploadCoverToBackend(file: File, identity?: BackendUploadI
   });
 
   if (!res.ok) {
-    const msg = await parseBackendError(res, `Cover upload failed (${res.status})`);
-    throw new Error(msg);
+    throw await parseBackendError(res, `Cover upload failed (${res.status})`);
   }
 
   const data = (await res.json()) as { ref: string };
@@ -467,7 +472,7 @@ export async function uploadMetadataToBackend(manifest: DotifyTrackManifest, ide
       const prepared = parsePreparedRelease(body.preparedRelease, manifest, owner, identity.chainId);
       if (prepared) throw new PreparedReleaseRecoveryError(prepared, message);
     }
-    throw new Error(message);
+    throw backendUploadError(body, `Metadata upload failed (${res.status})`);
   }
 
   const data = (await res.json()) as { ref: string };

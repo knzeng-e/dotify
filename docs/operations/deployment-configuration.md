@@ -631,6 +631,17 @@ is an explicit offline operator tool with separate private plan/key paths and
 trusted digests. It adds no hosted route, environment setting, volume, secret
 installation or startup action. Ordinary media still refuses original archives.
 
+## Artist upload and refill feedback
+
+Roll out the Web and Product clients together with the edge API and custody
+version that serves the [artist capacity response](../reference/request-limits.md#artist-upload-limits).
+Use a reviewed multi-release profile for the current artist runtime. Start
+custody and verify that an expired or insufficient grant leaves the API
+available to report the refill and blocks signing until the finalized grant
+is sufficient. Validate the
+[ordinary artist flow and retry](bulletin-artist-publication.md#resume-after-a-capacity-stop)
+before recording hosted acceptance.
+
 ## Dedicated Product artist setup build
 
 The [artist setup procedure](../how-to/create-artist-runtime-on-product.md)

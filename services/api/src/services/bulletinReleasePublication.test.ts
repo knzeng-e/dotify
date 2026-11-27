@@ -144,6 +144,41 @@ it('admits another release while this process is actively writing, then serializ
     await store.close();
   }
 });
+it('serves refill feedback before opening the signer when Bulletin authorization has expired at startup', async t => {
+  const c = await assetFixture(t, true);
+  const status = c.transport.status.bind(c.transport);
+  let expired = true;
+  let signerLoads = 0;
+  c.transport.status = async (...args) => {
+    const live = await status(...args);
+    return expired ? { ...live, authorization: { ...live.authorization, expiresAt: live.head } } : live;
+  };
+  const store = await createStreamingPublicationStore(c.options, {
+    ...c.deps,
+    loadSigner: async profile => {
+      signerLoads++;
+      return c.deps.loadSigner(profile);
+    }
+  });
+  const queue = queueFor(c, store);
+  await queue.start(false);
+  try {
+    const master = Buffer.alloc(64, 61);
+    const input = { owner: c.owner.address, scope: scopeFor(master, c), master };
+    await assert.rejects(queue.enqueue(input), { code: 'STREAMING_PUBLICATION_CAPACITY' });
+    assert.equal(signerLoads, 0);
+    assert.equal(c.writes, 0);
+    expired = false;
+    const job = await queue.enqueue(input);
+    await queue.runNext();
+    assert.equal(signerLoads, 1);
+    assert.equal(queue.get(job.id, input.owner, input.scope.chainId)?.state, 'ready');
+  } finally {
+    await queue.stop();
+    await store.close();
+  }
+});
+
 it('refuses an audio graph beyond its whole-part cap before any write session can store it', async t => {
   const c = await assetFixture(t, true, { maxBytes: 512 * 1024, maxTransactions: 1, minimumLifetimeBlocks: 100 });
   const store = await createStreamingPublicationStore(c.options, c.deps),
@@ -234,7 +269,10 @@ it('publishes two audio/cover/metadata releases through one cursor and recovers 
   assert.equal(owner.activeJob, null);
   assert.equal(owner.nextNonce, 10 + count);
   assert(c.peak <= 2);
-  await assert.rejects(store.assertCanPrepare!(scopeFor(Buffer.alloc(64, 3), c), undefined, c.owner.address), PublicationAdmissionError);
+  await assert.rejects(store.assertCanPrepare!(scopeFor(Buffer.alloc(64, 3), c), undefined, c.owner.address), {
+    code: 'STREAMING_PUBLICATION_CAPACITY',
+    capacity: { kind: 'release-slots' }
+  });
   const before = await readFile(join(c.profile.directory, 'release-admission.json'));
   const wrongAudio = { ...references[1].value, assets: { ...references[1].value.assets, audioCID: references[0].value.assets.audioCID } };
   await assert.rejects(store.pinAsset!(filesFor(wrongAudio), 'metadata', c.owner, signal()), /Metadata audio/);

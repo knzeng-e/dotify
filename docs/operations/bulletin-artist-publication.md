@@ -20,6 +20,34 @@ custody and the isolated encoder prepare them and the signed-key service still
 decides whether an account may receive a listening key. Network privacy does
 not make this service decentralized.
 
+## Resume after a capacity stop
+
+With the matched upload and custody candidate, choose audio and an optional
+cover in **New release**. File selection prepares the draft locally. **Publish**
+starts authenticated upload and storage, then opens the artist wallet for
+release registration. The [file and quota limits](../reference/request-limits.md#artist-upload-limits)
+apply to files chosen from the device.
+
+- For **Bulletin storage needs a refill**, copy the request from the dialog and
+  send it to the operator of the named publishing account. Check the network
+  genesis, finalized authorization and retained renewal reserve. Use the
+  [Bulletin authorization guide](https://docs.polkadot.com/reference/apps/infrastructure/bulletin-chain/authorization/)
+  to choose the refill for that network. The shortfall is a minimum at the
+  observed block for the current step. If it only restores the reserve for
+  earlier releases, recheck the new release after replenishing the reserve.
+- For **New release slots are full**, share the artist space and audio
+  fingerprint in the release slot request with the Dotify operator. Follow the
+  reviewed admission procedure for that profile. A Bulletin account refill
+  cannot add a Dotify slot.
+- For a **temporary upload limit**, keep the draft open and retry after the
+  upload window releases capacity.
+
+After capacity is available, select **Check capacity and retry** in the
+publication dialog. This rechecks the current wallet and release and resumes
+existing preparation when available. Keep the browser draft and the source files
+until the catalogue confirms the release. Only the operator can change the
+server-managed grant or admission ledger.
+
 ## Collect publisher timings offline
 
 The operator-only `services/api/scripts/summarize-bulletin-timings.mjs` reads

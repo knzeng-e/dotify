@@ -32,6 +32,7 @@ import {
   sync,
   type BulletinMediaInventory
 } from './bulletinMediaState.js';
+import { requireBulletinAuthorization, requireBulletinQuota } from './publicationAdmission.js';
 import type { PinataFile } from './pinata.js';
 import { bulletinGraphLayout, STANDARD_BULLETIN_LAYOUT, COMPACT_BULLETIN_LAYOUT } from './bulletinStorageLayout.js';
 export { initializeBulletinMediaStore, type BulletinMediaInventory } from './bulletinMediaState.js';
@@ -220,10 +221,8 @@ export function createBulletinMediaStore(options: {
         const observeStatus = async () => {
           const status = await call(signal, s => transport.status(s));
           integer.parse(status.head);
-          assert.ok(
-            Number.isSafeInteger(status.authorization.expiresAt) && status.authorization.expiresAt > status.head + budget.minimumLifetimeBlocks,
-            'Bulletin authorization unavailable or expiring'
-          );
+          integer.parse(status.authorization.expiresAt);
+          requireBulletinAuthorization(selected, status.authorization.expiresAt, status.head + budget.minimumLifetimeBlocks + 1);
           nonnegative(status.authorization.remainingTransactions);
           nonnegative(status.authorization.remainingBytes);
           nonnegative(status.authorization.remainingRenewBytes);
@@ -287,11 +286,11 @@ export function createBulletinMediaStore(options: {
           'Bulletin job allowance exhausted'
         );
         const quotaFor = (current: BulletinStatus, count: number, bytes: number) => {
-          assert.ok(
-            nonnegative(current.authorization.remainingTransactions) >= BigInt(count + graph.blocks.length) &&
-              nonnegative(current.authorization.remainingBytes) >= BigInt(bytes) &&
-              nonnegative(current.authorization.remainingRenewBytes) >= BigInt(graph.bytes),
-            'Insufficient Bulletin quota including renewal reserve'
+          requireBulletinQuota(
+            selected,
+            count + graph.blocks.length - current.authorization.remainingTransactions,
+            BigInt(bytes) - nonnegative(current.authorization.remainingBytes),
+            BigInt(graph.bytes) - nonnegative(current.authorization.remainingRenewBytes)
           );
         };
         quotaFor(status, missing.length, neededBytes);
@@ -321,7 +320,7 @@ export function createBulletinMediaStore(options: {
           );
           const nonce = await nonceAt(before.head);
           assert.equal(nonce.nonce, custody.nextNonce, 'Finalized account nonce differs from durable cursor; operator reconciliation required');
-          assert.ok(before.authorization.expiresAt > nonce.head + budget.minimumLifetimeBlocks, 'Bulletin authorization unavailable or expiring');
+          requireBulletinAuthorization(selected, before.authorization.expiresAt, nonce.head + budget.minimumLifetimeBlocks + 1);
           for (const block of wave) {
             const children = block.cid === graph.root ? Object.keys(state.receipts) : dependencies.get(block.cid)!;
             for (const cid of children) receiptFor(byCid.get(cid)!, state.receipts[cid], nonce.head, budget.minimumLifetimeBlocks);
@@ -411,7 +410,7 @@ export function createBulletinMediaStore(options: {
         if (custody.activeJob === name) {
           const finalNonce = await nonceAt(completed.head);
           assert.equal(finalNonce.nonce, custody.nextNonce, 'Finalized account nonce differs from durable cursor; operator reconciliation required');
-          assert.ok(completed.authorization.expiresAt > finalNonce.head + budget.minimumLifetimeBlocks, 'Bulletin authorization unavailable or expiring');
+          requireBulletinAuthorization(selected, completed.authorization.expiresAt, finalNonce.head + budget.minimumLifetimeBlocks + 1);
           for (const block of graph.blocks) receiptFor(block, state.receipts[block.cid], finalNonce.head, budget.minimumLifetimeBlocks);
         }
         signal.throwIfAborted();

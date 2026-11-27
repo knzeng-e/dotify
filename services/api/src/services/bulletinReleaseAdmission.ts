@@ -16,7 +16,7 @@ import {
   type BulletinMediaInventory
 } from './bulletinMediaState.js';
 import { COMPACT_BULLETIN_LAYOUT, STANDARD_BULLETIN_LAYOUT, type BulletinStorageLayout } from './bulletinStorageLayout.js';
-import { PublicationAdmissionError } from './publicationAdmission.js';
+import { PublicationAdmissionError, PublicationCapacityError } from './publicationAdmission.js';
 import type { StreamingScope } from './streamingFormat.js';
 import { writeWindowSchema, type BulletinPipelineLimits } from './bulletinPipeline.js';
 
@@ -226,7 +226,7 @@ export function createReleaseAdmission(input: { directory: string; profileSha256
     const entry = state.releases.find(e => releaseIdentity(e.scope) === releaseIdentity(scope));
     const extended = new Set(admissionExtensions(state).map(e => releaseIdentity(e.scope)));
     if (!entry && !extended.has(releaseIdentity(scope)) && state.releases.filter(e => !extended.has(releaseIdentity(e.scope))).length >= allowedCount)
-      throw new PublicationAdmissionError();
+      throw new PublicationCapacityError({ kind: 'release-slots' });
   };
   return {
     check,
@@ -267,7 +267,7 @@ export function createReleaseAdmission(input: { directory: string; profileSha256
         if (!entry) {
           const extended = new Set(admissionExtensions(state).map(e => releaseIdentity(e.scope)));
           if (!extended.has(releaseIdentity(scope)) && state.releases.filter(e => !extended.has(releaseIdentity(e.scope))).length >= allowedCount)
-            throw new PublicationAdmissionError();
+            throw new PublicationCapacityError({ kind: 'release-slots' });
           const layout = releaseAudioLayout(state, scope);
           entry = { scope: releaseScopeSchema.parse(scope), ...(layout === COMPACT_BULLETIN_LAYOUT ? { audioLayout: layout } : {}) };
           state.releases.push(entry);

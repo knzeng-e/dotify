@@ -2,6 +2,7 @@ import { deployments } from '../shared/config/deployments';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { useArtistConsole, type UseArtistConsoleDeps } from './useArtistConsole';
+import { PublicationCapacityError } from '../features/uploads/publicationCapacity';
 import { AudioPreparationError, AudioPreparationPending } from '../features/uploads/streamingPreparation';
 import { createEmptyReleaseMetadata } from '../features/catalog/releaseMetadata';
 
@@ -331,6 +332,56 @@ describe('publication preparation ownership', () => {
     });
     expect(discard).toHaveBeenCalledTimes(1);
   });
+});
+
+it('presents a copyable Bulletin refill and resumes the same release without uploading audio again', async () => {
+  let feedback: TransactionFeedback | null = null;
+  const deps = publicationDeps({
+    setTransactionFeedback: value => {
+      feedback = typeof value === 'function' ? value(feedback) : value;
+    }
+  });
+  const account = '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY';
+  uploads.audio.mockResolvedValue('dotify:enc:v3:key-v2:ipfs://Qm' + 'a'.repeat(44));
+  uploads.cover
+    .mockRejectedValueOnce(
+      new PublicationCapacityError({
+        kind: 'bulletin-quota',
+        account,
+        genesis: `0x${'ab'.repeat(32)}`,
+        transactions: 1,
+        storageBytes: '0',
+        renewalBytes: '256'
+      })
+    )
+    .mockResolvedValue('cover-cid');
+  uploads.metadata.mockResolvedValue('metadata-cid');
+  const captured: { current: ReturnType<typeof useArtistConsole> | null } = { current: null };
+  function Harness() {
+    captured.current = useArtistConsole(deps);
+    return null;
+  }
+
+  renderToStaticMarkup(<Harness />);
+  await captured.current!.registerRights();
+  const blocked = feedback as TransactionFeedback | null;
+  expect(blocked).toMatchObject({
+    title: 'Bulletin storage needs a refill',
+    recoveryAction: { label: 'Check capacity and retry' }
+  });
+  expect(blocked!.facts).toEqual(
+    expect.arrayContaining([
+      { label: 'Extra transactions', value: '1' },
+      { label: 'Extra renewal bytes', value: '256' },
+      expect.objectContaining({ value: account, copyValue: expect.stringContaining('Extra renewal bytes: 256') })
+    ])
+  );
+  expect(blocked!.facts?.some(fact => fact.label === 'Extra storage bytes')).toBe(false);
+  expect(uploads.metadata).not.toHaveBeenCalled();
+  await captured.current!.registerRights();
+  expect(uploads.audio).toHaveBeenCalledTimes(1);
+  expect(uploads.cover).toHaveBeenCalledTimes(2);
+  expect(uploads.metadata).toHaveBeenCalledTimes(1);
 });
 
 it('presents a saved background preparation as pending with an explicit same-draft check', async () => {

@@ -2,7 +2,7 @@ import { PreparedReleaseConflictError } from '../services/bulletinMetadataRepair
 import { dotifyManifestSchema } from '../services/releaseManifest.js';
 import { PublicAssetStorageError, type PublicAssetKind, type PublicAssetOwner } from '../services/bulletinPublicAssets.js';
 import { StreamingJobError, type StreamingJobs } from '../services/streamingJobs.js';
-import { PublicationAdmissionError } from '../services/publicationAdmission.js';
+import { PublicationAdmissionError, PublicationCapacityError } from '../services/publicationAdmission.js';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { blake2b } from '@noble/hashes/blake2';
 import { z } from 'zod';
@@ -91,7 +91,12 @@ function authorizationError(reply: FastifyReply, code: UploadAuthorizationErrorC
   return reply.status(status).send({ error: reason, code });
 }
 
+function replyWithPublicationCapacity(reply: FastifyReply, error: PublicationCapacityError) {
+  return reply.header('Cache-Control', 'no-store').status(409).send({ code: error.code, error: error.message, capacity: error.capacity });
+}
+
 function handleUploadError(error: unknown, request: FastifyRequest, reply: FastifyReply, stage: 'cover' | 'metadata') {
+  if (error instanceof PublicationCapacityError) return replyWithPublicationCapacity(reply, error);
   if (error instanceof PreparedReleaseConflictError && stage === 'metadata') {
     request.log.info({ code: 'UPLOAD_PREPARED_RELEASE_CONFLICT', fields: error.fields }, 'Prepared release differs from draft');
     return reply.header('Cache-Control', 'no-store').status(409).send({
@@ -225,6 +230,7 @@ export function createUploadRoutes(
       try {
         return reply.send(await jobs!.retry(request.params.id, session.address, session.chainId));
       } catch (error) {
+        if (error instanceof PublicationCapacityError) return replyWithPublicationCapacity(reply, error);
         if (error instanceof StreamingJobError)
           return reply.status(error.status).send({
             error:
@@ -350,6 +356,7 @@ export function createUploadRoutes(
           if (!completed) return reply.status(500).send({ error: 'Upload quota accounting failed.', code: 'UPLOAD_ACCOUNTING_FAILED' });
           return reply.header('Cache-Control', 'no-store').status(202).send(job);
         } catch (error) {
+          if (error instanceof PublicationCapacityError) return replyWithPublicationCapacity(reply, error);
           if (error instanceof StreamingJobError)
             return reply.status(error.status).send({
               error:
