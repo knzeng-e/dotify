@@ -11,7 +11,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 import Fastify from 'fastify';
 import { privateKeyToAccount } from 'viem/accounts';
 import { PostgresState, SharedStateUnavailableError } from './postgres.js';
-import { initializeSharedNamespace } from './migration.js';
+import { cutOverManagedNamespace, initializeSharedNamespace } from './migration.js';
 import { PostgresNonces } from './nonces.js';
 import { PostgresSessions } from './sessions.js';
 import { PostgresUploadAuthorizations } from './uploads.js';
@@ -692,4 +692,50 @@ describe('W36 real PostgreSQL / independent API processes', () => {
       await Promise.all([edge.stop(), custody.close()]);
     }
   });
+});
+
+it('atomically switches the managed role to a fresh namespace without exposing retired trust state', async () => {
+  const oldNamespace = `before_${randomUUID().replaceAll('-', '')}`;
+  const newNamespace = `after_${randomUUID().replaceAll('-', '')}`;
+  const previous = { ...identity, sessionEpoch: 'retired-epoch' };
+  const next = { ...identity, directory: `0x${'22'.repeat(20)}`, sessionEpoch: 'fresh-epoch' };
+  const migration = await readFile(new URL('../../../migrations/002-managed-runtime-policies.sql', import.meta.url), 'utf8');
+  const client = await a.pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('CREATE ROLE dotify_runtime NOLOGIN');
+    await client.query('CREATE ROLE schema_admin NOLOGIN');
+    await client.query('REVOKE CREATE ON SCHEMA public FROM PUBLIC');
+    await client.query('GRANT USAGE ON SCHEMA public TO dotify_runtime');
+    await client.query('GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO dotify_runtime');
+    await initializeSharedNamespace(client, oldNamespace, previous);
+    await client.query('INSERT INTO dotify_state_revocations(namespace,jti,expires_at) VALUES($1,$2,$3)', [oldNamespace, 'retired', Date.now() + 60000]);
+    // The deployed policy uses the former state namespace. Use a unique local fixture name.
+    await client.query(migration.replaceAll("namespace = 'dotify'", `namespace = '${oldNamespace}'`));
+    await client.query('SAVEPOINT policy_drift');
+    await client.query('CREATE POLICY other_policy ON dotify_state_nonces USING (true)');
+    await assert.rejects(cutOverManagedNamespace(client, oldNamespace, newNamespace, next), /privileges or policies differ/);
+    await client.query('ROLLBACK TO SAVEPOINT policy_drift');
+    await cutOverManagedNamespace(client, oldNamespace, newNamespace, next);
+    await client.query('SET LOCAL ROLE dotify_runtime');
+    assert.deepEqual((await client.query('SELECT namespace,identity FROM dotify_state_identity')).rows, [{ namespace: newNamespace, identity: next }]);
+    assert.equal((await client.query('SELECT jti FROM dotify_state_revocations')).rowCount, 0);
+    assert.deepEqual((await client.query('SELECT name,value FROM dotify_state_documents')).rows, [
+      { name: 'uploads-v1', value: { reservations: [], usage: [] } }
+    ]);
+    assert.equal((await client.query('UPDATE dotify_state_identity SET identity=identity WHERE namespace=$1', [newNamespace])).rowCount, 0);
+    await client.query('SAVEPOINT denied_write');
+    await assert.rejects(
+      client.query('INSERT INTO dotify_state_revocations(namespace,jti,expires_at) VALUES($1,$2,$3)', [oldNamespace, 'denied', 1]),
+      /row-level security/
+    );
+    await client.query('ROLLBACK TO SAVEPOINT denied_write');
+    assert.equal(
+      (await client.query('INSERT INTO dotify_state_revocations(namespace,jti,expires_at) VALUES($1,$2,$3)', [newNamespace, 'allowed', 1])).rowCount,
+      1
+    );
+  } finally {
+    await client.query('ROLLBACK');
+    client.release();
+  }
 });

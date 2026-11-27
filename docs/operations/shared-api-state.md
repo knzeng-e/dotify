@@ -145,6 +145,23 @@ none of them.
     it is then removed with the deadline field. Record regional latency,
     DB connection usage, backup age and actual physical Host observations.
 
+## Reset a managed development namespace
+
+For a reviewed fresh directory on the same chain, stop all old API writers.
+Run the initializer with the new configuration and the independent new session
+secret/epoch, using the database operator role. The runtime role lacks DDL rights.
+
+```sh
+npm run state:initialize -- --fresh-managed-cutover --from-namespace dotify
+```
+
+The command checks the current role and all four namespace policies, creates an
+empty namespace and moves the policies in one database transaction. It refuses
+a reused namespace, directory or epoch. Verify through the actual runtime role
+that the new identity is visible, the retired identity is hidden, and access to
+the new namespace has the expected read/write boundaries before starting the
+matching custody and edge services.
+
 ## Session-secret rotation without sign-out
 
 Use the same `SESSION_EPOCH`, database and content-key configuration throughout.
