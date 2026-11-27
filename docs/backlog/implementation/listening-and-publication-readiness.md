@@ -1,5 +1,12 @@
 # Publication, listening reliability and CASH — execution order
 
+## Product artist setup candidate
+
+The [standalone Product build](../../how-to/create-artist-runtime-on-product.md)
+checks the accepted artist key, previews the next Paseo approval and reconciles
+interrupted setup from finalized state. Delivery, real wallet approvals and
+completed runtime readback remain ahead.
+
 ## Fresh-generation publication attestation candidate
 
 The client publication guard now binds the actual factory and directory it

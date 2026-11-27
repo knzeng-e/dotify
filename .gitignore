@@ -29,3 +29,5 @@ contracts/**/typechain-types/
 
 # Isolated public-account qualification artifact.
 web/dist-account-qualification/
+
+web/dist-artist-qualification/
