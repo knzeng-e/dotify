@@ -30,18 +30,19 @@ The public API pair still names the earlier factory/directory and namespace
 `dotify`. Custody is stopped with its earlier profile. Encoder and signaling
 are running. These observations describe the existing deployment.
 
-At finalized Bulletin block 1,832,987, the publishing account
-`5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca`
-has nonce 2179 and no storage authorization. Obtain a grant through the
-[Bulletin authorization procedure](https://docs.polkadot.com/reference/apps/infrastructure/bulletin-chain/authorization/),
-then reread its finalized counters and expiry. Confirm its network matches
-the publisher profile.
+At finalized Bulletin block 1,833,545, the publishing account
+`5DnPdzxJWgfFuh1VYzpvz2TzU8BhPzfGKSzsDhGEkhvXEdca` has nonce 2179 and
+2,438 operations plus 634,388,480 bytes for each storage counter. Its grant
+expires at block 2,035,040. The earlier obligation floor is 2,397
+operations and 613,172,038 bytes. Recheck both figures before signing.
+This grant targets application publication. A release attempt with a larger
+shortfall can exercise the Studio's refill and retry flow.
 
-Size the grant against the proposed release count, per-part graph caps,
-retry allowance, existing renewal obligations and the actual client artifact.
-The earlier local obligation floor is 2,397 transactions and 613,172,038 bytes.
-Refresh it before selecting the final envelope. A first artist track or cover
-is unnecessary for preparing the reusable allowance.
+The Product bootstrap captures one artist and zero releases at finalized
+Paseo Asset Hub block 16,304,827. The block hash is
+`0x7ad373513d35f14320c6a391f85cf0a58fd18558a591e99cffc0e95acab3f9f2`.
+The normal catalog indexer and HTTP route generated the snapshot locally
+from the fresh directory, independently of hosted activation.
 
 ## Activation order
 
@@ -55,13 +56,9 @@ is unnecessary for preparing the reusable allowance.
 4. Install the new key/profile settings and start exactly one custody writer,
    then matching edges and signaling. Remove the old standalone public-asset
    policy setting. Verify readiness, private forwarding and current directory.
-5. Generate the Product bootstrap catalogue from the newly running API.
-   Confirm the new runtime is listed and the old releases are absent. Build the
-   full Studio Product executable and matching Web from the reviewed source.
+5. Compare the newly running API catalogue with the Product bootstrap. Confirm
+   the new runtime is listed and there are no releases. If the payload changes
+   the intended bootstrap, regenerate it and recalculate the publication budget.
 6. Publish and read back the complete client bytes and DotNS records. Check
    ordinary upload, refill feedback and same-draft retry, artist wallet approval,
    catalogue visibility, listening and a shared Room on the named devices.
-
-The checked-in bootstrap has its own historical source. Refreshing it from the
-new service is required before the final executable is packaged. A successful
-frozen build alone establishes compilation.
