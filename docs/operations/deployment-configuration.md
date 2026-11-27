@@ -341,8 +341,9 @@ Stop old writers and apply the
 Initialize a new empty PostgreSQL namespace with fresh authentication state,
 catalogue/checkpoints, receipt journals, admission records and queues. Verify
 that retired sessions and grants cannot authorize requests in the new namespace.
-Explicitly adapt and verify runtime row policies for the new namespace; the
-deployed `dotify`-only policy does not admit another name. Keep one custody writer.
+Use the [managed-namespace cutover command](shared-api-state.md#reset-a-managed-development-namespace)
+to move the deployed runtime row policies to the new namespace in the same
+transaction as initialization. Keep one custody writer.
 Account nonces and incurred storage obligations must follow current chain state.
 
 After artist-wallet creation and finalized runtime readback, prepare its unused
@@ -640,6 +641,15 @@ available to report the refill and blocks signing until the finalized grant
 is sufficient. Validate the
 [ordinary artist flow and retry](bulletin-artist-publication.md#resume-after-a-capacity-stop)
 before recording hosted acceptance.
+
+## Dedicated Product artist setup build
+
+The [artist setup procedure](../how-to/create-artist-runtime-on-product.md)
+owns the separate `dotify-test01.dot` 0.1.91 candidate and its delivery evidence.
+It uses the signed Product Host path on Paseo Asset Hub, the tracked CDM version-4
+bindings and a separate artifact/config pair. It needs neither a Dotify API route
+nor hosted service settings. Any later publication uses the reviewed Product
+artifact and storage budget.
 
 ## Selected-artist onboarding prerequisite reader
 
