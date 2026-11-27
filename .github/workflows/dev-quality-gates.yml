@@ -379,6 +379,7 @@ jobs:
           npm run test:qualification
           npm run build:qualification
           npm run build:account-qualification
+          npm run build:artist-qualification
 
       - name: Build native Product support profile
         env:

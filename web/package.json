@@ -57,6 +57,7 @@
 		"postinstall": "node scripts/patch-truapi-info.mjs",
 		"test:product-sdk-compat": "node --test scripts/product-sdk-compat.test.mjs",
 		"build:qualification": "tsc -b && node scripts/build-qualification.mjs",
+		"build:artist-qualification": "tsc -b && node scripts/build-qualification.mjs --artist",
 		"build:account-qualification": "tsc -b && node scripts/build-qualification.mjs --account",
 		"test:qualification": "node --test scripts/qualification-profile.test.mjs && vitest run src/qualification/report.test.ts src/qualification/account.test.ts src/features/productHost/productHostInfo.test.ts",
 		"test:artist-prerequisites": "node --test scripts/artist-onboarding-prerequisites.test.mjs scripts/operator-native-snapshot.test.mjs",

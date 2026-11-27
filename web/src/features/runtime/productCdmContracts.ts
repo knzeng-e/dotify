@@ -33,6 +33,7 @@
 import type { Address } from 'viem';
 import { withProductPeakStorageDeposit } from './productCdmStorageDeposit';
 import cdmManifest from '../../generated/contracts/cdm.json';
+import { runtimeOwnershipAbi } from '../../generated/contracts/runtimeOwnership';
 import { SMART_RUNTIME_LIBRARY, smartRuntimeAbi } from '../../generated/contracts/smartRuntime';
 import {
   ProductCdmRuntimeError,
@@ -72,6 +73,7 @@ export type ProductChainEnvironment = 'devnet';
 
 export type ProductCdmContractsOptions = {
   environment: ProductChainEnvironment;
+  expectedGenesis?: string;
   /** Signer manager from @parity/product-sdk/wallet, when transactions are in scope. */
   signerManager?: unknown;
 };
@@ -97,6 +99,9 @@ const defaultDeps: ProductCdmContractsDeps = {
 
 export type ProductCdmContracts = {
   resolver: ProductCdmRuntimeContractResolver;
+  finalizedHash: () => Promise<`0x${string}`>;
+  dryRunCall: ReturnType<ContractsModule['createContractRuntimeFromClient']>['dryRunCall'];
+  readMappedAccount: (address: Address, at: `0x${string}`) => Promise<string | undefined>;
   /** Native Balance precision read from the connected Product chain spec. */
   nativeTokenDecimals: number;
   readAvailableBalance: (address: string) => Promise<bigint>;
@@ -142,6 +147,9 @@ export async function createProductCdmContracts(
   let nativeTokenDecimals: number;
   try {
     const spec = await client.raw.assetHub.getChainSpecData();
+    if (options.expectedGenesis && spec.genesisHash !== options.expectedGenesis) {
+      throw new ProductCdmRuntimeError('The Host did not connect to the expected Paseo Asset Hub.');
+    }
     nativeTokenDecimals = productCdmNativeTokenDecimals(spec.properties);
   } catch (error) {
     client.destroy();
@@ -193,7 +201,7 @@ export async function createProductCdmContracts(
 
     getRuntimeContract(runtimeAddress) {
       // Per-artist diamond: bind the merged facet ABI to this address.
-      return contracts.createContract(runtime, runtimeAddress, smartRuntimeAbi as never, {
+      return contracts.createContract(runtime, runtimeAddress, [...smartRuntimeAbi, ...runtimeOwnershipAbi] as never, {
         signerManager: options.signerManager as never
       }) as unknown as ProductCdmContractHandle;
     }
@@ -227,7 +235,25 @@ export async function createProductCdmContracts(
     return account.data.free > unavailable ? account.data.free - unavailable : 0n;
   }
 
-  return { resolver, nativeTokenDecimals, readAvailableBalance, verifyDeployment, destroy: () => client.destroy() };
+  return {
+    resolver,
+    nativeTokenDecimals,
+    readAvailableBalance,
+    verifyDeployment,
+    finalizedHash: async () => {
+      const { hash } = await client.raw.assetHub.getFinalizedBlock();
+      if (!/^0x[0-9a-f]{64}$/i.test(hash)) throw new ProductCdmRuntimeError('Invalid finalized Paseo block.');
+      return hash as `0x${string}`;
+    },
+    dryRunCall: (...args) => runtime.dryRunCall(...args),
+    readMappedAccount: async (address, at) => {
+      const mapping: unknown = await client.raw.assetHub.getUnsafeApi().query.Revive.OriginalAccount.getValue(address, { at });
+      if (typeof mapping === 'string') return mapping;
+      if (mapping == null) return undefined;
+      throw new ProductCdmRuntimeError('Paseo returned an invalid account mapping.');
+    },
+    destroy: () => client.destroy()
+  };
 }
 
 export function productCdmNativeTokenDecimals(properties: { tokenDecimals?: unknown }): number {

@@ -631,6 +631,15 @@ is an explicit offline operator tool with separate private plan/key paths and
 trusted digests. It adds no hosted route, environment setting, volume, secret
 installation or startup action. Ordinary media still refuses original archives.
 
+## Dedicated Product artist setup build
+
+The [artist setup procedure](../how-to/create-artist-runtime-on-product.md)
+owns the separate `dotify-test01.dot` 0.1.91 candidate and its delivery evidence.
+It uses the signed Product Host path on Paseo Asset Hub, the tracked CDM version-4
+bindings and a separate artifact/config pair. It needs neither a Dotify API route
+nor hosted service settings. Any later publication uses the reviewed Product
+artifact and storage budget.
+
 ## Selected-artist onboarding prerequisite reader
 
 The [read-only candidate procedure](../how-to/check-artist-onboarding-prerequisites.md)
