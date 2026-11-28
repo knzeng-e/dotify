@@ -1,6 +1,7 @@
 import { CircleAlert, CircleCheckBig, Copy, Disc3, X } from 'lucide-react';
 import { useEffect, useState, type CSSProperties } from 'react';
 import { Dialog } from './Dialog';
+import { TransactionFactValue } from './TransactionFactValue';
 import { getTransactionProofUrl } from '../shared/utils/explorer';
 import { shorten } from '../shared/utils/format';
 import { useUiFeedback } from '../app/providers/UiFeedbackProvider';
@@ -97,17 +98,7 @@ export function TransactionModal() {
             <div key={`${fact.label}-${fact.value}`}>
               <dt>{fact.label}</dt>
               <dd>
-                <span className='transaction-fact-value'>
-                  {fact.href ? (
-                    <a href={fact.href} target='_blank' rel='noreferrer'>
-                      {fact.value}
-                    </a>
-                  ) : fact.code ? (
-                    <code>{fact.value}</code>
-                  ) : (
-                    fact.value
-                  )}
-                </span>
+                <TransactionFactValue fact={fact} />
                 {fact.copyValue && (
                   <button
                     className='transaction-fact-copy'
@@ -132,7 +123,7 @@ export function TransactionModal() {
               <div key={`${fact.label}-${fact.value}`}>
                 <dt>{fact.label}</dt>
                 <dd>
-                  <span className='transaction-fact-value'>{fact.code ? <code>{fact.value}</code> : fact.value}</span>
+                  <TransactionFactValue fact={fact} />
                   {fact.copyValue && (
                     <button
                       className='transaction-fact-copy'

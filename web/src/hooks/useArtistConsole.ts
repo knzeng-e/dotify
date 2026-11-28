@@ -27,6 +27,7 @@ import { localAudioRef, priceDotForAccessMode, runtimeAddressFromTrackId } from 
 import { encodeAccessMode, encodeRequiredPersonhood, manifestRequiredPersonhood } from '../features/runtime/accessEncoding';
 import { listKnownRoyaltyRuntimeCandidates, readRoyaltyRuntimeBalances } from '../features/runtime/royaltyRuntimeClaims';
 import {
+  buildArtistAddressFact,
   buildReleasePublicationRoadmap,
   buildReleaseRegistrationFailureMessage,
   buildReleaseTechnicalFacts,
@@ -39,7 +40,7 @@ import { resolvePreparedUpload, type PreparedUploadRef } from '../features/uploa
 import { createRuntimeReader } from '../features/runtime/runtimeReaderProvider';
 import { createRuntimeWriter } from '../features/runtime/runtimeWriterProvider';
 import { resolveRuntimeAdapterConfig } from '../features/runtime/runtimeAdapterConfig';
-import { resolveProductHostConfig } from '../features/productHost/productHost';
+import { ProductHostSigningAllowanceError, resolveProductHostConfig } from '../features/productHost/productHost';
 import { resolveConfiguredArtistPublicationSafety } from '../shared/config/deploymentSafety';
 import { normalizeReleaseMetadata } from '../features/catalog/releaseMetadata';
 import { describeArtistRegistrationError, formatWeiAsDot, shorten, dotToPlanck } from '../shared/utils/format';
@@ -395,7 +396,7 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
     return { chainId, walletClient: await getActiveWalletClient() };
   }
 
-  function releasePublicationTechnicalFacts(runtimeAddress: string | null = artistRuntimeAddress): TransactionFeedback['technicalFacts'] {
+  function releasePublicationTechnicalFacts(runtimeAddress: string | null = artistRuntimeAddress) {
     return buildReleaseTechnicalFacts({
       artistRecipient: activeEvmAddress,
       runtimeAddress,
@@ -405,16 +406,8 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
 
   function artistSpaceTechnicalFacts(runtimeAddress: string | null = artistRuntimeAddress): TransactionFeedback['technicalFacts'] {
     return [
-      {
-        label: 'Artist account',
-        value: activeEvmAddress ? shorten(activeEvmAddress, 14) : 'Connect the artist account',
-        code: Boolean(activeEvmAddress)
-      },
-      {
-        label: 'Artist space record',
-        value: runtimeAddress ? shorten(runtimeAddress, 14) : 'Created after the approvals finish',
-        code: Boolean(runtimeAddress)
-      }
+      buildArtistAddressFact('Artist account', activeEvmAddress, 'Connect the artist account'),
+      buildArtistAddressFact('Artist space record', runtimeAddress, 'Created after the approvals finish')
     ];
   }
 
@@ -1263,6 +1256,27 @@ export function useArtistConsole(deps: UseArtistConsoleDeps) {
       preparingAssets = false;
       const message = registrationError instanceof Error ? registrationError.message : 'Registration failed';
       setRightsStatus(message);
+      if (registrationError instanceof ProductHostSigningAllowanceError && !submittedRegistrationTxHash) {
+        setPublicationFeedback({
+          tone: 'error',
+          title: message,
+          message:
+            'Polkadot could not send the sign-in request. If you are on Desktop or Web, check the connection to your Polkadot app, then retry here with the same draft.',
+          facts: [{ label: 'Polkadot connection', value: 'Pair your device', href: 'https://developers.polkadot.com/apps/get-started/' }],
+          technicalFacts: [
+            ...releasePublicationTechnicalFacts(runtimeAddress),
+            { label: 'Signing transport', value: 'Statement Store rejected the sign-in request (noAllowance).' }
+          ],
+          recoveryAction: {
+            label: 'Retry with this draft',
+            run: () => {
+              void latestRegisterRights.current();
+            }
+          },
+          steps: buildReleasePublicationRoadmap(publicationStage)
+        });
+        return;
+      }
       if (registrationError instanceof PublicationCapacityError && !submittedRegistrationTxHash) {
         setPublicationFeedback({
           tone: 'error',

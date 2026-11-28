@@ -19,6 +19,12 @@ export type ProductHostIdentity = {
   signMessage: (message: string) => Promise<`0x${string}`>;
 };
 
+export class ProductHostSigningAllowanceError extends Error {
+  constructor(readonly cause: unknown) {
+    super('Polkadot sign-in needs attention');
+  }
+}
+
 export type ProductHostRoomPermissionResult = { ok: true } | { ok: false; reason: string };
 export type ProductHostNavigationResult = { ok: true } | { ok: false; reason: string };
 export type ProductHostRoomPermissionOptions = {
@@ -71,7 +77,7 @@ function envValue(env: EnvironmentLike, key: string): string {
   return value === null || value === undefined ? '' : String(value).trim();
 }
 
-function detectProductRoomEntryRuntime(): ProductRoomEntryRuntime {
+function detectProductHostRuntime(): ProductRoomEntryRuntime {
   if (typeof window === 'undefined') {
     return { protocol: '', embedded: false, hostWebView: false, hostApiPort: false };
   }
@@ -92,7 +98,7 @@ function detectProductRoomEntryRuntime(): ProductRoomEntryRuntime {
  * Keep remembered names as a convenience, but never turn them into a passive
  * WebRTC/Remote permission request while a share link is mounting.
  */
-export function requiresExplicitProductRoomEntry(runtime: ProductRoomEntryRuntime = detectProductRoomEntryRuntime()): boolean {
+export function requiresExplicitProductRoomEntry(runtime: ProductRoomEntryRuntime = detectProductHostRuntime()): boolean {
   return runtime.protocol === 'polkadot:' || runtime.embedded || runtime.hostWebView || runtime.hostApiPort;
 }
 
@@ -229,6 +235,10 @@ export function isProductHostWebRtcUnavailable(
   return (protocol === 'polkadot:' || hostMarked) && typeof peerConnection !== 'function';
 }
 
+export function usesProductHostNavigation(runtime = detectProductHostRuntime()): boolean {
+  return runtime.protocol === 'polkadot:' || runtime.hostWebView || runtime.hostApiPort;
+}
+
 export async function openProductHostExternalUrl(rawUrl: string, deps?: ProductHostNavigationDeps): Promise<ProductHostNavigationResult> {
   let url: URL;
   try {
@@ -289,8 +299,17 @@ export async function connectProductHostIdentity(config: ProductHostConfig, deps
     evmAddress: deriveH160(account.publicKey),
     productPublicKey: `0x${bytesToHex(account.publicKey)}` as `0x${string}`,
     signMessage: async message => {
-      const signature = await signer.signBytes(new TextEncoder().encode(message));
-      return `0x${bytesToHex(signature)}` as `0x${string}`;
+      try {
+        const signature = await signer.signBytes(new TextEncoder().encode(message));
+        return `0x${bytesToHex(signature)}` as `0x${string}`;
+      } catch (error) {
+        // The pinned Host SDK flattens this remote SSO rejection into its error message.
+        const detail = describeHostError(error);
+        if (detail.includes('SSO statement submit failed') && /"reason"\s*:\s*"noAllowance"/.test(detail)) {
+          throw new ProductHostSigningAllowanceError(error);
+        }
+        throw error;
+      }
     }
   };
 }
