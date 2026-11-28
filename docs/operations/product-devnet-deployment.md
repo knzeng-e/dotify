@@ -1537,6 +1537,21 @@ The Product deployment is static. To roll back:
 Do not roll back Fly origin allowlists while either public frontend remains
 active.
 
+## Diagnose a Studio signing rejection
+
+If the Host reports `SSO statement submit failed` with `noAllowance` during
+`signRaw`, the Statement Store rejected the Host's sign-in request. On Desktop
+or Web, check the connection to the [paired Polkadot app](https://developers.polkadot.com/apps/get-started/)
+and retry the same draft. If the error persists, record the Host platform,
+version and network for the Products Devnet operator to check the signing
+transport. The screenshot alone does not identify the failing relay account.
+
+Studio requests a signed session before it asks the API to authorize uploads.
+The storage refill amounts come from the custody publisher only after that
+step. On the Bulletin deployment, custody writes the encrypted audio, public
+cover and release manifest to Bulletin. The artist runtime records their
+references. A CID or an `ipfs://` reference does not identify the storage provider.
+
 ## Known Limits
 
 - Product account signing is accepted by the API only through the explicit

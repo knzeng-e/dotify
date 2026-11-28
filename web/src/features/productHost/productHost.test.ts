@@ -6,9 +6,11 @@ import {
   ensureProductHostRoomPermissions,
   isProductHostWebRtcUnavailable,
   openProductHostExternalUrl,
+  ProductHostSigningAllowanceError,
   probeProductHost,
   requiresExplicitProductRoomEntry,
-  resolveProductHostConfig
+  resolveProductHostConfig,
+  usesProductHostNavigation
 } from './productHost';
 
 describe('resolveProductHostConfig', () => {
@@ -82,6 +84,13 @@ describe('Product host live-room navigation', () => {
     expect(isProductHostWebRtcUnavailable('https:', undefined, false)).toBe(false);
   });
 
+  it('uses the navigation bridge only on a Product surface', () => {
+    const web = { protocol: 'https:', embedded: true, hostWebView: false, hostApiPort: false };
+    expect(usesProductHostNavigation(web)).toBe(false);
+    expect(usesProductHostNavigation({ ...web, protocol: 'polkadot:' })).toBe(true);
+    expect(usesProductHostNavigation({ ...web, hostApiPort: true })).toBe(true);
+  });
+
   it('opens a secure fallback URL through the Product host', async () => {
     const navigateTo = vi.fn(async () => ({ ok: true as const, value: undefined }));
 
@@ -153,6 +162,16 @@ describe('connectProductHostIdentity', () => {
     expect(provider.getProductAccount).toHaveBeenCalledWith('dotify-test01.dot', 0);
     expect(provider.getProductAccountSigner).toHaveBeenCalledWith(account);
     expect(signBytes).toHaveBeenCalledWith(new TextEncoder().encode('Dotify sign-in'));
+
+    const rejected = new Error(
+      'signRaw failed: Unknown: SSO statement submit failed: statement_submit not accepted: {"reason":"noAllowance","status":"rejected"}'
+    );
+    signBytes.mockRejectedValueOnce(rejected);
+    await expect(identity.signMessage('Dotify sign-in')).rejects.toBeInstanceOf(ProductHostSigningAllowanceError);
+
+    const otherFailure = new Error('signRaw failed: Unknown: SSO statement submit failed: statement_submit not accepted: {"reason":"invalidProof"}');
+    signBytes.mockRejectedValueOnce(otherFailure);
+    await expect(identity.signMessage('Dotify sign-in')).rejects.toBe(otherFailure);
   });
 });
 

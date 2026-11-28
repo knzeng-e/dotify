@@ -64,3 +64,15 @@ it('offers a saved publication check but never a pending payment/registration re
   status.feedback = { ...base, operationKind: 'payment' };
   expect(renderToStaticMarkup(createElement(TransactionModal))).not.toContain('Check preparation</button>');
 });
+
+it('links shortened technical addresses without losing their code styling', () => {
+  const href = `https://blockscout-testnet.polkadot.io/address/0x${'11'.repeat(20)}`;
+  status.feedback = {
+    tone: 'error',
+    title: 'Polkadot sign-in needs attention',
+    message: 'Retry with this draft.',
+    technicalFacts: [{ label: 'Artist account', value: '0x111111...111111', code: true, href }]
+  };
+  const html = renderToStaticMarkup(createElement(TransactionModal));
+  expect(html).toContain(`href="${href}" target="_blank" rel="noreferrer"><code>0x111111...111111</code>`);
+});

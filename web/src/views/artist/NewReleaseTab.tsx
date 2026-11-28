@@ -1,6 +1,7 @@
 import { BadgeCheck, Disc3, FileAudio, Library, Plus, RefreshCw, Trash2, Upload } from 'lucide-react';
 import { isBackendConfigured } from '../../services/pinata';
 import { CoverImage } from '../../components/CoverImage';
+import { TransactionFactValue } from '../../components/TransactionFactValue';
 import { PanelTitle } from '../../shared/ui/PanelTitle';
 import { accessModeLabelFromState, shorten } from '../../shared/utils/format';
 import {
@@ -678,7 +679,9 @@ export function NewReleaseTab({
                 {releaseTechnicalFacts.map(fact => (
                   <div key={`${fact.label}-${fact.value}`}>
                     <dt>{fact.label}</dt>
-                    <dd>{fact.code ? <code>{fact.value}</code> : fact.value}</dd>
+                    <dd>
+                      <TransactionFactValue fact={fact} />
+                    </dd>
                   </div>
                 ))}
               </dl>

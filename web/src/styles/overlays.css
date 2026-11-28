@@ -242,6 +242,27 @@
   overflow-wrap: anywhere;
 }
 
+.transaction-fact-link {
+  color: var(--link);
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
+.transaction-fact-link:hover,
+.transaction-fact-link:focus-visible {
+  color: var(--link-hover);
+}
+
+.transaction-fact-link svg {
+  vertical-align: -0.08em;
+}
+
+.transaction-fact-value > small {
+  display: block;
+  margin-top: 0.2rem;
+  color: var(--muted);
+}
+
 .transaction-fact-copy {
   display: inline-flex;
   flex: 0 0 auto;

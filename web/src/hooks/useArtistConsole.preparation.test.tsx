@@ -2,6 +2,7 @@ import { deployments } from '../shared/config/deployments';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { useArtistConsole, type UseArtistConsoleDeps } from './useArtistConsole';
+import { ProductHostSigningAllowanceError } from '../features/productHost/productHost';
 import { PublicationCapacityError } from '../features/uploads/publicationCapacity';
 import { AudioPreparationError, AudioPreparationPending } from '../features/uploads/streamingPreparation';
 import { createEmptyReleaseMetadata } from '../features/catalog/releaseMetadata';
@@ -235,6 +236,52 @@ describe('publication preparation ownership', () => {
         description: manifest.track.description
       })
     );
+  });
+
+  it('lets the artist retry the same draft after a Host signing rejection and then shows the Bulletin refill', async () => {
+    const feedbackStates: Array<TransactionFeedback | null> = [];
+    const latestFeedback = () => feedbackStates[feedbackStates.length - 1];
+    const deps = publicationDeps({
+      coverFile: null,
+      setTransactionFeedback: next => {
+        feedbackStates.push(typeof next === 'function' ? next(latestFeedback() ?? null) : next);
+      }
+    });
+    const captured: { current: ReturnType<typeof useArtistConsole> | null } = { current: null };
+    function Harness() {
+      captured.current = useArtistConsole(deps);
+      return null;
+    }
+    renderToStaticMarkup(<Harness />);
+
+    uploads.audio.mockRejectedValueOnce(new ProductHostSigningAllowanceError(new Error('Raw Host payload'))).mockRejectedValueOnce(
+      new PublicationCapacityError({
+        kind: 'bulletin-quota',
+        account: '5'.repeat(48),
+        genesis: `0x${'ab'.repeat(32)}`,
+        transactions: 4,
+        storageBytes: '0',
+        renewalBytes: '0'
+      })
+    );
+
+    await captured.current!.registerRights();
+    const failure = latestFeedback();
+    expect(failure).toMatchObject({
+      title: 'Polkadot sign-in needs attention',
+      facts: [expect.objectContaining({ value: 'Pair your device' })],
+      technicalFacts: expect.arrayContaining([expect.objectContaining({ label: 'Signing transport' })]),
+      recoveryAction: { label: 'Retry with this draft' }
+    });
+    expect(failure?.message).not.toContain('Raw Host payload');
+    expect(uploads.metadata).not.toHaveBeenCalled();
+    expect(runtime.registerTrack).not.toHaveBeenCalled();
+
+    failure?.recoveryAction?.run();
+    await vi.waitFor(() => expect(latestFeedback()).toMatchObject({ title: 'Bulletin storage needs a refill' }));
+    expect(uploads.audio).toHaveBeenCalledTimes(2);
+    expect(uploads.audio.mock.calls[1]?.[1]).toBe(deps.fileHash);
+    expect(runtime.registerTrack).not.toHaveBeenCalled();
   });
 
   it('keeps errors terminal despite late progress and reuses durable audio on retry', async () => {

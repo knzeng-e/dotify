@@ -1,3 +1,4 @@
+import { blockscoutBaseUrl } from '../../shared/utils/explorer';
 import { describe, expect, it } from 'vitest';
 import {
   artistSetupState,
@@ -119,11 +120,38 @@ describe('release publication disclosure helpers', () => {
       additionalSplits: [{ id: 'producer', label: 'Producer', recipient: '0x3333333333333333333333333333333333333333', bps: 2_000 }]
     });
 
-    expect(facts).toContainEqual({ label: 'Artist account', value: '0x111111...111111', code: true });
-    expect(facts).toContainEqual({ label: 'Artist space record', value: '0x222222...222222', code: true });
-    expect(facts).toContainEqual({ label: 'Release storage', value: 'Protected audio and release details use IPFS-backed references.' });
+    expect(facts).toContainEqual({
+      label: 'Artist account',
+      value: '0x111111...111111',
+      code: true,
+      href: `${blockscoutBaseUrl}/address/0x${'11'.repeat(20)}`
+    });
+    expect(facts).toContainEqual({
+      label: 'Artist space record',
+      value: '0x222222...222222',
+      code: true,
+      href: `${blockscoutBaseUrl}/address/0x${'22'.repeat(20)}`
+    });
+    expect(facts).toContainEqual({
+      label: 'Release storage',
+      value: 'Encrypted audio, cover art and release details are stored separately. Your artist space records their references.'
+    });
     expect(facts.map(fact => fact.label)).not.toContain('Public archive');
-    expect(facts).toContainEqual({ label: 'Producer address', value: '0x333333...333333', code: true });
+    expect(facts).toContainEqual({
+      label: 'Producer address',
+      value: '0x333333...333333',
+      code: true,
+      href: `${blockscoutBaseUrl}/address/0x${'33'.repeat(20)}`
+    });
+  });
+
+  it('only builds explorer links for complete addresses', () => {
+    const facts = buildReleaseTechnicalFacts({
+      artistRecipient: '',
+      runtimeAddress: null,
+      additionalSplits: [{ id: 'pending', label: 'Producer', recipient: '0x333', bps: 2_000 }]
+    });
+    expect(facts.every(fact => fact.href === undefined)).toBe(true);
   });
 
   it('explains who of revenue, including the artist remainder', () => {

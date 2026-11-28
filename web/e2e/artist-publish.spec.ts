@@ -295,12 +295,18 @@ test('artist can create a runtime, publish a release, and see it in the listener
   await createArtistProfile(page);
   await completeReleaseDraft(page);
 
+  const reviewDetails = page.locator('.release-technical-review');
+  await reviewDetails.getByText('Technical details').press('Enter');
+  await expect(reviewDetails.getByRole('link', { name: /a712$/i })).toHaveAttribute('href', new RegExp(`/address/${E2E_ARTIST_RUNTIME}$`, 'i'));
+  await expect(reviewDetails).toContainText('Encrypted audio, cover art and release details');
+  await reviewDetails.getByText('Technical details').press('Enter');
+
   await page.getByTestId('publish-release-button').click();
   const dialog = page.getByRole('dialog');
   await expect(dialog).toContainText('Release published');
   await expect(dialog).toContainText('Visible in Dotify');
   await expect(dialog.getByText('Technical details')).toBeVisible();
-  await expect(dialog.getByText('Artist space record')).not.toBeVisible();
+  await expect(dialog.getByText('Artist space record', { exact: true })).not.toBeVisible();
 
   const publishState = await readArtistPublishState(page);
   expect(publishState?.runtimeCreated).toBe(true);

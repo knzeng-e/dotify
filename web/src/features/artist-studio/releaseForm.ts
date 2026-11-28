@@ -6,6 +6,8 @@
 import type { AccessMode, PersonhoodLevel, ReleaseRoyaltySplitDraft, ReleaseStep, TransactionFeedback, TransactionFeedbackFact } from '../../shared/types';
 import { releaseDetailsPreflightError, type ReleaseDetails } from './releaseDetails';
 import { shortenAddress } from '../../shared/utils/format';
+import { getBlockscoutAddressUrl } from '../../shared/utils/explorer';
+import { isAddress } from 'viem';
 
 export const ROYALTY_BPS_DENOMINATOR = 10_000;
 
@@ -194,35 +196,34 @@ export function buildReleasePublicationFacts(input: {
   ];
 }
 
+export function buildArtistAddressFact(label: string, address: string | null, unavailable: string): TransactionFeedbackFact {
+  if (!address) return { label, value: unavailable };
+  return {
+    label,
+    value: shortenAddress(address),
+    code: true,
+    ...(isAddress(address, { strict: false }) ? { href: getBlockscoutAddressUrl(address) } : {})
+  };
+}
+
 export function buildReleaseTechnicalFacts(input: {
   artistRecipient: string;
   runtimeAddress: string | null;
   additionalSplits?: ReleaseRoyaltySplitDraft[];
 }): TransactionFeedbackFact[] {
   const facts: TransactionFeedbackFact[] = [
-    {
-      label: 'Artist account',
-      value: input.artistRecipient ? shortenAddress(input.artistRecipient) : 'Connect the artist account',
-      code: Boolean(input.artistRecipient)
-    },
-    {
-      label: 'Artist space record',
-      value: input.runtimeAddress ? shortenAddress(input.runtimeAddress) : 'Required before publication',
-      code: Boolean(input.runtimeAddress)
-    },
+    buildArtistAddressFact('Artist account', input.artistRecipient, 'Connect the artist account'),
+    buildArtistAddressFact('Artist space record', input.runtimeAddress, 'Required before publication'),
     {
       label: 'Release storage',
-      value: 'Protected audio and release details use IPFS-backed references.'
+      value: 'Encrypted audio, cover art and release details are stored separately. Your artist space records their references.'
     }
   ];
 
   for (const split of input.additionalSplits ?? []) {
-    if (!split.recipient.trim()) continue;
-    facts.push({
-      label: `${split.label.trim() || 'Rights holder'} address`,
-      value: shortenAddress(split.recipient.trim()),
-      code: true
-    });
+    const recipient = split.recipient.trim();
+    if (!recipient) continue;
+    facts.push(buildArtistAddressFact(`${split.label.trim() || 'Rights holder'} address`, recipient, ''));
   }
 
   return facts;
