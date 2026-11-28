@@ -8,7 +8,7 @@ primary_region = "ams"
   # Activation requires the W36 offline import and private custody service.
   # See docs/operations/shared-api-state.md; no automatic state initialization.
   STATE_STORE = "postgres"
-  STATE_NAMESPACE = "dotify"
+  STATE_NAMESPACE = "dotify-dev-20261127"
   API_ROLE = "edge"
   CUSTODY_SERVICE_URL = "http://dotify-custody.internal:8790"
   # Fresh attested Paseo deployment. Keep aligned with deployments.json and
@@ -33,8 +33,8 @@ primary_region = "ams"
   PASEO_ASSET_HUB_NATIVE_RPC = "https://asset-hub-paseo-rpc.n.dwellir.com"
   # Fly forwards every request from its proxy; key rate limits on Fly-Client-IP.
   API_TRUST_PROXY = "fly"
-  DOTIFY_FACTORY_ADDRESS = "0x61dd19a0d4f6bd21c6ffa4a7a9d9e771af95bb13"
-  DOTIFY_DIRECTORY_ADDRESS = "0x79b21cad3848a3019edee17b089142282f4a13a3"
+  DOTIFY_FACTORY_ADDRESS = "0xe2199c16ea32402dd2bdc3730afba49ad5cd83f5"
+  DOTIFY_DIRECTORY_ADDRESS = "0x8af1531278831fe92689558f7b6cae92fc682ca4"
   DOTIFY_CHAIN_ID = "420420417"
   # New publications use the isolated private encoder after explicit custody
   # provisioning. STREAMING_WORKER_TOKEN is a dedicated Fly secret, never the

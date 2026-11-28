@@ -633,6 +633,9 @@ installation or startup action. Ordinary media still refuses original archives.
 
 ## Artist upload and refill feedback
 
+The [0.1.92 coordinated delivery candidate](studio-autonomous-delivery.md)
+binds the fresh namespace, runtime and publisher paths for this rollout.
+
 Roll out the Web and Product clients together with the edge API and custody
 version that serves the [artist capacity response](../reference/request-limits.md#artist-upload-limits).
 Use a reviewed multi-release profile for the current artist runtime. Start
