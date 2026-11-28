@@ -6,7 +6,7 @@ primary_region = "ams"
 
 [env]
   STATE_STORE = "postgres"
-  STATE_NAMESPACE = "dotify"
+  STATE_NAMESPACE = "dotify-dev-20261127"
   API_ROLE = "custody"
   # Fresh attested Paseo deployment. Keep aligned with deployments.json and
   # web/src/shared/config/deploymentSafety.ts so API diagnostics and access
@@ -28,7 +28,7 @@ primary_region = "ams"
   PASEO_ASSET_HUB_RPC = "https://eth-rpc-testnet.polkadot.io/"
   # Archive reads for finalized native receipts; never used for signing.
   PASEO_ASSET_HUB_NATIVE_RPC = "https://asset-hub-paseo-rpc.n.dwellir.com"
-  NATIVE_CONTRIBUTION_SNAPSHOT_PATH = "/data/contributions/receipts.json"
+  NATIVE_CONTRIBUTION_SNAPSHOT_PATH = "/data/contributions/fresh-20261127/receipts.json"
   # The catalog snapshot and session revocations live on the same volume so a
   # redeploy neither reindexes cold (key delivery waits for a fresh catalog)
   # nor resurrects signed-out sessions. SESSION_EPOCH is a Fly secret; set it
@@ -37,14 +37,18 @@ primary_region = "ams"
   SESSION_REVOCATIONS_PATH = "/data/contributions/session-revocations.json"
   # Fly forwards every request from its proxy; key rate limits on Fly-Client-IP.
   API_TRUST_PROXY = "fly"
-  DOTIFY_FACTORY_ADDRESS = "0x61dd19a0d4f6bd21c6ffa4a7a9d9e771af95bb13"
-  DOTIFY_DIRECTORY_ADDRESS = "0x79b21cad3848a3019edee17b089142282f4a13a3"
+  DOTIFY_FACTORY_ADDRESS = "0xe2199c16ea32402dd2bdc3730afba49ad5cd83f5"
+  DOTIFY_DIRECTORY_ADDRESS = "0x8af1531278831fe92689558f7b6cae92fc682ca4"
   DOTIFY_CHAIN_ID = "420420417"
   # New publications use the isolated private encoder after explicit custody
   # provisioning. STREAMING_WORKER_TOKEN is a dedicated Fly secret, never the
   # content-key master or a frontend variable.
   STREAMING_WORKER_URL = "http://dotify-encoder.internal:8791"
-  STREAMING_STATE_PATH = "/data/contributions/streaming"
+  # Provision the fresh key-bound publisher before deploying this profile.
+  STREAMING_AUDIO_STORAGE = "bulletin"
+  PUBLIC_ASSET_STORAGE = "bulletin"
+  BULLETIN_PUBLICATION_PROFILE = "/data/contributions/bulletin-development-20261127/profile.json"
+  STREAMING_STATE_PATH = "/data/contributions/bulletin-development-20261127/queue"
   UPLOAD_GLOBAL_CONCURRENCY = "2"
   # TURN_CAPABILITY_SECRET is a Fly secret shared with the signaling app as
   # SIGNAL_TURN_CAPABILITY_SECRET. Never track its value here.
